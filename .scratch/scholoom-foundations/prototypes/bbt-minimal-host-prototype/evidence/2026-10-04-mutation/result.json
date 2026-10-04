@@ -1,0 +1,2624 @@
+{
+  "question": "Committed literature changes through original BBT observer and cache invalidation, with no-notification negative control",
+  "package": {
+    "xpi": "/tmp/scholoom-host-prototype-assets-1bmhDr/zotero-better-bibtex-9.0.68.xpi",
+    "version": "9.0.68"
+  },
+  "dateFormats": "/home/joshua/Workspace/Code/JavaScript/Scholoom/.scratch/scholoom-foundations/prototypes/bbt-minimal-host-prototype/fixtures/dateFormats.json",
+  "workerEngine": "chromium",
+  "scenario": "mutation",
+  "nodeVersion": "v24.12.0",
+  "runDir": "/tmp/scholoom-bbt-minimal-b5mkuz",
+  "stages": [
+    "original-bootstrap-evaluated",
+    "original-main-bundle-evaluated",
+    "original-bootstrap-startup-settled"
+  ],
+  "services": [
+    "Node filesystem: FileUtils/PathUtils/IOUtils",
+    "Node SQLite: literature authority, read-only Zotero SQL views, Item field writes",
+    "menu descriptor registration only",
+    "Node vm Sandbox",
+    "chrome registration mapped to extracted original package",
+    "preference observer registration only",
+    "original BBT Worker on headless Chromium with native IndexedDB; no Zotero app",
+    "independent translator directory initialized without UI",
+    "localization attributes unavailable; UI outside scope",
+    "localization placeholder only; UI outside scope",
+    "window listener registration only",
+    "idle observer registration only",
+    "static dateFormats.json copied from official Zotero 10.0.5; no Zotero runtime",
+    "translators saved; foreground engine outside scope",
+    "preference pane registration only",
+    "item pane row registration only",
+    "Items.loadDataTypes: fields already in authority"
+  ],
+  "trace": [
+    {
+      "type": "chromium-baseline",
+      "version": "153.0.8010.12",
+      "executablePath": "/home/joshua/.cache/ms-playwright/chromium-1243/chrome-linux64/chrome"
+    },
+    {
+      "type": "debug",
+      "message": "Better BibTeX bootstrap: {better-bibtex} bootstrap: startup started"
+    },
+    {
+      "type": "debug",
+      "message": "Better BibTeX bootstrap: {better-bibtex} bootstrap: file:///tmp/scholoom-bbt-minimal-b5mkuz/package/manifest.json"
+    },
+    {
+      "type": "module-import",
+      "url": "resource://gre/modules/FileUtils.sys.mjs"
+    },
+    {
+      "type": "script",
+      "url": "file:///tmp/scholoom-bbt-minimal-b5mkuz/package/content/better-bibtex.js"
+    },
+    {
+      "type": "module-import",
+      "url": "resource://gre/modules/FileUtils.sys.mjs"
+    },
+    {
+      "type": "debug",
+      "message": "{better-bibtex:} json-rpc: main booting worker chrome://zotero-better-bibtex/content/worker/zotero.js?isBeta=false&isLinux=true&isMac=false&isWin=false&locale=en-US&name=Zotero&platform=lin&slug=zotero&version=10.0.5&worker=true\n"
+    },
+    {
+      "type": "debug",
+      "message": "{better-bibtex:} json-rpc: main worker started\n"
+    },
+    {
+      "type": "module-import",
+      "url": "resource://gre/modules/Sqlite.sys.mjs"
+    },
+    {
+      "type": "module-import",
+      "url": "resource://zotero/config.mjs"
+    },
+    {
+      "type": "module-import",
+      "url": "chrome://zotero/content/modules/filePicker.mjs"
+    },
+    {
+      "type": "module-import",
+      "url": "chrome://zotero/content/modules/filePicker.mjs"
+    },
+    {
+      "type": "module-import",
+      "url": "chrome://zotero/content/modules/filePicker.mjs"
+    },
+    {
+      "type": "debug",
+      "message": "{better-bibtex:} Zotero logging was not enabled at start\n"
+    },
+    {
+      "type": "debug",
+      "message": "{better-bibtex:} startup orchestrator started: APP_STARTUP\n"
+    },
+    {
+      "type": "debug",
+      "message": "{ startup: [start+11]better-bibtex:} orchestrator: starting start [foundation]\n"
+    },
+    {
+      "type": "sql",
+      "query": "SELECT fileName, metadataJSON FROM translatorCache WHERE fileName IN ('Collected notes.js','Citation graph.js','BetterBibTeX JSON.js','Better Hayagriva.js','Better CSL YAML.js','Better CSL JSON.js','Better BibTeX.js','Better BibTeX Citation Key Quick Copy.js','Better BibLaTeX.js')",
+      "params": []
+    },
+    {
+      "type": "debug",
+      "message": "{ startup: [start+11]better-bibtex:} needs install: [\"Collected notes\",\"Citation graph\",\"BetterBibTeX JSON\",\"Better Hayagriva\",\"Better CSL YAML\",\"Better CSL JSON\",\"Better BibTeX\",\"Better BibTeX Citation Key Quick Copy\",\"Better BibLaTeX\"]\n"
+    },
+    {
+      "type": "notifier-register",
+      "id": 1,
+      "types": [
+        "item"
+      ],
+      "name": "Better BibTeX",
+      "priority": 1
+    },
+    {
+      "type": "notifier-register",
+      "id": 2,
+      "types": [
+        "item-tag"
+      ],
+      "name": "Better BibTeX",
+      "priority": 1
+    },
+    {
+      "type": "notifier-register",
+      "id": 3,
+      "types": [
+        "collection"
+      ],
+      "name": "Better BibTeX",
+      "priority": 1
+    },
+    {
+      "type": "notifier-register",
+      "id": 4,
+      "types": [
+        "collection-item"
+      ],
+      "name": "Better BibTeX",
+      "priority": 1
+    },
+    {
+      "type": "notifier-register",
+      "id": 5,
+      "types": [
+        "group"
+      ],
+      "name": "Better BibTeX",
+      "priority": 1
+    },
+    {
+      "type": "notifier-register",
+      "id": 6,
+      "types": [
+        "sync"
+      ],
+      "name": "Better BibTeX",
+      "priority": 1
+    },
+    {
+      "type": "debug",
+      "message": "{ startup: [start+11]better-bibtex:} orchestrator: start took 00:00:00.008\n"
+    },
+    {
+      "type": "debug",
+      "message": "{ startup: [worker+10]better-bibtex:} orchestrator: starting worker [worker]\n"
+    },
+    {
+      "type": "sql",
+      "query": "SELECT MAX(dateModified) FROM items",
+      "params": []
+    },
+    {
+      "type": "worker-request",
+      "data": {
+        "jsonrpc": "2.0",
+        "id": "[1791109972505:0.6946605448038425]0",
+        "method": "initialize",
+        "params": [
+          {
+            "CSL_MAPPINGS": {},
+            "dateFormatsJSON": "{\n\t\"en-US\": {\n\t\t\"short\": [\n\t\t\t\"Jan\",\n\t\t\t\"Feb\",\n\t\t\t\"Mar\",\n\t\t\t\"Apr\",\n\t\t\t\"May\",\n\t\t\t\"Jun\",\n\t\t\t\"Jul\",\n\t\t\t\"Aug\",\n\t\t\t\"Sep\",\n\t\t\t\"Oct\",\n\t\t\t\"Nov\",\n\t\t\t\"Dec\"\n\t\t],\n\t\t\"long\": [\n\t\t\t\"January\",\n\t\t\t\"February\",\n\t\t\t\"March\",\n\t\t\t\"April\",\n\t\t\t\"May\",\n\t\t\t\"June\",\n\t\t\t\"July\",\n\t\t\t\"August\",\n\t\t\t\"September\",\n\t\t\t\"October\",\n\t\t\t\"November\",\n\t\t\t\"December\"\n\t\t]\n\t},\n\t\"af-ZA\": {\n\t\t\"short\": [\n\t\t\t\"Jan\",\n\t\t\t\"Feb\",\n\t\t\t\"Mrt\",\n\t\t\t\"Apr\",\n\t\t\t\"Mei\",\n\t\t\t\"Jun\",\n\t\t\t\"Jul\",\n\t\t\t\"Aug\",\n\t\t\t\"Sep\",\n\t\t\t\"Okt\",\n\t\t\t\"Nov\",\n\t\t\t\"Des\"\n\t\t],\n\t\t\"long\": [\n\t\t\t\"Januarie\",\n\t\t\t\"Februarie\",\n\t\t\t\"Maart\",\n\t\t\t\"April\",\n\t\t\t\"Mei\",\n\t\t\t\"Junie\",\n\t\t\t\"Julie\",\n\t\t\t\"Augustus\",\n\t\t\t\"September\",\n\t\t\t\"Oktober\",\n\t\t\t\"November\",\n\t\t\t\"Desember\"\n\t\t]\n\t},\n\t\"ar\": {\n\t\t\"short\": [\n\t\t\t\"يناير\",\n\t\t\t\"فبراير\",\n\t\t\t\"مارس\",\n\t\t\t\"أبريل\",\n\t\t\t\"مايو\",\n\t\t\t\"يونيو\",\n\t\t\t\"يوليو\",\n\t\t\t\"أغسطس\",\n\t\t\t\"سبتمبر\",\n\t\t\t\"أكتوبر\",\n\t\t\t\"نوفمبر\",\n\t\t\t\"ديسمبر\"\n\t\t],\n\t\t\"long\": [\n\t\t\t\"يناير\",\n\t\t\t\"فبراير\",\n\t\t\t\"مارس\",\n\t\t\t\"أبريل\",\n\t\t\t\"مايو\",\n\t\t\t\"يونيو\",\n\t\t\t\"يوليو\",\n\t\t\t\"أغسطس\",\n\t\t\t\"سبتمبر\",\n\t\t\t\"أكتوبر\",\n\t\t\t\"نوفمبر\",\n\t\t\t\"ديسمبر\"\n\t\t]\n\t},\n\t\"bg-BG\": {\n\t\t\"short\": [\n\t\t\t\"Яну\",\n\t\t\t\"Фев\",\n\t\t\t\"Мар\",\n\t\t\t\"Апр\",\n\t\t\t\"Май\",\n\t\t\t\"Юни\",\n\t\t\t\"Юли\",\n\t\t\t\"Авг\",\n\t\t\t\"Сеп\",\n\t\t\t\"Окт\",\n\t\t\t\"Ное\",\n\t\t\t\"Дек\"\n\t\t],\n\t\t\"long\": [\n\t\t\t\"Януари\",\n\t\t\t\"Февруари\",\n\t\t\t\"Март\",\n\t\t\t\"Април\",\n\t\t\t\"Май\",\n\t\t\t\"Юни\",\n\t\t\t\"Юли\",\n\t\t\t\"Август\",\n\t\t\t\"Септември\",\n\t\t\t\"Октомври\",\n\t\t\t\"Ноември\",\n\t\t\t\"Декември\"\n\t\t]\n\t},\n\t\"ca-AD\": {\n\t\t\"short\": [\n\t\t\t\"gen\",\n\t\t\t\"febr\",\n\t\t\t\"març\",\n\t\t\t\"abr\",\n\t\t\t\"maig\",\n\t\t\t\"juny\",\n\t\t\t\"jul\",\n\t\t\t\"ag\",\n\t\t\t\"set\",\n\t\t\t\"oct\",\n\t\t\t\"nov\",\n\t\t\t\"des\"\n\t\t],\n\t\t\"long\": [\n\t\t\t\"gener\",\n\t\t\t\"febrer\",\n\t\t\t\"març\",\n\t\t\t\"abril\",\n\t\t\t\"maig\",\n\t\t\t\"juny\",\n\t\t\t\"juliol\",\n\t\t\t\"agost\",\n\t\t\t\"setembre\",\n\t\t\t\"octubre\",\n\t\t\t\"novembre\",\n\t\t\t\"desembre\"\n\t\t]\n\t},\n\t\"cs-CZ\": {\n\t\t\"short\": [\n\t\t\t\"Led\",\n\t\t\t\"Úno\",\n\t\t\t\"Bře\",\n\t\t\t\"Dub\",\n\t\t\t\"Kvě\",\n\t\t\t\"Čvn\",\n\t\t\t\"Čnc\",\n\t\t\t\"Srp\",\n\t\t\t\"Zář\",\n\t\t\t\"Říj\",\n\t\t\t\"Lis\",\n\t\t\t\"Pro\"\n\t\t],\n\t\t\"long\": [\n\t\t\t\"leden\",\n\t\t\t\"únor\",\n\t\t\t\"březen\",\n\t\t\t\"duben\",\n\t\t\t\"květen\",\n\t\t\t\"červen\",\n\t\t\t\"červenec\",\n\t\t\t\"srpen\",\n\t\t\t\"září\",\n\t\t\t\"říjen\",\n\t\t\t\"listopad\",\n\t\t\t\"prosinec\"\n\t\t]\n\t},\n\t\"da-DK\": {\n\t\t\"short\": [\n\t\t\t\"Jan\",\n\t\t\t\"Feb\",\n\t\t\t\"Mar\",\n\t\t\t\"Apr\",\n\t\t\t\"Maj\",\n\t\t\t\"Jun\",\n\t\t\t\"Jul\",\n\t\t\t\"Aug\",\n\t\t\t\"Sep\",\n\t\t\t\"Okt\",\n\t\t\t\"Nov\",\n\t\t\t\"Dec\"\n\t\t],\n\t\t\"long\": [\n\t\t\t\"Januar\",\n\t\t\t\"Februar\",\n\t\t\t\"Marts\",\n\t\t\t\"April\",\n\t\t\t\"Maj\",\n\t\t\t\"Juni\",\n\t\t\t\"Juli\",\n\t\t\t\"August\",\n\t\t\t\"September\",\n\t\t\t\"Oktober\",\n\t\t\t\"November\",\n\t\t\t\"December\"\n\t\t]\n\t},\n\t\"de\": {\n\t\t\"short\": [\n\t\t\t\"Jan\",\n\t\t\t\"Feb\",\n\t\t\t\"Mär\",\n\t\t\t\"Apr\",\n\t\t\t\"Mai\",\n\t\t\t\"Jun\",\n\t\t\t\"Jul\",\n\t\t\t\"Aug\",\n\t\t\t\"Sep\",\n\t\t\t\"Okt\",\n\t\t\t\"Nov\",\n\t\t\t\"Dez\"\n\t\t],\n\t\t\"long\": [\n\t\t\t\"Januar\",\n\t\t\t\"Februar\",\n\t\t\t\"März\",\n\t\t\t\"April\",\n\t\t\t\"Mai\",\n\t\t\t\"Juni\",\n\t\t\t\"Juli\",\n\t\t\t\"August\",\n\t\t\t\"September\",\n\t\t\t\"Oktober\",\n\t\t\t\"November\",\n\t\t\t\"Dezember\"\n\t\t]\n\t},\n\t\"el-GR\": {\n\t\t\"short\": [\n\t\t\t\"Ιαν\",\n\t\t\t\"Φεβ\",\n\t\t\t\"Μαρ\",\n\t\t\t\"Απρ\",\n\t\t\t\"Ιουν\",\n\t\t\t\"Ιουλ\",\n\t\t\t\"Αυγ\",\n\t\t\t\"Σεπ\",\n\t\t\t\"Οκτ\",\n\t\t\t\"Νοε\",\n\t\t\t\"Δεκ\",\n\t\t\t\"May\"\n\t\t],\n\t\t\"long\": [\n\t\t\t\"January\",\n\t\t\t\"October\",\n\t\t\t\"November\",\n\t\t\t\"December\",\n\t\t\t\"February\",\n\t\t\t\"March\",\n\t\t\t\"April\",\n\t\t\t\"May\",\n\t\t\t\"June\",\n\t\t\t\"July\",\n\t\t\t\"August\",\n\t\t\t\"September\"\n\t\t]\n\t},\n\t\"en-GB\": {\n\t\t\"short\": [\n\t\t\t\"Jan\",\n\t\t\t\"Feb\",\n\t\t\t\"Mar\",\n\t\t\t\"Apr\",\n\t\t\t\"May\",\n\t\t\t\"Jun\",\n\t\t\t\"Jul\",\n\t\t\t\"Aug\",\n\t\t\t\"Sep\",\n\t\t\t\"Oct\",\n\t\t\t\"Nov\",\n\t\t\t\"Dec\"\n\t\t],\n\t\t\"long\": [\n\t\t\t\"January\",\n\t\t\t\"February\",\n\t\t\t\"March\",\n\t\t\t\"April\",\n\t\t\t\"May\",\n\t\t\t\"June\",\n\t\t\t\"July\",\n\t\t\t\"August\",\n\t\t\t\"September\",\n\t\t\t\"October\",\n\t\t\t\"November\",\n\t\t\t\"December\"\n\t\t]\n\t},\n\t\"es-ES\": {\n\t\t\"short\": [\n\t\t\t\"Ene\",\n\t\t\t\"Feb\",\n\t\t\t\"Mar\",\n\t\t\t\"Abr\",\n\t\t\t\"May\",\n\t\t\t\"Jun\",\n\t\t\t\"Jul\",\n\t\t\t\"Ago\",\n\t\t\t\"Sep\",\n\t\t\t\"Oct\",\n\t\t\t\"Nov\",\n\t\t\t\"Dic\"\n\t\t],\n\t\t\"long\": [\n\t\t\t\"Enero\",\n\t\t\t\"Febrero\",\n\t\t\t\"Marzo\",\n\t\t\t\"Abril\",\n\t\t\t\"Mayo\",\n\t\t\t\"Junio\",\n\t\t\t\"Julio\",\n\t\t\t\"Agosto\",\n\t\t\t\"Septiembre\",\n\t\t\t\"Octubre\",\n\t\t\t\"Noviembre\",\n\t\t\t\"Diciembre\"\n\t\t]\n\t},\n\t\"fr-FR\": {\n\t\t\"short\": [\n\t\t\t\"jan\",\n\t\t\t\"fév\",\n\t\t\t\"mar\",\n\t\t\t\"avr\",\n\t\t\t\"mai\",\n\t\t\t\"juin\",\n\t\t\t\"juil\",\n\t\t\t\"aoû\",\n\t\t\t\"sep\",\n\t\t\t\"oct\",\n\t\t\t\"nov\",\n\t\t\t\"déc\"\n\t\t],\n\t\t\"long\": [\n\t\t\t\"janvier\",\n\t\t\t\"février\",\n\t\t\t\"mars\",\n\t\t\t\"avril\",\n\t\t\t\"mai\",\n\t\t\t\"juin\",\n\t\t\t\"juillet\",\n\t\t\t\"août\",\n\t\t\t\"septembre\",\n\t\t\t\"octobre\",\n\t\t\t\"novembre\",\n\t\t\t\"décembre\"\n\t\t]\n\t},\n\t\"et-EE\": {\n\t\t\"short\": [\n\t\t\t\"jaan\",\n\t\t\t\"veebr\",\n\t\t\t\"märts\",\n\t\t\t\"apr\",\n\t\t\t\"mai\",\n\t\t\t\"juun\",\n\t\t\t\"juul\",\n\t\t\t\"aug\",\n\t\t\t\"sept\",\n\t\t\t\"okt\",\n\t\t\t\"nov\",\n\t\t\t\"dets\"\n\t\t],\n\t\t\"long\": [\n\t\t\t\"jaanuar\",\n\t\t\t\"veebruar\",\n\t\t\t\"märts\",\n\t\t\t\"aprill\",\n\t\t\t\"mai\",\n\t\t\t\"juuni\",\n\t\t\t\"juuli\",\n\t\t\t\"august\",\n\t\t\t\"september\",\n\t\t\t\"oktoober\",\n\t\t\t\"november\",\n\t\t\t\"detsember\"\n\t\t]\n\t},\n\t\"eu-ES\": {\n\t\t\"short\": [\n\t\t\t\"urt\",\n\t\t\t\"ots\",\n\t\t\t\"mar\",\n\t\t\t\"api\",\n\t\t\t\"mai\",\n\t\t\t\"eka\",\n\t\t\t\"uzt\",\n\t\t\t\"abu\",\n\t\t\t\"ira\",\n\t\t\t\"urr\",\n\t\t\t\"aza\",\n\t\t\t\"abe\"\n\t\t],\n\t\t\"long\": [\n\t\t\t\"urtarrila\",\n\t\t\t\"otsaila\",\n\t\t\t\"martxoa\",\n\t\t\t\"apirila\",\n\t\t\t\"maiatza\",\n\t\t\t\"ekaina\",\n\t\t\t\"uztaila\",\n\t\t\t\"abuztua\",\n\t\t\t\"iraila\",\n\t\t\t\"urria\",\n\t\t\t\"azaroa\",\n\t\t\t\"abendua\"\n\t\t]\n\t},\n\t\"fa\": {\n\t\t\"short\": [\n\t\t\t\"ژانویه\",\n\t\t\t\"فوریه\",\n\t\t\t\"مارس\",\n\t\t\t\"آوریل\",\n\t\t\t\"مه\",\n\t\t\t\"ژوئن\",\n\t\t\t\"ژوئیه\",\n\t\t\t\"اوت\",\n\t\t\t\"سپتامبر\",\n\t\t\t\"اکتبر\",\n\t\t\t\"نوامبر\",\n\t\t\t\"دسامبر\"\n\t\t],\n\t\t\"long\": [\n\t\t\t\"ژانویه\",\n\t\t\t\"فوریه\",\n\t\t\t\"مارس\",\n\t\t\t\"آوریل\",\n\t\t\t\"مه\",\n\t\t\t\"ژوئن\",\n\t\t\t\"ژوئیه\",\n\t\t\t\"اوت\",\n\t\t\t\"سپتامبر\",\n\t\t\t\"اکتبر\",\n\t\t\t\"نوامبر\",\n\t\t\t\"دسامبر\"\n\t\t]\n\t},\n\t\"fi-FI\": {\n\t\t\"short\": [\n\t\t\t\"tammi\",\n\t\t\t\"helmi\",\n\t\t\t\"maalis\",\n\t\t\t\"huhti\",\n\t\t\t\"touko\",\n\t\t\t\"kesä\",\n\t\t\t\"heinä\",\n\t\t\t\"elo\",\n\t\t\t\"syys\",\n\t\t\t\"loka\",\n\t\t\t\"marras\",\n\t\t\t\"joulu\"\n\t\t],\n\t\t\"long\": [\n\t\t\t\"tammikuu\",\n\t\t\t\"helmikuu\",\n\t\t\t\"maaliskuu\",\n\t\t\t\"huhtikuu\",\n\t\t\t\"toukokuu\",\n\t\t\t\"kesäkuu\",\n\t\t\t\"heinäkuu\",\n\t\t\t\"elokuu\",\n\t\t\t\"syyskuu\",\n\t\t\t\"lokakuu\",\n\t\t\t\"marraskuu\",\n\t\t\t\"joulukuu\"\n\t\t]\n\t},\n\t\"he-IL\": {\n\t\t\"short\": [\n\t\t\t\"ינ'\",\n\t\t\t\"פב'\",\n\t\t\t\"מרץ\",\n\t\t\t\"אפ'\",\n\t\t\t\"מאי\",\n\t\t\t\"יוני\",\n\t\t\t\"יולי\",\n\t\t\t\"אוג'\",\n\t\t\t\"ספט'\",\n\t\t\t\"אוק'\",\n\t\t\t\"נוב'\",\n\t\t\t\"דצ'\"\n\t\t],\n\t\t\"long\": [\n\t\t\t\"ינואר\",\n\t\t\t\"פברואר\",\n\t\t\t\"מרץ\",\n\t\t\t\"אפריל\",\n\t\t\t\"מאי\",\n\t\t\t\"יוני\",\n\t\t\t\"יולי\",\n\t\t\t\"אוגוסט\",\n\t\t\t\"ספטמבר\",\n\t\t\t\"אוקטובר\",\n\t\t\t\"נובמבר\",\n\t\t\t\"דצמבר\"\n\t\t]\n\t},\n\t\"hr-HR\": {\n\t\t\"short\": [\n\t\t\t\"Sij\",\n\t\t\t\"Vel\",\n\t\t\t\"Ožu\",\n\t\t\t\"Tra\",\n\t\t\t\"Svi\",\n\t\t\t\"Lip\",\n\t\t\t\"Srp\",\n\t\t\t\"Kol\",\n\t\t\t\"Ruj\",\n\t\t\t\"Lis\",\n\t\t\t\"Stu\",\n\t\t\t\"Pro\"\n\t\t],\n\t\t\"long\": [\n\t\t\t\"Siječanj\",\n\t\t\t\"Veljača\",\n\t\t\t\"Ožujak\",\n\t\t\t\"Travanj\",\n\t\t\t\"Svibanj\",\n\t\t\t\"Lipanj\",\n\t\t\t\"Srpanj\",\n\t\t\t\"Kolovoz\",\n\t\t\t\"Rujan\",\n\t\t\t\"Listopad\",\n\t\t\t\"Studeni\",\n\t\t\t\"Prosinac\"\n\t\t]\n\t},\n\t\"hu-HU\": {\n\t\t\"short\": [\n\t\t\t\"Jan.\",\n\t\t\t\"Febr.\",\n\t\t\t\"Márc.\",\n\t\t\t\"Ápr.\",\n\t\t\t\"Máj.\",\n\t\t\t\"Jún.\",\n\t\t\t\"Júl.\",\n\t\t\t\"Aug.\",\n\t\t\t\"Szept.\",\n\t\t\t\"Okt.\",\n\t\t\t\"Nov.\",\n\t\t\t\"Dec.\"\n\t\t],\n\t\t\"long\": [\n\t\t\t\"Január\",\n\t\t\t\"Február\",\n\t\t\t\"Március\",\n\t\t\t\"Április\",\n\t\t\t\"Május\",\n\t\t\t\"Június\",\n\t\t\t\"Július\",\n\t\t\t\"Augusztus\",\n\t\t\t\"Szeptember\",\n\t\t\t\"Október\",\n\t\t\t\"November\",\n\t\t\t\"December\"\n\t\t]\n\t},\n\t\"id-ID\": {\n\t\t\"short\": [\n\t\t\t\"Jan\",\n\t\t\t\"Feb\",\n\t\t\t\"Mar\",\n\t\t\t\"Apr\",\n\t\t\t\"Mei\",\n\t\t\t\"Jun\",\n\t\t\t\"Jul\",\n\t\t\t\"Agu\",\n\t\t\t\"Sep\",\n\t\t\t\"Okt\",\n\t\t\t\"Nov\",\n\t\t\t\"Des\"\n\t\t],\n\t\t\"long\": [\n\t\t\t\"Januari\",\n\t\t\t\"Februari\",\n\t\t\t\"Maret\",\n\t\t\t\"April\",\n\t\t\t\"Mei\",\n\t\t\t\"Juni\",\n\t\t\t\"Juli\",\n\t\t\t\"Agustus\",\n\t\t\t\"September\",\n\t\t\t\"Oktober\",\n\t\t\t\"November\",\n\t\t\t\"Desember\"\n\t\t]\n\t},\n\t\"is-IS\": {\n\t\t\"short\": [\n\t\t\t\"Jan\",\n\t\t\t\"Feb\",\n\t\t\t\"Mar\",\n\t\t\t\"Apr\",\n\t\t\t\"Maí\",\n\t\t\t\"Jún\",\n\t\t\t\"Júl\",\n\t\t\t\"Ágú\",\n\t\t\t\"Sep\",\n\t\t\t\"Okt\",\n\t\t\t\"Nóv\",\n\t\t\t\"Des\"\n\t\t],\n\t\t\"long\": [\n\t\t\t\"Janúar\",\n\t\t\t\"Febrúar\",\n\t\t\t\"Mars\",\n\t\t\t\"Apríl\",\n\t\t\t\"Maí\",\n\t\t\t\"Júní\",\n\t\t\t\"Júlí\",\n\t\t\t\"Ágúst\",\n\t\t\t\"September\",\n\t\t\t\"Október\",\n\t\t\t\"Nóvember\",\n\t\t\t\"Desember\"\n\t\t]\n\t},\n\t\"it-IT\": {\n\t\t\"short\": [\n\t\t\t\"Gen\",\n\t\t\t\"Feb\",\n\t\t\t\"Mar\",\n\t\t\t\"Apr\",\n\t\t\t\"Mag\",\n\t\t\t\"Giu\",\n\t\t\t\"Lug\",\n\t\t\t\"Ago\",\n\t\t\t\"Set\",\n\t\t\t\"Ott\",\n\t\t\t\"Nov\",\n\t\t\t\"Dic\"\n\t\t],\n\t\t\"long\": [\n\t\t\t\"Gennaio\",\n\t\t\t\"Febbraio\",\n\t\t\t\"Marzo\",\n\t\t\t\"Aprile\",\n\t\t\t\"Maggio\",\n\t\t\t\"Giugno\",\n\t\t\t\"Luglio\",\n\t\t\t\"Agosto\",\n\t\t\t\"Settembre\",\n\t\t\t\"Ottobre\",\n\t\t\t\"Novembre\",\n\t\t\t\"Dicembre\"\n\t\t]\n\t},\n\t\"ja-JP\": {\n\t\t\"short\": [\n\t\t\t\"(1月)\",\n\t\t\t\"(2月)\",\n\t\t\t\"(3月)\",\n\t\t\t\"(4月)\",\n\t\t\t\"(5月)\",\n\t\t\t\"(6月)\",\n\t\t\t\"(7月)\",\n\t\t\t\"(8月)\",\n\t\t\t\"(9月)\",\n\t\t\t\"(10月)\",\n\t\t\t\"(11月)\",\n\t\t\t\"(12月)\"\n\t\t],\n\t\t\"long\": [\n\t\t\t\"1月\",\n\t\t\t\"2月\",\n\t\t\t\"3月\",\n\t\t\t\"4月\",\n\t\t\t\"5月\",\n\t\t\t\"6月\",\n\t\t\t\"7月\",\n\t\t\t\"8月\",\n\t\t\t\"9月\",\n\t\t\t\"10月\",\n\t\t\t\"11月\",\n\t\t\t\"12月\"\n\t\t]\n\t},\n\t\"km\": {\n\t\t\"short\": [\n\t\t\t\"មករា\",\n\t\t\t\"កុម្ភៈ\",\n\t\t\t\"មីនា\",\n\t\t\t\"មេសា\",\n\t\t\t\"ឧសភា\",\n\t\t\t\"មិថុនា\",\n\t\t\t\"កក្កដា\",\n\t\t\t\"សីហា\",\n\t\t\t\"កញ្ញា\",\n\t\t\t\"តុលា\",\n\t\t\t\"វិច្ឆិកា\",\n\t\t\t\"ធ្នូ\"\n\t\t],\n\t\t\"long\": [\n\t\t\t\"មករា\",\n\t\t\t\"កុម្ភៈ\",\n\t\t\t\"មីនា\",\n\t\t\t\"មេសា\",\n\t\t\t\"ឧសភា\",\n\t\t\t\"មិថុនា\",\n\t\t\t\"កក្កដា\",\n\t\t\t\"សីហា\",\n\t\t\t\"កញ្ញា\",\n\t\t\t\"តុលា\",\n\t\t\t\"វិច្ឆិកា\",\n\t\t\t\"ធ្នូ\"\n\t\t]\n\t},\n\t\"ko-KR\": {\n\t\t\"short\": [\n\t\t\t\"1월\",\n\t\t\t\"2월\",\n\t\t\t\"3월\",\n\t\t\t\"4월\",\n\t\t\t\"5월\",\n\t\t\t\"6월\",\n\t\t\t\"7월\",\n\t\t\t\"8월\",\n\t\t\t\"9월\",\n\t\t\t\"10월\",\n\t\t\t\"11월\",\n\t\t\t\"12월\"\n\t\t],\n\t\t\"long\": [\n\t\t\t\"1월\",\n\t\t\t\"2월\",\n\t\t\t\"3월\",\n\t\t\t\"4월\",\n\t\t\t\"5월\",\n\t\t\t\"6월\",\n\t\t\t\"7월\",\n\t\t\t\"8월\",\n\t\t\t\"9월\",\n\t\t\t\"10월\",\n\t\t\t\"11월\",\n\t\t\t\"12월\"\n\t\t]\n\t},\n\t\"lt-LT\": {\n\t\t\"short\": [\n\t\t\t\"Sau\",\n\t\t\t\"Vas\",\n\t\t\t\"Kov\",\n\t\t\t\"Bal\",\n\t\t\t\"Geg\",\n\t\t\t\"Bir\",\n\t\t\t\"Lie\",\n\t\t\t\"Rgp\",\n\t\t\t\"Rgs\",\n\t\t\t\"Spl\",\n\t\t\t\"Lap\",\n\t\t\t\"Grd\"\n\t\t],\n\t\t\"long\": [\n\t\t\t\"sausio\",\n\t\t\t\"vasario\",\n\t\t\t\"kovo\",\n\t\t\t\"balandžio\",\n\t\t\t\"gegužės\",\n\t\t\t\"birželio\",\n\t\t\t\"liepos\",\n\t\t\t\"rugpjūčio\",\n\t\t\t\"rugsėjo\",\n\t\t\t\"spalio\",\n\t\t\t\"lapkričio\",\n\t\t\t\"gruodžio\"\n\t\t]\n\t},\n\t\"nb-NO\": {\n\t\t\"short\": [\n\t\t\t\"Jan\",\n\t\t\t\"Feb\",\n\t\t\t\"Mar\",\n\t\t\t\"Apr\",\n\t\t\t\"Mai\",\n\t\t\t\"Jun\",\n\t\t\t\"Jul\",\n\t\t\t\"Aug\",\n\t\t\t\"Sep\",\n\t\t\t\"Okt\",\n\t\t\t\"Nov\",\n\t\t\t\"Des\"\n\t\t],\n\t\t\"long\": [\n\t\t\t\"Januar\",\n\t\t\t\"Februar\",\n\t\t\t\"Mars\",\n\t\t\t\"April\",\n\t\t\t\"Mai\",\n\t\t\t\"Juni\",\n\t\t\t\"Juli\",\n\t\t\t\"August\",\n\t\t\t\"September\",\n\t\t\t\"Oktober\",\n\t\t\t\"November\",\n\t\t\t\"Desember\"\n\t\t]\n\t},\n\t\"nn-NO\": {\n\t\t\"short\": [\n\t\t\t\"jan\",\n\t\t\t\"feb\",\n\t\t\t\"mar\",\n\t\t\t\"apr\",\n\t\t\t\"mai\",\n\t\t\t\"jun\",\n\t\t\t\"jul\",\n\t\t\t\"aug\",\n\t\t\t\"sep\",\n\t\t\t\"okt\",\n\t\t\t\"nov\",\n\t\t\t\"des\"\n\t\t],\n\t\t\"long\": [\n\t\t\t\"Januar\",\n\t\t\t\"Februar\",\n\t\t\t\"Mars\",\n\t\t\t\"April\",\n\t\t\t\"Mai\",\n\t\t\t\"Juni\",\n\t\t\t\"Juli\",\n\t\t\t\"August\",\n\t\t\t\"September\",\n\t\t\t\"Oktober\",\n\t\t\t\"November\",\n\t\t\t\"Desember\"\n\t\t]\n\t},\n\t\"nl-NL\": {\n\t\t\"short\": [\n\t\t\t\"jan\",\n\t\t\t\"feb\",\n\t\t\t\"mrt\",\n\t\t\t\"apr\",\n\t\t\t\"mei\",\n\t\t\t\"jun\",\n\t\t\t\"jul\",\n\t\t\t\"aug\",\n\t\t\t\"sep\",\n\t\t\t\"okt\",\n\t\t\t\"nov\",\n\t\t\t\"dec\"\n\t\t],\n\t\t\"long\": [\n\t\t\t\"januari\",\n\t\t\t\"februari\",\n\t\t\t\"maart\",\n\t\t\t\"april\",\n\t\t\t\"mei\",\n\t\t\t\"juni\",\n\t\t\t\"juli\",\n\t\t\t\"augustus\",\n\t\t\t\"september\",\n\t\t\t\"oktober\",\n\t\t\t\"november\",\n\t\t\t\"december\"\n\t\t]\n\t},\n\t\"pl-PL\": {\n\t\t\"short\": [\n\t\t\t\"Sty\",\n\t\t\t\"Lut\",\n\t\t\t\"Mar\",\n\t\t\t\"Kwi\",\n\t\t\t\"Maj\",\n\t\t\t\"Cze\",\n\t\t\t\"Lip\",\n\t\t\t\"Sie\",\n\t\t\t\"Wrz\",\n\t\t\t\"Paź\",\n\t\t\t\"Lis\",\n\t\t\t\"Gru\"\n\t\t],\n\t\t\"long\": [\n\t\t\t\"Styczeń\",\n\t\t\t\"Luty\",\n\t\t\t\"Marzec\",\n\t\t\t\"Kwiecień\",\n\t\t\t\"Maj\",\n\t\t\t\"Czerwiec\",\n\t\t\t\"Lipiec\",\n\t\t\t\"Sierpień\",\n\t\t\t\"Wrzesień\",\n\t\t\t\"Październik\",\n\t\t\t\"Listopad\",\n\t\t\t\"Grudzień\"\n\t\t]\n\t},\n\t\"pt-BR\": {\n\t\t\"short\": [\n\t\t\t\"Jan\",\n\t\t\t\"Fev\",\n\t\t\t\"Mar\",\n\t\t\t\"Abr\",\n\t\t\t\"Mai\",\n\t\t\t\"Jun\",\n\t\t\t\"Jul\",\n\t\t\t\"Ago\",\n\t\t\t\"Set\",\n\t\t\t\"Out\",\n\t\t\t\"Nov\",\n\t\t\t\"Dez\"\n\t\t],\n\t\t\"long\": [\n\t\t\t\"Janeiro\",\n\t\t\t\"Fevereiro\",\n\t\t\t\"Março\",\n\t\t\t\"Abril\",\n\t\t\t\"Maio\",\n\t\t\t\"Junho\",\n\t\t\t\"Julho\",\n\t\t\t\"Agosto\",\n\t\t\t\"Setembro\",\n\t\t\t\"Outubro\",\n\t\t\t\"Novembro\",\n\t\t\t\"Dezembro\"\n\t\t]\n\t},\n\t\"pt-PT\": {\n\t\t\"short\": [\n\t\t\t\"Jan\",\n\t\t\t\"Fev\",\n\t\t\t\"Mar\",\n\t\t\t\"Abr\",\n\t\t\t\"Mai\",\n\t\t\t\"Jun\",\n\t\t\t\"Jul\",\n\t\t\t\"Ago\",\n\t\t\t\"Set\",\n\t\t\t\"Out\",\n\t\t\t\"Nov\",\n\t\t\t\"Dez\"\n\t\t],\n\t\t\"long\": [\n\t\t\t\"janeiro\",\n\t\t\t\"fevereiro\",\n\t\t\t\"março\",\n\t\t\t\"abril\",\n\t\t\t\"maio\",\n\t\t\t\"junho\",\n\t\t\t\"julho\",\n\t\t\t\"agosto\",\n\t\t\t\"setembro\",\n\t\t\t\"outubro\",\n\t\t\t\"novembro\",\n\t\t\t\"dezembro\"\n\t\t]\n\t},\n\t\"ro-RO\": {\n\t\t\"short\": [\n\t\t\t\"Ian\",\n\t\t\t\"Feb\",\n\t\t\t\"Mar\",\n\t\t\t\"Apr\",\n\t\t\t\"Mai\",\n\t\t\t\"Iun\",\n\t\t\t\"Iul\",\n\t\t\t\"Aug\",\n\t\t\t\"Sep\",\n\t\t\t\"Oct\",\n\t\t\t\"Noi\",\n\t\t\t\"Dec\"\n\t\t],\n\t\t\"long\": [\n\t\t\t\"Ianuarie\",\n\t\t\t\"Februarie\",\n\t\t\t\"Martie\",\n\t\t\t\"Aprilie\",\n\t\t\t\"Mai\",\n\t\t\t\"Iunie\",\n\t\t\t\"Iulie\",\n\t\t\t\"August\",\n\t\t\t\"Septembrie\",\n\t\t\t\"Octombrie\",\n\t\t\t\"Noiembrie\",\n\t\t\t\"Decembrie\"\n\t\t]\n\t},\n\t\"ru-RU\": {\n\t\t\"short\": [\n\t\t\t\"Январь\",\n\t\t\t\"Февраль\",\n\t\t\t\"Март\",\n\t\t\t\"Апрель\",\n\t\t\t\"Май\",\n\t\t\t\"Июнь\",\n\t\t\t\"Июль\",\n\t\t\t\"Август\",\n\t\t\t\"Сентябрь\",\n\t\t\t\"Октябрь\",\n\t\t\t\"Ноябрь\",\n\t\t\t\"Декабрь\"\n\t\t],\n\t\t\"long\": [\n\t\t\t\"Январь\",\n\t\t\t\"Февраль\",\n\t\t\t\"Март\",\n\t\t\t\"Апрель\",\n\t\t\t\"Май\",\n\t\t\t\"Июнь\",\n\t\t\t\"Июль\",\n\t\t\t\"Август\",\n\t\t\t\"Сентябрь\",\n\t\t\t\"Октябрь\",\n\t\t\t\"Ноябрь\",\n\t\t\t\"Декабрь\"\n\t\t]\n\t},\n\t\"sk-SK\": {\n\t\t\"short\": [\n\t\t\t\"Jan\",\n\t\t\t\"Feb\",\n\t\t\t\"Mar\",\n\t\t\t\"Apr\",\n\t\t\t\"Máj\",\n\t\t\t\"Jún\",\n\t\t\t\"Júl\",\n\t\t\t\"Aug\",\n\t\t\t\"Sep\",\n\t\t\t\"Okt\",\n\t\t\t\"Nov\",\n\t\t\t\"Dec\"\n\t\t],\n\t\t\"long\": [\n\t\t\t\"Január\",\n\t\t\t\"Február\",\n\t\t\t\"Marec\",\n\t\t\t\"Apríl\",\n\t\t\t\"Máj\",\n\t\t\t\"Jún\",\n\t\t\t\"Júl\",\n\t\t\t\"August\",\n\t\t\t\"September\",\n\t\t\t\"Október\",\n\t\t\t\"November\",\n\t\t\t\"December\"\n\t\t]\n\t},\n\t\"sl-SI\": {\n\t\t\"short\": [\n\t\t\t\"Jan\",\n\t\t\t\"Feb\",\n\t\t\t\"Mar\",\n\t\t\t\"Apr\",\n\t\t\t\"Maj\",\n\t\t\t\"Jun\",\n\t\t\t\"Jul\",\n\t\t\t\"Avg\",\n\t\t\t\"Sep\",\n\t\t\t\"Okt\",\n\t\t\t\"Nov\",\n\t\t\t\"Dec\"\n\t\t],\n\t\t\"long\": [\n\t\t\t\"Januar\",\n\t\t\t\"Februar\",\n\t\t\t\"Marec\",\n\t\t\t\"April\",\n\t\t\t\"Maj\",\n\t\t\t\"Junij\",\n\t\t\t\"Julij\",\n\t\t\t\"Avgust\",\n\t\t\t\"September\",\n\t\t\t\"Oktober\",\n\t\t\t\"November\",\n\t\t\t\"December\"\n\t\t]\n\t},\n\t\"sr-RS\": {\n\t\t\"short\": [\n\t\t\t\"Јан\",\n\t\t\t\"Феб\",\n\t\t\t\"Мар\",\n\t\t\t\"Апр\",\n\t\t\t\"Мај\",\n\t\t\t\"Јун\",\n\t\t\t\"Јул\",\n\t\t\t\"Авг\",\n\t\t\t\"Сеп\",\n\t\t\t\"Окт\",\n\t\t\t\"Нов\",\n\t\t\t\"Дец\"\n\t\t],\n\t\t\"long\": [\n\t\t\t\"Јануар\",\n\t\t\t\"Фебруар\",\n\t\t\t\"Март\",\n\t\t\t\"Април\",\n\t\t\t\"Мај\",\n\t\t\t\"Јун\",\n\t\t\t\"Јул\",\n\t\t\t\"Август\",\n\t\t\t\"Септембар\",\n\t\t\t\"Октобар\",\n\t\t\t\"Новембар\",\n\t\t\t\"Децембар\"\n\t\t]\n\t},\n\t\"sv-SE\": {\n\t\t\"short\": [\n\t\t\t\"Jan\",\n\t\t\t\"Feb\",\n\t\t\t\"Mar\",\n\t\t\t\"Apr\",\n\t\t\t\"Maj\",\n\t\t\t\"Jun\",\n\t\t\t\"Jul\",\n\t\t\t\"Aug\",\n\t\t\t\"Sep\",\n\t\t\t\"Okt\",\n\t\t\t\"Nov\",\n\t\t\t\"Dec\"\n\t\t],\n\t\t\"long\": [\n\t\t\t\"Januari\",\n\t\t\t\"Februari\",\n\t\t\t\"Mars\",\n\t\t\t\"April\",\n\t\t\t\"Maj\",\n\t\t\t\"Juni\",\n\t\t\t\"Juli\",\n\t\t\t\"Augusti\",\n\t\t\t\"September\",\n\t\t\t\"Oktober\",\n\t\t\t\"November\",\n\t\t\t\"December\"\n\t\t]\n\t},\n\t\"th-TH\": {\n\t\t\"short\": [\n\t\t\t\"ม.ค.\",\n\t\t\t\"ก.พ.\",\n\t\t\t\"มี.ค.\",\n\t\t\t\"เม.ย.\",\n\t\t\t\"พ.ค.\",\n\t\t\t\"มิ.ย.\",\n\t\t\t\"ก.ค.\",\n\t\t\t\"ส.ค.\",\n\t\t\t\"ก.ย.\",\n\t\t\t\"ต.ค.\",\n\t\t\t\"พ.ย.\",\n\t\t\t\"ธ.ค.\"\n\t\t],\n\t\t\"long\": [\n\t\t\t\"มกราคม\",\n\t\t\t\"กุมภาพันธ์\",\n\t\t\t\"มีนาคม\",\n\t\t\t\"เมษายน\",\n\t\t\t\"พฤษภาคม\",\n\t\t\t\"มิถุนายน\",\n\t\t\t\"กรกฎาคม\",\n\t\t\t\"สิงหาคม\",\n\t\t\t\"กันยายน\",\n\t\t\t\"ตุลาคม\",\n\t\t\t\"พฤศจิกายน\",\n\t\t\t\"ธันวาคม\"\n\t\t]\n\t},\n\t\"tr-TR\": {\n\t\t\"short\": [\n\t\t\t\"Oca\",\n\t\t\t\"Şub\",\n\t\t\t\"Mar\",\n\t\t\t\"Nis\",\n\t\t\t\"May\",\n\t\t\t\"Haz\",\n\t\t\t\"Tem\",\n\t\t\t\"Ağu\",\n\t\t\t\"Eyl\",\n\t\t\t\"Eki\",\n\t\t\t\"Kas\",\n\t\t\t\"Ara\"\n\t\t],\n\t\t\"long\": [\n\t\t\t\"Ocak\",\n\t\t\t\"Şubat\",\n\t\t\t\"Mart\",\n\t\t\t\"Nisan\",\n\t\t\t\"Mayıs\",\n\t\t\t\"Haziran\",\n\t\t\t\"Temmuz\",\n\t\t\t\"Ağustos\",\n\t\t\t\"Eylül\",\n\t\t\t\"Ekim\",\n\t\t\t\"Kasım\",\n\t\t\t\"Aralık\"\n\t\t]\n\t},\n\t\"uk-UA\": {\n\t\t\"short\": [\n\t\t\t\"Січ\",\n\t\t\t\"Лют\",\n\t\t\t\"Бер\",\n\t\t\t\"Кві\",\n\t\t\t\"Тра\",\n\t\t\t\"Чер\",\n\t\t\t\"Лип\",\n\t\t\t\"Сер\",\n\t\t\t\"Вер\",\n\t\t\t\"Жов\",\n\t\t\t\"Лис\",\n\t\t\t\"Гру\"\n\t\t],\n\t\t\"long\": [\n\t\t\t\"Січень\",\n\t\t\t\"Лютий\",\n\t\t\t\"Березень\",\n\t\t\t\"Квітень\",\n\t\t\t\"Травень\",\n\t\t\t\"Червень\",\n\t\t\t\"Липень\",\n\t\t\t\"Серпень\",\n\t\t\t\"Вересень\",\n\t\t\t\"Жовтень\",\n\t\t\t\"Листопад\",\n\t\t\t\"Грудень\"\n\t\t]\n\t},\n\t\"vi-VN\": {\n\t\t\"short\": [\n\t\t\t\"Thg01\",\n\t\t\t\"Thg02\",\n\t\t\t\"Thg03\",\n\t\t\t\"Thg04\",\n\t\t\t\"Thg05\",\n\t\t\t\"Thg06\",\n\t\t\t\"Thg07\",\n\t\t\t\"Thg08\",\n\t\t\t\"Thg09\",\n\t\t\t\"Thg10\",\n\t\t\t\"Thg11\",\n\t\t\t\"Thg12\"\n\t\t],\n\t\t\"long\": [\n\t\t\t\"Tháng Một\",\n\t\t\t\"Tháng Hai\",\n\t\t\t\"Tháng Ba\",\n\t\t\t\"Tháng Tư\",\n\t\t\t\"Tháng Năm\",\n\t\t\t\"Tháng Sáu\",\n\t\t\t\"Tháng Bảy\",\n\t\t\t\"Tháng Tám\",\n\t\t\t\"Tháng Chín\",\n\t\t\t\"Tháng Mười\",\n\t\t\t\"Tháng Mười Một\",\n\t\t\t\"Tháng Mười Hai\"\n\t\t]\n\t},\n\t\"zh-CN\": {\n\t\t\"short\": [\n\t\t\t\"一月\",\n\t\t\t\"二月\",\n\t\t\t\"三月\",\n\t\t\t\"四月\",\n\t\t\t\"五月\",\n\t\t\t\"六月\",\n\t\t\t\"七月\",\n\t\t\t\"八月\",\n\t\t\t\"九月\",\n\t\t\t\"十月\",\n\t\t\t\"十一月\",\n\t\t\t\"十二月\"\n\t\t],\n\t\t\"long\": [\n\t\t\t\"一月\",\n\t\t\t\"二月\",\n\t\t\t\"三月\",\n\t\t\t\"四月\",\n\t\t\t\"五月\",\n\t\t\t\"六月\",\n\t\t\t\"七月\",\n\t\t\t\"八月\",\n\t\t\t\"九月\",\n\t\t\t\"十月\",\n\t\t\t\"十一月\",\n\t\t\t\"十二月\"\n\t\t]\n\t},\n\t\"zh-TW\": {\n\t\t\"short\": [\n\t\t\t\"1 月\",\n\t\t\t\"2 月\",\n\t\t\t\"3 月\",\n\t\t\t\"4 月\",\n\t\t\t\"5 月\",\n\t\t\t\"6 月\",\n\t\t\t\"7 月\",\n\t\t\t\"8 月\",\n\t\t\t\"9 月\",\n\t\t\t\"10 月\",\n\t\t\t\"11 月\",\n\t\t\t\"12 月\"\n\t\t],\n\t\t\"long\": [\n\t\t\t\"1 月\",\n\t\t\t\"2 月\",\n\t\t\t\"3 月\",\n\t\t\t\"4 月\",\n\t\t\t\"5 月\",\n\t\t\t\"6 月\",\n\t\t\t\"7 月\",\n\t\t\t\"8 月\",\n\t\t\t\"9 月\",\n\t\t\t\"10 月\",\n\t\t\t\"11 月\",\n\t\t\t\"12 月\"\n\t\t]\n\t}\n}",
+            "lastUpdated": "2026-10-04 00:00:00"
+          }
+        ]
+      }
+    },
+    {
+      "type": "worker",
+      "id": 1,
+      "kind": "debug",
+      "message": "\njson-rpc: loading better-bibtex chromeworker\n"
+    },
+    {
+      "type": "worker",
+      "id": 1,
+      "kind": "debug",
+      "message": "\njson-rpc: loaded better-bibtex chromeworker\n"
+    },
+    {
+      "type": "worker",
+      "id": 1,
+      "kind": "evaluated"
+    },
+    {
+      "type": "worker",
+      "id": 1,
+      "kind": "message",
+      "data": {
+        "kind": "debug",
+        "message": "{worker: better-bibtex:} opening cache\n"
+      }
+    },
+    {
+      "type": "worker",
+      "id": 1,
+      "kind": "message",
+      "data": {
+        "kind": "debug",
+        "message": "{worker: better-bibtex:} cache: open 11\n"
+      }
+    },
+    {
+      "type": "worker",
+      "id": 1,
+      "kind": "message",
+      "data": {
+        "kind": "debug",
+        "message": "{worker: better-bibtex:} cache: upgrading 0 => 11\n"
+      }
+    },
+    {
+      "type": "worker",
+      "id": 1,
+      "kind": "message",
+      "data": {
+        "kind": "debug",
+        "message": "{worker: better-bibtex:} cache: validating schema\n"
+      }
+    },
+    {
+      "type": "worker",
+      "id": 1,
+      "kind": "message",
+      "data": {
+        "kind": "debug",
+        "message": "{worker: better-bibtex:} cache: schema: {\"Export\":{\"$\":{\"keyPath\":[\"context\",\"itemID\"]},\"context\":[\"context\"],\"itemID\":[\"itemID\"]},\"ExportContext\":{\"$\":{\"autoIncrement\":true,\"keyPath\":\"id\"},\"context\":[\"context\",{\"unique\":true}],\"translator\":[\"translator\"]},\"Serialized\":{\"$\":{\"keyPath\":\"itemID\"}},\"metadata\":{\"$\":{\"keyPath\":\"key\"}},\"touched\":{}}\n"
+      }
+    },
+    {
+      "type": "worker",
+      "id": 1,
+      "kind": "message",
+      "data": {
+        "kind": "debug",
+        "message": "{worker: better-bibtex:} cache: {\"Zotero\":\"\",\"BetterBibTeX\":\"\",\"lastUpdated\":\"\"} {\"Zotero\":\"10.0.5\",\"BetterBibTeX\":\"9.0.68\",\"lastUpdated\":\"2026-10-04 00:00:00\"} => [{\"reason\":\"Zotero version changed from none to 10.0.5\",\"test\":\"\"},{\"reason\":\"Better BibTeX version changed from none to 9.0.68\",\"test\":\"\"},{\"reason\":\"cache gap found: cache = , zotero = 2026-10-04 00:00:00\",\"test\":true}] => cache gap found: cache = , zotero = 2026-10-04 00:00:00\n"
+      }
+    },
+    {
+      "type": "worker",
+      "id": 1,
+      "kind": "message",
+      "data": {
+        "kind": "debug",
+        "message": "{worker: better-bibtex:} cache: reset-reopen because cache gap found: cache = , zotero = 2026-10-04 00:00:00\n"
+      }
+    },
+    {
+      "type": "worker",
+      "id": 1,
+      "kind": "message",
+      "data": {
+        "kind": "debug",
+        "message": "{worker: better-bibtex:} cache: upgrade 11\n"
+      }
+    },
+    {
+      "type": "worker",
+      "id": 1,
+      "kind": "message",
+      "data": {
+        "kind": "debug",
+        "message": "{worker: better-bibtex:} cache: upgrading 0 => 11\n"
+      }
+    },
+    {
+      "type": "worker",
+      "id": 1,
+      "kind": "message",
+      "data": {
+        "kind": "debug",
+        "message": "{worker: better-bibtex:} worker startup: \"?isBeta=false&isLinux=true&isMac=false&isWin=false&locale=en-US&name=Zotero&platform=lin&slug=zotero&version=10.0.5&worker=true\"\n"
+      }
+    },
+    {
+      "type": "worker",
+      "id": 1,
+      "kind": "message",
+      "data": {
+        "jsonrpc": "2.0",
+        "method": "initialize",
+        "id": "[1791109972505:0.6946605448038425]0"
+      }
+    },
+    {
+      "type": "debug",
+      "message": "{ startup: [worker+10]better-bibtex:} orchestrator: worker took 00:00:00.356\n"
+    },
+    {
+      "type": "debug",
+      "message": "{ startup: [abbreviator+9]better-bibtex:} orchestrator: starting abbreviator [journal abbreviator]\n"
+    },
+    {
+      "type": "debug",
+      "message": "{ startup: [abbreviator+9]better-bibtex:} orchestrator: abbreviator took 00:00:00.000\n"
+    },
+    {
+      "type": "debug",
+      "message": "{ startup: [git-push+8]better-bibtex:} orchestrator: starting git-push [git support]\n"
+    },
+    {
+      "type": "debug",
+      "message": "{ startup: [git-push+8]better-bibtex:} path-search: looking for git in /usr/bin:/bin\n"
+    },
+    {
+      "type": "debug",
+      "message": "{ startup: [git-push+8]better-bibtex:} path-search: git found at /usr/bin/git\n"
+    },
+    {
+      "type": "debug",
+      "message": "{ startup: [git-push+8]better-bibtex:} orchestrator: git-push took 00:00:00.003\n"
+    },
+    {
+      "type": "debug",
+      "message": "{ startup: [TeXstudio+7]better-bibtex:} orchestrator: starting TeXstudio [TeXstudio support]\n"
+    },
+    {
+      "type": "debug",
+      "message": "{ startup: [TeXstudio+7]better-bibtex:} path-search: looking for texstudio in /usr/bin:/bin\n"
+    },
+    {
+      "type": "debug",
+      "message": "{error:  startup: [TeXstudio+7]better-bibtex:} /usr/bin/texstudio isFile {\"errno\":-2,\"code\":\"ENOENT\",\"syscall\":\"stat\",\"path\":\"/usr/bin/texstudio\"}\n"
+    },
+    {
+      "type": "debug",
+      "message": "{error:  startup: [TeXstudio+7]better-bibtex:} /bin/texstudio isFile {\"errno\":-2,\"code\":\"ENOENT\",\"syscall\":\"stat\",\"path\":\"/bin/texstudio\"}\n"
+    },
+    {
+      "type": "debug",
+      "message": "{ startup: [TeXstudio+7]better-bibtex:} path-search: texstudio not found in /usr/bin:/bin\n"
+    },
+    {
+      "type": "debug",
+      "message": "{ startup: [TeXstudio+7]better-bibtex:} orchestrator: TeXstudio took 00:00:00.001\n"
+    },
+    {
+      "type": "debug",
+      "message": "{ startup: [keymanager+6]better-bibtex:} orchestrator: starting keymanager [keymanager]\n"
+    },
+    {
+      "type": "debug",
+      "message": "{ startup: [keymanager+6]better-bibtex:} formula-update: 1791109973251 trying:  auth.lower + shorttitle(3,3) + year\n"
+    },
+    {
+      "type": "debug",
+      "message": "{ startup: [keymanager+6]better-bibtex:} formula:  auth.lower + shorttitle(3,3) + year =>\n let citekey\ntry {\n  citekey = citekey || this._lower(this.$auth(0, 1, \"*\", false)) + this.$shorttitle(3, 3) + this.$year();\n} catch (err) {\n  if (!err.next) throw err;\n}\n\nreturn citekey || `zotero-item-${this.item.id}`\n"
+    },
+    {
+      "type": "debug",
+      "message": "{ startup: [keymanager+6]better-bibtex:} migrate: start state {\"sqlite\":null,\"migrated\":null}\n"
+    },
+    {
+      "type": "sql",
+      "query": "SELECT item.itemID, item.key AS itemKey, item.libraryID, idv.value AS citationKey     FROM items item     JOIN itemData id ON item.itemID = id.itemID     JOIN fields f ON id.fieldID = f.fieldID AND f.fieldName = 'citationKey'     JOIN itemDataValues idv ON id.valueID = idv.valueID     WHERE item.itemID NOT IN (SELECT itemID FROM deletedItems)       AND item.itemID NOT IN (SELECT itemID FROM feedItems)       AND item.itemTypeID NOT IN (SELECT itemTypeID FROM itemTypes WHERE typeName IN ('attachment', 'note', 'annotation'))",
+      "params": []
+    },
+    {
+      "type": "debug",
+      "message": "{ startup: [keymanager+6]better-bibtex:} orchestrator: keymanager took 00:00:00.010\n"
+    },
+    {
+      "type": "debug",
+      "message": "{ startup: [translators+5]better-bibtex:} orchestrator: starting translators [translators]\n"
+    },
+    {
+      "type": "worker-request",
+      "data": {
+        "jsonrpc": "2.0",
+        "id": "[Cache.Exports.1791109972505:0.8696360027094515]0",
+        "method": "Cache.Exports.dropTranslator",
+        "params": [
+          "Collected notes"
+        ]
+      }
+    },
+    {
+      "type": "worker",
+      "id": 1,
+      "kind": "message",
+      "data": {
+        "jsonrpc": "2.0",
+        "method": "Cache.Exports.dropTranslator",
+        "id": "[Cache.Exports.1791109972505:0.8696360027094515]0"
+      }
+    },
+    {
+      "type": "worker-request",
+      "data": {
+        "jsonrpc": "2.0",
+        "id": "[Cache.Exports.1791109972505:0.8696360027094515]1",
+        "method": "Cache.Exports.dropTranslator",
+        "params": [
+          "Citation graph"
+        ]
+      }
+    },
+    {
+      "type": "worker",
+      "id": 1,
+      "kind": "message",
+      "data": {
+        "jsonrpc": "2.0",
+        "method": "Cache.Exports.dropTranslator",
+        "id": "[Cache.Exports.1791109972505:0.8696360027094515]1"
+      }
+    },
+    {
+      "type": "worker-request",
+      "data": {
+        "jsonrpc": "2.0",
+        "id": "[Cache.Exports.1791109972505:0.8696360027094515]2",
+        "method": "Cache.Exports.dropTranslator",
+        "params": [
+          "BetterBibTeX JSON"
+        ]
+      }
+    },
+    {
+      "type": "worker",
+      "id": 1,
+      "kind": "message",
+      "data": {
+        "jsonrpc": "2.0",
+        "method": "Cache.Exports.dropTranslator",
+        "id": "[Cache.Exports.1791109972505:0.8696360027094515]2"
+      }
+    },
+    {
+      "type": "worker-request",
+      "data": {
+        "jsonrpc": "2.0",
+        "id": "[Cache.Exports.1791109972505:0.8696360027094515]3",
+        "method": "Cache.Exports.dropTranslator",
+        "params": [
+          "Better Hayagriva"
+        ]
+      }
+    },
+    {
+      "type": "worker",
+      "id": 1,
+      "kind": "message",
+      "data": {
+        "jsonrpc": "2.0",
+        "method": "Cache.Exports.dropTranslator",
+        "id": "[Cache.Exports.1791109972505:0.8696360027094515]3"
+      }
+    },
+    {
+      "type": "worker-request",
+      "data": {
+        "jsonrpc": "2.0",
+        "id": "[Cache.Exports.1791109972505:0.8696360027094515]4",
+        "method": "Cache.Exports.dropTranslator",
+        "params": [
+          "Better CSL YAML"
+        ]
+      }
+    },
+    {
+      "type": "worker",
+      "id": 1,
+      "kind": "message",
+      "data": {
+        "jsonrpc": "2.0",
+        "method": "Cache.Exports.dropTranslator",
+        "id": "[Cache.Exports.1791109972505:0.8696360027094515]4"
+      }
+    },
+    {
+      "type": "worker-request",
+      "data": {
+        "jsonrpc": "2.0",
+        "id": "[Cache.Exports.1791109972505:0.8696360027094515]5",
+        "method": "Cache.Exports.dropTranslator",
+        "params": [
+          "Better CSL JSON"
+        ]
+      }
+    },
+    {
+      "type": "worker",
+      "id": 1,
+      "kind": "message",
+      "data": {
+        "jsonrpc": "2.0",
+        "method": "Cache.Exports.dropTranslator",
+        "id": "[Cache.Exports.1791109972505:0.8696360027094515]5"
+      }
+    },
+    {
+      "type": "worker-request",
+      "data": {
+        "jsonrpc": "2.0",
+        "id": "[Cache.Exports.1791109972505:0.8696360027094515]6",
+        "method": "Cache.Exports.dropTranslator",
+        "params": [
+          "Better BibTeX"
+        ]
+      }
+    },
+    {
+      "type": "worker",
+      "id": 1,
+      "kind": "message",
+      "data": {
+        "jsonrpc": "2.0",
+        "method": "Cache.Exports.dropTranslator",
+        "id": "[Cache.Exports.1791109972505:0.8696360027094515]6"
+      }
+    },
+    {
+      "type": "worker-request",
+      "data": {
+        "jsonrpc": "2.0",
+        "id": "[Cache.Exports.1791109972505:0.8696360027094515]7",
+        "method": "Cache.Exports.dropTranslator",
+        "params": [
+          "Better BibTeX Citation Key Quick Copy"
+        ]
+      }
+    },
+    {
+      "type": "worker",
+      "id": 1,
+      "kind": "message",
+      "data": {
+        "jsonrpc": "2.0",
+        "method": "Cache.Exports.dropTranslator",
+        "id": "[Cache.Exports.1791109972505:0.8696360027094515]7"
+      }
+    },
+    {
+      "type": "worker-request",
+      "data": {
+        "jsonrpc": "2.0",
+        "id": "[Cache.Exports.1791109972505:0.8696360027094515]8",
+        "method": "Cache.Exports.dropTranslator",
+        "params": [
+          "Better BibLaTeX"
+        ]
+      }
+    },
+    {
+      "type": "worker",
+      "id": 1,
+      "kind": "message",
+      "data": {
+        "jsonrpc": "2.0",
+        "method": "Cache.Exports.dropTranslator",
+        "id": "[Cache.Exports.1791109972505:0.8696360027094515]8"
+      }
+    },
+    {
+      "type": "debug",
+      "message": "{ startup: [translators+5]better-bibtex:} orchestrator: translators took 00:00:00.930\n"
+    },
+    {
+      "type": "debug",
+      "message": "{ startup: [auto-export+4]better-bibtex:} orchestrator: starting auto-export [auto-export]\n"
+    },
+    {
+      "type": "debug",
+      "message": "{ startup: [auto-export+4]better-bibtex:} orchestrator: auto-export took 00:00:00.000\n"
+    },
+    {
+      "type": "debug",
+      "message": "{ startup: [cayw+3]better-bibtex:} orchestrator: starting cayw [CAYW endpoint]\n"
+    },
+    {
+      "type": "debug",
+      "message": "{ startup: [cayw+3]better-bibtex:} orchestrator: cayw took 00:00:00.001\n"
+    },
+    {
+      "type": "debug",
+      "message": "{ startup: [pull-export+2]better-bibtex:} orchestrator: starting pull-export [JSON-RPC endpoint]\n"
+    },
+    {
+      "type": "debug",
+      "message": "{ startup: [pull-export+2]better-bibtex:} orchestrator: pull-export took 00:00:00.000\n"
+    },
+    {
+      "type": "debug",
+      "message": "{ startup: [json-rpc+1]better-bibtex:} orchestrator: starting json-rpc [JSON-RPC endpoint]\n"
+    },
+    {
+      "type": "debug",
+      "message": "{ startup: [json-rpc+1]better-bibtex:} orchestrator: json-rpc took 00:00:00.000\n"
+    },
+    {
+      "type": "debug",
+      "message": "{ startup: [done]better-bibtex:} orchestrator: starting done [user interface]\n"
+    },
+    {
+      "type": "debug",
+      "message": "{ startup: [done]better-bibtex:} orchestrator: done took 00:00:00.001\n"
+    },
+    {
+      "type": "debug",
+      "message": "{better-bibtex:} orchestrator: starting took 00:00:01.302\n"
+    },
+    {
+      "type": "debug",
+      "message": "Better BibTeX bootstrap: {better-bibtex} bootstrap: startup done"
+    },
+    {
+      "type": "worker-request",
+      "data": {
+        "jsonrpc": "2.0",
+        "id": "[Cache.1791109972505:0.9099547139222958]0",
+        "method": "Cache.touch",
+        "params": [
+          [
+            1,
+            2
+          ]
+        ]
+      }
+    },
+    {
+      "type": "worker",
+      "id": 1,
+      "kind": "message",
+      "data": {
+        "jsonrpc": "2.0",
+        "method": "Cache.touch",
+        "id": "[Cache.1791109972505:0.9099547139222958]0"
+      }
+    },
+    {
+      "type": "field-stage",
+      "itemID": 1,
+      "field": "citationKey",
+      "value": "chenResearchAgentsReproducible2026"
+    },
+    {
+      "type": "item-save",
+      "itemID": 1,
+      "changed": {
+        "citationKey": "chenResearchAgentsReproducible2026"
+      },
+      "skipNotifier": false
+    },
+    {
+      "type": "notifier-trigger",
+      "action": "modify",
+      "objectType": "item",
+      "ids": [
+        1
+      ],
+      "extraData": {
+        "1": {
+          "libraryID": 1,
+          "changed": {
+            "citationKey": ""
+          }
+        }
+      }
+    },
+    {
+      "type": "worker-request",
+      "data": {
+        "jsonrpc": "2.0",
+        "id": "[Cache.Exports.1791109972505:0.8696360027094515]9",
+        "method": "Cache.Exports.touch",
+        "params": [
+          [
+            1
+          ]
+        ]
+      }
+    },
+    {
+      "type": "worker",
+      "id": 1,
+      "kind": "message",
+      "data": {
+        "jsonrpc": "2.0",
+        "method": "Cache.Exports.touch",
+        "id": "[Cache.Exports.1791109972505:0.8696360027094515]9"
+      }
+    },
+    {
+      "type": "worker-request",
+      "data": {
+        "jsonrpc": "2.0",
+        "id": "[Cache.Serialized.1791109972505:0.9410340519193406]0",
+        "method": "Cache.Serialized.fill",
+        "params": [
+          [
+            {
+              "itemType": "journalArticle",
+              "tags": [],
+              "collections": [],
+              "relations": {},
+              "title": "Research agents and reproducible literature workflows",
+              "creators": [
+                {
+                  "firstName": "Ada",
+                  "lastName": "Chen",
+                  "creatorType": "author"
+                }
+              ],
+              "date": "2026",
+              "publicationTitle": "Prototype Research",
+              "volume": "1",
+              "pages": "1-8",
+              "DOI": "10.0000/scholoom-prototype",
+              "citationKey": "chenResearchAgentsReproducible2026",
+              "uri": "scholoom://source/source-1",
+              "itemID": 1,
+              "attachments": [],
+              "notes": [],
+              "autoJournalAbbreviation": "",
+              "itemKey": "NODE0001",
+              "libraryID": 1
+            }
+          ]
+        ]
+      }
+    },
+    {
+      "type": "worker",
+      "id": 1,
+      "kind": "message",
+      "data": {
+        "jsonrpc": "2.0",
+        "method": "Cache.Serialized.fill",
+        "id": "[Cache.Serialized.1791109972505:0.9410340519193406]0"
+      }
+    },
+    {
+      "type": "worker-request",
+      "data": {
+        "jsonrpc": "2.0",
+        "id": "[Cache.1791109972505:0.9099547139222958]1",
+        "method": "Cache.updated",
+        "params": []
+      }
+    },
+    {
+      "type": "worker",
+      "id": 1,
+      "kind": "message",
+      "data": {
+        "jsonrpc": "2.0",
+        "method": "Cache.updated",
+        "id": "[Cache.1791109972505:0.9099547139222958]1"
+      }
+    },
+    {
+      "type": "debug",
+      "message": "{better-bibtex:} items-changed {}\n"
+    },
+    {
+      "type": "notifier-delivered",
+      "id": 1,
+      "name": "Better BibTeX",
+      "action": "modify",
+      "objectType": "item",
+      "ids": [
+        1
+      ]
+    },
+    {
+      "type": "worker-request",
+      "data": {
+        "jsonrpc": "2.0",
+        "id": "[Cache.1791109972505:0.9099547139222958]2",
+        "method": "Cache.touch",
+        "params": [
+          [
+            1,
+            2
+          ]
+        ]
+      }
+    },
+    {
+      "type": "worker",
+      "id": 1,
+      "kind": "message",
+      "data": {
+        "jsonrpc": "2.0",
+        "method": "Cache.touch",
+        "id": "[Cache.1791109972505:0.9099547139222958]2"
+      }
+    },
+    {
+      "type": "sql",
+      "query": "SELECT itemData.itemID, itemDataValues.value FROM itemData JOIN fields USING (fieldID) JOIN itemDataValues USING (valueID) WHERE fields.fieldName = ?",
+      "params": [
+        "citationKey"
+      ]
+    },
+    {
+      "type": "worker-request",
+      "data": {
+        "jsonrpc": "2.0",
+        "id": "[Cache.Serialized.1791109972505:0.9410340519193406]1",
+        "method": "Cache.Serialized.missing",
+        "params": [
+          [
+            1,
+            2
+          ]
+        ]
+      }
+    },
+    {
+      "type": "worker",
+      "id": 1,
+      "kind": "message",
+      "data": {
+        "jsonrpc": "2.0",
+        "method": "Cache.Serialized.missing",
+        "result": [
+          1,
+          2
+        ],
+        "id": "[Cache.Serialized.1791109972505:0.9410340519193406]1"
+      }
+    },
+    {
+      "type": "debug",
+      "message": "{better-bibtex:} json-rpc: cache fill 2 / 2\n"
+    },
+    {
+      "type": "worker-request",
+      "data": {
+        "jsonrpc": "2.0",
+        "id": "[Cache.Serialized.1791109972505:0.9410340519193406]2",
+        "method": "Cache.Serialized.fill",
+        "params": [
+          [
+            {
+              "itemType": "journalArticle",
+              "tags": [],
+              "collections": [],
+              "relations": {},
+              "title": "Research agents and reproducible literature workflows",
+              "creators": [
+                {
+                  "firstName": "Ada",
+                  "lastName": "Chen",
+                  "creatorType": "author"
+                }
+              ],
+              "date": "2026",
+              "publicationTitle": "Prototype Research",
+              "volume": "1",
+              "pages": "1-8",
+              "DOI": "10.0000/scholoom-prototype",
+              "citationKey": "chenResearchAgentsReproducible2026",
+              "uri": "scholoom://source/source-1",
+              "itemID": 1,
+              "attachments": [],
+              "notes": [],
+              "autoJournalAbbreviation": "",
+              "itemKey": "NODE0001",
+              "libraryID": 1
+            },
+            {
+              "itemType": "journalArticle",
+              "tags": [],
+              "collections": [],
+              "relations": {},
+              "title": "中文科研流程原型样本",
+              "creators": [
+                {
+                  "firstName": "明",
+                  "lastName": "李",
+                  "creatorType": "author"
+                }
+              ],
+              "date": "2026",
+              "publicationTitle": "原型测试期刊",
+              "citationKey": "ScholoomPreserved2026",
+              "uri": "scholoom://source/source-2",
+              "itemID": 2,
+              "attachments": [],
+              "notes": [],
+              "autoJournalAbbreviation": "",
+              "itemKey": "NODE0002",
+              "libraryID": 1
+            }
+          ]
+        ]
+      }
+    },
+    {
+      "type": "worker",
+      "id": 1,
+      "kind": "message",
+      "data": {
+        "jsonrpc": "2.0",
+        "method": "Cache.Serialized.fill",
+        "id": "[Cache.Serialized.1791109972505:0.9410340519193406]2"
+      }
+    },
+    {
+      "type": "worker-request",
+      "data": {
+        "jsonrpc": "2.0",
+        "id": "[1791109972505:0.6946605448038425]1",
+        "method": "start",
+        "params": [
+          {
+            "preferences": {
+              "ascii": "",
+              "asciiBibLaTeX": false,
+              "asciiBibTeX": true,
+              "autoExport": "immediate",
+              "autoExportDelay": 5,
+              "autoExportIdleWait": 10,
+              "autoExportPathReplaceDiacritics": false,
+              "autoExportPathReplaceDirSep": "-",
+              "autoExportPathReplaceSpace": " ",
+              "automaticTags": true,
+              "auxImport": false,
+              "baseAttachmentPath": "",
+              "biblatexExtendedDateFormat": true,
+              "biblatexExtendedNameFormat": true,
+              "biblatexExtractEprint": true,
+              "biblatexUsePrefix": true,
+              "bibtexEditionOrdinal": false,
+              "bibtexParticleNoOp": false,
+              "bibtexURL": "off",
+              "cache": true,
+              "cacheDelete": false,
+              "cacheTouch": "fill",
+              "charmap": "",
+              "chinese": false,
+              "chineseSplitName": true,
+              "citeCommand": "cite",
+              "citekeyCaseInsensitive": true,
+              "citekeyFold": true,
+              "citekeyFormat": "auth.lower + shorttitle(3, 3) + year",
+              "citekeyFormatEditing": "auth.lower + shorttitle(3, 3) + year",
+              "citekeyUnsafeChars": "\\\"#%'(),={}~",
+              "csquotes": "",
+              "DOIandURL": "both",
+              "exportBibTeXStrings": "off",
+              "exportBraceProtection": true,
+              "exportCaseProtection": "",
+              "exportSort": "citekey",
+              "exportTitlecase": "",
+              "extraFieldAsNote": false,
+              "extraMergeCitekeys": false,
+              "extraMergeCSL": false,
+              "extraMergeTeX": false,
+              "fillKeyAfter": 0,
+              "git": "config",
+              "import": true,
+              "importBibTeXStrings": true,
+              "importCaseProtection": "as-needed",
+              "importCitationKey": true,
+              "importDetectURLs": true,
+              "importExtra": true,
+              "importJabRefAbbreviations": true,
+              "importJabRefStrings": true,
+              "importNoteToExtra": "",
+              "importPlaceEvent": "inproceedings,conference,presentation,talk",
+              "importSentenceCase": "on+guess",
+              "importSentenceCaseQuoted": true,
+              "importUnknownTexCommand": "ignore",
+              "itemObserverDelay": 5,
+              "jabrefFormat": 0,
+              "japanese": false,
+              "journalAbbreviation": "abbrev",
+              "keyScope": "library",
+              "language": "langid",
+              "logEvents": false,
+              "mapMath": "",
+              "mapText": "",
+              "packages": "",
+              "parseParticles": true,
+              "patchDates": "dateadded=dateAdded, date-added=dateAdded, datemodified=dateModified, date-modified=dateModified",
+              "platform": "lin",
+              "postscript": "",
+              "postscriptOverride": "",
+              "preferencesOverride": "",
+              "profileRuntime": "no",
+              "profileStartup": false,
+              "qualityReport": false,
+              "quickCopyEta": "",
+              "quickCopyMode": "latex",
+              "quickCopyOrgMode": "zotero",
+              "quickCopyPandocBrackets": false,
+              "quickCopySelectLink": "zotero",
+              "rawImports": false,
+              "rawLaTag": "#LaTeX",
+              "relativeFilePaths": false,
+              "remigrate": false,
+              "resetKeyOnChange": false,
+              "separatorList": "and",
+              "separatorNames": "and",
+              "skipFields": "",
+              "skipWords": "a,ab,aboard,about,above,across,after,against,al,along,amid,among,an,and,anti,around,as,at,before,behind,below,beneath,beside,besides,between,beyond,but,by,d,da,das,de,del,dell,dello,dei,degli,della,dell,delle,dem,den,der,des,despite,die,do,down,du,during,ein,eine,einem,einen,einer,eines,el,en,et,except,for,from,gli,i,il,in,inside,into,is,l,la,las,le,les,like,lo,los,near,nor,of,off,on,onto,or,over,past,per,plus,round,save,since,so,some,sur,than,the,through,to,toward,towards,un,una,unas,under,underneath,une,unlike,uno,unos,until,up,upon,versus,via,von,while,with,within,without,yet,zu,zum",
+              "strings": "",
+              "stringsOverride": "",
+              "testing": false,
+              "verbatimFields": "url,doi,file,pdf,ids,eprint,/^verb[a-z]$/,groups,/^citeulike-linkout-[0-9]+$/,/^bdsk-url-[0-9]+$/, keywords",
+              "warnBulkModify": 10,
+              "warnTitleCased": false
+            },
+            "options": {
+              "exportNotes": false,
+              "exportFileData": false,
+              "useJournalAbbreviation": false,
+              "keepUpdated": false,
+              "worker": true
+            },
+            "data": {
+              "items": [
+                1,
+                2
+              ],
+              "collections": []
+            },
+            "translator": "Better BibTeX",
+            "output": "",
+            "debugEnabled": false
+          }
+        ]
+      }
+    },
+    {
+      "type": "worker",
+      "id": 1,
+      "kind": "message",
+      "data": {
+        "kind": "debug",
+        "message": "{worker: better-bibtex:} starting cached export using Better BibTeX\n"
+      }
+    },
+    {
+      "type": "debug",
+      "message": "{worker: better-bibtex:} starting cached export using Better BibTeX\n"
+    },
+    {
+      "type": "worker",
+      "id": 1,
+      "kind": "message",
+      "data": {
+        "kind": "progress",
+        "percent": 0,
+        "translator": "Better BibTeX"
+      }
+    },
+    {
+      "type": "worker",
+      "id": 1,
+      "kind": "message",
+      "data": {
+        "kind": "progress",
+        "percent": 0,
+        "translator": "Better BibTeX"
+      }
+    },
+    {
+      "type": "worker",
+      "id": 1,
+      "kind": "message",
+      "data": {
+        "kind": "progress",
+        "percent": 50,
+        "translator": "Better BibTeX"
+      }
+    },
+    {
+      "type": "worker",
+      "id": 1,
+      "kind": "message",
+      "data": {
+        "kind": "progress",
+        "percent": 100,
+        "translator": "Better BibTeX"
+      }
+    },
+    {
+      "type": "worker",
+      "id": 1,
+      "kind": "message",
+      "data": {
+        "kind": "progress",
+        "percent": 100,
+        "translator": "Better BibTeX"
+      }
+    },
+    {
+      "type": "worker",
+      "id": 1,
+      "kind": "message",
+      "data": {
+        "jsonrpc": "2.0",
+        "method": "start",
+        "result": {
+          "output": "@article{chenResearchAgentsReproducible2026,\n  title = {Research Agents and Reproducible Literature Workflows},\n  author = {Chen, Ada},\n  year = 2026,\n  journal = {Prototype Research},\n  volume = {1},\n  pages = {1--8},\n  doi = {10.0000/scholoom-prototype}\n}\n\n@article{ScholoomPreserved2026,\n  title = {中文科研流程原型样本},\n  author = {李, 明},\n  year = 2026,\n  journal = {原型测试期刊}\n}\n",
+          "cacheRate": 0
+        },
+        "id": "[1791109972505:0.6946605448038425]1"
+      }
+    },
+    {
+      "type": "debug",
+      "message": "{better-bibtex:} json-rpc: export cache use 0%\n"
+    },
+    {
+      "type": "worker-request",
+      "data": {
+        "jsonrpc": "2.0",
+        "id": "[Cache.Serialized.1791109972505:0.9410340519193406]3",
+        "method": "Cache.Serialized.missing",
+        "params": [
+          [
+            1,
+            2
+          ]
+        ]
+      }
+    },
+    {
+      "type": "worker",
+      "id": 1,
+      "kind": "message",
+      "data": {
+        "jsonrpc": "2.0",
+        "method": "Cache.Serialized.missing",
+        "result": [],
+        "id": "[Cache.Serialized.1791109972505:0.9410340519193406]3"
+      }
+    },
+    {
+      "type": "debug",
+      "message": "{better-bibtex:} json-rpc: cache fill 0 / 2\n"
+    },
+    {
+      "type": "worker-request",
+      "data": {
+        "jsonrpc": "2.0",
+        "id": "[1791109972505:0.6946605448038425]2",
+        "method": "start",
+        "params": [
+          {
+            "preferences": {
+              "ascii": "",
+              "asciiBibLaTeX": false,
+              "asciiBibTeX": true,
+              "autoExport": "immediate",
+              "autoExportDelay": 5,
+              "autoExportIdleWait": 10,
+              "autoExportPathReplaceDiacritics": false,
+              "autoExportPathReplaceDirSep": "-",
+              "autoExportPathReplaceSpace": " ",
+              "automaticTags": true,
+              "auxImport": false,
+              "baseAttachmentPath": "",
+              "biblatexExtendedDateFormat": true,
+              "biblatexExtendedNameFormat": true,
+              "biblatexExtractEprint": true,
+              "biblatexUsePrefix": true,
+              "bibtexEditionOrdinal": false,
+              "bibtexParticleNoOp": false,
+              "bibtexURL": "off",
+              "cache": true,
+              "cacheDelete": false,
+              "cacheTouch": "fill",
+              "charmap": "",
+              "chinese": false,
+              "chineseSplitName": true,
+              "citeCommand": "cite",
+              "citekeyCaseInsensitive": true,
+              "citekeyFold": true,
+              "citekeyFormat": "auth.lower + shorttitle(3, 3) + year",
+              "citekeyFormatEditing": "auth.lower + shorttitle(3, 3) + year",
+              "citekeyUnsafeChars": "\\\"#%'(),={}~",
+              "csquotes": "",
+              "DOIandURL": "both",
+              "exportBibTeXStrings": "off",
+              "exportBraceProtection": true,
+              "exportCaseProtection": "",
+              "exportSort": "citekey",
+              "exportTitlecase": "",
+              "extraFieldAsNote": false,
+              "extraMergeCitekeys": false,
+              "extraMergeCSL": false,
+              "extraMergeTeX": false,
+              "fillKeyAfter": 0,
+              "git": "config",
+              "import": true,
+              "importBibTeXStrings": true,
+              "importCaseProtection": "as-needed",
+              "importCitationKey": true,
+              "importDetectURLs": true,
+              "importExtra": true,
+              "importJabRefAbbreviations": true,
+              "importJabRefStrings": true,
+              "importNoteToExtra": "",
+              "importPlaceEvent": "inproceedings,conference,presentation,talk",
+              "importSentenceCase": "on+guess",
+              "importSentenceCaseQuoted": true,
+              "importUnknownTexCommand": "ignore",
+              "itemObserverDelay": 5,
+              "jabrefFormat": 0,
+              "japanese": false,
+              "journalAbbreviation": "abbrev",
+              "keyScope": "library",
+              "language": "langid",
+              "logEvents": false,
+              "mapMath": "",
+              "mapText": "",
+              "packages": "",
+              "parseParticles": true,
+              "patchDates": "dateadded=dateAdded, date-added=dateAdded, datemodified=dateModified, date-modified=dateModified",
+              "platform": "lin",
+              "postscript": "",
+              "postscriptOverride": "",
+              "preferencesOverride": "",
+              "profileRuntime": "no",
+              "profileStartup": false,
+              "qualityReport": false,
+              "quickCopyEta": "",
+              "quickCopyMode": "latex",
+              "quickCopyOrgMode": "zotero",
+              "quickCopyPandocBrackets": false,
+              "quickCopySelectLink": "zotero",
+              "rawImports": false,
+              "rawLaTag": "#LaTeX",
+              "relativeFilePaths": false,
+              "remigrate": false,
+              "resetKeyOnChange": false,
+              "separatorList": "and",
+              "separatorNames": "and",
+              "skipFields": "",
+              "skipWords": "a,ab,aboard,about,above,across,after,against,al,along,amid,among,an,and,anti,around,as,at,before,behind,below,beneath,beside,besides,between,beyond,but,by,d,da,das,de,del,dell,dello,dei,degli,della,dell,delle,dem,den,der,des,despite,die,do,down,du,during,ein,eine,einem,einen,einer,eines,el,en,et,except,for,from,gli,i,il,in,inside,into,is,l,la,las,le,les,like,lo,los,near,nor,of,off,on,onto,or,over,past,per,plus,round,save,since,so,some,sur,than,the,through,to,toward,towards,un,una,unas,under,underneath,une,unlike,uno,unos,until,up,upon,versus,via,von,while,with,within,without,yet,zu,zum",
+              "strings": "",
+              "stringsOverride": "",
+              "testing": false,
+              "verbatimFields": "url,doi,file,pdf,ids,eprint,/^verb[a-z]$/,groups,/^citeulike-linkout-[0-9]+$/,/^bdsk-url-[0-9]+$/, keywords",
+              "warnBulkModify": 10,
+              "warnTitleCased": false
+            },
+            "options": {
+              "exportNotes": false,
+              "exportFileData": false,
+              "useJournalAbbreviation": false,
+              "keepUpdated": false,
+              "worker": true
+            },
+            "data": {
+              "items": [
+                1,
+                2
+              ],
+              "collections": []
+            },
+            "translator": "Better BibTeX",
+            "output": "",
+            "debugEnabled": false
+          }
+        ]
+      }
+    },
+    {
+      "type": "worker",
+      "id": 1,
+      "kind": "message",
+      "data": {
+        "kind": "debug",
+        "message": "{worker: better-bibtex:} starting cached export using Better BibTeX\n"
+      }
+    },
+    {
+      "type": "debug",
+      "message": "{worker: better-bibtex:} starting cached export using Better BibTeX\n"
+    },
+    {
+      "type": "worker",
+      "id": 1,
+      "kind": "message",
+      "data": {
+        "kind": "progress",
+        "percent": 0,
+        "translator": "Better BibTeX"
+      }
+    },
+    {
+      "type": "worker",
+      "id": 1,
+      "kind": "message",
+      "data": {
+        "kind": "progress",
+        "percent": 0,
+        "translator": "Better BibTeX"
+      }
+    },
+    {
+      "type": "worker",
+      "id": 1,
+      "kind": "message",
+      "data": {
+        "kind": "progress",
+        "percent": 50,
+        "translator": "Better BibTeX"
+      }
+    },
+    {
+      "type": "worker",
+      "id": 1,
+      "kind": "message",
+      "data": {
+        "kind": "progress",
+        "percent": 100,
+        "translator": "Better BibTeX"
+      }
+    },
+    {
+      "type": "worker",
+      "id": 1,
+      "kind": "message",
+      "data": {
+        "kind": "progress",
+        "percent": 100,
+        "translator": "Better BibTeX"
+      }
+    },
+    {
+      "type": "worker",
+      "id": 1,
+      "kind": "message",
+      "data": {
+        "jsonrpc": "2.0",
+        "method": "start",
+        "result": {
+          "output": "@article{chenResearchAgentsReproducible2026,\n  title = {Research Agents and Reproducible Literature Workflows},\n  author = {Chen, Ada},\n  year = 2026,\n  journal = {Prototype Research},\n  volume = {1},\n  pages = {1--8},\n  doi = {10.0000/scholoom-prototype}\n}\n\n@article{ScholoomPreserved2026,\n  title = {中文科研流程原型样本},\n  author = {李, 明},\n  year = 2026,\n  journal = {原型测试期刊}\n}\n",
+          "cacheRate": 1
+        },
+        "id": "[1791109972505:0.6946605448038425]2"
+      }
+    },
+    {
+      "type": "debug",
+      "message": "{better-bibtex:} json-rpc: export cache use 1%\n"
+    },
+    {
+      "type": "field-stage",
+      "itemID": 1,
+      "field": "title",
+      "value": "Mutation control without notification"
+    },
+    {
+      "type": "field-stage",
+      "itemID": 1,
+      "field": "DOI",
+      "value": "10.0000/control-no-notification"
+    },
+    {
+      "type": "item-save",
+      "itemID": 1,
+      "changed": {
+        "title": "Mutation control without notification",
+        "DOI": "10.0000/control-no-notification"
+      },
+      "skipNotifier": true
+    },
+    {
+      "type": "worker-request",
+      "data": {
+        "jsonrpc": "2.0",
+        "id": "[Cache.Serialized.1791109972505:0.9410340519193406]4",
+        "method": "Cache.Serialized.missing",
+        "params": [
+          [
+            1,
+            2
+          ]
+        ]
+      }
+    },
+    {
+      "type": "worker",
+      "id": 1,
+      "kind": "message",
+      "data": {
+        "jsonrpc": "2.0",
+        "method": "Cache.Serialized.missing",
+        "result": [],
+        "id": "[Cache.Serialized.1791109972505:0.9410340519193406]4"
+      }
+    },
+    {
+      "type": "debug",
+      "message": "{better-bibtex:} json-rpc: cache fill 0 / 2\n"
+    },
+    {
+      "type": "worker-request",
+      "data": {
+        "jsonrpc": "2.0",
+        "id": "[1791109972505:0.6946605448038425]3",
+        "method": "start",
+        "params": [
+          {
+            "preferences": {
+              "ascii": "",
+              "asciiBibLaTeX": false,
+              "asciiBibTeX": true,
+              "autoExport": "immediate",
+              "autoExportDelay": 5,
+              "autoExportIdleWait": 10,
+              "autoExportPathReplaceDiacritics": false,
+              "autoExportPathReplaceDirSep": "-",
+              "autoExportPathReplaceSpace": " ",
+              "automaticTags": true,
+              "auxImport": false,
+              "baseAttachmentPath": "",
+              "biblatexExtendedDateFormat": true,
+              "biblatexExtendedNameFormat": true,
+              "biblatexExtractEprint": true,
+              "biblatexUsePrefix": true,
+              "bibtexEditionOrdinal": false,
+              "bibtexParticleNoOp": false,
+              "bibtexURL": "off",
+              "cache": true,
+              "cacheDelete": false,
+              "cacheTouch": "fill",
+              "charmap": "",
+              "chinese": false,
+              "chineseSplitName": true,
+              "citeCommand": "cite",
+              "citekeyCaseInsensitive": true,
+              "citekeyFold": true,
+              "citekeyFormat": "auth.lower + shorttitle(3, 3) + year",
+              "citekeyFormatEditing": "auth.lower + shorttitle(3, 3) + year",
+              "citekeyUnsafeChars": "\\\"#%'(),={}~",
+              "csquotes": "",
+              "DOIandURL": "both",
+              "exportBibTeXStrings": "off",
+              "exportBraceProtection": true,
+              "exportCaseProtection": "",
+              "exportSort": "citekey",
+              "exportTitlecase": "",
+              "extraFieldAsNote": false,
+              "extraMergeCitekeys": false,
+              "extraMergeCSL": false,
+              "extraMergeTeX": false,
+              "fillKeyAfter": 0,
+              "git": "config",
+              "import": true,
+              "importBibTeXStrings": true,
+              "importCaseProtection": "as-needed",
+              "importCitationKey": true,
+              "importDetectURLs": true,
+              "importExtra": true,
+              "importJabRefAbbreviations": true,
+              "importJabRefStrings": true,
+              "importNoteToExtra": "",
+              "importPlaceEvent": "inproceedings,conference,presentation,talk",
+              "importSentenceCase": "on+guess",
+              "importSentenceCaseQuoted": true,
+              "importUnknownTexCommand": "ignore",
+              "itemObserverDelay": 5,
+              "jabrefFormat": 0,
+              "japanese": false,
+              "journalAbbreviation": "abbrev",
+              "keyScope": "library",
+              "language": "langid",
+              "logEvents": false,
+              "mapMath": "",
+              "mapText": "",
+              "packages": "",
+              "parseParticles": true,
+              "patchDates": "dateadded=dateAdded, date-added=dateAdded, datemodified=dateModified, date-modified=dateModified",
+              "platform": "lin",
+              "postscript": "",
+              "postscriptOverride": "",
+              "preferencesOverride": "",
+              "profileRuntime": "no",
+              "profileStartup": false,
+              "qualityReport": false,
+              "quickCopyEta": "",
+              "quickCopyMode": "latex",
+              "quickCopyOrgMode": "zotero",
+              "quickCopyPandocBrackets": false,
+              "quickCopySelectLink": "zotero",
+              "rawImports": false,
+              "rawLaTag": "#LaTeX",
+              "relativeFilePaths": false,
+              "remigrate": false,
+              "resetKeyOnChange": false,
+              "separatorList": "and",
+              "separatorNames": "and",
+              "skipFields": "",
+              "skipWords": "a,ab,aboard,about,above,across,after,against,al,along,amid,among,an,and,anti,around,as,at,before,behind,below,beneath,beside,besides,between,beyond,but,by,d,da,das,de,del,dell,dello,dei,degli,della,dell,delle,dem,den,der,des,despite,die,do,down,du,during,ein,eine,einem,einen,einer,eines,el,en,et,except,for,from,gli,i,il,in,inside,into,is,l,la,las,le,les,like,lo,los,near,nor,of,off,on,onto,or,over,past,per,plus,round,save,since,so,some,sur,than,the,through,to,toward,towards,un,una,unas,under,underneath,une,unlike,uno,unos,until,up,upon,versus,via,von,while,with,within,without,yet,zu,zum",
+              "strings": "",
+              "stringsOverride": "",
+              "testing": false,
+              "verbatimFields": "url,doi,file,pdf,ids,eprint,/^verb[a-z]$/,groups,/^citeulike-linkout-[0-9]+$/,/^bdsk-url-[0-9]+$/, keywords",
+              "warnBulkModify": 10,
+              "warnTitleCased": false
+            },
+            "options": {
+              "exportNotes": false,
+              "exportFileData": false,
+              "useJournalAbbreviation": false,
+              "keepUpdated": false,
+              "worker": true
+            },
+            "data": {
+              "items": [
+                1,
+                2
+              ],
+              "collections": []
+            },
+            "translator": "Better BibTeX",
+            "output": "",
+            "debugEnabled": false
+          }
+        ]
+      }
+    },
+    {
+      "type": "worker",
+      "id": 1,
+      "kind": "message",
+      "data": {
+        "kind": "debug",
+        "message": "{worker: better-bibtex:} starting cached export using Better BibTeX\n"
+      }
+    },
+    {
+      "type": "debug",
+      "message": "{worker: better-bibtex:} starting cached export using Better BibTeX\n"
+    },
+    {
+      "type": "worker",
+      "id": 1,
+      "kind": "message",
+      "data": {
+        "kind": "progress",
+        "percent": 0,
+        "translator": "Better BibTeX"
+      }
+    },
+    {
+      "type": "worker",
+      "id": 1,
+      "kind": "message",
+      "data": {
+        "kind": "progress",
+        "percent": 0,
+        "translator": "Better BibTeX"
+      }
+    },
+    {
+      "type": "worker",
+      "id": 1,
+      "kind": "message",
+      "data": {
+        "kind": "progress",
+        "percent": 50,
+        "translator": "Better BibTeX"
+      }
+    },
+    {
+      "type": "worker",
+      "id": 1,
+      "kind": "message",
+      "data": {
+        "kind": "progress",
+        "percent": 100,
+        "translator": "Better BibTeX"
+      }
+    },
+    {
+      "type": "worker",
+      "id": 1,
+      "kind": "message",
+      "data": {
+        "kind": "progress",
+        "percent": 100,
+        "translator": "Better BibTeX"
+      }
+    },
+    {
+      "type": "worker",
+      "id": 1,
+      "kind": "message",
+      "data": {
+        "jsonrpc": "2.0",
+        "method": "start",
+        "result": {
+          "output": "@article{chenResearchAgentsReproducible2026,\n  title = {Research Agents and Reproducible Literature Workflows},\n  author = {Chen, Ada},\n  year = 2026,\n  journal = {Prototype Research},\n  volume = {1},\n  pages = {1--8},\n  doi = {10.0000/scholoom-prototype}\n}\n\n@article{ScholoomPreserved2026,\n  title = {中文科研流程原型样本},\n  author = {李, 明},\n  year = 2026,\n  journal = {原型测试期刊}\n}\n",
+          "cacheRate": 1
+        },
+        "id": "[1791109972505:0.6946605448038425]3"
+      }
+    },
+    {
+      "type": "debug",
+      "message": "{better-bibtex:} json-rpc: export cache use 1%\n"
+    },
+    {
+      "type": "field-stage",
+      "itemID": 1,
+      "field": "title",
+      "value": "Updated research agents after committed notification"
+    },
+    {
+      "type": "field-stage",
+      "itemID": 1,
+      "field": "DOI",
+      "value": "10.0000/updated-with-notification"
+    },
+    {
+      "type": "field-stage",
+      "itemID": 1,
+      "field": "creators",
+      "value": [
+        {
+          "firstName": "Grace",
+          "lastName": "Wang",
+          "creatorType": "author"
+        }
+      ]
+    },
+    {
+      "type": "item-save",
+      "itemID": 1,
+      "changed": {
+        "title": "Updated research agents after committed notification",
+        "DOI": "10.0000/updated-with-notification",
+        "creators": [
+          {
+            "firstName": "Grace",
+            "lastName": "Wang",
+            "creatorType": "author"
+          }
+        ]
+      },
+      "skipNotifier": false
+    },
+    {
+      "type": "notifier-trigger",
+      "action": "modify",
+      "objectType": "item",
+      "ids": [
+        1
+      ],
+      "extraData": {
+        "1": {
+          "libraryID": 1,
+          "changed": {
+            "title": "Mutation control without notification",
+            "DOI": "10.0000/control-no-notification",
+            "creators": [
+              {
+                "firstName": "Ada",
+                "lastName": "Chen",
+                "creatorType": "author"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "type": "worker-request",
+      "data": {
+        "jsonrpc": "2.0",
+        "id": "[Cache.Exports.1791109972505:0.8696360027094515]10",
+        "method": "Cache.Exports.touch",
+        "params": [
+          [
+            1
+          ]
+        ]
+      }
+    },
+    {
+      "type": "worker",
+      "id": 1,
+      "kind": "message",
+      "data": {
+        "jsonrpc": "2.0",
+        "method": "Cache.Exports.touch",
+        "id": "[Cache.Exports.1791109972505:0.8696360027094515]10"
+      }
+    },
+    {
+      "type": "worker-request",
+      "data": {
+        "jsonrpc": "2.0",
+        "id": "[Cache.Serialized.1791109972505:0.9410340519193406]5",
+        "method": "Cache.Serialized.fill",
+        "params": [
+          [
+            {
+              "itemType": "journalArticle",
+              "tags": [],
+              "collections": [],
+              "relations": {},
+              "title": "Updated research agents after committed notification",
+              "creators": [
+                {
+                  "firstName": "Grace",
+                  "lastName": "Wang",
+                  "creatorType": "author"
+                }
+              ],
+              "date": "2026",
+              "publicationTitle": "Prototype Research",
+              "volume": "1",
+              "pages": "1-8",
+              "DOI": "10.0000/updated-with-notification",
+              "citationKey": "chenResearchAgentsReproducible2026",
+              "uri": "scholoom://source/source-1",
+              "itemID": 1,
+              "attachments": [],
+              "notes": [],
+              "autoJournalAbbreviation": "",
+              "itemKey": "NODE0001",
+              "libraryID": 1
+            }
+          ]
+        ]
+      }
+    },
+    {
+      "type": "worker",
+      "id": 1,
+      "kind": "message",
+      "data": {
+        "jsonrpc": "2.0",
+        "method": "Cache.Serialized.fill",
+        "id": "[Cache.Serialized.1791109972505:0.9410340519193406]5"
+      }
+    },
+    {
+      "type": "worker-request",
+      "data": {
+        "jsonrpc": "2.0",
+        "id": "[Cache.1791109972505:0.9099547139222958]3",
+        "method": "Cache.updated",
+        "params": []
+      }
+    },
+    {
+      "type": "worker",
+      "id": 1,
+      "kind": "message",
+      "data": {
+        "jsonrpc": "2.0",
+        "method": "Cache.updated",
+        "id": "[Cache.1791109972505:0.9099547139222958]3"
+      }
+    },
+    {
+      "type": "debug",
+      "message": "{better-bibtex:} items-changed {}\n"
+    },
+    {
+      "type": "notifier-delivered",
+      "id": 1,
+      "name": "Better BibTeX",
+      "action": "modify",
+      "objectType": "item",
+      "ids": [
+        1
+      ]
+    },
+    {
+      "type": "worker-request",
+      "data": {
+        "jsonrpc": "2.0",
+        "id": "[Cache.Serialized.1791109972505:0.9410340519193406]6",
+        "method": "Cache.Serialized.missing",
+        "params": [
+          [
+            1,
+            2
+          ]
+        ]
+      }
+    },
+    {
+      "type": "worker",
+      "id": 1,
+      "kind": "message",
+      "data": {
+        "jsonrpc": "2.0",
+        "method": "Cache.Serialized.missing",
+        "result": [],
+        "id": "[Cache.Serialized.1791109972505:0.9410340519193406]6"
+      }
+    },
+    {
+      "type": "debug",
+      "message": "{better-bibtex:} json-rpc: cache fill 0 / 2\n"
+    },
+    {
+      "type": "worker-request",
+      "data": {
+        "jsonrpc": "2.0",
+        "id": "[1791109972505:0.6946605448038425]4",
+        "method": "start",
+        "params": [
+          {
+            "preferences": {
+              "ascii": "",
+              "asciiBibLaTeX": false,
+              "asciiBibTeX": true,
+              "autoExport": "immediate",
+              "autoExportDelay": 5,
+              "autoExportIdleWait": 10,
+              "autoExportPathReplaceDiacritics": false,
+              "autoExportPathReplaceDirSep": "-",
+              "autoExportPathReplaceSpace": " ",
+              "automaticTags": true,
+              "auxImport": false,
+              "baseAttachmentPath": "",
+              "biblatexExtendedDateFormat": true,
+              "biblatexExtendedNameFormat": true,
+              "biblatexExtractEprint": true,
+              "biblatexUsePrefix": true,
+              "bibtexEditionOrdinal": false,
+              "bibtexParticleNoOp": false,
+              "bibtexURL": "off",
+              "cache": true,
+              "cacheDelete": false,
+              "cacheTouch": "fill",
+              "charmap": "",
+              "chinese": false,
+              "chineseSplitName": true,
+              "citeCommand": "cite",
+              "citekeyCaseInsensitive": true,
+              "citekeyFold": true,
+              "citekeyFormat": "auth.lower + shorttitle(3, 3) + year",
+              "citekeyFormatEditing": "auth.lower + shorttitle(3, 3) + year",
+              "citekeyUnsafeChars": "\\\"#%'(),={}~",
+              "csquotes": "",
+              "DOIandURL": "both",
+              "exportBibTeXStrings": "off",
+              "exportBraceProtection": true,
+              "exportCaseProtection": "",
+              "exportSort": "citekey",
+              "exportTitlecase": "",
+              "extraFieldAsNote": false,
+              "extraMergeCitekeys": false,
+              "extraMergeCSL": false,
+              "extraMergeTeX": false,
+              "fillKeyAfter": 0,
+              "git": "config",
+              "import": true,
+              "importBibTeXStrings": true,
+              "importCaseProtection": "as-needed",
+              "importCitationKey": true,
+              "importDetectURLs": true,
+              "importExtra": true,
+              "importJabRefAbbreviations": true,
+              "importJabRefStrings": true,
+              "importNoteToExtra": "",
+              "importPlaceEvent": "inproceedings,conference,presentation,talk",
+              "importSentenceCase": "on+guess",
+              "importSentenceCaseQuoted": true,
+              "importUnknownTexCommand": "ignore",
+              "itemObserverDelay": 5,
+              "jabrefFormat": 0,
+              "japanese": false,
+              "journalAbbreviation": "abbrev",
+              "keyScope": "library",
+              "language": "langid",
+              "logEvents": false,
+              "mapMath": "",
+              "mapText": "",
+              "packages": "",
+              "parseParticles": true,
+              "patchDates": "dateadded=dateAdded, date-added=dateAdded, datemodified=dateModified, date-modified=dateModified",
+              "platform": "lin",
+              "postscript": "",
+              "postscriptOverride": "",
+              "preferencesOverride": "",
+              "profileRuntime": "no",
+              "profileStartup": false,
+              "qualityReport": false,
+              "quickCopyEta": "",
+              "quickCopyMode": "latex",
+              "quickCopyOrgMode": "zotero",
+              "quickCopyPandocBrackets": false,
+              "quickCopySelectLink": "zotero",
+              "rawImports": false,
+              "rawLaTag": "#LaTeX",
+              "relativeFilePaths": false,
+              "remigrate": false,
+              "resetKeyOnChange": false,
+              "separatorList": "and",
+              "separatorNames": "and",
+              "skipFields": "",
+              "skipWords": "a,ab,aboard,about,above,across,after,against,al,along,amid,among,an,and,anti,around,as,at,before,behind,below,beneath,beside,besides,between,beyond,but,by,d,da,das,de,del,dell,dello,dei,degli,della,dell,delle,dem,den,der,des,despite,die,do,down,du,during,ein,eine,einem,einen,einer,eines,el,en,et,except,for,from,gli,i,il,in,inside,into,is,l,la,las,le,les,like,lo,los,near,nor,of,off,on,onto,or,over,past,per,plus,round,save,since,so,some,sur,than,the,through,to,toward,towards,un,una,unas,under,underneath,une,unlike,uno,unos,until,up,upon,versus,via,von,while,with,within,without,yet,zu,zum",
+              "strings": "",
+              "stringsOverride": "",
+              "testing": false,
+              "verbatimFields": "url,doi,file,pdf,ids,eprint,/^verb[a-z]$/,groups,/^citeulike-linkout-[0-9]+$/,/^bdsk-url-[0-9]+$/, keywords",
+              "warnBulkModify": 10,
+              "warnTitleCased": false
+            },
+            "options": {
+              "exportNotes": false,
+              "exportFileData": false,
+              "useJournalAbbreviation": false,
+              "keepUpdated": false,
+              "worker": true
+            },
+            "data": {
+              "items": [
+                1,
+                2
+              ],
+              "collections": []
+            },
+            "translator": "Better BibTeX",
+            "output": "",
+            "debugEnabled": false
+          }
+        ]
+      }
+    },
+    {
+      "type": "worker",
+      "id": 1,
+      "kind": "message",
+      "data": {
+        "kind": "debug",
+        "message": "{worker: better-bibtex:} starting cached export using Better BibTeX\n"
+      }
+    },
+    {
+      "type": "debug",
+      "message": "{worker: better-bibtex:} starting cached export using Better BibTeX\n"
+    },
+    {
+      "type": "worker",
+      "id": 1,
+      "kind": "message",
+      "data": {
+        "kind": "progress",
+        "percent": 0,
+        "translator": "Better BibTeX"
+      }
+    },
+    {
+      "type": "worker",
+      "id": 1,
+      "kind": "message",
+      "data": {
+        "kind": "progress",
+        "percent": 0,
+        "translator": "Better BibTeX"
+      }
+    },
+    {
+      "type": "worker",
+      "id": 1,
+      "kind": "message",
+      "data": {
+        "kind": "progress",
+        "percent": 50,
+        "translator": "Better BibTeX"
+      }
+    },
+    {
+      "type": "worker",
+      "id": 1,
+      "kind": "message",
+      "data": {
+        "kind": "progress",
+        "percent": 100,
+        "translator": "Better BibTeX"
+      }
+    },
+    {
+      "type": "worker",
+      "id": 1,
+      "kind": "message",
+      "data": {
+        "kind": "progress",
+        "percent": 100,
+        "translator": "Better BibTeX"
+      }
+    },
+    {
+      "type": "worker",
+      "id": 1,
+      "kind": "message",
+      "data": {
+        "jsonrpc": "2.0",
+        "method": "start",
+        "result": {
+          "output": "@article{chenResearchAgentsReproducible2026,\n  title = {Updated Research Agents after Committed Notification},\n  author = {Wang, Grace},\n  year = 2026,\n  journal = {Prototype Research},\n  volume = {1},\n  pages = {1--8},\n  doi = {10.0000/updated-with-notification}\n}\n\n@article{ScholoomPreserved2026,\n  title = {中文科研流程原型样本},\n  author = {李, 明},\n  year = 2026,\n  journal = {原型测试期刊}\n}\n",
+          "cacheRate": 0.5
+        },
+        "id": "[1791109972505:0.6946605448038425]4"
+      }
+    },
+    {
+      "type": "debug",
+      "message": "{better-bibtex:} json-rpc: export cache use 0.5%\n"
+    },
+    {
+      "type": "worker-request",
+      "data": {
+        "jsonrpc": "2.0",
+        "id": "[Cache.Serialized.1791109972505:0.9410340519193406]7",
+        "method": "Cache.Serialized.missing",
+        "params": [
+          [
+            1,
+            2
+          ]
+        ]
+      }
+    },
+    {
+      "type": "worker",
+      "id": 1,
+      "kind": "message",
+      "data": {
+        "jsonrpc": "2.0",
+        "method": "Cache.Serialized.missing",
+        "result": [],
+        "id": "[Cache.Serialized.1791109972505:0.9410340519193406]7"
+      }
+    },
+    {
+      "type": "debug",
+      "message": "{better-bibtex:} json-rpc: cache fill 0 / 2\n"
+    },
+    {
+      "type": "worker-request",
+      "data": {
+        "jsonrpc": "2.0",
+        "id": "[1791109972505:0.6946605448038425]5",
+        "method": "start",
+        "params": [
+          {
+            "preferences": {
+              "ascii": "",
+              "asciiBibLaTeX": false,
+              "asciiBibTeX": true,
+              "autoExport": "immediate",
+              "autoExportDelay": 5,
+              "autoExportIdleWait": 10,
+              "autoExportPathReplaceDiacritics": false,
+              "autoExportPathReplaceDirSep": "-",
+              "autoExportPathReplaceSpace": " ",
+              "automaticTags": true,
+              "auxImport": false,
+              "baseAttachmentPath": "",
+              "biblatexExtendedDateFormat": true,
+              "biblatexExtendedNameFormat": true,
+              "biblatexExtractEprint": true,
+              "biblatexUsePrefix": true,
+              "bibtexEditionOrdinal": false,
+              "bibtexParticleNoOp": false,
+              "bibtexURL": "off",
+              "cache": true,
+              "cacheDelete": false,
+              "cacheTouch": "fill",
+              "charmap": "",
+              "chinese": false,
+              "chineseSplitName": true,
+              "citeCommand": "cite",
+              "citekeyCaseInsensitive": true,
+              "citekeyFold": true,
+              "citekeyFormat": "auth.lower + shorttitle(3, 3) + year",
+              "citekeyFormatEditing": "auth.lower + shorttitle(3, 3) + year",
+              "citekeyUnsafeChars": "\\\"#%'(),={}~",
+              "csquotes": "",
+              "DOIandURL": "both",
+              "exportBibTeXStrings": "off",
+              "exportBraceProtection": true,
+              "exportCaseProtection": "",
+              "exportSort": "citekey",
+              "exportTitlecase": "",
+              "extraFieldAsNote": false,
+              "extraMergeCitekeys": false,
+              "extraMergeCSL": false,
+              "extraMergeTeX": false,
+              "fillKeyAfter": 0,
+              "git": "config",
+              "import": true,
+              "importBibTeXStrings": true,
+              "importCaseProtection": "as-needed",
+              "importCitationKey": true,
+              "importDetectURLs": true,
+              "importExtra": true,
+              "importJabRefAbbreviations": true,
+              "importJabRefStrings": true,
+              "importNoteToExtra": "",
+              "importPlaceEvent": "inproceedings,conference,presentation,talk",
+              "importSentenceCase": "on+guess",
+              "importSentenceCaseQuoted": true,
+              "importUnknownTexCommand": "ignore",
+              "itemObserverDelay": 5,
+              "jabrefFormat": 0,
+              "japanese": false,
+              "journalAbbreviation": "abbrev",
+              "keyScope": "library",
+              "language": "langid",
+              "logEvents": false,
+              "mapMath": "",
+              "mapText": "",
+              "packages": "",
+              "parseParticles": true,
+              "patchDates": "dateadded=dateAdded, date-added=dateAdded, datemodified=dateModified, date-modified=dateModified",
+              "platform": "lin",
+              "postscript": "",
+              "postscriptOverride": "",
+              "preferencesOverride": "",
+              "profileRuntime": "no",
+              "profileStartup": false,
+              "qualityReport": false,
+              "quickCopyEta": "",
+              "quickCopyMode": "latex",
+              "quickCopyOrgMode": "zotero",
+              "quickCopyPandocBrackets": false,
+              "quickCopySelectLink": "zotero",
+              "rawImports": false,
+              "rawLaTag": "#LaTeX",
+              "relativeFilePaths": false,
+              "remigrate": false,
+              "resetKeyOnChange": false,
+              "separatorList": "and",
+              "separatorNames": "and",
+              "skipFields": "",
+              "skipWords": "a,ab,aboard,about,above,across,after,against,al,along,amid,among,an,and,anti,around,as,at,before,behind,below,beneath,beside,besides,between,beyond,but,by,d,da,das,de,del,dell,dello,dei,degli,della,dell,delle,dem,den,der,des,despite,die,do,down,du,during,ein,eine,einem,einen,einer,eines,el,en,et,except,for,from,gli,i,il,in,inside,into,is,l,la,las,le,les,like,lo,los,near,nor,of,off,on,onto,or,over,past,per,plus,round,save,since,so,some,sur,than,the,through,to,toward,towards,un,una,unas,under,underneath,une,unlike,uno,unos,until,up,upon,versus,via,von,while,with,within,without,yet,zu,zum",
+              "strings": "",
+              "stringsOverride": "",
+              "testing": false,
+              "verbatimFields": "url,doi,file,pdf,ids,eprint,/^verb[a-z]$/,groups,/^citeulike-linkout-[0-9]+$/,/^bdsk-url-[0-9]+$/, keywords",
+              "warnBulkModify": 10,
+              "warnTitleCased": false
+            },
+            "options": {
+              "exportNotes": false,
+              "exportFileData": false,
+              "useJournalAbbreviation": false,
+              "keepUpdated": false,
+              "worker": true
+            },
+            "data": {
+              "items": [
+                1,
+                2
+              ],
+              "collections": []
+            },
+            "translator": "Better BibTeX",
+            "output": "",
+            "debugEnabled": false
+          }
+        ]
+      }
+    },
+    {
+      "type": "worker",
+      "id": 1,
+      "kind": "message",
+      "data": {
+        "kind": "debug",
+        "message": "{worker: better-bibtex:} starting cached export using Better BibTeX\n"
+      }
+    },
+    {
+      "type": "debug",
+      "message": "{worker: better-bibtex:} starting cached export using Better BibTeX\n"
+    },
+    {
+      "type": "worker",
+      "id": 1,
+      "kind": "message",
+      "data": {
+        "kind": "progress",
+        "percent": 0,
+        "translator": "Better BibTeX"
+      }
+    },
+    {
+      "type": "worker",
+      "id": 1,
+      "kind": "message",
+      "data": {
+        "kind": "progress",
+        "percent": 0,
+        "translator": "Better BibTeX"
+      }
+    },
+    {
+      "type": "worker",
+      "id": 1,
+      "kind": "message",
+      "data": {
+        "kind": "progress",
+        "percent": 50,
+        "translator": "Better BibTeX"
+      }
+    },
+    {
+      "type": "worker",
+      "id": 1,
+      "kind": "message",
+      "data": {
+        "kind": "progress",
+        "percent": 100,
+        "translator": "Better BibTeX"
+      }
+    },
+    {
+      "type": "worker",
+      "id": 1,
+      "kind": "message",
+      "data": {
+        "kind": "progress",
+        "percent": 100,
+        "translator": "Better BibTeX"
+      }
+    },
+    {
+      "type": "worker",
+      "id": 1,
+      "kind": "message",
+      "data": {
+        "jsonrpc": "2.0",
+        "method": "start",
+        "result": {
+          "output": "@article{chenResearchAgentsReproducible2026,\n  title = {Updated Research Agents after Committed Notification},\n  author = {Wang, Grace},\n  year = 2026,\n  journal = {Prototype Research},\n  volume = {1},\n  pages = {1--8},\n  doi = {10.0000/updated-with-notification}\n}\n\n@article{ScholoomPreserved2026,\n  title = {中文科研流程原型样本},\n  author = {李, 明},\n  year = 2026,\n  journal = {原型测试期刊}\n}\n",
+          "cacheRate": 1
+        },
+        "id": "[1791109972505:0.6946605448038425]5"
+      }
+    },
+    {
+      "type": "debug",
+      "message": "{better-bibtex:} json-rpc: export cache use 1%\n"
+    }
+  ],
+  "blockers": [],
+  "verified": {
+    "startup": true,
+    "explicitFill": true,
+    "generatedKey": true,
+    "preservedKey": true,
+    "repeatedFill": true,
+    "bibtexExport": true,
+    "pluginWriteReadback": true,
+    "sqlObjectAgreement": true,
+    "persistedReadback": true,
+    "originalCodeUnchanged": true,
+    "mutation": true
+  },
+  "before": [
+    {
+      "sourceID": "source-1",
+      "id": 1,
+      "fields": {
+        "itemType": "journalArticle",
+        "title": "Research agents and reproducible literature workflows",
+        "creators": [
+          {
+            "firstName": "Ada",
+            "lastName": "Chen",
+            "creatorType": "author"
+          }
+        ],
+        "date": "2026",
+        "publicationTitle": "Prototype Research",
+        "volume": "1",
+        "pages": "1-8",
+        "DOI": "10.0000/scholoom-prototype"
+      }
+    },
+    {
+      "sourceID": "source-2",
+      "id": 2,
+      "fields": {
+        "itemType": "journalArticle",
+        "title": "中文科研流程原型样本",
+        "creators": [
+          {
+            "firstName": "明",
+            "lastName": "李",
+            "creatorType": "author"
+          }
+        ],
+        "date": "2026",
+        "publicationTitle": "原型测试期刊",
+        "citationKey": "ScholoomPreserved2026"
+      }
+    }
+  ],
+  "pluginPreferences": {
+    "translators.better-bibtex.fillKeyAfter": 0,
+    "translators.better-bibtex.autoPinMigrated": true
+  },
+  "sqlReadback": [
+    {
+      "itemID": 1,
+      "value": "chenResearchAgentsReproducible2026"
+    },
+    {
+      "itemID": 2,
+      "value": "ScholoomPreserved2026"
+    }
+  ],
+  "export": {
+    "translatorID": "ca65189f-8815-4afe-8c8b-8c7c15f0edca",
+    "bytes": 408,
+    "keys": [
+      "chenResearchAgentsReproducible2026",
+      "ScholoomPreserved2026"
+    ]
+  },
+  "mutation": {
+    "snapshots": [
+      {
+        "name": "warm",
+        "authority": {
+          "sourceID": "source-1",
+          "id": 1,
+          "fields": {
+            "itemType": "journalArticle",
+            "title": "Research agents and reproducible literature workflows",
+            "creators": [
+              {
+                "firstName": "Ada",
+                "lastName": "Chen",
+                "creatorType": "author"
+              }
+            ],
+            "date": "2026",
+            "publicationTitle": "Prototype Research",
+            "volume": "1",
+            "pages": "1-8",
+            "DOI": "10.0000/scholoom-prototype",
+            "citationKey": "chenResearchAgentsReproducible2026"
+          }
+        },
+        "cacheRates": [
+          1
+        ],
+        "bytes": 408
+      },
+      {
+        "name": "without-notification",
+        "authority": {
+          "sourceID": "source-1",
+          "id": 1,
+          "fields": {
+            "itemType": "journalArticle",
+            "title": "Mutation control without notification",
+            "creators": [
+              {
+                "firstName": "Ada",
+                "lastName": "Chen",
+                "creatorType": "author"
+              }
+            ],
+            "date": "2026",
+            "publicationTitle": "Prototype Research",
+            "volume": "1",
+            "pages": "1-8",
+            "DOI": "10.0000/control-no-notification",
+            "citationKey": "chenResearchAgentsReproducible2026"
+          }
+        },
+        "cacheRates": [
+          1
+        ],
+        "bytes": 408
+      },
+      {
+        "name": "with-notification",
+        "authority": {
+          "sourceID": "source-1",
+          "id": 1,
+          "fields": {
+            "itemType": "journalArticle",
+            "title": "Updated research agents after committed notification",
+            "creators": [
+              {
+                "firstName": "Grace",
+                "lastName": "Wang",
+                "creatorType": "author"
+              }
+            ],
+            "date": "2026",
+            "publicationTitle": "Prototype Research",
+            "volume": "1",
+            "pages": "1-8",
+            "DOI": "10.0000/updated-with-notification",
+            "citationKey": "chenResearchAgentsReproducible2026"
+          }
+        },
+        "cacheRates": [
+          0.5
+        ],
+        "bytes": 416
+      },
+      {
+        "name": "updated-repeated",
+        "authority": {
+          "sourceID": "source-1",
+          "id": 1,
+          "fields": {
+            "itemType": "journalArticle",
+            "title": "Updated research agents after committed notification",
+            "creators": [
+              {
+                "firstName": "Grace",
+                "lastName": "Wang",
+                "creatorType": "author"
+              }
+            ],
+            "date": "2026",
+            "publicationTitle": "Prototype Research",
+            "volume": "1",
+            "pages": "1-8",
+            "DOI": "10.0000/updated-with-notification",
+            "citationKey": "chenResearchAgentsReproducible2026"
+          }
+        },
+        "cacheRates": [
+          1
+        ],
+        "bytes": 416
+      }
+    ],
+    "delivered": [
+      {
+        "type": "notifier-delivered",
+        "id": 1,
+        "name": "Better BibTeX",
+        "action": "modify",
+        "objectType": "item",
+        "ids": [
+          1
+        ]
+      }
+    ],
+    "authorityBefore": {
+      "itemType": "journalArticle",
+      "title": "Research agents and reproducible literature workflows",
+      "creators": [
+        {
+          "firstName": "Ada",
+          "lastName": "Chen",
+          "creatorType": "author"
+        }
+      ],
+      "date": "2026",
+      "publicationTitle": "Prototype Research",
+      "volume": "1",
+      "pages": "1-8",
+      "DOI": "10.0000/scholoom-prototype",
+      "citationKey": "chenResearchAgentsReproducible2026"
+    },
+    "authorityAfter": {
+      "sourceID": "source-1",
+      "id": 1,
+      "fields": {
+        "itemType": "journalArticle",
+        "title": "Updated research agents after committed notification",
+        "creators": [
+          {
+            "firstName": "Grace",
+            "lastName": "Wang",
+            "creatorType": "author"
+          }
+        ],
+        "date": "2026",
+        "publicationTitle": "Prototype Research",
+        "volume": "1",
+        "pages": "1-8",
+        "DOI": "10.0000/updated-with-notification",
+        "citationKey": "chenResearchAgentsReproducible2026"
+      }
+    },
+    "verified": {
+      "warmCacheUsed": true,
+      "negativeControlStale": true,
+      "originalObserverDelivered": true,
+      "currentMetadataExported": true,
+      "authorityMatchesExport": true,
+      "citationKeysPreserved": true,
+      "otherRecordUnchanged": true,
+      "repeatedExportCurrent": true
+    }
+  },
+  "after": [
+    {
+      "sourceID": "source-1",
+      "id": 1,
+      "fields": {
+        "itemType": "journalArticle",
+        "title": "Updated research agents after committed notification",
+        "creators": [
+          {
+            "firstName": "Grace",
+            "lastName": "Wang",
+            "creatorType": "author"
+          }
+        ],
+        "date": "2026",
+        "publicationTitle": "Prototype Research",
+        "volume": "1",
+        "pages": "1-8",
+        "DOI": "10.0000/updated-with-notification",
+        "citationKey": "chenResearchAgentsReproducible2026"
+      }
+    },
+    {
+      "sourceID": "source-2",
+      "id": 2,
+      "fields": {
+        "itemType": "journalArticle",
+        "title": "中文科研流程原型样本",
+        "creators": [
+          {
+            "firstName": "明",
+            "lastName": "李",
+            "creatorType": "author"
+          }
+        ],
+        "date": "2026",
+        "publicationTitle": "原型测试期刊",
+        "citationKey": "ScholoomPreserved2026"
+      }
+    }
+  ],
+  "integrity": {
+    "integrity_check": "ok"
+  },
+  "sqlProjection": [
+    {
+      "name": "literature",
+      "type": "table",
+      "sql": "CREATE TABLE literature (\n      id INTEGER PRIMARY KEY, sourceID TEXT UNIQUE NOT NULL,\n      zoteroKey TEXT UNIQUE NOT NULL, itemType TEXT NOT NULL, fields TEXT NOT NULL\n    )"
+    },
+    {
+      "name": "items",
+      "type": "view",
+      "sql": "CREATE VIEW items AS SELECT id AS itemID, zoteroKey AS key, 1 AS libraryID,\n      1 AS itemTypeID, '2026-10-04 00:00:00' AS dateModified FROM literature"
+    },
+    {
+      "name": "itemData",
+      "type": "view",
+      "sql": "CREATE VIEW itemData AS SELECT id AS itemID, 1 AS fieldID, id AS valueID\n      FROM literature WHERE COALESCE(json_extract(fields, '$.citationKey'), '') != ''"
+    },
+    {
+      "name": "itemDataValues",
+      "type": "view",
+      "sql": "CREATE VIEW itemDataValues AS SELECT id AS valueID,\n      json_extract(fields, '$.citationKey') AS value FROM literature"
+    }
+  ],
+  "persisted": [
+    {
+      "id": 1,
+      "sourceID": "source-1",
+      "zoteroKey": "NODE0001",
+      "fields": "{\"itemType\":\"journalArticle\",\"title\":\"Updated research agents after committed notification\",\"creators\":[{\"firstName\":\"Grace\",\"lastName\":\"Wang\",\"creatorType\":\"author\"}],\"date\":\"2026\",\"publicationTitle\":\"Prototype Research\",\"volume\":\"1\",\"pages\":\"1-8\",\"DOI\":\"10.0000/updated-with-notification\",\"citationKey\":\"chenResearchAgentsReproducible2026\"}"
+    },
+    {
+      "id": 2,
+      "sourceID": "source-2",
+      "zoteroKey": "NODE0002",
+      "fields": "{\"itemType\":\"journalArticle\",\"title\":\"中文科研流程原型样本\",\"creators\":[{\"firstName\":\"明\",\"lastName\":\"李\",\"creatorType\":\"author\"}],\"date\":\"2026\",\"publicationTitle\":\"原型测试期刊\",\"citationKey\":\"ScholoomPreserved2026\"}"
+    }
+  ],
+  "originalMembers": [
+    {
+      "member": "bootstrap.js",
+      "equal": true
+    },
+    {
+      "member": "content/better-bibtex.js",
+      "equal": true
+    },
+    {
+      "member": "content/worker/zotero.js",
+      "equal": true
+    },
+    {
+      "member": "content/resource/Better BibTeX.js",
+      "equal": true
+    }
+  ]
+}

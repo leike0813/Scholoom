@@ -1,0 +1,17 @@
+{
+  "authority": "read-only stopped host SQLite",
+  "rows": [
+    {
+      "itemID": 1,
+      "libraryID": 1,
+      "key": "2LU4SF9R",
+      "fieldName": "title",
+      "value": "Literature updated after cold start"
+    }
+  ],
+  "integrity": [
+    {
+      "integrity_check": "ok"
+    }
+  ]
+}

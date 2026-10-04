@@ -1,0 +1,16 @@
+{
+  "command": "xvfb-run",
+  "args": [
+    "-a",
+    "/tmp/scholoom-host-prototype-o7zMwv/Zotero_linux-x86_64/zotero",
+    "-no-remote",
+    "-profile",
+    "/tmp/scholoom-host-prototype-o7zMwv/profile",
+    "--dataDir",
+    "/tmp/scholoom-host-prototype-o7zMwv/data",
+    "-ZoteroDebugText",
+    "-chrome",
+    "chrome://zotero/content/scholoom-cold-launch.xhtml"
+  ],
+  "displayServer": "Xvfb"
+}

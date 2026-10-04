@@ -1,0 +1,21 @@
+{
+  "title": "中文文献元数据回放探针",
+  "searchHTML": "<!doctype html><table class=\"result-table-list\"><tbody><tr><td class=\"seq\">1</td><td class=\"data\">期刊论文</td><td class=\"name\"><a class=\"fz14\" href=\"https://kns.cnki.net/kcms/detail/detail.aspx?dbcode=CJFD&filename=JASM202610001\">中文文献元数据回放探针</a></td><td class=\"author\">张三</td><td class=\"source\">原型验证期刊</td><td class=\"date\">2026-10-01</td><td class=\"operat\"><span data-dbname=\"CJFD\" data-filename=\"JASM202610001\"></span></td></tr></tbody></table>",
+  "articleHTML": "<!doctype html><html><head><title>中文文献元数据回放探针</title></head><body><h1>中文文献元数据回放探针</h1><p>仅用于验证 Jasminum 原包流程的固定响应。</p></body></html>",
+  "translatedItem": {
+    "itemType": "journalArticle",
+    "fields": {
+      "title": "中文文献元数据回放探针",
+      "publicationTitle": "原型验证期刊",
+      "date": "2026-10-01",
+      "volume": "12",
+      "issue": "3",
+      "pages": "10-18",
+      "language": "zh-CN",
+      "url": "https://kns.cnki.net/kcms/detail/detail.aspx?dbcode=CJFD&filename=JASM202610001"
+    },
+    "creators": [
+      { "firstName": "三", "lastName": "张", "creatorType": "author" }
+    ]
+  }
+}

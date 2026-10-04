@@ -1,0 +1,24 @@
+{
+  "authority": "read-only stopped host SQLite",
+  "rows": [
+    {
+      "itemID": 6,
+      "libraryID": 1,
+      "key": "N9NI6LCF",
+      "fieldName": "title",
+      "value": "Research source saved before restart"
+    },
+    {
+      "itemID": 6,
+      "libraryID": 1,
+      "key": "N9NI6LCF",
+      "fieldName": "citationKey",
+      "value": "ZhangZhongWenWenXianYuanShuJuHuiFangTanZhen2026"
+    }
+  ],
+  "integrity": [
+    {
+      "integrity_check": "ok"
+    }
+  ]
+}

@@ -1,0 +1,79 @@
+{
+  "consumerPID": 3612814,
+  "observed": {
+    "id": "10e6a4ea-07fc-4acc-a229-95d5fbfd56d7",
+    "libraryId": "4b61fdc5-e471-4010-b044-be9f777c208f",
+    "title": "Scholoom boundary literature workflow",
+    "citationKey": "ZhangScholoomBoundaryLiterature2026",
+    "materials": [
+      {
+        "id": "f10905f2-6e73-4ec3-9b40-1634da11e390",
+        "sourceId": "10e6a4ea-07fc-4acc-a229-95d5fbfd56d7"
+      }
+    ]
+  },
+  "current": {
+    "id": "10e6a4ea-07fc-4acc-a229-95d5fbfd56d7",
+    "libraryId": "4b61fdc5-e471-4010-b044-be9f777c208f",
+    "title": "Research workflow revised in workbench",
+    "citationKey": "ZhangScholoomBoundaryLiterature2026",
+    "materials": [
+      {
+        "id": "f10905f2-6e73-4ec3-9b40-1634da11e390",
+        "sourceId": "10e6a4ea-07fc-4acc-a229-95d5fbfd56d7"
+      }
+    ]
+  },
+  "navigation": {
+    "materialId": "f10905f2-6e73-4ec3-9b40-1634da11e390",
+    "sourceId": "10e6a4ea-07fc-4acc-a229-95d5fbfd56d7",
+    "contentType": "application/pdf",
+    "fileName": "中文文献元数据回放探针.pdf",
+    "available": true,
+    "storageMode": "managed",
+    "outline": [
+      {
+        "title": "Introduction",
+        "location": {
+          "page": 1,
+          "x": 0,
+          "y": 792
+        },
+        "children": []
+      },
+      {
+        "title": "Methods",
+        "location": {
+          "page": 2,
+          "x": 0,
+          "y": 792
+        },
+        "children": []
+      }
+    ],
+    "bookmarks": [
+      {
+        "id": "bookmark_1791103648319_yizxnuzqc",
+        "title": "P_1_1",
+        "location": {
+          "page": 1,
+          "x": 0,
+          "y": 792
+        },
+        "color": "#00D2D3"
+      }
+    ]
+  },
+  "exports": [
+    {
+      "sourceId": "10e6a4ea-07fc-4acc-a229-95d5fbfd56d7",
+      "format": "bibtex",
+      "text": "@article{ZhangScholoomBoundaryLiterature2026,\n  title = {{Research workflow revised in workbench}},\n  author = {张, 三},\n  year = 2026,\n  month = oct,\n  journal = {原型验证期刊},\n  volume = {12},\n  number = {3},\n  pages = {10--18},\n  langid = {chinese},\n  file = {/tmp/scholoom-host-prototype-JH1nkj/data/storage/4A6J2EFM/中文文献元数据回放探针.pdf}\n}\n"
+    },
+    {
+      "sourceId": "10e6a4ea-07fc-4acc-a229-95d5fbfd56d7",
+      "format": "biblatex",
+      "text": "@article{ZhangScholoomBoundaryLiterature2026,\n  title = {Research workflow revised in workbench},\n  author = {张, 三},\n  date = {2026-10-01},\n  journaltitle = {原型验证期刊},\n  volume = {12},\n  number = {3},\n  pages = {10--18},\n  url = {https://kns.cnki.net/kcms/detail/detail.aspx?dbcode=CJFD&filename=JASM202610001},\n  langid = {chinese},\n  file = {/tmp/scholoom-host-prototype-JH1nkj/data/storage/4A6J2EFM/中文文献元数据回放探针.pdf}\n}\n"
+    }
+  ]
+}

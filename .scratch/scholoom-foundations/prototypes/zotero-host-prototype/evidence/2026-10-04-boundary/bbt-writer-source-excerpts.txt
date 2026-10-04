@@ -1,0 +1,76 @@
+Official BBT 9.0.68 XPI, content/better-bibtex.js; LF line numbers.
+
+117800:     async fill(ids, { warn = false, replace: replace2 = false, inspireHEP = false } = {}) {
+117801:       ids = this.expandSelection(ids);
+117802:       const selected2 = new Set(ids);
+117803:       await Cache.touch(ids);
+117804:       if (replace2 && warn && Preference.warnBulkModify && this.all((key) => selected2.has(key.itemID)).length > Preference.warnBulkModify) {
+117805:         const ignore = { value: false };
+
+117832:       const items = (await getItemsAsync(ids)).filter((item) => {
+117833:         if (item.isFeedItem || !item.isRegularItem()) return false;
+117834:         return replace2 || !item.getField("citationKey");
+117835:       });
+117836:       if (!items.length) return;
+117837:       this.clear(items.map((item) => item.id));
+117838:       const progress = items.length > 10 ? new Progress(items.length, "Refreshing citation keys") : void 0;
+117839:       for (const item of items) {
+117840:         if (!this.update(item, { replace: replace2, inspireHEP: inspireHEP ? await fetchAsync(item) || "" : void 0 })) {
+117841:           if (!readonly(item)) this.store(item);
+117842:           continue;
+117843:         }
+117844:         const citationKey2 = item.getField("citationKey");
+117845:         if (!citationKey2) continue;
+117846:         const aliases3 = get3(item.getField("extra"), "zotero", { aliases: true });
+117847:         if (aliases3.extraFields.aliases?.includes(citationKey2)) {
+117848:           aliases3.extraFields.aliases = aliases3.extraFields.aliases.filter((alias2) => alias2 !== citationKey2);
+117849:           if (aliases3.extraFields.aliases.length) {
+117850:             item.setField("extra", set(aliases3.extra, { aliases: aliases3.extraFields.aliases }));
+117851:           } else {
+117852:             item.setField("extra", aliases3.extra);
+117853:           }
+117854:         }
+117855:         progress?.next();
+117856:       }
+117857:       progress?.done();
+117858:       for (const item of items) {
+117859:         if (readonly(item)) continue;
+117860:         await item.saveTx({ skipDateModifiedUpdate: true });
+117861:         await Zotero.Promise.delay(10);
+117862:       }
+117863:     }
+
+117989:     update(item, { replace: replace2 = false, inspireHEP = void 0 } = {}) {
+117990:       if (item.isFeedItem || !item.isRegularItem()) return;
+117991:       if (typeof inspireHEP === "string" && !inspireHEP) return;
+117992:       if (readonly(item)) {
+117993:         const nativeKey = this.#getNativeKey(item) || "";
+117994:         if (nativeKey) {
+117995:           this.store(item, nativeKey);
+117996:           return;
+117997:         }
+117998:         if (!replace2 && this.#keys.get(item.id)?.citationKey) return;
+117999:         replace2 = true;
+118000:       }
+118001:       const current = this.#getNativeKey(item) || "";
+118002:       if (current && !replace2) return;
+118003:       const proposed = inspireHEP || this.propose(item);
+118004:       if (!proposed || proposed === current) return;
+118005:       this.store(item, proposed);
+118006:       if (readonly(item)) {
+118007:         return;
+118008:       }
+118009:       item.setField("citationKey", proposed);
+118010:       return item;
+
+118116:     expandSelection(ids) {
+118117:       if (Array.isArray(ids)) return ids;
+118118:       if (ids === "selected") {
+118119:         try {
+118120:           return Zotero.getActiveZoteroPane().getSelectedItems(true);
+118121:         } catch (err) {
+118122:           log.error("Could not get selected items:", err);
+118123:           return [];
+118124:         }
+118125:       }
+118126:       return [ids];

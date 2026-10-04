@@ -1,0 +1,657 @@
+{
+  "clientPID": 2927619,
+  "startedAt": "2026-10-04T07:48:05.505Z",
+  "checks": [
+    {
+      "name": "cold-start-no-main-workbench",
+      "status": "passed",
+      "detail": {
+        "snapshot": {
+          "ref": {
+            "libraryID": 1,
+            "key": "ZA6EE6ZN"
+          },
+          "itemID": 1,
+          "title": "IPC updated while main window closed",
+          "citationKey": "chenResearchAgentsReproducible2026",
+          "sql": {
+            "title": "IPC updated while main window closed",
+            "citationKey": "chenResearchAgentsReproducible2026"
+          },
+          "mainWindowCount": 0,
+          "bbtReady": true,
+          "jasminumReady": false,
+          "dataDirectory": "/tmp/scholoom-host-prototype-KgwDOw/data"
+        },
+        "coldStart": {
+          "mainWindowCount": 0,
+          "windows": [
+            {
+              "type": "scholoom:prototype-helper",
+              "uri": "chrome://zotero/content/scholoom-cold-launch.xhtml"
+            }
+          ],
+          "uiReadyResolved": false,
+          "bbtGlobalPresent": true,
+          "bbtReadyResolved": true,
+          "bbtKeyManagerStarted": true,
+          "jasminumGlobalPresent": false,
+          "observationMs": 6942,
+          "observationLimitMs": 60000,
+          "seedFrom": "/tmp/scholoom-host-prototype-xr2bOn",
+          "authority": "stopped scratch library copied for cold comparison"
+        }
+      }
+    },
+    {
+      "name": "cold-native-library-write",
+      "status": "passed",
+      "detail": {
+        "ref": {
+          "libraryID": 1,
+          "key": "ZA6EE6ZN"
+        },
+        "itemID": 1,
+        "title": "Literature updated after cold start",
+        "citationKey": "chenResearchAgentsReproducible2026",
+        "sql": {
+          "title": "Literature updated after cold start",
+          "citationKey": "chenResearchAgentsReproducible2026"
+        },
+        "mainWindowCount": 0,
+        "bbtReady": true,
+        "jasminumReady": false,
+        "dataDirectory": "/tmp/scholoom-host-prototype-KgwDOw/data"
+      }
+    },
+    {
+      "name": "cold-bbt-citekey",
+      "status": "passed",
+      "detail": {
+        "ref": {
+          "libraryID": 1,
+          "key": "ZA6EE6ZN"
+        },
+        "itemID": 1,
+        "title": "Literature updated after cold start",
+        "citationKey": "chenResearchAgentsReproducible2026",
+        "sql": {
+          "title": "Literature updated after cold start",
+          "citationKey": "chenResearchAgentsReproducible2026"
+        },
+        "mainWindowCount": 0,
+        "bbtReady": true,
+        "jasminumReady": false,
+        "dataDirectory": "/tmp/scholoom-host-prototype-KgwDOw/data"
+      }
+    },
+    {
+      "name": "cold-export-BetterBibTeX",
+      "status": "passed",
+      "detail": {
+        "bytes": 370,
+        "ref": {
+          "libraryID": 1,
+          "key": "ZA6EE6ZN"
+        },
+        "mainWindowCount": 0
+      }
+    },
+    {
+      "name": "cold-export-BetterBibLaTeX",
+      "status": "passed",
+      "detail": {
+        "bytes": 377,
+        "ref": {
+          "libraryID": 1,
+          "key": "ZA6EE6ZN"
+        },
+        "mainWindowCount": 0
+      }
+    },
+    {
+      "name": "actual-main-window-first-open",
+      "status": "passed",
+      "detail": {
+        "mainWindowCount": 1,
+        "documentReady": "complete"
+      }
+    },
+    {
+      "name": "jasminum-after-real-main-window",
+      "status": "passed",
+      "detail": {
+        "beforeGlobal": false,
+        "afterGlobal": true,
+        "disableEnablePerformed": true,
+        "mechanism": "original AddonManager disable/enable; no plugin hook replacement"
+      }
+    },
+    {
+      "name": "bbt-ready-after-main-window",
+      "status": "passed",
+      "detail": {
+        "ref": {
+          "libraryID": 1,
+          "key": "ZA6EE6ZN"
+        },
+        "itemID": 1,
+        "title": "Literature updated after cold start",
+        "citationKey": "chenResearchAgentsReproducible2026",
+        "sql": {
+          "title": "Literature updated after cold start",
+          "citationKey": "chenResearchAgentsReproducible2026"
+        },
+        "mainWindowCount": 1,
+        "bbtReady": true,
+        "jasminumReady": true,
+        "dataDirectory": "/tmp/scholoom-host-prototype-KgwDOw/data"
+      }
+    },
+    {
+      "name": "after-ui-export-BetterBibTeX",
+      "status": "passed",
+      "detail": {
+        "bytes": 370,
+        "ref": {
+          "libraryID": 1,
+          "key": "ZA6EE6ZN"
+        }
+      }
+    },
+    {
+      "name": "after-ui-export-BetterBibLaTeX",
+      "status": "passed",
+      "detail": {
+        "bytes": 377,
+        "ref": {
+          "libraryID": 1,
+          "key": "ZA6EE6ZN"
+        }
+      }
+    },
+    {
+      "name": "reader-after-first-window",
+      "status": "failed",
+      "error": "createBookmark: Error: Original Jasminum Reader button unavailable after cold launch"
+    }
+  ],
+  "requests": [
+    {
+      "method": "snapshot",
+      "params": {
+        "ref": {
+          "libraryID": 1,
+          "key": "ZA6EE6ZN"
+        }
+      },
+      "status": 200,
+      "body": {
+        "ok": true,
+        "result": {
+          "ref": {
+            "libraryID": 1,
+            "key": "ZA6EE6ZN"
+          },
+          "itemID": 1,
+          "title": "IPC updated while main window closed",
+          "citationKey": "chenResearchAgentsReproducible2026",
+          "sql": {
+            "title": "IPC updated while main window closed",
+            "citationKey": "chenResearchAgentsReproducible2026"
+          },
+          "mainWindowCount": 0,
+          "bbtReady": true,
+          "jasminumReady": false,
+          "dataDirectory": "/tmp/scholoom-host-prototype-KgwDOw/data"
+        }
+      },
+      "time": "2026-10-04T07:48:15.072Z"
+    },
+    {
+      "method": "updateTitle",
+      "params": {
+        "ref": {
+          "libraryID": 1,
+          "key": "ZA6EE6ZN"
+        },
+        "title": "Literature updated after cold start"
+      },
+      "status": 200,
+      "body": {
+        "ok": true,
+        "result": {
+          "ref": {
+            "libraryID": 1,
+            "key": "ZA6EE6ZN"
+          },
+          "itemID": 1,
+          "title": "Literature updated after cold start",
+          "citationKey": "chenResearchAgentsReproducible2026",
+          "sql": {
+            "title": "Literature updated after cold start",
+            "citationKey": "chenResearchAgentsReproducible2026"
+          },
+          "mainWindowCount": 0,
+          "bbtReady": true,
+          "jasminumReady": false,
+          "dataDirectory": "/tmp/scholoom-host-prototype-KgwDOw/data"
+        }
+      },
+      "time": "2026-10-04T07:48:15.273Z"
+    },
+    {
+      "method": "snapshot",
+      "params": {
+        "ref": {
+          "libraryID": 1,
+          "key": "ZA6EE6ZN"
+        }
+      },
+      "status": 200,
+      "body": {
+        "ok": true,
+        "result": {
+          "ref": {
+            "libraryID": 1,
+            "key": "ZA6EE6ZN"
+          },
+          "itemID": 1,
+          "title": "Literature updated after cold start",
+          "citationKey": "chenResearchAgentsReproducible2026",
+          "sql": {
+            "title": "Literature updated after cold start",
+            "citationKey": "chenResearchAgentsReproducible2026"
+          },
+          "mainWindowCount": 0,
+          "bbtReady": true,
+          "jasminumReady": false,
+          "dataDirectory": "/tmp/scholoom-host-prototype-KgwDOw/data"
+        }
+      },
+      "time": "2026-10-04T07:48:15.281Z"
+    },
+    {
+      "method": "pluginReady",
+      "params": {},
+      "status": 200,
+      "body": {
+        "ok": true,
+        "result": {
+          "ref": {
+            "libraryID": 1,
+            "key": "ZA6EE6ZN"
+          },
+          "itemID": 1,
+          "title": "Literature updated after cold start",
+          "citationKey": "chenResearchAgentsReproducible2026",
+          "sql": {
+            "title": "Literature updated after cold start",
+            "citationKey": "chenResearchAgentsReproducible2026"
+          },
+          "mainWindowCount": 0,
+          "bbtReady": true,
+          "jasminumReady": false,
+          "dataDirectory": "/tmp/scholoom-host-prototype-KgwDOw/data"
+        }
+      },
+      "time": "2026-10-04T07:48:15.293Z"
+    },
+    {
+      "method": "snapshot",
+      "params": {
+        "ref": {
+          "libraryID": 1,
+          "key": "ZA6EE6ZN"
+        }
+      },
+      "status": 200,
+      "body": {
+        "ok": true,
+        "result": {
+          "ref": {
+            "libraryID": 1,
+            "key": "ZA6EE6ZN"
+          },
+          "itemID": 1,
+          "title": "Literature updated after cold start",
+          "citationKey": "chenResearchAgentsReproducible2026",
+          "sql": {
+            "title": "Literature updated after cold start",
+            "citationKey": "chenResearchAgentsReproducible2026"
+          },
+          "mainWindowCount": 0,
+          "bbtReady": true,
+          "jasminumReady": false,
+          "dataDirectory": "/tmp/scholoom-host-prototype-KgwDOw/data"
+        }
+      },
+      "time": "2026-10-04T07:48:15.302Z"
+    },
+    {
+      "method": "export",
+      "params": {
+        "ref": {
+          "libraryID": 1,
+          "key": "ZA6EE6ZN"
+        },
+        "format": "BetterBibTeX"
+      },
+      "status": 200,
+      "body": {
+        "ok": true,
+        "result": {
+          "ref": {
+            "libraryID": 1,
+            "key": "ZA6EE6ZN"
+          },
+          "text": "@article{chenResearchAgentsReproducible2026,\n  title = {Literature Updated after Cold Start},\n  author = {Chen, Ada},\n  year = 2026,\n  journal = {Prototype Research},\n  volume = {1},\n  pages = {1--8},\n  doi = {10.0000/scholoom-prototype},\n  file = {/tmp/scholoom-host-prototype-KgwDOw/data/storage/GQICHB2V/fixture.pdf;/tmp/scholoom-host-prototype-xr2bOn/fixture.pdf}\n}\n",
+          "mainWindowCount": 0
+        }
+      },
+      "time": "2026-10-04T07:48:15.357Z"
+    },
+    {
+      "method": "snapshot",
+      "params": {
+        "ref": {
+          "libraryID": 1,
+          "key": "ZA6EE6ZN"
+        }
+      },
+      "status": 200,
+      "body": {
+        "ok": true,
+        "result": {
+          "ref": {
+            "libraryID": 1,
+            "key": "ZA6EE6ZN"
+          },
+          "itemID": 1,
+          "title": "Literature updated after cold start",
+          "citationKey": "chenResearchAgentsReproducible2026",
+          "sql": {
+            "title": "Literature updated after cold start",
+            "citationKey": "chenResearchAgentsReproducible2026"
+          },
+          "mainWindowCount": 0,
+          "bbtReady": true,
+          "jasminumReady": false,
+          "dataDirectory": "/tmp/scholoom-host-prototype-KgwDOw/data"
+        }
+      },
+      "time": "2026-10-04T07:48:15.363Z"
+    },
+    {
+      "method": "export",
+      "params": {
+        "ref": {
+          "libraryID": 1,
+          "key": "ZA6EE6ZN"
+        },
+        "format": "BetterBibLaTeX"
+      },
+      "status": 200,
+      "body": {
+        "ok": true,
+        "result": {
+          "ref": {
+            "libraryID": 1,
+            "key": "ZA6EE6ZN"
+          },
+          "text": "@article{chenResearchAgentsReproducible2026,\n  title = {Literature Updated after Cold Start},\n  author = {Chen, Ada},\n  date = {2026},\n  journaltitle = {Prototype Research},\n  volume = {1},\n  pages = {1--8},\n  doi = {10.0000/scholoom-prototype},\n  file = {/tmp/scholoom-host-prototype-KgwDOw/data/storage/GQICHB2V/fixture.pdf;/tmp/scholoom-host-prototype-xr2bOn/fixture.pdf}\n}\n",
+          "mainWindowCount": 0
+        }
+      },
+      "time": "2026-10-04T07:48:15.389Z"
+    },
+    {
+      "method": "snapshot",
+      "params": {
+        "ref": {
+          "libraryID": 1,
+          "key": "ZA6EE6ZN"
+        }
+      },
+      "status": 200,
+      "body": {
+        "ok": true,
+        "result": {
+          "ref": {
+            "libraryID": 1,
+            "key": "ZA6EE6ZN"
+          },
+          "itemID": 1,
+          "title": "Literature updated after cold start",
+          "citationKey": "chenResearchAgentsReproducible2026",
+          "sql": {
+            "title": "Literature updated after cold start",
+            "citationKey": "chenResearchAgentsReproducible2026"
+          },
+          "mainWindowCount": 0,
+          "bbtReady": true,
+          "jasminumReady": false,
+          "dataDirectory": "/tmp/scholoom-host-prototype-KgwDOw/data"
+        }
+      },
+      "time": "2026-10-04T07:48:15.396Z"
+    },
+    {
+      "method": "openWindow",
+      "params": {},
+      "status": 200,
+      "body": {
+        "ok": true,
+        "result": {
+          "mainWindowCount": 1,
+          "documentReady": "complete"
+        }
+      },
+      "time": "2026-10-04T07:48:16.265Z"
+    },
+    {
+      "method": "retryJasminum",
+      "params": {},
+      "status": 200,
+      "body": {
+        "ok": true,
+        "result": {
+          "beforeGlobal": false,
+          "afterGlobal": true,
+          "disableEnablePerformed": true,
+          "mechanism": "original AddonManager disable/enable; no plugin hook replacement"
+        }
+      },
+      "time": "2026-10-04T07:48:16.631Z"
+    },
+    {
+      "method": "pluginReady",
+      "params": {},
+      "status": 200,
+      "body": {
+        "ok": true,
+        "result": {
+          "ref": {
+            "libraryID": 1,
+            "key": "ZA6EE6ZN"
+          },
+          "itemID": 1,
+          "title": "Literature updated after cold start",
+          "citationKey": "chenResearchAgentsReproducible2026",
+          "sql": {
+            "title": "Literature updated after cold start",
+            "citationKey": "chenResearchAgentsReproducible2026"
+          },
+          "mainWindowCount": 1,
+          "bbtReady": true,
+          "jasminumReady": true,
+          "dataDirectory": "/tmp/scholoom-host-prototype-KgwDOw/data"
+        }
+      },
+      "time": "2026-10-04T07:48:16.646Z"
+    },
+    {
+      "method": "export",
+      "params": {
+        "ref": {
+          "libraryID": 1,
+          "key": "ZA6EE6ZN"
+        },
+        "format": "BetterBibTeX"
+      },
+      "status": 200,
+      "body": {
+        "ok": true,
+        "result": {
+          "ref": {
+            "libraryID": 1,
+            "key": "ZA6EE6ZN"
+          },
+          "text": "@article{chenResearchAgentsReproducible2026,\n  title = {Literature Updated after Cold Start},\n  author = {Chen, Ada},\n  year = 2026,\n  journal = {Prototype Research},\n  volume = {1},\n  pages = {1--8},\n  doi = {10.0000/scholoom-prototype},\n  file = {/tmp/scholoom-host-prototype-KgwDOw/data/storage/GQICHB2V/fixture.pdf;/tmp/scholoom-host-prototype-xr2bOn/fixture.pdf}\n}\n",
+          "mainWindowCount": 1
+        }
+      },
+      "time": "2026-10-04T07:48:16.691Z"
+    },
+    {
+      "method": "snapshot",
+      "params": {
+        "ref": {
+          "libraryID": 1,
+          "key": "ZA6EE6ZN"
+        }
+      },
+      "status": 200,
+      "body": {
+        "ok": true,
+        "result": {
+          "ref": {
+            "libraryID": 1,
+            "key": "ZA6EE6ZN"
+          },
+          "itemID": 1,
+          "title": "Literature updated after cold start",
+          "citationKey": "chenResearchAgentsReproducible2026",
+          "sql": {
+            "title": "Literature updated after cold start",
+            "citationKey": "chenResearchAgentsReproducible2026"
+          },
+          "mainWindowCount": 1,
+          "bbtReady": true,
+          "jasminumReady": true,
+          "dataDirectory": "/tmp/scholoom-host-prototype-KgwDOw/data"
+        }
+      },
+      "time": "2026-10-04T07:48:16.702Z"
+    },
+    {
+      "method": "export",
+      "params": {
+        "ref": {
+          "libraryID": 1,
+          "key": "ZA6EE6ZN"
+        },
+        "format": "BetterBibLaTeX"
+      },
+      "status": 200,
+      "body": {
+        "ok": true,
+        "result": {
+          "ref": {
+            "libraryID": 1,
+            "key": "ZA6EE6ZN"
+          },
+          "text": "@article{chenResearchAgentsReproducible2026,\n  title = {Literature Updated after Cold Start},\n  author = {Chen, Ada},\n  date = {2026},\n  journaltitle = {Prototype Research},\n  volume = {1},\n  pages = {1--8},\n  doi = {10.0000/scholoom-prototype},\n  file = {/tmp/scholoom-host-prototype-KgwDOw/data/storage/GQICHB2V/fixture.pdf;/tmp/scholoom-host-prototype-xr2bOn/fixture.pdf}\n}\n",
+          "mainWindowCount": 1
+        }
+      },
+      "time": "2026-10-04T07:48:16.720Z"
+    },
+    {
+      "method": "snapshot",
+      "params": {
+        "ref": {
+          "libraryID": 1,
+          "key": "ZA6EE6ZN"
+        }
+      },
+      "status": 200,
+      "body": {
+        "ok": true,
+        "result": {
+          "ref": {
+            "libraryID": 1,
+            "key": "ZA6EE6ZN"
+          },
+          "itemID": 1,
+          "title": "Literature updated after cold start",
+          "citationKey": "chenResearchAgentsReproducible2026",
+          "sql": {
+            "title": "Literature updated after cold start",
+            "citationKey": "chenResearchAgentsReproducible2026"
+          },
+          "mainWindowCount": 1,
+          "bbtReady": true,
+          "jasminumReady": true,
+          "dataDirectory": "/tmp/scholoom-host-prototype-KgwDOw/data"
+        }
+      },
+      "time": "2026-10-04T07:48:16.727Z"
+    },
+    {
+      "method": "createBookmark",
+      "params": {},
+      "status": 500,
+      "body": {
+        "ok": false,
+        "error": {
+          "code": "PROTOTYPE_RPC_FAILED",
+          "message": "Error: Original Jasminum Reader button unavailable after cold launch"
+        }
+      },
+      "time": "2026-10-04T07:48:29.128Z"
+    },
+    {
+      "method": "shutdown",
+      "params": {},
+      "status": 200,
+      "body": {
+        "ok": true,
+        "result": {
+          "shutdownScheduled": true
+        }
+      },
+      "time": "2026-10-04T07:48:29.177Z"
+    }
+  ],
+  "transport": "http://127.0.0.1:36213/rpc",
+  "preUIPluginReadiness": {
+    "mainWindowCount": 0,
+    "windows": [
+      {
+        "type": "scholoom:prototype-helper",
+        "uri": "chrome://zotero/content/scholoom-cold-launch.xhtml"
+      }
+    ],
+    "uiReadyResolved": false,
+    "bbtGlobalPresent": true,
+    "bbtReadyResolved": true,
+    "bbtKeyManagerStarted": true,
+    "jasminumGlobalPresent": false,
+    "observationMs": 6942,
+    "observationLimitMs": 60000,
+    "seedFrom": "/tmp/scholoom-host-prototype-xr2bOn",
+    "authority": "stopped scratch library copied for cold comparison"
+  },
+  "unverifiedBeforeUI": [
+    "Jasminum absent before main window; not successful cold initialization"
+  ],
+  "fatal": {
+    "message": "createBookmark: Error: Original Jasminum Reader button unavailable after cold launch",
+    "stack": "Error: createBookmark: Error: Original Jasminum Reader button unavailable after cold launch\n    at ensure (file:///home/joshua/Workspace/Code/JavaScript/Scholoom/.scratch/scholoom-foundations/prototypes/zotero-host-prototype/rpc-client.mjs:5:62)\n    at rpc (file:///home/joshua/Workspace/Code/JavaScript/Scholoom/.scratch/scholoom-foundations/prototypes/zotero-host-prototype/rpc-client.mjs:25:5)\n    at async file:///home/joshua/Workspace/Code/JavaScript/Scholoom/.scratch/scholoom-foundations/prototypes/zotero-host-prototype/cold-client.mjs:60:5\n    at async check (file:///home/joshua/Workspace/Code/JavaScript/Scholoom/.scratch/scholoom-foundations/prototypes/zotero-host-prototype/rpc-client.mjs:30:22)\n    at async file:///home/joshua/Workspace/Code/JavaScript/Scholoom/.scratch/scholoom-foundations/prototypes/zotero-host-prototype/cold-client.mjs:59:3"
+  },
+  "shutdown": {
+    "shutdownScheduled": true
+  },
+  "finishedAt": "2026-10-04T07:48:29.198Z"
+}

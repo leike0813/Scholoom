@@ -1,0 +1,95 @@
+{
+  "date": "2026-10-04",
+  "candidate": "Gecko native compatibility library behind prototype literature interface",
+  "variants": {
+    "boundary": {
+      "sourceRun": "/tmp/scholoom-host-prototype-JH1nkj",
+      "loadedPackages": [
+        {
+          "id": "better-bibtex@iris-advies.com",
+          "version": "9.0.68",
+          "loadedXPIByteEqualRelease": true
+        },
+        {
+          "id": "jasminum@linxzh.com",
+          "version": "1.1.39",
+          "loadedXPIByteEqualRelease": true
+        }
+      ],
+      "runtimeOmniByteEqualOfficialArchive": true,
+      "clientChecks": {
+        "domain-read-stable-identity": "passed",
+        "agent-updates-same-source": "passed",
+        "original-bbt-writes-citation-key": "passed",
+        "agent-exports-bibtex": "passed",
+        "agent-exports-biblatex": "passed",
+        "agent-consumes-original-navigation": "passed",
+        "separate-workbench-observes-current-authority": "passed",
+        "agent-observes-workbench-edit": "passed",
+        "host-item-sql-match-domain-result": "passed"
+      },
+      "hostSetupPassed": 9,
+      "agent": {
+        "PID": 3610029,
+        "successfulResponses": 7,
+        "responsesMatchHostEventValues": true,
+        "checks": {}
+      },
+      "workbench": {
+        "PID": 3612814,
+        "successfulResponses": 5,
+        "responsesMatchHostEventValues": true,
+        "checks": {
+          "workbench-reads-current-source": "passed",
+          "workbench-reads-original-plugin-navigation": "passed",
+          "workbench-edits-through-common-interface": "passed",
+          "workbench-exports-bibtex": "passed",
+          "workbench-exports-biblatex": "passed"
+        }
+      },
+      "readingMaterialSourceRelationship": {
+        "libraryID": 1,
+        "key": "5HLYX4RR"
+      }
+    },
+    "ipc-regression": {
+      "sourceRun": "/tmp/scholoom-host-prototype-9kCn3P",
+      "loadedPackages": [
+        {
+          "id": "better-bibtex@iris-advies.com",
+          "version": "9.0.68",
+          "loadedXPIByteEqualRelease": true
+        },
+        {
+          "id": "jasminum@linxzh.com",
+          "version": "1.1.39",
+          "loadedXPIByteEqualRelease": true
+        }
+      ],
+      "runtimeOmniByteEqualOfficialArchive": true,
+      "clientChecks": {
+        "independent-client-read": "passed",
+        "client-update-same-authority": "passed",
+        "close-real-main-windows": "passed",
+        "write-and-read-without-main-window": "passed",
+        "closed-window-export-BetterBibTeX": "passed",
+        "closed-window-export-BetterBibLaTeX": "passed",
+        "main-window-reconnect": "passed",
+        "original-reader-bookmark-reconnect": "passed"
+      },
+      "hostSetupPassed": 9
+    }
+  },
+  "unverified": [
+    "Formal storage/architecture choice",
+    "Scholoom-native database compatibility view",
+    "Original plugins running inside Node/Electron",
+    "Electron renderer and interactive PDF navigation",
+    "Domain identity across host restart/migration",
+    "Concurrent writers",
+    "Live CNKI recognition",
+    "Distribution and cross-platform support",
+    "Clean plugin lifecycle",
+    "LLM/harness execution"
+  ]
+}

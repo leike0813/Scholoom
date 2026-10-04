@@ -1,0 +1,101 @@
+7463: 
+7464: zotero(3)(+0000013): {worker: better-bibtex:} starting cached export using Better BibTeX
+7465: 
+7466: 
+7467: zotero(1)(+0000093): {better-bibtex:} json-rpc: export cache use 0%
+7468: 
+7469: 
+7470: zotero(1)(+0000004): {better-bibtex:} json-rpc: cache fill 0 / 2
+7471: 
+7472: 
+7473: zotero(3)(+0000003): {worker: better-bibtex:} starting cached export using Better BibLaTeX
+7474: 
+7475: 
+7476: zotero(4)(+0000003): SELECT COUNT(*) FROM settings WHERE setting='mImport' AND key='cleanup'
+7477: 
+7478: zotero(1)(+0000025): {better-bibtex:} json-rpc: export cache use 0%
+7479: 
+7480: 
+7481: zotero(3)(+0000001): Importing attachment from file
+9379: 
+9380: zotero(3)(+0000000): Calling bootstrap method 'shutdown' for plugin jasminum@linxzh.com version 1.1.39 with reason ADDON_DISABLE
+9381: 
+9382: zotero(1)(+0000001): Error running bootstrap method 'shutdown' on jasminum@linxzh.com
+9383: 
+9384: zotero(1)(+0000000): TypeError: Cu.unload is not a function
+9385: 
+9386:     shutdown@jar:file:///tmp/scholoom-host-prototype-kFmGXl/profile/extensions/jasminum@linxzh.com.xpi!/bootstrap.js:72:6
+9387:     _callMethod@chrome://zotero/content/xpcom/plugins.js:258:23
+9388:     onDisabled@chrome://zotero/content/xpcom/plugins.js:916:13
+9389:     callAddonListeners@resource://gre/modules/AddonManager.sys.mjs:1582:48
+9390:     callAddonListeners@resource://gre/modules/AddonManager.sys.mjs:3806:52
+9391:     updateAddonDisabledState@resource://gre/modules/addons/XPIDatabase.sys.mjs:3094:34
+9392: 
+9410: 
+9411: zotero(3)(+0000000): Calling bootstrap method 'shutdown' for plugin better-bibtex@iris-advies.com version 9.0.68 with reason ADDON_DISABLE
+9412: 
+9413: zotero(3)(+0000000): Better BibTeX bootstrap: {better-bibtex} bootstrap: shutdown started
+9414: 
+9415: zotero(3)(+0000002): Better BibTeX bootstrap: {better-bibtex} bootstrap: shutdown started
+9416: 
+9417: zotero(1)(+0000000): {better-bibtex:} shutdown orchestrator started: ADDON_DISABLE
+9418: 
+9419: 
+9549: 
+9550: zotero(1)(+0000000): {better-bibtex:} better bibtex shutdown finished
+9551: 
+9552: 
+9553: zotero(3)(+0000000): Better BibTeX bootstrap: {better-bibtex} bootstrap: shutdown completed
+9554: 
+9555: zotero(3)(+0000000): Better BibTeX bootstrap: {better-bibtex} bootstrap: BBT deleted
+9556: 
+9557: zotero(3)(+0000000): Better BibTeX bootstrap: {better-bibtex} bootstrap: bootstrap: shutdown: done
+9558: 
+9566: 
+9567: JavaScript error: , line 0: TypeError: can't access dead object
+9568: JavaScript error: , line 0: TypeError: can't access dead object
+9569: JavaScript error: , line 0: TypeError: can't access dead object
+9570: JavaScript error: , line 0: TypeError: can't access dead object
+9571: zotero(3)(+0000008): Notifier.trigger('refresh', 'infobox', [], {}) queued 
+9572: 
+9573: zotero(4)(+0000001): Committed DB transaction Yh0zLQuO
+9574: 
+9575: zotero(3)(+0000000): Committing notifier event queue [refresh-infobox: 0]
+9576: 
+9577: zotero(3)(+0000000): Notifier.trigger('refresh', 'infobox', [], {}) called [observers: 3]
+9578: 
+9818: 
+9819: zotero(3)(+0000004): Calling bootstrap method 'shutdown' for plugin scholoom-host-probe@local.invalid version 0.0.1 with reason APP_SHUTDOWN
+9820: 
+9821: zotero(3)(+0000000): Closing database
+9822: 
+9823: zotero(3)(+0000000): PRAGMA wal_checkpoint(TRUNCATE)
+9824: 
+9825: zotero(3)(+0000002): Writing column prefs of length 29 to file /tmp/scholoom-host-prototype-kFmGXl/profile/treePrefs.json
+9826: 
+9827: zotero(4)(+0000000): UPDATE items SET synced=?, clientDateModified=? WHERE itemID=? [0, '2026-10-04 06:46:12', 5]
+9880: 
+9881: zotero(1)(+0000001): Error: Connection is not open.
+9882: 
+9883:     ensureOpen@resource://gre/modules/Sqlite.sys.mjs:1126:13
+9884:     execute@resource://gre/modules/Sqlite.sys.mjs:741:10
+9885:     execute@resource://gre/modules/Sqlite.sys.mjs:1906:33
+9886:     Zotero.DBConnection.prototype.queryAsync@chrome://zotero/content/xpcom/db.js:653:25
+9887:     Zotero.Items</this._loadCreators@chrome://zotero/content/xpcom/data/items.js:402:32
+9888:     Zotero.DataObjects.prototype._loadDataTypeInLibrary@chrome://zotero/content/xpcom/data/dataObjects.js:509:23
+9889:     Zotero.DataObject.prototype.loadDataType@chrome://zotero/content/xpcom/data/dataObject.js:733:29
+9892: 
+9893: zotero(1)(+0000000): Error: Connection closed before committing the transaction.
+9894: 
+9895:     executeTransaction/promise</transactionPromise<@resource://gre/modules/Sqlite.sys.mjs:888:19
+9896:     observe@resource://gre/modules/AsyncShutdown.sys.mjs:569:17
+9897: 
+9898: zotero(1)(+0000001): Error: Connection closed before committing the transaction.
+9899: 
+9900:     executeTransaction/promise</transactionPromise<@resource://gre/modules/Sqlite.sys.mjs:888:19
+9901:     observe@resource://gre/modules/AsyncShutdown.sys.mjs:569:17
+9902: 
+9903: zotero(3)(+0000004): Database closed
+9904: 
+9905: [1865944:1865944:1004/144613.441481:ERROR:ui/gfx/x/connection.cc:66] X connection error received.
+9906: [1865944:1866162:1004/144613.441529:ERROR:ui/gfx/x/connection.cc:66] X connection error received.

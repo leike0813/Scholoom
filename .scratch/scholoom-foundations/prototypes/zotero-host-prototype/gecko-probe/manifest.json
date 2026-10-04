@@ -1,0 +1,15 @@
+{
+  "manifest_version": 2,
+  "name": "Scholoom throwaway host probe",
+  "version": "0.0.1",
+  "description": "Isolated throwaway plugin compatibility experiment",
+  "author": "Scholoom",
+  "applications": {
+    "zotero": {
+      "id": "scholoom-host-probe@local.invalid",
+      "update_url": "https://local.invalid/scholoom-probe-updates.json",
+      "strict_min_version": "10.0.5",
+      "strict_max_version": "10.0.*"
+    }
+  }
+}

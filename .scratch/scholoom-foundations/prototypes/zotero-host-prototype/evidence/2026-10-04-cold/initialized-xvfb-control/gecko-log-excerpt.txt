@@ -1,0 +1,63 @@
+Full log: /tmp/scholoom-host-prototype-o7zMwv/gecko.log
+Original line numbers; selected startup/lifecycle errors only.
+
+1: [2866937] Sandbox: CanCreateUserNamespace() unshare(CLONE_NEWPID): EPERM
+2: Scholoom cold helper script loaded
+3: zotero(3)(+0000000): Using data directory /tmp/scholoom-host-prototype-o7zMwv/data
+4: 
+5: zotero(3)(+0000014): Asynchronously opening database 'zotero'
+6: 
+7: zotero(3)(+0000000): /tmp/scholoom-host-prototype-o7zMwv/data/zotero.sqlite
+8: 
+500: zotero(4)(+0000000): SELECT item.itemID     FROM items item     JOIN libraries lib ON item.libraryID = lib.libraryID     LEFT JOIN itemData id ON item.itemID = id.itemID AND id.fieldID = (SELECT fieldID FROM fields WHERE fieldName = 'citationKey')     LEFT JOIN itemDataValues idv ON id.valueID = idv.valueID     WHERE       (id.itemID IS NULL OR idv.value = '')       AND item.itemID NOT IN (SELECT itemID FROM deletedItems)       AND item.itemID NOT IN (SELECT itemID FROM feedItems)       AND item.itemTypeID NOT IN (SELECT itemTypeID FROM itemTypes WHERE typeName IN ('attachment', 'note', 'annotation'))
+501: 
+502: JavaScript error: chrome://zotero/content/xpcom/plugins.js, line 502: NS_ERROR_FAILURE: Component returned failure code: 0x80004005 (NS_ERROR_FAILURE) [nsIAppShellService.hiddenDOMWindow]
+503: zotero(1)(+0000006): { startup: [done]better-bibtex:} orchestrator: done took 00:00:00.009
+504: 
+505: 
+506: zotero(1)(+0000000): {better-bibtex:} orchestrator: starting took 00:00:01.870
+507: 
+508: 
+934: 
+935: 
+936: zotero(1)(+0000001): TypeError: can't access property "document", window2 is null
+937: 
+938:     getGlobal@jar:file:///tmp/scholoom-host-prototype-o7zMwv/profile/extensions/jasminum@linxzh.com.xpi!/chrome/content/scripts/jasminum.js:402:13
+939:     get document@jar:file:///tmp/scholoom-host-prototype-o7zMwv/profile/extensions/jasminum@linxzh.com.xpi!/chrome/content/scripts/jasminum.js:3185:24
+940:     addStyle@jar:file:///tmp/scholoom-host-prototype-o7zMwv/profile/extensions/jasminum@linxzh.com.xpi!/chrome/content/scripts/jasminum.js:3690:44
+941:     initializeUI@jar:file:///tmp/scholoom-host-prototype-o7zMwv/profile/extensions/jasminum@linxzh.com.xpi!/chrome/content/scripts/jasminum.js:3230:12
+942:     Prompt@jar:file:///tmp/scholoom-host-prototype-o7zMwv/profile/extensions/jasminum@linxzh.com.xpi!/chrome/content/scripts/jasminum.js:3224:12
+950:     startup@jar:file:///tmp/scholoom-host-prototype-o7zMwv/profile/extensions/jasminum@linxzh.com.xpi!/bootstrap.js:41:25
+951: 
+952: zotero(1)(+0000000): Error running bootstrap method 'startup' on jasminum@linxzh.com
+953: 
+954: zotero(1)(+0000000): TypeError: can't access property "querySelector" of undefined
+955: 
+956:     createElement@jar:file:///tmp/scholoom-host-prototype-o7zMwv/profile/extensions/jasminum@linxzh.com.xpi!/chrome/content/scripts/jasminum.js:824:24
+957:     addStyle@jar:file:///tmp/scholoom-host-prototype-o7zMwv/profile/extensions/jasminum@linxzh.com.xpi!/chrome/content/scripts/jasminum.js:3690:30
+958:     initializeUI@jar:file:///tmp/scholoom-host-prototype-o7zMwv/profile/extensions/jasminum@linxzh.com.xpi!/chrome/content/scripts/jasminum.js:3230:12
+959:     Prompt@jar:file:///tmp/scholoom-host-prototype-o7zMwv/profile/extensions/jasminum@linxzh.com.xpi!/chrome/content/scripts/jasminum.js:3224:12
+960:     PromptManager@jar:file:///tmp/scholoom-host-prototype-o7zMwv/profile/extensions/jasminum@linxzh.com.xpi!/chrome/content/scripts/jasminum.js:3866:32
+6014: zotero(3)(+0000000): PRAGMA wal_checkpoint(TRUNCATE)
+6015: 
+6016: JavaScript error: , line 0: TypeError: can't access dead object
+6017: JavaScript error: , line 0: TypeError: can't access dead object
+6018: JavaScript error: , line 0: TypeError: can't access dead object
+6019: JavaScript error: , line 0: TypeError: can't access dead object
+6020: zotero(3)(+0000000): Notifier.trigger('modify', 'item', [5], {"changed":{}}) queued 
+6021: 
+6022: zotero(4)(+0000001): UPDATE itemAttachments SET parentItemID=?, linkMode=?, contentType=?, charsetID=NULL, path=?, syncState=?, storageModTime=NULL, storageHash=NULL, lastProcessedModificationTime=?, lastRead=? WHERE itemID=? [6, 0, 'application/pdf', 'storage:中文文献元数据回放探针.pdf', 0, 1791099783, 1791099809, 5]
+6023: 
+6024: zotero(1)(+0000001): Error: Error(s) encountered during statement execution: database table is locked
+6025: 
+6070: zotero(1)(+0000000): Rolled back DB transaction 9Ky97yR9
+6071: 
+6072: zotero(1)(+0000000): Wait is complete, cannot add further promises.
+6073: 
+6074: JavaScript error: resource://gre/modules/AsyncShutdown.sys.mjs, line 142: Error: Wait is complete, cannot add further promises.
+6075: zotero(3)(+0000002): Loaded primaryData in My Library in 3 ms
+6076: 
+6077: zotero(3)(+0000000): Loading creators for 1 item in My Library
+6078: 
+6079: zotero(4)(+0000000): SELECT itemID, creatorID, creatorTypeID, orderIndex FROM items LEFT JOIN itemCreators USING (itemID) WHERE libraryID=? AND itemID IN (5) ORDER BY itemID, orderIndex [1]
+6080: 

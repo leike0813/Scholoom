@@ -1,0 +1,76 @@
+2369: zotero(3)(+0000032): [Jasminum]
+2370: Init true
+2371: 
+2372: zotero(3)(+0000012): [Jasminum]
+2373: Sidebar toggle button is ready.
+2374: 
+2375: zotero(3)(+0000006): [Jasminum]
+2376: Sidebar container is ready.
+2377: 
+2911: zotero(3)(+0000034): [Jasminum]
+2912: Init true
+2913: 
+2914: zotero(3)(+0000005): [Jasminum]
+2915: Sidebar toggle button is ready.
+2916: 
+2917: zotero(3)(+0000006): [Jasminum]
+2918: Sidebar container is ready.
+2919: 
+3207: 
+3208: zotero(1)(+0000000): TypeError: Zotero.Jasminum.hooks.onMainWindowUnload is not a function
+3209: 
+3210:     onMainWindowUnload@jar:file:///tmp/scholoom-host-prototype-8T6DGE/profile/extensions/jasminum@linxzh.com.xpi!/bootstrap.js:53:26
+3211:     _callMethod@chrome://zotero/content/xpcom/plugins.js:258:23
+3212:     onCloseWindow@chrome://zotero/content/xpcom/plugins.js:120:17
+3563: 
+3564: JavaScript error: , line 0: TypeError: can't access dead object
+3565: JavaScript error: , line 0: TypeError: can't access dead object
+3566: JavaScript error: , line 0: TypeError: can't access dead object
+3567: JavaScript error: , line 0: TypeError: can't access dead object
+3568: zotero(3)(+0000001): Notifier.trigger('modify', 'item', [5], {"changed":{}}) queued 
+3569: 
+3570: zotero(4)(+0000000): UPDATE itemAttachments SET parentItemID=?, linkMode=?, contentType=?, charsetID=NULL, path=?, syncState=?, storageModTime=NULL, storageHash=NULL, lastProcessedModificationTime=?, lastRead=? WHERE itemID=? [6, 0, 'application/pdf', 'storage:中文文献元数据回放探针.pdf', 0, 1791106239, 1791106278, 5]
+3571: 
+3572: zotero(1)(+0000001): Error: Error(s) encountered during statement execution: database table is locked
+3573: 
+3574:     handleCompletion@resource://gre/modules/Sqlite.sys.mjs:1093:25
+3575: 
+3576: zotero(3)(+0000001): Loading primaryData for 1 item in My Library
+3601: 
+3602: zotero(1)(+0000000): Connection closed before committing the transaction.
+3603: 
+3604: zotero(3)(+0000001): Loading primaryData for 1 item in My Library
+3605: 
+3606: zotero(4)(+0000000): SELECT O.itemID, O.itemTypeID, O.dateAdded, O.dateModified, O.libraryID, O.key, O.version, O.clientVersion, O.synced, createdByUserID, lastModifiedByUserID, COALESCE(CASE (SELECT COUNT(*) FROM itemCreators IC LEFT JOIN itemTypeCreatorTypes ITCT ON (IC.creatorTypeID=ITCT.creatorTypeID AND ITCT.itemTypeID=O.itemTypeID) WHERE itemID=O.itemID AND primaryField=1) WHEN 0 THEN NULL WHEN 1 THEN (SELECT lastName FROM itemCreators IC NATURAL JOIN creators LEFT JOIN itemTypeCreatorTypes ITCT ON (IC.creatorTypeID=ITCT.creatorTypeID AND ITCT.itemTypeID=O.itemTypeID) WHERE itemID=O.itemID AND primaryField=1) WHEN 2 THEN (SELECT PRINTF('%s and %s', (SELECT '⁨' || lastName || '⁩' FROM itemCreators IC NATURAL JOIN creators LEFT JOIN itemTypeCreatorTypes ITCT ON (IC.creatorTypeID=ITCT.creatorTypeID AND ITCT.itemTypeID=O.itemTypeID) WHERE itemID=O.itemID AND primaryField=1 ORDER BY orderIndex LIMIT 1), (SELECT '⁨' || lastName || '⁩' FROM itemCreators IC NATURAL JOIN creators LEFT JOIN itemTypeCreatorTypes ITCT ON (IC.creatorTypeID=ITCT.creatorTypeID AND ITCT.itemTypeID=O.itemTypeID) WHERE itemID=O.itemID AND primaryField=1 ORDER BY orderIndex LIMIT 1,1) )) ELSE (SELECT (SELECT lastName FROM itemCreators IC NATURAL JOIN creators LEFT JOIN itemTypeCreatorTypes ITCT ON (IC.creatorTypeID=ITCT.creatorTypeID AND ITCT.itemTypeID=O.itemTypeID) WHERE itemID=O.itemID AND primaryField=1 ORDER BY orderIndex LIMIT 1) || ' et al.' ) END, CASE (SELECT COUNT(*) FROM itemCreators IC WHERE itemID=O.itemID AND creatorTypeID=12) WHEN 0 THEN NULL WHEN 1 THEN (SELECT lastName FROM itemCreators IC NATURAL JOIN creators WHERE itemID=O.itemID AND creatorTypeID=12) WHEN 2 THEN (SELECT PRINTF('%s and %s', (SELECT '⁨' || lastName || '⁩' FROM itemCreators IC NATURAL JOIN creators WHERE itemID=O.itemID AND creatorTypeID=12 ORDER BY orderIndex LIMIT 1), (SELECT '⁨' || lastName || '⁩' FROM itemCreators IC NATURAL JOIN creators WHERE itemID=O.itemID AND creatorTypeID=12 ORDER BY orderIndex LIMIT 1,1) )) ELSE (SELECT (SELECT lastName FROM itemCreators IC NATURAL JOIN creators WHERE itemID=O.itemID AND creatorTypeID=12 ORDER BY orderIndex LIMIT 1) || ' et al.' ) END, CASE (SELECT COUNT(*) FROM itemCreators IC WHERE itemID=O.itemID AND creatorTypeID=19) WHEN 0 THEN NULL WHEN 1 THEN (SELECT lastName FROM itemCreators IC NATURAL JOIN creators WHERE itemID=O.itemID AND creatorTypeID=19) WHEN 2 THEN (SELECT PRINTF('%s and %s', (SELECT '⁨' || lastName || '⁩' FROM itemCreators IC NATURAL JOIN creators WHERE itemID=O.itemID AND creatorTypeID=19 ORDER BY orderIndex LIMIT 1), (SELECT '⁨' || lastName || '⁩' FROM itemCreators IC NATURAL JOIN creators WHERE itemID=O.itemID AND creatorTypeID=19 ORDER BY orderIndex LIMIT 1,1) )) ELSE (SELECT (SELECT lastName FROM itemCreators IC NATURAL JOIN creators WHERE itemID=O.itemID AND creatorTypeID=19 ORDER BY orderIndex LIMIT 1) || ' et al.' ) END, CASE (SELECT COUNT(*) FROM itemCreators IC WHERE itemID=O.itemID AND creatorTypeID=2) WHEN 0 THEN NULL WHEN 1 THEN (SELECT lastName FROM itemCreators IC NATURAL JOIN creators WHERE itemID=O.itemID AND creatorTypeID=2) WHEN 2 THEN (SELECT PRINTF('%s and %s', (SELECT '⁨' || lastName || '⁩' FROM itemCreators IC NATURAL JOIN creators WHERE itemID=O.itemID AND creatorTypeID=2 ORDER BY orderIndex LIMIT 1), (SELECT '⁨' || lastName || '⁩' FROM itemCreators IC NATURAL JOIN creators WHERE itemID=O.itemID AND creatorTypeID=2 ORDER BY orderIndex LIMIT 1,1) )) ELSE (SELECT (SELECT lastName FROM itemCreators IC NATURAL JOIN creators WHERE itemID=O.itemID AND creatorTypeID=2 ORDER BY orderIndex LIMIT 1) || ' et al.' ) END) AS firstCreator, COALESCE(CASE (SELECT COUNT(*) FROM itemCreators IC LEFT JOIN itemTypeCreatorTypes ITCT ON (IC.creatorTypeID=ITCT.creatorTypeID AND ITCT.itemTypeID=O.itemTypeID) WHERE itemID=O.itemID AND primaryField=1) WHEN 0 THEN NULL WHEN 1 THEN (SELECT lastName || ' ' || firstName FROM itemCreators IC NATURAL JOIN creators LEFT JOIN itemTypeCreatorTypes ITCT ON (IC.creatorTypeID=ITCT.creatorTypeID AND ITCT.itemTypeID=O.itemTypeID) WHERE itemID=O.itemID AND primaryField=1) WHEN 2 THEN (SELECT (SELECT lastName || ' ' || firstName FROM itemCreators IC NATURAL JOIN creators LEFT JOIN itemTypeCreatorTypes ITCT ON (IC.creatorTypeID=ITCT.creatorTypeID AND ITCT.itemTypeID=O.itemTypeID) WHERE itemID=O.itemID AND primaryField=1 ORDER BY orderIndex LIMIT 1) || ' ' || (SELECT lastName || ' ' || firstName FROM itemCreators IC NATURAL JOIN creators LEFT JOIN itemTypeCreatorTypes ITCT ON (IC.creatorTypeID=ITCT.creatorTypeID AND ITCT.itemTypeID=O.itemTypeID) WHERE itemID=O.itemID AND primaryField=1 ORDER BY orderIndex LIMIT 1,1)) ELSE (SELECT (SELECT lastName || ' ' || firstName FROM itemCreators IC NATURAL JOIN creators LEFT JOIN itemTypeCreatorTypes ITCT ON (IC.creatorTypeID=ITCT.creatorTypeID AND ITCT.itemTypeID=O.itemTypeID) WHERE itemID=O.itemID AND primaryField=1 ORDER BY orderIndex LIMIT 1) || ' ' || (SELECT lastName || ' ' || firstName FROM itemCreators IC NATURAL JOIN creators LEFT JOIN itemTypeCreatorTypes ITCT ON (IC.creatorTypeID=ITCT.creatorTypeID AND ITCT.itemTypeID=O.itemTypeID) WHERE itemID=O.itemID AND primaryField=1 ORDER BY orderIndex LIMIT 1,1) || ' ' || (SELECT lastName || ' ' || firstName FROM itemCreators IC NATURAL JOIN creators LEFT JOIN itemTypeCreatorTypes ITCT ON (IC.creatorTypeID=ITCT.creatorTypeID AND ITCT.itemTypeID=O.itemTypeID) WHERE itemID=O.itemID AND primaryField=1 ORDER BY orderIndex LIMIT 2,1)) END, CASE (SELECT COUNT(*) FROM itemCreators IC WHERE itemID=O.itemID AND creatorTypeID=12) WHEN 0 THEN NULL WHEN 1 THEN (SELECT lastName || ' ' || firstName FROM itemCreators IC NATURAL JOIN creators WHERE itemID=O.itemID AND creatorTypeID=12) WHEN 2 THEN (SELECT (SELECT lastName || ' ' || firstName FROM itemCreators IC NATURAL JOIN creators WHERE itemID=O.itemID AND creatorTypeID=12 ORDER BY orderIndex LIMIT 1) || ' ' || (SELECT lastName || ' ' || firstName FROM itemCreators IC NATURAL JOIN creators WHERE itemID=O.itemID AND creatorTypeID=12 ORDER BY orderIndex LIMIT 1,1)) ELSE (SELECT (SELECT lastName || ' ' || firstName FROM itemCreators IC NATURAL JOIN creators WHERE itemID=O.itemID AND creatorTypeID=12 ORDER BY orderIndex LIMIT 1) || ' ' || (SELECT lastName || ' ' || firstName FROM itemCreators IC NATURAL JOIN creators WHERE itemID=O.itemID AND creatorTypeID=12 ORDER BY orderIndex LIMIT 1,1) || ' ' || (SELECT lastName || ' ' || firstName FROM itemCreators IC NATURAL JOIN creators WHERE itemID=O.itemID AND creatorTypeID=12 ORDER BY orderIndex LIMIT 2,1)) END, CASE (SELECT COUNT(*) FROM itemCreators IC WHERE itemID=O.itemID AND creatorTypeID=19) WHEN 0 THEN NULL WHEN 1 THEN (SELECT lastName || ' ' || firstName FROM itemCreators IC NATURAL JOIN creators WHERE itemID=O.itemID AND creatorTypeID=19) WHEN 2 THEN (SELECT (SELECT lastName || ' ' || firstName FROM itemCreators IC NATURAL JOIN creators WHERE itemID=O.itemID AND creatorTypeID=19 ORDER BY orderIndex LIMIT 1) || ' ' || (SELECT lastName || ' ' || firstName FROM itemCreators IC NATURAL JOIN creators WHERE itemID=O.itemID AND creatorTypeID=19 ORDER BY orderIndex LIMIT 1,1)) ELSE (SELECT (SELECT lastName || ' ' || firstName FROM itemCreators IC NATURAL JOIN creators WHERE itemID=O.itemID AND creatorTypeID=19 ORDER BY orderIndex LIMIT 1) || ' ' || (SELECT lastName || ' ' || firstName FROM itemCreators IC NATURAL JOIN creators WHERE itemID=O.itemID AND creatorTypeID=19 ORDER BY orderIndex LIMIT 1,1) || ' ' || (SELECT lastName || ' ' || firstName FROM itemCreators IC NATURAL JOIN creators WHERE itemID=O.itemID AND creatorTypeID=19 ORDER BY orderIndex LIMIT 2,1)) END, CASE (SELECT COUNT(*) FROM itemCreators IC WHERE itemID=O.itemID AND creatorTypeID=2) WHEN 0 THEN NULL WHEN 1 THEN (SELECT lastName || ' ' || firstName FROM itemCreators IC NATURAL JOIN creators WHERE itemID=O.itemID AND creatorTypeID=2) WHEN 2 THEN (SELECT (SELECT lastName || ' ' || firstName FROM itemCreators IC NATURAL JOIN creators WHERE itemID=O.itemID AND creatorTypeID=2 ORDER BY orderIndex LIMIT 1) || ' ' || (SELECT lastName || ' ' || firstName FROM itemCreators IC NATURAL JOIN creators WHERE itemID=O.itemID AND creatorTypeID=2 ORDER BY orderIndex LIMIT 1,1)) ELSE (SELECT (SELECT lastName || ' ' || firstName FROM itemCreators IC NATURAL JOIN creators WHERE itemID=O.itemID AND creatorTypeID=2 ORDER BY orderIndex LIMIT 1) || ' ' || (SELECT lastName || ' ' || firstName FROM itemCreators IC NATURAL JOIN creators WHERE itemID=O.itemID AND creatorTypeID=2 ORDER BY orderIndex LIMIT 1,1) || ' ' || (SELECT lastName || ' ' || firstName FROM itemCreators IC NATURAL JOIN creators WHERE itemID=O.itemID AND creatorTypeID=2 ORDER BY orderIndex LIMIT 2,1)) END) AS sortCreator, DI.itemID IS NOT NULL AS deleted, PI.itemID IS NOT NULL AS inPublications, (CASE O.itemTypeID WHEN 3 THEN IAP.itemID WHEN 28 THEN INoP.itemID WHEN 1 THEN IAnP.itemID END) AS parentID, (CASE O.itemTypeID WHEN 3 THEN IAP.key WHEN 28 THEN INoP.key WHEN 1 THEN IAnP.key END) AS parentKey, CS.charset AS attachmentCharset, IA.linkMode AS attachmentLinkMode, IA.contentType AS attachmentContentType, IA.path AS attachmentPath, IA.syncState AS attachmentSyncState, IA.storageModTime AS attachmentSyncedModificationTime, IA.storageHash AS attachmentSyncedHash, IA.lastProcessedModificationTime AS attachmentLastProcessedModificationTime, IA.lastRead AS attachmentLastRead, FI.guid AS feedItemGUID, FI.readTime AS feedItemReadTime, FI.translatedTime AS feedItemTranslatedTime FROM items O LEFT JOIN itemAttachments IA USING (itemID) LEFT JOIN items IAP ON (IA.parentItemID=IAP.itemID) LEFT JOIN itemNotes INo ON (O.itemID=INo.itemID) LEFT JOIN items INoP ON (INo.parentItemID=INoP.itemID) LEFT JOIN itemAnnotations IAn ON (O.itemID=IAn.itemID) LEFT JOIN items IAnP ON (IAn.parentItemID=IAnP.itemID) LEFT JOIN deletedItems DI ON (O.itemID=DI.itemID) LEFT JOIN publicationsItems PI ON (O.itemID=PI.itemID) LEFT JOIN charsets CS ON (IA.charsetID=CS.charsetID)LEFT JOIN groupItems GI ON (O.itemID=GI.itemID) LEFT JOIN feedItems FI ON (FI.itemID=O.itemID) WHERE 1 AND O.libraryID=? AND O.itemID IN (5) [1]
+3611: 
+3612: zotero(1)(+0000000): Wait is complete, cannot add further promises.
+3613: 
+3614: zotero(4)(+0000000): Beginning DB transaction EbKZvn3z
+3615: 
+3616: zotero(1)(+0000001): Rolled back DB transaction EbKZvn3z
+3617: 
+3618: zotero(1)(+0000000): Wait is complete, cannot add further promises.
+3619: 
+3620: JavaScript error: resource://gre/modules/AsyncShutdown.sys.mjs, line 142: Error: Wait is complete, cannot add further promises.
+3621: JavaScript error: resource://gre/modules/AsyncShutdown.sys.mjs, line 142: Error: Wait is complete, cannot add further promises.
+3622: zotero(3)(+0000002): Loaded primaryData in My Library in 3 ms
+3623: 
+3624: zotero(3)(+0000000): Loading creators for 1 item in My Library
+3625: 
+3627: 
+3628: zotero(1)(+0000000): Error: Connection is not open.
+3629: 
+3630:     ensureOpen@resource://gre/modules/Sqlite.sys.mjs:1126:13
+3631:     execute@resource://gre/modules/Sqlite.sys.mjs:741:10
+3632:     execute@resource://gre/modules/Sqlite.sys.mjs:1906:33
+3639: 
+3640: zotero(1)(+0000001): Error: Connection closed before committing the transaction.
+3641: 
+3642:     executeTransaction/promise</transactionPromise<@resource://gre/modules/Sqlite.sys.mjs:888:19
+3643:     observe@resource://gre/modules/AsyncShutdown.sys.mjs:569:17
+3644: 
+3645: zotero(1)(+0000000): Error: Connection closed before committing the transaction.
+3646: 
+3647:     executeTransaction/promise</transactionPromise<@resource://gre/modules/Sqlite.sys.mjs:888:19
+3648:     observe@resource://gre/modules/AsyncShutdown.sys.mjs:569:17
+3649: 

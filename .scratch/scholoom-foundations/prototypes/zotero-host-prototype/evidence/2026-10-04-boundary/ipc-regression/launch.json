@@ -1,0 +1,14 @@
+{
+  "command": "xvfb-run",
+  "args": [
+    "-a",
+    "/tmp/scholoom-host-prototype-9kCn3P/Zotero_linux-x86_64/zotero",
+    "-no-remote",
+    "-profile",
+    "/tmp/scholoom-host-prototype-9kCn3P/profile",
+    "--dataDir",
+    "/tmp/scholoom-host-prototype-9kCn3P/data",
+    "-ZoteroDebugText"
+  ],
+  "displayServer": "Xvfb"
+}

@@ -1,0 +1,262 @@
+{
+  "clientPID": 4110355,
+  "startedAt": "2026-10-04T09:11:18.143Z",
+  "checks": [
+    {
+      "name": "domain-read-stable-identity",
+      "status": "passed",
+      "detail": {
+        "id": "e508c128-5db2-4ea9-9e1f-040a9b37c96b",
+        "libraryId": "dab9d451-b89d-423f-8a83-0160ab0945b6",
+        "title": "中文文献元数据回放探针",
+        "citationKey": "ZhangZhongWenWenXianYuanShuJuHuiFangTanZhen2026",
+        "materials": [
+          {
+            "id": "00d9c95e-1a65-4961-bb04-3e3bd496dac8",
+            "sourceId": "e508c128-5db2-4ea9-9e1f-040a9b37c96b"
+          }
+        ]
+      }
+    },
+    {
+      "name": "agent-updates-same-source",
+      "status": "passed",
+      "detail": {
+        "id": "e508c128-5db2-4ea9-9e1f-040a9b37c96b",
+        "libraryId": "dab9d451-b89d-423f-8a83-0160ab0945b6",
+        "title": "Scholoom boundary literature workflow",
+        "citationKey": "ZhangZhongWenWenXianYuanShuJuHuiFangTanZhen2026",
+        "materials": [
+          {
+            "id": "00d9c95e-1a65-4961-bb04-3e3bd496dac8",
+            "sourceId": "e508c128-5db2-4ea9-9e1f-040a9b37c96b"
+          }
+        ]
+      }
+    },
+    {
+      "name": "original-bbt-writes-citation-key",
+      "status": "passed",
+      "detail": {
+        "id": "e508c128-5db2-4ea9-9e1f-040a9b37c96b",
+        "libraryId": "dab9d451-b89d-423f-8a83-0160ab0945b6",
+        "title": "Scholoom boundary literature workflow",
+        "citationKey": "ZhangScholoomBoundaryLiterature2026",
+        "materials": [
+          {
+            "id": "00d9c95e-1a65-4961-bb04-3e3bd496dac8",
+            "sourceId": "e508c128-5db2-4ea9-9e1f-040a9b37c96b"
+          }
+        ]
+      }
+    },
+    {
+      "name": "agent-exports-bibtex",
+      "status": "passed",
+      "detail": {
+        "sourceId": "e508c128-5db2-4ea9-9e1f-040a9b37c96b",
+        "format": "bibtex",
+        "bytes": 370
+      }
+    },
+    {
+      "name": "agent-exports-biblatex",
+      "status": "passed",
+      "detail": {
+        "sourceId": "e508c128-5db2-4ea9-9e1f-040a9b37c96b",
+        "format": "biblatex",
+        "bytes": 457
+      }
+    },
+    {
+      "name": "agent-consumes-original-navigation",
+      "status": "passed",
+      "detail": {
+        "materialId": "00d9c95e-1a65-4961-bb04-3e3bd496dac8",
+        "sourceId": "e508c128-5db2-4ea9-9e1f-040a9b37c96b",
+        "contentType": "application/pdf",
+        "fileName": "中文文献元数据回放探针.pdf",
+        "available": true,
+        "storageMode": "managed",
+        "outline": [
+          {
+            "title": "Introduction",
+            "location": {
+              "page": 1,
+              "x": 0,
+              "y": 792
+            },
+            "children": []
+          },
+          {
+            "title": "Methods",
+            "location": {
+              "page": 2,
+              "x": 0,
+              "y": 792
+            },
+            "children": []
+          }
+        ],
+        "bookmarks": [
+          {
+            "id": "bookmark_1791105092942_6vg1guysl",
+            "title": "P_1_1",
+            "location": {
+              "page": 1,
+              "x": 0,
+              "y": 792
+            },
+            "color": "#54A0FF"
+          }
+        ]
+      }
+    },
+    {
+      "name": "separate-workbench-observes-current-authority",
+      "status": "passed",
+      "detail": {
+        "consumerPID": 4112483,
+        "source": {
+          "id": "e508c128-5db2-4ea9-9e1f-040a9b37c96b",
+          "libraryId": "dab9d451-b89d-423f-8a83-0160ab0945b6",
+          "title": "Scholoom boundary literature workflow",
+          "citationKey": "ZhangScholoomBoundaryLiterature2026",
+          "materials": [
+            {
+              "id": "00d9c95e-1a65-4961-bb04-3e3bd496dac8",
+              "sourceId": "e508c128-5db2-4ea9-9e1f-040a9b37c96b"
+            }
+          ]
+        },
+        "navigation": {
+          "materialId": "00d9c95e-1a65-4961-bb04-3e3bd496dac8",
+          "sourceId": "e508c128-5db2-4ea9-9e1f-040a9b37c96b",
+          "contentType": "application/pdf",
+          "fileName": "中文文献元数据回放探针.pdf",
+          "available": true,
+          "storageMode": "managed",
+          "outline": [
+            {
+              "title": "Introduction",
+              "location": {
+                "page": 1,
+                "x": 0,
+                "y": 792
+              },
+              "children": []
+            },
+            {
+              "title": "Methods",
+              "location": {
+                "page": 2,
+                "x": 0,
+                "y": 792
+              },
+              "children": []
+            }
+          ],
+          "bookmarks": [
+            {
+              "id": "bookmark_1791105092942_6vg1guysl",
+              "title": "P_1_1",
+              "location": {
+                "page": 1,
+                "x": 0,
+                "y": 792
+              },
+              "color": "#54A0FF"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "agent-observes-workbench-edit",
+      "status": "passed",
+      "detail": {
+        "id": "e508c128-5db2-4ea9-9e1f-040a9b37c96b",
+        "libraryId": "dab9d451-b89d-423f-8a83-0160ab0945b6",
+        "title": "Research workflow revised in workbench",
+        "citationKey": "ZhangScholoomBoundaryLiterature2026",
+        "materials": [
+          {
+            "id": "00d9c95e-1a65-4961-bb04-3e3bd496dac8",
+            "sourceId": "e508c128-5db2-4ea9-9e1f-040a9b37c96b"
+          }
+        ]
+      }
+    },
+    {
+      "name": "host-item-sql-match-domain-result",
+      "status": "passed",
+      "detail": {
+        "ref": {
+          "libraryID": 1,
+          "key": "HSJFUM8C"
+        },
+        "itemID": 6,
+        "title": "Research workflow revised in workbench",
+        "citationKey": "ZhangScholoomBoundaryLiterature2026",
+        "sql": {
+          "title": "Research workflow revised in workbench",
+          "citationKey": "ZhangScholoomBoundaryLiterature2026"
+        },
+        "mainWindowCount": 1,
+        "bbtReady": true,
+        "jasminumReady": true,
+        "dataDirectory": "/tmp/scholoom-host-prototype-1md8NZ/data"
+      }
+    }
+  ],
+  "requests": [
+    {
+      "method": "snapshot",
+      "params": {
+        "ref": {
+          "libraryID": 1,
+          "key": "HSJFUM8C"
+        }
+      },
+      "status": 200,
+      "body": {
+        "ok": true,
+        "result": {
+          "ref": {
+            "libraryID": 1,
+            "key": "HSJFUM8C"
+          },
+          "itemID": 6,
+          "title": "Research workflow revised in workbench",
+          "citationKey": "ZhangScholoomBoundaryLiterature2026",
+          "sql": {
+            "title": "Research workflow revised in workbench",
+            "citationKey": "ZhangScholoomBoundaryLiterature2026"
+          },
+          "mainWindowCount": 1,
+          "bbtReady": true,
+          "jasminumReady": true,
+          "dataDirectory": "/tmp/scholoom-host-prototype-1md8NZ/data"
+        }
+      },
+      "time": "2026-10-04T09:11:35.479Z"
+    },
+    {
+      "method": "shutdown",
+      "params": {},
+      "status": 200,
+      "body": {
+        "ok": true,
+        "result": {
+          "shutdownScheduled": true
+        }
+      },
+      "time": "2026-10-04T09:11:35.490Z"
+    }
+  ],
+  "transport": "http://127.0.0.1:42589/rpc",
+  "shutdown": {
+    "shutdownScheduled": true
+  },
+  "finishedAt": "2026-10-04T09:11:35.491Z"
+}

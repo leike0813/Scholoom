@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<title>文献阅读</title>
+<style>
+body{font:16px system-ui;margin:24px;background:#f4f3ef;color:#252825}main{display:flex;gap:24px}aside{width:260px}button,input{font:inherit;margin:4px 0;padding:7px}nav{display:grid}#page{position:relative;background:white;width:fit-content}canvas{display:block}#position{position:absolute;width:10px;height:10px;border:2px solid #be431f;border-radius:50%;pointer-events:none}#status{min-height:24px}h1{font-size:22px}
+</style>
+<h1 id="title">文献阅读</h1>
+<main><aside><h2>大纲</h2><nav id="outline"></nav><h2>书签</h2><nav id="bookmarks"></nav>
+<label for="bookmark-title">书签名称</label><input id="bookmark-title"><button id="save-bookmark">保存书签名称</button>
+<button id="reload">重新读取</button><p id="status" role="status"></p></aside>
+<section><p id="page-label"></p><div id="page"><canvas></canvas><span id="position" hidden></span></div></section></main>
+<script type="module" src="/reader-view.mjs"></script>
+</html>

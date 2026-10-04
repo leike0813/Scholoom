@@ -1,0 +1,13 @@
+{
+  "date": "2026-10-04",
+  "syntax": {"command": "node --check <each prototype JS/MJS/CJS>", "files": 21, "passed": true},
+  "evidenceJSONParsedBeforeThisRecord": 89,
+  "documentationLocalLinksChecked": 100,
+  "temporaryRPCTokenAbsent": true,
+  "finalController": "UEt9E4",
+  "initial": {"mainChecks": 4, "windowChecks": 6, "hostChecks": 9, "passed": true, "hostExit": 0, "clientExit": 0},
+  "resumed": {"mainChecks": 4, "windowChecks": 6, "hostChecks": 2, "passed": true, "hostExit": 0, "clientExit": 0},
+  "independentStoppedAndRestoredObjectChecks": true,
+  "readerRegression": {"browserChecks": 5, "mainChecks": 3, "hostChecks": 9, "passed": true},
+  "note": "Window/browser checks are summarized by main checks; do not add these counts as independent compatibility coverage. Earlier failed trials are retained separately."
+}

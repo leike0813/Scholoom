@@ -1,0 +1,220 @@
+[
+  {
+    "name": "Better BibTeX",
+    "version": "9.0.68",
+    "stages": [
+      "xpi-unpacked",
+      "bootstrap-evaluated",
+      "startup-called",
+      "chrome-registered",
+      "startup-settled"
+    ],
+    "providedServices": [
+      "Zotero.initializationPromise",
+      "Zotero.debug/logError",
+      "Components.utils.importGlobalProperties(FormData)",
+      "Components.utils.getObjectPrincipal",
+      "Components.utils.Sandbox",
+      "Node.global.atob",
+      "Node.global.btoa",
+      "Node.global.FormData",
+      "Node.global.structuredClone",
+      "Node.global.TextDecoder",
+      "Node.global.TextEncoder",
+      "Node.global.URL",
+      "Node.global.URLSearchParams",
+      "Node.global.fetch",
+      "Gecko.global.Components",
+      "Gecko.global.Services",
+      "Gecko.global.ChromeUtils",
+      "Components.classes[addon-manager-startup].getService",
+      "Services.io.newURI",
+      "AddonManagerStartup.registerChrome"
+    ],
+    "missingService": "ChromeUtils.importESModule(resource://gre/modules/FileUtils.sys.mjs)",
+    "error": {
+      "name": "Error",
+      "message": "Better BibTeX startup failed: MissingServiceError: Missing host service: ChromeUtils.importESModule(resource://gre/modules/FileUtils.sys.mjs)\nMissingServiceError: Missing host service: ChromeUtils.importESModule(resource://gre/modules/FileUtils.sys.mjs)\n    at Object.importESModule (file:///home/joshua/Workspace/Code/JavaScript/Scholoom/.scratch/scholoom-foundations/prototypes/zotero-host-prototype/node-probe.mjs:194:13)\n    at startup (/tmp/scholoom-host-prototype-kFmGXl/node-unpacked/Better_BibTeX-9.0.68-HKgoAo/bootstrap.js:2920:41)\n    at probePackage (file:///home/joshua/Workspace/Code/JavaScript/Scholoom/.scratch/scholoom-foundations/prototypes/zotero-host-prototype/node-probe.mjs:360:29)\n    at async probeNode (file:///home/joshua/Workspace/Code/JavaScript/Scholoom/.scratch/scholoom-foundations/prototypes/zotero-host-prototype/node-probe.mjs:388:18)\n    at async file:///home/joshua/Workspace/Code/JavaScript/Scholoom/.scratch/scholoom-foundations/prototypes/zotero-host-prototype/run.mjs:121:22",
+      "stack": "Error: Better BibTeX startup failed: MissingServiceError: Missing host service: ChromeUtils.importESModule(resource://gre/modules/FileUtils.sys.mjs)\nMissingServiceError: Missing host service: ChromeUtils.importESModule(resource://gre/modules/FileUtils.sys.mjs)\n    at Object.importESModule (file:///home/joshua/Workspace/Code/JavaScript/Scholoom/.scratch/scholoom-foundations/prototypes/zotero-host-prototype/node-probe.mjs:194:13)\n    at startup (/tmp/scholoom-host-prototype-kFmGXl/node-unpacked/Better_BibTeX-9.0.68-HKgoAo/bootstrap.js:2920:41)\n    at probePackage (file:///home/joshua/Workspace/Code/JavaScript/Scholoom/.scratch/scholoom-foundations/prototypes/zotero-host-prototype/node-probe.mjs:360:29)\n    at async probeNode (file:///home/joshua/Workspace/Code/JavaScript/Scholoom/.scratch/scholoom-foundations/prototypes/zotero-host-prototype/node-probe.mjs:388:18)\n    at async file:///home/joshua/Workspace/Code/JavaScript/Scholoom/.scratch/scholoom-foundations/prototypes/zotero-host-prototype/run.mjs:121:22\n    at Object.alert (file:///home/joshua/Workspace/Code/JavaScript/Scholoom/.scratch/scholoom-foundations/prototypes/zotero-host-prototype/node-probe.mjs:217:23)\n    at alert (/tmp/scholoom-host-prototype-kFmGXl/node-unpacked/Better_BibTeX-9.0.68-HKgoAo/bootstrap.js:33:21)\n    at startup (/tmp/scholoom-host-prototype-kFmGXl/node-unpacked/Better_BibTeX-9.0.68-HKgoAo/bootstrap.js:2944:7)\n    at probePackage (file:///home/joshua/Workspace/Code/JavaScript/Scholoom/.scratch/scholoom-foundations/prototypes/zotero-host-prototype/node-probe.mjs:360:29)\n    at async probeNode (file:///home/joshua/Workspace/Code/JavaScript/Scholoom/.scratch/scholoom-foundations/prototypes/zotero-host-prototype/node-probe.mjs:388:18)\n    at async file:///home/joshua/Workspace/Code/JavaScript/Scholoom/.scratch/scholoom-foundations/prototypes/zotero-host-prototype/run.mjs:121:22"
+    },
+    "trace": [
+      {
+        "at": "2026-10-04T06:46:14.721Z",
+        "type": "startup",
+        "reason": 5,
+        "rootURI": "file:///tmp/scholoom-host-prototype-kFmGXl/node-unpacked/Better_BibTeX-9.0.68-HKgoAo/"
+      },
+      {
+        "at": "2026-10-04T06:46:14.722Z",
+        "type": "zotero-pref-read",
+        "key": "debug.store"
+      },
+      {
+        "at": "2026-10-04T06:46:14.722Z",
+        "type": "menu-registration",
+        "menuID": "debug-log-sender-better-bibtex@iris-advies.com"
+      },
+      {
+        "at": "2026-10-04T06:46:14.722Z",
+        "type": "sandbox",
+        "options": {
+          "freshZone": true,
+          "freshCompartment": true,
+          "wantGlobalProperties": [
+            "atob",
+            "btoa",
+            "ChromeUtils",
+            "DOMParser",
+            "FormData",
+            "structuredClone",
+            "TextDecoder",
+            "TextEncoder",
+            "XMLHttpRequest",
+            "URL",
+            "URLSearchParams",
+            "fetch"
+          ]
+        }
+      },
+      {
+        "at": "2026-10-04T06:46:14.724Z",
+        "type": "log",
+        "level": "debug",
+        "message": "Better BibTeX bootstrap: {better-bibtex} bootstrap: startup started"
+      },
+      {
+        "at": "2026-10-04T06:46:14.724Z",
+        "type": "log",
+        "level": "debug",
+        "message": "Better BibTeX bootstrap: {better-bibtex} bootstrap: file:///tmp/scholoom-host-prototype-kFmGXl/node-unpacked/Better_BibTeX-9.0.68-HKgoAo/manifest.json"
+      },
+      {
+        "at": "2026-10-04T06:46:14.724Z",
+        "type": "registerChrome",
+        "manifestURI": "file:///tmp/scholoom-host-prototype-kFmGXl/node-unpacked/Better_BibTeX-9.0.68-HKgoAo/manifest.json",
+        "registrations": [
+          [
+            "content",
+            "zotero-better-bibtex",
+            "content/"
+          ],
+          [
+            "locale",
+            "zotero-better-bibtex",
+            "en-US",
+            "locale/en-US/"
+          ],
+          [
+            "locale",
+            "zotero-better-bibtex",
+            "fr-FR",
+            "locale/fr-FR/"
+          ],
+          [
+            "locale",
+            "zotero-better-bibtex",
+            "pt-BR",
+            "locale/pt-BR/"
+          ],
+          [
+            "locale",
+            "zotero-better-bibtex",
+            "zh-CN",
+            "locale/zh-CN/"
+          ],
+          [
+            "locale",
+            "zotero-better-bibtex",
+            "it-IT",
+            "locale/it-IT/"
+          ]
+        ]
+      },
+      {
+        "at": "2026-10-04T06:46:14.724Z",
+        "type": "importESModule",
+        "specifier": "resource://gre/modules/FileUtils.sys.mjs"
+      },
+      {
+        "at": "2026-10-04T06:46:14.725Z",
+        "type": "plugin-alert",
+        "title": "Better BibTeX startup failed",
+        "message": "MissingServiceError: Missing host service: ChromeUtils.importESModule(resource://gre/modules/FileUtils.sys.mjs)\nMissingServiceError: Missing host service: ChromeUtils.importESModule(resource://gre/modules/FileUtils.sys.mjs)\n    at Object.importESModule (file:///home/joshua/Workspace/Code/JavaScript/Scholoom/.scratch/scholoom-foundations/prototypes/zotero-host-prototype/node-probe.mjs:194:13)\n    at startup (/tmp/scholoom-host-prototype-kFmGXl/node-unpacked/Better_BibTeX-9.0.68-HKgoAo/bootstrap.js:2920:41)\n    at probePackage (file:///home/joshua/Workspace/Code/JavaScript/Scholoom/.scratch/scholoom-foundations/prototypes/zotero-host-prototype/node-probe.mjs:360:29)\n    at async probeNode (file:///home/joshua/Workspace/Code/JavaScript/Scholoom/.scratch/scholoom-foundations/prototypes/zotero-host-prototype/node-probe.mjs:388:18)\n    at async file:///home/joshua/Workspace/Code/JavaScript/Scholoom/.scratch/scholoom-foundations/prototypes/zotero-host-prototype/run.mjs:121:22"
+      },
+      {
+        "at": "2026-10-04T06:46:14.725Z",
+        "type": "log",
+        "level": "debug",
+        "message": "Better BibTeX bootstrap: {better-bibtex} bootstrap: MissingServiceError: Missing host service: ChromeUtils.importESModule(resource://gre/modules/FileUtils.sys.mjs)\nMissingServiceError: Missing host service: ChromeUtils.importESModule(resource://gre/modules/FileUtils.sys.mjs)\n    at Object.importESModule (file:///home/joshua/Workspace/Code/JavaScript/Scholoom/.scratch/scholoom-foundations/prototypes/zotero-host-prototype/node-probe.mjs:194:13)\n    at startup (/tmp/scholoom-host-prototype-kFmGXl/node-unpacked/Better_BibTeX-9.0.68-HKgoAo/bootstrap.js:2920:41)\n    at probePackage (file:///home/joshua/Workspace/Code/JavaScript/Scholoom/.scratch/scholoom-foundations/prototypes/zotero-host-prototype/node-probe.mjs:360:29)\n    at async probeNode (file:///home/joshua/Workspace/Code/JavaScript/Scholoom/.scratch/scholoom-foundations/prototypes/zotero-host-prototype/node-probe.mjs:388:18)\n    at async file:///home/joshua/Workspace/Code/JavaScript/Scholoom/.scratch/scholoom-foundations/prototypes/zotero-host-prototype/run.mjs:121:22"
+      }
+    ],
+    "functionalityVerified": false
+  },
+  {
+    "name": "Jasminum",
+    "version": "1.1.39",
+    "stages": [
+      "xpi-unpacked",
+      "bootstrap-evaluated",
+      "startup-called",
+      "chrome-registered",
+      "bundle-loading:Jasminum-1.1.39-Hl3KRU/chrome/content/scripts/jasminum.js"
+    ],
+    "providedServices": [
+      "Zotero.initializationPromise",
+      "Zotero.debug/logError",
+      "Components.classes[addon-manager-startup].getService",
+      "Services.io.newURI",
+      "AddonManagerStartup.registerChrome",
+      "Services.scriptloader.loadSubScript",
+      "Gecko.global.Components",
+      "Gecko.global.Services",
+      "Gecko.global.ChromeUtils",
+      "Gecko.global.Zotero",
+      "ChromeUtils.importESModule(Console.sys.mjs)"
+    ],
+    "missingService": "ChromeUtils.importESModule(chrome://zotero/content/HiddenBrowser.mjs)",
+    "error": {
+      "name": "MissingServiceError",
+      "message": "Missing host service: ChromeUtils.importESModule(chrome://zotero/content/HiddenBrowser.mjs)",
+      "stack": "file:///home/joshua/Workspace/Code/JavaScript/Scholoom/.scratch/scholoom-foundations/prototypes/zotero-host-prototype/node-probe.mjs:194\n      throw new MissingServiceError(`ChromeUtils.importESModule(${specifier})`);\n      ^\n\nMissingServiceError: Missing host service: ChromeUtils.importESModule(chrome://zotero/content/HiddenBrowser.mjs)\n    at Object.importESModule (file:///home/joshua/Workspace/Code/JavaScript/Scholoom/.scratch/scholoom-foundations/prototypes/zotero-host-prototype/node-probe.mjs:194:13)\n    at /tmp/scholoom-host-prototype-kFmGXl/node-unpacked/Jasminum-1.1.39-Hl3KRU//chrome/content/scripts/jasminum.js:4171:39\n    at /tmp/scholoom-host-prototype-kFmGXl/node-unpacked/Jasminum-1.1.39-Hl3KRU//chrome/content/scripts/jasminum.js:11237:3\n    at Script.runInContext (node:vm:149:12)\n    at Object.runInContext (node:vm:301:6)\n    at executeScript (file:///home/joshua/Workspace/Code/JavaScript/Scholoom/.scratch/scholoom-foundations/prototypes/zotero-host-prototype/node-probe.mjs:257:10)\n    at Object.loadSubScript (file:///home/joshua/Workspace/Code/JavaScript/Scholoom/.scratch/scholoom-foundations/prototypes/zotero-host-prototype/node-probe.mjs:206:14)\n    at startup (/tmp/scholoom-host-prototype-kFmGXl/node-unpacked/Jasminum-1.1.39-Hl3KRU/bootstrap.js:41:25)\n    at async probePackage (file:///home/joshua/Workspace/Code/JavaScript/Scholoom/.scratch/scholoom-foundations/prototypes/zotero-host-prototype/node-probe.mjs:360:9)\n    at async probeNode (file:///home/joshua/Workspace/Code/JavaScript/Scholoom/.scratch/scholoom-foundations/prototypes/zotero-host-prototype/node-probe.mjs:388:18)"
+    },
+    "trace": [
+      {
+        "at": "2026-10-04T06:46:14.753Z",
+        "type": "startup",
+        "reason": 5,
+        "rootURI": "file:///tmp/scholoom-host-prototype-kFmGXl/node-unpacked/Jasminum-1.1.39-Hl3KRU/"
+      },
+      {
+        "at": "2026-10-04T06:46:14.753Z",
+        "type": "registerChrome",
+        "manifestURI": "file:///tmp/scholoom-host-prototype-kFmGXl/node-unpacked/Jasminum-1.1.39-Hl3KRU/manifest.json",
+        "registrations": [
+          [
+            "content",
+            "jasminum",
+            "file:///tmp/scholoom-host-prototype-kFmGXl/node-unpacked/Jasminum-1.1.39-Hl3KRU/chrome/content/"
+          ]
+        ]
+      },
+      {
+        "at": "2026-10-04T06:46:14.755Z",
+        "type": "loadSubScript",
+        "spec": "file:///tmp/scholoom-host-prototype-kFmGXl/node-unpacked/Jasminum-1.1.39-Hl3KRU//chrome/content/scripts/jasminum.js",
+        "filename": "/tmp/scholoom-host-prototype-kFmGXl/node-unpacked/Jasminum-1.1.39-Hl3KRU//chrome/content/scripts/jasminum.js"
+      },
+      {
+        "at": "2026-10-04T06:46:14.774Z",
+        "type": "importESModule",
+        "specifier": "resource://gre/modules/Console.sys.mjs"
+      },
+      {
+        "at": "2026-10-04T06:46:14.774Z",
+        "type": "importESModule",
+        "specifier": "chrome://zotero/content/HiddenBrowser.mjs"
+      }
+    ],
+    "functionalityVerified": false
+  }
+]

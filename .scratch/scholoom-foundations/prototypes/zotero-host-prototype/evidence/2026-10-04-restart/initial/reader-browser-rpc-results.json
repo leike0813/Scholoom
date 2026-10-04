@@ -1,0 +1,67 @@
+{
+  "clientPID": 484547,
+  "startedAt": "2026-10-04T09:28:10.313Z",
+  "checks": [],
+  "requests": [
+    {
+      "method": "readingState",
+      "params": {
+        "ref": {
+          "libraryID": 1,
+          "key": "PKPUPJF9"
+        }
+      },
+      "status": 200,
+      "body": {
+        "ok": true,
+        "result": {
+          "ref": {
+            "libraryID": 1,
+            "key": "PKPUPJF9"
+          },
+          "sourceRef": {
+            "libraryID": 1,
+            "key": "ARZ2WPY4"
+          },
+          "contentType": "application/pdf",
+          "fileName": "中文文献元数据回放探针.pdf",
+          "fileExists": true,
+          "storageMode": "managed",
+          "outline": [
+            {
+              "level": 1,
+              "title": "Introduction",
+              "page": 1,
+              "x": 0,
+              "y": 792,
+              "children": []
+            },
+            {
+              "level": 1,
+              "title": "Methods",
+              "page": 2,
+              "x": 0,
+              "y": 792,
+              "children": []
+            }
+          ],
+          "bookmarks": [
+            {
+              "id": "bookmark_1791106087112_3cfvwo4fo",
+              "title": "P_1_1",
+              "page": 1,
+              "x": 0,
+              "y": 792,
+              "order": 0,
+              "createdAt": 1791106087112,
+              "color": "#96CEB4"
+            }
+          ]
+        }
+      },
+      "time": "2026-10-04T09:28:11.934Z"
+    }
+  ],
+  "transport": "http://127.0.0.1:34343/rpc",
+  "finishedAt": "2026-10-04T09:28:13.244Z"
+}

@@ -1,0 +1,12 @@
+packages:
+  - apps/*
+  - packages/*
+
+allowBuilds:
+  electron: true
+  esbuild: true
+  electron-winstaller: false
+
+# electron-builder uses the cacheMode API introduced in @electron/get 3.1.
+overrides:
+  'app-builder-lib@26.15.3>@electron/get': ^3.1.0

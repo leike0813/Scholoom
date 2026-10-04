@@ -1,0 +1,17 @@
+node_modules/
+dist/
+out/
+release/
+*.tsbuildinfo
+playwright-report/
+test-results/
+.env
+.env.*
+!.env.example
+.DS_Store
+
+.agents/
+.claude/
+.mattpack/
+.openviking/
+.playwright-mcp/

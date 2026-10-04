@@ -1,0 +1,30 @@
+{
+  "runDirectory": "/tmp/scholoom-host-prototype-xr2bOn",
+  "originalBytes": [
+    {
+      "id": "better-bibtex@iris-advies.com",
+      "version": "9.0.68",
+      "bytes": 29599384,
+      "installedEqualsDownloaded": true
+    },
+    {
+      "id": "jasminum@linxzh.com",
+      "version": "1.1.39",
+      "bytes": 406468,
+      "installedEqualsDownloaded": true
+    }
+  ],
+  "lifecycle": {
+    "errorFreeShutdown": false,
+    "observed": [
+      "Jasminum onMainWindowUnload calls a hook not exported by 1.1.39",
+      "Reader teardown: TypeError: can't access dead object",
+      "AsyncShutdown: Wait is complete, cannot add further promises.",
+      "Database exit: Connection is not open / Connection closed before committing the transaction."
+    ],
+    "companionDoubleStopErrorPresent": false,
+    "addonDisableTested": false
+  },
+  "windowKeepAlive": "Companion uses native toolkit enterLastWindowClosingSurvivalArea; main windows closed, not hidden.",
+  "authority": "Temporary Zotero library only; stopped DB verified read-only; no permanent Scholoom storage selection."
+}

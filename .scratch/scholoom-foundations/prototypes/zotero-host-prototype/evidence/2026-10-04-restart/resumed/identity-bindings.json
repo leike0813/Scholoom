@@ -1,0 +1,17 @@
+{
+  "libraryId": "532235c0-e909-483f-8c71-e42a6d89b666",
+  "source": {
+    "id": "68acd6a5-594c-4863-a95f-627fc443725e",
+    "providerRef": {
+      "libraryID": 1,
+      "key": "ARZ2WPY4"
+    }
+  },
+  "material": {
+    "id": "0c55a824-87f8-4bcc-b0dc-a9d67c5fdaa8",
+    "providerRef": {
+      "libraryID": 1,
+      "key": "PKPUPJF9"
+    }
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "inputKind": "synthetic protocol fixture, not captured live response",
+  "response": {
+    "content": [{
+      "id": "scholoom-prototype-pubscholar-1",
+      "article_type": "期刊论文",
+      "title": "中文文献元数据任务验证",
+      "author": ["欧阳明", "李华"],
+      "source": "原型验证期刊",
+      "year": "2026",
+      "volume": "12",
+      "issue": "3",
+      "first_page": "10",
+      "last_page": "18",
+      "doi": "10.0000/scholoom-metadata-prototype",
+      "abstracts": "仅用于验证原插件搜索、翻译及附件关联的合成样本。",
+      "keywords": ["文献管理", "科研流程"],
+      "links": [{"url": "https://example.invalid/scholoom-metadata-prototype"}]
+    }]
+  }
+}

@@ -1,0 +1,92 @@
+{
+  "syntax": [
+    {
+      "file": "chromium-worker.mjs",
+      "passed": true
+    },
+    {
+      "file": "jasminum-dom-probe.mjs",
+      "passed": true
+    },
+    {
+      "file": "jasminum-probe.mjs",
+      "passed": true
+    },
+    {
+      "file": "literature-store.mjs",
+      "passed": true
+    },
+    {
+      "file": "mutation-probe.mjs",
+      "passed": true
+    },
+    {
+      "file": "node-worker.mjs",
+      "passed": true
+    },
+    {
+      "file": "notifier.mjs",
+      "passed": true
+    },
+    {
+      "file": "run.mjs",
+      "passed": true
+    }
+  ],
+  "databases": [
+    {
+      "name": "2026-10-04-native-dom",
+      "rows": 4,
+      "integrity": "ok",
+      "passed": true
+    },
+    {
+      "name": "2026-10-04-dom-mutation-regression",
+      "rows": 2,
+      "integrity": "ok",
+      "passed": true
+    }
+  ],
+  "checks": {
+    "nativeDOMScenarioPassed": true,
+    "nativeDOMBehaviorPassed": true,
+    "observedOriginalStartup": true,
+    "nativeDOMConnected": true,
+    "disabledControlUnsplit": true,
+    "originalSplitPersisted": true,
+    "bibtexContainsAuthorityKeys": true,
+    "bibtexContainsProcessedAuthors": true,
+    "projectionLimitedToSamples": true,
+    "originalCodeUnchanged": true,
+    "noBackgroundErrors": true,
+    "renderedDOMArtifact": true,
+    "mutationRegressionPassed": true,
+    "databasesPassed": true,
+    "linksPassed": true
+  },
+  "linksChecked": 128,
+  "missing": [],
+  "scenarios": {
+    "nativeDOM": {
+      "exitCode": 0,
+      "runDir": "/tmp/scholoom-bbt-minimal-iY4LYl"
+    },
+    "mutationRegression": {
+      "exitCode": 0,
+      "runDir": "/tmp/scholoom-bbt-minimal-LisSFi"
+    }
+  },
+  "verifiedDOMBehavior": {
+    "originalStartup": true,
+    "nativeDOMInitialized": true,
+    "disabledPreferenceControl": true,
+    "originalNameSplitSaved": true,
+    "notificationDrivenSave": true,
+    "projectionMatchesAuthority": true,
+    "otherMetadataUnchanged": true,
+    "bbtReadsSameAuthority": true,
+    "originalItemsUnchanged": true,
+    "noBackgroundErrors": true,
+    "originalCodeUnchanged": true
+  }
+}

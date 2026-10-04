@@ -1,0 +1,296 @@
+Sources: exact official host/plugin release archives recorded in baseline.json.
+Line numbers count LF separators in original archive members.
+
+## chrome/content/zotero/xpcom/schema.js:94-123
+94:     // 'compatibility' is incremented manually by upgrade steps in order to break DB
+95:     // compatibility with older versions.
+96:     var versions = await Promise.all([
+97:     this.getDBVersion('userdata'), this.getDBVersion('compatibility')]
+98:     );
+99:     var [userdata, compatibility] = versions;
+100:     if (!userdata) {
+101:       Zotero.debug('Database does not exist -- creating\n');
+102:       return _initializeSchema().
+103:       then(function () {
+104:         // Don't load bundled files until after UI is ready, unless this is a test run,
+105:         // in which case tests can run without a window open
+106:         (!Zotero.test ? Zotero.uiReadyPromise : Zotero.initializationPromise).
+107:         then(async function () {
+108:           await Zotero.Promise.delay(1000);
+109: 
+110:           await this.updateBundledFiles();
+111:           if (Zotero.Prefs.get('automaticScraperUpdates')) {
+112:             try {
+113:               await this.updateFromRepository(this.REPO_UPDATE_INITIAL);
+114:             }
+115:             catch (e) {
+116:               Zotero.logError(e);
+117:             }
+118:           }
+119:           _schemaUpdateDeferred.resolve(true);
+120:         }.bind(this));
+121:       }.bind(this));
+122:     }
+123: 
+
+## chrome/content/zotero/xpcom/schema.js:314-343
+314:     }
+315: 
+316:     // Reset sync queue tries if new version
+317:     var clientVersionChanged = await _checkClientVersion();
+318: 
+319:     // See above
+320:     (!Zotero.test ? Zotero.uiReadyPromise : Zotero.initializationPromise).
+321:     then(() => {
+322:       setTimeout(async function () {
+323:         // Keep Safari from blocking the bundled extension after an update
+324:         if (clientVersionChanged) {
+325:           try {
+326:             await Zotero.Utilities.Internal.assessAppBundle();
+327:           }
+328:           catch (e) {
+329:             Zotero.logError(e);
+330:           }
+331:         }
+332: 
+333:         try {
+334:           await this.updateBundledFiles();
+335:           if (Zotero.Prefs.get('automaticScraperUpdates')) {
+336:             try {
+337:               await this.updateFromRepository(this.REPO_UPDATE_STARTUP);
+338:             }
+339:             catch (e) {
+340:               Zotero.logError(e);
+341:             }
+342:           }
+343:           _schemaUpdateDeferred.resolve(true);
+
+## chrome/content/zotero/xpcom/translation/translators.js:45-64
+45:   /**
+46:    * Initializes translator cache, loading all translator metadata into memory
+47:    *
+48:    * @param {Object} [options.metadataCache] - Translator metadata keyed by filename, if already
+49:    *     available (e.g., in updateBundledFiles()), to avoid unnecessary file reads
+50:    */
+51:   this.init = async function (options = {}) {
+52:     // Wait until bundled files have been updated, except when this is called by the schema update
+53:     // code itself
+54:     if (!options.fromSchemaUpdate) {
+55:       await Zotero.Schema.schemaUpdatePromise;
+56:     }
+57: 
+58:     // If an initialization has already started, a regular init() call should return the promise
+59:     // for that (which may already be resolved). A reinit should yield on that but then continue
+60:     // with reinitialization.
+61:     if (_initializationDeferred) {
+62:       let promise = _initializationDeferred.promise;
+63:       if (options.reinit) {
+64:         await promise;
+
+## chrome/content/zotero/xpcom/zotero.js:198-210
+198:   this.init = async function (options) {
+199:     if (this.initialized || this.skipLoading) {
+200:       return false;
+201:     }
+202: 
+203:     this.locked = true;
+204:     this.initializationDeferred = Zotero.Promise.defer();
+205:     this.initializationPromise = this.initializationDeferred.promise;
+206:     this.uiReadyDeferred = Zotero.Promise.defer();
+207:     this.uiReadyPromise = this.uiReadyDeferred.promise;
+208:     this.uiReadyPromise.then(() => {
+209:       Zotero.debug("User interface ready in " + (new Date() - _startupTime) + " ms");
+210:     });
+
+## chrome/content/zotero/xpcom/zotero.js:424-451
+424:   this.initComplete = async function () {
+425:     if (Zotero.initialized) return;
+426: 
+427:     Zotero.debug("Running initialization callbacks");
+428:     delete this.startupError;
+429:     this.initialized = true;
+430:     this.initializationDeferred.resolve();
+431: 
+432:     if (!Zotero.isFirstLoadThisSession) {
+433:       // trigger zotero-reloaded event
+434:       Zotero.debug('Triggering "zotero-reloaded" event');
+435:       Services.obs.notifyObservers(Zotero, "zotero-reloaded", null);
+436:     }
+437: 
+438:     Zotero.debug('Triggering "zotero-loaded" event');
+439:     Services.obs.notifyObservers(Zotero, "zotero-loaded", null);
+440: 
+441:     Zotero.debug('Initializing Word Processor plugins');
+442:     Zotero.Integration.init();
+443:     await Zotero.Plugins.init();
+444:   };
+445: 
+446: 
+447:   this.uiIsReady = function () {
+448:     this.uiReadyDeferred.resolve();
+449:   };
+450: 
+451: 
+
+## content/better-bibtex.js:134948-135004
+134948:     async startup(reason) {
+134949:       orchestrator.add({
+134950:         id: "start",
+134951:         description: "foundation",
+134952:         startup: async () => {
+134953:           await Promise.all([
+134954:             Zotero.initializationPromise,
+134955:             Zotero.unlockPromise
+134956:             // Zotero.uiReadyPromise,
+134957:           ]);
+134958:           if ((await Translators.needsInstall()).length) await Zotero.Translators.init();
+134959:           await initialize();
+134960:           this.dir = PathUtils.join(Zotero.DataDirectory.dir, "better-bibtex");
+134961:           await IOUtils.makeDirectory(this.dir, { ignoreExisting: true, createAncestors: true });
+134962:           await Preference.startup(this.dir);
+134963:           Events.startup();
+134964:           Events.on("export-progress", ({ data: { pct, message } }) => {
+134965:             this.setProgress(pct, message);
+134966:           });
+134967:           startup();
+134968:           Events.addIdleListener("cache-purge", Preference.autoExportIdleWait);
+134969:           Events.on("idle", async ({ data: state }) => {
+134970:             if (state.topic === "cache-purge" && Cache.ready) {
+134971:               await Cache.Serialized.purge();
+134972:               if (Preference.cacheTouch === "drop") await fillTouched();
+134973:             }
+134974:           });
+134975:         }
+134976:       });
+134977:       orchestrator.add({
+134978:         id: "done",
+134979:         description: "user interface",
+134980:         startup: async () => {
+134981:           Ready.resolve(true);
+134982:           void Zotero.PreferencePanes.register({
+134983:             pluginID,
+134984:             src: `${rootURI}content/preferences.xhtml`,
+134985:             stylesheets: [`${rootURI}content/preferences.css`],
+134986:             scripts: [`${rootURI}content/Preferences/ui.js`],
+134987:             label: "Better BibTeX",
+134988:             defaultXUL: true
+134989:           });
+134990:           enable();
+134991:           Zotero.getMainWindows().forEach((win) => {
+134992:             this.onMainWindowLoad({ window: win });
+134993:           });
+134994:           Zotero.MenuManager.registerMenu({
+134995:             menuID: `${pluginID}-menu-file`,
+134996:             pluginID,
+134997:             target: "main/menubar/file",
+134998:             menus: [
+134999:               {
+135000:                 menuType: "submenu",
+135001:                 l10nID: "better-bibtex",
+135002:                 menus: [
+135003:                   {
+135004:                     menuType: "menuitem",
+
+## bootstrap.js:12-56
+12: function install(data, reason) {}
+13: 
+14: async function startup({ id, version, resourceURI, rootURI }, reason) {
+15:   await Zotero.initializationPromise;
+16: 
+17:   // String 'rootURI' introduced in Zotero 7
+18:   if (!rootURI) {
+19:     rootURI = resourceURI.spec;
+20:   }
+21: 
+22:   var aomStartup = Components.classes[
+23:     "@mozilla.org/addons/addon-manager-startup;1"
+24:   ].getService(Components.interfaces.amIAddonManagerStartup);
+25:   var manifestURI = Services.io.newURI(rootURI + "manifest.json");
+26:   chromeHandle = aomStartup.registerChrome(manifestURI, [
+27:     ["content", "jasminum", rootURI + "chrome/content/"],
+28:   ]);
+29: 
+30:   /**
+31:    * Global variables for plugin code.
+32:    * The `_globalThis` is the global root variable of the plugin sandbox environment
+33:    * and all child variables assigned to it is globally accessible.
+34:    * See `src/index.ts` for details.
+35:    */
+36:   const ctx = {
+37:     rootURI,
+38:   };
+39:   ctx._globalThis = ctx;
+40: 
+41:   Services.scriptloader.loadSubScript(
+42:     `${rootURI}/chrome/content/scripts/jasminum.js`,
+43:     ctx,
+44:   );
+45:   Zotero.Jasminum.hooks.onStartup();
+46: }
+47: 
+48: async function onMainWindowLoad({ window }, reason) {
+49:   Zotero.Jasminum?.hooks.onMainWindowLoad(window);
+50: }
+51: 
+52: async function onMainWindowUnload({ window }, reason) {
+53:   Zotero.Jasminum?.hooks.onMainWindowUnload(window);
+54: }
+55: 
+56: function shutdown({ id, version, resourceURI, rootURI }, reason) {
+
+## chrome/content/scripts/jasminum.js:393-413
+393:         switch (k) {
+394:           case "Zotero":
+395:           case "zotero":
+396:             return _Zotero;
+397:           case "window":
+398:             return window2;
+399:           case "windows":
+400:             return _Zotero.getMainWindows();
+401:           case "document":
+402:             return window2.document;
+403:           case "ZoteroPane":
+404:           case "ZoteroPane_Local":
+405:             return _Zotero.getActiveZoteroPane();
+406:           default:
+407:             return window2[k];
+408:         }
+409:       } catch (e) {
+410:         Zotero.logError(e);
+411:       }
+412:     }
+413:     /**
+
+## chrome/content/scripts/jasminum.js:9151-9174
+9151:   async function onStartup() {
+9152:     await Promise.all([
+9153:       Zotero.initializationPromise,
+9154:       Zotero.unlockPromise,
+9155:       Zotero.uiReadyPromise
+9156:     ]);
+9157:     initLocale();
+9158:     ztoolkit.log("Jasminum.onStartup: begin");
+9159:     registerHeadlessActor();
+9160:     registerPrefsPane();
+9161:     initPrefs();
+9162:     registerNotifiers();
+9163:     registerMenu();
+9164:     registerTab();
+9165:     await registerExtraColumnWithCustomCell();
+9166:     injectStylesLink();
+9167:     await Zotero.Promise.delay(1e3);
+9168:     await Promise.all(
+9169:       Zotero.getMainWindows().map((win) => onMainWindowLoad(win))
+9170:     );
+9171:   }
+9172:   async function onMainWindowLoad(win) {
+9173:     addon.data.ztoolkit = createZToolkit();
+9174:     await Zotero.Promise.delay(1e3);
+
+## chrome/content/scripts/jasminum.js:9187-9192
+9187:   var hooks_default = {
+9188:     onStartup,
+9189:     onShutdown,
+9190:     onMainWindowLoad,
+9191:     onPrefsWindowLoad
+9192:   };

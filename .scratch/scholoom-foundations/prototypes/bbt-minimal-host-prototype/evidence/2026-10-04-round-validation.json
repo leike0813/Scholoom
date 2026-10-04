@@ -1,0 +1,69 @@
+{
+  "syntax": [
+    {
+      "file": "chromium-worker.mjs",
+      "passed": true
+    },
+    {
+      "file": "jasminum-probe.mjs",
+      "passed": true
+    },
+    {
+      "file": "literature-store.mjs",
+      "passed": true
+    },
+    {
+      "file": "mutation-probe.mjs",
+      "passed": true
+    },
+    {
+      "file": "node-worker.mjs",
+      "passed": true
+    },
+    {
+      "file": "notifier.mjs",
+      "passed": true
+    },
+    {
+      "file": "run.mjs",
+      "passed": true
+    }
+  ],
+  "databases": [
+    {
+      "name": "2026-10-04-mutation",
+      "integrity": "ok",
+      "passed": true
+    },
+    {
+      "name": "2026-10-04-jasminum-dom",
+      "integrity": "ok",
+      "passed": true
+    }
+  ],
+  "checks": {
+    "mutationPassed": true,
+    "mutationBehaviorPassed": true,
+    "negativeControlStale": true,
+    "changedExportCurrent": true,
+    "originalCodeUnchanged": true,
+    "jasminumFailureExplicit": true,
+    "jasminumBusinessNotClaimed": true,
+    "noJasminumArtifact": true,
+    "databasesPassed": true,
+    "linksPassed": true
+  },
+  "linksChecked": 111,
+  "missing": [],
+  "scenarios": {
+    "mutation": {
+      "exitCode": 0,
+      "runDir": "/tmp/scholoom-bbt-minimal-b5mkuz"
+    },
+    "jasminum": {
+      "exitCode": 2,
+      "runDir": "/tmp/scholoom-bbt-minimal-Frr0z8",
+      "failure": "Jasminum document.createElementNS"
+    }
+  }
+}

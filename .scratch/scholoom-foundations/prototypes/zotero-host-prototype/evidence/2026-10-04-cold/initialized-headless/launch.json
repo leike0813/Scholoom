@@ -1,0 +1,15 @@
+{
+  "command": "/tmp/scholoom-host-prototype-KgwDOw/Zotero_linux-x86_64/zotero",
+  "args": [
+    "-no-remote",
+    "-profile",
+    "/tmp/scholoom-host-prototype-KgwDOw/profile",
+    "--dataDir",
+    "/tmp/scholoom-host-prototype-KgwDOw/data",
+    "-ZoteroDebugText",
+    "-chrome",
+    "chrome://zotero/content/scholoom-cold-launch.xhtml",
+    "-headless"
+  ],
+  "displayServer": "none; Gecko headless"
+}

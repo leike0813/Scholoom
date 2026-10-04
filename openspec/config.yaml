@@ -1,0 +1,16 @@
+schema: scholoom-dev
+
+context: |
+  使用中文编写工件，保留 OpenSpec 规格解析要求的英文标题和关键字。
+  从 AGENTS.md 获取项目上下文入口；只读取与当前变更相关的决策和规格。
+  scholoom-dev 的阶段与交接约定见 openspec/schemas/scholoom-dev/README.md。
+  规划阶段在 apply.requires 及其依赖齐备时结束；delivery 在实际执行之后填写。
+  操作授权沿用用户已给出的范围，记录出处；工件存在与任务勾选不构成新增授权。
+
+operations:
+  apply:
+    guidance:
+      - 续做时读取已有 delivery.md，与当前代码、任务和结果核对后继续；执行结束或实际交接时，通过 delivery 的 instructions 更新交付记录，即使 CLI 已返回 all_done。
+  archive:
+    guidance:
+      - 归档前读取 delivery.md，对照当前任务和实际结果确认是完成交付而非中途交接；缺失验收或未解决的问题应如实报告，按用户确认的范围处理。

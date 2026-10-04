@@ -1,0 +1,19 @@
+{
+  "archive": "jasminum_1.1.39.xpi",
+  "member": "chrome/content/scripts/jasminum.js",
+  "facts": [
+    {
+      "line": 7107,
+      "fact": "Private writer gets active Reader attachment and saves JSON sidecar through Zotero.File.putContentsAsync."
+    },
+    {
+      "line": 7178,
+      "fact": "Bookmark state is assembled from the active Reader DOM."
+    },
+    {
+      "line": 8025,
+      "fact": "Title double click opens an input. Enter changes title, restores DOM and invokes the private writer."
+    }
+  ],
+  "writeAdapter": "Reader UI events only; no sidecar writes by companion"
+}

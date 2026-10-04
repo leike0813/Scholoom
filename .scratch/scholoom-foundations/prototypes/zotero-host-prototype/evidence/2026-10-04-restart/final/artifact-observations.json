@@ -1,0 +1,15 @@
+{
+  "hostOmniEqualsOriginal": true,
+  "packages": [
+    {
+      "file": "zotero-better-bibtex-9.0.68.xpi",
+      "equalsInstalled": true
+    },
+    {
+      "file": "jasminum_1.1.39.xpi",
+      "equalsInstalled": true
+    }
+  ],
+  "stateRoot": "/tmp/scholoom-host-prototype-8T6DGE",
+  "storedPdfBytes": 1429
+}

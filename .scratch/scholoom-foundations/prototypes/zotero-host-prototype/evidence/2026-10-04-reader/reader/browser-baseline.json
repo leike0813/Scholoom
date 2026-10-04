@@ -1,0 +1,6 @@
+{
+  "playwrightVersion": "1.64.0-alpha-1790635538000",
+  "playwrightModule": "/home/joshua/.nvm/versions/node/v24.12.0/lib/node_modules/@playwright/mcp/node_modules/playwright/index.mjs",
+  "browserVersion": "153.0.8010.12",
+  "executable": "/home/joshua/.cache/ms-playwright/chromium-1243/chrome-linux64/chrome"
+}

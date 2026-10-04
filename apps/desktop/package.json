@@ -1,0 +1,21 @@
+{
+  "name": "@scholoom/desktop",
+  "version": "0.1.0",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "description": "Scholoom research workbench",
+  "main": "out/main/index.cjs",
+  "scripts": {
+    "build": "electron-vite build",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "dev": "electron-vite dev",
+    "start": "electron-vite preview",
+    "package:dir": "electron-builder --dir --config electron-builder.yml",
+    "dev:browser": "vite --config vite.config.ts"
+  },
+  "dependencies": {
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "@scholoom/client": "workspace:*"
+  }
+}

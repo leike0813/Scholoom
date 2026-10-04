@@ -1,0 +1,133 @@
+{
+  "date": "2026-10-04",
+  "overall": "partial; cold paths have expected recorded failures",
+  "variants": {
+    "fresh-headless": {
+      "sourceRun": "/tmp/scholoom-host-prototype-b8L6ca",
+      "packages": [
+        {
+          "id": "better-bibtex@iris-advies.com",
+          "version": "9.0.68",
+          "originalBytesEqualLoadedXPI": true
+        },
+        {
+          "id": "jasminum@linxzh.com",
+          "version": "1.1.39",
+          "originalBytesEqualLoadedXPI": true
+        }
+      ],
+      "hostArchive": {
+        "allOriginalMembersByteEqual": true,
+        "originalMemberCount": 7492,
+        "addedMembers": [
+          "chrome/content/zotero/scholoom-cold-launch.js",
+          "chrome/content/zotero/scholoom-cold-launch.xhtml"
+        ],
+        "missingMembers": [],
+        "modifiedMembers": []
+      },
+      "clientPassed": 4,
+      "clientFailed": [
+        "bbt-ready-after-main-window"
+      ],
+      "hostChecksPassed": 2,
+      "variantNote": "Final probe code"
+    },
+    "initialized-headless": {
+      "sourceRun": "/tmp/scholoom-host-prototype-KgwDOw",
+      "packages": [
+        {
+          "id": "better-bibtex@iris-advies.com",
+          "version": "9.0.68",
+          "originalBytesEqualLoadedXPI": true
+        },
+        {
+          "id": "jasminum@linxzh.com",
+          "version": "1.1.39",
+          "originalBytesEqualLoadedXPI": true
+        }
+      ],
+      "hostArchive": {
+        "allOriginalMembersByteEqual": true,
+        "originalMemberCount": 7492,
+        "addedMembers": [
+          "chrome/content/zotero/scholoom-cold-launch.js",
+          "chrome/content/zotero/scholoom-cold-launch.xhtml"
+        ],
+        "missingMembers": [],
+        "modifiedMembers": []
+      },
+      "clientPassed": 10,
+      "clientFailed": [
+        "reader-after-first-window"
+      ],
+      "hostChecksPassed": 2,
+      "variantNote": "Final probe code"
+    },
+    "initialized-xvfb-control": {
+      "sourceRun": "/tmp/scholoom-host-prototype-o7zMwv",
+      "packages": [
+        {
+          "id": "better-bibtex@iris-advies.com",
+          "version": "9.0.68",
+          "originalBytesEqualLoadedXPI": true
+        },
+        {
+          "id": "jasminum@linxzh.com",
+          "version": "1.1.39",
+          "originalBytesEqualLoadedXPI": true
+        }
+      ],
+      "hostArchive": {
+        "allOriginalMembersByteEqual": true,
+        "originalMemberCount": 7492,
+        "addedMembers": [
+          "chrome/content/zotero/scholoom-cold-launch.js",
+          "chrome/content/zotero/scholoom-cold-launch.xhtml"
+        ],
+        "missingMembers": [],
+        "modifiedMembers": []
+      },
+      "clientPassed": 9,
+      "clientFailed": [
+        "reader-after-first-window"
+      ],
+      "hostChecksPassed": 2,
+      "variantNote": "Earlier control: no native Jasminum disable/enable retry; controls display only"
+    },
+    "ipc-regression": {
+      "sourceRun": "/tmp/scholoom-host-prototype-HL6I1b",
+      "packages": [
+        {
+          "id": "better-bibtex@iris-advies.com",
+          "version": "9.0.68",
+          "originalBytesEqualLoadedXPI": true
+        },
+        {
+          "id": "jasminum@linxzh.com",
+          "version": "1.1.39",
+          "originalBytesEqualLoadedXPI": true
+        }
+      ],
+      "hostArchive": {
+        "allOriginalMembersByteEqual": true,
+        "originalMemberCount": 7492,
+        "addedMembers": [],
+        "missingMembers": [],
+        "modifiedMembers": []
+      },
+      "clientPassed": 8,
+      "clientFailed": [],
+      "hostChecksPassed": 9,
+      "variantNote": "Final probe code"
+    }
+  },
+  "claimsExcluded": [
+    "Standalone trimmed Gecko distribution",
+    "Jasminum cold startup success",
+    "Clean plugin lifecycle",
+    "Fresh-library BBT cold readiness",
+    "Formal Scholoom storage authority decision",
+    "Live CNKI metadata success"
+  ]
+}

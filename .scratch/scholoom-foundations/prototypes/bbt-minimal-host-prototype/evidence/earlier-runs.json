@@ -1,0 +1,37 @@
+[
+  {
+    "runDir": "/tmp/scholoom-bbt-minimal-QOlJzN",
+    "reason": "Initial path contract missing",
+    "exists": true
+  },
+  {
+    "runDir": "/tmp/scholoom-bbt-minimal-pHDs7X",
+    "reason": "Main bundle evaluated; translatorCache not yet provided",
+    "exists": true
+  },
+  {
+    "runDir": "/tmp/scholoom-bbt-minimal-9hGDEf",
+    "reason": "First real Node worker initialize: IndexedDB unavailable",
+    "exists": true
+  },
+  {
+    "runDir": "/tmp/scholoom-bbt-minimal-wfeb1o",
+    "reason": "Chromium cache initialized; package resource URL decoding incomplete",
+    "exists": true
+  },
+  {
+    "runDir": "/tmp/scholoom-bbt-minimal-R8rsKn",
+    "reason": "Keys saved; experiment used wrong translator ID",
+    "exists": true
+  },
+  {
+    "runDir": "/tmp/scholoom-bbt-minimal-j8nHaX",
+    "reason": "Correct translator reached; item tags contract incomplete",
+    "exists": true
+  },
+  {
+    "runDir": "/tmp/scholoom-bbt-minimal-zLS0WM",
+    "reason": "Business chain passed; before explicit-fill/persisted checks were added",
+    "exists": true
+  }
+]

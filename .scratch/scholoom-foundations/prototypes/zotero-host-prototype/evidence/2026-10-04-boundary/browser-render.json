@@ -1,0 +1,9 @@
+{
+  "artifact": "boundary/workbench-view.html",
+  "method": "Generated artifact inserted unchanged into an empty Playwright browser document; file protocol unavailable",
+  "observed": {
+    "title": "文献",
+    "text": "Research workflow revised in workbench\n\n引用键：ZhangScholoomBoundaryLiterature2026\n\n中文文献元数据回放探针.pdf\n\n大纲\nIntroduction · 第 1 页\nMethods · 第 2 页\n书签\nP_1_1 · 第 1 页"
+  },
+  "scope": "Static DOM text rendering only; no interactive Electron/PDF integration"
+}

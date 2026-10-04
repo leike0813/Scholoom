@@ -1,0 +1,20 @@
+[
+  {
+    "itemType": "journalArticle",
+    "title": "Research agents and reproducible literature workflows",
+    "creators": [{"firstName": "Ada", "lastName": "Chen", "creatorType": "author"}],
+    "date": "2026",
+    "publicationTitle": "Prototype Research",
+    "volume": "1",
+    "pages": "1-8",
+    "DOI": "10.0000/scholoom-prototype"
+  },
+  {
+    "itemType": "journalArticle",
+    "title": "中文科研流程原型样本",
+    "creators": [{"firstName": "明", "lastName": "李", "creatorType": "author"}],
+    "date": "2026",
+    "publicationTitle": "原型测试期刊",
+    "citationKey": "ScholoomPreserved2026"
+  }
+]

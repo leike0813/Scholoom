@@ -1,0 +1,8 @@
+{
+  "sourceRun": "/tmp/scholoom-host-prototype-JxfZuk",
+  "hostInitialTitle": "中文文献元数据回放探针",
+  "clientInitialTitle": "-��.Cpn�>��",
+  "clientFailure": "Bad control character in string literal in JSON at position 184 (line 1 column 185)",
+  "hostExportWasProduced": true,
+  "classification": "prototype RPC Unicode encoding bug; not original-plugin export failure; final run corrected"
+}

@@ -1,0 +1,11 @@
+{
+  "date": "2026-10-04",
+  "syntax": {"command": "node --check <each prototype JS/MJS>", "files": 17, "passed": true},
+  "savedEvidence": {"jsonParsed": 34, "filesBeforeThisRecordAndREADME": 43, "bytesBeforeThisRecordAndREADME": 252093},
+  "documentation": {"localLinksChecked": 95, "passed": true},
+  "renameChangedOnlyTitle": true,
+  "temporaryRPCTokenAbsent": true,
+  "reader": {"browserChecks": 5, "mainChecks": 3, "setupChecks": 9, "passed": true, "hostExit": 0, "clientExit": 0},
+  "boundaryRegression": {"mainChecks": 9, "workbenchChecks": 5, "setupChecks": 9, "passed": true, "hostExit": 0, "clientExit": 0},
+  "note": "Reader main check 1 summarizes the five browser checks. Counts describe bounded observations, not total compatibility coverage."
+}

@@ -1,0 +1,32 @@
+{
+  "node": {
+    "runDir": "/tmp/scholoom-bbt-minimal-PqIUuq",
+    "failedAtIndexedDB": true,
+    "businessVerified": false
+  },
+  "chromium": {
+    "runDir": "/tmp/scholoom-bbt-minimal-z7muZI",
+    "verified": {
+      "startup": true,
+      "explicitFill": true,
+      "generatedKey": true,
+      "preservedKey": true,
+      "repeatedFill": true,
+      "bibtexExport": true,
+      "pluginWriteReadback": true,
+      "sqlObjectAgreement": true,
+      "persistedReadback": true,
+      "originalCodeUnchanged": true
+    },
+    "blockers": 0,
+    "exportedKeys": [
+      "chenResearchAgentsReproducible2026",
+      "ScholoomPreserved2026"
+    ],
+    "exportBytes": 408,
+    "debugErrorCount": 2
+  },
+  "resourceEqual": true,
+  "links": 108,
+  "broken": []
+}

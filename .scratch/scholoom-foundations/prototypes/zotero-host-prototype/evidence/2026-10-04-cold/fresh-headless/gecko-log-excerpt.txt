@@ -1,0 +1,20 @@
+Full log: /tmp/scholoom-host-prototype-b8L6ca/gecko.log
+Original line numbers; selected startup/lifecycle errors only.
+
+1: [2928022] Sandbox: CanCreateUserNamespace() unshare(CLONE_NEWPID): EPERM
+2: *** You are running in headless mode.
+3: Crash Annotation GraphicsCriticalError: |[0][GFX1-]: glxtest: Unable to open a connection to the X server (t=0.844747) [GFX1-]: glxtest: Unable to open a connection to the X server
+4: Scholoom cold helper script loaded
+5: zotero(3)(+0000000): Using data directory /tmp/scholoom-host-prototype-b8L6ca/data
+6: 
+7: zotero(3)(+0000014): Asynchronously opening database 'zotero'
+8: 
+9: zotero(3)(+0000000): /tmp/scholoom-host-prototype-b8L6ca/data/zotero.sqlite
+10: 
+11: Crash Annotation GraphicsCriticalError: |[0][GFX1-]: glxtest: Unable to open a connection to the X server (t=0.844747) |[1][GFX1-]: RenderCompositorSWGL failed mapping default framebuffer, no dt (t=1.58775) [GFX1-]: RenderCompositorSWGL failed mapping default framebuffer, no dt
+12: zotero(4)(+0000029): PRAGMA main.locking_mode=EXCLUSIVE
+13: 
+14: zotero(4)(+0000001): PRAGMA journal_mode=WAL
+15: 
+16: zotero(4)(+0000059): PRAGMA synchronous=NORMAL
+17: 

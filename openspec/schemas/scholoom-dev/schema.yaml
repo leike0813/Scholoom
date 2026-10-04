@@ -1,0 +1,132 @@
+name: scholoom-dev
+version: 1
+description: Scholoom Agent 开发流程：目标、调查、契约与设计、任务、实际交付及续做
+
+artifacts:
+  - id: proposal
+    generates: proposal.md
+    description: 本次目标、交付边界与授权依据
+    template: proposal.md
+    instruction: |
+      先读取相关决策、已有规格和项目现状，定义本次可观察的交付结果。
+      说明当前问题、变更范围和完成判据，引用已确认方向，不重新讨论已有结论。
+      保留 Why、What Changes 标题供官方 proposal 解析，正文使用中文；
+      Why 完整说明原因，满足官方解析器 50 至 1000 字符的约束。
+      Capabilities 列出新增或修改的行为契约；先用 openspec list --specs 查询，
+      再完整读取相关规格，复用已有 capability 路径。
+      仅当没有规格级行为变化时，在变更 .openspec.yaml 声明 skip_specs: true，
+      并说明理由。已有契约内的小清理与文字调整可采用项目轻量流程。
+      记录已获得的方案及操作授权和出处，沿用跨会话仍有效的授权；
+      只为实际需要且尚未授权的操作请求确认。依赖、服务、工作树、Git、
+      模型调用和用户数据操作按各自真实授权范围处理。
+      宏观产品、领域和架构取舍由主 Agent 与用户讨论；
+      未明确且会改变交付目标的事项在依赖它们的方案形成前解决。
+    requires: []
+
+  - id: investigation
+    generates: investigation.md
+    description: 当前事实、复用依据与有限实验结论
+    template: investigation.md
+    instruction: |
+      调查只服务 proposal 的交付结果。先读相关代码、测试、配置和文档，
+      核对现有模块或开源实现能否复用，以及必要的宿主、许可或维护边界。
+      复用已有调查并核对时效；记录来源、具体版本及影响方案的事实，
+      区分静态阅读、受控输入下的实跑和实际目标环境中的验证。
+      无影响方案的未知项时，用简短结论和依据结束本工件。
+      有必要实验时，先明确要回答的问题、输入与执行边界、判据和停止条件；
+      每轮结果说明支持与不支持的结论，以及是否仍有改变方案的未知项。
+      已足以作出选择时结束实验；剩余实现验收交给 tasks 与 delivery。
+      实验无法回答设计问题时调整方法，不按已完成轮数扩张范围。
+      子 Agent 只承担范围明确的事实调查或执行，主 Agent 核对其依据。
+      结束时解决会改变契约、设计或任务拆分的未知项，或将其作为明确阻塞
+      返回讨论；其余未验证项说明由后续哪项实际工作承接。
+    requires: [proposal]
+
+  - id: specs
+    generates: specs/**/*.md
+    description: 用户与调用方可依赖的行为契约
+    template: spec.md
+    instruction: |
+      为 proposal 中每项 capability 编写 delta spec，保持完整 capability 路径。
+      定义用户或调用方能观察的输入、结果、错误与状态，按变更影响覆盖
+      人类及 Agent 入口、数据权威、持久化、取消、恢复或兼容行为。
+      仅描述适用行为；模块名、组件选型与实现步骤写入 design 和 tasks。
+      当 skip_specs: true 生效时，保留跳过状态，不生成规格文件。
+      使用 ## ADDED/MODIFIED/REMOVED/RENAMED Requirements 和
+      ### Requirement:、#### Scenario:，规范要求使用 SHALL/MUST，
+      每个 requirement 至少有一个 WHEN/THEN 场景。
+      新 capability 增加 ## Purpose，完整解释用途并满足官方验证器的
+      最少 50 字符要求；已有 capability 的 delta 保留原用途。
+      MODIFIED 必须读取并修改已有 requirement 的完整正文及全部场景，
+      REMOVED 包含 Reason 和 Migration；仅重命名时使用 FROM/TO。
+      依据真实行为需要定义场景，测试范围沿已确认验证政策选择。
+    requires: [investigation]
+
+  - id: design
+    generates: design.md
+    description: 基于调查的模块、接口、复用与验证方案
+    template: design.md
+    instruction: |
+      从 investigation 的已核对事实形成实现方案，引用 proposal 的目标
+      和已有决策。简单变更用简短设计；篇幅随真实取舍增长。
+      先考虑删除、合并或复用已有实现，再决定新增模块。
+      明确涉及的领域职责、数据权威、DTO/Schema 和跨模块接口的唯一事实源；
+      按影响说明内核、工作台、兼容宿主及执行单元如何协作。
+      记录实际选用的复用模块、接入边界与维护成本，说明关键取舍。
+      列出需要新增、修改或删除的文件及目的，包括已发现的文档漂移。
+      给出按影响范围选择的验证入口、样本和可观察结果，优先复用已有检查。
+      跨模块与跨进程成果从实际入口经过实际内部接线核对持久化或产物；
+      外部依赖的受控响应、真实模型效果、目标平台运行分别说明证据边界。
+      迁移、兼容、并发、性能或数据损失风险按适用性说明保护与恢复。
+      影响规格、方案或任务拆分的问题先解决；可后置事项写明承接位置。
+    requires: [investigation]
+
+  - id: tasks
+    generates: tasks.md
+    description: 按实际成果拆分的执行与验证任务
+    template: tasks.md
+    instruction: |
+      读取 specs、design 与调查结论，确认阻塞性决策已解决，再拆分任务。
+      使用 - [ ] X.Y 描述；按依赖顺序组织可独立验收的成果，
+      每项写明交付及完成依据，引用具体契约、检查入口或可观察行为。
+      优先按业务链路形成可运行增量；主 Agent 负责实际整合和跨模块验证。
+      可并行部分标明写入范围、共享接口负责人和整合关系，按收益委派。
+      对应实现所需的测试与文档随该成果完成；最终任务仅承接整体整合，
+      必要的独立审查和 delivery 记录，不把所有验证堆到最后。
+      检查完已有测试再选择新增测试，只覆盖有价值的稳定行为缺口。
+      未运行或失败的必要验证保持未完成；静态判断不能替代实际接线结果。
+      记录交付时填写 delivery.md 的任务，规划阶段保留其复选框未完成。
+      tasks 是任务进度的唯一事实源；续做提示只写下一步和相关入口，
+      执行后的结果与交接背景放入 delivery，避免复制整份任务清单。
+    requires: [specs, design]
+
+  - id: delivery
+    generates: delivery.md
+    description: 实际执行成果、验证依据、审查与续做交接
+    template: delivery.md
+    instruction: |
+      仅在本变更实际执行后，为交付或中途交接创建或更新本工件。
+      如果仍在规划阶段，保持本文件未创建，转入已获授权的 apply，
+      或说明等待哪项真实授权；delivery 的 ready 状态不是执行证据。
+      读取当前代码、tasks、适用规格和实际结果。记录已实现的行为与
+      成果入口，逐项对应 proposal 的完成判据，写明证据及结论边界。
+      验证包含实际命令或操作、环境/版本/样本、结果和必要证据位置；
+      区分通过、失败、未运行和不适用，复用已有日志或产物。
+      数据损失、关键接口、并发或复杂整合记录必要独立审查与问题处理。
+      小改动记录自查和相关验证；科研质量评价按 #21 已确定的讨论时机进行。
+      中途交接说明当前成果、未完成/失败项、阻塞及授权情况、具体下一步。
+      任务勾选以 tasks 为准；重要发现同步其真正事实源，其余采用引用。
+      后续代码或范围变化时重新核对受影响结论，更新记录为当前状态。
+      最终交付只有在约定成果、必要验证、审查及本记录均完成后才标为完成，
+      并完成 tasks 中的交付记录任务；仍需处理的事项保持续做状态。
+    requires: [tasks]
+
+apply:
+  requires: [proposal, investigation, specs, design, tasks]
+  tracks: tasks.md
+  instruction: |
+    读取规划工件和已有 delivery，以当前代码与结果核对续做状态。
+    沿已批准方案持续执行，在每项成果满足完成依据后更新任务复选框。
+    按 design 运行相关检查，整合并核对实际接线；超出已确认方向时回到讨论。
+    实际交接或执行结束时运行 openspec instructions delivery --change <当前变更> --json，
+    按返回指引和模板创建或更新 delivery.md，保留失败与未运行的必要检查。

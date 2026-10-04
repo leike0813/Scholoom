@@ -1,0 +1,266 @@
+{
+  "clientPID": 2928017,
+  "startedAt": "2026-10-04T07:48:06.277Z",
+  "checks": [
+    {
+      "name": "cold-start-no-main-workbench",
+      "status": "passed",
+      "detail": {
+        "snapshot": {
+          "ref": {
+            "libraryID": 1,
+            "key": "2LU4SF9R"
+          },
+          "itemID": 1,
+          "title": "Research agents and reproducible literature workflows",
+          "citationKey": "",
+          "sql": {
+            "title": "Research agents and reproducible literature workflows"
+          },
+          "mainWindowCount": 0,
+          "bbtReady": false,
+          "jasminumReady": false,
+          "dataDirectory": "/tmp/scholoom-host-prototype-b8L6ca/data"
+        },
+        "coldStart": {
+          "mainWindowCount": 0,
+          "windows": [
+            {
+              "type": "scholoom:prototype-helper",
+              "uri": "chrome://zotero/content/scholoom-cold-launch.xhtml"
+            }
+          ],
+          "uiReadyResolved": false,
+          "bbtGlobalPresent": true,
+          "bbtReadyResolved": false,
+          "bbtKeyManagerStarted": false,
+          "jasminumGlobalPresent": false,
+          "observationMs": 65016,
+          "observationLimitMs": 60000,
+          "seedFrom": null,
+          "authority": "fresh scratch Zotero library"
+        }
+      }
+    },
+    {
+      "name": "cold-native-library-write",
+      "status": "passed",
+      "detail": {
+        "ref": {
+          "libraryID": 1,
+          "key": "2LU4SF9R"
+        },
+        "itemID": 1,
+        "title": "Literature updated after cold start",
+        "citationKey": "",
+        "sql": {
+          "title": "Literature updated after cold start"
+        },
+        "mainWindowCount": 0,
+        "bbtReady": false,
+        "jasminumReady": false,
+        "dataDirectory": "/tmp/scholoom-host-prototype-b8L6ca/data"
+      }
+    },
+    {
+      "name": "actual-main-window-first-open",
+      "status": "passed",
+      "detail": {
+        "mainWindowCount": 1,
+        "documentReady": "complete"
+      }
+    },
+    {
+      "name": "jasminum-after-real-main-window",
+      "status": "passed",
+      "detail": {
+        "beforeGlobal": false,
+        "afterGlobal": true,
+        "disableEnablePerformed": true,
+        "mechanism": "original AddonManager disable/enable; no plugin hook replacement"
+      }
+    },
+    {
+      "name": "bbt-ready-after-main-window",
+      "status": "failed",
+      "error": "pluginReady: Error: BBT readiness timed out"
+    }
+  ],
+  "requests": [
+    {
+      "method": "snapshot",
+      "params": {
+        "ref": {
+          "libraryID": 1,
+          "key": "2LU4SF9R"
+        }
+      },
+      "status": 200,
+      "body": {
+        "ok": true,
+        "result": {
+          "ref": {
+            "libraryID": 1,
+            "key": "2LU4SF9R"
+          },
+          "itemID": 1,
+          "title": "Research agents and reproducible literature workflows",
+          "citationKey": "",
+          "sql": {
+            "title": "Research agents and reproducible literature workflows"
+          },
+          "mainWindowCount": 0,
+          "bbtReady": false,
+          "jasminumReady": false,
+          "dataDirectory": "/tmp/scholoom-host-prototype-b8L6ca/data"
+        }
+      },
+      "time": "2026-10-04T07:49:15.990Z"
+    },
+    {
+      "method": "updateTitle",
+      "params": {
+        "ref": {
+          "libraryID": 1,
+          "key": "2LU4SF9R"
+        },
+        "title": "Literature updated after cold start"
+      },
+      "status": 200,
+      "body": {
+        "ok": true,
+        "result": {
+          "ref": {
+            "libraryID": 1,
+            "key": "2LU4SF9R"
+          },
+          "itemID": 1,
+          "title": "Literature updated after cold start",
+          "citationKey": "",
+          "sql": {
+            "title": "Literature updated after cold start"
+          },
+          "mainWindowCount": 0,
+          "bbtReady": false,
+          "jasminumReady": false,
+          "dataDirectory": "/tmp/scholoom-host-prototype-b8L6ca/data"
+        }
+      },
+      "time": "2026-10-04T07:49:16.024Z"
+    },
+    {
+      "method": "snapshot",
+      "params": {
+        "ref": {
+          "libraryID": 1,
+          "key": "2LU4SF9R"
+        }
+      },
+      "status": 200,
+      "body": {
+        "ok": true,
+        "result": {
+          "ref": {
+            "libraryID": 1,
+            "key": "2LU4SF9R"
+          },
+          "itemID": 1,
+          "title": "Literature updated after cold start",
+          "citationKey": "",
+          "sql": {
+            "title": "Literature updated after cold start"
+          },
+          "mainWindowCount": 0,
+          "bbtReady": false,
+          "jasminumReady": false,
+          "dataDirectory": "/tmp/scholoom-host-prototype-b8L6ca/data"
+        }
+      },
+      "time": "2026-10-04T07:49:16.036Z"
+    },
+    {
+      "method": "openWindow",
+      "params": {},
+      "status": 200,
+      "body": {
+        "ok": true,
+        "result": {
+          "mainWindowCount": 1,
+          "documentReady": "complete"
+        }
+      },
+      "time": "2026-10-04T07:49:16.945Z"
+    },
+    {
+      "method": "retryJasminum",
+      "params": {},
+      "status": 200,
+      "body": {
+        "ok": true,
+        "result": {
+          "beforeGlobal": false,
+          "afterGlobal": true,
+          "disableEnablePerformed": true,
+          "mechanism": "original AddonManager disable/enable; no plugin hook replacement"
+        }
+      },
+      "time": "2026-10-04T07:49:17.184Z"
+    },
+    {
+      "method": "pluginReady",
+      "params": {},
+      "status": 500,
+      "body": {
+        "ok": false,
+        "error": {
+          "code": "PROTOTYPE_RPC_FAILED",
+          "message": "Error: BBT readiness timed out"
+        }
+      },
+      "time": "2026-10-04T07:49:37.415Z"
+    },
+    {
+      "method": "shutdown",
+      "params": {},
+      "status": 200,
+      "body": {
+        "ok": true,
+        "result": {
+          "shutdownScheduled": true
+        }
+      },
+      "time": "2026-10-04T07:49:37.427Z"
+    }
+  ],
+  "transport": "http://127.0.0.1:34339/rpc",
+  "preUIPluginReadiness": {
+    "mainWindowCount": 0,
+    "windows": [
+      {
+        "type": "scholoom:prototype-helper",
+        "uri": "chrome://zotero/content/scholoom-cold-launch.xhtml"
+      }
+    ],
+    "uiReadyResolved": false,
+    "bbtGlobalPresent": true,
+    "bbtReadyResolved": false,
+    "bbtKeyManagerStarted": false,
+    "jasminumGlobalPresent": false,
+    "observationMs": 65016,
+    "observationLimitMs": 60000,
+    "seedFrom": null,
+    "authority": "fresh scratch Zotero library"
+  },
+  "unverifiedBeforeUI": [
+    "Jasminum absent before main window; not successful cold initialization",
+    "BBT key generation and export: original ready unresolved within 60s observation"
+  ],
+  "fatal": {
+    "message": "pluginReady: Error: BBT readiness timed out",
+    "stack": "Error: pluginReady: Error: BBT readiness timed out\n    at ensure (file:///home/joshua/Workspace/Code/JavaScript/Scholoom/.scratch/scholoom-foundations/prototypes/zotero-host-prototype/rpc-client.mjs:5:62)\n    at rpc (file:///home/joshua/Workspace/Code/JavaScript/Scholoom/.scratch/scholoom-foundations/prototypes/zotero-host-prototype/rpc-client.mjs:25:5)\n    at async file:///home/joshua/Workspace/Code/JavaScript/Scholoom/.scratch/scholoom-foundations/prototypes/zotero-host-prototype/cold-client.mjs:48:20\n    at async check (file:///home/joshua/Workspace/Code/JavaScript/Scholoom/.scratch/scholoom-foundations/prototypes/zotero-host-prototype/rpc-client.mjs:30:22)\n    at async file:///home/joshua/Workspace/Code/JavaScript/Scholoom/.scratch/scholoom-foundations/prototypes/zotero-host-prototype/cold-client.mjs:47:3"
+  },
+  "shutdown": {
+    "shutdownScheduled": true
+  },
+  "finishedAt": "2026-10-04T07:49:37.427Z"
+}

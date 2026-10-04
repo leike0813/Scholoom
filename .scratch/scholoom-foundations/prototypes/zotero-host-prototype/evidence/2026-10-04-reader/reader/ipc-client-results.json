@@ -1,0 +1,292 @@
+{
+  "clientPID": 4119564,
+  "startedAt": "2026-10-04T09:11:57.222Z",
+  "checks": [
+    {
+      "name": "independent-pdf-view-interaction",
+      "status": "passed",
+      "detail": {
+        "checks": [
+          {
+            "name": "real-pdf-two-page-render",
+            "status": "passed",
+            "detail": {
+              "pageCount": 2,
+              "page": 1,
+              "text": "Scholoom prototype: Introduction"
+            }
+          },
+          {
+            "name": "outline-navigates-real-methods-page",
+            "status": "passed",
+            "detail": {
+              "page": 2,
+              "text": "Scholoom prototype: Methods",
+              "target": {
+                "pdf": {
+                  "page": 2,
+                  "x": 0,
+                  "y": 792
+                },
+                "viewport": [
+                  0,
+                  0
+                ],
+                "roundtrip": [
+                  0,
+                  791.9999999999999
+                ]
+              }
+            }
+          },
+          {
+            "name": "bookmark-navigates-original-pdf-position",
+            "status": "passed",
+            "detail": {
+              "page": 1,
+              "target": {
+                "pdf": {
+                  "page": 1,
+                  "x": 0,
+                  "y": 792
+                },
+                "viewport": [
+                  0,
+                  0
+                ],
+                "roundtrip": [
+                  0,
+                  791.9999999999999
+                ]
+              }
+            }
+          },
+          {
+            "name": "browser-renames-bookmark-through-interface",
+            "status": "passed",
+            "detail": {
+              "materialId": "d33acbd9-3b67-42be-927a-9e986e3cef55",
+              "sourceId": "a92a153d-7d74-4333-8ca2-3329c35c0578",
+              "contentType": "application/pdf",
+              "fileName": "中文文献元数据回放探针.pdf",
+              "available": true,
+              "storageMode": "managed",
+              "outline": [
+                {
+                  "title": "Introduction",
+                  "location": {
+                    "page": 1,
+                    "x": 0,
+                    "y": 792
+                  },
+                  "children": []
+                },
+                {
+                  "title": "Methods",
+                  "location": {
+                    "page": 2,
+                    "x": 0,
+                    "y": 792
+                  },
+                  "children": []
+                }
+              ],
+              "bookmarks": [
+                {
+                  "id": "bookmark_1791105133199_4v5pyagwb",
+                  "title": "方法核对书签",
+                  "location": {
+                    "page": 1,
+                    "x": 0,
+                    "y": 792
+                  },
+                  "color": "#FF9FF3"
+                }
+              ]
+            }
+          },
+          {
+            "name": "view-reload-reads-persisted-bookmark",
+            "status": "passed",
+            "detail": {
+              "navigation": {
+                "materialId": "d33acbd9-3b67-42be-927a-9e986e3cef55",
+                "sourceId": "a92a153d-7d74-4333-8ca2-3329c35c0578",
+                "contentType": "application/pdf",
+                "fileName": "中文文献元数据回放探针.pdf",
+                "available": true,
+                "storageMode": "managed",
+                "outline": [
+                  {
+                    "title": "Introduction",
+                    "location": {
+                      "page": 1,
+                      "x": 0,
+                      "y": 792
+                    },
+                    "children": []
+                  },
+                  {
+                    "title": "Methods",
+                    "location": {
+                      "page": 2,
+                      "x": 0,
+                      "y": 792
+                    },
+                    "children": []
+                  }
+                ],
+                "bookmarks": [
+                  {
+                    "id": "bookmark_1791105133199_4v5pyagwb",
+                    "title": "方法核对书签",
+                    "location": {
+                      "page": 1,
+                      "x": 0,
+                      "y": 792
+                    },
+                    "color": "#FF9FF3"
+                  }
+                ]
+              },
+              "page": 1
+            }
+          }
+        ],
+        "pdfjsVersion": "5.7.0"
+      }
+    },
+    {
+      "name": "agent-observes-browser-bookmark-edit",
+      "status": "passed",
+      "detail": {
+        "materialId": "d33acbd9-3b67-42be-927a-9e986e3cef55",
+        "sourceId": "a92a153d-7d74-4333-8ca2-3329c35c0578",
+        "contentType": "application/pdf",
+        "fileName": "中文文献元数据回放探针.pdf",
+        "available": true,
+        "storageMode": "managed",
+        "outline": [
+          {
+            "title": "Introduction",
+            "location": {
+              "page": 1,
+              "x": 0,
+              "y": 792
+            },
+            "children": []
+          },
+          {
+            "title": "Methods",
+            "location": {
+              "page": 2,
+              "x": 0,
+              "y": 792
+            },
+            "children": []
+          }
+        ],
+        "bookmarks": [
+          {
+            "id": "bookmark_1791105133199_4v5pyagwb",
+            "title": "方法核对书签",
+            "location": {
+              "page": 1,
+              "x": 0,
+              "y": 792
+            },
+            "color": "#FF9FF3"
+          }
+        ]
+      }
+    },
+    {
+      "name": "original-reader-reopens-saved-bookmark",
+      "status": "passed",
+      "detail": {
+        "ref": {
+          "libraryID": 1,
+          "key": "N2USPHRF"
+        },
+        "uiTitlePresent": true,
+        "sidecarTitle": "方法核对书签",
+        "readerReopened": true
+      }
+    }
+  ],
+  "requests": [
+    {
+      "method": "verifyRenamedBookmark",
+      "params": {
+        "ref": {
+          "libraryID": 1,
+          "key": "N2USPHRF"
+        },
+        "bookmarkId": "bookmark_1791105133199_4v5pyagwb",
+        "title": "方法核对书签"
+      },
+      "status": 200,
+      "body": {
+        "ok": true,
+        "result": {
+          "ref": {
+            "libraryID": 1,
+            "key": "N2USPHRF"
+          },
+          "uiTitlePresent": true,
+          "sidecarTitle": "方法核对书签",
+          "readerReopened": true
+        }
+      },
+      "time": "2026-10-04T09:12:18.268Z"
+    },
+    {
+      "method": "snapshot",
+      "params": {
+        "ref": {
+          "libraryID": 1,
+          "key": "CLS8L344"
+        }
+      },
+      "status": 200,
+      "body": {
+        "ok": true,
+        "result": {
+          "ref": {
+            "libraryID": 1,
+            "key": "CLS8L344"
+          },
+          "itemID": 6,
+          "title": "中文文献元数据回放探针",
+          "citationKey": "ZhangZhongWenWenXianYuanShuJuHuiFangTanZhen2026",
+          "sql": {
+            "title": "中文文献元数据回放探针",
+            "citationKey": "ZhangZhongWenWenXianYuanShuJuHuiFangTanZhen2026"
+          },
+          "mainWindowCount": 1,
+          "bbtReady": true,
+          "jasminumReady": true,
+          "dataDirectory": "/tmp/scholoom-host-prototype-ASCiyY/data"
+        }
+      },
+      "time": "2026-10-04T09:12:18.281Z"
+    },
+    {
+      "method": "shutdown",
+      "params": {},
+      "status": 200,
+      "body": {
+        "ok": true,
+        "result": {
+          "shutdownScheduled": true
+        }
+      },
+      "time": "2026-10-04T09:12:18.290Z"
+    }
+  ],
+  "transport": "http://127.0.0.1:42725/rpc",
+  "shutdown": {
+    "shutdownScheduled": true
+  },
+  "finishedAt": "2026-10-04T09:12:18.290Z"
+}

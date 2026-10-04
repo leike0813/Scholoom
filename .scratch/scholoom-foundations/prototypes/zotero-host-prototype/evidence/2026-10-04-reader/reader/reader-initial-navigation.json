@@ -1,0 +1,40 @@
+{
+  "materialId": "d33acbd9-3b67-42be-927a-9e986e3cef55",
+  "sourceId": "a92a153d-7d74-4333-8ca2-3329c35c0578",
+  "contentType": "application/pdf",
+  "fileName": "中文文献元数据回放探针.pdf",
+  "available": true,
+  "storageMode": "managed",
+  "outline": [
+    {
+      "title": "Introduction",
+      "location": {
+        "page": 1,
+        "x": 0,
+        "y": 792
+      },
+      "children": []
+    },
+    {
+      "title": "Methods",
+      "location": {
+        "page": 2,
+        "x": 0,
+        "y": 792
+      },
+      "children": []
+    }
+  ],
+  "bookmarks": [
+    {
+      "id": "bookmark_1791105133199_4v5pyagwb",
+      "title": "P_1_1",
+      "location": {
+        "page": 1,
+        "x": 0,
+        "y": 792
+      },
+      "color": "#FF9FF3"
+    }
+  ]
+}

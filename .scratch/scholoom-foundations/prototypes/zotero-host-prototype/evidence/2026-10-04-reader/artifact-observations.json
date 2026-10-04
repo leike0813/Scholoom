@@ -1,0 +1,40 @@
+{
+  "readerRun": "/tmp/scholoom-host-prototype-ASCiyY",
+  "regressionRun": "/tmp/scholoom-host-prototype-1md8NZ",
+  "hostOmniBytes": 47387939,
+  "hostOmniEqualsOriginalTarMember": true,
+  "packages": [
+    {
+      "file": "zotero-better-bibtex-9.0.68.xpi",
+      "downloadCopyEqualsRuntime": true,
+      "runtimeEqualsInstalled": true
+    },
+    {
+      "file": "jasminum_1.1.39.xpi",
+      "downloadCopyEqualsRuntime": true,
+      "runtimeEqualsInstalled": true
+    }
+  ],
+  "pdfjs": {
+    "version": "5.7.0",
+    "modules": [
+      {
+        "member": "resource/reader/pdf/build/pdf.mjs",
+        "bytes": 840424,
+        "extractedEqualsArchiveMember": true
+      },
+      {
+        "member": "resource/reader/pdf/build/pdf.worker.mjs",
+        "bytes": 2278504,
+        "extractedEqualsArchiveMember": true
+      }
+    ]
+  },
+  "material": {
+    "bytes": 1429,
+    "file": "中文文献元数据回放探针.pdf",
+    "equalsGeneratedFixture": true,
+    "rpcBytesEqualStoredPdf": true,
+    "unchangedDuringRename": true
+  }
+}

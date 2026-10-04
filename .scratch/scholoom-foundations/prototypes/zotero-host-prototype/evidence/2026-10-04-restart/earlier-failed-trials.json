@@ -1,0 +1,74 @@
+[
+  {
+    "path": "/tmp/scholoom-restart-experiment-tZ3y3E",
+    "phases": [
+      {
+        "phase": "initial",
+        "directory": "/tmp/scholoom-host-prototype-tjaxyL",
+        "code": 0,
+        "signal": null
+      },
+      {
+        "phase": "resumed",
+        "directory": "/tmp/scholoom-host-prototype-32Mkdf",
+        "code": 1,
+        "signal": null
+      }
+    ],
+    "fatal": {
+      "message": "Host phase failed; evidence retained",
+      "stack": "Error: Host phase failed; evidence retained\n    at run (file:///home/joshua/Workspace/Code/JavaScript/Scholoom/.scratch/scholoom-foundations/prototypes/zotero-host-prototype/restart-run.mjs:24:46)\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async file:///home/joshua/Workspace/Code/JavaScript/Scholoom/.scratch/scholoom-foundations/prototypes/zotero-host-prototype/restart-run.mjs:40:19"
+    }
+  },
+  {
+    "path": "/tmp/scholoom-restart-experiment-2fAxri",
+    "phases": [
+      {
+        "phase": "initial",
+        "directory": "/tmp/scholoom-host-prototype-awAS0v",
+        "code": 1,
+        "signal": null
+      }
+    ],
+    "fatal": {
+      "message": "Host phase failed; evidence retained",
+      "stack": "Error: Host phase failed; evidence retained\n    at run (file:///home/joshua/Workspace/Code/JavaScript/Scholoom/.scratch/scholoom-foundations/prototypes/zotero-host-prototype/restart-run.mjs:32:46)\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async file:///home/joshua/Workspace/Code/JavaScript/Scholoom/.scratch/scholoom-foundations/prototypes/zotero-host-prototype/restart-run.mjs:44:19"
+    }
+  },
+  {
+    "path": "/tmp/scholoom-restart-experiment-ElPIIF",
+    "phases": [
+      {
+        "phase": "initial",
+        "directory": "/tmp/scholoom-host-prototype-alcN3a",
+        "code": 1,
+        "signal": null
+      }
+    ],
+    "fatal": {
+      "message": "Host phase failed; evidence retained",
+      "stack": "Error: Host phase failed; evidence retained\n    at run (file:///home/joshua/Workspace/Code/JavaScript/Scholoom/.scratch/scholoom-foundations/prototypes/zotero-host-prototype/restart-run.mjs:32:46)\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async file:///home/joshua/Workspace/Code/JavaScript/Scholoom/.scratch/scholoom-foundations/prototypes/zotero-host-prototype/restart-run.mjs:44:19"
+    }
+  },
+  {
+    "path": "/tmp/scholoom-restart-experiment-QiqqjS",
+    "phases": [
+      {
+        "phase": "initial",
+        "directory": "/tmp/scholoom-host-prototype-2xf8az",
+        "code": 0,
+        "signal": null
+      },
+      {
+        "phase": "resumed",
+        "directory": "/tmp/scholoom-host-prototype-qCnOkK",
+        "code": 1,
+        "signal": null
+      }
+    ],
+    "fatal": {
+      "message": "Host phase failed; evidence retained",
+      "stack": "Error: Host phase failed; evidence retained\n    at run (file:///home/joshua/Workspace/Code/JavaScript/Scholoom/.scratch/scholoom-foundations/prototypes/zotero-host-prototype/restart-run.mjs:32:46)\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async file:///home/joshua/Workspace/Code/JavaScript/Scholoom/.scratch/scholoom-foundations/prototypes/zotero-host-prototype/restart-run.mjs:48:19"
+    }
+  }
+]

@@ -1,0 +1,115 @@
+{
+  "checks": [
+    {
+      "name": "real-pdf-two-page-render",
+      "status": "passed",
+      "detail": {
+        "pageCount": 2,
+        "page": 1,
+        "text": "Scholoom prototype: Introduction"
+      }
+    },
+    {
+      "name": "view-connects-to-persisted-navigation",
+      "status": "passed",
+      "detail": {
+        "materialId": "a2592e41-50a4-4669-9314-d2cee32c9c03",
+        "sourceId": "2a3dafb8-3eb7-4faf-8bed-ee48f41f1e68",
+        "contentType": "application/pdf",
+        "fileName": "中文文献元数据回放探针.pdf",
+        "available": true,
+        "storageMode": "managed",
+        "outline": [
+          {
+            "title": "Introduction",
+            "location": {
+              "page": 1,
+              "x": 0,
+              "y": 792
+            },
+            "children": []
+          },
+          {
+            "title": "Methods",
+            "location": {
+              "page": 2,
+              "x": 0,
+              "y": 792
+            },
+            "children": []
+          }
+        ],
+        "bookmarks": [
+          {
+            "id": "bookmark_1791105977205_bm0opakhn",
+            "title": "重启前保存的书签",
+            "location": {
+              "page": 1,
+              "x": 0,
+              "y": 792
+            },
+            "color": "#FF9FF3"
+          }
+        ]
+      }
+    },
+    {
+      "name": "outline-navigates-real-methods-page",
+      "status": "passed",
+      "detail": {
+        "page": 2,
+        "text": "Scholoom prototype: Methods",
+        "target": {
+          "pdf": {
+            "page": 2,
+            "x": 0,
+            "y": 792
+          },
+          "viewport": [
+            0,
+            0
+          ],
+          "roundtrip": [
+            0,
+            791.9999999999999
+          ]
+        }
+      }
+    },
+    {
+      "name": "bookmark-navigates-original-pdf-position",
+      "status": "passed",
+      "detail": {
+        "page": 1,
+        "target": {
+          "pdf": {
+            "page": 1,
+            "x": 0,
+            "y": 792
+          },
+          "viewport": [
+            0,
+            0
+          ],
+          "roundtrip": [
+            0,
+            791.9999999999999
+          ]
+        }
+      }
+    },
+    {
+      "name": "browser-renames-bookmark-through-interface",
+      "status": "failed",
+      "error": "Error invoking remote method 'literature-request': Error: renameBookmark: Error: Original bookmark editor unavailable after one normal reopen"
+    }
+  ],
+  "renamedTitle": "重启后保存的书签",
+  "startedAt": "2026-10-04T09:26:33.846Z",
+  "pdfjsVersion": "5.7.0",
+  "fatal": {
+    "message": "Error invoking remote method 'literature-request': Error: renameBookmark: Error: Original bookmark editor unavailable after one normal reopen",
+    "stack": "Error: Error invoking remote method 'literature-request': Error: renameBookmark: Error: Original bookmark editor unavailable after one normal reopen\n    at file:///home/joshua/Workspace/Code/JavaScript/Scholoom/.scratch/scholoom-foundations/prototypes/zotero-host-prototype/reader-browser.mjs:70:93\n    at async check (file:///home/joshua/Workspace/Code/JavaScript/Scholoom/.scratch/scholoom-foundations/prototypes/zotero-host-prototype/reader-browser.mjs:30:25)\n    at async runReaderExperiment (file:///home/joshua/Workspace/Code/JavaScript/Scholoom/.scratch/scholoom-foundations/prototypes/zotero-host-prototype/reader-browser.mjs:65:5)\n    at async file:///home/joshua/Workspace/Code/JavaScript/Scholoom/.scratch/scholoom-foundations/prototypes/zotero-host-prototype/restart-client.mjs:58:19"
+  },
+  "finishedAt": "2026-10-04T09:26:56.719Z"
+}

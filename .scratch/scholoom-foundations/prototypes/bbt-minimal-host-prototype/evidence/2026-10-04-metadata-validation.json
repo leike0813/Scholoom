@@ -1,0 +1,105 @@
+{
+  "syntax": [
+    {
+      "file": "chromium-worker.mjs",
+      "passed": true
+    },
+    {
+      "file": "jasminum-dom-probe.mjs",
+      "passed": true
+    },
+    {
+      "file": "jasminum-probe.mjs",
+      "passed": true
+    },
+    {
+      "file": "literature-store.mjs",
+      "passed": true
+    },
+    {
+      "file": "metadata-task-probe.mjs",
+      "passed": true
+    },
+    {
+      "file": "mutation-probe.mjs",
+      "passed": true
+    },
+    {
+      "file": "node-worker.mjs",
+      "passed": true
+    },
+    {
+      "file": "notifier.mjs",
+      "passed": true
+    },
+    {
+      "file": "run.mjs",
+      "passed": true
+    }
+  ],
+  "scenarios": [
+    {
+      "name": "2026-10-04-metadata-final",
+      "runDir": "/tmp/scholoom-bbt-minimal-zmXKVC",
+      "rows": 7,
+      "integrity": "ok",
+      "persistedAllFields": true,
+      "typesAgree": true,
+      "scenarioPassed": true
+    },
+    {
+      "name": "2026-10-04-metadata-mutation-regression",
+      "runDir": "/tmp/scholoom-bbt-minimal-i39Mrk",
+      "rows": 2,
+      "integrity": "ok",
+      "persistedAllFields": true,
+      "typesAgree": true,
+      "scenarioPassed": true
+    },
+    {
+      "name": "2026-10-04-metadata-dom-regression",
+      "runDir": "/tmp/scholoom-bbt-minimal-XXkEJ3",
+      "rows": 4,
+      "integrity": "ok",
+      "persistedAllFields": true,
+      "typesAgree": true,
+      "scenarioPassed": true
+    }
+  ],
+  "metadataChecks": {
+    "noResultsControl": true,
+    "originalTaskSucceeded": true,
+    "originalSearchRequested": true,
+    "originalSearchSelected": true,
+    "originalRISGenerated": true,
+    "originalRegistryMissObserved": true,
+    "originalFallbackStored": true,
+    "attachmentRelationSaved": true,
+    "pdfUnchanged": true,
+    "bbtExportsAuthority": true,
+    "originalItemsUnchanged": true,
+    "officialRISControlImported": true,
+    "originalTranslatorUnchanged": true
+  },
+  "checks": {
+    "metadataBehavior": true,
+    "originalBranchesDistinguished": true,
+    "noResultsNoParent": true,
+    "syntheticInputExplicit": true,
+    "attachmentRelation": true,
+    "pdfArtifactUnchanged": true,
+    "generatedRISArtifact": true,
+    "originalRISArtifact": true,
+    "httpArtifact": true,
+    "bbtIncludesTitleDOIAndFile": true,
+    "creationAddNotifications": true,
+    "attachmentModifyNotification": true,
+    "realTaskDigest": true,
+    "originalPackagesUnchanged": true,
+    "noUnexpectedErrors": true,
+    "scenariosAndDatabases": true,
+    "linksPassed": true
+  },
+  "linksChecked": 128,
+  "missing": []
+}

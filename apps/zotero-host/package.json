@@ -1,0 +1,15 @@
+{
+  "name": "@scholoom/zotero-host",
+  "version": "0.1.0",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "description": "Scholoom Zotero compatibility host",
+  "main": "out/main/index.cjs",
+  "scripts": {
+    "build": "electron-vite build",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "dev": "electron-vite dev",
+    "start": "electron-vite preview",
+    "package:dir": "electron-builder --dir --config electron-builder.yml"
+  }
+}

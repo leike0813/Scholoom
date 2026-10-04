@@ -1,0 +1,163 @@
+7538: 
+7539: zotero(3)(+0000007): {worker: better-bibtex:} starting cached export using Better BibTeX
+7540: 
+7541: 
+7542: zotero(1)(+0000076): {better-bibtex:} json-rpc: export cache use 0%
+7543: 
+7544: 
+7545: zotero(1)(+0000004): {better-bibtex:} json-rpc: cache fill 0 / 2
+7546: 
+7547: 
+7548: zotero(3)(+0000003): {worker: better-bibtex:} starting cached export using Better BibLaTeX
+7549: 
+7550: 
+7551: zotero(1)(+0000026): {better-bibtex:} json-rpc: export cache use 0%
+7552: 
+7553: 
+7554: zotero(3)(+0000001): Importing attachment from file
+7555: 
+7556: zotero(4)(+0000000): Beginning DB transaction umajYhuk
+9551: 
+9552: zotero(3)(+0000010): Calling bootstrap method 'onMainWindowUnload' for plugin better-bibtex@iris-advies.com version 9.0.68 with reason MAIN_WINDOW_LOAD
+9553: 
+9554: zotero(3)(+0000001): Better BibTeX bootstrap: {better-bibtex} bootstrap: onMainWindowUnload
+9555: 
+9556: zotero(3)(+0000000): Calling bootstrap method 'onMainWindowUnload' for plugin jasminum@linxzh.com version 1.1.39 with reason MAIN_WINDOW_LOAD
+9557: 
+9558: zotero(1)(+0000000): Error running bootstrap method 'onMainWindowUnload' on jasminum@linxzh.com
+9559: 
+9560: zotero(1)(+0000000): TypeError: Zotero.Jasminum.hooks.onMainWindowUnload is not a function
+9561: 
+9562:     onMainWindowUnload@jar:file:///tmp/scholoom-host-prototype-xr2bOn/profile/extensions/jasminum@linxzh.com.xpi!/bootstrap.js:53:26
+9563:     _callMethod@chrome://zotero/content/xpcom/plugins.js:258:23
+9564:     onCloseWindow@chrome://zotero/content/xpcom/plugins.js:120:17
+9565: 
+9566: zotero(3)(+0000001): Calling bootstrap method 'onMainWindowUnload' for plugin scholoom-host-probe@local.invalid version 0.0.1 with reason MAIN_WINDOW_LOAD
+9567: 
+9568: zotero(4)(+0000003): Unregistering notifier observer in notifier with id 'tab_0V'
+9569: 
+9570: zotero(4)(+0000001): Unregistering notifier observer in notifier with id 'collectionTree_0S'
+9571: 
+9572: zotero(4)(+0000000): Unregistering notifier observer in notifier with id 'itemTreeView_4x'
+9573: 
+9574: zotero(4)(+0000000): Unregistering notifier observer in notifier with id 'syncReminder_O1'
+9922: 
+9923: zotero(3)(+0000008): {worker: better-bibtex:} starting cached export using Better BibTeX
+9924: 
+9925: 
+9926: zotero(1)(+0000033): {better-bibtex:} json-rpc: export cache use 0%
+9927: 
+9928: 
+9929: zotero(1)(+0000012): {better-bibtex:} json-rpc: cache fill 0 / 1
+9930: 
+9931: 
+9932: zotero(3)(+0000004): {worker: better-bibtex:} starting cached export using Better BibLaTeX
+9933: 
+9934: 
+9935: zotero(1)(+0000010): {better-bibtex:} json-rpc: export cache use 0%
+9936: 
+9937: 
+9938: zotero(4)(+0000046): Registering notifier observer 'tabs_Zw' for [item]
+9939: 
+9940: zotero(4)(+0000048): Registering notifier observer 'paneHeader_Pa' for [item]
+9997: 
+9998: zotero(3)(+0000216): Calling bootstrap method 'onMainWindowLoad' for plugin better-bibtex@iris-advies.com version 9.0.68 with reason MAIN_WINDOW_LOAD
+9999: 
+10000: zotero(3)(+0000000): Better BibTeX bootstrap: {better-bibtex} bootstrap: onMainWindowLoad
+10001: 
+10002: zotero(3)(+0000000): Calling bootstrap method 'onMainWindowLoad' for plugin jasminum@linxzh.com version 1.1.39 with reason MAIN_WINDOW_LOAD
+10003: 
+10004: zotero(2)(+0000001): ChromeUtils.import() has been removed. Use importESModule():
+10005:   ChromeUtils.importESModule("resource://gre/modules/Console.sys.mjs");
+10006: 
+10007: this.warn@chrome://zotero/content/xpcom/zotero.js:1433:71
+10008: Zotero.Plugins</_loadScope/get/<@chrome://zotero/content/xpcom/plugins.js:192:20
+10009: _importESModule@jar:file:///tmp/scholoom-host-prototype-xr2bOn/profile/extensions/jasminum@linxzh.com.xpi!/chrome/content/scripts/jasminum.js:680:24
+10010: _BasicTool@jar:file:///tmp/scholoom-host-prototype-xr2bOn/profile/extensions/jasminum@linxzh.com.xpi!/chrome/content/scripts/jasminum.js:377:49
+10319: 
+10320: zotero(3)(+0000001): Calling bootstrap method 'onMainWindowLoad' for plugin scholoom-host-probe@local.invalid version 0.0.1 with reason MAIN_WINDOW_LOAD
+10321: 
+10322: zotero(3)(+0000000): [Jasminum]
+10323: window loaded: chrome://zotero/content/zoteroPane.xhtml
+10324: 
+10325: zotero(4)(+0000001): Registering notifier observer 'tab_c2' for [tab]
+10326: 
+10327: zotero(3)(+0000000): Initializing Zotero pane
+10328: 
+10770: 
+10771: zotero(3)(+0000222): Calling bootstrap method 'onMainWindowUnload' for plugin better-bibtex@iris-advies.com version 9.0.68 with reason MAIN_WINDOW_LOAD
+10772: 
+10773: zotero(3)(+0000000): Better BibTeX bootstrap: {better-bibtex} bootstrap: onMainWindowUnload
+10774: 
+10775: zotero(3)(+0000001): Calling bootstrap method 'onMainWindowUnload' for plugin jasminum@linxzh.com version 1.1.39 with reason MAIN_WINDOW_LOAD
+10776: 
+10777: zotero(1)(+0000001): Error running bootstrap method 'onMainWindowUnload' on jasminum@linxzh.com
+10778: 
+10779: zotero(1)(+0000000): TypeError: Zotero.Jasminum.hooks.onMainWindowUnload is not a function
+10780: 
+10781:     onMainWindowUnload@jar:file:///tmp/scholoom-host-prototype-xr2bOn/profile/extensions/jasminum@linxzh.com.xpi!/bootstrap.js:53:26
+10782:     _callMethod@chrome://zotero/content/xpcom/plugins.js:258:23
+10783:     onCloseWindow@chrome://zotero/content/xpcom/plugins.js:120:17
+10784: 
+10785: zotero(3)(+0000000): Calling bootstrap method 'onMainWindowUnload' for plugin scholoom-host-probe@local.invalid version 0.0.1 with reason MAIN_WINDOW_LOAD
+10786: 
+10787: zotero(4)(+0000005): Unregistering notifier observer in notifier with id 'tab_c2'
+10788: 
+10789: zotero(4)(+0000002): Unregistering notifier observer in notifier with id 'collectionTree_Ly'
+10790: 
+10791: zotero(4)(+0000000): Unregistering notifier observer in notifier with id 'itemTreeView_Ho'
+10792: 
+10793: zotero(4)(+0000000): Unregistering notifier observer in notifier with id 'syncReminder_qd'
+11121: 
+11122: JavaScript error: , line 0: TypeError: can't access dead object
+11123: JavaScript error: , line 0: TypeError: can't access dead object
+11124: JavaScript error: , line 0: TypeError: can't access dead object
+11125: JavaScript error: , line 0: TypeError: can't access dead object
+11126: zotero(3)(+0000001): Loading primaryData for 1 item in My Library
+11127: 
+11129: 
+11130: zotero(1)(+0000001): Error: Error(s) encountered during statement execution: database table is locked
+11131: 
+11132:     handleCompletion@resource://gre/modules/Sqlite.sys.mjs:1093:25
+11133: 
+11173: 
+11174: zotero(1)(+0000000): Wait is complete, cannot add further promises.
+11175: 
+11176: zotero(4)(+0000000): Beginning DB transaction cotkoFCl
+11177: 
+11178: zotero(1)(+0000001): Rolled back DB transaction cotkoFCl
+11179: 
+11180: zotero(1)(+0000000): Wait is complete, cannot add further promises.
+11181: 
+11182: JavaScript error: resource://gre/modules/AsyncShutdown.sys.mjs, line 142: Error: Wait is complete, cannot add further promises.
+11183: JavaScript error: resource://gre/modules/AsyncShutdown.sys.mjs, line 142: Error: Wait is complete, cannot add further promises.
+11184: zotero(3)(+0000002): Loaded primaryData in My Library in 3 ms
+11185: 
+11186: zotero(3)(+0000000): Loading creators for 1 item in My Library
+11187: 
+11188: zotero(4)(+0000000): SELECT itemID, creatorID, creatorTypeID, orderIndex FROM items LEFT JOIN itemCreators USING (itemID) WHERE libraryID=? AND itemID IN (5) ORDER BY itemID, orderIndex [1]
+11189: 
+11190: zotero(1)(+0000000): Error: Connection is not open.
+11191: 
+11192:     ensureOpen@resource://gre/modules/Sqlite.sys.mjs:1126:13
+11193:     execute@resource://gre/modules/Sqlite.sys.mjs:741:10
+11194:     execute@resource://gre/modules/Sqlite.sys.mjs:1906:33
+11195:     Zotero.DBConnection.prototype.queryAsync@chrome://zotero/content/xpcom/db.js:653:25
+11196:     Zotero.Items</this._loadCreators@chrome://zotero/content/xpcom/data/items.js:402:32
+11197:     Zotero.DataObjects.prototype._loadDataTypeInLibrary@chrome://zotero/content/xpcom/data/dataObjects.js:509:23
+11198:     Zotero.DataObject.prototype.loadDataType@chrome://zotero/content/xpcom/data/dataObject.js:733:29
+11201: 
+11202: zotero(1)(+0000001): Error: Connection closed before committing the transaction.
+11203: 
+11204:     executeTransaction/promise</transactionPromise<@resource://gre/modules/Sqlite.sys.mjs:888:19
+11205:     observe@resource://gre/modules/AsyncShutdown.sys.mjs:569:17
+11206: 
+11207: zotero(1)(+0000000): Error: Connection closed before committing the transaction.
+11208: 
+11209:     executeTransaction/promise</transactionPromise<@resource://gre/modules/Sqlite.sys.mjs:888:19
+11210:     observe@resource://gre/modules/AsyncShutdown.sys.mjs:569:17
+11211: 
+11212: zotero(3)(+0000000): Observer no longer exists
+11213: 
+11214: zotero(3)(+0000000): Observer no longer exists
+11215: 

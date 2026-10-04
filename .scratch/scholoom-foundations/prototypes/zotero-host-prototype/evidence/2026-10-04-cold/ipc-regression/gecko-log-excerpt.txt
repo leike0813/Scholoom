@@ -1,0 +1,55 @@
+Full log: /tmp/scholoom-host-prototype-HL6I1b/gecko.log
+Original line numbers; selected startup/lifecycle errors only.
+
+9254: zotero(3)(+0000000): Calling bootstrap method 'onMainWindowUnload' for plugin jasminum@linxzh.com version 1.1.39 with reason MAIN_WINDOW_LOAD
+9255: 
+9256: zotero(1)(+0000000): Error running bootstrap method 'onMainWindowUnload' on jasminum@linxzh.com
+9257: 
+9258: zotero(1)(+0000001): TypeError: Zotero.Jasminum.hooks.onMainWindowUnload is not a function
+9259: 
+9260:     onMainWindowUnload@jar:file:///tmp/scholoom-host-prototype-HL6I1b/profile/extensions/jasminum@linxzh.com.xpi!/bootstrap.js:53:26
+9261:     _callMethod@chrome://zotero/content/xpcom/plugins.js:258:23
+9262:     onCloseWindow@chrome://zotero/content/xpcom/plugins.js:120:17
+9263: 
+9264: zotero(3)(+0000000): Calling bootstrap method 'onMainWindowUnload' for plugin scholoom-host-probe@local.invalid version 0.0.1 with reason MAIN_WINDOW_LOAD
+10511: zotero(3)(+0000001): Calling bootstrap method 'onMainWindowUnload' for plugin jasminum@linxzh.com version 1.1.39 with reason MAIN_WINDOW_LOAD
+10512: 
+10513: zotero(1)(+0000000): Error running bootstrap method 'onMainWindowUnload' on jasminum@linxzh.com
+10514: 
+10515: zotero(1)(+0000001): TypeError: Zotero.Jasminum.hooks.onMainWindowUnload is not a function
+10516: 
+10517:     onMainWindowUnload@jar:file:///tmp/scholoom-host-prototype-HL6I1b/profile/extensions/jasminum@linxzh.com.xpi!/bootstrap.js:53:26
+10518:     _callMethod@chrome://zotero/content/xpcom/plugins.js:258:23
+10519:     onCloseWindow@chrome://zotero/content/xpcom/plugins.js:120:17
+10520: 
+10521: zotero(3)(+0000000): Calling bootstrap method 'onMainWindowUnload' for plugin scholoom-host-probe@local.invalid version 0.0.1 with reason MAIN_WINDOW_LOAD
+10850: zotero(3)(+0000000): PRAGMA wal_checkpoint(TRUNCATE)
+10851: 
+10852: JavaScript error: , line 0: TypeError: can't access dead object
+10853: JavaScript error: , line 0: TypeError: can't access dead object
+10854: JavaScript error: , line 0: TypeError: can't access dead object
+10855: JavaScript error: , line 0: TypeError: can't access dead object
+10856: zotero(3)(+0000001): Notifier.trigger('modify', 'item', [5], {"changed":{}}) queued 
+10857: 
+10858: zotero(4)(+0000000): UPDATE itemAttachments SET parentItemID=?, linkMode=?, contentType=?, charsetID=NULL, path=?, syncState=?, storageModTime=NULL, storageHash=NULL, lastProcessedModificationTime=?, lastRead=? WHERE itemID=? [6, 0, 'application/pdf', 'storage:中文文献元数据回放探针.pdf', 0, 1791100096, 1791100106, 5]
+10859: 
+10860: zotero(1)(+0000002): Error: Error(s) encountered during statement execution: database table is locked
+10861: 
+10900: zotero(1)(+0000000): Rolled back DB transaction 2OMRIve4
+10901: 
+10902: zotero(1)(+0000000): Wait is complete, cannot add further promises.
+10903: 
+10904: zotero(4)(+0000000): Beginning DB transaction MjCwvq9U
+10905: 
+10906: zotero(1)(+0000000): Rolled back DB transaction MjCwvq9U
+10907: 
+10908: zotero(1)(+0000000): Wait is complete, cannot add further promises.
+10909: 
+10910: JavaScript error: resource://gre/modules/AsyncShutdown.sys.mjs, line 142: Error: Wait is complete, cannot add further promises.
+10911: JavaScript error: resource://gre/modules/AsyncShutdown.sys.mjs, line 142: Error: Wait is complete, cannot add further promises.
+10912: zotero(3)(+0000003): Loaded primaryData in My Library in 4 ms
+10913: 
+10914: zotero(3)(+0000000): Loading creators for 1 item in My Library
+10915: 
+10916: zotero(4)(+0000001): SELECT itemID, creatorID, creatorTypeID, orderIndex FROM items LEFT JOIN itemCreators USING (itemID) WHERE libraryID=? AND itemID IN (5) ORDER BY itemID, orderIndex [1]
+10917: 

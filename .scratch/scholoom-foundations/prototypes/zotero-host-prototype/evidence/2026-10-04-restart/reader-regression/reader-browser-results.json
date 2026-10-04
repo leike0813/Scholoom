@@ -1,0 +1,215 @@
+{
+  "checks": [
+    {
+      "name": "real-pdf-two-page-render",
+      "status": "passed",
+      "detail": {
+        "pageCount": 2,
+        "page": 1,
+        "text": "Scholoom prototype: Introduction"
+      }
+    },
+    {
+      "name": "outline-navigates-real-methods-page",
+      "status": "passed",
+      "detail": {
+        "page": 2,
+        "text": "Scholoom prototype: Methods",
+        "target": {
+          "pdf": {
+            "page": 2,
+            "x": 0,
+            "y": 792
+          },
+          "viewport": [
+            0,
+            0
+          ],
+          "roundtrip": [
+            0,
+            791.9999999999999
+          ]
+        }
+      }
+    },
+    {
+      "name": "bookmark-navigates-original-pdf-position",
+      "status": "passed",
+      "detail": {
+        "page": 1,
+        "target": {
+          "pdf": {
+            "page": 1,
+            "x": 0,
+            "y": 792
+          },
+          "viewport": [
+            0,
+            0
+          ],
+          "roundtrip": [
+            0,
+            791.9999999999999
+          ]
+        }
+      }
+    },
+    {
+      "name": "browser-renames-bookmark-through-interface",
+      "status": "passed",
+      "detail": {
+        "materialId": "867d9a20-be9a-4e63-aafc-c33193c17ebb",
+        "sourceId": "2f984137-c991-467b-bff2-5dfe18ea096d",
+        "contentType": "application/pdf",
+        "fileName": "中文文献元数据回放探针.pdf",
+        "available": true,
+        "storageMode": "managed",
+        "outline": [
+          {
+            "title": "Introduction",
+            "location": {
+              "page": 1,
+              "x": 0,
+              "y": 792
+            },
+            "children": []
+          },
+          {
+            "title": "Methods",
+            "location": {
+              "page": 2,
+              "x": 0,
+              "y": 792
+            },
+            "children": []
+          }
+        ],
+        "bookmarks": [
+          {
+            "id": "bookmark_1791106175165_0l3wj5x9n",
+            "title": "方法核对书签",
+            "location": {
+              "page": 1,
+              "x": 0,
+              "y": 792
+            },
+            "color": "#5F27CD"
+          }
+        ]
+      }
+    },
+    {
+      "name": "view-reload-reads-persisted-bookmark",
+      "status": "passed",
+      "detail": {
+        "navigation": {
+          "materialId": "867d9a20-be9a-4e63-aafc-c33193c17ebb",
+          "sourceId": "2f984137-c991-467b-bff2-5dfe18ea096d",
+          "contentType": "application/pdf",
+          "fileName": "中文文献元数据回放探针.pdf",
+          "available": true,
+          "storageMode": "managed",
+          "outline": [
+            {
+              "title": "Introduction",
+              "location": {
+                "page": 1,
+                "x": 0,
+                "y": 792
+              },
+              "children": []
+            },
+            {
+              "title": "Methods",
+              "location": {
+                "page": 2,
+                "x": 0,
+                "y": 792
+              },
+              "children": []
+            }
+          ],
+          "bookmarks": [
+            {
+              "id": "bookmark_1791106175165_0l3wj5x9n",
+              "title": "方法核对书签",
+              "location": {
+                "page": 1,
+                "x": 0,
+                "y": 792
+              },
+              "color": "#5F27CD"
+            }
+          ]
+        },
+        "page": 1
+      }
+    }
+  ],
+  "renamedTitle": "方法核对书签",
+  "startedAt": "2026-10-04T09:29:38.048Z",
+  "pdfjsVersion": "5.7.0",
+  "resourceRequests": [
+    {
+      "path": "/",
+      "method": "GET"
+    },
+    {
+      "path": "/reader-view.mjs",
+      "method": "GET"
+    },
+    {
+      "path": "/pdf.mjs",
+      "method": "GET"
+    },
+    {
+      "path": "/api",
+      "method": "POST"
+    },
+    {
+      "path": "/api",
+      "method": "POST"
+    },
+    {
+      "path": "/pdf.worker.mjs",
+      "method": "GET"
+    },
+    {
+      "path": "/api",
+      "method": "POST"
+    },
+    {
+      "path": "/api",
+      "method": "POST"
+    },
+    {
+      "path": "/",
+      "method": "GET"
+    },
+    {
+      "path": "/reader-view.mjs",
+      "method": "GET"
+    },
+    {
+      "path": "/pdf.mjs",
+      "method": "GET"
+    },
+    {
+      "path": "/api",
+      "method": "POST"
+    },
+    {
+      "path": "/api",
+      "method": "POST"
+    },
+    {
+      "path": "/pdf.worker.mjs",
+      "method": "GET"
+    },
+    {
+      "path": "/api",
+      "method": "POST"
+    }
+  ],
+  "finishedAt": "2026-10-04T09:29:39.852Z"
+}
