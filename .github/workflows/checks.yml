@@ -23,12 +23,20 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - run: pnpm setup:ui --with-deps
+        if: runner.os == 'Linux'
+      - run: pnpm setup:ui
+        if: runner.os != 'Linux'
       - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm build
       - run: xvfb-run -a pnpm test:smoke
         if: runner.os == 'Linux'
       - run: pnpm test:smoke
+        if: runner.os != 'Linux'
+      - run: xvfb-run -a pnpm test:ui
+        if: runner.os == 'Linux'
+      - run: pnpm test:ui
         if: runner.os != 'Linux'
       - run: pnpm package:dir
         env:

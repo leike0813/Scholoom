@@ -26,9 +26,18 @@ test('desktop loads React and its sandbox preload', async () => {
   try {
     const window = await app.firstWindow();
     await expect(window.getByRole('heading', { level: 1 })).toBeVisible();
+    await expect(window.getByRole('status', { name: '连接状态' })).toContainText('未连接');
+    await expect(window.getByRole('button', { name: '发送指令' })).toBeDisabled();
     const platform = await window.evaluate(() => Reflect.get(window, 'scholoomDesktop')?.platform);
     expect(platform).toBe(process.platform);
     expect(await window.evaluate(() => typeof Reflect.get(window, 'require'))).toBe('undefined');
+
+    await window.goto(
+      new URL('../../apps/desktop/out/renderer/index.html?scenario=ui-foundation', import.meta.url)
+        .href,
+    );
+    await expect(window.getByRole('status', { name: '连接状态' })).toContainText('未连接');
+    await expect(window.getByRole('checkbox')).toHaveCount(0);
   } finally {
     await app.close();
   }

@@ -12,7 +12,7 @@
 
 ## 已完成的最小路径实验
 
-实际原型与完整结果见 [Orca UI 路径实验](orca-ui-path-prototype.md)。开发态入口为 `http://127.0.0.1:5173/?prototype=orca-ui`，组件位于 `apps/desktop/src/renderer/src/OrcaUiPrototype.tsx`，启动说明见[开发文档](../../../docs/development.md)。
+当时原型与完整结果见 [Orca UI 路径实验](orca-ui-path-prototype.md)。实验时使用 `?prototype=orca-ui` 与 `OrcaUiPrototype.tsx`；当前共享工作台入口和启动说明见[开发文档](../../../docs/development.md#共享工作台与日常交互)。
 
 原型包含两份示例材料、指令输入、提交时的材料快照、固定示例结果和重置。没有真实模型、文件读取、内核连接或持久化；它验证协作路径，不代表科研功能已实现。
 
@@ -56,6 +56,8 @@ Figma 设计 MCP 的官方工具索引没有独立评论读取工具；官方 RE
 
 ## Windows 迁移后的续接顺序
 
+2026-10-11 本机续接已完成原型恢复。用户手动打开链接后，Agent 在同一 Orca 标签验证了输入、材料快照、发送、重置、刷新、HMR 与正常自动截图；用户发送的结构化 Design Feedback 可被 Agent 读取，并已用于增大输入框。具体结果、初始 CLI 错误与剩余边界见 [Windows 本机验证](orca-ui-windows-validation.md)。输入框大小仍待用户确认；未验证独立轮询未发送注释或 Figma 接入。
+
 1. 先读本记录、[开发说明](../../../docs/development.md)与原型实验记录，核对迁移后的代码、未提交文件和实际工具环境；不假设原服务仍在运行。
 2. 在用户授权的 Windows 环境中恢复现有简单原型，验证用户正常显示与操作、Agent 页面读取及操作、HMR、截图和注释获取。分别记录通过与失败，不能用语义快照正常替代视觉通道验收。
 3. 如果当地浏览器注释可用，先完成一次“用户标注 → Agent 取得反馈 → 修改代码 → 用户操作确认”的完整闭环，再判断是否需要补充工具。
@@ -63,6 +65,12 @@ Figma 设计 MCP 的官方工具索引没有独立评论读取工具；官方 RE
 5. 路径验证后再讨论稳定的 UI 交互／调试框架及后续功能原型。沿用 OpenSpec 的业务契约和现有 Electron e2e 验证边界，浏览器页面不能代替原生能力与生命周期验收。
 
 以上为续接建议，不是安装依赖、连接账号、启动服务器或实施业务功能的自动授权。当前先记录，待用户完成迁移再继续。
+
+## 当前实施方向
+
+用户已确认用本机 Orca 页面操作和已发送的结构化反馈作为日常交流方式，并要求 harness 与最终产品共用 UI、状态和事件路径。执行变更见 [establish-shared-workbench-and-ui-harness](../../../openspec/changes/establish-shared-workbench-and-ui-harness/proposal.md)，当前代码与操作事实集中在[开发说明](../../../docs/development.md)。
+
+浏览器与 Electron 共用 Workbench／assistant-ui；默认未连接，开发态 `?scenario=ui-foundation` 只注入样例来源。同一行为测试分别运行 Chromium 与真实 Electron，生产 smoke 单独检查构建产物。后续开发从这套机制演进，具体 UI 风格与布局留待讨论；Figma 尚未接入。
 
 ## 迁移时需要保留的工作区内容
 
