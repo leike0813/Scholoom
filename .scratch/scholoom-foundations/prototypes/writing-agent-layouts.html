@@ -1,0 +1,124 @@
+<div id="scholoom-writing-layouts">
+  <style>
+    #scholoom-writing-layouts .wl-app{--wl-bg:light-dark(#ffffff,#202420);--wl-fg:light-dark(#26382d,#e2e9e3);--wl-soft:light-dark(#f3f6f1,#2a302a);--wl-line:light-dark(#d9e1d8,#414c42);--wl-muted:light-dark(#58695c,#b0bfb2);--wl-green:light-dark(#276a50,#a7d8bd);--wl-green-bg:light-dark(#eaf3ec,#2e4837);color:var(--wl-fg);background:var(--wl-bg);font:14px/1.65 system-ui,sans-serif;border:1px solid var(--wl-line);border-radius:10px;overflow:clip;min-height:665px;position:relative}
+    #scholoom-writing-layouts .wl-app *{box-sizing:border-box}
+    #scholoom-writing-layouts .wl-chrome{padding:12px 110px 12px 16px;border-bottom:1px solid var(--wl-line);background:var(--wl-soft);display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+    #scholoom-writing-layouts .wl-chrome strong{font-weight:500}
+    #scholoom-writing-layouts .wl-muted{color:var(--wl-muted);font-size:12px}
+    #scholoom-writing-layouts button{font:inherit;padding:6px 10px;border:1px solid var(--wl-line);border-radius:5px;background:var(--wl-bg);color:var(--wl-fg)}
+    #scholoom-writing-layouts button:hover{background:var(--wl-soft)}
+    #scholoom-writing-layouts .wl-main{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);min-height:470px}
+    #scholoom-writing-layouts .wl-pane{min-width:0;padding:16px}
+    #scholoom-writing-layouts .wl-source{border-right:1px solid var(--wl-line)}
+    #scholoom-writing-layouts .wl-pane-head{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:15px;font-weight:500}
+    #scholoom-writing-layouts .wl-source-text{font:13px/1.95 ui-monospace,monospace;color:var(--wl-fg);display:block;width:100%;height:245px;background:var(--wl-bg);border:0;resize:vertical;overflow-wrap:anywhere}
+    #scholoom-writing-layouts .wl-source [data-select]{margin-top:12px}
+    #scholoom-writing-layouts .wl-paper{max-width:480px;margin:auto;padding:20px 16px;border:1px solid var(--wl-line);background:var(--wl-bg);font:15px/1.95 Georgia,'Noto Serif CJK SC',serif;color:var(--wl-fg)}
+    #scholoom-writing-layouts .wl-paper h3{font:500 18px/1.6 system-ui,sans-serif;margin:0 0 18px}
+    #scholoom-writing-layouts .wl-paper p{margin:12px 0}
+    #scholoom-writing-layouts .wl-paper mark{background:var(--wl-green-bg);color:var(--wl-fg)}
+    #scholoom-writing-layouts .wl-caption{text-align:center;color:var(--wl-muted);font:12px/1.7 system-ui,sans-serif;margin-top:12px}
+    #scholoom-writing-layouts .wl-dock{border-top:1px solid var(--wl-line);padding:10px 16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:var(--wl-soft)}
+    #scholoom-writing-layouts .wl-grow{flex:1;min-width:0}
+    #scholoom-writing-layouts .wl-input-row{display:flex;gap:8px;align-items:center;width:100%}
+    #scholoom-writing-layouts .wl-input-row input{font:14px/1.5 system-ui,sans-serif;min-width:0;flex:1;padding:9px 10px;border:1px solid var(--wl-line);border-radius:6px;background:var(--wl-bg);color:var(--wl-fg)}
+    #scholoom-writing-layouts .wl-chip{display:flex;gap:8px;align-items:center;flex-wrap:wrap;color:var(--wl-green);font-size:12px}
+    #scholoom-writing-layouts .wl-agent{border:1px solid var(--wl-line);padding:16px;background:var(--wl-bg);color:var(--wl-fg)}
+    #scholoom-writing-layouts .wl-agent h3{font:500 14px/1.5 system-ui,sans-serif;margin:0}
+    #scholoom-writing-layouts .wl-agent-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
+    #scholoom-writing-layouts .wl-message{padding:10px 12px;margin:10px 0;background:var(--wl-soft);border-radius:6px;font-size:13px}
+    #scholoom-writing-layouts .wl-message p{margin:5px 0}
+    #scholoom-writing-layouts .wl-role{font-weight:500;color:var(--wl-green);font-size:12px}
+    #scholoom-writing-layouts .wl-float .wl-agent{position:absolute;z-index:2;right:16px;top:78px;width:min(360px,calc(100% - 32px));box-shadow:0 12px 32px light-dark(#243c2b26,#00000055);border-radius:8px}
+    #scholoom-writing-layouts .wl-bottom .wl-agent{border-right:0;border-left:0;border-bottom:0}
+    #scholoom-writing-layouts .wl-bottom .wl-history{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+    #scholoom-writing-layouts .wl-bottom .wl-message{margin:0}
+    #scholoom-writing-layouts .wl-side .wl-main{grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(220px,.9fr)}
+    #scholoom-writing-layouts .wl-side .wl-agent{border-top:0;border-bottom:0;border-right:0}
+    #scholoom-writing-layouts .wl-side.wl-closed .wl-main{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+    #scholoom-writing-layouts .wl-app [hidden]{display:none!important}
+    #scholoom-writing-layouts .wl-note{padding:9px 16px;color:var(--wl-muted);font-size:12px;min-height:38px}
+    #scholoom-writing-layouts .wl-button-main{background:var(--wl-green-bg);color:var(--wl-green)}
+    #scholoom-writing-layouts .wl-app input:focus-visible,#scholoom-writing-layouts .wl-app textarea:focus-visible{outline:2px solid var(--wl-green);outline-offset:2px}
+    @media(max-width:760px){#scholoom-writing-layouts .wl-side .wl-main{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}#scholoom-writing-layouts .wl-side .wl-agent{grid-column:1/-1;border-top:1px solid var(--wl-line)}#scholoom-writing-layouts .wl-bottom .wl-history{grid-template-columns:1fr}#scholoom-writing-layouts .wl-app{min-height:665px}}
+    @media(max-width:520px){#scholoom-writing-layouts .wl-main,#scholoom-writing-layouts .wl-side .wl-main,#scholoom-writing-layouts .wl-side.wl-closed .wl-main{grid-template-columns:1fr}#scholoom-writing-layouts .wl-source{border-right:0;border-bottom:1px solid var(--wl-line)}#scholoom-writing-layouts .wl-chrome{padding-right:100px}#scholoom-writing-layouts .wl-source-text{height:180px}#scholoom-writing-layouts .wl-pane{padding:12px}#scholoom-writing-layouts .wl-input-row{flex-wrap:wrap}#scholoom-writing-layouts .wl-input-row input{flex-basis:100%;font-size:16px}#scholoom-writing-layouts .wl-paper{padding:16px}#scholoom-writing-layouts .wl-app{min-height:665px}}
+  </style>
+  <div class="viz-carousel" aria-label="写作与 Agent 布局比较" data-previous-label="上一种布局" data-next-label="下一种布局">
+    <section data-variant="就地指令与浮层" aria-label="就地指令与浮层布局"><div class="wl-app wl-float wl-closed" data-layout="float" aria-label="写作工作台：浮层"></div></section>
+    <section data-variant="底部工作面板" aria-label="底部工作面板布局" hidden><div class="wl-app wl-bottom" data-layout="bottom" aria-label="写作工作台：底部面板"></div></section>
+    <section data-variant="常驻侧栏" aria-label="常驻侧栏布局" hidden><div class="wl-app wl-side" data-layout="side" aria-label="写作工作台：侧栏"></div></section>
+  </div>
+  <template id="wl-workbench-template">
+    <div class="wl-chrome"><strong>Scholoom</strong><span class="wl-muted">地层预测研究 / 写作</span></div>
+    <div class="wl-main">
+      <section class="wl-pane wl-source" aria-label="稿件源码">
+        <div class="wl-pane-head"><span>manuscript.qmd</span><span class="wl-muted">源码</span></div>
+        <textarea class="wl-source-text" aria-label="稿件源码文本" spellcheck="false">## 泛化表现
+
+在本研究涉及的单一场地留出验证中，该方法表现稳定。其他场地与地层条件下的泛化能力仍需进一步验证。
+
+### 验证条件
+
+样本划分与数据来源见 @tbl-validation。场地条件决定了当前结果的解释范围 [@study2025]。</textarea>
+        <button class="cursor-interaction" data-select>选中结论 · 给 Agent 指令</button>
+        <div class="wl-caption">局部修改与依据</div>
+      </section>
+      <section class="wl-pane wl-preview" aria-label="稿件预览">
+        <div class="wl-pane-head"><span>渲染预览</span><span class="wl-muted">示例 · PDF 第 6 页</span></div>
+        <article class="wl-paper">
+          <h3>4.2　泛化表现</h3>
+          <p>在本研究涉及的<mark>单一场地留出验证</mark>中，该方法表现稳定。其他场地与地层条件下的泛化能力仍需进一步验证。</p>
+          <p>样本划分与数据来源见表 2。场地条件决定了当前结果的解释范围（Zhang et al., 2025）。</p>
+          <div class="wl-caption">表 2　验证条件与适用范围</div>
+        </article>
+      </section>
+    </div>
+    <section class="wl-agent" aria-label="Agent 对话">
+      <div class="wl-agent-head"><h3>主 Agent · 修订结果与论证</h3><button class="cursor-interaction" data-close aria-label="收起 Agent 对话">收起</button></div>
+      <div class="wl-history">
+        <div class="wl-message"><span class="wl-role">你</span><p>结合验证条件，收窄这段结论。</p></div>
+        <div class="wl-message"><span class="wl-role">主 Agent</span><p>已按现有证据修订，保留了适用条件。</p></div>
+        <div class="wl-message"><span class="wl-role">本轮产物</span><p>结论段修订 · 对应回应草稿</p><button class="cursor-interaction" data-locate>回到修改位置</button></div>
+      </div>
+    </section>
+    <div class="wl-dock">
+      <span class="wl-muted">修订结果与论证</span><span class="wl-grow wl-muted">本轮：结论段已修改</span><button class="cursor-interaction" data-toggle>查看 Agent 对话</button>
+      <div class="wl-chip" data-target hidden><span>目标：稿件 · 结论段</span><button class="cursor-interaction" data-remove aria-label="移除结论段目标">×</button></div>
+      <div class="wl-input-row"><input aria-label="给当前任务 Agent 的指令" placeholder="给 Agent 指令，或选中正文直接提问…"><button class="cursor-interaction wl-button-main" data-send>发送</button></div>
+    </div>
+    <div class="wl-note" role="status" aria-live="polite"></div>
+  </template>
+  <script>
+    (()=>{
+      const root=document.getElementById('scholoom-writing-layouts');
+      const template=root.querySelector('#wl-workbench-template');
+      const saved=window.openai?.widgetState?.privateContent?.layouts||{};
+      const panes=[];
+      function save(){const layouts={};for(const pane of panes)layouts[pane.layout]={open:pane.state.open,target:pane.state.target,draft:pane.input.value};window.openai?.setWidgetState?.({modelContent:null,privateContent:{layouts}})?.catch(()=>{});}
+      for(const app of root.querySelectorAll('.wl-app')){
+        app.append(template.content.cloneNode(true));
+        const layout=app.dataset.layout;
+        const state={open:saved[layout]?.open??layout!=='float',target:saved[layout]?.target??false};
+        const agent=app.querySelector('.wl-agent');
+        const main=app.querySelector('.wl-main');
+        if(layout==='side')main.append(agent);
+        else app.insertBefore(agent,app.querySelector('.wl-dock'));
+        const input=app.querySelector('input');input.value=saved[layout]?.draft??'';
+        const notice=app.querySelector('.wl-note');
+        function render(){agent.hidden=!state.open;app.classList.toggle('wl-closed',!state.open);app.querySelector('[data-toggle]').textContent=state.open?'收起 Agent 对话':'查看 Agent 对话';app.querySelector('[data-target]').hidden=!state.target;}
+        function toggle(){state.open=!state.open;render();save();}
+        app.querySelector('[data-toggle]').onclick=toggle;
+        app.querySelector('[data-close]').onclick=()=>{state.open=false;render();save();};
+        app.querySelector('[data-select]').onclick=()=>{state.target=true;input.value='结合验证条件，检查这段结论是否合适。';render();input.focus();save();};
+        app.querySelector('[data-remove]').onclick=()=>{state.target=false;render();save();};
+        app.querySelector('[data-send]').onclick=()=>{if(!input.value.trim()){notice.textContent='请填写指令。';return}notice.textContent='草图：指令已留在“修订结果与论证”，正文与预览的位置保持。';input.value='';state.target=false;render();save();};
+        app.querySelector('[data-locate]').onclick=()=>{state.open=false;render();app.querySelector('.wl-source-text').focus();notice.textContent='已回到本轮修改的结论段。';save();};
+        app.addEventListener('keydown',e=>{if(e.key==='Escape'&&state.open){state.open=false;render();save();}});
+        input.addEventListener('change',save);
+        render();panes.push({layout,state,input,render});
+        if(globalThis.Tweak){const tweak=new Tweak({container:app,onChange:render});tweak.addToggle(state,'open',{label:'展开 Agent 对话'});}
+      }
+      window.addEventListener('openai:set_globals',event=>{const incoming=event.detail?.globals?.widgetState?.privateContent?.layouts;if(!incoming)return;for(const pane of panes){const snapshot=incoming[pane.layout];if(!snapshot)continue;pane.state.open=typeof snapshot.open==='boolean'?snapshot.open:pane.state.open;pane.state.target=typeof snapshot.target==='boolean'?snapshot.target:pane.state.target;pane.input.value=typeof snapshot.draft==='string'?snapshot.draft:pane.input.value;pane.render();}});
+    })();
+  </script>
+</div>

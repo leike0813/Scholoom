@@ -22,6 +22,10 @@
 
 `pnpm dev:desktop` 使用 electron-vite；`pnpm dev:browser` 使用同一 React renderer，供浏览器检查界面。浏览器入口的 Electron bridge 不存在，界面功能应在共同客户端上实现。当前只有应用标题页。
 
+浏览器开发态提供临时 Orca 交互原型：启动 `pnpm --filter @scholoom/desktop dev:browser --port 5173 --strictPort`，在本项目 Orca 浏览器打开 `http://127.0.0.1:5173/?prototype=orca-ui`。可勾选示例材料、输入指令、查看固定示例结果和重置；刷新后状态清空，不调用模型、读取文件或连接内核。原型仅在开发态通过该查询参数显示，默认首页仍为标题页。实际交互、热更新及截图限制见[路径验证记录](../.scratch/scholoom-foundations/research/orca-ui-path-prototype.md)。
+
+跨主机访问时，在启动命令中增加 `--host 0.0.0.0`，保留 localhost 并监听所有 IPv4 接口；客户端打开开发主机的局域网 IP，例如 `http://192.168.13.13:5173/?prototype=orca-ui`。需要 Orca 本地浏览器注释时，在客户端 Orca 的本地浏览器标签中打开该地址；页面 URL 不决定浏览器的执行位置。监听范围只影响本次启动，配置中的默认监听仍为 `127.0.0.1`。
+
 `pnpm dev:host` 启动隐藏宿主页面，供后续内部调试。宿主内部 DOM 用于兼容适配，不作为产品工作台。当前没有加载 Zotero 应用或插件。
 
 格式和静态检查使用 Biome；`pnpm format` 会写回格式，`pnpm lint` 检查格式、lint 和 import 组织。生成目录及临时研究材料不纳入源码检查。

@@ -4,7 +4,7 @@ Labels: wayfinder:map
 
 ## Destination
 
-明确 Scholoom 的产品形态、领域与运行时架构、技术栈和开发工程纪律，使后续会话能够据此制定实现计划。完成标志是当前阶段的决策票得到回答，相关调查已有依据，且没有阻塞首阶段实现规划的未决问题；用户明确后置的议题保留讨论时机与责任。
+从科研任务场景出发，复盘 Zotero＋zotero-agents＋ResearchSpec 工具链的已有做法、优势与问题，明确 Scholoom 的核心业务模型、各模块职责、行为与协作，形成宏观产品设计并整理为项目 PRD。完成标志是代表性场景和模块共同契约的关键决策得到回答，调查有依据；用户明确后置的议题保留讨论时机与责任。具体实现方案与开发排期不属于本地图的交付。
 
 ## Notes
 
@@ -24,12 +24,19 @@ Labels: wayfinder:map
 - 首条用户消息中的产品构思是参考材料，其中的四工作区、对象模型和 MVP 路线尚未全部确认。
 - 用户进一步明确：从文献管理到论文写作的全流程都是必须实现的，缺一不可。可以讨论开发先后与每步实现深度，但不能通过仅保留某一环节来缩减首阶段产品范围。
 - 用户于 2026-10-04 明确实现路线暂时搁置：当前地图仍有待讨论议题，由用户判断时机成熟后再规划。现有决策票完成不自动触发实现规划。
+- 用户于 2026-10-08 明确接下来应按各个子系统继续讨论，当前距离业务实施仍有设计工作。既有基础选型与总体原则继续作为依据；先识别并解决子系统与跨模块契约中的未决问题，再由用户决定进入实现规划的时机。
+- 用户已确认[七个逻辑模块及职责边界](issues/24-logical-modules-and-responsibilities.md)，后续按该划分展开子系统讨论；逻辑模块不自动对应进程或包，部署继续沿已确认架构。
+- 用户于 2026-10-08 进一步明确讨论顺序：先从科研任务场景复盘旧工具链，分析做法与问题，据此明确核心业务模型，再开展模块接口和执行细节讨论。已确认术语、总体原则和模块划分作为核对依据，不能替代场景分析；harness／科研业务协作的细节暂缓。
+- 用户明确多 Agent 的实际交接操作后置到业务功能与 Agent 架构设计；当前场景保留原生协作需求，详细边界见[从科研任务场景梳理旧工具链与业务模型问题](issues/26-research-scenarios-and-existing-toolchain.md#后置到业务功能与-agent-架构设计的协作问题)。
+- 用户于 2026-10-08 要求提前建好后续讨论票，以便次日不依赖会话上下文继续。已创建场景覆盖、核心业务模型及模块细化票；下一会话的入口、推荐顺序、依赖和恢复说明见[后续讨论续接入口](continuation.md)。默认先确认场景覆盖，再汇总核心业务模型；模块问题据此讨论，不自动进入实现。
 
 ### 使用方式与事实来源
 
+- 宏观设计已整理为[项目 PRD](../../docs/prd/README.md)：总体及文献、科研协作、工作台、数据运行、约束与验证五个分项按产品主题组织；具体理由与确认记录仍由对应票承载。PRD 不展开实现方案或开发排期。
+
 - 用户已批准制作项目 OpenSpec schema：[scholoom-dev](../../openspec/schemas/scholoom-dev/README.md)将调查依据与实际交付纳入流程，配置设为项目默认；规划结束后再执行并填写 delivery。结构、模板解析及 12 项临时 CLI 行为检查通过，独立检查所发现的 continue 衔接问题已处理，详见[验证结果](research/openspec-project-schema-validation.md)。具体机制集中在 schema 与模板，工程原则继续以 #14／#15／#20 为依据。此次只落实开发流程，业务实现路线仍由用户决定。
 
-- [#22 模型接入、数据使用与执行资源配置](issues/22-model-data-and-execution-policy.md)按用户要求新建，保持 open；讨论产品的模型选择、外部数据发送、凭据与诊断、超时／限流／并发／费用以及模型切换。与 #21 的科研效果评价分工，可在功能实现前讨论，具体政策尚未确认。
+- [确定模型接入、数据使用与执行资源配置](issues/22-model-data-and-execution-policy.md)已 resolved，正式政策集中在本票 Answer；金额预算功能暂不设置。[真实科研 Agent 验收](issues/21-agent-dogfooding-and-evaluation.md)继续留到功能初步实现后讨论。
 
 - [#15 验证与发布纪律](issues/15-validation-and-release-discipline.md)已 resolved；用户采纳 Q1–Q7，正式政策集中在 Answer。实际运行、性能门槛及分发条件随实现落实；#21 保留为稳定版科研效果验收前置事项，不阻塞本票工程政策定案。实现规划仍由用户决定启动时机。
 
@@ -74,7 +81,12 @@ Labels: wayfinder:map
 
 ### 工程实施
 
-- 用户已授权按既定决策初始化开发骨架，并明确允许安装本轮依赖及完成验证。实施采用 [initialize-project-skeleton](../../openspec/changes/initialize-project-skeleton/proposal.md)，当前代码入口见 [开发说明](../../docs/development.md)。这次授权覆盖工程骨架，后续功能仍按各自变更实现；上面的讨论阶段记录保留当时范围，当前工程状态以代码与该变更的实际交付记录为准。
+- 用户于 2026-10-11 要求先保存 UI 为中心的开发协作讨论，待自行迁移项目到 Windows 后再继续。认可浏览器注释与 Figma 结合的方向，具体接入未定；当前暂停 Orca 环境排查。已完成简单 React 原型及部分浏览器交互验证，截图与注释自动获取仍待验证。技术栈和 LangGraph Agent Core 路线维持；决定、实验边界与迁移后入口集中在 [UI 协作续接记录](research/ui-centered-development-continuation.md)，此状态优先于先前讨论顺序。
+
+- [细化 QMD 与 LaTeX 编辑、实时预览和渲染体验](issues/39-writing-live-preview.md)本轮实验已收束、释放领取并恢复 open：用户要求先到这里，布局、性能门槛与未定体验留待后续；[真实能力实验](research/live-preview-experiment.md)保留依据，不视为全部方案已确认。[科研程序执行与环境边界](issues/40-research-execution-environment.md)及[Zotero 生态接入、插件行为与文献迁入](issues/41-zotero-ecosystem-integration.md)已 resolved，正式决定及实际验收责任见对应 Answer。[用完整科研情境核对模块共同契约与剩余决策](issues/42-cross-module-research-walkthrough.md)于 2026-10-10 获用户确认并 resolved，正式结论及后置边界见本票 Answer；预览票继续 open，用户确认其未定体验不阻塞本次走查收束。实现规划仍待用户明确启动，不自动恢复后置讨论。
+
+- [确定首个业务变更：共同内核入口与生命周期](issues/23-kernel-entry-and-lifecycle.md)已 resolved，交付边界与验收目标集中在本票 Answer。该局部决定保留；当前继续按子系统开展讨论，不能将本票解决或已建票清空作为项目讨论结束的依据。真实科研 Agent 验收继续后置，实现规划与业务实施的时机由用户决定。
+- 开发骨架已完成并归档，见[开发骨架初始化](../../openspec/changes/archive/2026-10-08-initialize-project-skeleton/proposal.md)与[实际交付记录](../../openspec/changes/archive/2026-10-08-initialize-project-skeleton/delivery.md)；当前代码入口见[开发说明](../../docs/development.md)。用户授权覆盖该轮骨架初始化、依赖安装及验证，后续功能按各自变更实现。上面的讨论阶段记录保留当时范围，当前工程状态以代码与实际交付记录为准。
 
 ## Decisions so far
 
@@ -99,15 +111,35 @@ Labels: wayfinder:map
 - [明确 Agent 开发协作、决策文档与规范的工程纪律](issues/14-agent-development-discipline.md)：确定人机分工、领域自明代码与现成检索、可操作开发环境、Orca UI／e2e 分工及真实 Agent 量化验收；实现路线继续搁置。
 - [确定 Orca UI 调试与 Electron e2e 验收](issues/20-ui-debugging-and-e2e-harness.md)：确定共同工作台浏览器入口、Playwright Test、真实内部接线与隔离诊断、首轮生命周期验收及本地／Linux CI 安排；实际运行验证随业务实现开展，尚未运行。
 - [确定验证、兼容维护与跨平台发布纪律](issues/15-validation-and-release-discipline.md)：确定按影响范围验证、发布阶段与三平台分发包验收、固定基线升级维护、迁移及恢复、性能测量和 GitHub Releases／分阶段更新安排；#21 在初步实现后补齐科研评价，政策完成不表示实际验收或发布完成。
+- [确定模型接入、数据使用与执行资源配置](issues/22-model-data-and-execution-policy.md)：确定配置作用域、发送授权、凭据与诊断、执行上限、安全重试及显式模型切换；首阶段暂不提供金额预算功能。
+- [确定首个业务变更：共同内核入口与生命周期](issues/23-kernel-entry-and-lifecycle.md)：先在开发环境交付共同内核启动与连接、单实例、关窗续留、有界重连及明确停机，沿既有三平台验证安排落实；持续任务和独立 Node 分发由后续变更接入。
+- [确定七个逻辑模块及职责边界](issues/24-logical-modules-and-responsibilities.md)：确认文献管理、Agent harness、工作台、科研业务与内容、执行环境与沙箱、插件兼容及研究项目与资产的职责，执行环境归 harness 子系统；后续按模块细化。
+- [从科研任务场景梳理旧工具链与业务模型问题](issues/26-research-scenarios-and-existing-toolchain.md)：完成首轮选题、检索与文献综合复盘，确认分层取材、自动分析与主题维护及旧综合设计融合方向；多 Agent 交接后置到模块设计，继续其他科研场景。
+- [复盘研究问题到研究结果与论证的旧工具链](issues/27-research-results-and-argumentation.md)：用户确认 ResearchSpec 本场景功能充分，重点改善科研产物的图形交互；后续业务功能与工作台设计借鉴 Codex 对象交互及 Nimbalyst 工件设计。
+- [复盘论文撰写、审阅与修订的旧工具链](issues/28-manuscript-writing-review-and-revision.md)：确认多模型分工审稿、QMD／LaTeX 实时预览及专门模型文风监督的需求；持续审阅和阶段性集中审阅两者都需要，具体机制留到模块设计。
+- [复盘已有研究的续做与复用](issues/29-research-continuation-and-reuse.md)：用户确认版本不更新时基本顺畅，要求吸纳 ResearchSpec 的工作区承接设计，使不同 session、不同 Agent 可取回全部科研上下文、几乎无损地承接此前工作；材料补充沿首个场景改进方向处理。
+- [确认科研场景覆盖范围与补充复盘需求](issues/30-research-scenario-coverage.md)：暂以四类已复盘场景继续业务模型讨论，日后想到或遇到新场景时再补充。
+- [汇总并确认场景驱动的核心业务模型](issues/31-core-research-business-model.md)：确认问题与任务按需关联，四类场景组成可往返、可持续承接的研究图景，作为模块细化的共同业务依据。
+- [细化文献获取与文献管理的业务行为](issues/32-literature-management-behavior.md)：确认获取入口、渐进结果、集合与去重、附件及共享阅读、删除恢复和同一权威下的模块协作，具体检索方法与分析、生态接入继续专票细化。
+- [细化文献分析产物与分层知识访问](issues/33-layered-literature-knowledge.md)：吸纳成熟分析实践，确认统一混合检索、来源关联与直接内容读取，保留原材料访问；自动补齐与更新由综合维护票承接。
+- [细化自动分析与主题综合的生成和维护](issues/34-analysis-synthesis-maintenance.md)：确认实际依赖与新材料发现范围分别保存，已有成果与更新状态分别表达，按影响维护分析及综合，项目判断沿既有授权。
+- [细化研究工作区、资产与跨会话上下文承接](issues/35-research-workspace-context.md)：确认概览、发现与读取入口，科研过程随工作持续保存为工作区工件，后续步骤直接取用；实际续做质量依赖记录内容与材料，独立于会话。
+- [细化内置科研方法、能力与工作流的组成](issues/36-research-business-methods-workflows.md)：确认六组科研方法、综合与写作融合、三类审阅修订交付工作流，以及结构化检索、网页补充和全文获取的首批组成；多模型协作继续专票细化。
+- [细化多模型科研协作与专门审阅监督](issues/37-multi-model-research-collaboration.md)：确认可复用角色配置、学术分工独立初审，以及面向 Agent 生成文本的可开关文风 advisor；共享当前写作上下文、注入建议，后台运行并在本轮结束有限等待。共同运行接线由 harness 协作票承接。
+- [细化 Agent harness 与科研业务层的协作契约](issues/25-harness-business-integration.md)：认可方法加载、能力入口自动记录及工作流步骤记录的简化接线，沿既有工作包、持久化、交付与 advisor 契约完成情境核对；具体 SDK 接线留到实现。
+- [细化围绕科研工件的工作台交互](issues/38-workbench-artifact-interaction.md)：确认共同指令、对象与区域选择、原位结果及依据、局部撤销通知和意见关联修订；参考调查与合成原型检查完成，人工操作及真实体验待验证。
+- [细化科研程序执行、环境供给与隔离边界](issues/40-research-execution-environment.md)：确认授权内环境准备、工作区执行与交付、产物失败保护、预览／工程执行边界、时间限制及取消恢复；四类情境语义核对完成，实际执行与跨平台行为待实现验收。
+- [细化 Zotero 生态接入、插件行为与文献迁入](issues/41-zotero-ecosystem-integration.md)：确认自有 Connector 与 AGPLv3 复用、单向迁入、引用键稳定、元数据补全、更新策略、材料与插件状态迁入、阅读器适配及检查恢复；Q1–Q8 已定案，真实接入与迁入验收由实现承接。
+- [用完整科研情境核对模块共同契约与剩余决策](issues/42-cross-module-research-walkthrough.md)：确认整体业务走查；闲置项目恢复研究时提示影响，由用户手动启动复核。预览体验与真实科研效果继续沿原票后置，实现规划仍待明确启动。
 
 ## Not yet specified
 
-- Better BibTeX、茉莉花及日常研究任务的具体依赖明确后，可能显露目前无法命名的宿主差异或领域特例；届时判断是否需要新的兼容或领域决策。
-- 工作台原型可能暴露阅读、证据审查、Agent 任务和稿件编辑之间的交互冲突；先观察具体情境，再把问题细化成票。
-- 技术栈与支持平台明确后，原生依赖和上游组件可能带来新的维护约束；目前无法预判哪些约束需要单独决策。
+- 新补充的科研场景或后续业务走查可能显露尚未识别的关系、行为例外与产品需求。能够精确说明的问题即时建票；当前不猜测具体答案，也不将既有场景之外的任务默认加入功能承诺。
+- 模块讨论与源码／原型核对可能显露尚无法命名的宿主差异、科研方法限制、性能问题或分发约束；届时按真实证据判断是否需要新的决策。已经能明确提问的模块与共同契约问题已建票，入口见 Notes 中的续接说明。
 
 ## Out of scope
 
+- 首阶段金额预算功能暂不设置，范围决定见[确定模型接入、数据使用与执行资源配置](issues/22-model-data-and-execution-policy.md)。
 - 实现应用、安装依赖、初始化业务代码、迁移实际文献资产，以及执行打包发布。当前地图用于明确上述工作的决策依据。
 - 为其他个人项目执行重构或发布。可以在本地图中决定它们与 Scholoom 的复用边界。
 - ResearchSpec 的可选学科和工具扩展留待日后讨论；当前地图不决定其默认启用或分发方式。

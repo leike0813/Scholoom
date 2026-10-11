@@ -1,0 +1,551 @@
+{
+  "date": "2026-10-09",
+  "experimentDir": "/tmp/scholoom-preview-vRvlCt",
+  "environment": {
+    "platform": "Linux 6.8.0-142-generic x86_64",
+    "cpu": "Intel Xeon E5-2697A v4 2.60GHz, 64 logical CPUs",
+    "memoryKiB": 131881480,
+    "node": "24.12.0",
+    "quarto": "1.9.37",
+    "bundledPandoc": "3.8.3",
+    "pathPandoc": "2.12 (not used)",
+    "latexmk": "4.87",
+    "pdftex": "MiKTeX 26.5 / pdfTeX 1.40.29"
+  },
+  "browser": {
+    "small": {
+      "automaticReload": true,
+      "bodyMs": 1167,
+      "formulaMs": 1268
+    },
+    "large": {
+      "automaticReload": true,
+      "bodyMs": 5144,
+      "formulaMs": 5307
+    },
+    "largeFirstWithConcurrentNotebookRender": {
+      "bodyMs": 5317,
+      "formulaMs": 5505
+    },
+    "method": "Browser MutationObserver persists body/math appearance timestamps in localStorage across Quarto automatic reload; timestamps compared with source edit Date.now() in same machine. MathJax loaded over CDN; warm browser."
+  },
+  "records": {
+    "results.json": {
+      "root": "/tmp/scholoom-preview-vRvlCt",
+      "results": [
+        {
+          "label": "fixture-chart",
+          "ms": 2029,
+          "code": 0,
+          "signal": null,
+          "recoveredFromToolOutput": true
+        },
+        {
+          "label": "qmd-small-html-FIRST",
+          "ms": 3645,
+          "code": 0,
+          "signal": null,
+          "recoveredFromToolOutput": true
+        },
+        {
+          "label": "qmd-small-html-BODY",
+          "ms": 3313,
+          "code": 0,
+          "signal": null,
+          "recoveredFromToolOutput": true
+        },
+        {
+          "label": "qmd-small-html-FORMULA",
+          "ms": 3305,
+          "code": 0,
+          "signal": null,
+          "recoveredFromToolOutput": true
+        },
+        {
+          "label": "qmd-small-pdf-FIRST",
+          "ms": 4620,
+          "code": 0,
+          "signal": null,
+          "recoveredFromToolOutput": true
+        },
+        {
+          "label": "qmd-small-pdf-FIRST-text",
+          "ms": 329,
+          "code": 0,
+          "signal": null,
+          "recoveredFromToolOutput": true
+        },
+        {
+          "label": "qmd-small-pdf-BODY",
+          "ms": 4489,
+          "code": 0,
+          "signal": null,
+          "recoveredFromToolOutput": true
+        },
+        {
+          "label": "qmd-small-pdf-BODY-text",
+          "ms": 308,
+          "code": 0,
+          "signal": null,
+          "recoveredFromToolOutput": true
+        },
+        {
+          "label": "qmd-small-pdf-FORMULA",
+          "ms": 4310,
+          "code": 0,
+          "signal": null,
+          "recoveredFromToolOutput": true
+        },
+        {
+          "label": "qmd-small-pdf-FORMULA-text",
+          "ms": 331,
+          "code": 0,
+          "signal": null,
+          "recoveredFromToolOutput": true
+        },
+        {
+          "label": "tex-small-FIRST",
+          "ms": 14532,
+          "code": 0,
+          "signal": null,
+          "recoveredFromToolOutput": true
+        },
+        {
+          "label": "tex-small-FIRST-text",
+          "ms": 365,
+          "code": 0,
+          "signal": null,
+          "recoveredFromToolOutput": true
+        },
+        {
+          "label": "tex-small-BODY",
+          "command": "latexmk",
+          "args": [
+            "-norc",
+            "-pdf",
+            "-synctex=1",
+            "-interaction=nonstopmode",
+            "-halt-on-error",
+            "-pdflatex=pdflatex -disable-installer -disable-write18 %O %S",
+            "main.tex"
+          ],
+          "cwd": "/tmp/scholoom-preview-vRvlCt/tex-small",
+          "ms": 2090,
+          "code": 0,
+          "signal": null
+        },
+        {
+          "label": "tex-small-BODY-text",
+          "command": "pdftotext",
+          "args": [
+            "main.pdf",
+            "-"
+          ],
+          "cwd": "/tmp/scholoom-preview-vRvlCt/tex-small",
+          "ms": 412,
+          "code": 0,
+          "signal": null
+        },
+        {
+          "label": "tex-small-FORMULA",
+          "command": "latexmk",
+          "args": [
+            "-norc",
+            "-pdf",
+            "-synctex=1",
+            "-interaction=nonstopmode",
+            "-halt-on-error",
+            "-pdflatex=pdflatex -disable-installer -disable-write18 %O %S",
+            "main.tex"
+          ],
+          "cwd": "/tmp/scholoom-preview-vRvlCt/tex-small",
+          "ms": 1991,
+          "code": 0,
+          "signal": null
+        },
+        {
+          "label": "tex-small-FORMULA-text",
+          "command": "pdftotext",
+          "args": [
+            "main.pdf",
+            "-"
+          ],
+          "cwd": "/tmp/scholoom-preview-vRvlCt/tex-small",
+          "ms": 345,
+          "code": 0,
+          "signal": null
+        },
+        {
+          "label": "tex-small-pdfinfo",
+          "command": "pdfinfo",
+          "args": [
+            "main.pdf"
+          ],
+          "cwd": "/tmp/scholoom-preview-vRvlCt/tex-small",
+          "ms": 334,
+          "code": 0,
+          "signal": null
+        },
+        {
+          "label": "qmd-large-html-FIRST",
+          "command": "quarto",
+          "args": [
+            "render",
+            "main.qmd",
+            "--to",
+            "html",
+            "--no-execute"
+          ],
+          "cwd": "/tmp/scholoom-preview-vRvlCt/qmd-large",
+          "ms": 7919,
+          "code": 0,
+          "signal": null
+        },
+        {
+          "label": "qmd-large-html-BODY",
+          "command": "quarto",
+          "args": [
+            "render",
+            "main.qmd",
+            "--to",
+            "html",
+            "--no-execute"
+          ],
+          "cwd": "/tmp/scholoom-preview-vRvlCt/qmd-large",
+          "ms": 8016,
+          "code": 0,
+          "signal": null
+        },
+        {
+          "label": "qmd-large-html-FORMULA",
+          "command": "quarto",
+          "args": [
+            "render",
+            "main.qmd",
+            "--to",
+            "html",
+            "--no-execute"
+          ],
+          "cwd": "/tmp/scholoom-preview-vRvlCt/qmd-large",
+          "ms": 8027,
+          "code": 0,
+          "signal": null
+        },
+        {
+          "label": "qmd-large-pdf-FIRST",
+          "command": "quarto",
+          "args": [
+            "render",
+            "main.qmd",
+            "--to",
+            "pdf",
+            "--no-execute"
+          ],
+          "cwd": "/tmp/scholoom-preview-vRvlCt/qmd-large",
+          "ms": 10852,
+          "code": 0,
+          "signal": null
+        },
+        {
+          "label": "qmd-large-pdf-FIRST-text",
+          "command": "pdftotext",
+          "args": [
+            "main.pdf",
+            "-"
+          ],
+          "cwd": "/tmp/scholoom-preview-vRvlCt/qmd-large",
+          "ms": 536,
+          "code": 0,
+          "signal": null
+        },
+        {
+          "label": "qmd-large-pdf-BODY",
+          "command": "quarto",
+          "args": [
+            "render",
+            "main.qmd",
+            "--to",
+            "pdf",
+            "--no-execute"
+          ],
+          "cwd": "/tmp/scholoom-preview-vRvlCt/qmd-large",
+          "ms": 9910,
+          "code": 0,
+          "signal": null
+        },
+        {
+          "label": "qmd-large-pdf-BODY-text",
+          "command": "pdftotext",
+          "args": [
+            "main.pdf",
+            "-"
+          ],
+          "cwd": "/tmp/scholoom-preview-vRvlCt/qmd-large",
+          "ms": 474,
+          "code": 0,
+          "signal": null
+        },
+        {
+          "label": "qmd-large-pdf-FORMULA",
+          "command": "quarto",
+          "args": [
+            "render",
+            "main.qmd",
+            "--to",
+            "pdf",
+            "--no-execute"
+          ],
+          "cwd": "/tmp/scholoom-preview-vRvlCt/qmd-large",
+          "ms": 9694,
+          "code": 0,
+          "signal": null
+        },
+        {
+          "label": "qmd-large-pdf-FORMULA-text",
+          "command": "pdftotext",
+          "args": [
+            "main.pdf",
+            "-"
+          ],
+          "cwd": "/tmp/scholoom-preview-vRvlCt/qmd-large",
+          "ms": 541,
+          "code": 0,
+          "signal": null
+        },
+        {
+          "label": "tex-large-FIRST",
+          "command": "latexmk",
+          "args": [
+            "-norc",
+            "-pdf",
+            "-synctex=1",
+            "-interaction=nonstopmode",
+            "-halt-on-error",
+            "-pdflatex=pdflatex -disable-installer -disable-write18 %O %S",
+            "main.tex"
+          ],
+          "cwd": "/tmp/scholoom-preview-vRvlCt/tex-large",
+          "ms": 5802,
+          "code": 0,
+          "signal": null
+        },
+        {
+          "label": "tex-large-FIRST-text",
+          "command": "pdftotext",
+          "args": [
+            "main.pdf",
+            "-"
+          ],
+          "cwd": "/tmp/scholoom-preview-vRvlCt/tex-large",
+          "ms": 473,
+          "code": 0,
+          "signal": null
+        },
+        {
+          "label": "tex-large-BODY",
+          "command": "latexmk",
+          "args": [
+            "-norc",
+            "-pdf",
+            "-synctex=1",
+            "-interaction=nonstopmode",
+            "-halt-on-error",
+            "-pdflatex=pdflatex -disable-installer -disable-write18 %O %S",
+            "main.tex"
+          ],
+          "cwd": "/tmp/scholoom-preview-vRvlCt/tex-large",
+          "ms": 2108,
+          "code": 0,
+          "signal": null
+        },
+        {
+          "label": "tex-large-BODY-text",
+          "command": "pdftotext",
+          "args": [
+            "main.pdf",
+            "-"
+          ],
+          "cwd": "/tmp/scholoom-preview-vRvlCt/tex-large",
+          "ms": 426,
+          "code": 0,
+          "signal": null
+        },
+        {
+          "label": "tex-large-FORMULA",
+          "command": "latexmk",
+          "args": [
+            "-norc",
+            "-pdf",
+            "-synctex=1",
+            "-interaction=nonstopmode",
+            "-halt-on-error",
+            "-pdflatex=pdflatex -disable-installer -disable-write18 %O %S",
+            "main.tex"
+          ],
+          "cwd": "/tmp/scholoom-preview-vRvlCt/tex-large",
+          "ms": 2242,
+          "code": 0,
+          "signal": null
+        },
+        {
+          "label": "tex-large-FORMULA-text",
+          "command": "pdftotext",
+          "args": [
+            "main.pdf",
+            "-"
+          ],
+          "cwd": "/tmp/scholoom-preview-vRvlCt/tex-large",
+          "ms": 525,
+          "code": 0,
+          "signal": null
+        },
+        {
+          "label": "tex-large-pdfinfo",
+          "command": "pdfinfo",
+          "args": [
+            "main.pdf"
+          ],
+          "cwd": "/tmp/scholoom-preview-vRvlCt/tex-large",
+          "ms": 312,
+          "code": 0,
+          "signal": null
+        },
+        {
+          "label": "synctex-forward",
+          "command": "synctex",
+          "args": [
+            "view",
+            "-i",
+            "1:1:/tmp/scholoom-preview-vRvlCt/tex-small/chapter.tex",
+            "-o",
+            "/tmp/scholoom-preview-vRvlCt/tex-small/main.pdf"
+          ],
+          "cwd": "/tmp/scholoom-preview-vRvlCt/tex-small",
+          "ms": 343,
+          "code": 0,
+          "signal": null
+        },
+        {
+          "label": "synctex-backward",
+          "command": "synctex",
+          "args": [
+            "edit",
+            "-o",
+            "1:185.712524:263.628601:/tmp/scholoom-preview-vRvlCt/tex-small/main.pdf"
+          ],
+          "cwd": "/tmp/scholoom-preview-vRvlCt/tex-small",
+          "ms": 326,
+          "code": 0,
+          "signal": null
+        }
+      ]
+    },
+    "quarto-watch-results.json": {
+      "root": "/tmp/scholoom-preview-vRvlCt",
+      "measurements": [
+        {
+          "label": "quarto-preview-start",
+          "ms": 3466
+        },
+        {
+          "label": "quarto-watch-body",
+          "ms": 910
+        },
+        {
+          "label": "quarto-watch-formula",
+          "ms": 752
+        },
+        {
+          "label": "quarto-watch-citation",
+          "ms": 788
+        },
+        {
+          "label": "quarto-watch-bib-only",
+          "elapsedMs": 5002,
+          "refreshed": false,
+          "newLog": "Output created: main.html\n\nWatching files for changes\n"
+        },
+        {
+          "label": "quarto-watch-bib-with-source",
+          "ms": 912
+        },
+        {
+          "label": "quarto-watch-burst",
+          "edits": 10,
+          "intervalMs": 100,
+          "fromFirstMs": 1720,
+          "fromLastMs": 807,
+          "renderCompletions": 3
+        },
+        {
+          "label": "quarto-watch-invalid-yaml",
+          "watcherAlive": true,
+          "oldPreviewPresent": true,
+          "contentUnchanged": true,
+          "diagnosticObserved": true,
+          "newLog": "ERROR: YAMLException: unexpected end of the stream within a flow collection (3:1)\n\n 1 | \n 2 | title: [\n 3 | \n-----^\n\nStack trace:\n    at generateError2 (file:///opt/quarto/bin/quarto.js:16764:10)\n    at throwError2 (file:///opt/quarto/bin/quarto.js:16767:9)\n    at readFlowCollection2 (file:///opt/quarto/bin/quarto.js:17139:3)\n    at composeNode2 (file:///opt/quarto/bin/quarto.js:17558:135)\n    at readBlockMapping2 (file:///opt/quarto/bin/quarto.js:17365:11)\n    at composeNode2 (file:///opt/quarto/bin/quarto.js:17558:80)\n    at readDocument2 (file:///opt/quarto/bin/quarto.js:17690:3)\n    at loadDocuments2 (file:///opt/quarto/bin/quarto.js:17732:5)\n    at load$12 (file:///opt/quarto/bin/quarto.js:17750:19)\n    at parseWithNiceErrors (file:///opt/quarto/bin/quarto.js:18815:12)\n    at readYamlFromMarkdown (file:///opt/quarto/bin/quarto.js:18772:9)\n    at markdownExecutionEngine (file:///opt/quarto/bin/quarto.js:77245:16)\n    at fileExecutionEngine (file:///opt/quarto/bin/quarto.js:77362:14)\n    at eventLoopTick (ext:core/01_core.js:218:9)\n    at async fileExecutionEngineAndTarget (file:///opt/quarto/bin/quarto.js:77385:18)\n    at async render (file:///opt/quarto/bin/quarto.js:142244:22)\n    at async renderForPreview (file:///opt/quarto/bin/quarto.js:143621:24)\n    at async render2 (file:///opt/quarto/bin/quarto.js:143454:23)\n"
+        },
+        {
+          "label": "quarto-watch-recovery",
+          "ms": 1017
+        }
+      ]
+    },
+    "latex-watch-results.json": {
+      "root": "/tmp/scholoom-preview-vRvlCt",
+      "measurements": [
+        {
+          "label": "latex-watch-default-body",
+          "ms": 2795
+        },
+        {
+          "label": "latex-watch-default-formula",
+          "ms": 2743
+        },
+        {
+          "label": "latex-watch-tuned-body",
+          "ms": 1112
+        },
+        {
+          "label": "latex-watch-tuned-formula",
+          "ms": 1171
+        },
+        {
+          "label": "latex-watch-tuned-burst",
+          "edits": 10,
+          "intervalMs": 100,
+          "fromFirstMs": 2769,
+          "fromLastMs": 1857,
+          "pdflatexRuns": 2
+        },
+        {
+          "label": "latex-watch-late-error",
+          "watcherAlive": true,
+          "pdfExists": false,
+          "previousPdfUnchanged": false,
+          "pdfContainsBrokenRevision": false,
+          "error": "\nLatexmk: Need to remake files.\n Reasons for rerun\nChanged files or newly in use/created:\n  chapter.tex\nCategory 'changed_user':\n  chapter.tex\nCategory 'rules_to_apply':\n  pdflatex\n\n\nLatexmk: applying rule 'pdflatex'...\nRule 'pdflatex':  Reasons for rerun\nChanged files or newly in use/created:\n  chapter.tex\nCategory 'changed_user':\n  chapter.tex\n\n------------\nRun number 1 of rule 'pdflatex'\n------------\n------------\nRunning 'pdflatex -disable-installer -disable-write18  -synctex=1 -interaction=nonstopmode -halt-on-error -recorder  \"main.tex\"'\n------------\nThis is pdfTeX, Version 3.141592653-2.6-1.40.29 (MiKTeX 26.5) (preloaded format=pdflatex.fmt)\nentering extended mode\n(main.tex\nLaTeX2e <2025-11-01>\nL3 programming layer <2025-11-06>\n(/home/joshua/.miktex/texmfs/install/tex/latex/base/article.cls\nDocument Class: article 2025/01/22 v1.4n Standard LaTeX document class\n(/home/joshua/.miktex/texmfs/install/tex/latex/base/size10.clo))\n(/home/joshua/.miktex/texmfs/install/tex/latex/amsmath/amsmath.sty\nFor additional information on amsmath, use the `?' option.\n(/home/joshua/.miktex/texmfs/install/tex/latex/amsmath/amstext.sty\n(/home/joshua/.miktex/texmfs/install/tex/latex/amsmath/amsgen.sty))\n(/home/joshua/.miktex/texmfs/install/tex/latex/amsmath/amsbsy.sty)\n(/home/joshua/.miktex/texmfs/install/tex/latex/amsmath/amsopn.sty))\n(/home/joshua/.miktex/texmfs/install/tex/latex/graphics/graphicx.sty\n(/home/joshua/.miktex/texmfs/install/tex/latex/graphics/keyval.sty)\n(/home/joshua/.miktex/texmfs/install/tex/latex/graphics/graphics.sty\n(/home/joshua/.miktex/texmfs/install/tex/latex/graphics/trig.sty)\n(/home/joshua/.miktex/texmfs/install/tex/latex/graphics-cfg/graphics.cfg)\n(/home/joshua/.miktex/texmfs/install/tex/latex/graphics-def/pdftex.def)))\n(/home/joshua/.miktex/texmfs/install/tex/latex/hyperref/hyperref.sty\n(/home/joshua/.miktex/texmfs/install/tex/generic/iftex/iftex.sty)\n(/home/joshua/.miktex/texmfs/install/tex/latex/kvsetkeys/kvsetkeys.sty)\n(/home/joshua/.miktex/texmfs/install/tex/generic/kvdefinekeys/kvdefinekeys.sty)\n (/home/joshua/.miktex/texmfs/install/tex/generic/pdfescape/pdfescape.sty\n(/home/joshua/.miktex/texmfs/install/tex/generic/ltxcmds/ltxcmds.sty)\n(/home/joshua/.miktex/texmfs/install/tex/generic/pdftexcmds/pdftexcmds.sty\n(/home/joshua/.miktex/texmfs/install/tex/generic/infwarerr/infwarerr.sty)))\n(/home/joshua/.miktex/texmfs/install/tex/latex/hycolor/hycolor.sty)\n(/home/joshua/.miktex/texmfs/install/tex/latex/hyperref/nameref.sty\n(/home/joshua/.miktex/texmfs/install/tex/latex/refcount/refcount.sty)\n(/home/joshua/.miktex/texmfs/install/tex/generic/gettitlestring/gettitlestring.\nsty (/home/joshua/.miktex/texmfs/install/tex/latex/kvoptions/kvoptions.sty)))\n(/home/joshua/.miktex/texmfs/install/tex/latex/etoolbox/etoolbox.sty)\n(/home/joshua/.miktex/texmfs/install/tex/generic/stringenc/stringenc.sty)\n(/home/joshua/.miktex/texmfs/install/tex/latex/hyperref/pd1enc.def)\n(/home/joshua/.miktex/texmfs/install/tex/generic/intcalc/intcalc.sty)\n(/home/joshua/.miktex/texmfs/install/tex/latex/hyperref/puenc.def)\n(/home/joshua/.miktex/texmfs/install/tex/latex/url/url.sty)\n(/home/joshua/.miktex/texmfs/install/tex/generic/bitset/bitset.sty\n(/home/joshua/.miktex/texmfs/install/tex/generic/bigintcalc/bigintcalc.sty)))\n(/home/joshua/.miktex/texmfs/install/tex/latex/hyperref/hpdftex.def\n(/home/joshua/.miktex/texmfs/install/tex/latex/rerunfilecheck/rerunfilecheck.st\ny\n(/home/joshua/.miktex/texmfs/install/tex/generic/uniquecounter/uniquecounter.st\ny)))\n(/home/joshua/.miktex/texmfs/install/tex/latex/l3backend/l3backend-pdftex.def)\n(main.aux)\n(/home/joshua/.miktex/texmfs/install/tex/context/base/mkii/supp-pdf.mkii\n[Loading MPS to PDF converter (version 2006.09.02).]\n) (/home/joshua/.miktex/texmfs/install/tex/latex/epstopdf-pkg/epstopdf-base.sty\n\nPackage epstopdf Warning: Shell escape feature is not enabled.\n\n(/home/joshua/.miktex/texmfs/install/tex/latex/00miktex/epstopdf-sys.cfg))\n(main.out) (main.out) (chapter.tex [1{/home/joshua/.miktex/texmfs/data/fonts/ma\np/pdftex/pdftex.map} <./chart.png>] [2] [3] [4] [5]\n! Undefined control sequence.\nl.72 \\UndefinedPreviewCommand\n                             \n!  ==> Fatal error occurred, no output PDF file produced!\nTranscript written on main.log.\nLatexmk: Getting log file 'main.log'\nLatexmk: Examining 'main.fls'\nLatexmk: Examining 'main.log'\nLatexmk: Using bibtex to make bibliography file(s).\nLatexmk: Errors, so I did not complete making targets\nLatexmk: Failure to make the files correctly\n    ==> You will need to change a source file before I do another run <==\nCollected error summary (may duplicate other messages):\n  pdflatex: Command for 'pdflatex' gave return code 1\n      Refer to 'main.log' and/or above output for details\n\n=== Watching for updated files. Use ctrl/C to stop ...\n"
+        },
+        {
+          "label": "latex-watch-recovery",
+          "ms": 729
+        }
+      ]
+    },
+    "latex-bib-results.json": {
+      "label": "latex-watch-bib-only",
+      "ms": 1489,
+      "updated": true
+    },
+    "latex-image-results.json": {
+      "label": "latex-watch-image-only",
+      "ms": 1508,
+      "greenPixels": true
+    },
+    "no-execute-results.json": {
+      "oldOutputPreserved": true,
+      "codeRan": false,
+      "preRenderHookRan": true
+    }
+  }
+}

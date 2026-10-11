@@ -82,6 +82,8 @@ Playwright 环境限制直接访问 `file:`，因此交互检查使用原 HTML �
 
 ### 后续责任
 
+后续[研究结果与论证场景复盘](27-research-results-and-argumentation.md)确认主要改进点是适配科研产物的图形交互，并指定 Codex 对象直接交互及 Nimbalyst 工件设计为参考。沿用本票已确认组织方向，在业务功能与工作台设计阶段进一步调查、原型讨论和验证具体对象交互；该场景反馈不代表现有粗原型已满足目标体验。
+
 - [选择阅读与写作的主格式、引用和编辑能力](11-reading-writing-format.md)：确定主编辑格式、公式、引用、图表、差异及定位能力。
 - [领域模块与 Electron 架构](09-electron-architecture.md)：落实视图与同一内核的连接、查询与更新、执行监督及无工作台接入。
 - [存储与变更模型](13-storage-and-change-model.md)：落实草稿、修订、布局偏好、版本、实际应用与恢复。

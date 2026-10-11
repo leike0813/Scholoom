@@ -43,7 +43,7 @@ Blocked by: 03, 04
 
 ### translators 与浏览器 Connector
 
-首阶段复用现有 translators，并使现有浏览器 Zotero Connector 能将条目和附件保存到 Scholoom。与 Zotero 共存时明确当前保存目标，验收条目、附件、集合选择和保存进度。目标选择机制及具体协议实现由后续架构和接入工作确定。
+首阶段复用现有 translators，以自有 Scholoom Connector 将条目和附件保存到 Scholoom。扩展独立命名、发布和维护，复用适合的 Zotero 采集源码并按 AGPL-3.0 开源；详细约定见 [#41 Q1](41-zotero-ecosystem-integration.md#q1自有-scholoom-connector复用-zotero-采集能力)。Zotero 官方扩展继续保存到 Zotero，二者并用纳入验收；明确库／集合、条目与附件的实际结果及保存进度，目标不可用时提示并允许重试。独立接收、配对及具体协议接线由后续实现与验收确定。
 
 ### 兼容版本与维护责任
 

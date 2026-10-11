@@ -35,7 +35,7 @@ pnpm package:dir
 
 无图形会话的 Linux 环境用 `xvfb-run -a pnpm check`；有图形会话时直接运行 `pnpm check`。目录包用于检查两个 Electron 应用的构建布局，尚未包含正式产品所需的独立 Node、Quarto 等受管工具。
 
-开发边界、调试和后续接线见 [开发说明](docs/development.md)。已确认决策见 [决策地图](.scratch/scholoom-foundations/map.md)，领域术语见 [CONTEXT.md](CONTEXT.md)，本轮实施记录见 [OpenSpec 变更](openspec/changes/initialize-project-skeleton/proposal.md)。
+产品定位、场景、模块行为与设计约束见 [产品需求文档](docs/prd/README.md)。开发边界、调试和后续接线见 [开发说明](docs/development.md)。已确认决策见 [决策地图](.scratch/scholoom-foundations/map.md)，领域术语见 [CONTEXT.md](CONTEXT.md)，开发骨架实施记录见 [OpenSpec 变更](openspec/changes/archive/2026-10-08-initialize-project-skeleton/proposal.md)。
 
 ## 许可
 

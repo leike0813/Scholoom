@@ -1,0 +1,102 @@
+# 工作台、阅读与写作
+
+工作台让研究者围绕当前任务、材料和科研产物参与 Agent 工作。默认突出 Agent 工作，同时保留文献整理、阅读和正文编辑的直接操作。产品关系见 [PRD 首页](README.md)，协作规则见[科研工作文档](research.md)。
+
+## 布局与导航
+
+提供 Agent、文献、写作、审查四种预设，首次进入采用 Agent 布局，中央呈现当前交流与承担的工作，相关材料可以预览、展开。允许调整区域大小、折叠、分栏并保存常用安排，后续进入恢复上次布局。
+
+布局切换保留持续任务、草稿、未发送指令与附加材料。它调整信息呈现，不改变研究对象、归属、任务身份或授权。
+
+| 导航对象 | 需要访问的内容 |
+| --- | --- |
+| 持续任务 | 目标、计划、进展、执行者、会话、产物和待处理事项 |
+| Agent | 执行者配置、所承担工作、委派关系及实际活动 |
+| 会话 | 可检索交流、交互与关联工作，关闭视图后任务和成果仍可找回 |
+| 资源 | 普通文件、文献、附件、批注、分析、图表、稿件和研究记录 |
+
+长期文献库有独立入口，无项目也可管理、阅读和运行库任务。项目内打开库材料时保留当前项目和任务，正在浏览的来源与指令目标分别可辨。
+
+Agent 工作页以交流为主体，明确显示当前接收者，同时展示目标、进展、成果和待处理事项；计划、委派与工具活动按需展开。主 Agent 与 worker 的产物都能查看，切换接收者保持任务归属清楚。界面读取、刷新和高频更新按相关范围有界处理。
+
+文献导入、集合标签、元数据、批注和普通稿件编辑提供直接操作入口；批量整理、分析、综合及跨对象工作提供 Agent 入口。两类入口共用领域能力与状态，适用相同授权和变更规则。
+
+依据：[工作台组织](../../.scratch/scholoom-foundations/issues/10-workbench-interaction.md#answer)、[工作台模块职责](../../.scratch/scholoom-foundations/issues/24-logical-modules-and-responsibilities.md#answer)。
+
+## 指令、材料和对象选择
+
+输入区显示目标任务、接收 Agent 和材料标签。当前文档及选区可作为建议，支持附加、固定和移除，发送时明确交给执行者。浏览对象、附加材料与实际使用材料分别可辨；切换标签页不自动改变任务、授权或已经附加的内容。
+
+选区旁可以就地输入，也能加入 Agent 面板继续补充，两个入口共用同一条待发送指令。后续交流和结果归同一任务，原位置可打开对应修改。
+
+报告和图表支持对象选择或区域标注。有结构信息时可选择子图、图例、坐标轴标题等对象；普通图片可框选区域。界面显示实际目标，图件修改沿可找到的生成来源进行，再生成结果。只有图像区域、没有可编辑结构时，标注提供指令定位，不能宣称已取得图件元素语义。
+
+Codex 对象交互、Nimbalyst 工件设计及 Paseo 面板组织提供体验参考。参考中的 Word／PowerPoint 示例不增加本项目的原生编辑格式承诺。
+
+依据：[工件交互](../../.scratch/scholoom-foundations/issues/38-workbench-artifact-interaction.md#answer)、[结果场景](../../.scratch/scholoom-foundations/issues/27-research-results-and-argumentation.md)、[工作台选型](../../.scratch/scholoom-foundations/issues/12-technology-stack.md#answer)。
+
+## 查看结果、审查与用户介入
+
+修改在原对象提供入口，可展开差异、理由、依据及执行者；任务页汇总相关成果。对象当前内容、应用结果与任务进展来自共同事实，不能仅凭交流消息标记完成。
+
+按研究目的或审稿意见聚合正文、图表、证据关系与回复的修改，逐项查看含义变化及实际应用情况。普通授权修改直接应用并提供差异与撤销；需要先审时支持局部接受和剩余事项追踪。撤销记录回到原任务，通知提供变化线索，负责 Agent 下次修改前读取当前内容，保护后续编辑。撤销不自动重启任务；界面通知不等于 Agent 已经读取或适应变化。
+
+从审阅意见可直接向主 Agent 发指令、附加材料或安排修订。保留原意见，关联处理理由、正文和图表修改及回应；意见处理、实际应用和整体交付分别检查。分工审阅与 advisor 的角色及运行节奏见[科研协作文档](research.md#多模型分工与学术审阅)。
+
+「需要你处理」入口按项目或库汇总确需判断的回复、正式决定、审查与无法协调的冲突。普通进展可随时查看，常规重试、定位和索引刷新不扩张成人工待办。
+
+依据：[审查与待处理](../../.scratch/scholoom-foundations/issues/10-workbench-interaction.md#answer)、[原位修改与意见关联](../../.scratch/scholoom-foundations/issues/38-workbench-artifact-interaction.md#answer)。
+
+## 阅读和材料定位
+
+PDF、EPUB 和网页快照提供阅读、搜索、选择、书签与批注体验。原文位置关联实际材料版本，保留格式适合的位置及上下文，例如 PDF 页面区域和 EPUB／网页文本范围；结构化提取或 OCR 的位置应能回到原材料。
+
+GUI 选区与 Agent 材料引用使用同一定位约定。Agent 可独立读取原文与批注，材料服务不依赖可见阅读窗口。阅读组件不拥有另一套证据和来源事实。
+
+材料改版后，几何坐标或文本映射不自动证明位置仍正确；正文段落移动、重写或拆分先尝试按需重定位，仍有歧义时提示相关核验，无关编辑继续。关键证据和重要交付保留需要的版本。
+
+多栏、扫描论文、数学与图表、跨页选区、大文件、批注往返和离线阅读均需代表性材料验证。组件路线见[技术约束](constraints-and-validation.md#已定技术路线)。
+
+依据：[阅读、批注与定位](../../.scratch/scholoom-foundations/issues/11-reading-writing-format.md#answer)、[共享阅读](../../.scratch/scholoom-foundations/issues/32-literature-management-behavior.md#answer)。
+
+## 原生稿件与连续编辑
+
+新稿默认 QMD，普通笔记和报告可用 MD。已有 LaTeX 工程直接使用，保留主文件、多文件结构、参考文献、模板和图表资源，无需先转换。各稿件明确实际源文件或文件组作为正文权威。
+
+源码编辑是共同基础。QMD／MD 提供覆盖已支持学术语法的可视编辑，LaTeX 提供源码和编译 PDF。源码与可视模式编辑同一份稿件，不支持完整表示的内容保留并提供源码入口。写回可以规范化格式，但切换和保存不能丢失未知内容。
+
+正文编辑提供结构、公式、引文、表格、图表与交叉引用操作。GUI 与 Agent 使用共同查询和编辑能力，编辑器局部草稿与源文件保存沿[开放编辑规则](data-and-operation.md#开放编辑与保护已有内容)。
+
+学术内容沿原格式标准：QMD 使用 Pandoc／Quarto 引文和标识，LaTeX 保留原引用及编译链路，正文无需改用私有引文语法。引文支持组合文献及页码等定位，样式输出与证据是否支持论证分别核对。公式保留 TeX 表达，图表保留标题、标识与出处，编号和交叉引用由渲染规则显示。
+
+依据：[阅读写作格式](../../.scratch/scholoom-foundations/issues/11-reading-writing-format.md#answer)、[组件选择](../../.scratch/scholoom-foundations/issues/12-technology-stack.md#answer)。
+
+## 预览与工程渲染
+
+日常预览读取正文及已有计算结果，使用应用提供的转换和排版链路，不自动执行科研代码、自定义 pre／post-render hook 或可执行扩展。需要工程脚本才能得到完整输出时提示进入工程渲染，按已有任务授权运行，复用已确认范围。
+
+工程渲染使用实际项目配置，代码、过滤器和构建步骤按实际执行判断。不能仅因设置 `--no-execute` 就认定所有自定义脚本已被阻止。渲染进入共同受管运行时，状态、日志和成果供 GUI 与 Agent 一同读取。
+
+预览保留最后成功产物，当前编译失败时说明旧产物对应情况，不能标成最新结果。必要来源、配置与结果信息随日常渲染保存；提交稿或明确复现要求再保留所需输入版本，无需冻结每一次预览的全部资源。
+
+QMD／LaTeX 实时更新是用户期望方向。本机实验提供编译与刷新能力依据，但产品布局、刷新时机和体验、性能门槛及相关未定行为继续后置，尚未承诺某个延迟。已有边界和后置责任见[约束文档](constraints-and-validation.md#后置与待验证事项)。
+
+依据：[预览与科研执行边界](../../.scratch/scholoom-foundations/issues/40-research-execution-environment.md#answer)、[格式路线](../../.scratch/scholoom-foundations/issues/11-reading-writing-format.md#answer)、[预览调查票](../../.scratch/scholoom-foundations/issues/39-writing-live-preview.md)。
+
+## 外部反馈、终稿与交付
+
+支持 DOCX、PDF 与 LaTeX 源文件交付，关联实际使用的稿件版本与资源。投稿版式由目标模板和渲染配置生成，交付准备还检查相关引用、图表、材料及文件是否落实。
+
+接收外部文稿、批注或修订时保留原文件，将可识别正文变化和意见关联到稿件、待解决问题或变更，再按项目授权处理。复杂版式、宏、引用字段与审阅信息不能完整转换时保留材料并说明限制，不承诺所有格式无损双向编辑。
+
+审稿后补充实验、修改和回复的完成声明须有实际结果及相应稿件版本。多个稿件可以共享研究材料，各自审稿轮次与处理记录分别管理。
+
+依据：[交付及外部改稿](../../.scratch/scholoom-foundations/issues/11-reading-writing-format.md#answer)、[稿件修订工作流](../../.scratch/scholoom-foundations/issues/36-research-business-methods-workflows.md#answer)、[领域关系](../../.scratch/scholoom-foundations/issues/06-research-domain-boundaries.md#answer)。
+
+## 体验验证边界
+
+布局和工件草图用于人工讨论，已有示例交互检查通过；用户确认的是行为方向。工件原型尚未人工操作验收，真实 Agent 定位、科研修改、生成来源追溯、并发适应、撤销通知和长文体验仍待验证。
+
+可操作草图、组件名或一次编译实验不能替代生产工作台验收。日常 UI 与真实科研过程需要结合用户操作、完整接线及代表性材料验证。
+
+来源：[工作台原型](../../.scratch/scholoom-foundations/issues/10-workbench-interaction.md#answer)、[工件原型边界](../../.scratch/scholoom-foundations/issues/38-workbench-artifact-interaction.md#answer)。
