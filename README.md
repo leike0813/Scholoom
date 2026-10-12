@@ -41,6 +41,8 @@ pnpm package:dir
 
 产品定位、场景、模块行为与设计约束见 [产品需求文档](docs/prd/README.md)。开发边界、调试和后续接线见 [开发说明](docs/development.md)。已确认决策见 [决策地图](.scratch/scholoom-foundations/map.md)，领域术语见 [CONTEXT.md](CONTEXT.md)，开发骨架实施记录见 [OpenSpec 变更](openspec/changes/archive/2026-10-08-initialize-project-skeleton/proposal.md)。
 
+系统职责与数据权威见 [架构设计草稿](docs/architecture.md)，持久化、运行恢复和验证方案见 [技术设计草稿](docs/technical-design.md)，模块间操作与输入输出见 [模块接口草稿](docs/module-interfaces.md)。文档区分已确认决定、当前实现及待评审建议，并提供 PlantUML 图源和 SVG 配图。
+
 ## 许可
 
 [GNU AGPL-3.0-only](LICENSE)。

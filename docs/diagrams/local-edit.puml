@@ -1,0 +1,40 @@
+@startuml
+title 开放文件：局部修改与撤销
+skinparam defaultFontName Microsoft YaHei
+skinparam shadowing false
+autonumber
+participant "Agent / 编辑器" as Caller
+participant "Files" as Files
+database "源文件与有界历史" as Disk
+participant "ResearchWork" as Work
+Caller -> Files : read(file, boundedRange)
+Files -> Disk : 读取实际内容
+Disk --> Files : 当前目标及上下文
+Files --> Caller : 当前目标及上下文
+note over Caller,Disk : 人或外部程序可能继续编辑同一文件
+Caller -> Files : applyEdit(targetBasis, localChange, task?)
+Files -> Disk : 重读当前目标与周边
+alt 同处实质歧义 / 无法保护内容
+  Files --> Caller : conflict / 当前内容 / 保留修改意图
+else 可以协调局部变化
+  Files -> Disk : 保护目标外内容并安全保存
+  Files -> Disk : 保留必要差异和撤销依据
+  Files --> Caller : applied / actualDiff / undoRef
+end
+opt 用户请求撤销已应用编辑
+  Caller -> Files : undoEdit(undoRef, currentBasis)
+  Files -> Disk : 在当前内容核对反向修改
+  alt 后续编辑与撤销冲突
+    Files --> Caller : conflict（不整份覆盖）
+  else 可安全撤销
+    Files -> Disk : 应用局部反向修改
+    Files -> Work : 有任务关联时记录实际撤销
+    Files --> Caller : 已撤销结果
+  end
+end
+note over Files,Disk
+  文件监听不是互斥锁；外部程序仍可能竞争。
+  相关记录失败时核查实际文件结果后补建关联。
+  撤销不自动重启负责 Agent。
+end note
+@enduml

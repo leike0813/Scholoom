@@ -1,0 +1,32 @@
+@startuml
+title 有界快照订阅与重连
+skinparam defaultFontName Microsoft YaHei
+skinparam shadowing false
+autonumber
+participant "共同客户端" as Client
+participant "StateFeed" as Feed
+participant "领域权威" as Domain
+Client -> Feed : open(scope, projection, page)
+Feed -> Feed : 校验范围并挂接有界队列
+Feed -> Domain : 协调读取一致快照与基准序号 n
+Domain --> Feed : snapshot(n) / 待处理事项
+Feed --> Client : subscriptionId / instanceId / snapshot(n)
+Domain -> Feed : 已提交变化 n+1
+Feed -> Client : 增量或对象投影过期提示 n+1
+alt 连接仍在，队列溢出或连续性失效
+  Feed -> Client : resyncRequired
+  Client -> Feed : close + open(当前关注范围)
+  Feed --> Client : 新快照及新基准
+else 网络断开
+  Feed -> Feed : 释放连接所属订阅
+  note right of Domain : 任务继续，正式事项仍持久化
+  Client -> Feed : 有界退避后重新认证 / open
+  Feed -> Domain : 当前事实与待处理事项
+  Domain --> Feed : 新快照
+  Feed --> Client : 当前实例及新订阅
+end
+note over Client,Feed
+  不自动重放结果未知的写入。
+  不承诺跨内核重启回放全量历史事件。
+end note
+@enduml

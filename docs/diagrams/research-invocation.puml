@@ -1,0 +1,45 @@
+@startuml
+title 明确能力调用：执行、保存与交付
+skinparam defaultFontName Microsoft YaHei
+skinparam shadowing false
+autonumber
+actor "工作台 / Agent 入口" as UI
+participant "ResearchRuns\nharness" as Run
+participant "ResearchContent" as Content
+participant "Materials / Files" as Files
+participant "ManagedExecution\n/ ModelCalls" as Execution
+participant "ResearchWork\n库或项目" as Work
+UI -> Run : start(task, capability, inputs)
+Run -> Content : resolve(显式身份与版本)
+Content --> Run : 声明 / 执行绑定 / 检查要求
+Run -> Run : 核对输入、任务授权与外发范围
+Run -> Work : 保存调用与执行关联
+Run --> UI : execution / invocation 引用
+Run -> Content : execute(request, restrictedContext)
+Content -> Files : 读取获授权材料
+Files --> Content : 有界内容 / 实际版本与位置
+opt 能力需要模型或程序
+  Content -> Execution : 经 context 发起受管操作
+  Execution --> Content : 实际输出 / 状态 / 用量
+end
+loop 每段有承接价值的科研成果
+  Content -> Files : 保存分析、理由或结果
+  Files --> Content : 已保存引用 / 实际结果
+  Content -> Run : submitArtifacts(引用)
+  Run -> Work : recordArtifacts(task, refs, step)
+  Work --> Run : 已核对关联 / 缺失项
+end
+Content --> Run : submission(产物 / 检查 / 障碍)
+Run -> Run : 核对实际产物及正式要求
+alt 交付满足
+  Run -> Work : 记录本次交付结果
+else 部分完成或失败
+  Run -> Work : 保留成果、缺项与下一步
+end
+UI -> Run : get(execution) / 订阅
+Run --> UI : 执行状态与交付结果分别返回
+note over Run,Work
+  内部步骤不逐层创建业务调用。
+  保存成功与关联成功不构成跨资源原子事务。
+end note
+@enduml

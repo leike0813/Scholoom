@@ -1,0 +1,55 @@
+@startuml
+title 研究对象、执行身份与数据归属
+skinparam defaultFontName Microsoft YaHei
+skinparam shadowing false
+hide methods
+hide circle
+class "来源 Source" as Source {
+  owner: 库或项目
+  stableId
+}
+class "材料版本 MaterialVersion" as Version
+class "证据 Evidence" as Evidence {
+  材料位置 / 研究条件
+}
+class "主张 Claim" as Claim {
+  owner: 库或项目
+  适用条件 / 判断状态
+}
+class "证据关系" as Relation {
+  owner: 判断所属语境
+  支持 / 冲突 / 限制
+}
+class "研究任务 ResearchTask" as Task {
+  owner: 库或项目
+  目标 / 计划 / 交付要求
+}
+class "研究问题 ResearchQuestion" as Question
+class "稿件 Manuscript" as Manuscript {
+  owner: 项目
+  源文件组 / 投稿轮次
+}
+class "能力调用 CapabilityInvocation" as Invocation
+class "执行记录 ExecutionRecord" as Execution
+class "Agent 会话 Session" as Session
+Source "1" -- "0..*" Version : 材料状态
+Version "1" -- "0..*" Evidence : 定位于
+Evidence "1" -- "0..*" Relation
+Claim "1" -- "0..*" Relation
+Task "0..*" -- "0..*" Question : 关联
+Manuscript "0..*" -- "0..*" Claim : 采用与表述
+Task "1" -- "0..*" Invocation : 直接负责
+Task "1" -- "0..*" Execution : 持续工作尝试
+Invocation "0..1" -- "0..*" Execution : 普通执行可无能力调用
+Execution "0..*" -- "0..*" Session : 关联上下文
+note bottom of Task
+  任务不要求先有关联问题或项目。
+  调用、执行、会话不由网络请求 ID 标识。
+  图示为核心关系，不是物理数据库 ER 图。
+end note
+note bottom of Manuscript
+  正文权威为实际源文件或文件组。
+  项目引用库证据不会改变证据归属。
+  执行完成不自动确认主张或任务交付。
+end note
+@enduml

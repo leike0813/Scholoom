@@ -1,0 +1,57 @@
+@startuml
+title Scholoom 部署与数据权威（目标设计）
+skinparam defaultFontName Microsoft YaHei
+skinparam shadowing false
+skinparam componentStyle rectangle
+left to right direction
+node "人类与工具入口" {
+  component "Electron 工作台\nmain / preload / renderer" as Desktop
+  component "浏览器开发入口 / CLI" as Clients
+  component "共同客户端" as Client
+  Desktop --> Client
+  Clients --> Client
+}
+node "独立 Node 内核\n同一数据配置单实例" as Kernel {
+  component "app-server\n认证 / 协议 / 订阅" as Server
+  component "文献 / 研究项目与资产" as Domain
+  component "科研业务与内容" as Content
+  component "Agent harness" as Harness
+  component "受管执行环境" as Runtime
+  component "宿主监督" as Supervisor
+  Server --> Domain
+  Server --> Harness
+  Harness --> Content
+  Harness --> Domain
+  Harness --> Runtime
+}
+Client <--> Server : 本机 WebSocket\n双向 JSON-RPC
+node "独立 Electron 兼容宿主" as Host {
+  component "Zotero 契约 / 原插件\nNode + Chromium + Workers" as Plugins
+}
+node "受管执行单元" {
+  component "重计算 Worker" as Worker
+  component "JS/TS / Python / 渲染工具" as Processes
+  component "ACP 外部 Agent" as ExternalAgent
+}
+Runtime --> Worker
+Runtime --> Processes
+Runtime --> ExternalAgent
+Supervisor --> Host : 启动 / 故障 / 停止
+Plugins <--> Domain : 共同文献操作\n权威确认 / 缓存刷新
+database "文献库 SQLite" as LibraryDB
+database "项目内 SQLite" as ProjectDB
+folder "开放文件\n附件 / 稿件 / 代码 / 工件" as Files
+Domain --> LibraryDB
+Domain --> ProjectDB
+Domain --> Files
+component "Scholoom Connector\n本机采集适配（建议）" as Connector
+Connector --> Domain : 摄取与保存
+component "MCP 科研工具入口" as MCP
+MCP --> Domain : 同一授权与领域操作
+MCP --> Harness
+note bottom of Kernel
+  关闭工作台不结束内核或任务。
+  图中模块不要求各建进程或包。
+  库、项目、开放文件各保留自身权威。
+end note
+@enduml

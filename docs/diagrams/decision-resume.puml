@@ -1,0 +1,41 @@
+@startuml
+title 正式决定：多客户端答复与恢复
+skinparam defaultFontName Microsoft YaHei
+skinparam shadowing false
+autonumber
+participant "harness" as Run
+participant "Decisions\n所属库或项目" as Decisions
+actor "客户端 A" as A
+actor "客户端 B" as B
+Run -> Decisions : request(task, proposal, basis, responder)
+Decisions --> Run : 待决定引用
+Run -> Run : 保存等待点
+A -> Decisions : listPending
+Decisions --> A : 同一提案及当前依据
+B -> Decisions : listPending
+Decisions --> B : 同一提案及当前依据
+A -> Decisions : respond(答复)
+group 所属数据库事务
+  Decisions -> Decisions : 核验主体、待处理状态、依据适用性
+  Decisions -> Decisions : 保存正式决定
+end
+Decisions --> A : applied（决定已提交）
+B -> Decisions : respond(较晚的答复)
+Decisions --> B : alreadyResolved / 当前结果
+alt 通知正常到达
+  Decisions -> Run : 待决定事项变化通知
+else 决定提交后、唤醒前内核中断
+  Run -> Decisions : 恢复时查询所等待的决定
+  Decisions --> Run : 已提交结果
+end
+Run -> Run : 重新核对当前材料与适用条件
+alt 仍适用且授权有效
+  Run -> Run : 继续相关执行，核查实际副作用
+else 条件变化
+  Run -> Run : 暂停相关步骤，明确待核对内容
+end
+note over Run,Decisions
+  决定已应用不等于文件已修改或任务已完成。
+  查询已提交结果不重复索取同一个决定。
+end note
+@enduml

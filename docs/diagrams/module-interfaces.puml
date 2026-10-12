@@ -1,0 +1,33 @@
+@startuml
+title 逻辑模块与接口依赖（初步设计）
+skinparam defaultFontName Microsoft YaHei
+skinparam shadowing false
+skinparam componentStyle rectangle
+top to bottom direction
+component "工作台 / CLI / MCP 适配\n共同协议入口" as Entry
+component "文献管理\nLiterature / Materials（库）" as Literature
+component "研究项目与研究资产\nWorkspaces / ResearchWork\nFiles / Decisions / Materials（项目）" as Work
+component "内置 Agent harness\nResearchRuns" as Harness
+component "科研业务与内容\nResearchContent / CapabilityExecutor" as Content
+component "执行环境与沙箱\nManagedExecution / ModelCalls" as Runtime
+component "Zotero 兼容层\nZoteroHost / 写回适配" as Host
+Entry --> Literature : 查询 / 摄取 / 批注
+Entry --> Work : 工作区 / 编辑 / 正式答复
+Entry --> Harness : 执行 / 暂停 / 恢复 / 取消
+Harness --> Content : 解析定义 / 执行绑定
+Harness --> Work : 任务 / 工件 / 等待决定
+Harness --> Literature : 获授权材料工具
+Harness --> Runtime : 受管程序 / 模型调用
+Content --> Work : 经 context 使用领域工具
+Content --> Literature : 经 context 读取材料
+Host --> Literature : 映射身份 / 权威写回
+note bottom of Host
+  宿主生命周期由内核监督。
+  插件对象留在宿主，DTO 仅跨进程传输。
+end note
+note bottom of Work
+  库级与项目级科研工作共用契约，按 owner 落库。
+  图中接口是职责集合，不预设新增同名包或类。
+  通知使用有界订阅，不反向依赖调用者实现。
+end note
+@enduml
