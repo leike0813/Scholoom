@@ -1,11 +1,49 @@
-# Scholoom 项目入口
+# Scholoom
 
-使用中文沟通。沿用用户的操作授权及已有决定；用户当前指示优先。
+## 上下文入口
 
-- 产品、领域和架构讨论先读 [.scratch/scholoom-foundations/map.md](.scratch/scholoom-foundations/map.md)，再按当前问题读取相关决策票；地图是索引，具体决定以对应票为准。
-- 领域术语见 [CONTEXT.md](CONTEXT.md)。实现时核对当前代码、规格和真实运行结果，发现漂移更新相应事实源。
-- 开发、调试和验证先读 [开发说明](docs/development.md)，实际命令以根 `package.json` 为准；源码位于 `apps/` 与 `packages/`，`.scratch/` 是决策和原型材料。
-- UI 在 `apps/desktop/src/renderer/src/workbench/Workbench.tsx` 上演进；浏览器日常交流与 Electron 产品共用组件、session 和事件路径。先读开发说明中的“共享工作台与日常交互”，使用既有场景入口和双宿主测试；业务事实经共同客户端接入，样例只提供数据与回调。
-- 新功能、接口／状态变化、数据迁移和核心跨模块约定使用项目默认 OpenSpec schema；已有契约内的小清理、文字调整和简单修复沿轻量流程。
-- OpenSpec 实施与续做先读 [scholoom-dev 的阶段约定](openspec/schemas/scholoom-dev/README.md)，再获取当前变更的 instructions；使用 continue 时，按该约定的阶段判断处理 delivery，优先于通用 Skill 的“生成首个 ready 工件”步骤。
-- 宏观产品、领域和架构判断由主 Agent 与用户讨论。范围明确的事实调查、执行和必要审查可委派，模型沿用户当前指定，委派前说明任务与模型。
+- 产品、领域与架构讨论：先读[决策地图](.scratch/scholoom-foundations/map.md)，再读相关票；具体决定以票为准，术语见 [CONTEXT.md](CONTEXT.md)，产品要求见 [PRD](docs/prd/README.md)。
+- 开发、调试与验证：先读[开发说明](docs/development.md)，命令以根 `package.json` 为准；模块与接口设计核对[架构文档](docs/architecture.md)、相关决议及[当前规格](openspec/specs)。技术与接口草稿中的候选方案不视为定案。
+- 规划、协作与交付：遵循[开发纪律 #14](.scratch/scholoom-foundations/issues/14-agent-development-discipline.md)；确定验收范围或准备发布时读[验证纪律 #15](.scratch/scholoom-foundations/issues/15-validation-and-release-discipline.md)。
+- 决策票保存选择与理由，OpenSpec 保存行为契约及实施变更，开发说明保存运行入口；更新对应事实源，其余引用，不另建重复 ADR 或进度账本。
+
+## 产品与架构约束
+
+- 科研内核可脱离工作台执行；GUI 与 Agent 共用领域能力和数据权威。跨端契约以 `packages/protocol` 的 schema 为源，工作台经 `packages/client` 接入。
+- 重计算放入 Worker 或受管进程，避免阻塞工作台与 Agent 调度；Synthesis 先用 TypeScript，具体复用与语言取舍沿[#19](.scratch/scholoom-foundations/issues/19-existing-source-and-rust-reuse.md)。
+- [Agent 会话](.scratch/scholoom-foundations/issues/43-free-agent-conversation-and-research-tasks.md)沿通用 harness，不分类型、不绑定研究任务；任务通过工具操作，多会话可处理同一对象。
+- 科研分析、依据、决定和接续所需内容保存为工作区材料与研究记录；[跨会话续做](.scratch/scholoom-foundations/issues/35-research-workspace-context.md)不依赖旧 transcript。
+- [交互式科研界面](.scratch/scholoom-foundations/issues/45-interactive-research-reports.md)是一等原生接口，供 Agent、能力和迁入工作流共同使用。
+- 现阶段排除依赖[持续精确原文定位](.scratch/scholoom-foundations/issues/44-defer-continuous-precise-source-location.md)的功能；保留当次选区、来源摘录和重新核查。
+
+## 实施与模块交付
+
+- 新功能、接口／状态变化、数据迁移及核心跨模块约定使用 OpenSpec `scholoom-dev`；已有契约内的小清理与简单修复走轻量路径。
+- 创建、实施或续做变更时，先读[阶段约定](openspec/schemas/scholoom-dev/README.md)，再取当前 instructions。规划止于 `apply.requires` 及其依赖齐备，优先于通用 `continue` 的首个 ready 工件规则；实际执行后才写 `delivery.md`，续做先读已有交付记录。CLI 的 ready／all_done 不代表实际交付完成。
+- 默认沿实际业务路径推进。模块按自身契约独立测试与交付，无需等待完整路径；基础设施交付说明服务的路径，跨模块路径由主 Agent 负责整合验收。
+- 设计模块时使用 [codebase-design](.agents/skills/codebase-design/SKILL.md)，把独立测试、诊断与交付作为 deep module 的设计检查，并在实现前识别已明确的复用职责。模块依赖可在测试中替换，独立交付不要求拆成独立进程或包。
+- 模块交付包含可诊断入口：复用接口、日志或测试，能读取当前状态、相关失败原因和排查线索。交互失败应能区分发送、受理、执行与结果刷新环节。
+- 共享接口由主 Agent 统筹；接口频繁变化时先澄清契约，再并行依赖实现。并行收益计入沟通、审查和返工成本。
+
+## 旧项目复用与验证依据
+
+- 迁入 zotero-agents／ResearchSpec 的实现按 Scholoom 契约抽取或重组，由本项目维护，保留来源与必要许可；不把旧应用整体作为运行依赖。比较适配、状态转换、构建和维护的总成本，按[#19](.scratch/scholoom-foundations/issues/19-existing-source-and-rust-reuse.md)决定复用或重写。Zotero 插件兼容遵循[#05](.scratch/scholoom-foundations/issues/05-zotero-compatibility-policy.md)，两类兼容要求分开处理。
+- 可用原项目集成测试、e2e 和已验证结果作为 oracle；核对来源版本、输入、预期和运行条件，区分实跑证据与仅阅读的测试定义。
+- 将需要保留且符合本项目契约的行为转为对应测试，再按 [TDD](.agents/skills/tdd/SKILL.md)逐步实现。旧宿主耦合和已知缺陷不成为验收目标，预期差异须解释。
+- 验证预期来自已确认契约或独立核对的样本，不以新实现自身输出作为唯一依据。关键接口、数据保护、并发与复杂整合安排独立审查，直接核对契约、改动和运行结果。
+
+## UI 与真实验证
+
+- UI 在 [Workbench.tsx](apps/desktop/src/renderer/src/workbench/Workbench.tsx) 上演进；浏览器与 Electron 共用组件、session 和事件路径，宿主差异留在薄适配层。调试与验收按[#20](.scratch/scholoom-foundations/issues/20-ui-debugging-and-e2e-harness.md)及开发说明处理。
+- 使用既有 UI harness 尽早提供可操作反馈；模块专用可视化夹具接入真实模块和组件，明确依赖替身，不另建业务实现或产品工作台。
+- 首条真实业务路径贯通后建立对应 e2e，关键动作经用户入口并核对持久化或产物。整合 e2e 运行真实内部接线，可在外部模型／远程依赖边界使用受控响应。
+- 维护双宿主 UI 测试；preload、IPC、原生能力与生命周期在真实 Electron 验证。真实科研 Agent 验收经产品入口运行，外部 Agent 代写产物不算通过。
+- 集成测试与科研验收使用隔离的配置、文献库、项目和输出目录，明确端口及进程归属；结束时仅停止本轮拥有的执行单元。
+- 原型、模块与整合交付分别记录真实接线、模拟边界及验证范围。本地通过不代表三平台验收；发布前按[#15](.scratch/scholoom-foundations/issues/15-validation-and-release-discipline.md)验证目标平台实际分发包及必要迁移、恢复路径。
+
+## 诊断、收尾与交接
+
+- 连续修复无效或特殊分支增加时，复查契约、模块职责和测试预期；以是否获得新证据、缩小问题范围判断进展，不设置固定失败次数门槛。
+- 实验结束时明确临时工件进入正式实现、保留为夹具／调查依据，或在授权范围内清理。暂留妥协写明具体限制与重新处理条件，避免无说明地成为生产依赖。
+- 交接记录须让接续 Agent 能从当前规格、代码、实际结果和下一步继续工作；OpenSpec 变更沿同一 `tasks.md`／`delivery.md` 更新，不依赖用户重述已确认决定。
+- 反复出现的协作困难优先通过结构、工具反馈、测试或夹具解决；补充规则前检查必要性，并清理重复、失效要求。详见[#14 持续改进](.scratch/scholoom-foundations/issues/14-agent-development-discipline.md#持续改进与后续边界)。

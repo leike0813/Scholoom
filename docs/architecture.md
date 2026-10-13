@@ -86,6 +86,8 @@ Scholoom 是可独立执行完整科研工作的本地 Agent 系统。人类通�
 - 来源覆盖文献及项目数据、代码、实验、结果和图件。证据指向具体材料版本；支持、反驳和限制是带研究语境的关系。
 - 项目可以包含多份稿件。稿件共享来源与研究成果，各自保留表述、投稿目标及审稿轮次。
 - 研究任务负责持续目标；能力调用记录一次明确科研使用；执行记录描述尝试与恢复；会话承载交流与运行上下文。四者身份不与网络请求或连接绑定。
+- Agent 会话统一建模，研究任务是通过工具交互的业务对象，会话不设类型或显式任务绑定，依据 [#43](../.scratch/scholoom-foundations/issues/43-free-agent-conversation-and-research-tasks.md)。运行入口及能力调用契约仍须按此细化，下方领域图只覆盖任务相关工作的部分记录关系，不表示会话所属任务。
+- 会话沿用通用 harness 的工作自由度，多个会话可并行操作同一文件或业务对象；不按会话设置对象独占或要求预先建立协作关系。内容保护与冲突协调由实际读写接口承担。
 - 发现、主张、正式决定、正文变化、程序退出与任务完成分别表达。任何一项不能自动替代其余状态。
 
 对象按价值渐进建立，不要求逐句结构化正文，也不为一次工具或 Skill 使用自动新建任务。依据：[#06](../.scratch/scholoom-foundations/issues/06-research-domain-boundaries.md)、[#17](../.scratch/scholoom-foundations/issues/17-native-research-capability-model.md)、[#31](../.scratch/scholoom-foundations/issues/31-core-research-business-model.md)。
@@ -150,7 +152,7 @@ Agent 在提出方案、完成分析、改变研究条件或明确下一步时�
 
 新稿默认 QMD，MD 用于笔记与报告，LaTeX 沿已有工程。源码与可视编辑共用同一源文件权威；无法理解的内容必须保留。编辑器、阅读器、图件及 Agent 面板通过共同对象引用提交指令。
 
-审阅意见关联实际稿件及位置，修改后检查实际差异与回应；意见处理、实际应用与整体交付分别可查看。撤销保护后续编辑并回到原任务，通知不等于 Agent 已消费。正文变化不自动改写已确认主张。普通预览读取正文与已有结果，工程计算、构建 hook 和可执行扩展经授权进入受管执行；失败时保留并明确标注最后成功结果。
+审阅意见关联实际稿件、当时摘录及可用位置，修改后检查实际差异与回应；意见处理、实际应用与整体交付分别可查看。按 [#44](../.scratch/scholoom-foundations/issues/44-defer-continuous-precise-source-location.md)，当前架构不以持续精确原文定位为前提，不安排逐句持续关联、随编辑跟踪或自动重定位功能。撤销保护后续编辑并回到原任务，通知不等于 Agent 已消费。正文变化不自动改写已确认主张。普通预览读取正文与已有结果，工程计算、构建 hook 和可执行扩展经授权进入受管执行；失败时保留并明确标注最后成功结果。
 
 交付关联实际稿件版本和资源，支持 DOCX、PDF、LaTeX 源文件；外来复杂文稿与批注保留原件，不承诺无损双向编辑。依据：[#27](../.scratch/scholoom-foundations/issues/27-research-results-and-argumentation.md)、[#28](../.scratch/scholoom-foundations/issues/28-manuscript-writing-review-and-revision.md)、[#38](../.scratch/scholoom-foundations/issues/38-workbench-artifact-interaction.md)、[#40](../.scratch/scholoom-foundations/issues/40-research-execution-environment.md)。
 
@@ -172,9 +174,11 @@ Scholoom Connector 复用采集与 translator 源码，拥有自己的保存交�
 
 ## 8. 工作台、Figma 与开发 harness
 
+按 [#45](../.scratch/scholoom-foundations/issues/45-interactive-research-reports.md)，交互式科研界面作为 Agent 与工作流共用的一等原生接口：调用方呈现和更新界面，工作台承载显示并回传用户选择与输入，后续工作沿共同执行路径处理。zotero-agents 与 ResearchSpec 迁入工作流复用该入口；界面不另立研究事实或执行权威，具体接口及运行隔离待细化。
+
 已有产品契约包含 Agent、文献、写作、审查四种预设，首次进入 Agent 布局。布局切换保留任务、稿件草稿、未发送指令和附加材料，不改变对象归属或授权。具体分区比例、组件造型、面板展开方式由并行 Figma 设计与实际交互评审确定；[#39](../.scratch/scholoom-foundations/issues/39-writing-live-preview.md)的预览布局、刷新与性能要求仍待确认。
 
-导航分别呈现持续任务、Agent、会话与资源，避免以聊天会话列表代替研究工作。文献库有独立入口；从项目打开库材料时保留当前项目与任务，并明确浏览来源和本次指令作用对象。
+导航分别呈现持续任务、Agent、会话与资源，研究对象可以独立查找。会话与对象导航独立，切换会话保留各自草稿和附加材料，不替换正在阅读或编辑的对象。文献库有独立入口；从项目打开库材料时保留原有工作上下文，并明确浏览来源和交给 Agent 的材料。
 
 **协作建议：** Figma 提供整体布局、信息层级及关键状态；本项目 UI harness 在真实 Workbench 上调整间距、键盘、滚动、选择、状态反馈与性能。实现时将采纳的 Frame 链接关联到具体 OpenSpec 变更；设计图中的示例不自动成为领域契约或已实现能力。
 

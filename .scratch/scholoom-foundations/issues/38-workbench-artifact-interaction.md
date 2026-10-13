@@ -64,6 +64,8 @@ Blocked by: 35
 
 ## Answer
 
+2026-10-13 范围调整：按 [#44](44-defer-continuous-precise-source-location.md)，以下对象交互保留当次选区、对象入口、独立报告与修改记录；“原位”不承诺内容变化后持续跟踪精确位置，随编辑跟踪的批注与依赖此能力的状态提示不纳入当前设计。会话及研究任务关系以 [#43](43-free-agent-conversation-and-research-tasks.md)为准。
+
 2026-10-09，用户确认 Q1、Q2，随后明确采纳 Q3–Q5。本票解决对象交互的行为方向，沿[已有工作台组织](10-workbench-interaction.md)、[原生格式与定位](11-reading-writing-format.md)、[低摩擦协同](13-storage-and-change-model.md)及[工作区承接](35-research-workspace-context.md)落实；具体组件和运行接线留到实现。
 
 ### Q1：对象旁与 Agent 面板共用指令

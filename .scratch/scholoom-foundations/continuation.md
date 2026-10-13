@@ -4,9 +4,15 @@
 
 ## 下一次从哪里开始
 
-**最新暂停点（2026-10-11）：用户先将项目迁到 Windows，再继续 UI 协作讨论。** 先读 [UI 为中心的开发协作续接记录](research/ui-centered-development-continuation.md)。用户已认可浏览器注释与 Figma 结合，具体接入尚未定案；React 最小原型已验证部分操作与 HMR，可靠截图、注释自动获取、Windows 运行及 Figma 评论接入仍待验证。当前不继续排查 Orca，也不自动进入业务实施。迁移时需带上尚未提交的已修改与未跟踪文件，单独 clone 不包含这些记录与原型。
+**开发纪律本轮收束（2026-10-13）。** [#14](issues/14-agent-development-discipline.md)已补充架构优先复用、测试 oracle／TDD、deep module、模块独立交付和共同 UI harness 夹具；模块验收与业务路径整合分别负责。早期反馈、模块诊断、按成果委派并控制并行、独立验证、规则精简，以及无进展时复查假设、临时方案收尾和实际交接检查均获用户认可。后续依据真实开发反馈调整；以下产品决定继续沿用，不自动启动实施。
 
-以下各票保留业务设计状态；本次迁移后的续接优先按上面的 UI 协作入口进行。
+**最新需求（2026-10-13）：** [#45 原生交互式科研界面](issues/45-interactive-research-reports.md)已确认作为一等原生接口，Agent、科研能力与工作流共用，以顺畅接入 zotero-agents 与 ResearchSpec 迁入工作流为目标。用户强调其对体验的重要性；后续细化界面呈现、更新、用户交互回传、资源访问与运行边界，不自动进入实施。
+
+**最新范围约束（2026-10-13）：** [#44](issues/44-defer-continuous-precise-source-location.md)排除一切依赖持续精确原文定位的功能。继续对象交互讨论时，以当次选区、独立报告、普通来源访问及重新核查为基础，不恢复逐句关联、随编辑跟踪或自动重定位要求。
+
+**最新讨论点（2026-10-13）：工作台交互与科研业务行为。** [统一 Agent 会话、研究任务对象与追加指令](issues/43-free-agent-conversation-and-research-tasks.md)已确认：会话不分类型或显式绑定研究任务，Agent 通过工具操作任务对象；任务由用户明确要求或确认建议后建立，执行中追加消息默认调整后续工作。下一轮可细化对象交互、执行上下文与调用契约；业务实施尚未启动。
+
+共享工作台与 Windows UI 路径已落地，当前工程入口以[开发说明](../../docs/development.md)为准；历史实验与未验证通道见 [UI 协作记录](research/ui-centered-development-continuation.md)。以下保留前序业务设计状态。
 
 [细化 Zotero 生态接入、插件行为与文献迁入](issues/41-zotero-ecosystem-integration.md)已 resolved：用户于 2026-10-10 确认 Q7 阅读器适配与 Q8 迁入检查、恢复，Q1–Q8 正式决定集中在 Answer，前序兼容政策已同步。扩展共存、引用键与题录更正、缺失附件与重复迁入、阅读写回与迁入撤回等情境仅做语义核对，实际接入、迁入和恢复仍由实现验收承接。
 
@@ -24,7 +30,7 @@
 
 新会话可以直接说：
 
-> 项目已迁到 Windows，请读 .scratch/scholoom-foundations/map.md、continuation.md 和 research/ui-centered-development-continuation.md，继续验证浏览器注释与 Figma 结合的 UI 开发协作路径；具体工具接入尚未定案。
+> 请读 .scratch/scholoom-foundations/map.md、continuation.md 和 issues/43-free-agent-conversation-and-research-tasks.md，继续细化统一 Agent 会话与研究任务对象的工作台交互；已确认决定沿用，暂不进入业务实施。
 
 ## 已完成的场景复盘
 

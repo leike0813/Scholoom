@@ -46,6 +46,8 @@ Agent 使用 Orca browser skill，先列出当前项目的标签，核对 URL �
 
 新增 UI 行为直接扩展 Workbench，样例只注入状态与回调，验收扩展 `tests/ui/workbench.spec.ts`。材料、消息和事件处理各保留一个来源；跨宿主差异留在薄入口或适配层。具体视觉风格、四区布局和阅读编辑组件按后续需求逐项接入。
 
+模块独立开发时，可在既有 UI harness 中增加专用可视化夹具，接入真实被测模块和交互组件，并明确输入及依赖替身；夹具与整合验收的边界见 [deep module 与独立交付](../.scratch/scholoom-foundations/issues/14-agent-development-discipline.md#deep-module-与独立交付)。
+
 跨主机访问可在启动命令增加 `--host 0.0.0.0`，客户端打开开发主机的局域网 IP。浏览器注释使用客户端 Orca 本地标签；页面 URL 不决定浏览器的执行位置，默认仍只监听 `127.0.0.1`。
 
 ## 验证与目录包
@@ -65,5 +67,11 @@ GitHub Actions 使用 Linux、Windows、macOS 矩阵运行同一检查与目录�
 ## 实施约定
 
 新功能依项目默认 `scholoom-dev` schema 留下调查、契约、设计、任务和实际交付记录。结构调整以代码和真实运行结果为准，规格与决策解释保持一致。
+
+拆分任务、安排整合和判断完成时，遵循[按实际使用路径开发与交付](../.scratch/scholoom-foundations/issues/14-agent-development-discipline.md#按实际使用路径开发与交付)；原型、基础设施和可用功能按各自目标记录实际验证结果。
+
+模块交付的诊断入口与早期交互反馈沿[开发操作与 UI 调试](../.scratch/scholoom-foundations/issues/14-agent-development-discipline.md#开发操作与-ui-调试)及[人机分工](../.scratch/scholoom-foundations/issues/14-agent-development-discipline.md#人机分工与协作)；测试预期沿[独立验证依据](../.scratch/scholoom-foundations/issues/14-agent-development-discipline.md#e2e-与必要检查)。
+
+设计模块、复用旧实现或重构前，按[架构优先的复用与必要重构](../.scratch/scholoom-foundations/issues/14-agent-development-discipline.md#架构优先的复用与必要重构)评估，并读取相邻的测试 oracle／TDD 与 deep module 约定。
 
 assistant-ui 已用于工作台的消息和 Composer。数据库、LangGraph、阅读编辑组件和受管工具在对应功能接入时安装并验证。范围明确后建立模块，避免提前加入空目录和假实现。

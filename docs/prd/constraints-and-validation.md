@@ -108,8 +108,11 @@ Schema 升级、迁入和批量高影响变更先在副本或样本核对结果�
 
 ## 后置与待验证事项
 
+当前设计排除一切依赖持续精确原文定位的功能，具体范围见 [#44](../../.scratch/scholoom-foundations/issues/44-defer-continuous-precise-source-location.md)。这不是待实现验收的承诺；以下阅读、审阅和预览验证不包含跨内容变化的自动重定位或持续位置跟踪。
+
 | 事项 | 当前范围与责任 |
 | --- | --- |
+| 原生交互式科研界面 | [#45](../../.scratch/scholoom-foundations/issues/45-interactive-research-reports.md)已确认一等原生接口与迁入工作流共同接入方向；动作回传、运行隔离、资源访问及更新方式待细化，双宿主及迁入工作流的真实体验待验证 |
 | QMD／LaTeX 实时预览体验 | 布局、刷新体验和性能门槛继续由[预览票](../../.scratch/scholoom-foundations/issues/39-writing-live-preview.md)后置讨论；票保持 open |
 | 真实科研评价细则 | 功能初步实现后在[科研 Agent 验收票](../../.scratch/scholoom-foundations/issues/21-agent-dogfooding-and-evaluation.md)确定样本和指标；草案未采纳，不阻塞当前宏观设计 |
 | 新科研场景 | 依[场景覆盖决定](../../.scratch/scholoom-foundations/issues/30-research-scenario-coverage.md#answer)，实际遇到时补充；不预先承诺所有未来功能 |
