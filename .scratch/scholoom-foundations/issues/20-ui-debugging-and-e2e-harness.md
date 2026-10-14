@@ -28,9 +28,11 @@ Blocked by: 09, 12, 14
 
 同一 React 工作台提供浏览器开发入口，经共同客户端与本地 WebSocket 连接真实 Node 内核，供 Orca 日常探索。文件选择、系统集成等原生操作由窄宿主适配承接；preload、桌面生命周期及 OS 交互在真实 Electron 中验收。布局样本可独立展示，实际业务调试沿同一领域实现。
 
-优先 Playwright Test，同时承载浏览器场景与真实 Electron 场景，复用 locator、条件等待、fixture 和 trace。接受其 Electron API 仍为 experimental 的维护风险，先验证固定 Playwright／Electron 组合的启动、窗口、preload 和诊断。WebdriverIO 的 Electron service 保留为有具体接入障碍时的替代候选。两者都有开发及打包入口能力，静态候选核对不等于运行验证。main 检查与最终分发设置配对核对；原生 dialog 返回值可在确定性场景替换，OS 对话框另行验收。
+默认采用 Playwright Test 作为唯一自动化框架，同时承载浏览器场景与真实 Electron 场景，复用 locator、条件等待、fixture 和 trace。接受其 Electron API 仍为 experimental 的维护风险，先验证固定 Playwright／Electron 组合的启动、窗口、preload 和诊断，升级时重新核对固定组合。遇到实际接入障碍时，在修复接线、暂缓升级与迁移工具之间按证据选择；WebdriverIO 的 Electron service 是未经运行验证的候选，不预设为唯一回退，不为维持测试固定组合而长期推迟安全更新。两者都有开发及打包入口能力，静态候选核对不等于运行验证。main 检查与最终分发设置配对核对；原生 dialog 返回值可在确定性场景替换，OS 对话框另行验收。
 
 事实依据见 [Playwright 自动化调查](../research/playwright-electron-harness-facts.md)与 [WebdriverIO 核对](../research/webdriverio-electron-harness-facts.md)。具体版本组合由实际实现核对。
+
+2026-10-14 用户确认以上框架政策；理由：单一默认框架控制维护面，修复、暂缓或迁移等选择留给实际障碍的证据，安全更新不因测试固定被长期拖延。
 
 ### 测试边界、隔离与诊断（Q3）
 

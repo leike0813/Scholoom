@@ -6,6 +6,7 @@
 - 开发、调试与验证：先读[开发说明](docs/development.md)，命令以根 `package.json` 为准；模块与接口设计核对[架构文档](docs/architecture.md)、相关决议及[当前规格](openspec/specs)。技术与接口草稿中的候选方案不视为定案。
 - 规划、协作与交付：遵循[开发纪律 #14](.scratch/scholoom-foundations/issues/14-agent-development-discipline.md)；确定验收范围或准备发布时读[验证纪律 #15](.scratch/scholoom-foundations/issues/15-validation-and-release-discipline.md)。
 - 决策票保存选择与理由，OpenSpec 保存行为契约及实施变更，开发说明保存运行入口；更新对应事实源，其余引用，不另建重复 ADR 或进度账本。
+- 起草实施规格时参考[初设规格书](docs/initial-spec/README.md)，核对当前正式规格及原决议；初设不表示已实现，转入正式规格后以链接替换对应初设正文，避免维护两份契约。
 
 ## 产品与架构约束
 
@@ -14,6 +15,7 @@
 - 重计算放入 Worker 或受管进程，避免阻塞工作台与 Agent 调度；Synthesis 先用 TypeScript，具体复用与语言取舍沿[#19](.scratch/scholoom-foundations/issues/19-existing-source-and-rust-reuse.md)。
 - [Agent 会话](.scratch/scholoom-foundations/issues/43-free-agent-conversation-and-research-tasks.md)沿通用 harness，不分类型、不绑定研究任务；任务通过工具操作，多会话可处理同一对象。
 - 科研分析、依据、决定和接续所需内容保存为工作区材料与研究记录；[跨会话续做](.scratch/scholoom-foundations/issues/35-research-workspace-context.md)不依赖旧 transcript。
+- 文件并发、误操作与备份恢复按 [#13](.scratch/scholoom-foundations/issues/13-storage-and-change-model.md#answer)：内部按文件串行保存，内容变化即重读；恢复到独立副本并保护后续成果。checkpoint 失效后的新执行接续及产物关联部分成功沿 [#25](.scratch/scholoom-foundations/issues/25-harness-business-integration.md#持续保存分批交付与恢复)。
 - [交互式科研界面](.scratch/scholoom-foundations/issues/45-interactive-research-reports.md)是一等原生接口，供 Agent、能力和迁入工作流共同使用。
 - 现阶段排除依赖[持续精确原文定位](.scratch/scholoom-foundations/issues/44-defer-continuous-precise-source-location.md)的功能；保留当次选区、来源摘录和重新核查。
 
@@ -40,6 +42,7 @@
 - 首条真实业务路径贯通后建立对应 e2e，关键动作经用户入口并核对持久化或产物。整合 e2e 运行真实内部接线，可在外部模型／远程依赖边界使用受控响应。
 - 维护双宿主 UI 测试；preload、IPC、原生能力与生命周期在真实 Electron 验证。真实科研 Agent 验收经产品入口运行，外部 Agent 代写产物不算通过。
 - 集成测试与科研验收使用隔离的配置、文献库、项目和输出目录，明确端口及进程归属；结束时仅停止本轮拥有的执行单元。
+- 数据库访问方式与 UI 负载能力按 [#12](.scratch/scholoom-foundations/issues/12-technology-stack.md#answer)在开发中和交付前复验，按证据调整。性能门槛沿 [#15](.scratch/scholoom-foundations/issues/15-validation-and-release-discipline.md#性能验收q5)仅用于确定性动作；Agent 整体任务耗时用于诊断，科研成果另行验收。
 - 原型、模块与整合交付分别记录真实接线、模拟边界及验证范围。本地通过不代表三平台验收；发布前按[#15](.scratch/scholoom-foundations/issues/15-validation-and-release-discipline.md)验证目标平台实际分发包及必要迁移、恢复路径。
 
 ## 诊断、收尾与交接

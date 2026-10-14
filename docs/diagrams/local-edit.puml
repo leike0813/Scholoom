@@ -10,30 +10,37 @@ participant "ResearchWork" as Work
 Caller -> Files : read(file, boundedRange)
 Files -> Disk : 读取实际内容
 Disk --> Files : 当前目标及上下文
-Files --> Caller : 当前目标及上下文
+Files --> Caller : 有界内容及对应文件读取依据
 note over Caller,Disk : 人或外部程序可能继续编辑同一文件
 Caller -> Files : applyEdit(targetBasis, localChange, task?)
-Files -> Disk : 重读当前目标与周边
-alt 同处实质歧义 / 无法保护内容
-  Files --> Caller : conflict / 当前内容 / 保留修改意图
-else 可以协调局部变化
-  Files -> Disk : 保护目标外内容并安全保存
-  Files -> Disk : 保留必要差异和撤销依据
-  Files --> Caller : applied / actualDiff / undoRef
+group 内部按文件串行核对与保存
+  Files -> Disk : 重读并核对整份文件内容
+  alt 内容已变化
+    Files --> Caller : conflict / 要求重读并重新提出修改
+  else 目标不明确 / 持续竞争
+    Files --> Caller : conflict / 暂停相关修改并保留候选
+  else 内容一致且目标明确
+    Files -> Disk : 应用局部修改并安全保存
+    Files -> Disk : 保留必要差异和撤销依据
+    Files --> Caller : applied / actualDiff / undoRef
+  end
 end
 opt 用户请求撤销已应用编辑
   Caller -> Files : undoEdit(undoRef, currentBasis)
-  Files -> Disk : 在当前内容核对反向修改
-  alt 后续编辑与撤销冲突
-    Files --> Caller : conflict（不整份覆盖）
-  else 可安全撤销
-    Files -> Disk : 应用局部反向修改
-    Files -> Work : 有任务关联时记录实际撤销
-    Files --> Caller : 已撤销结果
+  group 内部按文件串行核对与保存
+    Files -> Disk : 核对当前内容依据与反向修改
+    alt 内容变化 / 无法安全撤销
+      Files --> Caller : conflict（保留现状，必要时重读）
+    else 可安全撤销
+      Files -> Disk : 应用局部反向修改
+      Files -> Work : 有任务关联时记录实际撤销
+      Files --> Caller : 已撤销结果
+    end
   end
 end
 note over Files,Disk
-  文件监听不是互斥锁；外部程序仍可能竞争。
+  外部写入不受内部串行约束，核对与保存间仍可能竞争。
+  多文件逐项报告结果，不自动回滚已成功部分。
   相关记录失败时核查实际文件结果后补建关联。
   撤销不自动重启负责 Agent。
 end note

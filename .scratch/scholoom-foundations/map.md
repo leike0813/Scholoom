@@ -10,6 +10,8 @@ Labels: wayfinder:map
 
 ### 当前讨论入口
 
+- 2026-10-14，设计复审讨论已收束并获用户确认：保留 [#09](issues/09-electron-architecture.md)单内核与有界局部重同步；[#13](issues/13-storage-and-change-model.md)采用文件内容变化即重读、独立副本恢复与选择性取回；[#25](issues/25-harness-business-integration.md)明确 checkpoint 失效后新执行接续及产物关联部分成功；[#44](issues/44-defer-continuous-precise-source-location.md)补齐旧记录降级呈现。数据库/UI 能力沿 [#12](issues/12-technology-stack.md)作为开发中与交付前复验的假设，性能门槛沿 [#15](issues/15-validation-and-release-discipline.md)仅用于确定性动作，测试工具策略沿 [#20](issues/20-ui-debugging-and-e2e-harness.md)。本轮同步设计、PRD 与决议，未启动业务实施或宣称运行验收通过。
+
 - 2026-10-14，[多 Agent 交互初设 #46](issues/46-multi-agent-interaction.md)已采纳：内部共用原生 harness，区分 subagent 委派、已有会话主动协作与 advisor；跨会话采用持久收件箱、执行边界消费和有界唤醒，A2A 留作对外互操作候选。具体契约、SDK 接线及参数在实现中探索打磨，本轮只记录初设，未启动业务实施。
 
 - 2026-10-14，[执行与扩展边界 #07](issues/07-agent-runtime-boundaries.md#answer)已更新：统一内置 LangGraph／LangChain／Deep Agents，不支持 ACP 外部 Agent 或第三方 harness 接入；MCP 能力经插件系统管理，不提供任意 MCP 服务配置入口。Scholoom 自身对外 MCP 服务为独立候选，开放范围待定。[技术栈 #12](issues/12-technology-stack.md)保留自有 React DOM＋assistant-ui 工作台与 daemon，Paseo 以借鉴为主；本轮仅同步决议和设计文档。

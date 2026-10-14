@@ -43,6 +43,8 @@ pnpm package:dir
 
 系统职责与数据权威见 [架构设计草稿](docs/architecture.md)，持久化、运行恢复和验证方案见 [技术设计草稿](docs/technical-design.md)，模块间操作与输入输出见 [模块接口草稿](docs/module-interfaces.md)。文档区分已确认决定、当前实现及待评审建议，并提供 PlantUML 图源和 SVG 配图。
 
+后续开发参考[初设规格书](docs/initial-spec/README.md)和[实施路线图](docs/implementation-roadmap.md)。路线图按可验收成果分阶段，说明 Figma 未就绪时可先推进的模块、功能性界面和后续设计收敛方式；具体实施通过 OpenSpec 管理。
+
 ## 许可
 
 [GNU AGPL-3.0-only](LICENSE)。

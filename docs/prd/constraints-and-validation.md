@@ -82,7 +82,11 @@ Scholoom 按 AGPL-3.0 开源，实际仓库许可见 [LICENSE](../../LICENSE)。
 
 确定性 e2e 使用真实内核、文件、数据库及必要兼容宿主，只在外部模型或远程依赖边界提供受控响应；每轮使用独立配置、库、项目和输出，关联场景、运行和各进程诊断。浏览器开发入口复用实际工作台及客户端，preload、原生功能和生命周期在真实 Electron 验证。
 
-性能使用长稿、批量文献、PDF、图谱和长会话等代表样本，记录硬件、规模与环境，测量耗时、内存、界面和调度响应、取消延迟及数据传递。重计算时实际操作工作台并检查其他任务是否推进，本地执行与模型网络等待分别记录。性能门槛依据初步测量及日用体验确定。
+性能门槛仅用于确定性动作，例如给定规模下的检索、读取、保存和快照同步，明确硬件、版本、输入与缓存条件。初次测量是基线而非合格证明，结合使用要求确定目标，开发中检查回归、交付前复验。Agent 运行期间输入、浏览和取消受理等确定性响应仍须验收；取消受理与外部工具实际停止分别衡量。
+
+Agent 科研任务的总耗时、用量、调用次数和失败原因用于诊断，不以固定篇数／分钟设置端到端性能基线；成果按科研要求另行验收。数据库访问线程安排与 UI 组件负载能力均为待验证假设，开发中使用真实规模与并行场景测量，交付前复验，必要时调整实现。
+
+恢复验证先在关键提交边界做可重复故障注入，检查实际文件、关系、正式决定和副作用；共同机制集中验证，高影响业务另测恢复。基础路径稳定后按风险补随机故障；杀进程不能等同断电持久性验证。具体场景沿 [#15](../../.scratch/scholoom-foundations/issues/15-validation-and-release-discipline.md#answer)。
 
 依据：[全流程验收](../../.scratch/scholoom-foundations/issues/01-first-product-loop.md#answer)、[工程与科研评价原则](../../.scratch/scholoom-foundations/issues/14-agent-development-discipline.md)、[验证发布](../../.scratch/scholoom-foundations/issues/15-validation-and-release-discipline.md#answer)、[真实接线](../../.scratch/scholoom-foundations/issues/20-ui-debugging-and-e2e-harness.md#answer)。
 
