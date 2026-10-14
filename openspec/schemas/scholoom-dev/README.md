@@ -4,9 +4,14 @@
 
 ## 阶段
 
-```text
-proposal --> investigation --> specs  --> tasks --> delivery
-                          \-> design -/
+```mermaid
+flowchart LR
+    proposal --> investigation
+    investigation --> specs
+    investigation --> design
+    specs --> tasks
+    design --> tasks
+    tasks --> delivery["delivery：实际执行后记录"]
 ```
 
 | 工件 | 完成依据 |
@@ -26,13 +31,21 @@ proposal --> investigation --> specs  --> tasks --> delivery
 
 归档依据实际交付状态、必要验证及任务完成情况判断。中途交接文件存在也不意味着可以归档；后续实现变化需要核对受影响证据。真实科研效果评价按 [#21](../../../.scratch/scholoom-foundations/issues/21-agent-dogfooding-and-evaluation.md)的讨论时机落实。
 
+## 图示约定
+
+本 schema 工件中的图统一使用内嵌的 `mermaid` 代码块。各阶段的绘图要求以 [schema.yaml](schema.yaml) 的 instruction 为准，模板提供放置位置：design 固定包含变更总览，其余图按相应触发条件生成；不适用的图示提示直接省略。
+
+图使用真实模块、对象、状态或任务名称，连线标明关系或触发条件，每张围绕一个问题展开。同一内容由所属工件维护，其他工件引用；现状图依据调查事实，设计图表达目标方案，交付记录核对实际实现及验证范围。图与正文矛盾时同步修正所属事实源。
+
+规格中的状态图随对应 Requirement 维护，完整文字要求和 WHEN/THEN 场景仍是行为契约；任务图表达依赖，任务复选框记录进度。绘图约定适用于本 schema 工件，已有架构文档的图源仍按其文档约定维护。
+
 ## OpenSpec 边界
 
-本机验证基线为 OpenSpec 1.14.0。CLI 依据文件存在判断 artifact 状态，依据 checkbox 判断任务进度；`isPlanningComplete` 会包含 delivery，名称不代表本 schema 的实现准备度或验收结果。使用 apply instructions 判断实现前依赖，用实际结果判断交付。
+本机验证基线为 OpenSpec 1.14.1。CLI 依据文件存在判断 artifact 状态，依据 checkbox 判断任务进度；`isPlanningComplete` 会包含 delivery，名称不代表本 schema 的实现准备度或验收结果。使用 apply instructions 判断实现前依赖，用实际结果判断交付。
 
 schema、context 和 operation guidance 提供 Agent 指引，不能强制检查执行时机、授权或证据真实性。CLI 的 nextSteps 可能在规划后提示写 delivery，须按上面的 continue 阶段判断处理。CLI 返回 `all_done` 后仍需核对交付记录；apply／archive 指引提供该提示。
 
-`openspec schema validate scholoom-dev` 检查 schema 与模板；`openspec validate` 检查规格／变更结构。实际行为按变更影响运行相关检查。官方 Skill 与 CLI 无需修改，新增 schema 也不会自动更新上游默认模板。
+`openspec schema validate scholoom-dev` 检查 schema 与模板；`openspec validate` 检查规格／变更结构。两者均不验证 Mermaid 语法或渲染效果，图示需另行核对语法、图文一致性及阅读器中的呈现。实际行为按变更影响运行相关检查。官方 Skill 与 CLI 无需修改，新增 schema 也不会自动更新上游默认模板。
 
 ## 常用入口
 
