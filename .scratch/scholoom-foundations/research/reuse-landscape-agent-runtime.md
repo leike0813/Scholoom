@@ -1,5 +1,7 @@
 # Agent runtime 与 harness 复用调查
 
+当前路线更新（2026-10-14）：以 [#07](../issues/07-agent-runtime-boundaries.md#answer)为准，统一内置 LangGraph harness，不支持 ACP 外部 Agent。本文 ACP、pi、OpenCode 等调查及原推荐保留为历史候选证据；插件 MCP 是受管理扩展点，Scholoom 对外 MCP 为独立候选，不据本报告直接接入服务或执行器。
+
 后续补查：[Codex harness 作为 Agent core](codex-harness-core-reuse.md)。本报告原有 18 项清单未充分覆盖 app-server，补充调查保留为参考。用户于 2026-10-11 在讨论图控制能力后确认维持 LangGraph/LangChain/Deep Agents 原方案，本轮不推进 Codex 主干替换、双层组合或对比原型。
 
 调查日期：2026-10-11（会话日期）\
@@ -9,7 +11,7 @@
 ## 先读结论
 
 - 保留既定组合：LangGraph 管执行编排/checkpoint，LangChain 供模型与工具循环，Deep Agents 提供可裁剪的 harness 基线。调用入口应落到 Scholoom 内核的统一身份、授权和领域服务。
-- 将 ACP 用作外部 Agent 的协议适配面；pi SDK 与 OpenCode SDK 是完整 Agent 引擎的嵌入/服务调用路线，不能把它们当作 ACP 的另一种实现。若要切换后端，需单独承担权限投影、文件访问、事件映射、取消和恢复差异。
+- ACP、pi SDK 与 OpenCode SDK 的调查展示了不同执行器的权限、事件、取消和恢复差异；本项目已选择单一内置执行基础，不采用这些外部执行接入候选。
 - AbortSignal、SDK abort 与图 checkpoint 都不撤销已写文件、数据库提交、外部 API 或供应商侧任务。取消后需核查执行效果；撤销是 Scholoom 领域变更，靠差异/局部恢复规则实现。
 - JSON Schema 是能力声明、参数和交付结构的既定事实源。Ajv 可运行时校验，json-schema-to-ts 可从 Schema 推导 TypeScript 类型；不另写一套 Zod Schema。框架若只提供 Zod 入口，应验证 JSON Schema 转换边界，不能手工维护双份定义。
 - 默认本地观测先用 OpenTelemetry API/本地导出器；Promptfoo 适合离线/CI 样例评测。Langfuse 是可选观测平台，但自托管 OSS 默认仍有遥测，需显式关闭；云端和评测调用会外发数据。
@@ -73,14 +75,14 @@ Pi 与 oh-my-pi 合为一个谱系比较项；JSON Schema 的 Ajv 与 json-schem
 ### 协议、内容与 Schema
 
 8. **MCP TypeScript SDK — 推荐用于科研工具服务适配。** SDK 提供 server/client、tools/resources/prompts、stdio/Streamable HTTP 与认证 helper；它暴露工具协议，不定义 Scholoom 对象权限。\
-   适合 Node 内核向外暴露内核校验过的科研工具，也可连用户配置的外部 MCP server；外部 MCP server 代码/网络权限仍须明示。v2 Node/Bun/Deno；renderer 不应直接访问任意服务。根 LICENSE 当前说明迁移中的贡献按 MIT 或 Apache-2.0 分别适用；按实际发布包/文件检查 NOTICE 和传递依赖。无 SDK 使用费，远程服务可能收费。\
+   当前用于评估插件受管 MCP 接入；Node 内核对外提供 MCP 服务另属候选，不提供任意 MCP 服务的独立配置入口，范围以 [#07](../issues/07-agent-runtime-boundaries.md#answer)为准。v2 Node/Bun/Deno；renderer 不应直接访问任意服务。根 LICENSE 当前说明迁移中的贡献按 MIT 或 Apache-2.0 分别适用；按实际发布包/文件检查 NOTICE 和传递依赖。无 SDK 使用费，远程服务可能收费。\
    源码：`packages/server`、`packages/client`；[v2 官方文档](https://ts.sdk.modelcontextprotocol.io/v2/)、[工具调用](https://ts.sdk.modelcontextprotocol.io/v2/clients/calling)、[LICENSE](https://github.com/modelcontextprotocol/typescript-sdk/blob/main/LICENSE)、[仓库与 v1/v2 维护说明](https://github.com/modelcontextprotocol/typescript-sdk)。v2 与 2026-07-28 spec 同步发布，v1 至少 6 个月继续维护；版本迁移是实际成本。
 
-9. **ACP TS SDK — 推荐作为外部 Agent adapter，不作为内置引擎。** ACP 定义 client/agent JSON-RPC、初始化能力、session/prompt/progress、permission request、cancel 及可选文件/terminal 操作；`@agentclientprotocol/sdk` 帮忙搭建 TS client/agent。\
+9. **ACP TS SDK — 历史候选，当前不采用。** ACP 定义 client/agent JSON-RPC、初始化能力、session/prompt/progress、permission request、cancel 及可选文件/terminal 操作；`@agentclientprotocol/sdk` 帮忙搭建 TS client/agent。\
    由 Scholoom 启动/连接受管外部 Agent，在 adapter 层把 ACP 事件和 permission request 投影到共同内核；不能假设所有 agent 支持 loadSession、文件方法或相同取消语义。SDK Apache-2.0；协议/SDK 无协议费，外部 Agent 模型费用由用户/provider 承担。\
    源码：[`typescript-sdk`](https://github.com/agentclientprotocol/typescript-sdk)、[ACP v1 overview](https://agentclientprotocol.com/protocol/v1/overview)、[文件系统](https://agentclientprotocol.com/protocol/v1/file-system)、[LICENSE](https://github.com/agentclientprotocol/typescript-sdk/blob/main/LICENSE)、[release](https://github.com/agentclientprotocol/typescript-sdk/releases)。调查时 release 页列至 2026-09-28 的 SDK 发布；SDK README 明示接口仍可能不兼容变更。需固定协议版本并做能力矩阵。
 
-**ACP 与 Pi/OpenCode 的选择面。** ACP 是跨产品的进程/协议边界，Scholoom 保留自己的任务和事实权威，承担协议适配与能力落差；Pi SDK 直接把完整 TypeScript Agent session 引入内核进程，获得深定制同时耦合其事件/session/config/tool 执行；OpenCode SDK 控制一个完整服务端进程和它自己的 session/文件操作。适配 ACP 更匹配已确认的“外部 Agent 接共同内核”；只有明确要复用外部 agent 的模型循环/工具生态且愿意隔离与监督该引擎时，才做 Pi/OpenCode backend spike。工具审批通过不自动授权文件写入，协议权限请求需要映射 Scholoom task policy。
+**ACP 与 Pi/OpenCode 的历史比较。** ACP 是跨产品的进程/协议边界，接入方承担协议适配与能力落差；Pi SDK 直接把完整 TypeScript Agent session 引入内核进程，获得深定制同时耦合其事件/session/config/tool 执行；OpenCode SDK 控制一个完整服务端进程和它自己的 session/文件操作。这些差异是 2026-10-11 候选比较的依据；本项目当前按 #07 使用单一内置执行基础，不推进上述接入。工具审批通过不自动授权文件写入。
 
 10. **JSON Schema 工具链：Ajv + json-schema-to-ts — 推荐。** Schema JSON 文件作为单一契约；Ajv 在运行边界编译 validator，`json-schema-to-ts` 的 `FromSchema` 推导 TS 类型，不反向生成第二份运行定义。适用于能力声明、参数、结构化提交、MCP/ACP 边界。\
    Ajv 支持多个 JSON Schema 草案，但类型表达不覆盖全部运行时语义，声明 `$ref`、format、union 等要在相同样例集检查。Ajv MIT；json-schema-to-ts MIT；npm 包免费。Node runtime 首选；renderer 可使用受限 validator bundle，但保持领域权威在内核。\

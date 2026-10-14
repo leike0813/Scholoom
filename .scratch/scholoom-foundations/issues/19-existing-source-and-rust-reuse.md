@@ -64,7 +64,7 @@ Blocked by: 08
 | ResearchSpec 批注摄取、定位、稿件修订与保护区 | 抽取反馈来源验证、定位、候选解释、修订检查及适合的实现 | 主编辑格式、关键来源与按需重定位、局部覆盖保护及按需审查；按已选编辑路线组织 |
 | ResearchSpec 检索与校验 | 吸纳词汇资产、检索算法、可执行校验的有效实现 | 接入共同方法/能力目录，按新输入与交付约定检验；不自动迁入旧 semantic 环境或目录权重 |
 | ResearchSpec graph-run、CLI 控制与写计划 | 研究控制语义和有效实现片段作为素材，按原生 LangGraph/harness 实现 | 旧 run 文件树、目录控制与 CLI 不作为第二权威；预检、备份和进程内回滚不是已完成的崩溃安全事务 |
-| ACP 协议、会话与进程管理 | 借鉴协议行为和生命周期实现，适配 Node 与共同任务/会话契约 | 旧 Gecko transport、runtimePersistence 与 WebSocket 桥按实际部署替换；不为旧运行方式携带全部适配层 |
+| 旧会话与进程管理 | 按具体职责借鉴生命周期和故障处理实现，服务内置 LangGraph harness | 沿 [#07](07-agent-runtime-boundaries.md#answer)不迁入 ACP 或外部 harness 接入；旧 Gecko transport、runtimePersistence 与 WebSocket 桥不整体携带 |
 | Zotero broker、Host Bridge 与 Rust bridge | 为已选兼容宿主评估适用的读写和通信实现 | 价值依赖[原包兼容宿主原型](16-zotero-host-prototype.md)；不能直接作为原生 Node 领域实现，也不因宿主耦合排除其兼容适配价值 |
 
 复用清单确定方向与候选颗粒度，实际实现按目标行为、依赖与授权检查后采用；不以旧文件数量、名字、版本或导出声明认定已经可移植。

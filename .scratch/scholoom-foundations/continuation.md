@@ -4,6 +4,10 @@
 
 ## 下一次从哪里开始
 
+**多 Agent 交互初设已采纳（2026-10-14）。** [#46](issues/46-multi-agent-interaction.md)集中保存 subagent、主动跨会话协作、advisor、消息消费与有界唤醒的初设，以及 A2A 对外互操作候选的边界。用户要求具体问题在实现中探索打磨；后续沿该方向细化对应 OpenSpec，不重复开启已采纳方向的讨论。本轮仅更新文档，业务实施尚未启动。
+
+**执行与扩展边界已收敛（2026-10-14）。** 先读 [#07 当前决定](issues/07-agent-runtime-boundaries.md#answer)：统一内置 LangGraph harness，不支持 ACP 外部 Agent；插件 MCP 由宿主管理，对外 MCP 服务是独立候选。[#12](issues/12-technology-stack.md)保留自有工作台与 daemon，Paseo 以借鉴为主。远程 SSH 工作区的数据位置、启动、凭据及宿主运行条件尚待确认，入口见[技术设计待决表](../../docs/technical-design.md#13-待决事项与实施调查)。本轮只同步决议和文档，未启动业务实施。
+
 **开发纪律本轮收束（2026-10-13）。** [#14](issues/14-agent-development-discipline.md)已补充架构优先复用、测试 oracle／TDD、deep module、模块独立交付和共同 UI harness 夹具；模块验收与业务路径整合分别负责。早期反馈、模块诊断、按成果委派并控制并行、独立验证、规则精简，以及无进展时复查假设、临时方案收尾和实际交接检查均获用户认可。后续依据真实开发反馈调整；以下产品决定继续沿用，不自动启动实施。
 
 **最新需求（2026-10-13）：** [#45 原生交互式科研界面](issues/45-interactive-research-reports.md)已确认作为一等原生接口，Agent、科研能力与工作流共用，以顺畅接入 zotero-agents 与 ResearchSpec 迁入工作流为目标。用户强调其对体验的重要性；后续细化界面呈现、更新、用户交互回传、资源访问与运行边界，不自动进入实施。

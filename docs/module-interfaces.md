@@ -85,7 +85,9 @@ type Page<T> = { items: T[]; nextCursor?: string };
 | `StateFeed.open` | 授权范围、投影种类、分页参数 → 订阅 ID、快照、基准游标 | 在内核协调挂接与读取，快照内含范围适用的待处理事项 |
 | `StateFeed.close` | 订阅 ID → 已释放 | 释放队列；不取消任务或修改业务状态 |
 
-跨进程业务命令建议采用 `literature.search`、`researchRuns.start` 等命名映射对应模块操作。MCP 工具和 ACP 外部执行适配共用领域操作、授权与结果，不要求内置模块绕行 MCP 或 app-server。
+跨进程业务命令建议采用 `literature.search`、`researchRuns.start` 等命名映射对应模块操作。内置模块直接调用领域接口，无需绕行 MCP 或 app-server。执行统一使用 LangGraph harness，不设置 ACP 外部执行适配。
+
+插件 MCP 由插件声明并由宿主管理，向 harness 提供获授权工具和资源；不增加任意 MCP 服务的独立配置入口。插件声明、连接和生命周期接口待实施调查，不能把该扩展点当作第三方 harness 的执行接口。Scholoom 自身对外提供 MCP 服务另属候选：若采用，只映射已确认开放的共同领域操作或受管执行，内部流程仍由 LangGraph 控制；长任务引用、状态查询和断线不取消的契约沿共同入口。两者边界依据 [#07](../.scratch/scholoom-foundations/issues/07-agent-runtime-boundaries.md#answer)。
 
 通知建议包含 `subscriptionId`、本次实例身份、订阅内序号和有界事件。事件按业务用途分为对象失效提示、运行进展、消息增量、待决定事项变化及 `resyncRequired`。客户端收到失效提示后按引用读取；包含的快照／增量字段以对应投影 Schema 为准，不广播任意数据库行。
 
@@ -143,6 +145,10 @@ type Page<T> = { items: T[]; nextCursor?: string };
 ### 6.1 内容与科研运行
 
 本节是任务相关工作的候选接口。[统一会话决议 #43](../.scratch/scholoom-foundations/issues/43-free-agent-conversation-and-research-tasks.md)确认研究任务为工具可操作的业务对象，会话不设类型或显式任务绑定。因此下表必填 task、按 task 查询执行和运行记录归属不能直接作为通用运行入口；通用执行上下文、对象操作及能力调用关系仍待细化。追加消息默认在下一可处理边界调整工作，并区分已受理与已处理。
+
+通用会话／执行入口与科研能力调用分别建模，复用同一 LangGraph 控制机制，不引入第三方执行后端接口。模块独立测试通过已定义接口替换模型、工具或领域依赖；插件 MCP 的调用结果、取消和恢复按工具实际支持范围核对，不以协议响应替代科研交付检查。
+
+通用协作入口按已采纳的 [#46 初设](../.scratch/scholoom-foundations/issues/46-multi-agent-interaction.md)细化：提供获授权对象发现、请求／通知、回复及处理情况查询，复用 harness 生命周期控制；消息受理、消费和请求结果分别表达。下表 `ResearchRuns.delegate` 仅覆盖委派侧，不代替已有会话间的主动通信；通用工作包的任务／调用关联按实际业务关系提供。操作名、Schema 与恢复接线仍在实现中打磨，A2A 不作为内部接口前提。
 
 | 提供方／初步操作 | 输入 → 输出 | 约束 |
 | --- | --- | --- |

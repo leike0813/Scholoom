@@ -8,14 +8,16 @@
 
 Electron 工作台、CLI 和浏览器开发入口采用共同客户端，经本机 WebSocket 上的双向 JSON-RPC 连接内核。监听限于本机，验证客户端身份，协议 Schema 集中维护，客户端类型从中生成。请求、状态与增量通知、人类介入共用协议。
 
-任务及会话身份独立于连接和请求编号。重连读取当前状态和待处理事项，恢复有界订阅，覆盖读取到接入之间的变化；不预设全量事件回放。多客户端介入答复由内核校验并只应用一次。MCP 暴露科研工具，ACP 适配外部 Agent，协议适配调用共同领域规则；stdio 按具体需求扩展。
+任务及会话身份独立于连接和请求编号。重连读取当前状态和待处理事项，恢复有界订阅，覆盖读取到接入之间的变化；不预设全量事件回放。多客户端介入答复由内核校验并只应用一次；stdio 按具体需求扩展。
+
+执行统一使用内置 LangGraph／LangChain／Deep Agents，不支持 ACP 外部 Agent 或第三方 harness 接入。harness 消费的 MCP 能力由插件声明、宿主管理配置、生命周期及授权，不提供任意 MCP 服务的独立配置入口；插件可沿原生领域、图和 UI 接口扩展，不强制使用 MCP。插件内部执行的取消、恢复和副作用按其实际契约处理。Scholoom 自身对外提供 MCP 服务是独立候选，是否提供及开放范围待定，若采用仍复用共同领域权威与内置执行。依据 [#07](../../.scratch/scholoom-foundations/issues/07-agent-runtime-boundaries.md#answer)。
 
 | 执行对象 | 已选分工 |
 | --- | --- |
 | 原生领域模块、Agent 调度与轻量能力 | Node 内核 |
 | 重计算 | Worker，脱离 UI 与调度关键事件循环 |
 | 用户 JS／TS 程序及自定义图 | 受管执行进程 |
-| Python、命令行工具及外部 Agent | 各自受管进程 |
+| Python、命令行工具及需本机启动的插件服务 | 各自受管进程 |
 | Zotero 兼容环境 | 独立 Electron 宿主，提供 Node＋Chromium 内部页面和 Workers，由内核监督 |
 
 同一应用数据配置先共用一个兼容宿主，后台插件功能无需打开人类工作台。插件对象和专属缓存留在宿主，文献读写映射到共同文献权威。进程分离用于执行、取消和故障处理，首阶段仍按可信代码运行。
@@ -49,6 +51,8 @@ Electron 工作台、CLI 和浏览器开发入口采用共同客户端，经本�
 Synthesis 初期采用 TypeScript，吸纳 zotero-agents main 或历史成熟实现，重计算独立执行。旧 Rust 布局与 TS 算法不能据此认定结果坐标相同；当前不整套迁入旧 Rust 应用或维护双语言生产实现。值得保留的 Python 科研工具沿共同受管执行接入。
 
 技术选择确认不代表组件已经完成集成、性能或三平台验收。
+
+Paseo 的 daemon、连接及交互机制以借鉴为主，不整体 fork 或迁入其 provider 体系；Scholoom 保持自有工作台与内核，复用按实际模块边界判断。
 
 依据：[技术栈](../../.scratch/scholoom-foundations/issues/12-technology-stack.md#answer)、[运行基础](../../.scratch/scholoom-foundations/issues/07-agent-runtime-boundaries.md)、[原生内容](../../.scratch/scholoom-foundations/issues/18-native-capability-runtime-and-content.md)、[源码取舍](../../.scratch/scholoom-foundations/issues/19-existing-source-and-rust-reuse.md)、[e2e 方向](../../.scratch/scholoom-foundations/issues/20-ui-debugging-and-e2e-harness.md#answer)。
 

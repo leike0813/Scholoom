@@ -16,6 +16,8 @@
 
 协议 schema 是 DTO 的事实源，类型从 schema 推导。当前仅建立契约位置；接入传输时增加运行时校验，避免再次手写另一套接口。
 
+后续执行与扩展接线沿 [#07](../.scratch/scholoom-foundations/issues/07-agent-runtime-boundaries.md#answer)：内置 LangGraph harness、插件受管 MCP，以及另行定范围的候选对外 MCP 服务。当前骨架尚未实现这些能力；Paseo 仅作为设计与具体实现的参考，不引入其 daemon／provider 体系。
+
 ## 本地工作
 
 依赖和工具版本以 `package.json`、`pnpm-lock.yaml`、`.nvmrc` 为准。pnpm 的依赖安装脚本授权集中在 `pnpm-workspace.yaml`。Electron 42 起取消依赖的自动运行时下载，项目使用官方 `install-electron` 命令显式准备二进制，见 [上游安装说明](https://github.com/electron/electron/blob/main/docs/tutorial/installation.md)。

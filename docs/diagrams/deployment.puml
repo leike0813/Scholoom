@@ -15,7 +15,8 @@ node "独立 Node 内核\n同一数据配置单实例" as Kernel {
   component "app-server\n认证 / 协议 / 订阅" as Server
   component "文献 / 研究项目与资产" as Domain
   component "科研业务与内容" as Content
-  component "Agent harness" as Harness
+  component "内置 LangGraph harness" as Harness
+  component "插件管理\n配置 / 授权 / 生命周期" as PluginManager
   component "受管执行环境" as Runtime
   component "宿主监督" as Supervisor
   Server --> Domain
@@ -23,6 +24,7 @@ node "独立 Node 内核\n同一数据配置单实例" as Kernel {
   Harness --> Content
   Harness --> Domain
   Harness --> Runtime
+  Harness --> PluginManager : 获授权能力
 }
 Client <--> Server : 本机 WebSocket\n双向 JSON-RPC
 node "独立 Electron 兼容宿主" as Host {
@@ -31,11 +33,12 @@ node "独立 Electron 兼容宿主" as Host {
 node "受管执行单元" {
   component "重计算 Worker" as Worker
   component "JS/TS / Python / 渲染工具" as Processes
-  component "ACP 外部 Agent" as ExternalAgent
 }
 Runtime --> Worker
 Runtime --> Processes
-Runtime --> ExternalAgent
+component "插件提供的 MCP 服务\n按插件声明接入" as PluginMCP
+PluginManager --> PluginMCP : 工具 / 资源调用
+PluginManager --> Runtime : 本机服务受管启动
 Supervisor --> Host : 启动 / 故障 / 停止
 Plugins <--> Domain : 共同文献操作\n权威确认 / 缓存刷新
 database "文献库 SQLite" as LibraryDB
@@ -46,9 +49,9 @@ Domain --> ProjectDB
 Domain --> Files
 component "Scholoom Connector\n本机采集适配（建议）" as Connector
 Connector --> Domain : 摄取与保存
-component "MCP 科研工具入口" as MCP
-MCP --> Domain : 同一授权与领域操作
-MCP --> Harness
+component "Scholoom 对外 MCP 入口\n候选：开放范围待定" as MCP
+MCP ..> Domain : 同一授权与领域操作
+MCP ..> Harness : 受管执行
 note bottom of Kernel
   关闭工作台不结束内核或任务。
   图中模块不要求各建进程或包。

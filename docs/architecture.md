@@ -15,7 +15,7 @@ Scholoom 是可独立执行完整科研工作的本地 Agent 系统。人类通�
 架构需要同时支持：
 
 - 跨项目共享的长期文献库，以及能独立移动、恢复的研究项目。
-- 人、内置 Agent、外部 Agent 和兼容插件访问共同领域事实。
+- 人、内置 Agent 和兼容插件访问共同领域事实；候选对外 MCP 入口复用同一权威。
 - 持续任务跨会话、跨执行尝试继续；局部失败不抹掉已完成成果。
 - QMD／MD 与既有 LaTeX 工程的开放编辑、材料定位、实际科研执行和交付。
 - Windows、macOS、Linux，Linux 为主验证平台；三平台成功以实际验收为准。
@@ -55,7 +55,7 @@ Scholoom 是可独立执行完整科研工作的本地 Agent 系统。人类通�
 | 工作台 renderer | 展示有界领域投影，编辑草稿，提交操作 | 不直接访问数据库、凭据或 Node 能力 |
 | 独立 Node 内核 | 领域读写、授权、任务与 Agent 调度、连接和宿主监督 | 同一应用数据配置仅一个实例；同时管理一个库与多个项目 |
 | 内置计算 Worker | 图谱布局等重计算 | 可取消并报告失败；事实写回由所属领域模块处理 |
-| 受管执行进程 | 用户 JS／TS、自定义图、Python、CLI、渲染及外部 Agent | 按实际调用管理资源与进程树，首阶段按可信代码执行 |
+| 受管执行进程 | 用户 JS／TS、自定义图、Python、CLI、渲染及需本机启动的插件服务 | 按实际调用管理资源与进程树，首阶段按可信代码执行 |
 | 独立 Electron 兼容宿主 | 原包装载、Zotero 可观察对象语义、DOM 和后台能力 | 按需启动；共享宿主失败时标记所有受影响调用 |
 
 内核与宿主独立于工作台生命周期。不默认开机自启，不新增常驻重启守护进程；无法连接尚存活的内核时不能强制替换。明确停止与连接中断必须区分。依据：[#09](../.scratch/scholoom-foundations/issues/09-electron-architecture.md)、[#23](../.scratch/scholoom-foundations/issues/23-kernel-entry-and-lifecycle.md)。
@@ -118,7 +118,15 @@ Scholoom 是可独立执行完整科研工作的本地 Agent 系统。人类通�
 
 ## 5. Agent 与科研业务的协作
 
-已选 LangGraph、LangChain、Deep Agents 的 JavaScript／TypeScript 路线。LangGraph 承担图、checkpoint 和等待恢复；LangChain 提供模型与工具执行基础；Deep Agents 提供可定制 harness 基线。具体 SDK 扩展点在实现时核对，不把框架内部状态变成领域模型。
+统一使用 LangGraph、LangChain、Deep Agents 的 JavaScript／TypeScript 路线。LangGraph 承担图、checkpoint 和等待恢复；LangChain 提供模型与工具执行基础；Deep Agents 提供可定制 harness 基线。多模型供应商共用这一执行机制，不接入 ACP 外部 Agent 或第三方 harness。具体 SDK 扩展点在实现时核对，不把框架内部状态变成领域模型。
+
+通用 harness 负责会话、上下文、工具执行、子 Agent 和恢复；科研模块提供领域工具、方法、原生图及交付检查。模块通过自身接口独立验收，按需要替换模型、文件、进程或领域依赖，不要求可替换整个执行引擎。普通会话与科研能力调用分别表达，沿 #43 细化通用入口。
+
+按已采纳的[多 Agent 初设 #46](../.scratch/scholoom-foundations/issues/46-multi-agent-interaction.md)，subagent 委派、已有会话间主动协作与 advisor 共用原生运行设施，分别明确管理责任、上下文和触发方式。跨会话沿持久收件箱、执行边界消费与有界唤醒组织，不强制创建研究任务；通信不取得对方会话控制权，用户暂停或停止后不因来信自动恢复。A2A 留在对外互操作层评估，内部执行方向沿 #07；具体契约和 SDK 接线在实现中打磨。
+
+harness 消费的 MCP 能力由插件声明并由宿主管理配置、启用、连接、生命周期与授权，不提供任意 MCP 服务的独立接入入口。原生领域、图与 UI 扩展可使用各自接口。插件内部操作的状态、取消和恢复按实际契约验证，不能由 MCP 调用或 checkpoint 推断。
+
+Scholoom 自身作为 MCP 服务向外部开放能力是独立候选，开放范围、认证及分发待定；若采用，仍调用共同领域接口，内部执行由 LangGraph 控制。它不意味着 Scholoom 托管外部 Agent。以上决定集中见 [#07](../.scratch/scholoom-foundations/issues/07-agent-runtime-boundaries.md#answer)。
 
 普通任务由当前 Agent 加载方法、调用已授权工具并保存产物。明确调用能力入口时，运行时自动完成输入校验、必要调用记录及交付检查。一个工作流作为整体调用，其内部步骤沿 LangGraph 记录；仅在确有独立目标或交付需求时另建任务或调用。
 
@@ -163,6 +171,8 @@ Agent 在提出方案、完成分析、改变研究条件或明确下一步时�
 移动项目保留项目内事实，外部材料按实际可达性重连。研究包用于独立交付、迁移或归档，日常写作直接连接库材料与成果，无需先导出包；独立项目包包含选用材料并列出未包含依赖。备份覆盖明确范围并验证恢复。Zotero 单向迁入保持源库原状，保存来源映射，断点续做保护迁入后的编辑；撤回只处理仍可安全撤销部分。依据：[#29](../.scratch/scholoom-foundations/issues/29-research-continuation-and-reuse.md)、[#41](../.scratch/scholoom-foundations/issues/41-zotero-ecosystem-integration.md)。
 
 ## 7. 外部系统与复用边界
+
+Scholoom 维护自有工作台、daemon 与共同客户端，Paseo 主要提供连接、SSH、生命周期、订阅、诊断及界面组织的借鉴，按具体职责评估可吸纳实现，不整体 fork 或迁入其 daemon／provider 体系。前端继续使用 React DOM＋assistant-ui，依据 [#12](../.scratch/scholoom-foundations/issues/12-technology-stack.md)。
 
 Zotero 兼容层初始固定 Zotero 10.0.5 源码与接口基线，以独立 Electron 宿主提供 Node＋Chromium 环境，支持指定 BBT、茉莉花原包；原插件发布包及代码保持不变，适配由 Scholoom 宿主承担。产品使用不要求另行安装或启动 Zotero。宿主需要保持对象身份、同步属性、异步方法、可修改原型、SQL 与 DOM 等实际可观察语义；跨进程通信使用 DTO 不意味着插件对象可全部退化成 JSON 投影。兼容数据写入最终进入共同文献权威，插件缓存不成为第二份题录主库。
 

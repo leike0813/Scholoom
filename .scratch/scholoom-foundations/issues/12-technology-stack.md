@@ -36,6 +36,8 @@ Scholoom 采用 AGPL-3.0 开源。第三方代码与资源保留各自声明，�
 
 工作台参考 Paseo 的面板组织与体验，服从 #10 已确认的布局。应用源码按具体模块吸纳；实际复用模块、接入边界和调查依据见 [Agent 面板复用调查](../research/agent-ui-reuse-evaluation.md)。文献、证据、研究任务／Agent／会话关系及内核消息投影由 Scholoom 定义；审批恢复与有界历史读取继续按既有契约实现和验收。
 
+2026-10-14 用户比较 Paseo 整体 fork、daemon／provider 吸纳及设计借鉴后，确认以借鉴为主，保留自有工作台与内核；执行统一使用 LangGraph 系列，不建设第三方 harness provider 体系。插件 MCP 与候选对外 MCP 的边界集中见 [#07](07-agent-runtime-boundaries.md#answer)。
+
 本次选择确定接入方向，未完成组件移植、运行或性能验证。构建与打包沿下方 Q4。
 
 ### 主要开发与日用验证平台（Q3）

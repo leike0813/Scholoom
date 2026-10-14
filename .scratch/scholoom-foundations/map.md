@@ -10,6 +10,12 @@ Labels: wayfinder:map
 
 ### 当前讨论入口
 
+- 2026-10-14，[多 Agent 交互初设 #46](issues/46-multi-agent-interaction.md)已采纳：内部共用原生 harness，区分 subagent 委派、已有会话主动协作与 advisor；跨会话采用持久收件箱、执行边界消费和有界唤醒，A2A 留作对外互操作候选。具体契约、SDK 接线及参数在实现中探索打磨，本轮只记录初设，未启动业务实施。
+
+- 2026-10-14，[执行与扩展边界 #07](issues/07-agent-runtime-boundaries.md#answer)已更新：统一内置 LangGraph／LangChain／Deep Agents，不支持 ACP 外部 Agent 或第三方 harness 接入；MCP 能力经插件系统管理，不提供任意 MCP 服务配置入口。Scholoom 自身对外 MCP 服务为独立候选，开放范围待定。[技术栈 #12](issues/12-technology-stack.md)保留自有 React DOM＋assistant-ui 工作台与 daemon，Paseo 以借鉴为主；本轮仅同步决议和设计文档。
+
+- 本轮还讨论了 SSH 远程工作区及模块独立验收。独立验收沿 [#14](issues/14-agent-development-discipline.md#deep-module-与独立交付)；远程工作区尚未确认数据部署、启动、凭据和 Zotero 宿主运行条件，候选及后续问题见[技术设计待决表](../../docs/technical-design.md#13-待决事项与实施调查)，不视为已批准实现范围。
+
 - 2026-10-13，[开发纪律 #14](issues/14-agent-development-discipline.md)已补充实际路径交付、架构优先复用、测试 oracle／TDD、deep module 与独立夹具验收，以及早期反馈、模块诊断、按成果委派、独立验证和规则精简。用户另采纳无进展时复查假设、临时方案收尾及实际交接检查；本轮纪律讨论收束，后续依据开发反馈调整，当前不启动业务实施。
 
 - 2026-10-13，[交互式科研界面的原生接口与工作流接入](issues/45-interactive-research-reports.md)已确认：作为 Agent、科研能力与工作流共用的一等原生接口，以顺畅接入 zotero-agents 与 ResearchSpec 迁入工作流为目标；报告及资源保存在工作区。用户强调其对体验的重要性，动作回传、资源访问与运行边界继续细化。
@@ -100,6 +106,8 @@ Labels: wayfinder:map
 
 ## Decisions so far
 
+- [多 Agent 交互系统初设](issues/46-multi-agent-interaction.md)：采纳原生委派、主动跨会话通信与有界唤醒，区分受理、消费和请求结果；A2A 在外部互操作层评估，具体实现沿初设验证打磨。
+
 - [查明 Zotero 原插件在 Electron 中运行所需的宿主能力](issues/03-zotero-plugin-host-research.md)：已识别 Better BibTeX、茉莉花及插件加载的宿主依赖，兼容实现仍待选择和运行验证。
 - [查明 translators 与 browser connector 的独立复用边界](issues/04-zotero-ingest-research.md)：已厘清翻译执行、持久化、附件与 Connector 会话职责，目标配置和共存仍需验证。
 - [全流程产品形态与真实使用验收](issues/01-first-product-loop.md)：确定科研 Agent 内核与人类工作台的产品关系、全流程范围、项目工作空间及无工作台执行后接入的验收要求。
@@ -107,7 +115,7 @@ Labels: wayfinder:map
 - [选择 Zotero 生态兼容路线与首批兼容承诺](issues/05-zotero-compatibility-policy.md)：确定指定版本原包兼容、首批功能、界面适配与维护策略；宿主按 #16 选择 Node＋Chromium 通用层，支持范围随实际验收扩大。
 - [通过原型选择 Zotero 原插件的兼容宿主](issues/16-zotero-host-prototype.md)：采用 Node＋Chromium，固定 Zotero 10 基线建设通用层，以重要插件推动开发适配与验收；不承诺全部插件无缝运行，原型阶段结束。
 - [确定研究对象、长期文献库与项目的领域边界](issues/06-research-domain-boundaries.md)：确定来源与材料版本、证据和主张、稿件及修订对象的语义，明确跨项目复用与领域权威边界。
-- [确定科研 Agent harness 的职责与执行引擎路线](issues/07-agent-runtime-boundaries.md)：确定 LangGraph、LangChain 与 Deep Agents 基础，workflow 和 capability 原生融入统一运行时，明确任务生命周期及外部 Agent 接入。
+- [确定科研 Agent harness 的职责与执行引擎路线](issues/07-agent-runtime-boundaries.md)：统一 LangGraph、LangChain 与 Deep Agents 基础，workflow 和 capability 原生融合，明确生命周期、插件 MCP 与候选对外 MCP 边界。
 - [确定 zotero-agents 与 ResearchSpec 的复用和演进边界](issues/08-existing-project-integration.md)：三个项目保持平行，Scholoom 初期吸纳能力、后期独立演进；同步由用户掌握，核心模型、内容迁入和源码取舍独立成票。
 - [确定领域模块、Electron 进程与扩展宿主的架构](issues/09-electron-architecture.md)：独立 Node 内核集中部署原生模块，同一数据配置共用单实例；客户端采用双向 JSON-RPC＋本地 WebSocket。重计算和用户程序分开执行，兼容环境采用受内核监督的独立 Electron 宿主，取消与恢复按受影响调用和实际结果处理。
 - [确定原生科研能力、Skill、工作流与科研 Agent 的核心模型](issues/17-native-research-capability-model.md)：明确方法、能力与工作流的关系，以及持续任务、调用、计划、交付和科研判断的边界；四类科研情境的语义核对通过。
