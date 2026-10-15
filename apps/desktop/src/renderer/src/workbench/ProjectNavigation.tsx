@@ -223,8 +223,12 @@ export function ProjectControls({
       </details>
     ) : null;
   return (
-    <fieldset className="project-controls" disabled={!enabled}>
-      {mode === 'project' ? (
+    <>
+      {/* 模型设置始终可用，不受连接状态影响 */}
+      {mode === 'settings' && model}
+
+      <fieldset className="project-controls" disabled={!enabled}>
+        {mode === 'project' ? (
         <>
           <label>
             项目{' '}
@@ -349,12 +353,12 @@ export function ProjectControls({
         </>
       ) : (
         <>
-          {model}
           {permission}
         </>
       )}
       {error ? <p role="alert">{error}</p> : null}
     </fieldset>
+    </>
   );
 }
 

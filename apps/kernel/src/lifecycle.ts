@@ -1,4 +1,4 @@
-import { execFile, spawn } from 'node:child_process';
+import { execFile, execSync, spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { chmod, mkdir, open, readFile, realpath, rename, stat, unlink } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
@@ -93,6 +93,20 @@ async function lockState(directory: string): Promise<'free' | 'held' | 'missing'
 }
 
 export function processIsAlive(pid: number): boolean {
+  if (process.platform === 'win32') {
+    // Windows: 使用 tasklist 命令检测进程存在性
+    try {
+      const output = execSync(`tasklist /FI "PID eq ${pid}" /NH`, {
+        stdio: 'pipe',
+        encoding: 'utf-8',
+      });
+      return output.includes(`${pid}`);
+    } catch {
+      return false;
+    }
+  }
+
+  // Unix/macOS: 使用信号 0 测试
   try {
     process.kill(pid, 0);
     return true;
@@ -272,7 +286,7 @@ export async function ensureKernel(directory: string): Promise<BootstrapResult> 
       const runtime = await prepareRuntime(canonical);
       const log = await open(join(runtime, 'kernel.log'), 'a', 0o600);
       const child = spawn(process.execPath, [cliPath, 'serve', '--data-dir', canonical], {
-        detached: true,
+        detached: process.platform !== 'win32', // Windows 不支持 detached + IPC 组合
         windowsHide: true,
         stdio: ['ignore', log.fd, log.fd, 'ipc'],
       });

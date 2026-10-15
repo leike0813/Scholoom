@@ -22,14 +22,21 @@ export async function privateDirectory(path: string): Promise<void> {
     '$acl.AddAccessRule($rule)',
     'Set-Acl -LiteralPath $env:SCHOOLOOM_PRIVATE_PATH -AclObject $acl -ErrorAction Stop',
   ].join('; ');
-  await promisify(execFile)(
-    'powershell.exe',
-    ['-NoProfile', '-NonInteractive', '-Command', script],
-    {
-      windowsHide: true,
-      env: { ...process.env, SCHOOLOOM_PRIVATE_PATH: path },
-    },
-  );
+  try {
+    await promisify(execFile)(
+      'powershell.exe',
+      ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-NonInteractive', '-Command', script],
+      {
+        windowsHide: true,
+        env: { ...process.env, SCHOOLOOM_PRIVATE_PATH: path },
+      },
+    );
+  } catch (error) {
+    throw new OperationError(
+      'permissionDenied',
+      `无法设置 Windows 目录权限: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
 }
 
 export async function atomicPrivateFile(
@@ -44,6 +51,10 @@ export async function atomicPrivateFile(
     await handle.sync();
   } finally {
     await handle.close();
+  }
+  // 确保文件权限正确设置（open 的 mode 在某些平台可能不生效）
+  if (process.platform !== 'win32') {
+    await chmod(temporary, 0o600);
   }
   try {
     await rename(temporary, join(directory, filename));
