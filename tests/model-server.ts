@@ -83,6 +83,32 @@ function planTurn(user: string, tools: Set<string>, toolId: string): Turn {
     stopReason: 'tool_use',
     blocks: [thinking, { type: 'tool_use', id: toolId, name, input }],
   });
+  if (user.includes('MODEL_STRUCTURE')) {
+    if (!tools.has('mkdir_project_path'))
+      return tool('mkdir_project_path', { path: 'managed', operationId: 'fixture-mkdir' });
+    if (!tools.has('write_file'))
+      return tool('write_file', {
+        file_path: '/managed/result.md',
+        content: '# Managed result\n\n42\n',
+      });
+    if (!tools.has('rename_project_path'))
+      return tool('rename_project_path', {
+        path: 'managed',
+        name: 'renamed',
+        operationId: 'fixture-rename',
+      });
+    if (!tools.has('trash_project_path'))
+      return tool('trash_project_path', { path: 'renamed', operationId: 'fixture-trash' });
+    if (!tools.has('list_project_trash')) return tool('list_project_trash', { offset: 0 });
+    if (!tools.has('restore_project_path'))
+      return tool('restore_project_path', {
+        trashId: 'fixture-trash',
+        destination: 'recovered',
+        operationId: 'fixture-restore',
+      });
+    if (!tools.has('read_file')) return tool('read_file', { file_path: '/recovered/result.md' });
+    return text('结构操作与成果已核查。');
+  }
   if (user.includes('MODEL_STREAM')) return text('合成流式输出。'.repeat(10000));
   if (user.includes('MODEL_SCRATCH_ERROR'))
     return tools.has('edit_file')

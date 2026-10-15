@@ -28,9 +28,9 @@ import {
   registerHarnessProfile,
 } from 'deepagents';
 import { and, desc, eq, gt, lt, sql } from 'drizzle-orm';
-import { createMiddleware } from 'langchain';
+import { createMiddleware, tool as defineTool } from 'langchain';
 import { z } from 'zod';
-import { OperationError } from '../errors.js';
+import { failure, OperationError } from '../errors.js';
 import { type ModelAccess, modelFailure } from '../models/minimax.js';
 import type { ProjectStore, Projects } from '../projects/store.js';
 import { atomicPrivateFile, privateDirectory } from '../storage/private-files.js';
@@ -61,6 +61,7 @@ const visibleText = (message: BaseMessage): string =>
         .join('');
 
 export class Harness {
+  private initialized = new WeakSet<ProjectStore>();
   private active = new Map<string, Active>();
   private stopped = false;
   private pendingArtifacts = new Map<
@@ -75,6 +76,8 @@ export class Harness {
 
   async initialize(): Promise<void> {
     for (const project of this.projects.all()) {
+      if (this.initialized.has(project)) continue;
+      this.initialized.add(project);
       const directory = join(project.internal, 'pending-artifacts');
       await privateDirectory(directory);
       for (const entry of (await readdir(directory)).slice(0, 100)) {
@@ -84,7 +87,11 @@ export class Harness {
             sessionId: string;
             artifact: Artifact;
           };
-          await project.path(item.artifact.path);
+          await project.path(
+            item.artifact.fileId
+              ? project.files.currentPath(item.artifact.fileId)
+              : item.artifact.path,
+          );
           this.pendingArtifacts.set(
             `${project.project.id}:${item.artifact.runId}:${item.artifact.path}`,
             {
@@ -200,7 +207,9 @@ export class Harness {
       if (
         previous.sessionId !== input.sessionId ||
         original?.value.text !== input.text ||
-        JSON.stringify(original.value.materials) !== JSON.stringify(input.materials)
+        JSON.stringify(original.value.materials) !== JSON.stringify(input.materials) ||
+        JSON.stringify(original.value.materialFileIds ?? []) !==
+          JSON.stringify(input.materialFileIds ?? [])
       )
         throw new OperationError('invalidRequest', '指令身份已用于其他内容。');
       return { instructionId: previous.id, runId: previous.runId };
@@ -208,8 +217,13 @@ export class Harness {
     project.check('send');
     if (!(await this.model.credentials.status()).configured)
       throw new OperationError('credentialUnavailable', '请先配置 MiniMax API Key。');
-    for (const path of input.materials) {
+    if (input.materialFileIds && input.materialFileIds.length !== input.materials.length)
+      throw new OperationError('invalidRequest', '材料身份数量不一致。');
+    for (const [index, path] of input.materials.entries()) {
       project.check('read');
+      const identity = input.materialFileIds?.[index];
+      if (identity && project.files.currentPath(identity) !== path)
+        throw new OperationError('contentChanged', '附加材料位置已变化，请重新选择后发送。');
       await project.path(path);
     }
     let run = this.latestRun(project, input.sessionId);
@@ -241,6 +255,7 @@ export class Harness {
             role: 'user',
             text: input.text,
             materials: input.materials,
+            ...(input.materialFileIds ? { materialFileIds: input.materialFileIds } : {}),
             state: 'accepted',
             createdAt: now(),
           },
@@ -384,8 +399,9 @@ export class Harness {
             if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
           });
       }
-      const saved = async (path: string) => {
-        const artifact: Artifact = { path, runId: run.id, state: 'linked' };
+      const saved = async (path: string, fileId?: string) => {
+        const identity = fileId ?? (await project.files.reference(path)).fileId;
+        const artifact: Artifact = { path, fileId: identity, runId: run.id, state: 'linked' };
         const pendingId = randomUUID();
         await atomicPrivateFile(
           pendingDirectory,
@@ -402,7 +418,7 @@ export class Harness {
         try {
           project.db
             .insert(tables.artifacts)
-            .values({ key: `${run.id}:${path}`, sessionId: run.sessionId, value: artifact })
+            .values({ key: `${run.id}:${identity}`, sessionId: run.sessionId, value: artifact })
             .onConflictDoNothing()
             .run();
         } catch {
@@ -475,6 +491,18 @@ export class Harness {
             .limit(100)
             .all();
           const incoming: HumanMessage[] = [];
+          for (const previous of state.messages.slice(-100)) {
+            if (previous.getType() !== 'human' || !previous.id) continue;
+            const stored = project.db
+              .select()
+              .from(tables.messages)
+              .where(eq(tables.messages.id, previous.id))
+              .get()?.value;
+            if (!stored?.materialFileIds?.length) continue;
+            const content = this.instructionContent(project, stored);
+            if (content !== previous.content)
+              incoming.push(new HumanMessage({ id: previous.id, content }));
+          }
           for (const item of pending) {
             const message = project.db
               .select()
@@ -486,7 +514,7 @@ export class Harness {
               incoming.push(
                 new HumanMessage({
                   id: item.id,
-                  content: `${message.text}${message.materials.length ? `\n附加材料引用（先读取再使用）：${message.materials.join(', ')}` : ''}`,
+                  content: this.instructionContent(project, message),
                 }),
               );
             project.db
@@ -617,6 +645,58 @@ export class Harness {
           systemPrompt:
             '你是 Scholoom 科研助手。使用中文与用户工作。项目正文以实际文件为准，附加材料只是引用，先读取。形成可承接的分析、理由、成果及下一步时保存为普通 Markdown 文件；在没有项目文件权限时只对话。仅使用授权工具。修改已有文件先读取，遇到冲突重读再修改。write_file 仅用于新建，edit_file 修改已有内容。不得声称未保存成果已交付。不要依赖旧 transcript 才能续做，可发现并读取项目已有成果。用户取消后不继续。',
           tools: [
+            ...(['mkdir', 'rename', 'trash', 'restore'] as const).map((kind) => ({
+              name: `${kind}_project_path`,
+              description: `对项目普通文件或目录执行${kind}。写授权包含回收／恢复；operationId须为唯一UUID，结果未知时先查询原操作。rename仅更改名称。`,
+              schema: z.object({
+                operationId: z.string(),
+                path: z.string().optional(),
+                name: z.string().optional(),
+                trashId: z.string().optional(),
+                destination: z.string().optional(),
+              }),
+              func: async (input: {
+                operationId: string;
+                path?: string;
+                name?: string;
+                trashId?: string;
+                destination?: string;
+              }) => {
+                try {
+                  signal.throwIfAborted();
+                  project.check('send');
+                  const { operationId, ...parameters } = input;
+                  const result = await project.files.mutate(kind, operationId, parameters);
+                  this.notify(project.project.id, run.sessionId);
+                  return JSON.stringify(result);
+                } catch (error) {
+                  const result = failure(error);
+                  const context = toolContext.getStore();
+                  if (context) context.error = result;
+                  return JSON.stringify({ error: result });
+                }
+              },
+            })),
+            {
+              name: 'query_file_operation',
+              description: '查询未知的文件结构操作，核查实际位置而不重新执行。',
+              schema: z.object({ operationId: z.string() }),
+              func: async ({ operationId }: { operationId: string }) => {
+                signal.throwIfAborted();
+                project.check('send');
+                return JSON.stringify(await project.files.operation(operationId));
+              },
+            },
+            {
+              name: 'list_project_trash',
+              description: '分页查看项目回收项。',
+              schema: z.object({ offset: z.number().int().min(0).default(0) }),
+              func: async ({ offset }: { offset: number }) => {
+                signal.throwIfAborted();
+                project.check('send');
+                return JSON.stringify(project.files.trashList(offset, 25));
+              },
+            },
             {
               name: 'read_instructions',
               description: '分页读取本会话全部持久用户指令与消费状态。续做时按需核对历史要求。',
@@ -635,19 +715,31 @@ export class Harness {
                   .limit(25)
                   .all();
                 return JSON.stringify(
-                  rows.map((row) => ({
-                    sequence: row.seq,
-                    consumed: row.consumed,
-                    message: project.db
+                  rows.map((row) => {
+                    const message = project.db
                       .select()
                       .from(tables.messages)
                       .where(eq(tables.messages.id, row.id))
-                      .get()?.value,
-                  })),
+                      .get()?.value;
+                    return {
+                      sequence: row.seq,
+                      consumed: row.consumed,
+                      message,
+                      currentContent: message
+                        ? this.instructionContent(project, message)
+                        : undefined,
+                    };
+                  }),
                 );
               },
             },
-          ],
+          ].map((definition) =>
+            defineTool((input) => definition.func(input as never), {
+              name: definition.name,
+              description: definition.description,
+              schema: definition.schema,
+            }),
+          ),
         });
       let agent = buildAgent();
       let config = {
@@ -798,6 +890,26 @@ export class Harness {
     }
   }
 
+  private instructionContent(project: ProjectStore, message: Message): string {
+    if (!message.materials.length) return message.text;
+    if (!message.materialFileIds?.length)
+      return `${message.text}\n附加材料引用（先读取再使用）：${message.materials.join(', ')}`;
+    const locations = message.materialFileIds.map((id, index) => {
+      try {
+        const location = project.files.location(id);
+        return {
+          fileId: id,
+          historicalPath: message.materials[index],
+          state: location.state,
+          ...(location.state === 'present' ? { currentPath: location.path } : {}),
+        };
+      } catch {
+        return { fileId: id, historicalPath: message.materials[index], state: 'missing' };
+      }
+    });
+    return `${message.text}\n附加材料定位（按当前路径读取；历史路径不能指代同名新文件，回收或缺失项请核查）：${JSON.stringify(locations)}`;
+  }
+
   private continuation(project: ProjectStore, sessionId: string): BaseMessage[] {
     const messages = project.db
       .select()
@@ -818,7 +930,7 @@ export class Harness {
         message.role === 'user'
           ? new HumanMessage({
               id: message.id,
-              content: `${message.text}${message.materials.length ? `\n附加材料引用（先读取再使用）：${message.materials.join(', ')}` : ''}`,
+              content: this.instructionContent(project, message),
             })
           : new AIMessage({ id: message.id, content: message.text }),
       );
@@ -837,15 +949,22 @@ export class Harness {
     const results: Artifact[] = [];
     for (const path of paths.slice(0, 100)) {
       try {
-        await project.read(path);
-        const artifact: Artifact = { path, runId, state: 'linked' };
+        const pending = this.pendingArtifacts.get(`${projectId}:${runId}:${path}`);
+        const file = await project.read(
+          pending?.artifact.fileId ? project.files.currentPath(pending.artifact.fileId) : path,
+        );
+        const artifact: Artifact = {
+          path,
+          ...(file.fileId ? { fileId: file.fileId } : {}),
+          runId,
+          state: 'linked',
+        };
         project.db
           .insert(tables.artifacts)
-          .values({ key: `${runId}:${path}`, sessionId, value: artifact })
+          .values({ key: `${runId}:${file.fileId ?? path}`, sessionId, value: artifact })
           .onConflictDoNothing()
           .run();
         const key = `${projectId}:${runId}:${path}`;
-        const pending = this.pendingArtifacts.get(key);
         if (pending) await unlink(pending.receipt).catch(() => {});
         this.pendingArtifacts.delete(key);
         results.push(artifact);
@@ -930,6 +1049,14 @@ export class Harness {
         result.artifacts.unshift(pending.artifact);
     }
     result.artifacts = result.artifacts.slice(0, 100);
+    result.artifacts = result.artifacts.map((artifact) => {
+      if (!artifact.fileId) return artifact;
+      try {
+        return { ...artifact, location: project.files.location(artifact.fileId) };
+      } catch {
+        return artifact;
+      }
+    });
     return result;
   }
 

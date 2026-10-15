@@ -1,7 +1,7 @@
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { isBootstrapRequest } from '@scholoom/protocol';
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow, ipcMain, shell } from 'electron';
 
 function isWorkbenchUrl(url: string): boolean {
   const expected = new URL(
@@ -30,6 +30,19 @@ ipcMain.handle('kernel:bootstrap', async (event, mode: unknown) => {
   }
   const { bootstrapKernel } = await import('@scholoom/kernel/bootstrap');
   return bootstrapKernel(mode as 'ensure' | 'inspect');
+});
+
+ipcMain.handle('navigation:external', async (event, url: unknown) => {
+  if (
+    event.senderFrame !== event.sender.mainFrame ||
+    !isWorkbenchUrl(event.senderFrame.url) ||
+    typeof url !== 'string'
+  )
+    throw new Error('Invalid navigation source');
+  const target = new URL(url);
+  if (!['https:', 'http:', 'mailto:'].includes(target.protocol))
+    throw new Error('Unsupported navigation protocol');
+  await shell.openExternal(target.href);
 });
 
 async function createWindow(): Promise<void> {

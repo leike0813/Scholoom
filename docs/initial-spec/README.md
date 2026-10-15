@@ -4,7 +4,7 @@
 
 建议实施顺序、阶段依赖及 Figma 并行安排见[实施路线图](../implementation-roadmap.md)。
 
-项目普通文本文件保护、MiniMax 模型接入及单 Agent 会话正在由 [基本 harness 变更](../../openspec/changes/establish-basic-agent-harness/proposal.md)细化；实施范围内以该变更的 specs 和实际 delivery 为准。其余库、科研方法、受管计算与协作要求继续作为后续初设，不由本变更一并声明交付。
+项目文本文件保护、MiniMax 模型接入及单 Agent 会话见[当前正式规格](../../openspec/specs)；项目管理、结构操作和 Markdown 编辑预览由 [文件工作台变更](../../openspec/changes/complete-project-file-workbench/proposal.md)细化，以该变更的 specs 和实际 delivery 为准。其余库、科研方法、受管计算与协作要求继续作为后续初设。
 
 本规格书将已确认的产品与设计决定整理为可观察要求和代表性场景，覆盖首阶段完整科研路径。它是一份按能力分章的初设，不表示功能已经实现，也不替代当前 OpenSpec 规格、实施调查或交付证据。
 
@@ -37,7 +37,7 @@
 
 项目使用 [scholoom-dev](../../openspec/schemas/scholoom-dev/README.md)：`proposal → investigation → specs / design → tasks → delivery`。本目录不放在 `openspec/specs` 或 `openspec/changes`，不伪装成已归档能力或已授权实施的全项目变更。
 
-截至 2026-10-14，当前正式规格为 [development-foundation](../../openspec/specs/development-foundation/spec.md) 和 [ui-workbench-foundation](../../openspec/specs/ui-workbench-foundation/spec.md)，无活动变更。它们描述现有基础，不代表本初设其余业务已交付；后续以实时 `openspec list --specs` 和 `openspec list` 为准。
+正式契约见[当前规格目录](../../openspec/specs)，活动变更以 `openspec list` 为准。已交付的内核、harness 与工作台基础不代表本初设其余业务已实现。
 
 正式实施按以下方式使用本初设：
 

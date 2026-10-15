@@ -298,7 +298,7 @@ test('agent panel expands to overlay and keeps draft and focus', async ({ uiPage
 });
 
 test('tab group splits right and merges back', async ({ uiPage }) => {
-  await uiPage.goto(rendererUrl);
+  await uiPage.goto(sampleUrl);
 
   await expect(uiPage.getByRole('tab', { name: /编辑器/ })).toBeVisible();
   const editorTab = uiPage.getByRole('tab', { name: /编辑器/ });

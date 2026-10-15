@@ -20,7 +20,7 @@ export class ProjectBackend implements BackendProtocolV2 {
     private readonly project: ProjectStore,
     private readonly signal: AbortSignal,
     private readonly used: (path: string) => void,
-    private readonly saved: (path: string) => void | Promise<void>,
+    private readonly saved: (path: string, fileId?: string) => void | Promise<void>,
     private readonly onError?: (error: ErrorInfo) => void,
   ) {}
   private local(path: string): string {
@@ -93,8 +93,8 @@ export class ProjectBackend implements BackendProtocolV2 {
     try {
       this.guard();
       const local = this.local(path);
-      await this.project.save(local, content);
-      await this.saved(local);
+      const edit = await this.project.save(local, content);
+      await this.saved(local, edit.fileId);
       return { path };
     } catch (error) {
       return this.error(error);
@@ -120,7 +120,7 @@ export class ProjectBackend implements BackendProtocolV2 {
         return this.error(
           new OperationError('targetAmbiguous', '修改目标不存在或不唯一，请重新读取并明确目标。'),
         );
-      await this.project.save(
+      const edit = await this.project.save(
         local,
         replaceAll
           ? read.content.replaceAll(oldString, newString)
@@ -128,7 +128,7 @@ export class ProjectBackend implements BackendProtocolV2 {
         read.basis,
       );
       this.readBases.delete(local);
-      await this.saved(local);
+      await this.saved(local, edit.fileId);
       return { path, occurrences: replaceAll ? occurrences : 1 };
     } catch (error) {
       return this.error(error);

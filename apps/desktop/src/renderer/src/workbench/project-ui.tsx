@@ -3,473 +3,196 @@ import { markdown } from '@codemirror/lang-markdown';
 import { EditorState } from '@codemirror/state';
 import { EditorView, keymap } from '@codemirror/view';
 import type { KernelClient } from '@scholoom/client';
-import type {
-  FileContent,
-  FileEdit,
-  FileEntry,
-  Project,
-  ProjectBackup,
-  WorkbenchSnapshot,
-} from '@scholoom/protocol';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { draftKey, readDraft, writeDraft } from './drafts';
+import type { FileEdit } from '@scholoom/protocol';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { draftKey } from './drafts';
+import { fileDocument, useFileDocument } from './file-document';
 import { lineDiff } from './line-diff';
+import { MarkdownPreview } from './MarkdownPreview';
 import type { FileTarget } from './session';
 
-type Call = KernelClient['call'];
-const messageOf = (error: unknown) =>
-  error instanceof Error ? error.message : '操作未完成，请核对当前状态。';
-
-export function ProjectControls({
-  snapshot,
-  selectedProject,
-  onSelect,
-  call,
-  onOpen,
-  enabled,
-}: {
-  snapshot: WorkbenchSnapshot | undefined;
-  selectedProject: string;
-  onSelect: (id: string) => void;
-  call: Call;
-  onOpen: (project: Project) => void;
-  enabled: boolean;
-}) {
-  const [key, setKey] = useState('');
-  const [path, setPath] = useState('');
-  const [error, setError] = useState('');
-  const [grants, setGrants] = useState({
-    read: false,
-    write: false,
-    send: false,
-    autoBackup: true,
-  });
-  const [backups, setBackups] = useState<ProjectBackup[]>([]);
-  const [destination, setDestination] = useState('');
-  const project = snapshot?.projects.find((item) => item.id === selectedProject);
-  const { id, read = false, write = false, send = false, autoBackup = true } = project ?? {};
-  useEffect(() => {
-    if (id) {
-      setGrants({ read, write, send, autoBackup });
-      setBackups([]);
-    }
-  }, [id, read, write, send, autoBackup]);
-  const run = (action: () => Promise<unknown>) => {
-    setError('');
-    void action().catch((error) => setError(messageOf(error)));
-  };
-  return (
-    <fieldset className="project-controls" disabled={!enabled}>
-      <label>
-        项目{' '}
-        <select
-          aria-label="当前项目"
-          value={selectedProject}
-          onChange={(event) => onSelect(event.target.value)}
-        >
-          {(snapshot?.projects ?? []).map((item) => (
-            <option key={item.id} value={item.id}>
-              {item.name}
-            </option>
-          ))}
-        </select>
-      </label>
-      <details>
-        <summary>打开项目</summary>
-        <form
-          onSubmit={(event) => {
-            event.preventDefault();
-            run(async () => {
-              onOpen(await call('project.open', { path }));
-            });
-          }}
-        >
-          <label>
-            项目目录
-            <input
-              aria-label="项目目录"
-              value={path}
-              onChange={(event) => setPath(event.target.value)}
-            />
-          </label>
-          <button type="submit">打开目录</button>
-        </form>
-      </details>
-      <details>
-        <summary>模型设置</summary>
-        <p>MiniMax M Plan 中国区 · {snapshot?.provider.model ?? 'MiniMax-M3.1-Flash-Preview'}</p>
-        <p role="status">
-          {snapshot?.provider.configured
-            ? `已配置 · ${snapshot.provider.source === 'saved' ? '本机凭据' : '环境变量'}`
-            : '请填写订阅 API Key'}
-        </p>
-        <form
-          onSubmit={(event) => {
-            event.preventDefault();
-            run(async () => {
-              await call('provider.configure', { apiKey: key });
-              setKey('');
-            });
-          }}
-        >
-          <label>
-            API Key
-            <input
-              type="password"
-              aria-label="MiniMax API Key"
-              autoComplete="off"
-              value={key}
-              onChange={(event) => setKey(event.target.value)}
-            />
-          </label>
-          <button type="submit" disabled={!key.trim()}>
-            保存凭据
-          </button>
-        </form>
-      </details>
-      {project && project.id !== 'application' ? (
-        <details>
-          <summary>项目权限与备份</summary>
-          <p>授权对象：{project.path}；外部接收方：MiniMax M Plan 中国区。</p>
-          {(['read', 'write', 'send', 'autoBackup'] as const).map((name) => (
-            <label key={name}>
-              <input
-                type="checkbox"
-                checked={grants[name]}
-                onChange={(event) =>
-                  setGrants((value) => ({ ...value, [name]: event.target.checked }))
-                }
-              />
-              {
-                {
-                  read: '读取项目材料',
-                  write: '保存普通文件修改',
-                  send: '将项目材料发送到 MiniMax',
-                  autoBackup: '自动备份',
-                }[name]
-              }
-            </label>
-          ))}
-          <button
-            type="button"
-            onClick={() =>
-              run(async () => {
-                await call('project.grant', { projectId: project.id, ...grants });
-              })
-            }
-          >
-            保存项目授权
-          </button>
-          <button
-            type="button"
-            onClick={() =>
-              run(async () => {
-                await call('project.backup', { projectId: project.id });
-                setBackups(await call('project.backups', { projectId: project.id }));
-              })
-            }
-          >
-            立即备份
-          </button>
-          <button
-            type="button"
-            onClick={() =>
-              run(async () => {
-                setBackups(await call('project.backups', { projectId: project.id }));
-              })
-            }
-          >
-            查看备份
-          </button>
-          <label>
-            独立恢复目录
-            <input
-              aria-label="独立恢复目录"
-              value={destination}
-              onChange={(event) => setDestination(event.target.value)}
-            />
-          </label>
-          {backups.map((backup) => (
-            <div key={backup.id}>
-              <span>{backup.createdAt}</span>
-              <button
-                type="button"
-                disabled={!destination.trim()}
-                onClick={() =>
-                  run(async () => {
-                    onOpen(
-                      await call('project.restore', {
-                        projectId: project.id,
-                        backupId: backup.id,
-                        destination,
-                      }),
-                    );
-                  })
-                }
-              >
-                恢复此副本
-              </button>
-              <details>
-                <summary>备份范围</summary>
-                {backup.omitted.map((item) => (
-                  <p key={item}>{item}</p>
-                ))}
-              </details>
-            </div>
-          ))}
-        </details>
-      ) : null}
-      {error ? <p role="alert">{error}</p> : null}
-    </fieldset>
-  );
-}
-
-export function ProjectNavigator({
-  client,
-  project,
-  revision,
-  open,
-  attach,
-  selected,
-}: {
-  client: KernelClient;
-  project: Project;
-  revision: number;
-  open: (file: FileTarget) => void;
-  attach: (path: string) => void;
-  selected: string[];
-}) {
-  const [path, setPath] = useState('');
-  const [entries, setEntries] = useState<FileEntry[]>([]);
-  const [next, setNext] = useState<number>();
-  const [error, setError] = useState('');
-  const [newName, setNewName] = useState('');
-  const load = useCallback(
-    async (offset = 0) => {
-      try {
-        const page = await client.call('files.list', { projectId: project.id, path, offset });
-        setEntries((current) => (offset ? [...current, ...page.entries] : page.entries));
-        setNext(page.nextOffset);
-        setError('');
-      } catch (error) {
-        setError(messageOf(error));
-      }
-    },
-    [client, project.id, path],
-  );
-  // biome-ignore lint/correctness/useExhaustiveDependencies: 成果修订变化时刷新当前目录。
-  useEffect(() => {
-    if (project.read) void load();
-  }, [project.read, load, revision]);
-  if (!project.read) return <p>请先授权读取项目材料。</p>;
-  return (
-    <div className="project-files">
-      <p>{path || project.name}</p>
-      {path ? (
-        <button type="button" onClick={() => setPath(path.split('/').slice(0, -1).join('/'))}>
-          上一级
-        </button>
-      ) : null}
-      <button
-        type="button"
-        onClick={() => {
-          void load();
-        }}
-      >
-        刷新文件
-      </button>
-      <ul>
-        {entries.map((entry) => (
-          <li key={entry.path}>
-            <button
-              type="button"
-              aria-label={`${entry.kind === 'dir' ? '进入目录' : '打开文件'} ${entry.path}`}
-              onClick={() =>
-                entry.kind === 'dir'
-                  ? setPath(entry.path)
-                  : open({ projectId: project.id, path: entry.path })
-              }
-            >
-              {entry.kind === 'dir' ? '▸ ' : ''}
-              {entry.name}
-            </button>
-            {entry.kind === 'file' ? (
-              <label>
-                <input
-                  type="checkbox"
-                  aria-label={`附加 ${entry.path}`}
-                  checked={selected.includes(entry.path)}
-                  onChange={() => attach(entry.path)}
-                />
-                附加
-              </label>
-            ) : null}
-          </li>
-        ))}
-      </ul>
-      {next !== undefined ? (
-        <button
-          type="button"
-          onClick={() => {
-            void load(next);
-          }}
-        >
-          更多文件
-        </button>
-      ) : null}
-      <form
-        onSubmit={(event) => {
-          event.preventDefault();
-          if (newName.trim())
-            open({
-              projectId: project.id,
-              path: `${path ? `${path}/` : ''}${newName.trim()}`,
-              create: true,
-            });
-        }}
-      >
-        <label>
-          新文件
-          <input
-            aria-label="新文件名"
-            value={newName}
-            onChange={(event) => setNewName(event.target.value)}
-          />
-        </label>
-        <button type="submit" disabled={!project.write || !newName.trim()}>
-          新建文件
-        </button>
-      </form>
-      {error ? <p role="alert">{error}</p> : null}
-    </div>
-  );
-}
+export { ProjectControls, ProjectNavigator } from './ProjectNavigation';
 
 export function FileEditor({
   client,
   directory,
   target,
   onChanged,
+  revision = 0,
+  mode = 'source',
+  onOpenFile,
 }: {
   client: KernelClient;
   directory: string;
   target: FileTarget;
-  onChanged: () => void;
+  onChanged: (target: FileTarget) => void;
+  revision?: number;
+  mode?: 'source' | 'preview';
+  onOpenFile?: (target: FileTarget) => void;
 }) {
+  const document = useMemo(
+    () =>
+      fileDocument(
+        draftKey(directory, target.projectId, target.fileId ?? target.path, 'file'),
+        draftKey(directory, target.projectId, target.path, 'file'),
+      ),
+    [directory, target.projectId, target.fileId, target.path],
+  );
+  const value = useFileDocument(document);
   const mount = useRef<HTMLDivElement>(null);
   const editor = useRef<EditorView | null>(null);
-  const loading = useRef(false);
-  const [source, setSource] = useState<FileContent>();
-  const [draft, setDraft] = useState('');
-  const draftRef = useRef('');
-  const [error, setError] = useState('');
-  const [historyItems, setHistory] = useState<FileEdit[]>([]);
-  const key = draftKey(directory, target.projectId, target.path, 'file');
-  const stored = useCallback(
-    (value: string) => {
-      draftRef.current = value;
-      setDraft(value);
-      if (!loading.current) writeDraft(key, JSON.stringify({ content: value }));
-    },
-    [key],
-  );
-  const savedDraft = useCallback((): string | undefined => {
-    try {
-      const value = JSON.parse(readDraft(key));
-      return typeof value.content === 'string' ? value.content : undefined;
-    } catch {
-      return undefined;
-    }
-  }, [key]);
+  const applying = useRef(false);
+  const active = useRef(0);
+  const [path, setPath] = useState(target.path);
+  const [edits, setEdits] = useState<FileEdit[]>([]);
+  const [saving, setSaving] = useState(false);
+  const currentPath = useCallback(async () => {
+    const fileId = target.fileId ?? document.get().source?.fileId;
+    if (!fileId) return target.path;
+    const [location] = await client.call('files.resolve', {
+      projectId: target.projectId,
+      fileIds: [fileId],
+    });
+    if (location?.state !== 'present')
+      throw new Error('原文件已回收或缺失；草稿保留，可在回收站恢复。');
+    return location.path;
+  }, [client, target.projectId, target.fileId, target.path, document]);
   const reload = useCallback(
-    async (preserve = true) => {
-      const view = editor.current;
+    async (explicit = false) => {
+      const generation = ++active.current;
       try {
-        const value = await client.call('files.read', {
+        const current = await currentPath();
+        const source = await client.call('files.read', {
           projectId: target.projectId,
-          path: target.path,
+          path: current,
         });
-        if (editor.current !== view) return;
-        setSource(value);
-        setError('');
-        const local = preserve ? savedDraft() : undefined;
-        const content = local ?? value.content;
-        draftRef.current = content;
-        setDraft(content);
-        loading.current = true;
-        editor.current?.dispatch({
-          changes: { from: 0, to: editor.current.state.doc.length, insert: content },
+        if (generation !== active.current) return;
+        setPath(current);
+        if (source.fileId)
+          document.moveTo(draftKey(directory, target.projectId, source.fileId, 'file'));
+        const state = document.get();
+        const dirty = state.loaded && state.content !== state.source?.content;
+        if (!explicit && dirty && state.source?.content !== source.content) {
+          document.update({ diskChanged: true, error: '' });
+          return;
+        }
+        document.update({
+          source,
+          content: dirty || (!state.loaded && document.hasDraft()) ? state.content : source.content,
+          loaded: true,
+          error: '',
+          diskChanged: false,
         });
-        loading.current = false;
       } catch (error) {
-        setError(messageOf(error));
+        if (generation === active.current)
+          document.update({
+            error: error instanceof Error ? error.message : '读取失败，草稿已保留。',
+          });
       }
     },
-    [client, target.projectId, target.path, savedDraft],
+    [client, currentPath, directory, target.projectId, document],
   );
+  // biome-ignore lint/correctness/useExhaustiveDependencies: 文件修订变化时重读已打开文档。
   useEffect(() => {
-    if (!mount.current) return;
+    if (!target.create || document.get().source) void reload();
+    else document.update({ loaded: true });
+    return () => {
+      active.current++;
+    };
+  }, [target.create, revision, reload, document]);
+  useEffect(() => {
+    if (mode !== 'source' || !mount.current) return;
     const view = new EditorView({
       parent: mount.current,
       state: EditorState.create({
-        doc: savedDraft() ?? '',
+        doc: document.get().content,
         extensions: [
           markdown(),
           history(),
           keymap.of([...defaultKeymap, ...historyKeymap]),
           EditorView.lineWrapping,
-          EditorView.contentAttributes.of({ 'aria-label': `文件内容 ${target.path}` }),
+          EditorView.contentAttributes.of({ 'aria-label': `文件内容 ${path}` }),
           EditorView.updateListener.of((update) => {
-            if (update.docChanged) stored(update.state.doc.toString());
+            if (update.docChanged && !applying.current)
+              document.update({ content: update.state.doc.toString() }, true);
           }),
         ],
       }),
     });
     editor.current = view;
-    if (!target.create) void reload();
-    else {
-      draftRef.current = savedDraft() ?? '';
-      setDraft(draftRef.current);
-    }
     return () => {
       view.destroy();
       editor.current = null;
     };
-  }, [target.path, target.create, savedDraft, reload, stored]);
-  const save = async () => {
-    const submitted = draftRef.current;
+  }, [document, mode, path]);
+  useEffect(() => {
     const view = editor.current;
+    if (view && view.state.doc.toString() !== value.content) {
+      applying.current = true;
+      view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: value.content } });
+      applying.current = false;
+    }
+  }, [value.content]);
+  const save = async () => {
+    const submitted = document.get().content;
+    setSaving(true);
     try {
-      await client.call('files.save', {
+      const current = await currentPath();
+      const source = document.get().source;
+      const edit = await client.call('files.save', {
         projectId: target.projectId,
-        path: target.path,
+        path: current,
         content: submitted,
         ...(source?.basis ? { basis: source.basis } : {}),
       });
-      const value = await client.call('files.read', {
+      const stored = await client.call('files.read', {
         projectId: target.projectId,
-        path: target.path,
+        path: current,
       });
-      if (editor.current !== view) return;
-      setSource(value);
-      if (draftRef.current === submitted && value.content === submitted) writeDraft(key, '');
-      setError('');
-      onChanged();
+      const latest = document.get();
+      if (edit.fileId) document.moveTo(draftKey(directory, target.projectId, edit.fileId, 'file'));
+      document.update({ source: stored, error: '', diskChanged: false });
+      if (latest.content === submitted && stored.content === submitted) document.clearDraft();
+      onChanged({
+        projectId: target.projectId,
+        path: current,
+        ...(stored.fileId ? { fileId: stored.fileId } : {}),
+      });
     } catch (error) {
-      setError(messageOf(error));
+      document.update({
+        error: error instanceof Error ? error.message : '保存未完成，草稿已保留。',
+      });
+    } finally {
+      setSaving(false);
     }
   };
-  const differences = lineDiff(source?.content ?? '', draft);
+  const resource = useCallback(
+    (local: string) => client.call('files.resource', { projectId: target.projectId, path: local }),
+    [client, target.projectId],
+  );
+  const openFile = useCallback(
+    (local: string) => onOpenFile?.({ projectId: target.projectId, path: local }),
+    [onOpenFile, target.projectId],
+  );
+  const external = useCallback((url: string) => {
+    if (!/^(https?:|mailto:)/i.test(url)) return;
+    if (window.scholoomDesktop) void window.scholoomDesktop.openExternal(url);
+    else window.open(url, '_blank', 'noopener,noreferrer');
+  }, []);
+  const differences = useMemo(
+    () => lineDiff(value.source?.content ?? '', value.content),
+    [value.source?.content, value.content],
+  );
   return (
-    <section className="file-editor" aria-label={`编辑 ${target.path}`}>
+    <section className="file-editor" aria-label={`编辑 ${path}`}>
       <div className="file-toolbar">
         <span>
-          {target.path}
-          {draft !== source?.content ? ' · 未保存' : ''}
+          {path}
+          {value.content !== value.source?.content ? ' · 未保存' : ''}
         </span>
         <button
           type="button"
-          disabled={source?.truncated}
+          disabled={!!value.source?.truncated || saving}
           onClick={() => {
             void save();
           }}
@@ -479,7 +202,7 @@ export function FileEditor({
         <button
           type="button"
           onClick={() => {
-            void reload();
+            void reload(true);
           }}
         >
           重新读取
@@ -487,54 +210,84 @@ export function FileEditor({
         <button
           type="button"
           onClick={() => {
-            void client
-              .call('files.history', { projectId: target.projectId, path: target.path })
-              .then(setHistory, (error) => setError(messageOf(error)));
+            void currentPath()
+              .then((current) =>
+                client.call('files.history', { projectId: target.projectId, path: current }),
+              )
+              .then(setEdits, (error) => document.update({ error: String(error) }));
           }}
         >
           修改历史
         </button>
       </div>
-      {source?.truncated ? <p>文件超过本期编辑范围，仅显示当前读取部分。</p> : null}
-      {error ? <p role="alert">{error} 草稿已保留。</p> : null}
-      <div className="codemirror-host" ref={mount} />
-      <details>
-        <summary>查看差异</summary>
-        {differences ? (
-          <pre>
-            {differences.map((row, index) => (
-              // biome-ignore lint/suspicious/noArrayIndexKey: 差异行无交互状态，按当前位置渲染。
-              <div key={`${index}-${row.kind}`} className={`diff-${row.kind}`}>
-                {row.kind === 'add' ? '+ ' : row.kind === 'remove' ? '- ' : '  '}
-                {row.text}
-              </div>
-            ))}
-          </pre>
-        ) : (
+      {value.source?.truncated ? <p>文件超过本期编辑范围，仅显示当前读取部分。</p> : null}
+      {value.diskChanged ? (
+        <p role="status">磁盘内容已变化。草稿已保留，请重新读取并核对差异。</p>
+      ) : null}
+      {value.error ? <p role="alert">{value.error} 草稿已保留。</p> : null}
+      {mode === 'preview' ? (
+        /\.(md|markdown)$/i.test(path) ? (
           <>
-            <pre>{source?.content}</pre>
-            <pre>{draft}</pre>
+            <p className="preview-status">
+              {value.content !== value.source?.content ? '未保存草稿预览' : '已保存内容预览'}
+            </p>
+            <MarkdownPreview
+              documentKey={draftKey(directory, target.projectId, target.fileId ?? path)}
+              content={value.content}
+              basePath={path}
+              resourceRevision={revision}
+              readResource={resource}
+              openFile={openFile}
+              openExternal={external}
+            />
           </>
-        )}
-      </details>
-      {historyItems.map((edit) => (
-        <details key={edit.id}>
-          <summary>{edit.createdAt}</summary>
-          <pre>{edit.before}</pre>
-          <pre>{edit.after}</pre>
-          <button
-            type="button"
-            onClick={() => {
-              void client.call('files.undo', { projectId: target.projectId, editId: edit.id }).then(
-                () => reload(),
-                (error) => setError(messageOf(error)),
-              );
-            }}
-          >
-            撤销此修改
-          </button>
-        </details>
-      ))}
+        ) : (
+          <p>此文件提供源码查看，Markdown 文件可预览。</p>
+        )
+      ) : (
+        <>
+          <div className="codemirror-host" ref={mount} />
+          <details>
+            <summary>查看差异</summary>
+            {differences ? (
+              <pre>
+                {differences.map((row, index) => (
+                  // biome-ignore lint/suspicious/noArrayIndexKey: 只读差异行无状态，相同内容可出现多次。
+                  <div key={`${index}-${row.kind}`} className={`diff-${row.kind}`}>
+                    {row.kind === 'add' ? '+ ' : row.kind === 'remove' ? '- ' : '  '}
+                    {row.text}
+                  </div>
+                ))}
+              </pre>
+            ) : (
+              <>
+                <pre>{value.source?.content}</pre>
+                <pre>{value.content}</pre>
+              </>
+            )}
+          </details>
+          {edits.map((edit) => (
+            <details key={edit.id}>
+              <summary>{edit.createdAt}</summary>
+              <pre>{edit.before}</pre>
+              <pre>{edit.after}</pre>
+              <button
+                type="button"
+                onClick={() => {
+                  void client
+                    .call('files.undo', { projectId: target.projectId, editId: edit.id })
+                    .then(
+                      () => reload(true),
+                      (error) => document.update({ error: String(error) }),
+                    );
+                }}
+              >
+                撤销此修改
+              </button>
+            </details>
+          ))}
+        </>
+      )}
     </section>
   );
 }

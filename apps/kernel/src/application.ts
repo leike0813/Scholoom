@@ -54,6 +54,9 @@ export class KernelApplication {
       revision: this.revision,
       provider: await this.credentials.status(),
       projects: this.projects.list(),
+      ...(input.projectId
+        ? { fileRevision: this.projects.get(input.projectId).files.revision }
+        : {}),
       ...this.harness.snapshot(input.projectId, input.sessionId, input.before, input.limit),
     };
   }
@@ -73,8 +76,63 @@ export class KernelApplication {
       }
       case 'project.open': {
         const store = await this.projects.open((input as BusinessParams<'project.open'>).path);
+        await this.harness.initialize();
         this.changed();
         return store.project;
+      }
+      case 'project.create': {
+        const p = input as BusinessParams<'project.create'>;
+        const store = await this.projects.create(p.path, p.name);
+        await this.harness.initialize();
+        this.changed();
+        return store.project;
+      }
+      case 'project.rename': {
+        const p = input as BusinessParams<'project.rename'>;
+        const result = this.projects.get(p.projectId).renameProject(p.name);
+        this.changed();
+        return result;
+      }
+      case 'project.forget': {
+        await this.projects.forget((input as BusinessParams<'project.forget'>).projectId);
+        this.changed();
+        return { ok: true };
+      }
+      case 'files.mkdir':
+      case 'files.rename':
+      case 'files.trash':
+      case 'files.restore': {
+        const p = input as BusinessParams<'files.rename'> & BusinessParams<'files.restore'>;
+        const { projectId, operationId, ...values } = p;
+        try {
+          return await this.projects
+            .get(projectId)
+            .files.mutate(
+              method.slice(6) as 'mkdir' | 'rename' | 'trash' | 'restore',
+              operationId,
+              values,
+            );
+        } finally {
+          this.changed(projectId);
+        }
+      }
+      case 'files.resolve': {
+        const p = input as BusinessParams<'files.resolve'>;
+        return this.projects.get(p.projectId).files.resolve(p.fileIds);
+      }
+      case 'files.trashList': {
+        const p = input as BusinessParams<'files.trashList'>;
+        return this.projects.get(p.projectId).files.trashList(p.offset, p.limit);
+      }
+      case 'files.operation': {
+        const p = input as BusinessParams<'files.operation'>;
+        const value = await this.projects.get(p.projectId).files.operation(p.operationId);
+        this.changed(p.projectId);
+        return value;
+      }
+      case 'files.resource': {
+        const p = input as BusinessParams<'files.resource'>;
+        return this.projects.get(p.projectId).files.resource(p.path);
       }
       case 'project.grant': {
         const p = input as BusinessParams<'project.grant'>;
@@ -124,6 +182,7 @@ export class KernelApplication {
         const p = input as BusinessParams<'project.restore'>;
         const target = await this.projects.get(p.projectId).restore(p.backupId, p.destination);
         const store = await this.projects.open(target);
+        await this.harness.initialize();
         this.changed();
         return store.project;
       }

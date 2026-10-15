@@ -70,11 +70,13 @@ test('real graph reads, writes and retains thinking across model tool turns', as
       projectId: project.id,
       sessionId: session.id,
     });
-    expect(snapshot.artifacts).toContainEqual({
-      path: 'result.md',
-      runId: receipt.runId,
-      state: 'linked',
-    });
+    expect(snapshot.artifacts).toContainEqual(
+      expect.objectContaining({
+        path: 'result.md',
+        runId: receipt.runId,
+        state: 'linked',
+      }),
+    );
     expect(snapshot.messages.filter((message) => message.id === input.instructionId)).toHaveLength(
       1,
     );
@@ -338,10 +340,15 @@ test('accepted additions survive cancellation and checkpoint loss until explicit
   });
   try {
     await app.initialize();
-    const session = app.harness.create('application');
+    const store = await app.projects.create(join(root, 'project'));
+    store.grant({ read: true, write: true, send: true, autoBackup: false });
+    const projectId = store.project.id;
+    const material = await store.save('attached.md', 'Original material');
+    if (!material.fileId) throw new Error('Expected a registered material');
+    const session = app.harness.create(projectId);
     model.hold = true;
     await app.harness.send({
-      projectId: 'application',
+      projectId,
       sessionId: session.id,
       instructionId: randomUUID(),
       text: 'MODEL_CHAT MODEL_HOLD',
@@ -350,26 +357,29 @@ test('accepted additions survive cancellation and checkpoint loss until explicit
     await expect.poll(() => model.requests.length).toBe(1);
     const addition = randomUUID();
     await app.harness.send({
-      projectId: 'application',
+      projectId,
       sessionId: session.id,
       instructionId: addition,
       text: 'MODEL_CHAT 追加要求',
-      materials: [],
+      materials: ['attached.md'],
+      materialFileIds: [material.fileId],
     });
-    app.harness.cancel('application', session.id);
+    await store.files.mutate('rename', 'move-attachment', {
+      path: 'attached.md',
+      name: 'moved.md',
+    });
+    await store.save('attached.md', 'Replacement');
+    app.harness.cancel(projectId, session.id);
     await expect
-      .poll(
-        async () =>
-          (await app.snapshot({ projectId: 'application', sessionId: session.id })).run?.state,
-      )
+      .poll(async () => (await app.snapshot({ projectId, sessionId: session.id })).run?.state)
       .toBe('cancelled');
     expect(
-      (await app.snapshot({ projectId: 'application', sessionId: session.id })).messages.find(
+      (await app.snapshot({ projectId, sessionId: session.id })).messages.find(
         (message) => message.id === addition,
       )?.state,
     ).toBe('accepted');
     await app.close();
-    await writeFile(join(profile, 'application', '.scholoom', 'checkpoints.sqlite'), 'damaged');
+    await writeFile(join(store.internal, 'checkpoints.sqlite'), 'damaged');
     model.release();
     const priorRequests = model.requests.length;
     app = new KernelApplication(profile, {
@@ -377,20 +387,23 @@ test('accepted additions survive cancellation and checkpoint loss until explicit
       environment: { MINIMAX_CN_API_KEY: 'synthetic' },
     });
     await app.initialize();
-    expect(
-      (await app.snapshot({ projectId: 'application', sessionId: session.id })).run?.state,
-    ).toBe('cancelled');
+    expect((await app.snapshot({ projectId, sessionId: session.id })).run?.state).toBe('cancelled');
     expect(model.requests).toHaveLength(priorRequests);
-    app.harness.resume('application', session.id);
+    app.harness.resume(projectId, session.id);
     await expect
-      .poll(
-        async () =>
-          (await app.snapshot({ projectId: 'application', sessionId: session.id })).run?.state,
-        { timeout: 20000 },
-      )
+      .poll(async () => (await app.snapshot({ projectId, sessionId: session.id })).run?.state, {
+        timeout: 20000,
+      })
       .toBe('completed');
+    const delivered = JSON.stringify(model.requests.at(-1)?.messages);
+    expect(delivered).toContain('moved.md');
+    expect(delivered).toContain(material.fileId);
+    const historical = (await app.snapshot({ projectId, sessionId: session.id })).messages.find(
+      (message) => message.id === addition,
+    );
+    expect(historical?.materials).toEqual(['attached.md']);
     expect(
-      (await app.snapshot({ projectId: 'application', sessionId: session.id })).messages.find(
+      (await app.snapshot({ projectId, sessionId: session.id })).messages.find(
         (message) => message.id === addition,
       )?.state,
     ).toBe('consumed');
@@ -515,14 +528,16 @@ test('failed artifact registration keeps the saved file and reconcile links it o
       .poll(async () => (await app.snapshot({ projectId, sessionId })).artifacts, {
         timeout: 20000,
       })
-      .toContainEqual(unknown);
+      .toContainEqual(expect.objectContaining(unknown));
     expect((await app.snapshot({ projectId, sessionId })).run?.state).toBe('completed');
     expect(await readFile(join(root, 'project', 'result.md'), 'utf8')).toContain('合成样本');
 
     await app.close();
     app = new KernelApplication(profile, options);
     await app.initialize();
-    expect((await app.snapshot({ projectId, sessionId })).artifacts).toContainEqual(unknown);
+    expect((await app.snapshot({ projectId, sessionId })).artifacts).toContainEqual(
+      expect.objectContaining(unknown),
+    );
     app.projects.get(projectId).database.exec(`DROP TRIGGER ${trigger}`);
     const linked = { path: 'result.md', runId, state: 'linked' };
     for (let attempt = 0; attempt < 2; attempt++)
@@ -533,12 +548,68 @@ test('failed artifact registration keeps the saved file and reconcile links it o
           runId,
           paths: ['result.md'],
         }),
-      ).toEqual([linked]);
+      ).toEqual([expect.objectContaining(linked)]);
     expect(
       (await app.snapshot({ projectId, sessionId })).artifacts.filter(
         (artifact) => artifact.path === 'result.md',
       ),
-    ).toEqual([linked]);
+    ).toEqual([expect.objectContaining(linked)]);
+  } finally {
+    await app.close();
+    await model.close();
+    await rm(root, { recursive: true });
+  }
+});
+
+test('Agent structure tools use shared storage and keep saved artifact identity through directory recovery', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'scholoom-agent-structure-'));
+  const model = await createModelServer();
+  const app = new KernelApplication(join(root, 'profile'), {
+    modelEndpoint: model.url,
+    environment: { MINIMAX_CN_API_KEY: 'synthetic' },
+  });
+  try {
+    await app.initialize();
+    const store = await app.projects.create(join(root, 'project'));
+    store.grant({ read: true, write: true, send: true, autoBackup: false });
+    const session = app.harness.create(store.project.id);
+    await app.harness.send({
+      projectId: store.project.id,
+      sessionId: session.id,
+      instructionId: randomUUID(),
+      text: 'MODEL_STRUCTURE',
+      materials: [],
+    });
+    await expect
+      .poll(
+        async () =>
+          (await app.snapshot({ projectId: store.project.id, sessionId: session.id })).run?.state,
+      )
+      .toBe('completed');
+    expect(await readFile(join(store.project.path, 'recovered', 'result.md'), 'utf8')).toContain(
+      '42',
+    );
+    const snapshot = await app.snapshot({ projectId: store.project.id, sessionId: session.id });
+    expect(snapshot.artifacts).toEqual([
+      expect.objectContaining({
+        path: 'managed/result.md',
+        state: 'linked',
+        location: expect.objectContaining({ path: 'recovered/result.md', state: 'present' }),
+      }),
+    ]);
+    for (const name of [
+      'mkdir_project_path',
+      'rename_project_path',
+      'trash_project_path',
+      'restore_project_path',
+    ])
+      expect(snapshot.messages).toContainEqual(
+        expect.objectContaining({
+          role: 'tool',
+          state: 'complete',
+          tool: expect.objectContaining({ name }),
+        }),
+      );
   } finally {
     await app.close();
     await model.close();

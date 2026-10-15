@@ -26,6 +26,7 @@ export function useBusinessSession(
   const snapshot = received?.selection === selection ? received.value : undefined;
   const [error, setError] = useState('');
   const [materials, setMaterials] = useState<string[]>([]);
+  const [materialFileIds, setMaterialFileIds] = useState<Record<string, string>>({});
   const [file, setFile] = useState<FileTarget>();
   const [earlier, setEarlier] = useState<Message[]>([]);
   const [earlierComplete, setEarlierComplete] = useState(false);
@@ -125,6 +126,17 @@ export function useBusinessSession(
       setMaterials([]);
     }
     try {
+      setMaterialFileIds(
+        JSON.parse(
+          readDraft(
+            draftKey(directory, selection.projectId, selection.sessionId, 'material-file-ids'),
+          ) || '{}',
+        ),
+      );
+    } catch {
+      setMaterialFileIds({});
+    }
+    try {
       const pending: unknown = JSON.parse(
         readDraft(draftKey(directory, selection.projectId, selection.sessionId, 'pending')),
       );
@@ -137,6 +149,48 @@ export function useBusinessSession(
       setRecovered(undefined);
     }
   }, [directory, selection]);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: 文件修订变化时重新解析已附加引用。
+  useEffect(() => {
+    if (!client || phase !== 'connected' || !materials.length) return;
+    let active = true;
+    const selected = selection;
+    void Promise.all(
+      materials.map(async (path) => {
+        const id = materialFileIds[path];
+        if (id)
+          return (
+            await client.call('files.resolve', { projectId: selected.projectId, fileIds: [id] })
+          )[0];
+        const entry = await client.call('files.read', { projectId: selected.projectId, path });
+        return entry.fileId ? { fileId: entry.fileId, path, state: 'present' } : undefined;
+      }),
+    )
+      .then((locations) => {
+        if (!active || selectedRef.current !== selected) return;
+        const present = locations.flatMap((item) => (item?.state === 'present' ? [item] : []));
+        const paths = present.map((item) => item.path);
+        const ids = Object.fromEntries(present.map((item) => [item.path, item.fileId]));
+        if (JSON.stringify(paths) !== JSON.stringify(materials)) {
+          setMaterials(paths);
+          writeDraft(
+            draftKey(directory, selected.projectId, selected.sessionId, 'materials'),
+            JSON.stringify(paths),
+          );
+        }
+        if (JSON.stringify(ids) !== JSON.stringify(materialFileIds)) {
+          setMaterialFileIds(ids);
+          writeDraft(
+            draftKey(directory, selected.projectId, selected.sessionId, 'material-file-ids'),
+            JSON.stringify(ids),
+          );
+        }
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [client, phase, selection, directory, snapshot?.fileRevision, materialFileIds, materials]);
 
   useEffect(() => {
     if (recovered && snapshot?.messages.some((message) => message.id === recovered.instructionId)) {
@@ -224,6 +278,13 @@ export function useBusinessSession(
         instructionId,
         text,
         materials,
+        ...(materials.length && materials.every((path) => !!materialFileIds[path])
+          ? {
+              materialFileIds: materials.flatMap((path) =>
+                materialFileIds[path] ? [materialFileIds[path]] : [],
+              ),
+            }
+          : {}),
       };
       const serialized = JSON.stringify(input);
       if (validateBusiness('session.send', 'params', input)) {
@@ -259,6 +320,11 @@ export function useBusinessSession(
     });
   };
   return {
+    projectId: selection.projectId,
+    fileRevision: snapshot?.fileRevision ?? 0,
+    resolveFiles: client
+      ? (fileIds) => client.call('files.resolve', { projectId: selection.projectId, fileIds })
+      : undefined,
     adapter,
     executionContext: {
       project: project?.name ?? '正在读取项目',
@@ -273,22 +339,36 @@ export function useBusinessSession(
     },
     draftKey: draftKey(directory, selection.projectId, selection.sessionId || 'unsent'),
     ...(file ? { fileTarget: file } : {}),
-    renderFile: (target) =>
+    renderFile: (target, mode) =>
       client ? (
         <FileEditor
-          key={`${target.projectId}:${target.path}`}
+          key={`${target.projectId}:${target.fileId ?? target.path}:${mode ?? 'source'}`}
           client={client}
           directory={directory}
           target={target}
-          onChanged={() => {
-            if (target.create) setFile({ projectId: target.projectId, path: target.path });
+          mode={mode ?? 'source'}
+          revision={snapshot?.fileRevision ?? 0}
+          onOpenFile={setFile}
+          onChanged={(stored) => {
+            if (!target.fileId) setFile(stored);
             void refresh();
           }}
         />
       ) : null,
+    projectControls: (
+      <ProjectControls
+        snapshot={snapshot}
+        selectedProject={selection.projectId}
+        onSelect={(id) => select(id, readDraft(draftKey(directory, id, 'session')))}
+        call={call}
+        onOpen={(value) => select(value.id)}
+        enabled={phase === 'connected' && !!snapshot}
+      />
+    ),
     controls: (
       <>
         <ProjectControls
+          mode="settings"
           snapshot={snapshot}
           selectedProject={selection.projectId}
           onSelect={(id) => select(id, readDraft(draftKey(directory, id, 'session')))}
@@ -296,6 +376,10 @@ export function useBusinessSession(
           onOpen={(value) => select(value.id)}
           enabled={phase === 'connected' && !!snapshot}
         />
+      </>
+    ),
+    notices: (
+      <>
         {recovered?.projectId === selection.projectId &&
         recovered.sessionId === selection.sessionId ? (
           <details className="execution-status">
@@ -368,10 +452,21 @@ export function useBusinessSession(
         <button
           type="button"
           aria-label={`打开成果 ${artifact.path}`}
-          onClick={() => setFile({ projectId: selection.projectId, path: artifact.path })}
+          disabled={!!artifact.location && artifact.location.state !== 'present'}
+          onClick={() =>
+            setFile({
+              projectId: selection.projectId,
+              path: artifact.location?.path ?? artifact.path,
+              ...(artifact.fileId ? { fileId: artifact.fileId } : {}),
+            })
+          }
         >
           打开成果
         </button>
+        {artifact.location?.state === 'trashed' ? <span>已回收，可在回收站恢复</span> : null}
+        {artifact.location?.path && artifact.location.path !== artifact.path ? (
+          <span>当前位置：{artifact.location.path}</span>
+        ) : null}
         {artifact.state !== 'linked' ? (
           <button
             type="button"
@@ -397,13 +492,21 @@ export function useBusinessSession(
           key={project.id}
           client={client}
           project={project}
-          revision={snapshot?.artifacts.length ?? 0}
+          revision={snapshot?.fileRevision ?? 0}
           open={setFile}
-          attach={(path) => {
+          attach={(path, fileId) => {
             const next = materials.includes(path)
               ? materials.filter((item) => item !== path)
               : [...materials, path];
             setMaterials(next);
+            const ids = { ...materialFileIds };
+            if (next.includes(path) && fileId) ids[path] = fileId;
+            else delete ids[path];
+            setMaterialFileIds(ids);
+            writeDraft(
+              draftKey(directory, selection.projectId, selection.sessionId, 'material-file-ids'),
+              JSON.stringify(ids),
+            );
             writeDraft(
               draftKey(directory, selection.projectId, selection.sessionId, 'materials'),
               JSON.stringify(next),

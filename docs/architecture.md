@@ -26,20 +26,16 @@ Scholoom 是可独立执行完整科研工作的本地 Agent 系统。人类通�
 
 ## 2. 当前实现基线
 
-以下按 2026-10-12 仓库静态核对记录，未在本次重新运行应用。
+以下按当前代码与规格整理（2026-10-15 更新）；实际工程状态以代码、测试和[开发说明](development.md)为准，验证范围见对应变更的交付记录。
 
-| 入口 | 当前代码已具备 | 目标设计尚待实施 |
-| --- | --- | --- |
-| `apps/kernel` | 独立 Node CLI，帮助与运行时信息 | 驻留服务、领域模块、存储、Agent 运行和进程监督 |
-| `apps/desktop` | Electron main、sandbox preload、React／assistant-ui 共享工作台 | 真实连接、四种布局、阅读、写作、审查和任务介入 |
-| `apps/zotero-host` | 独立 Electron 入口及隐藏 Chromium 页面 | Zotero 10 兼容运行时、原插件装载、领域写回 |
-| `packages/protocol` | JSON-RPC 请求、内核运行信息的 JSON Schema 和推导类型 | 业务协议、响应、事件及运行时边界校验 |
-| `packages/client` | 连接坐标接口、协议类型出口 | WebSocket、认证、请求处理、订阅与重连 |
-| `tests` | 入口 smoke、Chromium／Electron 共用 UI 行为用例 | 真实内核、数据保护、科研运行、插件和分发验收 |
+- 独立 Node 内核（`apps/kernel`）：生命周期排他锁与端点资料、CLI，以及项目数据库与迁移。
+- 项目文件模块：稳定项目与文件身份、文本读写保护、结构操作与回收恢复、备份。
+- 内置 Agent harness：LangGraph 单 Agent 执行、MiniMax 凭据、持久会话与工具记录。
+- 共享契约与客户端（`packages/protocol`、`packages/client`）：schema DTO、WebSocket、认证、类型化调用、范围订阅与重连。
+- 工作台（`apps/desktop`）：Electron 与浏览器共用 React renderer，经共同客户端接入真实内核；项目与文件工作台、Markdown 源码／预览／并排、设置页已接通，样例只在显式参数下注入。
+- 兼容宿主（`apps/zotero-host`）：独立 Electron 入口与隐藏页面原型，未接入内核监督、未加载插件。
 
-当前工作台默认未连接，可编辑草稿而不能发送；开发样例只注入固定材料和回复。LangGraph、数据库、阅读编辑组件及受管科研工具尚未接入。兼容宿主原型和预览实验是选型依据，不是上述应用已具备的能力。
-
-部分决议票保留了讨论当时“尚未初始化目录”或“renderer 尚无实质内容”的调查快照。本文采用当前代码状态，不据此改写决议历史，也不把新骨架误认成业务交付。
+行为契约以[当前正式规格](../openspec/specs)为准，当前进行中的项目与文件工作台变更见 [complete-project-file-workbench](../openspec/changes/complete-project-file-workbench/)。本节只描述现状，不另建进度账本。
 
 ## 3. 系统结构与运行部署
 

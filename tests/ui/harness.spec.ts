@@ -1,6 +1,6 @@
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { basename, join } from 'node:path';
 import { startModelKernel } from '../model-kernel.js';
 import { createModelServer } from '../model-server.js';
 import { expect, test } from './fixture.js';
@@ -21,6 +21,7 @@ test('user configures, edits safely and receives a real persisted Agent result',
     await installRpcGate(uiPage);
     await uiPage.goto('http://127.0.0.1:5174/');
     await expect(uiPage.getByRole('status', { name: '连接状态' })).toContainText('已连接');
+    await uiPage.getByRole('button', { name: '设置', exact: true }).click();
     await uiPage.getByText('模型设置', { exact: true }).click();
     await uiPage.getByLabel('MiniMax API Key', { exact: true }).fill('synthetic-ui-key');
     await uiPage.getByRole('button', { name: '保存凭据' }).click();
@@ -28,8 +29,14 @@ test('user configures, edits safely and receives a real persisted Agent result',
     await uiPage.getByText('打开项目', { exact: true }).click();
     await uiPage.getByRole('textbox', { name: '项目目录', exact: true }).fill(project);
     await uiPage.getByRole('button', { name: '打开目录' }).click();
+    await expect(uiPage.getByLabel('执行上下文')).toContainText(basename(project));
+    await uiPage.getByRole('button', { name: '设置', exact: true }).click();
     await uiPage.getByText('项目权限与备份', { exact: true }).click();
-    for (const label of ['读取项目材料', '保存普通文件修改', '将项目材料发送到 MiniMax'])
+    for (const label of [
+      '读取项目材料',
+      '新建、修改、重命名和回收／恢复项目文件及目录',
+      '将项目材料发送到 MiniMax',
+    ])
       await uiPage.getByLabel(label, { exact: true }).check();
     await uiPage.getByRole('button', { name: '保存项目授权' }).click();
     await uiPage.getByRole('button', { name: '新建会话', exact: true }).click();
@@ -141,6 +148,7 @@ test('late send failure restores its original conversation and storage failures 
     await installRpcGate(uiPage);
     await uiPage.goto('http://127.0.0.1:5174/');
     await expect(uiPage.getByRole('status', { name: '连接状态' })).toContainText('已连接');
+    await uiPage.getByRole('button', { name: '设置', exact: true }).click();
     await uiPage.getByText('模型设置', { exact: true }).click();
     await uiPage.getByLabel('MiniMax API Key', { exact: true }).fill('synthetic-ui-key');
     await uiPage.getByRole('button', { name: '保存凭据' }).click();
@@ -202,6 +210,7 @@ test('busy conversation accepts additions, cancellation survives reload and cont
     await installRpcGate(uiPage);
     await uiPage.goto('http://127.0.0.1:5174/');
     await expect(uiPage.getByRole('status', { name: '连接状态' })).toContainText('已连接');
+    await uiPage.getByRole('button', { name: '设置', exact: true }).click();
     await uiPage.getByText('模型设置', { exact: true }).click();
     await uiPage.getByLabel('MiniMax API Key', { exact: true }).fill('synthetic-ui-key');
     await uiPage.getByRole('button', { name: '保存凭据' }).click();

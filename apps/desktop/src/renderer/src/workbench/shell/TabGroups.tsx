@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import type { FileTarget } from '../session';
 import { IconSplit } from './icons';
 
-export type TabKind = 'library' | 'reader' | 'editor' | 'preview';
+export type TabKind = 'library' | 'reader' | 'editor' | 'preview' | 'settings';
 
 export interface TabItem {
   id: string;
@@ -18,6 +18,7 @@ export interface TabGroupState {
 }
 
 const kindLabels: Record<TabKind, { title: string; description: string }> = {
+  settings: { title: '设置', description: '' },
   library: { title: '文献库', description: '文献库界面将在后续变更接入，此页为框架占位。' },
   reader: { title: '阅读器', description: '阅读器界面将在后续变更接入，此页为框架占位。' },
   editor: { title: '编辑器', description: '编辑器界面将在后续变更接入，此页为框架占位。' },
@@ -39,10 +40,20 @@ export interface TabGroupsProps {
   onActivate: (groupIndex: number, tabId: string) => void;
   onClose: (groupIndex: number, tabId: string) => void;
   onSplit: (groupIndex: number) => void;
-  renderFile?: ((target: FileTarget) => ReactNode) | undefined;
+  onView?: ((groupIndex: number, mode: 'source' | 'preview' | 'split') => void) | undefined;
+  renderSettings?: ReactNode;
+  renderFile?: ((target: FileTarget, mode?: 'source' | 'preview') => ReactNode) | undefined;
 }
 
-export function TabGroups({ groups, onActivate, onClose, onSplit, renderFile }: TabGroupsProps) {
+export function TabGroups({
+  groups,
+  onActivate,
+  onClose,
+  onSplit,
+  renderFile,
+  onView,
+  renderSettings,
+}: TabGroupsProps) {
   if (groups.length === 0) {
     return (
       <div className="center-empty">
@@ -99,9 +110,24 @@ export function TabGroups({ groups, onActivate, onClose, onSplit, renderFile }: 
                 <IconSplit />
               </button>
             </header>
+            {active?.target ? (
+              <div className="file-view-controls">
+                <button type="button" onClick={() => onView?.(groupIndex, 'source')}>
+                  源码
+                </button>
+                <button type="button" onClick={() => onView?.(groupIndex, 'preview')}>
+                  预览
+                </button>
+                <button type="button" onClick={() => onView?.(groupIndex, 'split')}>
+                  并排预览
+                </button>
+              </div>
+            ) : null}
             <div className="tab-content">
               {active?.target && renderFile ? (
-                renderFile(active.target)
+                renderFile(active.target, active.kind === 'preview' ? 'preview' : 'source')
+              ) : active?.kind === 'settings' ? (
+                renderSettings
               ) : active ? (
                 <TabPlaceholder kind={active.kind} />
               ) : null}

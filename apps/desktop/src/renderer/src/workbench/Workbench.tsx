@@ -12,12 +12,6 @@ import { AgentOverlay } from './shell/AgentOverlay';
 import { AuxiliaryPane, AuxiliaryRail } from './shell/AuxiliaryPane';
 import { type TabGroupState, TabGroups, type TabItem } from './shell/TabGroups';
 
-const DEFAULT_TABS: readonly TabItem[] = [
-  { id: 'library', title: '文献库', kind: 'library' },
-  { id: 'reader', title: '阅读器', kind: 'reader' },
-  { id: 'editor', title: '编辑器', kind: 'editor' },
-];
-
 const THEME_ORDER: readonly ThemeMode[] = ['system', 'light', 'dark'];
 
 function ComposerDraft({
@@ -52,9 +46,66 @@ export function Workbench({ session }: { session: WorkbenchSession }) {
   const [rightCollapsed, setRightCollapsed] = useState(false);
   const [agentExpanded, setAgentExpanded] = useState(false);
   const [theme, setTheme] = useState<ThemeMode>('system');
-  const [groups, setGroups] = useState<readonly TabGroupState[]>([
-    { id: 'a', tabs: DEFAULT_TABS, activeId: DEFAULT_TABS[0]?.id ?? null },
+  const [groups, setGroups] = useState<readonly TabGroupState[]>(
+    session.initialTabs?.length
+      ? [{ id: 'a', tabs: session.initialTabs, activeId: session.initialTabs[0]?.id ?? null }]
+      : [],
+  );
+  const projectGroups = useRef(new Map<string, readonly TabGroupState[]>());
+  const currentProject = useRef(session.projectId ?? 'sample');
+  useLayoutEffect(() => {
+    const next = session.projectId ?? 'sample';
+    if (next === currentProject.current) return;
+    projectGroups.current.set(currentProject.current, groups);
+    currentProject.current = next;
+    setGroups(projectGroups.current.get(next) ?? []);
+  }, [session.projectId, groups]);
+
+  const resolveFiles = useRef(session.resolveFiles);
+  resolveFiles.current = session.resolveFiles;
+  const fileIds = JSON.stringify([
+    ...new Set(
+      groups.flatMap((group) =>
+        group.tabs.flatMap((tab) => (tab.target?.fileId ? [tab.target.fileId] : [])),
+      ),
+    ),
   ]);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: 项目和文件修订触发当前位置查询，解析函数经 ref 保持稳定。
+  useEffect(() => {
+    const resolve = resolveFiles.current;
+    const ids = JSON.parse(fileIds) as string[];
+    if (!resolve || !ids.length) return;
+    let active = true;
+    void (async () => {
+      const locations = [];
+      for (let offset = 0; offset < ids.length; offset += 100)
+        locations.push(...(await resolve(ids.slice(offset, offset + 100))));
+      if (!active) return;
+      const paths = new Map(
+        locations
+          .filter((location) => location.state === 'present')
+          .map((location) => [location.fileId, location.path]),
+      );
+      setGroups((current) =>
+        current.map((group) => ({
+          ...group,
+          tabs: group.tabs.map((tab) => {
+            const path = tab.target?.fileId ? paths.get(tab.target.fileId) : undefined;
+            return path && tab.target && path !== tab.target.path
+              ? {
+                  ...tab,
+                  title: `${path.split('/').at(-1)}${tab.kind === 'preview' ? ' · 预览' : ''}`,
+                  target: { ...tab.target, path },
+                }
+              : tab;
+          }),
+        })),
+      );
+    })().catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [fileIds, session.fileRevision, session.projectId]);
 
   const overlayRef = useRef<HTMLDivElement>(null);
   const wasExpandedRef = useRef(false);
@@ -131,27 +182,126 @@ export function Workbench({ session }: { session: WorkbenchSession }) {
   }, []);
 
   const activeSession = session.sessions?.find((item) => item.id === session.activeSessionId);
+  const settings = () => {
+    const tab: TabItem = { id: 'settings', title: '设置', kind: 'settings' };
+    setAgentExpanded(false);
+    setGroups((current) =>
+      current.length
+        ? current.map((group, index) =>
+            index === 0
+              ? {
+                  ...group,
+                  tabs: [...group.tabs.filter((item) => item.id !== 'settings'), tab],
+                  activeId: tab.id,
+                }
+              : group,
+          )
+        : [{ id: 'a', tabs: [tab], activeId: tab.id }],
+    );
+  };
+  const view = (groupIndex: number, mode: 'source' | 'preview' | 'split') =>
+    setGroups((current) => {
+      const group = current[groupIndex];
+      const active = group?.tabs.find((tab) => tab.id === group.activeId);
+      if (!active?.target) return current;
+      const key = `${active.target.projectId}:${active.target.fileId ?? active.target.path}`;
+      const editor: TabItem = { ...active, id: key, kind: 'editor' };
+      const preview: TabItem = {
+        ...active,
+        id: `${key}:preview`,
+        kind: 'preview',
+        title: `${active.target.path.split('/').at(-1)} · 预览`,
+      };
+      if (mode === 'split') {
+        const first = current[0] ?? { id: 'a', tabs: [], activeId: null };
+        const second = current[1] ?? { id: 'b', tabs: [], activeId: null };
+        return [
+          {
+            ...first,
+            tabs: [
+              ...first.tabs.filter((tab) => tab.id !== editor.id && tab.id !== preview.id),
+              editor,
+            ],
+            activeId: editor.id,
+          },
+          {
+            ...second,
+            tabs: [
+              ...second.tabs.filter((tab) => tab.id !== preview.id && tab.id !== editor.id),
+              preview,
+            ],
+            activeId: preview.id,
+          },
+        ];
+      }
+      const target = mode === 'preview' ? preview : editor;
+      return current.map((item, index) =>
+        index === groupIndex
+          ? {
+              ...item,
+              tabs: [
+                ...item.tabs.filter((tab) => tab.id !== active.id && tab.id !== target.id),
+                target,
+              ],
+              activeId: target.id,
+            }
+          : item,
+      );
+    });
 
   useEffect(() => {
     const target = session.fileTarget;
-    if (!target) return;
+    if (!target || target.projectId !== session.projectId) return;
     // 成果经文件 tab 打开，收起 overlay 才能看到实际内容。
     setAgentExpanded(false);
     const tab = {
-      id: `${target.projectId}:${target.path}`,
+      id: `${target.projectId}:${target.fileId ?? target.path}`,
       title: target.path.split('/').at(-1) ?? target.path,
       kind: 'editor' as const,
       target,
     };
-    setGroups((current) => {
-      const existing = current.findIndex((group) => group.tabs.some((item) => item.id === tab.id));
+    setGroups((previous) => {
+      const current = target.fileId
+        ? previous.map((group) => {
+            let activeId = group.activeId;
+            const tabs = group.tabs.map((item) => {
+              if (
+                item.target?.projectId !== target.projectId ||
+                item.target.path !== target.path ||
+                item.target.fileId
+              )
+                return item;
+              const id = `${tab.id}${item.kind === 'preview' ? ':preview' : ''}`;
+              if (activeId === item.id) activeId = id;
+              return { ...item, id, target };
+            });
+            return { ...group, tabs, activeId };
+          })
+        : previous;
+      const existing = current.findIndex((group) =>
+        group.tabs.some(
+          (item) =>
+            item.id === tab.id ||
+            (item.kind === 'editor' &&
+              item.target?.projectId === target.projectId &&
+              item.target.path === target.path &&
+              !item.target.fileId),
+        ),
+      );
       if (existing >= 0)
         return current.map((group, index) =>
           index === existing
             ? {
                 ...group,
                 activeId: tab.id,
-                tabs: group.tabs.map((item) => (item.id === tab.id ? tab : item)),
+                tabs: group.tabs.map((item) =>
+                  item.id === tab.id ||
+                  (item.kind === 'editor' &&
+                    item.target?.path === target.path &&
+                    !item.target.fileId)
+                    ? tab
+                    : item,
+                ),
               }
             : group,
         );
@@ -160,7 +310,7 @@ export function Workbench({ session }: { session: WorkbenchSession }) {
         index === 0 ? { ...group, tabs: [...group.tabs, tab], activeId: tab.id } : group,
       );
     });
-  }, [session.fileTarget]);
+  }, [session.fileTarget, session.projectId]);
 
   return (
     <AssistantRuntimeProvider runtime={runtime}>
@@ -184,11 +334,13 @@ export function Workbench({ session }: { session: WorkbenchSession }) {
               })
             }
             onCollapse={() => setLeftCollapsed(true)}
+            projectControls={session.projectControls}
+            openSettings={session.controls ? settings : undefined}
           />
         )}
 
         <ThreadPrimitive.Root className="center">
-          {session.controls}
+          {session.notices}
           {!agentExpanded ? session.artifacts : null}
           <TabGroups
             groups={groups}
@@ -196,6 +348,8 @@ export function Workbench({ session }: { session: WorkbenchSession }) {
             onClose={closeTab}
             onSplit={splitGroup}
             renderFile={session.renderFile}
+            renderSettings={session.controls}
+            onView={view}
           />
           {agentExpanded ? (
             <AgentOverlay

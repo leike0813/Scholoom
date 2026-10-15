@@ -29,6 +29,9 @@
   --font-mono: ui-monospace, "SF Mono", Consolas, monospace;
   --font-size-meta: 12px;
   --font-size-label: 11px;
+  --font-size-document: 15px;
+  --font-size-control: 13px;
+  --space-unit: 4px;
 
   --radius: 8px;
   --radius-sm: 6px;
@@ -42,6 +45,75 @@
   --center-min: 480px;
   --tabgroup-min: 320px;
   --dock-composer-min: 300px;
+}
+
+.project-controls input:not([type="checkbox"]),
+.project-controls select {
+  max-width: 100%;
+  min-width: 0;
+}
+.file-view-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-unit);
+  padding: var(--space-unit);
+  border-bottom: 1px solid var(--border);
+}
+.markdown-preview {
+  min-width: 0;
+  overflow: auto;
+  padding: calc(var(--space-unit) * 4);
+  color: var(--text-primary);
+  font: var(--font-size-document) / 1.6 var(--font-prose);
+}
+.markdown-preview-body {
+  overflow-wrap: anywhere;
+}
+.markdown-preview table {
+  border-collapse: collapse;
+  display: block;
+  max-width: 100%;
+  overflow: auto;
+}
+.markdown-preview th,
+.markdown-preview td {
+  border: 1px solid var(--border-strong);
+  padding: calc(var(--space-unit) * 2);
+}
+.markdown-preview pre,
+.markdown-preview .katex-display {
+  max-width: 100%;
+  overflow: auto;
+}
+.markdown-preview pre {
+  background: var(--surface);
+  border-radius: var(--radius-sm);
+  padding: calc(var(--space-unit) * 3);
+  font-family: var(--font-mono);
+}
+.markdown-preview img {
+  max-width: 100%;
+  height: auto;
+}
+.markdown-link {
+  color: var(--accent);
+}
+.markdown-link-blocked,
+.markdown-image-note,
+.preview-status {
+  color: var(--text-secondary);
+  font: var(--font-size-meta) / 1.5 var(--font-ui);
+}
+.markdown-image {
+  display: inline-block;
+  max-width: 100%;
+}
+.project-files ul {
+  padding-inline-start: calc(var(--space-unit) * 3);
+}
+.project-files li {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 /* 默认跟随系统；data-theme 显式选择优先 */
@@ -67,6 +139,9 @@
     --shadow-card: 0 1px 3px rgb(0 0 0 / 0.3);
     --font-size-meta: 12px;
     --font-size-label: 11px;
+    --font-size-document: 15px;
+    --font-size-control: 13px;
+    --space-unit: 4px;
   }
 }
 
@@ -91,6 +166,9 @@
   --shadow-card: 0 1px 3px rgb(0 0 0 / 0.3);
   --font-size-meta: 12px;
   --font-size-label: 11px;
+  --font-size-document: 15px;
+  --font-size-control: 13px;
+  --space-unit: 4px;
 }
 
 *,
@@ -1051,14 +1129,52 @@ button {
   margin: 0;
   min-width: 0;
   border: 0;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  padding: 8px 12px;
+  display: grid;
+  gap: calc(var(--space-unit) * 2);
+  padding: calc(var(--space-unit) * 3);
   border-bottom: 1px solid var(--border);
   max-height: 40vh;
   overflow: auto;
   flex-shrink: 0;
+}
+.side--left > .project-controls {
+  flex: 0 1 auto;
+  overflow-x: hidden;
+}
+.project-controls > * {
+  min-width: 0;
+  max-width: 100%;
+}
+:where(.project-controls, .project-files, .file-toolbar, .file-view-controls) {
+  font: var(--font-size-control) / 1.5 var(--font-ui);
+}
+:is(.project-controls, .project-files, .file-toolbar, .file-view-controls) button {
+  border-radius: var(--radius-sm);
+  padding: var(--space-unit) calc(var(--space-unit) * 2);
+}
+:is(.project-controls, .project-files, .file-toolbar, .file-view-controls) button:hover {
+  background: var(--surface-hover);
+}
+:is(.project-controls, .project-files, .file-toolbar, .file-view-controls) button:disabled {
+  color: var(--text-tertiary);
+  cursor: default;
+}
+:is(.project-controls, .project-files) :is(input:not([type="checkbox"]), select) {
+  font: inherit;
+  color: var(--text-primary);
+  background: var(--bg);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  padding: var(--space-unit) calc(var(--space-unit) * 2);
+}
+/* biome-ignore lint/style/noDescendingSpecificity: 项目表单与内核菜单分属独立容器。 */
+:is(.project-controls, .project-files) summary {
+  cursor: pointer;
+  padding-block: var(--space-unit);
+}
+.project-files label {
+  display: block;
+  margin-block: var(--space-unit);
 }
 .project-controls details {
   min-width: 150px;

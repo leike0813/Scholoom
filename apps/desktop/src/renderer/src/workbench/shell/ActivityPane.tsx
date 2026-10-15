@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { type ReactNode, useRef } from 'react';
 import type { SessionSummary, WorkbenchConnection } from '../session';
 import {
   IconChat,
@@ -59,6 +59,8 @@ function StopKernel({ onStop }: { onStop: () => void }) {
 }
 
 export interface ActivityPaneProps {
+  projectControls?: ReactNode;
+  openSettings?: (() => void) | undefined;
   status: string;
   connection?: WorkbenchConnection | undefined;
   sessions: readonly SessionSummary[];
@@ -80,6 +82,8 @@ export function ActivityPane({
   theme,
   onCycleTheme,
   onCollapse,
+  projectControls,
+  openSettings,
 }: ActivityPaneProps) {
   const kernelMessage =
     connection?.message ?? (status === 'sample' ? '样例场景 · 刷新后重置' : '内核未连接');
@@ -109,15 +113,21 @@ export function ActivityPane({
           <IconPlus />
           新建会话
         </button>
-        <button type="button" className="menu__item">
+        <button type="button" className="menu__item" disabled>
           <IconLibrary />
           文献库
         </button>
-        <button type="button" className="menu__item">
+        <button
+          type="button"
+          className="menu__item"
+          onClick={openSettings}
+          disabled={!openSettings}
+        >
           <IconSettings />
           设置
         </button>
       </nav>
+      {projectControls}
 
       <div className="section-label">
         <span>会话</span>

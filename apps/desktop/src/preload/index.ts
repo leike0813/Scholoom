@@ -4,4 +4,5 @@ import { contextBridge, ipcRenderer } from 'electron';
 contextBridge.exposeInMainWorld('scholoomDesktop', {
   platform: process.platform,
   bootstrap: (mode: BootstrapRequest['mode']) => ipcRenderer.invoke('kernel:bootstrap', mode),
+  openExternal: (url: string) => ipcRenderer.invoke('navigation:external', url),
 });

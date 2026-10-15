@@ -101,6 +101,10 @@ export class KernelClient {
       'files.list',
       'files.history',
       'project.backups',
+      'files.resolve',
+      'files.operation',
+      'files.trashList',
+      'files.resource',
     ].includes(method);
     const result = await this.request(
       method,

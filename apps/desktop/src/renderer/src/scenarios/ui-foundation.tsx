@@ -37,6 +37,11 @@ export default function UiFoundationScenario() {
     <Workbench
       session={{
         status: 'sample',
+        initialTabs: [
+          { id: 'library', title: '文献库', kind: 'library' },
+          { id: 'reader', title: '阅读器', kind: 'reader' },
+          { id: 'editor', title: '编辑器', kind: 'editor' },
+        ],
         materials: MATERIALS,
         selectedMaterials: state.selectedMaterials,
         toggleMaterial: (name) => {

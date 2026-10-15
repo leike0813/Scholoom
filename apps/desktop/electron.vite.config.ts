@@ -1,5 +1,6 @@
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'electron-vite';
+import { defaultClientConditions } from 'vite';
 
 export default defineConfig({
   main: {
@@ -14,5 +15,5 @@ export default defineConfig({
       rollupOptions: { output: { format: 'cjs', entryFileNames: 'index.cjs' } },
     },
   },
-  renderer: { plugins: [react()] },
+  renderer: { plugins: [react()], resolve: { conditions: ['worker', ...defaultClientConditions] } },
 });

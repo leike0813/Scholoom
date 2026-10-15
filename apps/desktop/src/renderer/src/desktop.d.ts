@@ -6,6 +6,7 @@ declare global {
     scholoomDesktop?:
       | {
           platform: string;
+          openExternal: (url: string) => Promise<void>;
           bootstrap: (mode: 'ensure' | 'inspect') => Promise<BootstrapResult>;
         }
       | undefined;

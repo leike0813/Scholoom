@@ -17,7 +17,7 @@ const object = <
 ) => ({ type: 'object', properties, required, additionalProperties: false }) as const;
 
 export const projectSchema = object(
-  { id, path: id, name: text, read: flag, write: flag, send: flag, autoBackup: flag },
+  { id, path: id, name: text, read: flag, write: flag, send: flag, autoBackup: flag, recent: flag },
   ['id', 'path', 'name', 'read', 'write', 'send', 'autoBackup'],
 );
 export const runStateSchema = {
@@ -46,6 +46,7 @@ export const messageSchema = object(
       ['runId', 'name', 'input', 'inputTruncated'],
     ),
     materials: array(text),
+    materialFileIds: array(text),
     createdAt: text,
   },
   ['id', 'sessionId', 'role', 'text', 'state', 'materials', 'createdAt'],
@@ -73,23 +74,51 @@ export const providerSchema = object(
   },
   ['id', 'model', 'configured', 'source'],
 );
-export const fileEntrySchema = object({ path: text, name: text, kind: { enum: ['file', 'dir'] } }, [
-  'path',
-  'name',
-  'kind',
-]);
-export const fileSchema = object({ path: text, content, basis: id, truncated: flag }, [
+export const fileEntrySchema = object(
+  { fileId: id, path: text, name: text, kind: { enum: ['file', 'dir'] } },
+  ['path', 'name', 'kind'],
+);
+export const fileSchema = object({ fileId: id, path: text, content, basis: id, truncated: flag }, [
   'path',
   'content',
   'basis',
   'truncated',
 ]);
 export const editSchema = object(
-  { id, path: text, before: content, after: content, createdAt: text, created: flag },
+  { id, fileId: id, path: text, before: content, after: content, createdAt: text, created: flag },
   ['id', 'path', 'before', 'after', 'createdAt'],
 );
+export const fileLocationSchema = object(
+  {
+    fileId: id,
+    path: text,
+    kind: { enum: ['file', 'dir'] },
+    state: { enum: ['present', 'trashed', 'missing'] },
+    trashId: id,
+  },
+  ['fileId', 'path', 'kind', 'state'],
+);
+export const fileOperationSchema = object(
+  {
+    id,
+    kind: { enum: ['mkdir', 'rename', 'trash', 'restore'] },
+    state: { enum: ['prepared', 'complete', 'unknown', 'failed'] },
+    path: text,
+    destination: text,
+    fileId: id,
+    trashId: id,
+    error: text,
+  },
+  ['id', 'kind', 'state', 'path'],
+);
 export const artifactSchema = object(
-  { path: text, runId: id, state: { enum: ['linked', 'unlinked', 'unknown'] } },
+  {
+    path: text,
+    fileId: id,
+    location: fileLocationSchema,
+    runId: id,
+    state: { enum: ['linked', 'unlinked', 'unknown'] },
+  },
   ['path', 'runId', 'state'],
 );
 export const backupSchema = object({ id, createdAt: text, omitted: array(text) }, [
@@ -108,6 +137,7 @@ export const snapshotSchema = object(
     run: runSchema,
     artifacts: array(artifactSchema),
     nextBefore: id,
+    fileRevision: count,
   },
   ['revision', 'provider', 'projects', 'sessions', 'messages', 'artifacts'],
 );
@@ -127,6 +157,65 @@ export const businessSchemas = {
     result: providerSchema,
   },
   'project.open': { params: object({ path: id }, ['path']), result: projectSchema },
+  'project.create': { params: object({ path: id, name: id }, ['path']), result: projectSchema },
+  'project.rename': {
+    params: object({ ...project, name: { type: 'string', minLength: 1, maxLength: 200 } }, [
+      'projectId',
+      'name',
+    ]),
+    result: projectSchema,
+  },
+  'project.forget': { params: object(project, ['projectId']), result: ok },
+  'files.mkdir': {
+    params: object({ ...project, path: id, operationId: id }, ['projectId', 'path', 'operationId']),
+    result: fileOperationSchema,
+  },
+  'files.rename': {
+    params: object({ ...project, path: id, name: id, operationId: id }, [
+      'projectId',
+      'path',
+      'name',
+      'operationId',
+    ]),
+    result: fileOperationSchema,
+  },
+  'files.trash': {
+    params: object({ ...project, path: id, operationId: id }, ['projectId', 'path', 'operationId']),
+    result: fileOperationSchema,
+  },
+  'files.restore': {
+    params: object({ ...project, trashId: id, destination: id, operationId: id }, [
+      'projectId',
+      'trashId',
+      'operationId',
+    ]),
+    result: fileOperationSchema,
+  },
+  'files.trashList': {
+    params: object({ ...project, offset: count, limit: page }, ['projectId']),
+    result: object({ entries: array(fileLocationSchema), nextOffset: count }, ['entries']),
+  },
+  'files.resolve': {
+    params: object({ ...project, fileIds: { type: 'array', items: id, maxItems: 100 } }, [
+      'projectId',
+      'fileIds',
+    ]),
+    result: array(fileLocationSchema),
+  },
+  'files.operation': {
+    params: object({ ...project, operationId: id }, ['projectId', 'operationId']),
+    result: fileOperationSchema,
+  },
+  'files.resource': {
+    params: object({ ...project, path: id }, ['projectId', 'path']),
+    result: object(
+      {
+        mimeType: { enum: ['image/png', 'image/jpeg', 'image/gif', 'image/webp'] },
+        data: { type: 'string', maxLength: 1398104 },
+      },
+      ['mimeType', 'data'],
+    ),
+  },
   'project.grant': {
     params: object({ ...project, read: flag, write: flag, send: flag, autoBackup: flag }, [
       'projectId',
@@ -187,6 +276,7 @@ export const businessSchemas = {
         instructionId: id,
         text: { type: 'string', minLength: 1, maxLength: 32768 },
         materials: array(text),
+        materialFileIds: array(text),
       },
       ['projectId', 'sessionId', 'instructionId', 'text', 'materials'],
     ),
@@ -204,12 +294,25 @@ export type ProviderStatus = FromSchema<typeof providerSchema>;
 export type FileEntry = FromSchema<typeof fileEntrySchema>;
 export type FileContent = FromSchema<typeof fileSchema>;
 export type FileEdit = FromSchema<typeof editSchema>;
+export type FileLocation = FromSchema<typeof fileLocationSchema>;
+export type FileOperation = FromSchema<typeof fileOperationSchema>;
 export type Artifact = FromSchema<typeof artifactSchema>;
 export type ProjectBackup = FromSchema<typeof backupSchema>;
 export type WorkbenchSnapshot = FromSchema<typeof snapshotSchema>;
 export type WorkbenchChange = FromSchema<typeof changeSchema>;
 export type BusinessMethod = keyof typeof businessSchemas;
 type Inputs = {
+  'project.create': FromSchema<(typeof businessSchemas)['project.create']['params']>;
+  'project.rename': FromSchema<(typeof businessSchemas)['project.rename']['params']>;
+  'project.forget': FromSchema<(typeof businessSchemas)['project.forget']['params']>;
+  'files.mkdir': FromSchema<(typeof businessSchemas)['files.mkdir']['params']>;
+  'files.rename': FromSchema<(typeof businessSchemas)['files.rename']['params']>;
+  'files.trash': FromSchema<(typeof businessSchemas)['files.trash']['params']>;
+  'files.restore': FromSchema<(typeof businessSchemas)['files.restore']['params']>;
+  'files.trashList': FromSchema<(typeof businessSchemas)['files.trashList']['params']>;
+  'files.resolve': FromSchema<(typeof businessSchemas)['files.resolve']['params']>;
+  'files.operation': FromSchema<(typeof businessSchemas)['files.operation']['params']>;
+  'files.resource': FromSchema<(typeof businessSchemas)['files.resource']['params']>;
   'artifacts.reconcile': FromSchema<(typeof businessSchemas)['artifacts.reconcile']['params']>;
   'workbench.snapshot': FromSchema<(typeof businessSchemas)['workbench.snapshot']['params']>;
   'workbench.watch': FromSchema<(typeof businessSchemas)['workbench.watch']['params']>;
@@ -230,6 +333,17 @@ type Inputs = {
   'session.resume': FromSchema<(typeof businessSchemas)['session.resume']['params']>;
 };
 type Outputs = {
+  'project.create': FromSchema<(typeof businessSchemas)['project.create']['result']>;
+  'project.rename': FromSchema<(typeof businessSchemas)['project.rename']['result']>;
+  'project.forget': FromSchema<(typeof businessSchemas)['project.forget']['result']>;
+  'files.mkdir': FromSchema<(typeof businessSchemas)['files.mkdir']['result']>;
+  'files.rename': FromSchema<(typeof businessSchemas)['files.rename']['result']>;
+  'files.trash': FromSchema<(typeof businessSchemas)['files.trash']['result']>;
+  'files.restore': FromSchema<(typeof businessSchemas)['files.restore']['result']>;
+  'files.trashList': FromSchema<(typeof businessSchemas)['files.trashList']['result']>;
+  'files.resolve': FromSchema<(typeof businessSchemas)['files.resolve']['result']>;
+  'files.operation': FromSchema<(typeof businessSchemas)['files.operation']['result']>;
+  'files.resource': FromSchema<(typeof businessSchemas)['files.resource']['result']>;
   'artifacts.reconcile': FromSchema<(typeof businessSchemas)['artifacts.reconcile']['result']>;
   'workbench.snapshot': FromSchema<(typeof businessSchemas)['workbench.snapshot']['result']>;
   'workbench.watch': FromSchema<(typeof businessSchemas)['workbench.watch']['result']>;

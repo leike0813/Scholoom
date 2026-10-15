@@ -1,10 +1,11 @@
 import type { ExternalStoreAdapter, ThreadMessageLike } from '@assistant-ui/react';
-import type { ErrorInfo } from '@scholoom/protocol';
+import type { ErrorInfo, FileLocation } from '@scholoom/protocol';
 import type { ReactNode } from 'react';
 
 export interface FileTarget {
   projectId: string;
   path: string;
+  fileId?: string;
   create?: boolean;
 }
 
@@ -70,10 +71,20 @@ export interface WorkbenchSession {
   reset?: () => void;
   draftKey?: string;
   controls?: ReactNode;
+  notices?: ReactNode;
+  projectControls?: ReactNode;
+  projectId?: string;
+  fileRevision?: number;
+  resolveFiles?: ((fileIds: string[]) => Promise<FileLocation[]>) | undefined;
+  initialTabs?: readonly {
+    id: string;
+    title: string;
+    kind: 'library' | 'reader' | 'editor' | 'preview';
+  }[];
   artifacts?: ReactNode;
   fileNavigator?: ReactNode;
   fileTarget?: FileTarget;
-  renderFile?: (target: FileTarget) => ReactNode;
+  renderFile?: (target: FileTarget, mode?: 'source' | 'preview') => ReactNode;
   createSession?: () => void;
   cancel?: (() => void) | undefined;
   resume?: (() => void) | undefined;

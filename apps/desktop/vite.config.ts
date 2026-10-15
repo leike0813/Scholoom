@@ -6,6 +6,7 @@ import { bootstrapKernel, defaultDataDirectory } from '@scholoom/kernel/bootstra
 import { isBootstrapRequest } from '@scholoom/protocol';
 import react from '@vitejs/plugin-react';
 import {
+  defaultClientConditions,
   defineConfig,
   isFileLoadingAllowed,
   normalizePath,
@@ -133,6 +134,19 @@ function kernelBootstrap(): Plugin {
 }
 
 export default defineConfig({
+  // Markdown 的依赖提供无 DOM 的 worker 导出；开发预打包也必须采用同一条件。
+  resolve: { conditions: ['worker', ...defaultClientConditions] },
+  optimizeDeps: {
+    include: [
+      'unified',
+      'remark-parse',
+      'remark-gfm',
+      'remark-math',
+      'remark-rehype',
+      'rehype-katex',
+      'hast-util-to-jsx-runtime',
+    ],
+  },
   root: fileURLToPath(new URL('./src/renderer', import.meta.url)),
   plugins: [react(), kernelBootstrap()],
   server: { host: '127.0.0.1', cors: false },
