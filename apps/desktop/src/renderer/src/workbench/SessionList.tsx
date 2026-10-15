@@ -1,9 +1,35 @@
 import type { KernelClient } from '@scholoom/client';
 import type { BusinessParams, BusinessResult, Session } from '@scholoom/protocol';
 import { type RefObject, useEffect, useRef, useState } from 'react';
+import { IconChevronRight } from './shell/icons';
 import { relativeTime } from './relative-time';
 
 type Cursor = NonNullable<BusinessParams<'session.list'>['cursor']>;
+
+interface ProjectGroup {
+  projectId: string;
+  sessions: Session[];
+}
+
+function groupSessionsByProject(sessions: Session[]): ProjectGroup[] {
+  const groups: Record<string, Session[]> = {};
+
+  for (const session of sessions) {
+    const projectId = session.projectId;
+    if (!groups[projectId]) {
+      groups[projectId] = [];
+    }
+    const group = groups[projectId];
+    if (group) {
+      group.push(session);
+    }
+  }
+
+  return Object.entries(groups).map(([projectId, sessions]) => ({
+    projectId,
+    sessions,
+  }));
+}
 
 /** details 弹层通用关闭：点击外部或 Esc 合上，Esc 不冒泡到外层 overlay。 */
 function useDetailsDismiss(ref: RefObject<HTMLDetailsElement | null>) {
@@ -136,6 +162,57 @@ function SessionRow({
   );
 }
 
+function ProjectNode({
+  group,
+  activeSessionId,
+  enabled,
+  select,
+  client,
+  changed,
+}: {
+  group: ProjectGroup;
+  activeSessionId: string;
+  enabled: boolean;
+  select: (id: string) => void;
+  client: KernelClient;
+  changed: () => Promise<void>;
+}) {
+  const [expanded, setExpanded] = useState(true);
+
+  return (
+    <div className="project-node">
+      <button
+        type="button"
+        className="project-header"
+        onClick={() => setExpanded(!expanded)}
+        aria-expanded={expanded}
+        aria-label={`${group.projectId}，${expanded ? '已展开' : '已折叠'}`}
+      >
+        <span className={`project-header__chevron${expanded ? ' project-header__chevron--open' : ''}`}>
+          <IconChevronRight />
+        </span>
+        <span className="project-header__name">{group.projectId}</span>
+      </button>
+
+      {expanded && (
+        <ul className="session-list session-list--nested">
+          {group.sessions.map((item) => (
+            <SessionRow
+              key={item.id}
+              item={item}
+              selected={item.id === activeSessionId}
+              enabled={enabled}
+              client={client}
+              select={() => select(item.id)}
+              changed={changed}
+            />
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 export function SessionList({
   client,
   projectId,
@@ -212,6 +289,7 @@ export function SessionList({
     setRevision((value) => value + 1);
     await onChanged();
   };
+  const projectGroups = groupSessionsByProject(page.sessions);
   return (
     <section className="session-navigation" aria-label="会话管理">
       <input
@@ -259,19 +337,19 @@ export function SessionList({
       {!page.sessions.length ? (
         <p className="empty-hint">{loading ? '正在读取会话…' : '没有匹配的会话'}</p>
       ) : null}
-      <ul className="session-list">
-        {page.sessions.map((item) => (
-          <SessionRow
-            key={item.id}
-            item={item}
-            selected={item.id === activeSessionId}
+      <nav className="project-tree" role="tree">
+        {projectGroups.map((group) => (
+          <ProjectNode
+            key={group.projectId}
+            group={group}
+            activeSessionId={activeSessionId}
             enabled={enabled}
+            select={select}
             client={client}
-            select={() => select(item.id)}
             changed={changed}
           />
         ))}
-      </ul>
+      </nav>
       <div className="session-pagination">
         <button
           type="button"
