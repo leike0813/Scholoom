@@ -1,6 +1,7 @@
 import type { KernelClient } from '@scholoom/client';
-import type { CslMetadata, LibraryBatch, LibraryStatus } from '@scholoom/protocol';
+import type { CslMetadata, LibraryBatch, LibrarySource, LibraryStatus } from '@scholoom/protocol';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { AttachmentImport, AttachmentsPanel } from './AttachmentsPanel';
 import { draftKey, readDraft, writeDraft } from './drafts';
 
 const PAGE = 25;
@@ -17,6 +18,23 @@ const ENTRY_STATE: Record<string, string> = {
   created: '已创建',
   reused: '已复用',
   failed: '失败',
+};
+/** attachmentState 只表示有附件登记；实际可读由附件有界请求给出。 */
+const ATTACHMENT_REGISTRATION: Record<LibrarySource['attachmentState'], string> = {
+  unavailable: '附件未取得',
+  recorded: '已有附件登记',
+};
+const EXCLUSION_REASON: Record<string, string> = { externalDependency: '外链未复制' };
+/** 按文件名建立的题录是未核对候选。 */
+const candidateNote = (source: LibrarySource) =>
+  source.metadataOrigin === 'filename' ? ' · 待核对（文件名）' : '';
+/** 文件批次候选用文件名对应输入，题录批次用题名；不展开候选正文。 */
+const candidateLabel = (
+  kind: LibraryBatch['kind'],
+  candidate: Record<string, unknown> | undefined,
+) => {
+  const value = kind === 'files' ? candidate?.filename : candidate?.title;
+  return typeof value === 'string' ? ` · ${value}` : '';
 };
 
 const messageOf = (error: unknown) =>
@@ -318,17 +336,23 @@ export function LibraryPanel({ client, enabled }: { client: KernelClient; enable
     }
   };
 
-  const ingest = async (json: string, batchVersion: string, origin: string) => {
-    if (bytesOf(json) > IMPORT_LIMIT) throw new Error('题录输入超过 256KiB 上限。');
-    const batch = await client.call('library.ingest', {
-      batchId: crypto.randomUUID(),
-      json,
-      version: batchVersion,
-      origin,
-    });
+  /** 批次回执接入既有批次结果区；题录摄取与本地材料摄取共用。 */
+  const applyBatch = (batch: LibraryBatch) => {
     setBatchId(batch.id);
     setEntryOffsets([0]);
     refresh();
+  };
+
+  const ingest = async (json: string, batchVersion: string, origin: string) => {
+    if (bytesOf(json) > IMPORT_LIMIT) throw new Error('题录输入超过 256KiB 上限。');
+    applyBatch(
+      await client.call('library.ingest', {
+        batchId: crypto.randomUUID(),
+        json,
+        version: batchVersion,
+        origin,
+      }),
+    );
   };
 
   const createRecord = () =>
@@ -518,7 +542,8 @@ export function LibraryPanel({ client, enabled }: { client: KernelClient; enable
             >
               {source.metadata.title}
             </button>{' '}
-            {source.version} · 附件未取得 · 分析未生成
+            {source.version} · {ATTACHMENT_REGISTRATION[source.attachmentState]} · 分析未生成
+            {candidateNote(source)}
           </li>
         ))}
       </ul>
@@ -684,11 +709,38 @@ export function LibraryPanel({ client, enabled }: { client: KernelClient; enable
               ) : null}
             </fieldset>
           ) : null}
+          {detail ? (
+            <>
+              <p role="status" aria-label="附件登记状态">
+                {ATTACHMENT_REGISTRATION[detail.attachmentState]} · 实际状态见附件分页
+                {candidateNote(detail)}
+              </p>
+              <AttachmentsPanel
+                key={detail.id}
+                client={client}
+                enabled={enabled}
+                readable={readable}
+                writable={writable}
+                sourceId={detail.id}
+                tick={revision}
+                onBatch={applyBatch}
+              />
+            </>
+          ) : null}
         </section>
       ) : null}
 
       <fieldset className="project-controls" disabled={!enabled}>
         <legend>摄取批次</legend>
+        <details>
+          <summary>本地材料摄取</summary>
+          <AttachmentImport
+            client={client}
+            enabled={enabled}
+            writable={writable}
+            onBatch={applyBatch}
+          />
+        </details>
         {batchesRead.error ? (
           <p className="business-error" role="alert">
             {batchesRead.error}
@@ -751,7 +803,7 @@ export function LibraryPanel({ client, enabled }: { client: KernelClient; enable
                   第 {entry.index + 1} 条 · {ENTRY_STATE[entry.state] ?? entry.state}
                   {entry.conflicts.length ? ` · 冲突字段 ${entry.conflicts.join('、')}` : ''}
                   {entry.error ? ` · ${entry.error.message}` : ''}
-                  {typeof entry.candidate?.title === 'string' ? ` · ${entry.candidate.title}` : ''}
+                  {candidateLabel(batch.kind, entry.candidate)}
                   {entry.sourceId ? ` · ${entry.sourceId}` : ''}
                 </li>
               ))}
@@ -961,7 +1013,7 @@ export function LibraryPanel({ client, enabled }: { client: KernelClient; enable
               checked={grants.send}
               onChange={(event) => editGrant('send', event.target.checked)}
             />
-            发送题录到模型
+            发送文献材料到模型
           </label>
           <label>
             <input
@@ -1016,28 +1068,44 @@ export function LibraryPanel({ client, enabled }: { client: KernelClient; enable
               {backupsRead.error}
             </p>
           ) : null}
-          {(backupsRead.value ?? []).map((backup) => (
-            <div key={backup.id}>
-              <span>{backup.createdAt} · 题录数据库（不含附件）</span>{' '}
-              <button
-                type="button"
-                className="btn"
-                aria-label={`恢复备份 ${backup.createdAt}`}
-                disabled={!readable || !destination.trim()}
-                onClick={() =>
-                  void run(async () => {
-                    const copy = await client.call('library.restore', {
-                      backupId: backup.id,
-                      destination: destination.trim(),
-                    });
-                    setRestored(`副本目录：${copy.directory}`);
-                  })
-                }
-              >
-                恢复此副本
-              </button>
-            </div>
-          ))}
+          {(backupsRead.value ?? []).map((backup) => {
+            const exclusions = backup.exclusions ?? [];
+            return (
+              <div key={backup.id}>
+                <span>
+                  {backup.createdAt} ·{' '}
+                  {backup.scope === 'catalog-and-managed-files' ? '题录及托管材料' : '仅题录数据库'}
+                </span>{' '}
+                <button
+                  type="button"
+                  className="btn"
+                  aria-label={`恢复备份 ${backup.createdAt}`}
+                  disabled={!readable || !destination.trim()}
+                  onClick={() =>
+                    void run(async () => {
+                      const copy = await client.call('library.restore', {
+                        backupId: backup.id,
+                        destination: destination.trim(),
+                      });
+                      setRestored(`副本目录：${copy.directory}`);
+                    })
+                  }
+                >
+                  恢复此副本
+                </button>
+                {exclusions.length ? (
+                  <ul>
+                    {exclusions.map((exclusion) => (
+                      <li key={exclusion.attachmentId}>
+                        缺项 {exclusion.attachmentId}：
+                        {EXCLUSION_REASON[exclusion.reason] ?? exclusion.reason}
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </div>
+            );
+          })}
           {restored ? (
             <p role="status" aria-label="恢复结果">
               {restored}

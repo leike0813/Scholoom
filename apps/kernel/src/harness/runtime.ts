@@ -826,11 +826,26 @@ export class Harness {
                 'library.collections',
                 'library.saveCollection',
                 'library.history',
+                'library.attachments',
+                'library.readAttachment',
+                'library.importProjectFiles',
               ] as const
             ).map((method) => ({
               name: method.replace('.', '_'),
-              description: `共同文献题录库 ${method}。仅处理题录，不表示全文或分析已取得。库读取/写入/外发均需授权；ingest返回持久批次引用，用batch查询实际逐项结果。未知批次先按原batchId核查。`,
-              schema: businessSchemas[method].params,
+              description: `共同文献库 ${method}。importProjectFiles只接受当前授权项目内相对路径，返回批次引用，用batch核查逐项结果。附件登记不等于可读；readAttachment按引用返回有界原字节base64，不表示已解析正文。库读取/写入/外发均需授权；未知批次先按原batchId核查。`,
+              schema:
+                method === 'library.importProjectFiles'
+                  ? {
+                      ...businessSchemas[method].params,
+                      properties: {
+                        ...businessSchemas[method].params.properties,
+                        projectId: { const: project.project.id },
+                      },
+                      required: businessSchemas[method].params.required.filter(
+                        (key) => key !== 'projectId',
+                      ),
+                    }
+                  : businessSchemas[method].params,
               func: async (input: Record<string, unknown>) => {
                 try {
                   signal.throwIfAborted();
@@ -838,6 +853,23 @@ export class Harness {
                   this.library.check('send');
                   let result: unknown;
                   switch (method) {
+                    case 'library.attachments':
+                      result = await this.library.attachments(
+                        input as BusinessParams<'library.attachments'>,
+                      );
+                      break;
+                    case 'library.readAttachment':
+                      result = await this.library.readAttachment(
+                        input as BusinessParams<'library.readAttachment'>,
+                      );
+                      break;
+                    case 'library.importProjectFiles':
+                      project.check('read');
+                      result = this.library.importProjectFiles({
+                        ...input,
+                        projectId: project.project.id,
+                      } as BusinessParams<'library.importProjectFiles'>);
+                      break;
                     case 'library.list':
                       result = this.library.list(input as BusinessParams<'library.list'>);
                       break;
@@ -873,6 +905,10 @@ export class Harness {
                       result = this.library.history(input as BusinessParams<'library.history'>);
                       break;
                   }
+                  signal.throwIfAborted();
+                  project.check('send');
+                  this.library.check('read');
+                  this.library.check('send');
                   project.db
                     .insert(tables.meta)
                     .values({ key: libraryContextKey, value: '1' })

@@ -12,7 +12,7 @@
 
 ### Requirement: L-01 多入口摄取与渐进可用
 
-本地题录的手动/CSL JSON 批次、逐项结果及接续已转入[题录库规格](../../openspec/specs/literature-catalog/spec.md)；附件、在线入口、Connector 和迁入继续沿本节未实现范围推进。
+本地题录的手动/CSL JSON 批次、逐项结果及接续已转入[题录库规格](../../openspec/specs/literature-catalog/spec.md)；本地文件、托管/外链和引用读取见[附件规格](../../openspec/specs/literature-attachments/spec.md)。在线入口、Connector 和迁入继续沿本节未实现范围推进。
 
 系统 SHALL 支持 Agent 在线检索、自有 Connector、标识符添加、文件及标准题录导入、既有库迁入和手动管理，保留来源与实际查询覆盖。摄取 SHALL 分别表达题录收录、全文地址、附件取得和分析状态；长批次返回可查询的执行引用并逐项提供结果，不要求调用方保持原请求等待全部完成。
 
@@ -40,7 +40,7 @@
 
 ### Requirement: L-03 人与 Agent 共享阅读成果
 
-系统 SHALL 支持 PDF、EPUB 和网页材料的阅读、搜索、选区、书签、批注与笔记；GUI 和 Agent 共用材料及结果，Agent 读取不依赖可见阅读窗口。原文摘录、批注作者、Agent 解释及材料版本 SHALL 可辨。文献可有正文与补充材料等多附件，并标明用途。
+多附件用途和不依赖阅读窗口的原字节读取见[附件规格](../../openspec/specs/literature-attachments/spec.md)。系统 SHALL 支持 PDF、EPUB 和网页材料的阅读、搜索、选区、书签、批注与笔记；GUI 和 Agent 共用材料及结果，Agent 读取不依赖可见阅读窗口。原文摘录、批注作者、Agent 解释及材料版本 SHALL 可辨。
 
 #### Scenario: 阅读器关闭后继续分析批注
 - **WHEN** Agent 读取用户保存的文献批注

@@ -106,6 +106,23 @@ function planTurn(user: string, tools: Set<string>, toolId: string, reads: numbe
       },
     ],
   });
+  if (user.includes('MODEL_ATTACHMENT_IMPORT')) {
+    if (!tools.has('library_importProjectFiles'))
+      return tool('library_importProjectFiles', {
+        batchId: 'model-file-batch',
+        projectPaths: ['input.txt'],
+        purpose: '正文',
+        version: 'unspecified',
+        origin: 'synthetic-model',
+      });
+    return text('文件批次已受理，按批次引用查询实际结果。');
+  }
+  if (user.includes('MODEL_ATTACHMENT_READ')) {
+    const attachmentId = /MODEL_ATTACHMENT_READ ([\w-]+)/.exec(user)?.[1];
+    if (!tools.has('library_readAttachment'))
+      return tool('library_readAttachment', { attachmentId, limit: 32 });
+    return text('原字节已读取。');
+  }
   if (user.includes('MODEL_LIBRARY')) {
     if (!tools.has('library_ingest'))
       return tool('library_ingest', {

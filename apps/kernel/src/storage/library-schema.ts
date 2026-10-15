@@ -7,6 +7,14 @@ import type {
 } from '@scholoom/protocol';
 import { sql } from 'drizzle-orm';
 import { index, integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
+import type { StoredMaterial } from '../literature/material-files.js';
+
+export type LibraryBatchRequest =
+  | { kind: 'metadata'; input: BusinessParams<'library.ingest'> }
+  | {
+      kind: 'files';
+      input: BusinessParams<'library.importFiles'> | BusinessParams<'library.importProjectFiles'>;
+    };
 
 export const libraryMeta = sqliteTable('meta', {
   key: text().primaryKey(),
@@ -33,7 +41,7 @@ export const collections = sqliteTable('collections', {
 export const batches = sqliteTable('batches', {
   id: text().primaryKey(),
   value: text({ mode: 'json' }).$type<LibraryBatch>().notNull(),
-  request: text({ mode: 'json' }).$type<BusinessParams<'library.ingest'>>().notNull(),
+  request: text({ mode: 'json' }).$type<LibraryBatchRequest>().notNull(),
 });
 export const entries = sqliteTable(
   'entries',
@@ -54,4 +62,20 @@ export const history = sqliteTable(
     value: text({ mode: 'json' }).$type<LibrarySource>().notNull(),
   },
   (t) => [index('source_history').on(t.sourceId)],
+);
+
+export const attachments = sqliteTable(
+  'attachments',
+  {
+    id: text().primaryKey(),
+    sourceId: text().notNull(),
+    purpose: text().notNull(),
+    storage: text().notNull(),
+    hash: text().notNull(),
+    value: text({ mode: 'json' }).$type<StoredMaterial>().notNull(),
+  },
+  (t) => [
+    index('attachment_source').on(t.sourceId),
+    uniqueIndex('attachment_content').on(t.sourceId, t.purpose, t.storage, t.hash),
+  ],
 );

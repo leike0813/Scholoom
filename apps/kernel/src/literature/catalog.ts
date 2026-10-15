@@ -15,6 +15,7 @@ import {
   type LibraryEntry,
   type LibrarySource,
   type LibraryStatus,
+  validateBusiness,
 } from '@scholoom/protocol';
 import Database from 'better-sqlite3';
 import { and, asc, desc, eq, sql } from 'drizzle-orm';
@@ -23,6 +24,9 @@ import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
 import { failure, OperationError } from '../errors.js';
 import * as tables from '../storage/library-schema.js';
 import { atomicPrivateFile, privateDirectory } from '../storage/private-files.js';
+import { MaterialFiles, type StoredMaterial } from './material-files.js';
+
+type FileItem = { path: string; id: string; materialVersionId: string; sourceId: string };
 
 const timestamp = () => new Date().toISOString();
 const within = (root: string, path: string) => {
@@ -63,11 +67,17 @@ export class LiteratureCatalog {
   private dirty = false;
   private backingUp: Promise<LibraryBackup> | undefined;
   readonly directory: string;
+  private readonly materials: MaterialFiles;
   constructor(
     private readonly profile: string,
     private readonly notify: () => void,
+    private readonly projectFiles?: {
+      check(projectId: string): void;
+      path(projectId: string, path: string): Promise<string>;
+    },
   ) {
     this.directory = join(profile, 'library');
+    this.materials = new MaterialFiles(this.directory);
   }
   private get db() {
     if (!this.store) throw new OperationError('unavailable', '文献库尚未打开。');
@@ -86,6 +96,7 @@ export class LiteratureCatalog {
   }
   async initialize(): Promise<void> {
     await privateDirectory(this.directory);
+    await this.materials.initialize();
     const path = join(this.directory, 'library.sqlite');
     const stats = await lstat(path).catch((error) => {
       if (error.code !== 'ENOENT') throw error;
@@ -99,15 +110,15 @@ export class LiteratureCatalog {
       database.pragma('busy_timeout = 1000');
       if (database.pragma('quick_check', { simple: true }) !== 'ok') throw new Error('corrupt');
       const version = Number(database.pragma('user_version', { simple: true }));
-      if (version > 1) throw new Error('newer schema');
-      if (version < 1) {
+      if (version > 2) throw new Error('newer schema');
+      if (version < 2) {
         if (stats) await database.backup(join(this.directory, 'before-migration.sqlite'));
         migrate(drizzle(database), {
           migrationsFolder: fileURLToPath(
             new URL('../storage/library-migrations/', import.meta.url),
           ),
         });
-        database.pragma('user_version = 1');
+        database.pragma('user_version = 2');
       }
       this.database = database;
       this.store = drizzle(database, { schema: tables });
@@ -177,7 +188,16 @@ export class LiteratureCatalog {
   }
   get(id: string): LibrarySource {
     this.check('read');
-    return this.source(id);
+    return this.withAttachments(this.source(id));
+  }
+  private withAttachments(source: LibrarySource): LibrarySource {
+    const exists = this.db
+      .select({ id: tables.attachments.id })
+      .from(tables.attachments)
+      .where(eq(tables.attachments.sourceId, source.id))
+      .limit(1)
+      .get();
+    return { ...source, attachmentState: exists ? 'recorded' : 'unavailable' };
   }
   list(input: BusinessParams<'library.list'>): BusinessResult<'library.list'> {
     this.check('read');
@@ -207,7 +227,7 @@ export class LiteratureCatalog {
       .offset(offset)
       .all();
     const page = listPage(
-      rows.map((r) => r.value),
+      rows.map((r) => this.withAttachments(r.value)),
       offset,
       limit,
     );
@@ -288,6 +308,7 @@ export class LiteratureCatalog {
       const after: LibrarySource = {
         ...before,
         metadata: input.metadata,
+        metadataOrigin: 'provided',
         tags: input.tags,
         collectionIds: input.collectionIds,
         relatedIds: input.relatedIds,
@@ -312,7 +333,7 @@ export class LiteratureCatalog {
       this.remember(before);
       this.writeSource(after);
       this.changed();
-      return after;
+      return this.withAttachments(after);
     });
   }
   collections(input: BusinessParams<'library.collections'>): BusinessResult<'library.collections'> {
@@ -388,16 +409,6 @@ export class LiteratureCatalog {
   }
   ingest(input: BusinessParams<'library.ingest'>): LibraryBatch {
     this.check('write');
-    const old = this.db
-      .select()
-      .from(tables.batches)
-      .where(eq(tables.batches.id, input.batchId))
-      .get();
-    if (old) {
-      if (!isDeepStrictEqual(old.request, input))
-        throw new OperationError('invalidRequest', '批次身份已用于不同输入。');
-      return old.value;
-    }
     if (
       Buffer.byteLength(input.json) > 262144 ||
       !input.version.trim() ||
@@ -414,10 +425,58 @@ export class LiteratureCatalog {
     const items = Array.isArray(parsed) ? parsed : [parsed];
     if (!items.length || items.length > 1000)
       throw new OperationError('invalidRequest', '批次应包含1至1000条题录。');
+    return this.accept({ kind: 'metadata', input }, items);
+  }
+  importFiles(input: BusinessParams<'library.importFiles'>): LibraryBatch {
+    if (!validateBusiness('library.importFiles', 'params', input))
+      throw new OperationError('invalidRequest', '本地文件批次输入无效。');
+    return this.acceptFiles(input, input.paths);
+  }
+  importProjectFiles(input: BusinessParams<'library.importProjectFiles'>): LibraryBatch {
+    if (!validateBusiness('library.importProjectFiles', 'params', input))
+      throw new OperationError('invalidRequest', '项目文件批次输入无效。');
+    this.checkProject(input.projectId);
+    return this.acceptFiles(input, input.projectPaths);
+  }
+  private acceptFiles(
+    input: BusinessParams<'library.importFiles'> | BusinessParams<'library.importProjectFiles'>,
+    paths: string[],
+  ): LibraryBatch {
+    this.check('write');
+    if (!input.purpose.trim()) throw new OperationError('invalidRequest', '附件用途不能为空。');
+    if (input.sourceId) this.source(input.sourceId);
+    return this.accept(
+      { kind: 'files', input },
+      paths.map(
+        (path): FileItem => ({
+          path,
+          id: randomUUID(),
+          materialVersionId: randomUUID(),
+          sourceId: input.sourceId ?? randomUUID(),
+        }),
+      ),
+    );
+  }
+  private accept(request: tables.LibraryBatchRequest, items: unknown[]): LibraryBatch {
+    this.check('write');
+    const input = request.input;
+    const old = this.db
+      .select()
+      .from(tables.batches)
+      .where(eq(tables.batches.id, input.batchId))
+      .get();
+    if (old) {
+      if (!isDeepStrictEqual(old.request, request))
+        throw new OperationError('invalidRequest', '批次身份已用于不同输入。');
+      return old.value;
+    }
+    if (!input.version.trim() || input.version.length > 200 || input.origin.length > 200)
+      throw new OperationError('invalidRequest', '版本或来源无效。');
     this.validateCollections(input.collectionIds ?? []);
     const label = input.version.trim();
     const value: LibraryBatch = {
       id: input.batchId,
+      kind: request.kind,
       state: 'queued',
       total: items.length,
       processed: 0,
@@ -427,7 +486,7 @@ export class LiteratureCatalog {
       createdAt: timestamp(),
     };
     this.db.transaction(() => {
-      this.db.insert(tables.batches).values({ id: value.id, value, request: input }).run();
+      this.db.insert(tables.batches).values({ id: value.id, value, request }).run();
       for (const [index, item] of items.entries())
         this.db
           .insert(tables.entries)
@@ -442,6 +501,86 @@ export class LiteratureCatalog {
     });
     this.schedule(value.id);
     return value;
+  }
+  private material(id: string): StoredMaterial {
+    const row = this.db
+      .select()
+      .from(tables.attachments)
+      .where(eq(tables.attachments.id, id))
+      .get();
+    if (!row) throw new OperationError('notFound', '附件不存在。');
+    return this.localMaterial(row.value);
+  }
+  private localMaterial(record: StoredMaterial): StoredMaterial {
+    return record.value.storage === 'managed'
+      ? { ...record, path: join(this.materials.directory, record.value.id) }
+      : record;
+  }
+  async attachments(
+    input: BusinessParams<'library.attachments'>,
+  ): Promise<BusinessResult<'library.attachments'>> {
+    this.check('read');
+    this.source(input.sourceId);
+    const offset = input.offset ?? 0,
+      limit = input.limit ?? 25;
+    if (
+      !Number.isSafeInteger(offset) ||
+      offset < 0 ||
+      !Number.isInteger(limit) ||
+      limit < 1 ||
+      limit > 100
+    )
+      throw new OperationError('invalidRequest', '附件分页范围无效。');
+    const rows = this.db
+      .select()
+      .from(tables.attachments)
+      .where(eq(tables.attachments.sourceId, input.sourceId))
+      .orderBy(asc(tables.attachments.id))
+      .limit(limit + 1)
+      .offset(offset)
+      .all();
+    const attachments = await Promise.all(
+      rows.slice(0, limit).map((row) => this.materials.status(this.localMaterial(row.value))),
+    );
+    this.check('read');
+    return { attachments, ...(rows.length > limit ? { nextOffset: offset + limit } : {}) };
+  }
+  async readAttachment(
+    input: BusinessParams<'library.readAttachment'>,
+  ): Promise<BusinessResult<'library.readAttachment'>> {
+    this.check('read');
+    const material = this.material(input.attachmentId),
+      offset = input.offset ?? 0;
+    const bytes = await this.materials.read(material, offset, input.limit ?? 65536);
+    this.check('read');
+    return {
+      attachmentId: material.value.id,
+      materialVersionId: material.value.materialVersionId,
+      byteLength: material.byteLength,
+      offset,
+      base64: bytes.toString('base64'),
+      ...(offset + bytes.length < material.byteLength ? { nextOffset: offset + bytes.length } : {}),
+    };
+  }
+  async relocateAttachment(
+    input: BusinessParams<'library.relocateAttachment'>,
+  ): Promise<BusinessResult<'library.relocateAttachment'>> {
+    this.check('read');
+    this.check('write');
+    const record = this.material(input.attachmentId);
+    const updated = await this.materials.relocate(record, input.path);
+    this.check('read');
+    this.check('write');
+    // 保持期间已经生效的位置选择，旧请求不能覆盖后续更正。
+    if (!isDeepStrictEqual(this.material(input.attachmentId), record))
+      throw new OperationError('contentChanged', '附件位置已变化，请重读。');
+    this.db
+      .update(tables.attachments)
+      .set({ value: updated })
+      .where(eq(tables.attachments.id, record.value.id))
+      .run();
+    this.changed();
+    return this.materials.status(updated);
   }
   private batchValue(id: string): LibraryBatch {
     const row = this.db.select().from(tables.batches).where(eq(tables.batches.id, id)).get();
@@ -465,7 +604,13 @@ export class LiteratureCatalog {
       batch,
       entries: rows.slice(0, limit).map((row) => ({
         ...row.value,
-        ...(row.input && typeof row.input === 'object' && !Array.isArray(row.input)
+        ...(batch.kind === 'files'
+          ? { candidate: { filename: basename((row.input as FileItem).path) } }
+          : {}),
+        ...(batch.kind === 'metadata' &&
+        row.input &&
+        typeof row.input === 'object' &&
+        !Array.isArray(row.input)
           ? { candidate: row.input as Record<string, unknown> }
           : {}),
       })),
@@ -535,12 +680,34 @@ export class LiteratureCatalog {
         .limit(1)
         .get();
       if (!row) break;
+      let prepared: StoredMaterial | undefined;
+      let preparationError: unknown;
+      if (request.kind === 'files') {
+        if ('projectId' in request.input) this.checkProject(request.input.projectId);
+        try {
+          prepared = await this.prepareMaterial(row.input as FileItem, request.input);
+          if ('projectId' in request.input)
+            await this.resolveProjectPath(request.input.projectId, (row.input as FileItem).path);
+        } catch (error) {
+          preparationError = error;
+        }
+        this.check('write');
+        if ('projectId' in request.input) this.checkProject(request.input.projectId);
+      }
       this.db.transaction(() => {
         let result: LibraryEntry;
         try {
-          result = this.db.transaction(() =>
-            this.ingestOne(row.input, this.batchValue(id), request.collectionIds ?? []),
-          );
+          result = this.db.transaction(() => {
+            if (preparationError) throw preparationError;
+            return request.kind === 'metadata'
+              ? this.ingestOne(row.input, this.batchValue(id), request.input.collectionIds ?? [])
+              : this.commitMaterial(
+                  row.input as FileItem,
+                  prepared as StoredMaterial,
+                  request.input,
+                  this.batchValue(id),
+                );
+          });
         } catch (error) {
           result = { index: row.position, state: 'failed', conflicts: [], error: failure(error) };
         }
@@ -557,11 +724,110 @@ export class LiteratureCatalog {
           failed: batch.failed + (result.state === 'failed' ? 1 : 0),
         });
       });
+      if (
+        prepared?.value.storage === 'managed' &&
+        !this.db
+          .select({ id: tables.attachments.id })
+          .from(tables.attachments)
+          .where(eq(tables.attachments.id, prepared.value.id))
+          .get()
+      ) {
+        await this.materials.discard(prepared.value.id);
+      }
       await yieldTask();
     }
     this.setBatch({ ...this.batchValue(id), state: 'completed' });
   }
-  private ingestOne(input: unknown, batch: LibraryBatch, collectionIds: string[]): LibraryEntry {
+  private async resolveProjectPath(projectId: string, path: string): Promise<string> {
+    const files = this.checkProject(projectId);
+    const result = await files.path(projectId, path);
+    this.checkProject(projectId);
+    return result;
+  }
+  private checkProject(projectId: string) {
+    if (!this.projectFiles) throw new OperationError('permissionDenied', '项目文件访问未配置。');
+    this.projectFiles.check(projectId);
+    return this.projectFiles;
+  }
+  private async prepareMaterial(
+    item: FileItem,
+    input: BusinessParams<'library.importFiles'> | BusinessParams<'library.importProjectFiles'>,
+  ): Promise<StoredMaterial> {
+    const path =
+      'projectId' in input ? await this.resolveProjectPath(input.projectId, item.path) : item.path;
+    const storage = input.storage ?? 'managed';
+    const content = await this.materials.capture(item.id, path, storage);
+    return {
+      ...content,
+      value: {
+        id: item.id,
+        sourceId: item.sourceId,
+        materialVersionId: item.materialVersionId,
+        name: basename(path),
+        purpose: input.purpose.trim(),
+        storage,
+        byteLength: content.byteLength,
+        createdAt: timestamp(),
+      },
+    };
+  }
+  private commitMaterial(
+    item: FileItem,
+    record: StoredMaterial,
+    input: BusinessParams<'library.importFiles'> | BusinessParams<'library.importProjectFiles'>,
+    batch: LibraryBatch,
+  ): LibraryEntry {
+    if (input.sourceId) this.source(input.sourceId);
+    else if (
+      !this.db.select().from(tables.sources).where(eq(tables.sources.id, item.sourceId)).get()
+    ) {
+      this.ingestOne({ title: record.value.name }, batch, input.collectionIds ?? [], item.sourceId);
+    }
+    const existing = this.db
+      .select()
+      .from(tables.attachments)
+      .where(
+        and(
+          eq(tables.attachments.sourceId, item.sourceId),
+          eq(tables.attachments.purpose, record.value.purpose),
+          eq(tables.attachments.storage, record.value.storage),
+          eq(tables.attachments.hash, record.hash),
+        ),
+      )
+      .get();
+    if (existing)
+      return {
+        index: 0,
+        state: 'reused',
+        sourceId: item.sourceId,
+        attachmentId: existing.id,
+        conflicts: [],
+      };
+    this.db
+      .insert(tables.attachments)
+      .values({
+        id: record.value.id,
+        sourceId: item.sourceId,
+        purpose: record.value.purpose,
+        storage: record.value.storage,
+        hash: record.hash,
+        value: record,
+      })
+      .run();
+    return {
+      index: 0,
+      state: 'created',
+      sourceId: item.sourceId,
+      attachmentId: item.id,
+      conflicts: [],
+    };
+  }
+  private ingestOne(
+    input: unknown,
+    batch: LibraryBatch,
+    collectionIds: string[],
+    sourceId?: string,
+  ): LibraryEntry {
     const metadata = this.validateMetadata(input);
     this.validateCollections(collectionIds);
     const doi = doiOf(metadata);
@@ -603,8 +869,9 @@ export class LiteratureCatalog {
       return { index: 0, state: 'reused', sourceId: value.id, conflicts };
     }
     const source: LibrarySource = {
-      id: randomUUID(),
+      id: sourceId ?? randomUUID(),
       metadata: { ...metadata },
+      metadataOrigin: batch.kind === 'files' ? 'filename' : 'provided',
       version: batch.version,
       revision: 1,
       tags: [],
@@ -650,16 +917,50 @@ export class LiteratureCatalog {
     if (this.backingUp) return this.backingUp;
     const revision = this.status().revision;
     const run = (async () => {
+      const exclusions: NonNullable<LibraryBackup['exclusions']> = [];
       const value: LibraryBackup = {
         id: `${Date.now()}-${randomUUID()}`,
         createdAt: timestamp(),
-        scope: 'catalog-database',
+        scope: 'catalog-and-managed-files',
+        exclusions,
       };
       const root = join(this.directory, 'backups');
       await privateDirectory(root);
       const temporary = join(root, `.${value.id}`);
       await privateDirectory(temporary);
       await this.database?.backup(join(temporary, 'library.sqlite'));
+      const snapshot = new Database(join(temporary, 'library.sqlite'), { readonly: true });
+      const files = new MaterialFiles(temporary);
+      try {
+        await files.initialize();
+        let after = '';
+        for (;;) {
+          const rows = snapshot
+            .prepare('SELECT id,value FROM attachments WHERE id > ? ORDER BY id LIMIT 100')
+            .all(after) as { id: string; value: string }[];
+          if (!rows.length) break;
+          for (const row of rows) {
+            after = row.id;
+            const record = this.localMaterial(JSON.parse(row.value) as StoredMaterial);
+            if (record.value.storage === 'linked') {
+              exclusions.push({ attachmentId: row.id, reason: 'externalDependency' });
+              continue;
+            }
+            try {
+              const content = await files.capture(row.id, record.path, 'managed');
+              if (content.hash !== record.hash) {
+                await files.discard(row.id);
+                throw new OperationError('contentChanged', '托管材料版本已变化。');
+              }
+            } catch (error) {
+              exclusions.push({ attachmentId: row.id, reason: failure(error).code });
+            }
+          }
+          await yieldTask();
+        }
+      } finally {
+        snapshot.close();
+      }
       await atomicPrivateFile(temporary, 'manifest.json', JSON.stringify(value));
       await rename(temporary, join(root, value.id));
       this.putMeta('lastBackupRevision', String(revision));
@@ -682,13 +983,14 @@ export class LiteratureCatalog {
   }
   async restore(id: string, destination: string): Promise<{ directory: string }> {
     this.check('read');
-    if (!(await this.backups()).some((b) => b.id === id))
-      throw new OperationError('notFound', '库备份不存在。');
+    const backup = (await this.backups()).find((b) => b.id === id);
+    if (!backup) throw new OperationError('notFound', '库备份不存在。');
     const resolved = resolve(destination);
     const target = join(await realpath(dirname(resolved)), basename(resolved));
     const profile = await realpath(this.profile);
     if (within(profile, target) || within(target, profile))
       throw new OperationError('permissionDenied', '恢复需新的独立配置目录。');
+    this.check('read');
     await mkdir(target, { mode: 0o700 });
     await privateDirectory(join(target, 'library'));
     await copyFile(
@@ -700,6 +1002,43 @@ export class LiteratureCatalog {
       await copy.initialize();
       copy.putMeta('identity', randomUUID());
       copy.grant({ read: true, write: false, send: false, autoBackup: true });
+      copy.putMeta('restored-backup', JSON.stringify(backup));
+      const files = new MaterialFiles(join(this.directory, 'backups', id));
+      let after = '';
+      for (;;) {
+        const rows = copy.db
+          .select()
+          .from(tables.attachments)
+          .where(sql`${tables.attachments.id} > ${after}`)
+          .orderBy(tables.attachments.id)
+          .limit(100)
+          .all();
+        if (!rows.length) break;
+        for (const row of rows) {
+          after = row.id;
+          this.check('read');
+          if (row.value.value.storage !== 'managed') continue;
+          let content = { ...row.value, path: join(copy.materials.directory, row.id) };
+          if (
+            backup.scope === 'catalog-and-managed-files' &&
+            !backup.exclusions?.some((entry) => entry.attachmentId === row.id)
+          ) {
+            const restored = await copy.materials.capture(
+              row.id,
+              join(files.directory, row.id),
+              'managed',
+            );
+            if (restored.hash !== row.value.hash)
+              throw new OperationError('contentChanged', '备份材料版本不匹配，副本保留供核查。');
+            content = { ...row.value, ...restored };
+          }
+          copy.db
+            .update(tables.attachments)
+            .set({ value: content })
+            .where(eq(tables.attachments.id, row.id))
+            .run();
+        }
+      }
     } finally {
       await copy.close();
     }

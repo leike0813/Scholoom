@@ -197,7 +197,8 @@ export const librarySourceSchema = object(
     origins: strings,
     createdAt: text,
     updatedAt: text,
-    attachmentState: { const: 'unavailable' },
+    metadataOrigin: { enum: ['provided', 'filename'] },
+    attachmentState: { enum: ['unavailable', 'recorded'] },
     analysisState: { const: 'notGenerated' },
   },
   [
@@ -212,6 +213,7 @@ export const librarySourceSchema = object(
     'createdAt',
     'updatedAt',
     'attachmentState',
+    'metadataOrigin',
     'analysisState',
   ],
 );
@@ -225,6 +227,7 @@ const libraryError = object({ code: id, message: text }, ['code', 'message']);
 export const libraryBatchSchema = object(
   {
     id,
+    kind: { enum: ['metadata', 'files'] },
     state: libraryBatchState,
     total: count,
     processed: count,
@@ -234,13 +237,14 @@ export const libraryBatchSchema = object(
     createdAt: text,
     error: libraryError,
   },
-  ['id', 'state', 'total', 'processed', 'failed', 'origin', 'version', 'createdAt'],
+  ['id', 'kind', 'state', 'total', 'processed', 'failed', 'origin', 'version', 'createdAt'],
 );
 export const libraryEntrySchema = object(
   {
     index: count,
     state: { enum: ['pending', 'created', 'reused', 'failed'] },
     sourceId: id,
+    attachmentId: id,
     conflicts: array(text),
     error: libraryError,
     candidate: { type: 'object', additionalProperties: true },
@@ -248,7 +252,12 @@ export const libraryEntrySchema = object(
   ['index', 'state', 'conflicts'],
 );
 export const libraryBackupSchema = object(
-  { id, createdAt: text, scope: { const: 'catalog-database' } },
+  {
+    id,
+    createdAt: text,
+    scope: { enum: ['catalog-database', 'catalog-and-managed-files'] },
+    exclusions: array(object({ attachmentId: id, reason: text }, ['attachmentId', 'reason'])),
+  },
   ['id', 'createdAt', 'scope'],
 );
 export const libraryIngestSchema = object(
@@ -262,7 +271,93 @@ export const libraryIngestSchema = object(
   ['batchId', 'json', 'version', 'origin'],
 );
 const libraryPage = { offset: count, limit: page } as const;
+export const libraryAttachmentSchema = object(
+  {
+    id,
+    sourceId: id,
+    materialVersionId: id,
+    name: text,
+    purpose: id,
+    storage: { enum: ['managed', 'linked'] },
+    byteLength: count,
+    createdAt: text,
+    state: { enum: ['available', 'missing', 'changed', 'unavailable'] },
+    error: libraryError,
+  },
+  [
+    'id',
+    'sourceId',
+    'materialVersionId',
+    'name',
+    'purpose',
+    'storage',
+    'byteLength',
+    'createdAt',
+    'state',
+  ],
+);
+const fileImportOptions = {
+  batchId: id,
+  sourceId: id,
+  purpose: id,
+  storage: { enum: ['managed', 'linked'] },
+  version: id,
+  origin: id,
+  collectionIds: strings,
+} as const;
+const filePaths = {
+  type: 'array',
+  items: { type: 'string', minLength: 1, maxLength: 4096 },
+  minItems: 1,
+  maxItems: 100,
+} as const;
+export const libraryImportFilesSchema = object({ ...fileImportOptions, paths: filePaths }, [
+  'batchId',
+  'paths',
+  'purpose',
+  'version',
+  'origin',
+]);
+export const libraryImportProjectFilesSchema = object(
+  { ...fileImportOptions, projectId: id, projectPaths: filePaths },
+  ['batchId', 'projectId', 'projectPaths', 'purpose', 'version', 'origin'],
+);
 const librarySchemas = {
+  'library.importFiles': { params: libraryImportFilesSchema, result: libraryBatchSchema },
+  'library.importProjectFiles': {
+    params: libraryImportProjectFilesSchema,
+    result: libraryBatchSchema,
+  },
+  'library.attachments': {
+    params: object({ ...libraryPage, sourceId: id }, ['sourceId']),
+    result: object({ attachments: array(libraryAttachmentSchema), nextOffset: count }, [
+      'attachments',
+    ]),
+  },
+  'library.readAttachment': {
+    params: object(
+      { attachmentId: id, offset: count, limit: { type: 'integer', minimum: 1, maximum: 262144 } },
+      ['attachmentId'],
+    ),
+    result: object(
+      {
+        attachmentId: id,
+        materialVersionId: id,
+        byteLength: count,
+        offset: count,
+        base64: { type: 'string', maxLength: 349528 },
+        nextOffset: count,
+      },
+      ['attachmentId', 'materialVersionId', 'byteLength', 'offset', 'base64'],
+    ),
+  },
+  'library.relocateAttachment': {
+    params: object({ attachmentId: id, path: { type: 'string', minLength: 1, maxLength: 4096 } }, [
+      'attachmentId',
+      'path',
+    ]),
+    result: libraryAttachmentSchema,
+  },
   'library.status': { params: object({}, []), result: libraryStatusSchema },
   'library.grant': {
     params: object({ read: flag, write: flag, send: flag, autoBackup: flag }, [
@@ -333,6 +428,7 @@ export type LibraryCollection = FromSchema<typeof libraryCollectionSchema>;
 export type LibraryBatch = FromSchema<typeof libraryBatchSchema>;
 export type LibraryEntry = FromSchema<typeof libraryEntrySchema>;
 export type LibraryBackup = FromSchema<typeof libraryBackupSchema>;
+export type LibraryAttachment = FromSchema<typeof libraryAttachmentSchema>;
 
 export const researchInputSchema = object(
   {
@@ -609,6 +705,15 @@ export type WorkbenchSnapshot = FromSchema<typeof snapshotSchema>;
 export type WorkbenchChange = FromSchema<typeof changeSchema>;
 export type BusinessMethod = keyof typeof businessSchemas;
 type Inputs = {
+  'library.importFiles': FromSchema<(typeof librarySchemas)['library.importFiles']['params']>;
+  'library.importProjectFiles': FromSchema<
+    (typeof librarySchemas)['library.importProjectFiles']['params']
+  >;
+  'library.attachments': FromSchema<(typeof librarySchemas)['library.attachments']['params']>;
+  'library.readAttachment': FromSchema<(typeof librarySchemas)['library.readAttachment']['params']>;
+  'library.relocateAttachment': FromSchema<
+    (typeof librarySchemas)['library.relocateAttachment']['params']
+  >;
   'library.status': FromSchema<(typeof librarySchemas)['library.status']['params']>;
   'library.grant': FromSchema<(typeof librarySchemas)['library.grant']['params']>;
   'library.list': FromSchema<(typeof librarySchemas)['library.list']['params']>;
@@ -661,6 +766,15 @@ type Inputs = {
   'session.resume': FromSchema<(typeof businessSchemas)['session.resume']['params']>;
 };
 type Outputs = {
+  'library.importFiles': FromSchema<(typeof librarySchemas)['library.importFiles']['result']>;
+  'library.importProjectFiles': FromSchema<
+    (typeof librarySchemas)['library.importProjectFiles']['result']
+  >;
+  'library.attachments': FromSchema<(typeof librarySchemas)['library.attachments']['result']>;
+  'library.readAttachment': FromSchema<(typeof librarySchemas)['library.readAttachment']['result']>;
+  'library.relocateAttachment': FromSchema<
+    (typeof librarySchemas)['library.relocateAttachment']['result']
+  >;
   'library.status': FromSchema<(typeof librarySchemas)['library.status']['result']>;
   'library.grant': FromSchema<(typeof librarySchemas)['library.grant']['result']>;
   'library.list': FromSchema<(typeof librarySchemas)['library.list']['result']>;

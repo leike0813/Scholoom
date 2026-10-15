@@ -28,8 +28,13 @@ export class KernelApplication {
     process.env.LANGSMITH_TRACING = 'false';
     process.env.LANGCHAIN_TRACING_V2 = 'false';
     this.projects = new Projects(directory);
-    this.library = new LiteratureCatalog(directory, () =>
-      this.changed(undefined, undefined, false, true),
+    this.library = new LiteratureCatalog(
+      directory,
+      () => this.changed(undefined, undefined, false, true),
+      {
+        check: (projectId) => this.projects.get(projectId).check('read'),
+        path: (projectId, path) => this.projects.get(projectId).path(path),
+      },
     );
     this.credentials = new CredentialStore(join(directory, 'credentials'), options.environment);
     this.research = new ResearchRuntime((projectId, sessionId) =>
@@ -91,6 +96,20 @@ export class KernelApplication {
   async call(method: BusinessMethod, input: unknown): Promise<unknown> {
     // Dispatch after protocol validation; each branch consumes its schema's inferred type.
     switch (method) {
+      case 'library.importFiles':
+        return this.library.importFiles(input as BusinessParams<'library.importFiles'>);
+      case 'library.importProjectFiles':
+        return this.library.importProjectFiles(
+          input as BusinessParams<'library.importProjectFiles'>,
+        );
+      case 'library.attachments':
+        return this.library.attachments(input as BusinessParams<'library.attachments'>);
+      case 'library.readAttachment':
+        return this.library.readAttachment(input as BusinessParams<'library.readAttachment'>);
+      case 'library.relocateAttachment':
+        return this.library.relocateAttachment(
+          input as BusinessParams<'library.relocateAttachment'>,
+        );
       case 'library.status':
         return this.library.status();
       case 'library.grant':
