@@ -69,9 +69,53 @@ test('user configures, edits safely and receives a real persisted Agent result',
         .getByRole('article', { name: 'Agent 回复' })
         .filter({ hasText: '分析已保存到 result.md' }),
     ).toBeVisible();
+    await expect(uiPage.getByLabel('执行上下文')).toContainText('MiniMax-M3.1-Flash-Preview');
+    await expect(uiPage.getByLabel('执行上下文')).toContainText('写入已授权');
+    const readTool = uiPage.locator('details.tool-call').filter({ hasText: 'read_file' });
+    await readTool.locator('summary').click();
+    await expect(readTool).toContainText('/input.md');
+    await expect(readTool).toContainText('用户补充');
+    await uiPage.screenshot({ path: info.outputPath('harness-tools.png') });
+    await uiPage.getByRole('button', { name: '切换主题', exact: true }).click();
+    await uiPage.getByRole('button', { name: '切换主题', exact: true }).click();
+    await uiPage.screenshot({ path: info.outputPath('harness-tools-dark.png') });
+    await uiPage.getByRole('button', { name: '切换主题', exact: true }).click();
+    await uiPage.getByRole('textbox', { name: '研究指令' }).fill('查看成果时保留的草稿');
+    await uiPage.getByRole('button', { name: '打开成果 result.md', exact: true }).click();
+    await expect(uiPage.getByRole('dialog', { name: 'Agent 会话', exact: true })).toHaveCount(0);
+    await expect(
+      uiPage.getByRole('textbox', { name: '文件内容 result.md', exact: true }),
+    ).toContainText('合成样本');
+    await expect(uiPage.getByRole('textbox', { name: '研究指令' })).toHaveValue(
+      '查看成果时保留的草稿',
+    );
     await uiPage.screenshot({ path: info.outputPath('harness-result.png') });
     await uiPage.reload();
     await expect(uiPage.getByText(/分析已保存到 result.md/)).toBeVisible();
+    await armRpcGate(uiPage, 'session.create');
+    await uiPage.getByRole('button', { name: '新建会话', exact: true }).click();
+    await expect(uiPage.getByRole('textbox', { name: '研究指令' })).toBeDisabled();
+    await releaseRpcGate(uiPage);
+    await uiPage
+      .getByRole('textbox', { name: '研究指令' })
+      .fill('MODEL_FIXTURE 保留已有 result.md');
+    await expect(uiPage.getByRole('textbox', { name: '研究指令' })).toHaveValue(
+      'MODEL_FIXTURE 保留已有 result.md',
+    );
+    await uiPage.getByRole('button', { name: '发送指令' }).click();
+    await expect(uiPage.getByRole('status', { name: '执行状态' })).toContainText('执行完成');
+    await expect(
+      uiPage.locator('.dock-transcript').getByRole('img', { name: '失败', exact: true }),
+    ).toBeVisible();
+    await uiPage.getByRole('button', { name: '展开 Agent 会话' }).click();
+    const failedTool = uiPage.locator('details.tool-call').filter({ hasText: 'write_file' });
+    await failedTool.locator('summary').click();
+    await expect(failedTool).toContainText('contentChanged');
+    expect(await readFile(join(project, 'result.md'), 'utf8')).toContain('合成样本');
+    await uiPage.reload();
+    await expect(
+      uiPage.locator('.dock-transcript').getByRole('img', { name: '失败', exact: true }),
+    ).toBeVisible();
     const draft = '未受理草稿'.repeat(7000);
     const composer = uiPage.getByRole('textbox', { name: '研究指令' });
     await composer.fill(draft);
@@ -121,7 +165,11 @@ test('late send failure restores its original conversation and storage failures 
     await releaseRpcGate(uiPage, true);
     await expect(uiPage.getByRole('alert')).toBeVisible();
     await expect(input).toHaveValue('会话 B 的草稿');
+    await armRpcGate(uiPage, 'workbench.watch');
     await uiPage.locator('.session-list button').nth(1).click();
+    await expect(uiPage.getByLabel('执行上下文')).toContainText('正在核对权限');
+    await expect(uiPage.getByRole('button', { name: '发送指令', exact: true })).toBeDisabled();
+    await releaseRpcGate(uiPage);
     await expect(input).toHaveValue('会话 A 的未受理指令');
     await uiPage.evaluate(() => {
       Storage.prototype.setItem = () => {

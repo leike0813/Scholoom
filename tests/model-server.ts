@@ -84,12 +84,42 @@ function planTurn(user: string, tools: Set<string>, toolId: string): Turn {
     blocks: [thinking, { type: 'tool_use', id: toolId, name, input }],
   });
   if (user.includes('MODEL_STREAM')) return text('合成流式输出。'.repeat(10000));
+  if (user.includes('MODEL_SCRATCH_ERROR'))
+    return tools.has('edit_file')
+      ? text('收到暂存工具错误。')
+      : tool('edit_file', {
+          file_path: '/large_tool_results/missing.md',
+          old_string: 'old',
+          new_string: 'new',
+        });
   if (!user.includes('MODEL_FIXTURE')) return text(CHAT_TEXT);
+  if (user.includes('MODEL_PARALLEL') && !tools.has('read_file')) {
+    return {
+      stopReason: 'tool_use',
+      blocks: [
+        thinking,
+        {
+          type: 'tool_use',
+          id: `${toolId}_read`,
+          name: 'read_file',
+          input: { file_path: '/input.md' },
+        },
+        {
+          type: 'tool_use',
+          id: `${toolId}_write`,
+          name: 'write_file',
+          input: { file_path: '/result.md', content: 'synthetic' },
+        },
+      ],
+    };
+  }
   if (!tools.has('read_file')) return tool('read_file', { file_path: '/input.md' });
   if (!tools.has('write_file')) {
     return tool('write_file', {
       file_path: '/result.md',
-      content: '# 结果\n\n合成样本的分析已保存。\n',
+      content: user.includes('MODEL_LARGE_TOOL')
+        ? '合成预览'.repeat(5000)
+        : '# 结果\n\n合成样本的分析已保存。\n',
     });
   }
   return text(SAVED_TEXT);

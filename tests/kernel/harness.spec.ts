@@ -78,6 +78,12 @@ test('real graph reads, writes and retains thinking across model tool turns', as
     expect(snapshot.messages.filter((message) => message.id === input.instructionId)).toHaveLength(
       1,
     );
+    const tools = snapshot.messages.filter((message) => message.role === 'tool');
+    expect(tools.map((message) => message.tool?.name)).toEqual(['read_file', 'write_file']);
+    expect(tools.every((message) => message.state === 'complete')).toBe(true);
+    expect(JSON.parse(tools[0]?.tool?.input ?? '{}').file_path).toBe('/input.md');
+    expect(tools[0]?.tool?.output).toContain('合成材料');
+    expect(tools.every((message) => message.tool?.runId === receipt.runId)).toBe(true);
     expect(snapshot.messages.find((message) => message.role === 'assistant')?.text).not.toContain(
       '正在分析材料',
     );
@@ -87,6 +93,236 @@ test('real graph reads, writes and retains thinking across model tool turns', as
   } finally {
     client.dispose();
     await server.stop();
+    await model.close();
+    await rm(root, { recursive: true });
+  }
+});
+
+for (const parallel of [false, true]) {
+  test(`tool failures survive restart without replaying effects (parallel=${parallel})`, async () => {
+    const root = await mkdtemp(join(tmpdir(), 'scholoom-tool-failure-'));
+    const model = await createModelServer();
+    const options = { modelEndpoint: model.url, environment: { MINIMAX_CN_API_KEY: 'synthetic' } };
+    let app = new KernelApplication(join(root, 'profile'), options);
+    try {
+      await mkdir(join(root, 'project'));
+      await writeFile(join(root, 'project', 'input.md'), 'Error: is ordinary source content');
+      await writeFile(join(root, 'project', 'result.md'), 'protected existing result');
+      await app.initialize();
+      const project = await app.projects.open(join(root, 'project'));
+      project.grant({ read: true, write: true, send: true, autoBackup: false });
+      const session = app.harness.create(project.project.id);
+      const scope = { projectId: project.project.id, sessionId: session.id };
+      const snapshot = () => app.snapshot(scope);
+      await app.harness.send({
+        ...scope,
+        instructionId: randomUUID(),
+        text: parallel ? 'MODEL_FIXTURE MODEL_PARALLEL' : 'MODEL_FIXTURE',
+        materials: [],
+      });
+      await expect
+        .poll(async () => (await snapshot()).run?.state, { timeout: 20000 })
+        .toBe('completed');
+      const messages = (await snapshot()).messages;
+      expect(messages.find((message) => message.tool?.name === 'read_file')?.state).toBe(
+        'complete',
+      );
+      const failed = messages.find((message) => message.tool?.name === 'write_file');
+      expect(failed?.state).toBe('error');
+      expect(failed?.tool?.output).toContain('contentChanged');
+      expect(JSON.stringify(model.requests.at(-1)?.messages)).toContain('contentChanged');
+      expect(await readFile(join(root, 'project', 'result.md'), 'utf8')).toBe(
+        'protected existing result',
+      );
+      const requests = model.requests.length;
+      await app.close();
+      app = new KernelApplication(join(root, 'profile'), options);
+      await app.initialize();
+      expect((await snapshot()).messages.find((message) => message.id === failed?.id)).toEqual(
+        failed,
+      );
+      expect(model.requests).toHaveLength(requests);
+    } finally {
+      await app.close();
+      await model.close();
+      await rm(root, { recursive: true });
+    }
+  });
+}
+
+test('large tool previews are bounded without truncating the saved artifact', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'scholoom-tool-preview-'));
+  const model = await createModelServer();
+  const app = new KernelApplication(join(root, 'profile'), {
+    modelEndpoint: model.url,
+    environment: { MINIMAX_CN_API_KEY: 'synthetic' },
+  });
+  try {
+    await mkdir(join(root, 'project'));
+    await writeFile(join(root, 'project', 'input.md'), '合成材料'.repeat(6000));
+    await app.initialize();
+    const project = await app.projects.open(join(root, 'project'));
+    project.grant({ read: true, write: true, send: true, autoBackup: false });
+    const session = app.harness.create(project.project.id);
+    const scope = { projectId: project.project.id, sessionId: session.id };
+    await app.harness.send({
+      ...scope,
+      instructionId: randomUUID(),
+      text: 'MODEL_FIXTURE MODEL_LARGE_TOOL',
+      materials: [],
+    });
+    await expect
+      .poll(async () => (await app.snapshot(scope)).run?.state, { timeout: 20000 })
+      .toBe('completed');
+    const tool = (await app.snapshot(scope)).messages.find(
+      (message) => message.tool?.name === 'write_file',
+    );
+    expect(tool?.state).toBe('complete');
+    expect(tool?.tool?.input.length).toBeLessThanOrEqual(16384);
+    expect(tool?.tool?.inputTruncated).toBe(true);
+    const read = (await app.snapshot(scope)).messages.find(
+      (message) => message.tool?.name === 'read_file',
+    );
+    expect(read?.tool?.output?.length).toBeLessThanOrEqual(16384);
+    expect(read?.tool?.outputTruncated).toBe(true);
+    expect(await readFile(join(root, 'project', 'result.md'), 'utf8')).toBe(
+      '合成预览'.repeat(5000),
+    );
+  } finally {
+    await app.close();
+    await model.close();
+    await rm(root, { recursive: true });
+  }
+});
+
+test('cancelling an in-flight tool preserves unknown outcome across restart', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'scholoom-tool-cancel-'));
+  const model = await createModelServer();
+  const options = { modelEndpoint: model.url, environment: { MINIMAX_CN_API_KEY: 'synthetic' } };
+  let app = new KernelApplication(join(root, 'profile'), options);
+  let release = () => {};
+  try {
+    await mkdir(join(root, 'project'));
+    await writeFile(join(root, 'project', 'input.md'), 'synthetic');
+    await app.initialize();
+    const project = await app.projects.open(join(root, 'project'));
+    project.grant({ read: true, write: true, send: true, autoBackup: false });
+    const original = project.read.bind(project);
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    project.read = async (...args) => {
+      await held;
+      return original(...args);
+    };
+    const session = app.harness.create(project.project.id);
+    const scope = { projectId: project.project.id, sessionId: session.id };
+    await app.harness.send({
+      ...scope,
+      instructionId: randomUUID(),
+      text: 'MODEL_FIXTURE',
+      materials: [],
+    });
+    await expect
+      .poll(
+        async () =>
+          (await app.snapshot(scope)).messages.find((message) => message.tool?.name === 'read_file')
+            ?.state,
+      )
+      .toBe('streaming');
+    app.harness.cancel(scope.projectId, scope.sessionId);
+    release();
+    await expect.poll(async () => (await app.snapshot(scope)).run?.state).toBe('cancelled');
+    expect(
+      (await app.snapshot(scope)).messages.find((message) => message.tool?.name === 'read_file')
+        ?.state,
+    ).toBe('unknown');
+    await app.close();
+    app = new KernelApplication(join(root, 'profile'), options);
+    await app.initialize();
+    expect(
+      (await app.snapshot(scope)).messages.find((message) => message.tool?.name === 'read_file')
+        ?.state,
+    ).toBe('unknown');
+  } finally {
+    release();
+    await app.close();
+    await model.close();
+    await rm(root, { recursive: true });
+  }
+});
+
+test('startup marks unfinished tool records unknown and retains confirmed results', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'scholoom-tool-interrupted-'));
+  let app = new KernelApplication(root, { environment: {} });
+  try {
+    await app.initialize();
+    const session = app.harness.create('application');
+    const store = app.projects.get('application');
+    const runId = randomUUID();
+    store.database
+      .prepare('INSERT INTO runs (id, sessionId, value) VALUES (?, ?, ?)')
+      .run(
+        runId,
+        session.id,
+        JSON.stringify({ id: runId, sessionId: session.id, attempt: 1, state: 'running' }),
+      );
+    for (const state of ['streaming', 'complete']) {
+      const id = `${runId}:${state}`;
+      store.database.prepare('INSERT INTO messages (id, sessionId, value) VALUES (?, ?, ?)').run(
+        id,
+        session.id,
+        JSON.stringify({
+          id,
+          sessionId: session.id,
+          role: 'tool',
+          state,
+          text: 'read_file',
+          materials: [],
+          createdAt: new Date().toISOString(),
+          tool: { runId, name: 'read_file', input: '{}', inputTruncated: false },
+        }),
+      );
+    }
+    await app.close();
+    app = new KernelApplication(root, { environment: {} });
+    await app.initialize();
+    const snapshot = await app.snapshot({ projectId: 'application', sessionId: session.id });
+    expect(snapshot.run?.state).toBe('interrupted');
+    expect(snapshot.messages.map((message) => message.state)).toEqual(['unknown', 'complete']);
+  } finally {
+    await app.close();
+    await rm(root, { recursive: true });
+  }
+});
+
+test('scratch backend errors also produce failed tool records', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'scholoom-scratch-error-'));
+  const model = await createModelServer();
+  const app = new KernelApplication(root, {
+    modelEndpoint: model.url,
+    environment: { MINIMAX_CN_API_KEY: 'synthetic' },
+  });
+  try {
+    await app.initialize();
+    const session = app.harness.create('application');
+    const scope = { projectId: 'application', sessionId: session.id };
+    await app.harness.send({
+      ...scope,
+      instructionId: randomUUID(),
+      text: 'MODEL_SCRATCH_ERROR',
+      materials: [],
+    });
+    await expect
+      .poll(async () => (await app.snapshot(scope)).run?.state, { timeout: 20000 })
+      .toBe('completed');
+    const tool = (await app.snapshot(scope)).messages.find(
+      (message) => message.tool?.name === 'edit_file',
+    );
+    expect(tool?.state).toBe('error');
+    expect(tool?.tool?.output).toBeTruthy();
+  } finally {
+    await app.close();
     await model.close();
     await rm(root, { recursive: true });
   }
