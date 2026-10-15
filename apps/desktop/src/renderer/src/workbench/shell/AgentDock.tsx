@@ -1,22 +1,22 @@
 import type { ThreadMessageLike } from '@assistant-ui/react';
 import { ComposerPrimitive } from '@assistant-ui/react';
-import { InstructionInput, InstructionSend } from './InstructionComposer';
+import { type ToolCallView, toolCallView, toolStateDot, toolStateLabel } from '../projection';
+import type { WorkbenchSession } from '../session';
+import { ExecutionContext, InstructionInput, InstructionSend } from './InstructionComposer';
 
 interface DockPreview {
-  toolText: string | undefined;
-  toolFailed: boolean;
+  tool: ToolCallView | undefined;
   agentText: string | undefined;
 }
 
 /** 从消息流尾部提取 dock 投影：最新一条 tool 消息与最新一条 agent 消息。 */
 function readDockPreview(messages: readonly ThreadMessageLike[]): DockPreview {
-  let toolText: string | undefined;
-  let toolFailed = false;
+  let tool: ToolCallView | undefined;
   let agentText: string | undefined;
 
   for (
     let i = messages.length - 1;
-    i >= 0 && (toolText === undefined || agentText === undefined);
+    i >= 0 && (tool === undefined || agentText === undefined);
     i--
   ) {
     const message = messages[i];
@@ -25,13 +25,9 @@ function readDockPreview(messages: readonly ThreadMessageLike[]): DockPreview {
       typeof message.content === 'string'
         ? ([{ type: 'text', text: message.content }] as const)
         : message.content;
-    if (toolText === undefined) {
-      const tool = parts.find((part) => part.type === 'tool-call');
-      if (tool?.type === 'tool-call') {
-        const args = tool.argsText ?? JSON.stringify(tool.args ?? {});
-        toolText = `Ran ${tool.toolName}(${args})`;
-        toolFailed = tool.isError === true;
-      }
+    if (tool === undefined) {
+      const part = parts.find((item) => item.type === 'tool-call');
+      if (part?.type === 'tool-call') tool = toolCallView(part);
     }
     if (agentText === undefined && message.role === 'assistant') {
       const text = parts
@@ -42,11 +38,12 @@ function readDockPreview(messages: readonly ThreadMessageLike[]): DockPreview {
       agentText = text.length > 0 ? text : undefined;
     }
   }
-  return { toolText, toolFailed, agentText };
+  return { tool, agentText };
 }
 
 export interface AgentDockProps {
   messages: readonly ThreadMessageLike[];
+  context: WorkbenchSession['executionContext'];
   reset?: (() => void) | undefined;
   onExpand: () => void;
   cancel?: (() => void) | undefined;
@@ -54,8 +51,9 @@ export interface AgentDockProps {
 }
 
 /** 折叠态 Agent 面板：tool 消息固定顶部，agent 消息截头留尾，右侧精简 composer。 */
-export function AgentDock({ messages, reset, onExpand, cancel, resume }: AgentDockProps) {
+export function AgentDock({ messages, context, reset, onExpand, cancel, resume }: AgentDockProps) {
   const preview = readDockPreview(messages);
+  const tool = preview.tool;
 
   return (
     <div className="agent-dock">
@@ -67,14 +65,17 @@ export function AgentDock({ messages, reset, onExpand, cancel, resume }: AgentDo
         title="点击展开会话"
         aria-label="展开 Agent 会话"
       >
-        {preview.toolText !== undefined ? (
+        {tool !== undefined ? (
           <span className="tool-line">
             <span
-              className={preview.toolFailed ? 'dot dot--err' : 'dot dot--ok'}
+              className={toolStateDot(tool.state)}
               role="img"
-              aria-label={preview.toolFailed ? '失败' : '完成'}
+              aria-label={toolStateLabel(tool.state)}
             />
-            <code>{preview.toolText}</code>
+            <span className="tool-line__state">{toolStateLabel(tool.state)}</span>
+            <code>
+              Ran {tool.name}({tool.input})
+            </code>
           </span>
         ) : null}
         {preview.agentText !== undefined ? (
@@ -82,7 +83,7 @@ export function AgentDock({ messages, reset, onExpand, cancel, resume }: AgentDo
             <span className="dock-agent-msg__tail">{preview.agentText}</span>
           </span>
         ) : null}
-        {preview.toolText === undefined && preview.agentText === undefined ? (
+        {tool === undefined && preview.agentText === undefined ? (
           <span className="empty-hint">暂无会话进展，点击展开完整会话</span>
         ) : null}
       </button>
@@ -114,6 +115,7 @@ export function AgentDock({ messages, reset, onExpand, cancel, resume }: AgentDo
           ) : null}
           <InstructionSend />
         </div>
+        <ExecutionContext context={context} />
       </ComposerPrimitive.Root>
     </div>
   );

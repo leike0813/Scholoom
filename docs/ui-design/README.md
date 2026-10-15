@@ -1,6 +1,6 @@
 # Scholoom 工作台 UI 初步设计
 
-> 本设计的骨架部分（三区布局、Agent 面板双形态、tab 组、主题 token、防挤压）已在 `apps/desktop` 工作台实现，见 OpenSpec 变更 `openspec/changes/establish-workbench-shell/`。本文仍为各 tab 内部界面与后续组件的设计依据。
+> 本设计的骨架部分（三区布局、Agent 面板双形态、tab 组、主题 token、防挤压）已在 `apps/desktop` 工作台实现，见 [工作台外壳交付](../../openspec/changes/archive/2026-10-15-establish-workbench-shell/delivery.md)。本文仍为各 tab 内部界面与后续组件的设计依据。
 
 本文是 Scholoom Agent 工作台的初步界面设计，视觉与结构参考 `references/Codex-UI-Reference-Atlas.pdf`（Codex 官方界面图册及编者观察），关键色值与结构经官方截图像素取样核对。术语沿用 [CONTEXT.md](../../CONTEXT.md)。
 
@@ -109,6 +109,18 @@ overlay 以浮层形式占满整个中间区（不遮挡左右区），布局回
 
 ## 组件规格
 
+### 基础 Agent 执行反馈
+
+工具记录使用真实调用名与状态：执行中、完成、失败、结果未知。dock 保持最新工具单行，状态灯带文字可访问名；失败红色，未知使用次级文字，执行中绿色并带文字区分完成。工具记录不重复占用 Agent 正文区域。overlay 中每条工具记录使用原生可展开详情，摘要为调用名和状态，展开后显示等宽输入与结果预览；各上限 16,384 个 UTF-16 单元，截断时明确提示。详情默认收起，展开内容在卡片内滚动，避免撑开消息流。
+
+两个输入器共用当前项目、模型和读写／外发权限说明。模型仅展示实际 MiniMax 配置，权限只显示当前已保存授权；编辑仍使用现有“模型设置”和“项目权限与备份”。连接或当前选择尚未就绪时明确提示，不展示另一项目的旧权限。环境行在窄窗口可隐藏，但模型与权限保留在配置行。
+
+新建会话等待期间，输入暂时禁用并提示正在创建；结果返回后启用新会话的独立草稿。创建失败保留原草稿，等待期间用户切换会话的选择不被迟到回执覆盖。
+
+会话成果使用紧凑列表行，包含路径、登记状态、“打开成果”和按需出现的“核查并补齐”。dock 形态在中间区显示成果，overlay 形态在消息流尾部显示同一成果列表。打开沿共同文件 tab，收起 overlay 使文件可见；指令草稿、附加材料和会话接收者保持原值。文件缺失或权限失效由文件页显示错误，登记结果待核查不因点击打开而改写。
+
+本节对应 [执行工作台变更](../../openspec/changes/archive/2026-10-15-complete-agent-execution-workbench/proposal.md)。科研方法、插件、任务审批和受管程序界面沿各自能力交付。
+
 ### 左区
 
 **操作菜单**（顶部）：新建会话、文献库、设置。行结构：细线图标 + 文字，整行可点。
@@ -163,6 +175,7 @@ overlay 以浮层形式占满整个中间区（不遮挡左右区），布局回
 | `--status-error` | `#d1242f` | `#f85149` | 失败 |
 | `--await-bg` / `--await-text` | `#d1e9dc` / `#1a7f47` | `#23413a` / `#7fd6a5` | 待审批 pill |
 | `--shadow-overlay` | `0 8px 32px rgb(0 0 0 / .12)` | `0 8px 32px rgb(0 0 0 / .5)` | overlay 投影 |
+| `--font-size-meta` / `--font-size-label` | `12px` / `11px` | `12px` / `11px` | 工具、上下文与详情标签字号 |
 
 字体：界面 `system-ui` 栈；**agent 正文与文档内容用衬线**（`Charter, Georgia, "Songti SC", "Noto Serif CJK SC", serif`，Codex 的 agent 正文为衬线，学术场景也契合）；tool 记录与代码 `ui-monospace` 栈。界面字号 13–14px，agent 正文 14.5px，tool 记录 12px，行高 1.5–1.6。
 

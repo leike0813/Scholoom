@@ -27,6 +27,8 @@
   --font-ui: system-ui, "PingFang SC", "Microsoft YaHei", sans-serif;
   --font-prose: Charter, "Bitstream Charter", Georgia, "Songti SC", "Noto Serif CJK SC", serif;
   --font-mono: ui-monospace, "SF Mono", Consolas, monospace;
+  --font-size-meta: 12px;
+  --font-size-label: 11px;
 
   --radius: 8px;
   --radius-sm: 6px;
@@ -63,6 +65,8 @@
     --pill-neutral-bg: #2c2c2c;
     --shadow-overlay: 0 8px 32px rgb(0 0 0 / 0.5);
     --shadow-card: 0 1px 3px rgb(0 0 0 / 0.3);
+    --font-size-meta: 12px;
+    --font-size-label: 11px;
   }
 }
 
@@ -85,6 +89,8 @@
   --pill-neutral-bg: #2c2c2c;
   --shadow-overlay: 0 8px 32px rgb(0 0 0 / 0.5);
   --shadow-card: 0 1px 3px rgb(0 0 0 / 0.3);
+  --font-size-meta: 12px;
+  --font-size-label: 11px;
 }
 
 *,
@@ -675,6 +681,71 @@ button {
   text-overflow: ellipsis;
   min-width: 0;
 }
+.tool-line__state {
+  flex: none;
+  font-size: var(--font-size-meta);
+  color: var(--text-secondary);
+}
+
+/* ════════════ 工具记录详情（overlay） ════════════ */
+
+.tool-call {
+  margin: 6px 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  font-family: var(--font-ui);
+  font-size: var(--font-size-meta);
+  white-space: normal;
+}
+.tool-call__summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+.tool-call__summary:hover {
+  background: var(--surface-hover);
+}
+.tool-call__name {
+  font-family: var(--font-mono);
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.tool-call__state {
+  flex: none;
+  margin-left: auto;
+}
+.tool-call__body {
+  padding: 0 10px 8px;
+}
+.tool-call__label {
+  margin: 8px 0 2px;
+  font-size: var(--font-size-label);
+  font-weight: 600;
+  color: var(--text-tertiary);
+}
+.tool-call__body pre {
+  margin: 0;
+  max-height: 200px;
+  overflow: auto;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-meta);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.tool-call__hint {
+  margin: 4px 0 0;
+  color: var(--text-tertiary);
+}
 
 .dock-agent-msg {
   flex: 1;
@@ -806,6 +877,25 @@ button {
   padding: 5px 12px;
   border-top: 1px solid var(--border);
   background: var(--surface);
+}
+
+/* 执行上下文：模型与权限常显，项目环境行在窄窗口收起 */
+.composer-context {
+  min-width: 0;
+  font-size: var(--font-size-meta);
+  color: var(--text-secondary);
+}
+.composer-context .composer-config {
+  display: grid;
+  align-items: start;
+}
+.composer-context__field {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.dock-composer .composer-env {
+  margin: 0 -16px -12px;
+  padding: 5px 16px;
 }
 
 .composer-input {
@@ -991,6 +1081,17 @@ button {
 }
 .business-error {
   color: var(--text-secondary);
+}
+.artifact-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  overflow-wrap: anywhere;
+}
+.artifact-row button {
+  color: var(--accent);
+  text-decoration: underline;
 }
 .project-files ul {
   padding: 0;

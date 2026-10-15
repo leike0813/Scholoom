@@ -56,9 +56,11 @@
 | smoke、内核与双宿主 UI 测试 | 生命周期、文件保护与 Agent 用户路径的实际入口 | 完整科研质量和三平台成品验收 |
 | 宿主及预览调查原型 | 已验证输入、兼容问题、来源代码和行为参照 | 可以直接搬入生产的完整子系统 |
 
-正式规格包含工程基础、共同内核生命周期及工作台基础／外壳。项目文件、模型与单 Agent 的当前实施契约集中在 [establish-basic-agent-harness](../openspec/changes/establish-basic-agent-harness/proposal.md)，实际结果以其交付记录为准。样例“只显示最新一轮”的范围仍限于样例，真实会话采用持久分页历史。
+正式规格包含工程基础、共同内核生命周期、工作台基础／外壳、项目文件、模型与单 Agent；契约见 [当前正式规格](../openspec/specs)，基础 harness 实际结果见 [establish-basic-agent-harness 交付](../openspec/changes/archive/2026-10-15-establish-basic-agent-harness/delivery.md)。样例“只显示最新一轮”的范围仍限于样例，真实会话采用持久分页历史。
 
 共同内核入口沿已确认的 [#23](../.scratch/scholoom-foundations/issues/23-kernel-entry-and-lifecycle.md#answer) 已交付。本轮按用户确认，将 P2 的必需文件保护与 P3a–P3c 合为一个单 Agent 闭环，先接 MiniMax M Plan 中国区；P3d 方法／能力调用仍为后续变更。未接入的库管理、受管计算和生态功能不因基本 harness 可用而视为已完成。
+
+当前阶段目标为完整基础 Agent harness 及相应界面。P3a–P3c 的真实工具详情、失败／未知状态、输入上下文及成果打开入口已由 [complete-agent-execution-workbench](../openspec/changes/archive/2026-10-15-complete-agent-execution-workbench/proposal.md) 补齐，下一步为 P3d 的最小方法／能力调用。这一调整来自现有工作台的实际缺口，不扩大到受管 shell、多 Agent 或文献业务；完成依据分别保存在对应 change 的 delivery。
 
 ## 3. 总体顺序与依赖
 

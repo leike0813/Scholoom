@@ -135,6 +135,8 @@ export function Workbench({ session }: { session: WorkbenchSession }) {
   useEffect(() => {
     const target = session.fileTarget;
     if (!target) return;
+    // 成果经文件 tab 打开，收起 overlay 才能看到实际内容。
+    setAgentExpanded(false);
     const tab = {
       id: `${target.projectId}:${target.path}`,
       title: target.path.split('/').at(-1) ?? target.path,
@@ -187,6 +189,7 @@ export function Workbench({ session }: { session: WorkbenchSession }) {
 
         <ThreadPrimitive.Root className="center">
           {session.controls}
+          {!agentExpanded ? session.artifacts : null}
           <TabGroups
             groups={groups}
             onActivate={activateTab}
@@ -198,6 +201,8 @@ export function Workbench({ session }: { session: WorkbenchSession }) {
             <AgentOverlay
               ref={overlayRef}
               title={activeSession?.title ?? 'Agent 会话'}
+              context={session.executionContext}
+              artifacts={session.artifacts}
               reset={session.reset ? reset : undefined}
               onCollapse={() => setAgentExpanded(false)}
               cancel={session.cancel}
@@ -207,6 +212,7 @@ export function Workbench({ session }: { session: WorkbenchSession }) {
           ) : (
             <AgentDock
               messages={session.adapter.messages ?? []}
+              context={session.executionContext}
               reset={session.reset ? reset : undefined}
               onExpand={() => setAgentExpanded(true)}
               cancel={session.cancel}

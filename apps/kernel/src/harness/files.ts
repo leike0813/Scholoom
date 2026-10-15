@@ -1,4 +1,5 @@
 import { matchesGlob } from 'node:path';
+import type { ErrorInfo } from '@scholoom/protocol';
 import type {
   BackendProtocolV2,
   EditResult,
@@ -10,7 +11,7 @@ import type {
   ReadResult,
   WriteResult,
 } from 'deepagents';
-import { failure } from '../errors.js';
+import { failure, OperationError } from '../errors.js';
 import type { ProjectStore } from '../projects/store.js';
 
 export class ProjectBackend implements BackendProtocolV2 {
@@ -20,6 +21,7 @@ export class ProjectBackend implements BackendProtocolV2 {
     private readonly signal: AbortSignal,
     private readonly used: (path: string) => void,
     private readonly saved: (path: string) => void | Promise<void>,
+    private readonly onError?: (error: ErrorInfo) => void,
   ) {}
   private local(path: string): string {
     return path.replace(/^\/+/, '');
@@ -30,6 +32,7 @@ export class ProjectBackend implements BackendProtocolV2 {
   }
   private error(error: unknown): { error: string } {
     const info = failure(error);
+    this.onError?.(info);
     return { error: `${info.code}: ${info.message}` };
   }
 
@@ -108,10 +111,15 @@ export class ProjectBackend implements BackendProtocolV2 {
       this.guard();
       const local = this.local(path);
       const read = this.readBases.get(local);
-      if (!read) return { error: 'contentChanged: 请先重新读取整份文件，再提出修改。' };
+      if (!read)
+        return this.error(
+          new OperationError('contentChanged', '请先重新读取整份文件，再提出修改。'),
+        );
       const occurrences = oldString ? read.content.split(oldString).length - 1 : 0;
       if (!occurrences || (!replaceAll && occurrences !== 1))
-        return { error: 'targetAmbiguous: 修改目标不存在或不唯一，请重新读取并明确目标。' };
+        return this.error(
+          new OperationError('targetAmbiguous', '修改目标不存在或不唯一，请重新读取并明确目标。'),
+        );
       await this.project.save(
         local,
         replaceAll

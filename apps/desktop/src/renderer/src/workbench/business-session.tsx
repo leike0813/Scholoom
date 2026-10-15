@@ -18,14 +18,19 @@ export function useBusinessSession(
   client: KernelClient | null,
   phase: KernelPhase,
 ): Partial<WorkbenchSession> {
-  const [snapshot, setSnapshot] = useState<WorkbenchSnapshot>();
+  const [received, setReceived] = useState<{
+    selection: { projectId: string; sessionId: string };
+    value: WorkbenchSnapshot;
+  }>();
   const [selection, setSelection] = useState({ projectId: 'application', sessionId: '' });
+  const snapshot = received?.selection === selection ? received.value : undefined;
   const [error, setError] = useState('');
   const [materials, setMaterials] = useState<string[]>([]);
   const [file, setFile] = useState<FileTarget>();
   const [earlier, setEarlier] = useState<Message[]>([]);
   const [earlierComplete, setEarlierComplete] = useState(false);
   const [configured, setConfigured] = useState(false);
+  const [creating, setCreating] = useState(false);
   const [recovered, setRecovered] = useState<BusinessParams<'session.send'>>();
   const directoryRef = useRef('');
   const currentDirectory = client?.getSnapshot().status?.dataDirectory;
@@ -56,7 +61,7 @@ export function useBusinessSession(
       throw reason;
     }
     if (selected !== selectedRef.current) return;
-    setSnapshot(result);
+    setReceived({ selection: selected, value: result });
   }, [client, phase]);
 
   useEffect(() => {
@@ -168,6 +173,9 @@ export function useBusinessSession(
     writeDraft(draftKey(directory, projectId, 'session'), sessionId);
     const next = { projectId, sessionId };
     selectedRef.current = next;
+    setEarlier([]);
+    setEarlierComplete(false);
+    setRecovered(undefined);
     setSelection(next);
   };
   const safe = (action: () => Promise<unknown>) => {
@@ -183,6 +191,7 @@ export function useBusinessSession(
     messages,
     convertMessage: (message) => message,
     isRunning: !!running,
+    isDisabled: creating,
     isSendDisabled:
       phase !== 'connected' ||
       !snapshot?.provider.configured ||
@@ -236,13 +245,32 @@ export function useBusinessSession(
         await call('session.cancel', { projectId: selection.projectId, sessionId: session.id });
     },
   };
-  const createSession = () =>
+  const createSession = () => {
+    if (creating) return;
+    setCreating(true);
+    const selected = selectedRef.current;
     safe(async () => {
-      const result = await call('session.create', { projectId: selection.projectId });
-      select(selection.projectId, result.id);
+      try {
+        const result = await call('session.create', { projectId: selected.projectId });
+        if (selected === selectedRef.current) select(selected.projectId, result.id);
+      } finally {
+        setCreating(false);
+      }
     });
+  };
   return {
     adapter,
+    executionContext: {
+      project: project?.name ?? '正在读取项目',
+      model: snapshot?.provider.model ?? '模型未就绪',
+      permissions: creating
+        ? '正在创建会话'
+        : phase !== 'connected'
+          ? '内核未连接'
+          : !project
+            ? '正在核对权限'
+            : `读取${project.read ? '已授权' : '未授权'} · 写入${project.write ? '已授权' : '未授权'} · 外发${project.send ? '已授权' : '未授权'}${snapshot?.provider.configured ? '' : ' · 凭据未配置'}`,
+    },
     draftKey: draftKey(directory, selection.projectId, selection.sessionId || 'unsent'),
     ...(file ? { fileTarget: file } : {}),
     renderFile: (target) =>
@@ -332,31 +360,37 @@ export function useBusinessSession(
               : ''}
           </div>
         ) : null}
-        {snapshot?.artifacts.map((artifact) => (
-          <div className="execution-status" key={`${artifact.runId}:${artifact.path}`}>
-            成果：{artifact.path} ·{' '}
-            {artifact.state === 'linked' ? '已保存并登记' : '登记结果待核查'}
-            {artifact.state !== 'linked' ? (
-              <button
-                type="button"
-                onClick={() =>
-                  safe(() =>
-                    call('artifacts.reconcile', {
-                      projectId: selection.projectId,
-                      sessionId: selection.sessionId,
-                      runId: artifact.runId,
-                      paths: [artifact.path],
-                    }),
-                  )
-                }
-              >
-                核查并补齐
-              </button>
-            ) : null}
-          </div>
-        ))}
       </>
     ),
+    artifacts: snapshot?.artifacts.map((artifact) => (
+      <div className="execution-status artifact-row" key={`${artifact.runId}:${artifact.path}`}>
+        成果：{artifact.path} · {artifact.state === 'linked' ? '已保存并登记' : '登记结果待核查'}
+        <button
+          type="button"
+          aria-label={`打开成果 ${artifact.path}`}
+          onClick={() => setFile({ projectId: selection.projectId, path: artifact.path })}
+        >
+          打开成果
+        </button>
+        {artifact.state !== 'linked' ? (
+          <button
+            type="button"
+            onClick={() =>
+              safe(() =>
+                call('artifacts.reconcile', {
+                  projectId: selection.projectId,
+                  sessionId: selection.sessionId,
+                  runId: artifact.runId,
+                  paths: [artifact.path],
+                }),
+              )
+            }
+          >
+            核查并补齐
+          </button>
+        ) : null}
+      </div>
+    )),
     fileNavigator:
       client && project && project.id !== 'application' ? (
         <ProjectNavigator
@@ -390,7 +424,7 @@ export function useBusinessSession(
     })),
     activeSessionId: selection.sessionId,
     selectSession: (id) => select(selection.projectId, id),
-    ...(phase === 'connected' && snapshot ? { createSession } : {}),
+    ...(phase === 'connected' && snapshot && !creating ? { createSession } : {}),
     cancel:
       running && session
         ? () =>

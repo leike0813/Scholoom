@@ -70,6 +70,7 @@ export interface WorkbenchSession {
   reset?: () => void;
   draftKey?: string;
   controls?: ReactNode;
+  artifacts?: ReactNode;
   fileNavigator?: ReactNode;
   fileTarget?: FileTarget;
   renderFile?: (target: FileTarget) => ReactNode;
@@ -77,6 +78,11 @@ export interface WorkbenchSession {
   cancel?: (() => void) | undefined;
   resume?: (() => void) | undefined;
   loadEarlier?: (() => void) | undefined;
+  executionContext?: {
+    project: string;
+    model: string;
+    permissions: string;
+  };
   /** 会话列表；缺省时左区呈现空态。 */
   sessions?: readonly SessionSummary[];
   activeSessionId?: string;

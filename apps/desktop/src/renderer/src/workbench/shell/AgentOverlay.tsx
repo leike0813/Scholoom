@@ -1,7 +1,9 @@
 import { ComposerPrimitive, MessagePrimitive, ThreadPrimitive } from '@assistant-ui/react';
 import { forwardRef } from 'react';
-import { InstructionInput, InstructionSend } from './InstructionComposer';
+import type { WorkbenchSession } from '../session';
+import { ExecutionContext, InstructionInput, InstructionSend } from './InstructionComposer';
 import { IconChevronDown } from './icons';
+import { ToolCall } from './ToolCall';
 
 function UserMessage() {
   return (
@@ -17,7 +19,7 @@ function AssistantMessage() {
   return (
     <MessagePrimitive.Root asChild>
       <article className="thread-msg thread-msg--assistant" aria-label="Agent 回复">
-        <MessagePrimitive.Parts />
+        <MessagePrimitive.Parts components={{ tools: { Fallback: ToolCall } }} />
       </article>
     </MessagePrimitive.Root>
   );
@@ -25,6 +27,8 @@ function AssistantMessage() {
 
 export interface AgentOverlayProps {
   title: string;
+  context: WorkbenchSession['executionContext'];
+  artifacts?: WorkbenchSession['artifacts'];
   reset?: (() => void) | undefined;
   onCollapse: () => void;
   cancel?: (() => void) | undefined;
@@ -34,7 +38,7 @@ export interface AgentOverlayProps {
 
 /** 展开态 Agent 面板：占满中间区的 overlay，完整消息流 + composer。 */
 export const AgentOverlay = forwardRef<HTMLDivElement, AgentOverlayProps>(function AgentOverlay(
-  { title, reset, onCollapse, cancel, resume, loadEarlier },
+  { title, context, artifacts, reset, onCollapse, cancel, resume, loadEarlier },
   ref,
 ) {
   return (
@@ -60,6 +64,7 @@ export const AgentOverlay = forwardRef<HTMLDivElement, AgentOverlayProps>(functi
           </button>
         ) : null}
         <ThreadPrimitive.Messages components={{ UserMessage, AssistantMessage }} />
+        {artifacts}
       </ThreadPrimitive.Viewport>
 
       <div className="overlay-composer">
@@ -91,6 +96,7 @@ export const AgentOverlay = forwardRef<HTMLDivElement, AgentOverlayProps>(functi
             ) : null}
             <InstructionSend />
           </div>
+          <ExecutionContext context={context} />
         </ComposerPrimitive.Root>
       </div>
     </div>
