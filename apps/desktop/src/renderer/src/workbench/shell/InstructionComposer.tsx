@@ -5,14 +5,62 @@ import { IconSend } from './icons';
 
 /**
  * dock 与 overlay 共用的当前执行上下文；模型与权限常显，项目环境行窄窗口可隐藏。
+ * 当后端支持模型和推理强度配置时，可以传入 onModelChange 和 onEffortChange 回调。
  */
-export function ExecutionContext({ context }: { context: WorkbenchSession['executionContext'] }) {
+export function ExecutionContext({
+  context,
+  modelOptions,
+  effortOptions,
+  onModelChange,
+  onEffortChange,
+}: {
+  context: WorkbenchSession['executionContext'];
+  modelOptions?: readonly string[];
+  effortOptions?: readonly { value: string; label: string }[];
+  onModelChange?: (model: string) => void;
+  onEffortChange?: (effort: string) => void;
+}) {
   return (
     <section className="composer-context" aria-label="执行上下文">
       <div className="composer-config">
-        <span className="composer-context__field">
-          {context ? `模型：${context.model}` : '模型未就绪'}
-        </span>
+        {modelOptions && onModelChange && context ? (
+          <label className="composer-context__control">
+            <span className="composer-context__label">模型</span>
+            <select
+              className="composer-context__select"
+              value={context.model}
+              onChange={(e) => onModelChange(e.target.value)}
+            >
+              {modelOptions.map((model) => (
+                <option key={model} value={model}>
+                  {model}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : (
+          <span className="composer-context__field">
+            {context ? `模型：${context.model}` : '模型未就绪'}
+          </span>
+        )}
+
+        {effortOptions && onEffortChange && context ? (
+          <label className="composer-context__control">
+            <span className="composer-context__label">推理强度</span>
+            <select
+              className="composer-context__select"
+              value={'medium'}
+              onChange={(e) => onEffortChange(e.target.value)}
+            >
+              {effortOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
+
         <span className="composer-context__field">
           {context ? `权限：${context.permissions}` : '权限未就绪'}
         </span>

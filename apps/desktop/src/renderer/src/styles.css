@@ -1289,6 +1289,36 @@ button {
   min-width: 0;
   overflow-wrap: anywhere;
 }
+.composer-context__control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.composer-context__label {
+  flex-shrink: 0;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+.composer-context__select {
+  min-width: 120px;
+  max-width: 200px;
+  font: inherit;
+  font-size: var(--font-size-meta);
+  color: var(--text-primary);
+  background: var(--elevated);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 4px 8px;
+  cursor: pointer;
+}
+.composer-context__select:hover {
+  border-color: var(--border-strong);
+}
+.composer-context__select:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 0;
+}
 .dock-composer .composer-env {
   margin: 0 -16px -12px;
   padding: 5px 16px;
