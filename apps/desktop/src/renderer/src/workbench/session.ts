@@ -25,6 +25,34 @@ export interface WorkbenchConnection {
   stop?: (() => void) | undefined;
 }
 
+export type SessionStatus = 'running' | 'awaiting' | 'failed' | 'idle';
+
+export interface SessionSummary {
+  id: string;
+  title: string;
+  status: SessionStatus;
+  unread?: boolean;
+  /** 相对时间文本，由来源生成（如 "2m"）。 */
+  updatedAt: string;
+}
+
+export interface FileNode {
+  name: string;
+  kind: 'dir' | 'file';
+  children?: readonly FileNode[];
+  /** 当前在中间区 tab 中打开。 */
+  open?: boolean;
+}
+
+export type TaskStatus = 'running' | 'awaiting' | 'done' | 'idle';
+
+export interface TaskSummary {
+  id: string;
+  title: string;
+  status: TaskStatus;
+  updatedAt: string;
+}
+
 export interface WorkbenchSession {
   status: KernelPhase | 'sample';
   connection?: WorkbenchConnection;
@@ -33,4 +61,12 @@ export interface WorkbenchSession {
   toggleMaterial: (name: string) => void;
   adapter: ExternalStoreAdapter<ThreadMessageLike>;
   reset?: () => void;
+  /** 会话列表；缺省时左区呈现空态。 */
+  sessions?: readonly SessionSummary[];
+  activeSessionId?: string;
+  selectSession?: (id: string) => void;
+  /** 文件树；缺省时右区呈现空态。 */
+  fileTree?: readonly FileNode[];
+  /** 研究任务列表；缺省时右区呈现空态。 */
+  tasks?: readonly TaskSummary[];
 }

@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Scholoom 工作台 · UI 原型</title>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<div class="app" id="app">
+
+  <!-- ══════════ 左区 ══════════ -->
+  <aside class="side side--left" id="leftPane" aria-label="会话与导航">
+    <div class="side__header">
+      <span class="brand">Scholoom</span>
+      <button class="icon-btn" id="collapseLeft" title="折叠左区 (Ctrl+B)" aria-label="折叠左区">
+        <svg viewBox="0 0 16 16"><path d="M10 3 5 8l5 5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+
+    <nav class="menu" aria-label="常用操作">
+      <button class="menu__item">
+        <svg viewBox="0 0 16 16"><path d="M8 3v10M3 8h10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        新建会话
+      </button>
+      <button class="menu__item">
+        <svg viewBox="0 0 16 16"><path d="M3 3.5A1.5 1.5 0 0 1 4.5 2H13v11H4.5A1.5 1.5 0 0 0 3 14.5z M3 12V3.5" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>
+        文献库
+      </button>
+      <button class="menu__item">
+        <svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="2.2" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M8 1.8v1.6M8 12.6v1.6M1.8 8h1.6M12.6 8h1.6M3.6 3.6l1.1 1.1M11.3 11.3l1.1 1.1M12.4 3.6l-1.1 1.1M4.7 11.3l-1.1 1.1" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+        设置
+      </button>
+    </nav>
+
+    <div class="section-label">
+      <span>会话</span>
+      <button class="icon-btn icon-btn--sm" title="全部会话" aria-label="全部会话">
+        <svg viewBox="0 0 16 16"><path d="M2 4h12M2 8h12M2 12h12" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+
+    <ul class="session-list">
+      <li class="session session--active">
+        <span class="dot dot--run" role="img" aria-label="运行中"></span>
+        <span class="session__title">梳理 RAG 相关文献并起草综述</span>
+        <span class="session__time">2m</span>
+      </li>
+      <li class="session">
+        <span class="pill pill--warn">待审批</span>
+        <span class="session__title">稿件引言润色与去 AI 化</span>
+        <span class="session__time">8m</span>
+        <span class="dot dot--unread" role="img" aria-label="有未读"></span>
+      </li>
+      <li class="session">
+        <span class="dot dot--idle"></span>
+        <span class="session__title">实验数据的统计检验</span>
+        <span class="session__time">14m</span>
+      </li>
+      <li class="session">
+        <span class="dot dot--err" role="img" aria-label="失败"></span>
+        <span class="session__title">文献库重复条目合并</span>
+        <span class="session__time">1h</span>
+      </li>
+      <li class="session">
+        <span class="dot dot--idle"></span>
+        <span class="session__title">主题图谱构建探索</span>
+        <span class="session__time">昨天</span>
+      </li>
+    </ul>
+
+    <div class="kernel-status" role="status">
+      <span class="dot dot--ok"></span>
+      <span class="kernel-status__text">内核已连接 · 实例 9f3a</span>
+      <button class="icon-btn icon-btn--sm" title="内核操作" aria-label="内核操作">
+        <svg viewBox="0 0 16 16"><circle cx="3" cy="8" r="1.2" fill="currentColor"/><circle cx="8" cy="8" r="1.2" fill="currentColor"/><circle cx="13" cy="8" r="1.2" fill="currentColor"/></svg>
+      </button>
+    </div>
+  </aside>
+
+  <!-- 左区折叠后的图标轨 -->
+  <aside class="rail rail--left" id="leftRail" hidden aria-label="导航（已折叠）">
+    <button class="icon-btn" id="expandLeft" title="展开左区 (Ctrl+B)" aria-label="展开左区">
+      <svg viewBox="0 0 16 16"><path d="M6 3l5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <button class="icon-btn" title="新建会话" aria-label="新建会话">
+      <svg viewBox="0 0 16 16"><path d="M8 3v10M3 8h10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+    </button>
+    <button class="icon-btn" title="文献库" aria-label="文献库">
+      <svg viewBox="0 0 16 16"><path d="M3 3.5A1.5 1.5 0 0 1 4.5 2H13v11H4.5A1.5 1.5 0 0 0 3 14.5z" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>
+    </button>
+    <button class="icon-btn rail__active" title="会话" aria-label="会话">
+      <svg viewBox="0 0 16 16"><path d="M2.5 3h11v8h-7l-4 3z" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>
+    </button>
+    <div class="rail__spacer"></div>
+    <span class="dot dot--ok" title="内核已连接"></span>
+  </aside>
+
+  <!-- ══════════ 中间区 ══════════ -->
+  <div class="center" id="center">
+    <div class="tab-groups" id="tabGroups">
+
+      <section class="tab-group" aria-label="标签组 A">
+        <header class="tab-bar" role="tablist">
+          <button class="tab" role="tab">
+            <svg viewBox="0 0 16 16"><path d="M3 3.5A1.5 1.5 0 0 1 4.5 2H13v11H4.5A1.5 1.5 0 0 0 3 14.5z" fill="none" stroke="currentColor" stroke-width="1.2"/></svg>
+            文献库
+          </button>
+          <button class="tab tab--active" role="tab" aria-selected="true">
+            <svg viewBox="0 0 16 16"><path d="M4 1.5h5.5L13 5v9.5H4z M9.5 1.5V5H13" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>
+            <span class="tab__title">Vaswani 2017.pdf</span>
+            <span class="tab__close" title="关闭">✕</span>
+          </button>
+          <button class="tab" role="tab">
+            <svg viewBox="0 0 16 16"><path d="M11 2l3 3-8.5 8.5H2.5V10z" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>
+            <span class="tab__title">introduction.md</span>
+            <span class="tab__close" title="关闭">✕</span>
+          </button>
+          <div class="tab-bar__spacer"></div>
+          <button class="icon-btn icon-btn--sm" id="splitBtn" title="向右拆分" aria-label="向右拆分">
+            <svg viewBox="0 0 16 16"><rect x="1.5" y="2.5" width="13" height="11" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M8 2.5v11" stroke="currentColor" stroke-width="1.2"/></svg>
+          </button>
+        </header>
+        <div class="tab-content">
+          <div class="doc-placeholder">
+            <div class="doc-placeholder__page">
+              <h3>Attention Is All You Need</h3>
+              <p class="doc-meta">Ashish Vaswani, Noam Shazeer, Niki Parmar … NeurIPS 2017</p>
+              <div class="fake-line w-95"></div>
+              <div class="fake-line w-100"></div>
+              <div class="fake-line w-88"></div>
+              <div class="fake-line w-100"></div>
+              <div class="fake-line w-72"></div>
+              <div class="fake-gap"></div>
+              <div class="fake-line w-100"></div>
+              <div class="fake-line w-91"></div>
+              <div class="fake-line w-100"></div>
+              <div class="fake-line w-64"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="tab-group" id="tabGroupB" aria-label="标签组 B">
+        <header class="tab-bar" role="tablist">
+          <button class="tab tab--active" role="tab" aria-selected="true">
+            <svg viewBox="0 0 16 16"><rect x="1.5" y="2.5" width="13" height="9" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M5 14.5h6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+            <span class="tab__title">综述大纲 · 交互预览</span>
+            <span class="tab__close" title="关闭">✕</span>
+          </button>
+          <div class="tab-bar__spacer"></div>
+          <button class="icon-btn icon-btn--sm" id="mergeBtn" title="合并回左侧组" aria-label="合并回左侧组">
+            <svg viewBox="0 0 16 16"><rect x="1.5" y="2.5" width="13" height="11" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M8 2.5v11" stroke="currentColor" stroke-width="1.2" stroke-dasharray="2 2"/></svg>
+          </button>
+        </header>
+        <div class="tab-content">
+          <div class="preview-placeholder">
+            <div class="preview-card">
+              <h3>RAG 研究主题综述（草稿）</h3>
+              <p class="doc-meta">交互式研究报告 · 由 Agent 生成 · 12 篇来源</p>
+              <div class="fake-line w-100"></div>
+              <div class="fake-line w-96"></div>
+              <div class="fake-line w-80"></div>
+              <div class="fake-chart">
+                <div class="fake-chart__bar" style="height:38%"></div>
+                <div class="fake-chart__bar" style="height:64%"></div>
+                <div class="fake-chart__bar" style="height:52%"></div>
+                <div class="fake-chart__bar" style="height:86%"></div>
+                <div class="fake-chart__bar" style="height:70%"></div>
+              </div>
+              <div class="fake-line w-100"></div>
+              <div class="fake-line w-58"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ── Agent dock（折叠态） ── -->
+    <div class="agent-dock" id="agentDock">
+      <button class="dock-transcript" id="dockTranscript" title="点击展开会话" aria-label="展开 Agent 会话">
+        <span class="tool-line">
+          <span class="dot dot--run" role="img" aria-label="运行中"></span>
+          <code>Ran search_library(query="retrieval augmented generation survey", limit=20) → 12 条结果，去重后 9 条进入候选</code>
+        </span>
+        <span class="dock-agent-msg">
+          <span class="dock-agent-msg__tail">已完成初筛：9 篇候选文献按方法谱系分为三类——检索增强生成的原始框架、长上下文替代方案、以及混合路由方法。其中 Lewis 2020 与 Guu 2020 构成主线，建议先读这两篇的 Digest 再决定是否把 Atlas 纳入对照组。接下来我会把分类结果写入研究记录，并在主题图谱里新建「RAG 谱系」节点。如果你认可这个分类，我就开始起草综述的第一节。</span>
+        </span>
+      </button>
+      <div class="dock-composer">
+        <textarea placeholder="输入研究指令…" rows="2" aria-label="研究指令"></textarea>
+        <div class="dock-composer__row">
+          <button class="chip">默认权限 ▾</button>
+          <span class="spacer"></span>
+          <button class="chip">GPT-5.4 ▾</button>
+          <button class="send-btn" title="发送" aria-label="发送">
+            <svg viewBox="0 0 16 16"><path d="M8 13V3M3.5 7.5 8 3l4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Agent overlay（展开态） ── -->
+    <div class="agent-overlay" id="agentOverlay" hidden role="dialog" aria-label="Agent 会话">
+      <header class="overlay-header">
+        <span class="overlay-header__title">梳理 RAG 相关文献并起草综述</span>
+        <span class="overlay-header__meta">GPT-5.4 · 本地执行</span>
+        <span class="spacer"></span>
+        <button class="icon-btn" title="更多操作" aria-label="更多操作">
+          <svg viewBox="0 0 16 16"><circle cx="3" cy="8" r="1.2" fill="currentColor"/><circle cx="8" cy="8" r="1.2" fill="currentColor"/><circle cx="13" cy="8" r="1.2" fill="currentColor"/></svg>
+        </button>
+        <button class="icon-btn" id="collapseAgent" title="收起 (Esc)" aria-label="收起会话">
+          <svg viewBox="0 0 16 16"><path d="M3 6l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </header>
+
+      <div class="overlay-messages">
+        <div class="msg msg--user">帮我梳理这个工作区里关于 RAG 的文献，按方法谱系分类，产出一份主题综述草稿。</div>
+
+        <div class="msg msg--agent">
+          <p>好的。我先检索文献库中相关的条目，再结合已有 Digest 做谱系分类。</p>
+        </div>
+
+        <div class="tool-record">
+          <span class="dot dot--ok"></span>
+          <code>Ran search_library(query="retrieval augmented generation survey", limit=20) → 12 条结果</code>
+        </div>
+        <div class="tool-record">
+          <span class="dot dot--ok"></span>
+          <code>Ran read_digest(paper="Lewis 2020 RAG") for 3s</code>
+        </div>
+        <div class="tool-record">
+          <span class="dot dot--ok"></span>
+          <code>Ran read_digest(paper="Guu 2020 REALM") for 2s</code>
+        </div>
+
+        <div class="worked-divider"><span>Worked for 1m 12s</span></div>
+
+        <div class="msg msg--agent">
+          <p>已完成初筛：9 篇候选文献按方法谱系分为三类——检索增强生成的原始框架、长上下文替代方案、以及混合路由方法。其中 <a href="#">Lewis 2020</a> 与 <a href="#">Guu 2020</a> 构成主线，建议先读这两篇的 Digest 再决定是否把 Atlas 纳入对照组。</p>
+          <p>接下来我会把分类结果写入研究记录，并在主题图谱里新建「RAG 谱系」节点。如果你认可这个分类，我就开始起草综述的第一节。</p>
+        </div>
+
+        <div class="artifact-card">
+          <div class="artifact-card__head">
+            <span>1 个研究记录已更新</span>
+            <button class="link-btn">查看</button>
+          </div>
+          <div class="artifact-card__row">
+            <svg viewBox="0 0 16 16"><path d="M4 1.5h5.5L13 5v9.5H4z M9.5 1.5V5H13" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>
+            research-notes/rag-taxonomy.md
+            <span class="artifact-card__stat">+86</span>
+          </div>
+        </div>
+
+        <div class="tool-record">
+          <span class="dot dot--run"></span>
+          <code>Running write_section(draft="rag-survey", section="1-intro") …</code>
+        </div>
+      </div>
+
+      <div class="overlay-composer">
+        <div class="composer-box">
+          <textarea placeholder="继续这个研究任务，@ 引用材料或文献…" rows="3" aria-label="研究指令"></textarea>
+          <div class="composer-config">
+            <button class="chip">＋</button>
+            <button class="chip">默认权限 ▾</button>
+            <span class="spacer"></span>
+            <button class="chip">⚡ GPT-5.4 ▾</button>
+            <button class="chip">Extra High ▾</button>
+            <button class="send-btn" title="发送" aria-label="发送">
+              <svg viewBox="0 0 16 16"><path d="M8 13V3M3.5 7.5 8 3l4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+          </div>
+          <div class="composer-env">
+            <button class="chip chip--ghost">⌘ 当前工作区 ▾</button>
+            <button class="chip chip--ghost">本地执行 ▾</button>
+            <button class="chip chip--ghost">RAG 综述项目 ▾</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 右区折叠后的图标轨 -->
+  <aside class="rail rail--right" id="rightRail" hidden aria-label="辅助区（已折叠）">
+    <button class="icon-btn" id="expandRight" title="展开右区 (Ctrl+Alt+B)" aria-label="展开右区">
+      <svg viewBox="0 0 16 16"><path d="M10 3 5 8l5 5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <button class="icon-btn" title="文件树" aria-label="文件树">
+      <svg viewBox="0 0 16 16"><path d="M1.5 3.5h4l1.5 2h7.5v7h-13z" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>
+    </button>
+    <button class="icon-btn" title="任务列表" aria-label="任务列表">
+      <svg viewBox="0 0 16 16"><path d="M2.5 4l1 1 2-2M2.5 9l1 1 2-2M2.5 14l1 1 2-2M8 4.5h6M8 9.5h6M8 14.5h6" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+  </aside>
+
+  <!-- ══════════ 右区 ══════════ -->
+  <aside class="side side--right" id="rightPane" aria-label="文件与任务">
+    <section class="pane">
+      <div class="pane__header">
+        <span>文件</span>
+        <button class="icon-btn icon-btn--sm" id="collapseRight" title="折叠右区 (Ctrl+Alt+B)" aria-label="折叠右区">
+          <svg viewBox="0 0 16 16"><path d="M6 3l5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+      <ul class="tree">
+        <li class="tree__item tree__dir">▾ 材料</li>
+        <li class="tree__item tree__file tree__open">　Vaswani 2017.pdf</li>
+        <li class="tree__item tree__file">　Lewis 2020.pdf</li>
+        <li class="tree__item tree__file">　Guu 2020.pdf</li>
+        <li class="tree__item tree__dir">▾ 稿件</li>
+        <li class="tree__item tree__file tree__open">　introduction.md</li>
+        <li class="tree__item tree__dir">▸ 产物</li>
+        <li class="tree__item tree__dir">▸ 研究记录</li>
+      </ul>
+    </section>
+
+    <section class="pane">
+      <div class="pane__header"><span>任务</span></div>
+      <ul class="task-list">
+        <li class="task">
+          <span class="pill pill--run">进行中</span>
+          <span class="task__title">RAG 文献谱系综述</span>
+          <span class="task__time">2m</span>
+        </li>
+        <li class="task">
+          <span class="pill pill--warn">待审批</span>
+          <span class="task__title">引言润色变更审查</span>
+          <span class="task__time">8m</span>
+        </li>
+        <li class="task">
+          <span class="pill pill--done">已完成</span>
+          <span class="task__title">文献库去重与条目合并</span>
+          <span class="task__time">1h</span>
+        </li>
+        <li class="task">
+          <span class="pill pill--idle">未开始</span>
+          <span class="task__title">主题图谱节点整理</span>
+          <span class="task__time">—</span>
+        </li>
+      </ul>
+    </section>
+  </aside>
+</div>
+
+<!-- 原型控制条（不属于产品设计） -->
+<div class="demo-bar" role="toolbar" aria-label="原型控制">
+  <span class="demo-bar__label">原型控制</span>
+  <button id="toggleTheme">切换深/浅色</button>
+  <button id="demoToggleLeft">折叠/展开左区</button>
+  <button id="demoToggleRight">折叠/展开右区</button>
+  <button id="demoToggleAgent">展开/收起 Agent</button>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

@@ -50,7 +50,7 @@ Vite 启动时发现或启动内核；浏览器页面初次只查询，用户重
 
 ## 共享工作台与日常交互
 
-日常反馈和最终产品都在 `apps/desktop/src/renderer/src/workbench/Workbench.tsx` 上演进，共用 `styles.css`。`main.tsx` 只选择 session 来源。`workbench/session.ts` 定义界面输入：连接状态、材料及选择、回调和 assistant-ui ExternalStoreAdapter；消息由来源提供，草稿由 assistant-ui Composer 管理，发送、消息呈现和重置都经过工作台的同一路径。接入真实内核时，来源经 `packages/client` 获取业务事实；领域 DTO 仍以 `packages/protocol` 的 schema 为准。
+日常反馈和最终产品都在 `apps/desktop/src/renderer/src/workbench/Workbench.tsx` 上演进，共用 `styles.css`（语义 token + 浅色/深色双主题，默认跟随系统，左区底部可手动切换）。工作台为三区骨架：左区（操作菜单、会话列表、内核状态）、中间区（tab 组 + Agent 面板）、右区（文件树、材料、任务）；左右区可折叠为图标轨（`Ctrl/Cmd+B`、`Ctrl/Cmd+Alt+B`）。Agent 面板固定在中间区：折叠态 dock 在底部（tool 消息固定顶部、最新 agent 消息截头留尾、精简 composer），点击展开为占满中间区的 overlay（完整消息流与 composer，Esc 收起）。tab 组支持激活、关闭与"向右拆分"按钮，内容类型（文献库/阅读器/编辑器/交互预览）暂为占位。外壳组件在 `workbench/shell/`，布局与视觉契约见 `docs/ui-design/`。`main.tsx` 只选择 session 来源。`workbench/session.ts` 定义界面输入：连接状态、材料及选择、可选的会话/文件树/任务数据、回调和 assistant-ui ExternalStoreAdapter；消息由来源提供，草稿由 assistant-ui Composer 管理，发送、消息呈现和重置都经过工作台的同一路径。接入真实内核时，来源经 `packages/client` 获取业务事实；领域 DTO 仍以 `packages/protocol` 的 schema 为准。
 
 默认浏览器与 Electron 首页显示真实内核来源的工作台；材料和消息为空，可以编辑草稿，发送禁用。连接状态、实例身份、重试及停机来自共同客户端与宿主查询。开发态显式打开 `?scenario=ui-foundation` 才加载 `scenarios/ui-foundation.tsx` 的样例来源。它提供两份虚拟材料和固定回复，仅保留最新一轮；回复记录发送时的材料选择，重置或刷新恢复初始状态。样例不读取文件、不调用模型、不连接内核、不持久化；生产构建忽略该参数并使用真实来源。
 
@@ -66,7 +66,7 @@ Agent 使用 Orca browser skill，先列出当前项目的标签，核对 URL �
 
 如果 CLI 无法新建本地标签，用户可手动打开上述链接，再列出标签并继续；桌面不在线或页面不可读时记录实际错误。已发送的结构化反馈可读取，独立轮询未发送注释尚未验证。Windows 路径实测见[验证记录](../.scratch/scholoom-foundations/research/orca-ui-windows-validation.md)。服务已有时先确认项目、端口和可达性，避免重复启动；仅停止本轮自行拥有的进程。
 
-新增 UI 行为直接扩展 Workbench，样例只注入状态与回调，验收扩展 `tests/ui/workbench.spec.ts`。材料、消息和事件处理各保留一个来源；跨宿主差异留在薄入口或适配层。具体视觉风格、四区布局和阅读编辑组件按后续需求逐项接入。
+新增 UI 行为直接扩展 Workbench，样例只注入状态与回调，验收扩展 `tests/ui/workbench.spec.ts`。材料、消息和事件处理各保留一个来源；跨宿主差异留在薄入口或适配层。tab 内容类型与真实会话、文件、任务数据按后续需求逐项接入。
 
 模块独立开发时，可在既有 UI harness 中增加专用可视化夹具，接入真实被测模块和交互组件，并明确输入及依赖替身；夹具与整合验收的边界见 [deep module 与独立交付](../.scratch/scholoom-foundations/issues/14-agent-development-discipline.md#deep-module-与独立交付)。
 

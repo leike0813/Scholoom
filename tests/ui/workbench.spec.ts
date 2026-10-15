@@ -194,6 +194,8 @@ for (const scenario of [
     await instruction.fill('  梳理研究问题  ');
     await uiPage.getByRole('button', { name: '发送指令' }).click();
 
+    // 完整消息流在展开态 overlay 中呈现
+    await uiPage.getByRole('button', { name: '展开 Agent 会话' }).click();
     await expect(uiPage.getByRole('article', { name: /Agent\s*回复/ })).toBeVisible();
     await uiPage.getByRole('checkbox', { name: '研究计划.md' }).click();
 
@@ -216,6 +218,8 @@ test('sample keeps only the latest exchange', async ({ uiPage }) => {
   await instruction.fill('第二轮');
   await instruction.press('Control+Enter');
 
+  // 完整消息流在展开态 overlay 中呈现
+  await uiPage.getByRole('button', { name: '展开 Agent 会话' }).click();
   const userMessage = uiPage.getByRole('article', { name: '用户消息' });
   await expect(userMessage).toHaveCount(1);
   await expect(userMessage).toContainText('第二轮');
@@ -248,4 +252,73 @@ test('reset restores the sample and refresh starts from its initial state', asyn
   await expect(paper).not.toBeChecked();
   await expect(uiPage.getByRole('textbox', { name: '研究指令' })).toHaveValue('');
   await expect(uiPage.getByRole('article')).toHaveCount(0);
+});
+
+test('panes collapse to rails and restore', async ({ uiPage }) => {
+  await uiPage.goto(rendererUrl);
+
+  await uiPage.getByRole('button', { name: '折叠左区' }).click();
+  await expect(uiPage.getByLabel('导航（已折叠）')).toBeVisible();
+  await uiPage.getByRole('button', { name: '展开左区' }).click();
+  await expect(uiPage.getByRole('complementary', { name: '会话与导航' })).toBeVisible();
+
+  await uiPage.getByRole('button', { name: '折叠右区' }).click();
+  await expect(uiPage.getByLabel('辅助区（已折叠）')).toBeVisible();
+  await uiPage.getByRole('button', { name: '展开右区' }).click();
+  await expect(uiPage.getByRole('complementary', { name: '文件与任务' })).toBeVisible();
+});
+
+test('agent panel expands to overlay and keeps draft and focus', async ({ uiPage }) => {
+  await uiPage.goto(rendererUrl);
+
+  const draft = '形态切换之间保留这份草稿';
+  await uiPage.getByRole('textbox', { name: '研究指令' }).fill(draft);
+  await uiPage.getByRole('button', { name: '展开 Agent 会话' }).click();
+
+  const dialog = uiPage.getByRole('dialog', { name: 'Agent 会话' });
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole('textbox', { name: '研究指令' })).toHaveValue(draft);
+  await expect(dialog.getByRole('textbox', { name: '研究指令' })).toBeFocused();
+
+  await uiPage.keyboard.press('Escape');
+  await expect(dialog).toBeHidden();
+  await expect(uiPage.getByRole('button', { name: '展开 Agent 会话' })).toBeFocused();
+  await expect(uiPage.getByRole('textbox', { name: '研究指令' })).toHaveValue(draft);
+
+  await uiPage.getByRole('button', { name: '展开 Agent 会话' }).click();
+  await uiPage.getByRole('button', { name: '收起会话' }).click();
+  await expect(uiPage.getByRole('dialog', { name: 'Agent 会话' })).toBeHidden();
+});
+
+test('tab group splits right and merges back', async ({ uiPage }) => {
+  await uiPage.goto(rendererUrl);
+
+  await expect(uiPage.getByRole('tab', { name: /编辑器/ })).toBeVisible();
+  const editorTab = uiPage.getByRole('tab', { name: /编辑器/ });
+  await editorTab.click();
+  await uiPage.getByRole('button', { name: '向右拆分' }).click();
+
+  await expect(uiPage.getByLabel('标签组 2')).toBeVisible();
+  await expect(uiPage.getByLabel('标签组 2').getByRole('tab', { name: /编辑器/ })).toBeVisible();
+
+  await uiPage.getByRole('button', { name: '关闭 编辑器' }).click();
+  await expect(uiPage.getByLabel('标签组 2')).toBeHidden();
+  await expect(uiPage.getByRole('tab', { name: /文献库/ })).toBeVisible();
+});
+
+test('collapsed dock previews the latest sample exchange', async ({ uiPage }) => {
+  await uiPage.goto(sampleUrl);
+  const dock = uiPage.getByRole('button', { name: '展开 Agent 会话' });
+  await expect(dock).toContainText('暂无会话进展');
+
+  const instruction = uiPage.getByRole('textbox', { name: '研究指令' });
+  await instruction.fill('第一轮');
+  await uiPage.getByRole('button', { name: '发送指令' }).click();
+  await expect(dock).toContainText('研究计划.md');
+
+  await uiPage.getByRole('checkbox', { name: '研究计划.md' }).uncheck();
+  await uiPage.getByRole('checkbox', { name: '示例论文.pdf' }).uncheck();
+  await instruction.fill('第二轮');
+  await uiPage.getByRole('button', { name: '发送指令' }).click();
+  await expect(dock).toContainText('未附加材料');
 });

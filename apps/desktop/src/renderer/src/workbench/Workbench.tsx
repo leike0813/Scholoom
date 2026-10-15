@@ -1,149 +1,169 @@
 import {
   AssistantRuntimeProvider,
-  ComposerPrimitive,
-  MessagePrimitive,
   ThreadPrimitive,
   useExternalStoreRuntime,
 } from '@assistant-ui/react';
-import { useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { WorkbenchSession } from './session';
+import { ActivityPane, ActivityRail, type ThemeMode } from './shell/ActivityPane';
+import { AgentDock } from './shell/AgentDock';
+import { AgentOverlay } from './shell/AgentOverlay';
+import { AuxiliaryPane, AuxiliaryRail } from './shell/AuxiliaryPane';
+import { type TabGroupState, TabGroups, type TabItem } from './shell/TabGroups';
 
-function UserMessage() {
-  return (
-    <MessagePrimitive.Root asChild>
-      <article className="workbench__message" aria-label="用户消息">
-        <h3>指令</h3>
-        <MessagePrimitive.Parts />
-      </article>
-    </MessagePrimitive.Root>
-  );
-}
+const DEFAULT_TABS: readonly TabItem[] = [
+  { id: 'library', title: '文献库', kind: 'library' },
+  { id: 'reader', title: '阅读器', kind: 'reader' },
+  { id: 'editor', title: '编辑器', kind: 'editor' },
+];
 
-function AssistantMessage() {
-  return (
-    <MessagePrimitive.Root asChild>
-      <article className="workbench__message" aria-label="Agent 回复">
-        <h3>回复</h3>
-        <MessagePrimitive.Parts />
-      </article>
-    </MessagePrimitive.Root>
-  );
-}
-
-/** 明确停机入口：说明影响范围，确认与取消都是可键盘操作的常规控件。 */
-function StopKernel({ onStop }: { onStop: () => void }) {
-  const menu = useRef<HTMLDetailsElement>(null);
-  const close = () => {
-    if (menu.current !== null) menu.current.open = false;
-  };
-
-  return (
-    <details className="workbench__menu" ref={menu}>
-      <summary>停止内核</summary>
-      <p>停止后所有已连接的客户端（包括其他窗口与 CLI）都会断开，需要重新启动才能继续。</p>
-      <div className="workbench__actions">
-        <button
-          type="button"
-          onClick={() => {
-            close();
-            onStop();
-          }}
-        >
-          确认停止
-        </button>
-        <button type="button" onClick={close}>
-          取消
-        </button>
-      </div>
-    </details>
-  );
-}
+const THEME_ORDER: readonly ThemeMode[] = ['system', 'light', 'dark'];
 
 export function Workbench({ session }: { session: WorkbenchSession }) {
   const runtime = useExternalStoreRuntime(session.adapter);
-  const connection = session.connection;
 
-  const reset = () => {
+  const [leftCollapsed, setLeftCollapsed] = useState(false);
+  const [rightCollapsed, setRightCollapsed] = useState(false);
+  const [agentExpanded, setAgentExpanded] = useState(false);
+  const [theme, setTheme] = useState<ThemeMode>('system');
+  const [groups, setGroups] = useState<readonly TabGroupState[]>([
+    { id: 'a', tabs: DEFAULT_TABS, activeId: DEFAULT_TABS[0]?.id ?? null },
+  ]);
+
+  const overlayRef = useRef<HTMLDivElement>(null);
+  const wasExpandedRef = useRef(false);
+
+  const reset = useCallback(() => {
     session.reset?.();
     runtime.thread.composer.setText('');
-  };
+  }, [session, runtime]);
+
+  useEffect(() => {
+    if (theme === 'system') {
+      delete document.documentElement.dataset.theme;
+    } else {
+      document.documentElement.dataset.theme = theme;
+    }
+  }, [theme]);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && agentExpanded) {
+        setAgentExpanded(false);
+        return;
+      }
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'b') {
+        event.preventDefault();
+        if (event.altKey) setRightCollapsed((value) => !value);
+        else setLeftCollapsed((value) => !value);
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [agentExpanded]);
+
+  useEffect(() => {
+    if (agentExpanded) {
+      overlayRef.current?.querySelector('textarea')?.focus();
+    } else if (wasExpandedRef.current) {
+      document.getElementById('dock-transcript')?.focus();
+    }
+    wasExpandedRef.current = agentExpanded;
+  }, [agentExpanded]);
+
+  const activateTab = useCallback((groupIndex: number, tabId: string) => {
+    setGroups((current) =>
+      current.map((group, index) => (index === groupIndex ? { ...group, activeId: tabId } : group)),
+    );
+  }, []);
+
+  const closeTab = useCallback((groupIndex: number, tabId: string) => {
+    setGroups((current) => {
+      const next = current.map((group, index) => {
+        if (index !== groupIndex) return group;
+        const tabs = group.tabs.filter((tab) => tab.id !== tabId);
+        const activeId = group.activeId === tabId ? (tabs[0]?.id ?? null) : group.activeId;
+        return { id: group.id, tabs, activeId };
+      });
+      return next.filter((group) => group.tabs.length > 0);
+    });
+  }, []);
+
+  const splitGroup = useCallback((groupIndex: number) => {
+    setGroups((current) => {
+      if (current.length >= 2) return current;
+      const group = current[groupIndex];
+      if (group === undefined || group.activeId === null || group.tabs.length < 2) return current;
+      const active = group.tabs.find((tab) => tab.id === group.activeId);
+      if (active === undefined) return current;
+      const rest = group.tabs.filter((tab) => tab.id !== active.id);
+      const next: TabGroupState[] = [];
+      if (rest.length > 0) next.push({ id: group.id, tabs: rest, activeId: rest[0]?.id ?? null });
+      next.push({ id: group.id === 'a' ? 'b' : 'a', tabs: [active], activeId: active.id });
+      return next;
+    });
+  }, []);
+
+  const activeSession = session.sessions?.find((item) => item.id === session.activeSessionId);
 
   return (
     <AssistantRuntimeProvider runtime={runtime}>
-      <main className="workbench">
-        <header className="workbench__header">
-          <h1>Scholoom</h1>
-          <p>科研工作台</p>
-          <div className="workbench__lifecycle">
-            <p role="status" aria-label="连接状态">
-              {connection?.message ??
-                (session.status === 'sample' ? '样例场景 · 刷新后重置' : '内核未连接')}
-            </p>
-            {connection?.instanceId ? (
-              <p className="workbench__detail">实例 {connection.instanceId}</p>
-            ) : null}
-            {connection?.retry ? (
-              <button type="button" onClick={connection.retry}>
-                重试连接
-              </button>
-            ) : null}
-            {connection?.inspect ? (
-              <button type="button" onClick={connection.inspect}>
-                查询状态
-              </button>
-            ) : null}
-            {connection?.stop ? <StopKernel onStop={connection.stop} /> : null}
-          </div>
-        </header>
-        <div className="workbench__columns">
-          <section className="workbench__panel" aria-labelledby="materials-title">
-            <h2 id="materials-title">材料</h2>
-            {session.materials.length === 0 ? (
-              <p>暂无材料</p>
-            ) : (
-              <ul className="workbench__materials">
-                {session.materials.map((name) => (
-                  <li key={name}>
-                    <label className="workbench__material">
-                      <input
-                        type="checkbox"
-                        checked={session.selectedMaterials.includes(name)}
-                        onChange={() => session.toggleMaterial(name)}
-                      />
-                      <span>{name}</span>
-                    </label>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-          <section className="workbench__panel" aria-labelledby="agent-title">
-            <h2 id="agent-title">Agent 交流</h2>
-            <ThreadPrimitive.Root>
-              <ThreadPrimitive.Viewport className="workbench__messages" aria-live="polite">
-                <ThreadPrimitive.Messages components={{ UserMessage, AssistantMessage }} />
-              </ThreadPrimitive.Viewport>
-              <ComposerPrimitive.Root className="workbench__composer">
-                <label htmlFor="research-instruction">研究指令</label>
-                <ComposerPrimitive.Input
-                  id="research-instruction"
-                  className="workbench__input"
-                  minRows={6}
-                  maxRows={12}
-                  submitMode="ctrlEnter"
-                />
-                <div className="workbench__actions">
-                  <ComposerPrimitive.Send>发送指令</ComposerPrimitive.Send>
-                  {session.reset ? (
-                    <button type="button" onClick={reset}>
-                      重置示例
-                    </button>
-                  ) : null}
-                </div>
-              </ComposerPrimitive.Root>
-            </ThreadPrimitive.Root>
-          </section>
-        </div>
+      <main className="shell">
+        {leftCollapsed ? (
+          <ActivityRail onExpand={() => setLeftCollapsed(false)} />
+        ) : (
+          <ActivityPane
+            status={session.status}
+            connection={session.connection}
+            sessions={session.sessions ?? []}
+            activeSessionId={session.activeSessionId}
+            selectSession={session.selectSession}
+            theme={theme}
+            onCycleTheme={() =>
+              setTheme((current) => {
+                const index = THEME_ORDER.indexOf(current);
+                return THEME_ORDER[(index + 1) % THEME_ORDER.length] ?? 'system';
+              })
+            }
+            onCollapse={() => setLeftCollapsed(true)}
+          />
+        )}
+
+        <ThreadPrimitive.Root className="center">
+          <TabGroups
+            groups={groups}
+            onActivate={activateTab}
+            onClose={closeTab}
+            onSplit={splitGroup}
+          />
+          {agentExpanded ? (
+            <AgentOverlay
+              ref={overlayRef}
+              title={activeSession?.title ?? 'Agent 会话'}
+              reset={session.reset ? reset : undefined}
+              onCollapse={() => setAgentExpanded(false)}
+            />
+          ) : (
+            <AgentDock
+              messages={session.adapter.messages ?? []}
+              reset={session.reset ? reset : undefined}
+              onExpand={() => setAgentExpanded(true)}
+            />
+          )}
+        </ThreadPrimitive.Root>
+
+        {rightCollapsed ? (
+          <AuxiliaryRail onExpand={() => setRightCollapsed(false)} />
+        ) : (
+          <AuxiliaryPane
+            fileTree={session.fileTree ?? []}
+            tasks={session.tasks ?? []}
+            materials={session.materials}
+            selectedMaterials={session.selectedMaterials}
+            toggleMaterial={session.toggleMaterial}
+            onCollapse={() => setRightCollapsed(true)}
+          />
+        )}
       </main>
     </AssistantRuntimeProvider>
   );

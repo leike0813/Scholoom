@@ -1,0 +1,193 @@
+interface IconProps {
+  className?: string;
+}
+
+function Svg({ className, children }: IconProps & { children: React.ReactNode }) {
+  return (
+    <svg viewBox="0 0 16 16" className={className} aria-hidden="true">
+      {children}
+    </svg>
+  );
+}
+
+export function IconPlus() {
+  return (
+    <Svg>
+      <path
+        d="M8 3v10M3 8h10"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+    </Svg>
+  );
+}
+
+export function IconLibrary() {
+  return (
+    <Svg>
+      <path
+        d="M3 3.5A1.5 1.5 0 0 1 4.5 2H13v11H4.5A1.5 1.5 0 0 0 3 14.5z M3 12V3.5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.3"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+export function IconSettings() {
+  return (
+    <Svg>
+      <circle cx="8" cy="8" r="2.2" fill="none" stroke="currentColor" strokeWidth="1.3" />
+      <path
+        d="M8 1.8v1.6M8 12.6v1.6M1.8 8h1.6M12.6 8h1.6M3.6 3.6l1.1 1.1M11.3 11.3l1.1 1.1M12.4 3.6l-1.1 1.1M4.7 11.3l-1.1 1.1"
+        stroke="currentColor"
+        strokeWidth="1.3"
+        strokeLinecap="round"
+      />
+    </Svg>
+  );
+}
+
+export function IconChat() {
+  return (
+    <Svg>
+      <path
+        d="M2.5 3h11v8h-7l-4 3z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.3"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+export function IconFolder() {
+  return (
+    <Svg>
+      <path
+        d="M1.5 3.5h4l1.5 2h7.5v7h-13z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.2"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+export function IconTasks() {
+  return (
+    <Svg>
+      <path
+        d="M2.5 4l1 1 2-2M2.5 9l1 1 2-2M2.5 14l1 1 2-2M8 4.5h6M8 9.5h6M8 14.5h6"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.3"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+export function IconChevronLeft() {
+  return (
+    <Svg>
+      <path
+        d="M10 3 5 8l5 5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+export function IconChevronRight() {
+  return (
+    <Svg>
+      <path
+        d="M6 3l5 5-5 5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+export function IconChevronDown() {
+  return (
+    <Svg>
+      <path
+        d="M3 6l5 5 5-5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+export function IconSplit() {
+  return (
+    <Svg>
+      <rect
+        x="1.5"
+        y="2.5"
+        width="13"
+        height="11"
+        rx="1.5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.2"
+      />
+      <path d="M8 2.5v11" stroke="currentColor" strokeWidth="1.2" />
+    </Svg>
+  );
+}
+
+export function IconSend() {
+  return (
+    <Svg>
+      <path
+        d="M8 13V3M3.5 7.5 8 3l4.5 4.5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+export function IconMore() {
+  return (
+    <Svg>
+      <circle cx="3" cy="8" r="1.2" fill="currentColor" />
+      <circle cx="8" cy="8" r="1.2" fill="currentColor" />
+      <circle cx="13" cy="8" r="1.2" fill="currentColor" />
+    </Svg>
+  );
+}
+
+export function IconTheme() {
+  return (
+    <Svg>
+      <circle cx="8" cy="8" r="5.5" fill="none" stroke="currentColor" strokeWidth="1.3" />
+      <path d="M8 2.5a5.5 5.5 0 0 1 0 11z" fill="currentColor" />
+    </Svg>
+  );
+}
