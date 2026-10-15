@@ -158,12 +158,181 @@ export const snapshotSchema = object(
   ['revision', 'provider', 'projects', 'sessions', 'messages', 'artifacts'],
 );
 export const changeSchema = object(
-  { revision: count, projectId: id, sessionId: id, resync: flag, sessionsChanged: flag },
+  {
+    revision: count,
+    projectId: id,
+    sessionId: id,
+    resync: flag,
+    sessionsChanged: flag,
+    libraryChanged: flag,
+  },
   ['revision', 'resync'],
 );
 const ok = object({ ok: { const: true } }, ['ok']);
 const project = { projectId: id } as const;
 const session = { projectId: id, sessionId: id } as const;
+
+export const cslMetadataSchema = {
+  type: 'object',
+  properties: {
+    title: { type: 'string', minLength: 1, maxLength: 4096 },
+    type: { type: 'string', minLength: 1, maxLength: 200 },
+    DOI: { type: 'string', maxLength: 1024 },
+    URL: { type: 'string', maxLength: 4096 },
+    abstract: { type: 'string', maxLength: 32768 },
+  },
+  required: ['title'],
+  additionalProperties: true,
+} as const;
+const strings = { type: 'array', items: id, maxItems: 100, uniqueItems: true } as const;
+export const librarySourceSchema = object(
+  {
+    id,
+    metadata: cslMetadataSchema,
+    version: id,
+    revision: count,
+    tags: strings,
+    collectionIds: strings,
+    relatedIds: strings,
+    origins: strings,
+    createdAt: text,
+    updatedAt: text,
+    attachmentState: { const: 'unavailable' },
+    analysisState: { const: 'notGenerated' },
+  },
+  [
+    'id',
+    'metadata',
+    'version',
+    'revision',
+    'tags',
+    'collectionIds',
+    'relatedIds',
+    'origins',
+    'createdAt',
+    'updatedAt',
+    'attachmentState',
+    'analysisState',
+  ],
+);
+export const libraryCollectionSchema = object({ id, name: id, parentId: id }, ['id', 'name']);
+export const libraryStatusSchema = object(
+  { id, read: flag, write: flag, send: flag, autoBackup: flag, revision: count },
+  ['id', 'read', 'write', 'send', 'autoBackup', 'revision'],
+);
+const libraryBatchState = { enum: ['queued', 'running', 'completed', 'interrupted'] } as const;
+const libraryError = object({ code: id, message: text }, ['code', 'message']);
+export const libraryBatchSchema = object(
+  {
+    id,
+    state: libraryBatchState,
+    total: count,
+    processed: count,
+    failed: count,
+    origin: id,
+    version: id,
+    createdAt: text,
+    error: libraryError,
+  },
+  ['id', 'state', 'total', 'processed', 'failed', 'origin', 'version', 'createdAt'],
+);
+export const libraryEntrySchema = object(
+  {
+    index: count,
+    state: { enum: ['pending', 'created', 'reused', 'failed'] },
+    sourceId: id,
+    conflicts: array(text),
+    error: libraryError,
+    candidate: { type: 'object', additionalProperties: true },
+  },
+  ['index', 'state', 'conflicts'],
+);
+export const libraryBackupSchema = object(
+  { id, createdAt: text, scope: { const: 'catalog-database' } },
+  ['id', 'createdAt', 'scope'],
+);
+export const libraryIngestSchema = object(
+  {
+    batchId: id,
+    json: { type: 'string', minLength: 1, maxLength: 262144 },
+    version: id,
+    origin: id,
+    collectionIds: strings,
+  },
+  ['batchId', 'json', 'version', 'origin'],
+);
+const libraryPage = { offset: count, limit: page } as const;
+const librarySchemas = {
+  'library.status': { params: object({}, []), result: libraryStatusSchema },
+  'library.grant': {
+    params: object({ read: flag, write: flag, send: flag, autoBackup: flag }, [
+      'read',
+      'write',
+      'send',
+      'autoBackup',
+    ]),
+    result: libraryStatusSchema,
+  },
+  'library.list': {
+    params: object({ ...libraryPage, query: text, collectionId: id, tag: id }, []),
+    result: object({ sources: array(librarySourceSchema), nextOffset: count }, ['sources']),
+  },
+  'library.get': { params: object({ sourceId: id }, ['sourceId']), result: librarySourceSchema },
+  'library.ingest': { params: libraryIngestSchema, result: libraryBatchSchema },
+  'library.batch': {
+    params: object({ ...libraryPage, batchId: id }, ['batchId']),
+    result: object(
+      { batch: libraryBatchSchema, entries: array(libraryEntrySchema), nextOffset: count },
+      ['batch', 'entries'],
+    ),
+  },
+  'library.batches': {
+    params: object(libraryPage, []),
+    result: object({ batches: array(libraryBatchSchema), nextOffset: count }, ['batches']),
+  },
+  'library.resume': { params: object({ batchId: id }, ['batchId']), result: libraryBatchSchema },
+  'library.update': {
+    params: object(
+      {
+        sourceId: id,
+        revision: count,
+        metadata: cslMetadataSchema,
+        tags: strings,
+        collectionIds: strings,
+        relatedIds: strings,
+      },
+      ['sourceId', 'revision', 'metadata', 'tags', 'collectionIds', 'relatedIds'],
+    ),
+    result: librarySourceSchema,
+  },
+  'library.collections': {
+    params: object(libraryPage, []),
+    result: object({ collections: array(libraryCollectionSchema), nextOffset: count }, [
+      'collections',
+    ]),
+  },
+  'library.saveCollection': {
+    params: object({ id, name: id, parentId: id }, ['name']),
+    result: libraryCollectionSchema,
+  },
+  'library.history': {
+    params: object({ ...libraryPage, sourceId: id }, ['sourceId']),
+    result: object({ sources: array(librarySourceSchema), nextOffset: count }, ['sources']),
+  },
+  'library.backup': { params: object({}, []), result: libraryBackupSchema },
+  'library.backups': { params: object({}, []), result: array(libraryBackupSchema) },
+  'library.restore': {
+    params: object({ backupId: id, destination: id }, ['backupId', 'destination']),
+    result: object({ directory: id }, ['directory']),
+  },
+} as const;
+export type LibrarySource = FromSchema<typeof librarySourceSchema>;
+export type CslMetadata = FromSchema<typeof cslMetadataSchema>;
+export type LibraryStatus = FromSchema<typeof libraryStatusSchema>;
+export type LibraryCollection = FromSchema<typeof libraryCollectionSchema>;
+export type LibraryBatch = FromSchema<typeof libraryBatchSchema>;
+export type LibraryEntry = FromSchema<typeof libraryEntrySchema>;
+export type LibraryBackup = FromSchema<typeof libraryBackupSchema>;
 
 export const researchInputSchema = object(
   {
@@ -250,6 +419,7 @@ export type ResearchRequest = FromSchema<typeof researchRequestSchema>;
 export type ResearchAttempt = FromSchema<typeof researchAttemptSchema>;
 
 export const businessSchemas = {
+  ...librarySchemas,
   'research.methods': { params: object({}, []), result: array(researchMethodSchema) },
   'research.method': {
     params: object({ methodId: id, version: id }, ['methodId', 'version']),
@@ -439,6 +609,21 @@ export type WorkbenchSnapshot = FromSchema<typeof snapshotSchema>;
 export type WorkbenchChange = FromSchema<typeof changeSchema>;
 export type BusinessMethod = keyof typeof businessSchemas;
 type Inputs = {
+  'library.status': FromSchema<(typeof librarySchemas)['library.status']['params']>;
+  'library.grant': FromSchema<(typeof librarySchemas)['library.grant']['params']>;
+  'library.list': FromSchema<(typeof librarySchemas)['library.list']['params']>;
+  'library.get': FromSchema<(typeof librarySchemas)['library.get']['params']>;
+  'library.ingest': FromSchema<(typeof librarySchemas)['library.ingest']['params']>;
+  'library.batch': FromSchema<(typeof librarySchemas)['library.batch']['params']>;
+  'library.batches': FromSchema<(typeof librarySchemas)['library.batches']['params']>;
+  'library.resume': FromSchema<(typeof librarySchemas)['library.resume']['params']>;
+  'library.update': FromSchema<(typeof librarySchemas)['library.update']['params']>;
+  'library.collections': FromSchema<(typeof librarySchemas)['library.collections']['params']>;
+  'library.saveCollection': FromSchema<(typeof librarySchemas)['library.saveCollection']['params']>;
+  'library.history': FromSchema<(typeof librarySchemas)['library.history']['params']>;
+  'library.backup': FromSchema<(typeof librarySchemas)['library.backup']['params']>;
+  'library.backups': FromSchema<(typeof librarySchemas)['library.backups']['params']>;
+  'library.restore': FromSchema<(typeof librarySchemas)['library.restore']['params']>;
   'research.methods': FromSchema<(typeof businessSchemas)['research.methods']['params']>;
   'research.method': FromSchema<(typeof businessSchemas)['research.method']['params']>;
   'research.attempts': FromSchema<(typeof businessSchemas)['research.attempts']['params']>;
@@ -476,6 +661,21 @@ type Inputs = {
   'session.resume': FromSchema<(typeof businessSchemas)['session.resume']['params']>;
 };
 type Outputs = {
+  'library.status': FromSchema<(typeof librarySchemas)['library.status']['result']>;
+  'library.grant': FromSchema<(typeof librarySchemas)['library.grant']['result']>;
+  'library.list': FromSchema<(typeof librarySchemas)['library.list']['result']>;
+  'library.get': FromSchema<(typeof librarySchemas)['library.get']['result']>;
+  'library.ingest': FromSchema<(typeof librarySchemas)['library.ingest']['result']>;
+  'library.batch': FromSchema<(typeof librarySchemas)['library.batch']['result']>;
+  'library.batches': FromSchema<(typeof librarySchemas)['library.batches']['result']>;
+  'library.resume': FromSchema<(typeof librarySchemas)['library.resume']['result']>;
+  'library.update': FromSchema<(typeof librarySchemas)['library.update']['result']>;
+  'library.collections': FromSchema<(typeof librarySchemas)['library.collections']['result']>;
+  'library.saveCollection': FromSchema<(typeof librarySchemas)['library.saveCollection']['result']>;
+  'library.history': FromSchema<(typeof librarySchemas)['library.history']['result']>;
+  'library.backup': FromSchema<(typeof librarySchemas)['library.backup']['result']>;
+  'library.backups': FromSchema<(typeof librarySchemas)['library.backups']['result']>;
+  'library.restore': FromSchema<(typeof librarySchemas)['library.restore']['result']>;
   'research.methods': FromSchema<(typeof businessSchemas)['research.methods']['result']>;
   'research.method': FromSchema<(typeof businessSchemas)['research.method']['result']>;
   'research.attempts': FromSchema<(typeof businessSchemas)['research.attempts']['result']>;
@@ -515,6 +715,7 @@ type Outputs = {
 export type BusinessParams<M extends BusinessMethod> = Inputs[M];
 export type BusinessResult<M extends BusinessMethod> = Outputs[M];
 const ajv = new Ajv();
+export const isCslMetadata = ajv.compile<CslMetadata>(cslMetadataSchema);
 export const isResearchMethod = ajv.compile<ResearchMethod>(researchMethodSchema);
 export const isResearchRequest = ajv.compile<ResearchRequest>(researchRequestSchema);
 const validators = new Map(

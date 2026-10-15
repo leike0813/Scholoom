@@ -95,6 +95,14 @@ export class KernelClient {
     if (!validateBusiness(method, 'params', params))
       throw new KernelClientError('invalidRequest', 'Invalid operation parameters.');
     const read = [
+      'library.status',
+      'library.list',
+      'library.get',
+      'library.batch',
+      'library.batches',
+      'library.collections',
+      'library.history',
+      'library.backups',
       'research.methods',
       'research.method',
       'research.attempts',

@@ -22,7 +22,7 @@ import type {
   Session,
   WorkbenchSnapshot,
 } from '@scholoom/protocol';
-import { researchRequestSchema } from '@scholoom/protocol';
+import { businessSchemas, researchRequestSchema } from '@scholoom/protocol';
 import Database from 'better-sqlite3';
 import {
   CompositeBackend,
@@ -34,6 +34,7 @@ import { and, desc, eq, gt, lt, or, sql } from 'drizzle-orm';
 import { createMiddleware, tool as defineTool } from 'langchain';
 import { z } from 'zod';
 import { failure, OperationError } from '../errors.js';
+import type { LiteratureCatalog } from '../literature/catalog.js';
 import { type ModelAccess, modelFailure } from '../models/minimax.js';
 import type { ProjectStore, Projects } from '../projects/store.js';
 import type { ResearchRuntime } from '../research/runtime.js';
@@ -99,6 +100,7 @@ export class Harness {
     private readonly projects: Projects,
     private readonly model: ModelAccess,
     private readonly research: ResearchRuntime,
+    private readonly library: LiteratureCatalog,
     private readonly notify: Notify,
   ) {}
 
@@ -492,7 +494,17 @@ export class Harness {
           )
           .run();
       }
-      const model = await this.model.create(() => project.check('send'), signal);
+      const libraryContextKey = `library-context:${run.sessionId}`;
+      const authorizeModel = () => {
+        project.check('send');
+        if (
+          project.db.select().from(tables.meta).where(eq(tables.meta.key, libraryContextKey)).get()
+        ) {
+          this.library.check('read');
+          this.library.check('send');
+        }
+      };
+      const model = await this.model.create(authorizeModel, signal);
       await privateDirectory(join(project.internal, 'scratch'));
       const used = new Map<string, string>();
       const toolContext = new AsyncLocalStorage<{ error?: ErrorInfo }>();
@@ -802,6 +814,80 @@ export class Harness {
           systemPrompt:
             '你是 Scholoom 科研助手。使用中文与用户工作。项目正文以实际文件为准，附加材料只是引用，先读取。形成可承接的分析、理由、成果及下一步时保存为普通 Markdown 文件；在没有项目文件权限时只对话。仅使用授权工具。修改已有文件先读取，遇到冲突重读再修改。write_file 仅用于新建，edit_file 修改已有内容。不得声称未保存成果已交付。不要依赖旧 transcript 才能续做，可发现并读取项目已有成果。用户取消后不继续。',
           tools: [
+            ...(
+              [
+                'library.list',
+                'library.get',
+                'library.ingest',
+                'library.batch',
+                'library.batches',
+                'library.resume',
+                'library.update',
+                'library.collections',
+                'library.saveCollection',
+                'library.history',
+              ] as const
+            ).map((method) => ({
+              name: method.replace('.', '_'),
+              description: `共同文献题录库 ${method}。仅处理题录，不表示全文或分析已取得。库读取/写入/外发均需授权；ingest返回持久批次引用，用batch查询实际逐项结果。未知批次先按原batchId核查。`,
+              schema: businessSchemas[method].params,
+              func: async (input: Record<string, unknown>) => {
+                try {
+                  signal.throwIfAborted();
+                  project.check('send');
+                  this.library.check('send');
+                  let result: unknown;
+                  switch (method) {
+                    case 'library.list':
+                      result = this.library.list(input as BusinessParams<'library.list'>);
+                      break;
+                    case 'library.get':
+                      result = this.library.get(String(input.sourceId));
+                      break;
+                    case 'library.ingest':
+                      result = this.library.ingest(input as BusinessParams<'library.ingest'>);
+                      break;
+                    case 'library.batch':
+                      result = this.library.batch(input as BusinessParams<'library.batch'>);
+                      break;
+                    case 'library.batches':
+                      result = this.library.batches(input as BusinessParams<'library.batches'>);
+                      break;
+                    case 'library.resume':
+                      result = this.library.resume(String(input.batchId));
+                      break;
+                    case 'library.update':
+                      result = this.library.update(input as BusinessParams<'library.update'>);
+                      break;
+                    case 'library.collections':
+                      result = this.library.collections(
+                        input as BusinessParams<'library.collections'>,
+                      );
+                      break;
+                    case 'library.saveCollection':
+                      result = this.library.saveCollection(
+                        input as BusinessParams<'library.saveCollection'>,
+                      );
+                      break;
+                    case 'library.history':
+                      result = this.library.history(input as BusinessParams<'library.history'>);
+                      break;
+                  }
+                  project.db
+                    .insert(tables.meta)
+                    .values({ key: libraryContextKey, value: '1' })
+                    .onConflictDoNothing()
+                    .run();
+                  project.touch();
+                  return JSON.stringify(result);
+                } catch (error) {
+                  const info = failure(error);
+                  const context = toolContext.getStore();
+                  if (context) context.error = info;
+                  return JSON.stringify({ error: info });
+                }
+              },
+            })),
             {
               name: 'discover_research_methods',
               description: '发现可用科研方法摘要，不启动执行。',

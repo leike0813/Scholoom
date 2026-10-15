@@ -129,6 +129,7 @@ export async function startKernelServer(
     let changeTimer: ReturnType<typeof setTimeout> | undefined;
     let latestRevision = 0;
     let sessionsChanged = false;
+    let libraryChanged = false;
     const flushChange = () => {
       changeTimer = undefined;
       if (!scope || socket.readyState !== 1) return;
@@ -144,12 +145,14 @@ export async function startKernelServer(
             revision: latestRevision,
             resync: true,
             ...(sessionsChanged ? { sessionsChanged: true } : {}),
+            ...(libraryChanged ? { libraryChanged: true } : {}),
             ...(scope.projectId ? { projectId: scope.projectId } : {}),
             ...(scope.sessionId ? { sessionId: scope.sessionId } : {}),
           },
         }),
       );
       sessionsChanged = false;
+      libraryChanged = false;
     };
     const unsubscribe = application?.subscribe((change) => {
       if (!scope || !authenticated.has(socket)) return;
@@ -163,6 +166,7 @@ export async function startKernelServer(
         return;
       latestRevision = change.revision;
       sessionsChanged ||= change.sessionsChanged === true;
+      libraryChanged ||= change.libraryChanged === true;
       changeTimer ??= setTimeout(flushChange, 50);
     });
     socket.on('close', () => {

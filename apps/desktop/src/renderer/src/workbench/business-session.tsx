@@ -10,6 +10,7 @@ import type {
 import { validateBusiness } from '@scholoom/protocol';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { draftKey, readDraft, writeDraft } from './drafts';
+import { LibraryPanel } from './LibraryPanel';
 import { FileEditor, ProjectControls, ProjectNavigator } from './project-ui';
 import { toThreadMessage } from './projection';
 import { SessionList } from './SessionList';
@@ -386,6 +387,7 @@ export function useBusinessSession(
           }}
         />
       ) : null,
+    library: client ? <LibraryPanel client={client} enabled={phase === 'connected'} /> : undefined,
     projectControls: (
       <ProjectControls
         snapshot={snapshot}

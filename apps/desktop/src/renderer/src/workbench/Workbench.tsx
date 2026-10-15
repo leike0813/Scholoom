@@ -203,8 +203,8 @@ export function Workbench({ session }: { session: WorkbenchSession }) {
   }, [agentExpanded, splitGroup]);
 
   const activeSession = session.sessions?.find((item) => item.id === session.activeSessionId);
-  const settings = () => {
-    const tab: TabItem = { id: 'settings', title: '设置', kind: 'settings' };
+  /** 用现有 tab 逻辑打开内容：收起 overlay，不切换会话。 */
+  const openTab = (tab: TabItem) => {
     setAgentExpanded(false);
     setGroups((current) =>
       current.length
@@ -212,7 +212,7 @@ export function Workbench({ session }: { session: WorkbenchSession }) {
             index === 0
               ? {
                   ...group,
-                  tabs: [...group.tabs.filter((item) => item.id !== 'settings'), tab],
+                  tabs: [...group.tabs.filter((item) => item.id !== tab.id), tab],
                   activeId: tab.id,
                 }
               : group,
@@ -220,6 +220,10 @@ export function Workbench({ session }: { session: WorkbenchSession }) {
         : [{ id: 'a', tabs: [tab], activeId: tab.id }],
     );
   };
+  const settings = () => openTab({ id: 'settings', title: '设置', kind: 'settings' });
+  const openLibrary = session.library
+    ? () => openTab({ id: 'library', title: '文献库', kind: 'library' })
+    : undefined;
   const view = (groupIndex: number, mode: 'source' | 'preview' | 'split') =>
     setGroups((current) => {
       const group = current[groupIndex];
@@ -350,6 +354,7 @@ export function Workbench({ session }: { session: WorkbenchSession }) {
           <ActivityRail
             onExpand={() => setLeftCollapsed(false)}
             createSession={session.createSession}
+            openLibrary={openLibrary}
           />
         ) : (
           <ActivityPane
@@ -370,6 +375,7 @@ export function Workbench({ session }: { session: WorkbenchSession }) {
             projectControls={session.projectControls}
             sessionNavigation={session.sessionNavigation}
             openSettings={session.controls ? settings : undefined}
+            openLibrary={openLibrary}
           />
         )}
 
@@ -399,6 +405,7 @@ export function Workbench({ session }: { session: WorkbenchSession }) {
             onSplit={splitGroup}
             renderFile={session.renderFile}
             renderSettings={session.controls}
+            renderLibrary={session.library}
             onView={view}
             contextName={session.executionContext?.project}
             onCreateSession={session.createSession}

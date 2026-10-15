@@ -106,6 +106,17 @@ function planTurn(user: string, tools: Set<string>, toolId: string, reads: numbe
       },
     ],
   });
+  if (user.includes('MODEL_LIBRARY')) {
+    if (!tools.has('library_ingest'))
+      return tool('library_ingest', {
+        batchId: 'model-library-batch',
+        json: JSON.stringify([{ title: 'Agent合成题录', DOI: '10.9876/agent' }]),
+        version: 'published',
+        origin: 'synthetic-model',
+      });
+    if (!tools.has('library_list')) return tool('library_list', { query: 'Agent合成' });
+    return text('题录摄取与查询已处理；附件及分析尚未取得。');
+  }
   if (user.includes('MODEL_RESEARCH_EXECUTION')) {
     // Nested capability turn: run the synthetic material analysis itself.
     if (!reads) return tool('read_file', { file_path: '/input.md' });

@@ -81,6 +81,7 @@ export interface TabGroupsProps {
   onSplit: (groupIndex: number) => void;
   onView?: ((groupIndex: number, mode: 'source' | 'preview' | 'split') => void) | undefined;
   renderSettings?: ReactNode;
+  renderLibrary?: ReactNode | undefined;
   renderFile?: ((target: FileTarget, mode?: 'source' | 'preview') => ReactNode) | undefined;
   /** 空态带入的当前工作区名；缺省时不显示。 */
   contextName?: string | undefined;
@@ -96,6 +97,7 @@ export function TabGroups({
   renderFile,
   onView,
   renderSettings,
+  renderLibrary,
   contextName,
   onCreateSession,
   onOpenSettings,
@@ -197,6 +199,8 @@ export function TabGroups({
             <div className="tab-content">
               {active?.target && renderFile ? (
                 renderFile(active.target, active.kind === 'preview' ? 'preview' : 'source')
+              ) : active?.kind === 'library' && renderLibrary ? (
+                renderLibrary
               ) : active?.kind === 'settings' ? (
                 renderSettings
               ) : active ? (

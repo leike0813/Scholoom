@@ -4,7 +4,7 @@
 
 | 包 | 当前职责 | 后续实现边界 |
 | --- | --- | --- |
-| `apps/kernel` | 独立内核、项目与安全文件、持久单 Agent、MiniMax 模型与凭据、CLI | 科研能力、受管计算和宿主监督 |
+| `apps/kernel` | 独立内核、项目与安全文件、持久单 Agent、科研方法、共同题录库、MiniMax 模型与凭据、CLI | 附件与阅读分析、受管计算和宿主监督 |
 | `apps/desktop` | Electron main、sandbox preload、React renderer | 人类工作台，经共同客户端调用内核 |
 | `apps/zotero-host` | 独立 Electron main 与隐藏 Chromium 页面 | 固定 Zotero 10 基线的通用兼容层与选定插件适配 |
 | `packages/protocol` | JSON Schema 与推导的 DTO、协议版本 | 客户端和内核共同使用的调用及事件契约 |
@@ -50,9 +50,21 @@ Vite 启动时发现或启动内核；浏览器页面初次只查询，用户重
 
 ## 共享工作台与日常交互
 
-日常反馈和最终产品都在 `apps/desktop/src/renderer/src/workbench/Workbench.tsx` 上演进，共用 `styles.css`（语义 token + 浅色/深色双主题，默认跟随系统，左区底部可手动切换）。工作台为三区骨架：左区（操作菜单、会话列表、内核状态）、中间区（tab 组 + Agent 面板）、右区（文件树、材料、任务）；左右区可折叠为图标轨（`Ctrl/Cmd+B`、`Ctrl/Cmd+Alt+B`）。Agent 面板固定在中间区：折叠态 dock 在底部（tool 消息固定顶部、最新 agent 消息截头留尾、精简 composer），点击展开为占满中间区的 overlay（完整消息流与 composer，Esc 收起）。tab 组支持激活、关闭与"向右拆分"按钮，文件与设置 tab 已接入真实内容，文献库与阅读器仍为占位。外壳组件在 `workbench/shell/`，布局与视觉契约见 `docs/ui-design/`。`main.tsx` 只选择 session 来源。`workbench/session.ts` 定义界面输入：连接状态、材料及选择、可选的会话/文件树/任务数据、回调和 assistant-ui ExternalStoreAdapter；消息由来源提供，草稿由 assistant-ui Composer 管理，发送、消息呈现和重置都经过工作台的同一路径。真实来源经 `packages/client` 获取业务事实；领域 DTO 仍以 `packages/protocol` 的 schema 为准。
+日常反馈和最终产品都在 `apps/desktop/src/renderer/src/workbench/Workbench.tsx` 上演进，共用 `styles.css`（语义 token + 浅色/深色双主题，默认跟随系统，左区底部可手动切换）。工作台为三区骨架：左区（操作菜单、会话列表、内核状态）、中间区（tab 组 + Agent 面板）、右区（文件树、材料、任务）；左右区可折叠为图标轨（`Ctrl/Cmd+B`、`Ctrl/Cmd+Alt+B`）。Agent 面板固定在中间区：折叠态 dock 在底部（tool 消息固定顶部、最新 agent 消息截头留尾、精简 composer），点击展开为占满中间区的 overlay（完整消息流与 composer，Esc 收起）。tab 组支持激活、关闭与"向右拆分"按钮，文件、设置和题录库 tab 已接入真实内容，阅读器仍为占位。外壳组件在 `workbench/shell/`，布局与视觉契约见 `docs/ui-design/`。`main.tsx` 只选择 session 来源。`workbench/session.ts` 定义界面输入：连接状态、材料及选择、可选的会话/文件树/任务数据、回调和 assistant-ui ExternalStoreAdapter；消息由来源提供，草稿由 assistant-ui Composer 管理，发送、消息呈现和重置都经过工作台的同一路径。真实来源经 `packages/client` 获取业务事实；领域 DTO 仍以 `packages/protocol` 的 schema 为准。
 
 真实首页默认空 tab；连接不等于模型及授权就绪。设置 tab 集中模型、授权与备份，左区项目控件支持新建、打开、切换、显示名修改与移出最近列表（不删目录、不停止执行）；会话、文件编辑、发送、取消和继续复用共同客户端。开发态显式打开 `?scenario=ui-foundation` 才加载隔离样例；它仍只保留最新一轮，使用固定材料和回复，不读文件、不调模型、不持久化；生产构建忽略样例参数。
+
+## 本地文献题录库
+
+工作台的“文献库”打开共同 library tab，题录库保存在配置的 `library/library.sqlite`，独立于研究项目。读取默认开启，写入与将库题录发送到模型分别授权；Agent 库工具还受当前会话外发授权约束，不提供修改授权、恢复或任意本机文件路径工具。库内写入采用 Drizzle 管理的独立表与迁移。
+
+首个摄取格式为 CSL JSON（可粘贴或选择本机 JSON 文件），一次不超过256KiB/1000条，单条题录不超过16KiB且有非空 title，其余扩展字段保留。手动建项也走同一摄取入口。批次受理返回稳定身份，逐项保存创建、复用、冲突或失败；合法项可先查用。相同 batchId 不同输入拒绝，内核中断保留记录，显式继续只处理未执行项，不重放成功项；中断原因可查询。
+
+规范化 DOI 与明确版本标签同时相同才自动复用条目，`unspecified` 和无 DOI 条目不自动合并。填补空字段时保留已有冲突及候选，预印本与正式版分别保存并可显式关联。题录更正核对修订号；集合支持父级与多重归属，标签和版本关系均沿同一接口保存。库查找、集合、历史及批次分页默认25、最多100条，题录列表还受512KiB响应预算约束；库变化只使相关投影重读。
+
+题录库提供手动和默认五分钟的可关闭自动备份，保留最近十份，当前范围仅为题录数据库。恢复要求新的独立配置目录，可在副本核查来源和历史；副本使用新库身份、关闭写入/外发且不自动接续批次，当前库和备份后的成果保留。恢复配置可通过已有 `--data-dir` 入口独立检查。
+
+共同客户端入口为 `library.status/grant/list/get/ingest/batch/batches/resume/update/collections/saveCollection/history/backup/backups/restore`；Agent 使用对应的 `library_*` 题录/批次工具。题录可用不表示附件取得或科研分析完成；本地附件摄取、托管/外链及重定位接续 P4a，PDF阅读和分析沿 P4b/P4c。
 
 ## 基本单 Agent harness
 
@@ -110,7 +122,7 @@ Agent 使用 Orca browser skill，先列出当前项目的标签，核对 URL �
 
 如果 CLI 无法新建本地标签，用户可手动打开上述链接，再列出标签并继续；桌面不在线或页面不可读时记录实际错误。已发送的结构化反馈可读取，独立轮询未发送注释尚未验证。Windows 路径实测见[验证记录](../.scratch/scholoom-foundations/research/orca-ui-windows-validation.md)。服务已有时先确认项目、端口和可达性，避免重复启动；仅停止本轮自行拥有的进程。
 
-新增 UI 行为直接扩展 Workbench，样例只注入状态与回调，验收扩展 `tests/ui/workbench.spec.ts`。材料、消息和事件处理各保留一个来源；跨宿主差异留在薄入口或适配层。文献库、阅读器与任务等 tab 内容类型按后续需求逐项接入。
+新增 UI 行为直接扩展 Workbench，样例只注入状态与回调，验收扩展 `tests/ui/workbench.spec.ts`。材料、消息和事件处理各保留一个来源；跨宿主差异留在薄入口或适配层。题录库沿共同模块继续接入附件，阅读器与任务等 tab 内容按后续需求逐项接入。
 
 模块独立开发时，可在既有 UI harness 中增加专用可视化夹具，接入真实被测模块和交互组件，并明确输入及依赖替身；夹具与整合验收的边界见 [deep module 与独立交付](../.scratch/scholoom-foundations/issues/14-agent-development-discipline.md#deep-module-与独立交付)。
 

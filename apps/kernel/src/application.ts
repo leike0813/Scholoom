@@ -7,6 +7,7 @@ import type {
 } from '@scholoom/protocol';
 import { CredentialStore } from './credentials/store.js';
 import { Harness } from './harness/runtime.js';
+import { LiteratureCatalog } from './literature/catalog.js';
 import { ModelAccess } from './models/minimax.js';
 import { Projects } from './projects/store.js';
 import { ResearchRuntime } from './research/runtime.js';
@@ -16,6 +17,7 @@ export class KernelApplication {
   readonly credentials: CredentialStore;
   readonly harness: Harness;
   readonly research: ResearchRuntime;
+  readonly library: LiteratureCatalog;
   private revision = 0;
   private listeners = new Set<(change: WorkbenchChange) => void>();
 
@@ -26,6 +28,9 @@ export class KernelApplication {
     process.env.LANGSMITH_TRACING = 'false';
     process.env.LANGCHAIN_TRACING_V2 = 'false';
     this.projects = new Projects(directory);
+    this.library = new LiteratureCatalog(directory, () =>
+      this.changed(undefined, undefined, false, true),
+    );
     this.credentials = new CredentialStore(join(directory, 'credentials'), options.environment);
     this.research = new ResearchRuntime((projectId, sessionId) =>
       this.changed(projectId, sessionId),
@@ -34,12 +39,14 @@ export class KernelApplication {
       this.projects,
       new ModelAccess(this.credentials, options.modelEndpoint),
       this.research,
+      this.library,
       (projectId, sessionId, sessionsChanged) =>
         this.changed(projectId, sessionId, sessionsChanged),
     );
   }
 
   async initialize(): Promise<void> {
+    await this.library.initialize();
     await this.projects.initialize();
     await this.harness.initialize();
   }
@@ -49,11 +56,17 @@ export class KernelApplication {
       this.listeners.delete(listener);
     };
   }
-  private changed(projectId?: string, sessionId?: string, sessionsChanged = false): void {
+  private changed(
+    projectId?: string,
+    sessionId?: string,
+    sessionsChanged = false,
+    libraryChanged = false,
+  ): void {
     const change: WorkbenchChange = { revision: ++this.revision, resync: true };
     if (projectId) change.projectId = projectId;
     if (sessionId) change.sessionId = sessionId;
     if (sessionsChanged) change.sessionsChanged = true;
+    if (libraryChanged) change.libraryChanged = true;
     for (const listener of this.listeners) listener(change);
   }
 
@@ -78,6 +91,38 @@ export class KernelApplication {
   async call(method: BusinessMethod, input: unknown): Promise<unknown> {
     // Dispatch after protocol validation; each branch consumes its schema's inferred type.
     switch (method) {
+      case 'library.status':
+        return this.library.status();
+      case 'library.grant':
+        return this.library.grant(input as BusinessParams<'library.grant'>);
+      case 'library.list':
+        return this.library.list(input as BusinessParams<'library.list'>);
+      case 'library.get':
+        return this.library.get((input as BusinessParams<'library.get'>).sourceId);
+      case 'library.ingest':
+        return this.library.ingest(input as BusinessParams<'library.ingest'>);
+      case 'library.batch':
+        return this.library.batch(input as BusinessParams<'library.batch'>);
+      case 'library.batches':
+        return this.library.batches(input as BusinessParams<'library.batches'>);
+      case 'library.resume':
+        return this.library.resume((input as BusinessParams<'library.resume'>).batchId);
+      case 'library.update':
+        return this.library.update(input as BusinessParams<'library.update'>);
+      case 'library.collections':
+        return this.library.collections(input as BusinessParams<'library.collections'>);
+      case 'library.saveCollection':
+        return this.library.saveCollection(input as BusinessParams<'library.saveCollection'>);
+      case 'library.history':
+        return this.library.history(input as BusinessParams<'library.history'>);
+      case 'library.backup':
+        return this.library.backup();
+      case 'library.backups':
+        return this.library.backups();
+      case 'library.restore': {
+        const p = input as BusinessParams<'library.restore'>;
+        return this.library.restore(p.backupId, p.destination);
+      }
       case 'research.methods':
         return this.research.content.discover();
       case 'research.method': {
@@ -241,6 +286,7 @@ export class KernelApplication {
 
   async close(): Promise<void> {
     await this.harness.close();
+    await this.library.close();
     await this.projects.close();
   }
 }

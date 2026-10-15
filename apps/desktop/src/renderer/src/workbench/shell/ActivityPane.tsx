@@ -158,6 +158,7 @@ export interface ActivityPaneProps {
   sessionNavigation?: ReactNode;
   projectControls?: ReactNode;
   openSettings?: (() => void) | undefined;
+  openLibrary?: (() => void) | undefined;
   status: string;
   connection?: WorkbenchConnection | undefined;
   sessions: readonly SessionSummary[];
@@ -181,6 +182,7 @@ export function ActivityPane({
   onCollapse,
   projectControls,
   openSettings,
+  openLibrary,
   sessionNavigation,
 }: ActivityPaneProps) {
   const kernelMessage =
@@ -213,7 +215,7 @@ export function ActivityPane({
           <IconPlus />
           新建会话
         </button>
-        <button type="button" className="menu__item" disabled>
+        <button type="button" className="menu__item" onClick={openLibrary} disabled={!openLibrary}>
           <IconLibrary />
           文献库
         </button>
@@ -290,9 +292,11 @@ export function ActivityPane({
 export function ActivityRail({
   onExpand,
   createSession,
+  openLibrary,
 }: {
   onExpand: () => void;
   createSession?: (() => void) | undefined;
+  openLibrary?: (() => void) | undefined;
 }) {
   return (
     <aside className="rail rail--left" aria-label="导航（已折叠）">
@@ -315,7 +319,14 @@ export function ActivityRail({
       >
         <IconPlus />
       </button>
-      <button type="button" className="icon-btn" title="文献库" aria-label="文献库" disabled>
+      <button
+        type="button"
+        className="icon-btn"
+        title="文献库"
+        aria-label="文献库"
+        onClick={openLibrary}
+        disabled={!openLibrary}
+      >
         <IconLibrary />
       </button>
       <button

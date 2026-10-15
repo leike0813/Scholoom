@@ -191,6 +191,7 @@ for (const scenario of [
 ]) {
   test(`sample reply captures ${scenario.name}`, async ({ uiPage }) => {
     await uiPage.goto(sampleUrl);
+    await uiPage.getByRole('tab', { name: '材料', exact: true }).click();
     for (const material of ['研究计划.md', '示例论文.pdf']) {
       const checkbox = uiPage.getByRole('checkbox', { name: material });
       const shouldBeChecked = scenario.selected.includes(material);
@@ -235,6 +236,7 @@ test('sample keeps only the latest exchange', async ({ uiPage }) => {
 
 test('reset restores the sample and refresh starts from its initial state', async ({ uiPage }) => {
   await uiPage.goto(sampleUrl);
+  await uiPage.getByRole('tab', { name: '材料', exact: true }).click();
   const plan = uiPage.getByRole('checkbox', { name: '研究计划.md' });
   const paper = uiPage.getByRole('checkbox', { name: '示例论文.pdf' });
   await plan.uncheck();
@@ -255,6 +257,7 @@ test('reset restores the sample and refresh starts from its initial state', asyn
   await uiPage.getByRole('textbox', { name: '研究指令' }).fill('刷新前的草稿');
   await uiPage.reload();
 
+  await uiPage.getByRole('tab', { name: '材料', exact: true }).click();
   await expect(plan).toBeChecked();
   await expect(paper).not.toBeChecked();
   await expect(uiPage.getByRole('textbox', { name: '研究指令' })).toHaveValue('');
@@ -323,6 +326,7 @@ test('collapsed dock previews the latest sample exchange', async ({ uiPage }) =>
   await uiPage.getByRole('button', { name: '发送指令' }).click();
   await expect(dock).toContainText('研究计划.md');
 
+  await uiPage.getByRole('tab', { name: '材料', exact: true }).click();
   await uiPage.getByRole('checkbox', { name: '研究计划.md' }).uncheck();
   await uiPage.getByRole('checkbox', { name: '示例论文.pdf' }).uncheck();
   await instruction.fill('第二轮');

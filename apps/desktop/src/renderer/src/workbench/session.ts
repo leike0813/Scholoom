@@ -88,6 +88,8 @@ export interface WorkbenchSession {
   fileNavigator?: ReactNode;
   fileTarget?: FileTarget;
   renderFile?: (target: FileTarget, mode?: 'source' | 'preview') => ReactNode;
+  /** 共同文献库 tab 内容；缺省时该 tab 呈现占位。 */
+  library?: ReactNode;
   createSession?: () => void;
   cancel?: (() => void) | undefined;
   resume?: (() => void) | undefined;
