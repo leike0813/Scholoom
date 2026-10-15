@@ -2,8 +2,10 @@ import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { createServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import {
+  type BusinessParams,
   type ErrorInfo,
   isAuthentication,
+  isBusinessMethod,
   isJsonRpcNotification,
   isJsonRpcRequest,
   isJsonRpcResponse,
@@ -12,12 +14,16 @@ import {
   type KernelStatus,
   limits,
   protocolVersion,
+  validateBusiness,
 } from '@scholoom/protocol';
 import { type WebSocket, WebSocketServer } from 'ws';
+import type { KernelApplication } from './application.js';
+import { failure } from './errors.js';
 
 export async function startKernelServer(
   initialStatus: KernelStatus,
   onStopping: () => Promise<void>,
+  application?: KernelApplication,
 ) {
   let status = initialStatus;
   const token = randomBytes(32).toString('hex');
@@ -119,8 +125,40 @@ export async function startKernelServer(
       socket.send(JSON.stringify({ jsonrpc: '2.0', id: request.id, result }), callback);
     };
     socket.on('error', () => {});
+    let scope: BusinessParams<'workbench.watch'> | undefined;
+    let changeTimer: ReturnType<typeof setTimeout> | undefined;
+    let latestRevision = 0;
+    const flushChange = () => {
+      changeTimer = undefined;
+      if (!scope || socket.readyState !== 1) return;
+      if (socket.bufferedAmount > limits.frameBytes) {
+        changeTimer = setTimeout(flushChange, 100);
+        return;
+      }
+      socket.send(
+        JSON.stringify({
+          jsonrpc: '2.0',
+          method: 'workbench.changed',
+          params: {
+            revision: latestRevision,
+            resync: true,
+            ...(scope.projectId ? { projectId: scope.projectId } : {}),
+            ...(scope.sessionId ? { sessionId: scope.sessionId } : {}),
+          },
+        }),
+      );
+    };
+    const unsubscribe = application?.subscribe((change) => {
+      if (!scope || !authenticated.has(socket)) return;
+      if (scope.projectId && change.projectId && scope.projectId !== change.projectId) return;
+      if (scope.sessionId && change.sessionId && scope.sessionId !== change.sessionId) return;
+      latestRevision = change.revision;
+      changeTimer ??= setTimeout(flushChange, 50);
+    });
     socket.on('close', () => {
       clearTimeout(timeout);
+      clearTimeout(changeTimer);
+      unsubscribe?.();
       authenticated.delete(socket);
     });
     socket.on('message', (bytes, binary) => {
@@ -187,6 +225,31 @@ export async function startKernelServer(
             });
           });
         }
+      } else if (application && isBusinessMethod(message.method)) {
+        const method = message.method;
+        if (status.state === 'stopping') {
+          error(message.id, -32004, 'shuttingDown', 'Kernel is stopping.');
+          return;
+        }
+        if (!validateBusiness(method, 'params', message.params)) {
+          error(message.id, -32602, 'invalidRequest', 'Invalid operation parameters.');
+          return;
+        }
+        if (method === 'workbench.watch')
+          scope = message.params as BusinessParams<'workbench.watch'>;
+        void application
+          .call(method, message.params)
+          .then((result) => {
+            if (!validateBusiness(method, 'result', result)) {
+              error(message.id, -32603, 'unavailable', 'Operation result could not be validated.');
+              return;
+            }
+            reply(message, result);
+          })
+          .catch((reason) => {
+            const info = failure(reason);
+            error(message.id, -32010, info.code, info.message);
+          });
       } else {
         error(message.id, -32601, 'invalidRequest', 'Unknown method.');
       }

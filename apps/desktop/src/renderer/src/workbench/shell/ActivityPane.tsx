@@ -64,6 +64,7 @@ export interface ActivityPaneProps {
   sessions: readonly SessionSummary[];
   activeSessionId?: string | undefined;
   selectSession?: ((id: string) => void) | undefined;
+  createSession?: (() => void) | undefined;
   theme: ThemeMode;
   onCycleTheme: () => void;
   onCollapse: () => void;
@@ -75,6 +76,7 @@ export function ActivityPane({
   sessions,
   activeSessionId,
   selectSession,
+  createSession,
   theme,
   onCycleTheme,
   onCollapse,
@@ -98,7 +100,12 @@ export function ActivityPane({
       </div>
 
       <nav className="menu" aria-label="常用操作">
-        <button type="button" className="menu__item">
+        <button
+          type="button"
+          className="menu__item"
+          onClick={createSession}
+          disabled={!createSession}
+        >
           <IconPlus />
           新建会话
         </button>
@@ -124,6 +131,7 @@ export function ActivityPane({
               <button
                 type="button"
                 className={`session${item.id === activeSessionId ? ' session--active' : ''}`}
+                aria-pressed={item.id === activeSessionId}
                 onClick={() => selectSession?.(item.id)}
               >
                 <StatusMark session={item} />

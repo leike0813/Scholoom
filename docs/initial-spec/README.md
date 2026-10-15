@@ -4,6 +4,8 @@
 
 建议实施顺序、阶段依赖及 Figma 并行安排见[实施路线图](../implementation-roadmap.md)。
 
+项目普通文本文件保护、MiniMax 模型接入及单 Agent 会话正在由 [基本 harness 变更](../../openspec/changes/establish-basic-agent-harness/proposal.md)细化；实施范围内以该变更的 specs 和实际 delivery 为准。其余库、科研方法、受管计算与协作要求继续作为后续初设，不由本变更一并声明交付。
+
 本规格书将已确认的产品与设计决定整理为可观察要求和代表性场景，覆盖首阶段完整科研路径。它是一份按能力分章的初设，不表示功能已经实现，也不替代当前 OpenSpec 规格、实施调查或交付证据。
 
 ## Purpose

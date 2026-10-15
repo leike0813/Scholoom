@@ -16,10 +16,14 @@
   },
   "dependencies": {
     "@assistant-ui/react": "0.15.27",
-    "react": "19.3.0",
-    "react-dom": "19.3.0",
+    "@codemirror/commands": "6.10.3",
+    "@codemirror/lang-markdown": "6.5.2",
+    "@codemirror/state": "6.7.6",
+    "@codemirror/view": "6.43.14",
     "@scholoom/client": "workspace:*",
+    "@scholoom/kernel": "workspace:*",
     "@scholoom/protocol": "workspace:*",
-    "@scholoom/kernel": "workspace:*"
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
   }
 }

@@ -14,7 +14,7 @@ import {
 } from 'vite';
 
 function kernelBootstrap(): Plugin {
-  const runtime = resolve(process.env.SCHOOLOOM_DATA_DIR ?? defaultDataDirectory, 'runtime');
+  const runtime = resolve(process.env.SCHOOLOOM_DATA_DIR ?? defaultDataDirectory);
   let configuration: ResolvedConfig | undefined;
   const isPrivateRuntime = async (filename: string): Promise<boolean> => {
     try {
@@ -44,6 +44,7 @@ function kernelBootstrap(): Plugin {
         '*.{crt,pem}',
         '**/.git/**',
         '**/.scholoom-dev/**',
+        '**/.scholoom/**',
         '**/runtime/endpoint*',
         '**/runtime/lifecycle.sqlite*',
         '**/runtime/kernel.log',

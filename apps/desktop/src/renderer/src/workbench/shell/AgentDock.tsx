@@ -1,6 +1,6 @@
 import type { ThreadMessageLike } from '@assistant-ui/react';
 import { ComposerPrimitive } from '@assistant-ui/react';
-import { IconSend } from './icons';
+import { InstructionInput, InstructionSend } from './InstructionComposer';
 
 interface DockPreview {
   toolText: string | undefined;
@@ -49,10 +49,12 @@ export interface AgentDockProps {
   messages: readonly ThreadMessageLike[];
   reset?: (() => void) | undefined;
   onExpand: () => void;
+  cancel?: (() => void) | undefined;
+  resume?: (() => void) | undefined;
 }
 
 /** 折叠态 Agent 面板：tool 消息固定顶部，agent 消息截头留尾，右侧精简 composer。 */
-export function AgentDock({ messages, reset, onExpand }: AgentDockProps) {
+export function AgentDock({ messages, reset, onExpand, cancel, resume }: AgentDockProps) {
   const preview = readDockPreview(messages);
 
   return (
@@ -85,7 +87,7 @@ export function AgentDock({ messages, reset, onExpand }: AgentDockProps) {
         ) : null}
       </button>
       <ComposerPrimitive.Root className="dock-composer">
-        <ComposerPrimitive.Input
+        <InstructionInput
           className="composer-input"
           placeholder="输入研究指令…"
           aria-label="研究指令"
@@ -100,9 +102,17 @@ export function AgentDock({ messages, reset, onExpand }: AgentDockProps) {
             </button>
           ) : null}
           <span className="spacer" />
-          <ComposerPrimitive.Send className="send-btn" aria-label="发送指令" title="发送指令">
-            <IconSend />
-          </ComposerPrimitive.Send>
+          {cancel ? (
+            <button type="button" onClick={cancel}>
+              取消执行
+            </button>
+          ) : null}
+          {resume ? (
+            <button type="button" onClick={resume}>
+              继续执行
+            </button>
+          ) : null}
+          <InstructionSend />
         </div>
       </ComposerPrimitive.Root>
     </div>

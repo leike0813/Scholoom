@@ -46,19 +46,19 @@
 
 ## 2. 从现有基础继续
 
-截至起草日的仓库静态基线如下；本轮没有重新运行应用或测试。
+当前入口与交付依据如下；具体检查结果集中在对应变更的 delivery，本文不复制任务进度。
 
 | 已有基础 | 可以复用 | 尚不能据此认定可用 |
 | --- | --- | --- |
-| 三应用入口和 pnpm workspace | 独立 Node CLI、桌面与兼容宿主启动结构、构建与目录包配置 | 驻留内核、插件兼容、独立 Node 产品分发 |
-| 共享 React／assistant-ui 工作台 | 浏览器与 Electron 组件、session 接口、材料选择和 Composer | 真实会话、文件读取、模型调用、业务持久化 |
-| `packages/protocol` 与 `packages/client` | Schema／类型事实源位置、连接配置接口 | 真实 WebSocket、认证、业务 RPC、订阅及重连 |
-| smoke 与双宿主 UI 测试 | 现有 fixture、用户入口和失败 trace 组织 | 真实业务 e2e、数据保护、科研质量和三平台成品验收 |
+| 三应用入口和 pnpm workspace | 独立驻留内核、CLI、认证与生命周期、桌面及兼容宿主结构 | 插件兼容、独立 Node 产品分发 |
+| 共享 React／assistant-ui 工作台 | 同一组件承接真实会话、项目文件、MiniMax 与执行控制 | 科研方法、文献阅读与完整科研业务 |
+| `packages/protocol` 与 `packages/client` | Schema／类型事实源、真实 WebSocket、业务 RPC、范围订阅与重连 | 后续领域接口 |
+| smoke、内核与双宿主 UI 测试 | 生命周期、文件保护与 Agent 用户路径的实际入口 | 完整科研质量和三平台成品验收 |
 | 宿主及预览调查原型 | 已验证输入、兼容问题、来源代码和行为参照 | 可以直接搬入生产的完整子系统 |
 
-正式规格目前为 `development-foundation` 和 `ui-workbench-foundation`；实施前重新核对活动变更。既有样例“只显示最新一轮”的范围仍限于样例，不能限制真实会话历史。
+正式规格包含工程基础、共同内核生命周期及工作台基础／外壳。项目文件、模型与单 Agent 的当前实施契约集中在 [establish-basic-agent-harness](../openspec/changes/establish-basic-agent-harness/proposal.md)，实际结果以其交付记录为准。样例“只显示最新一轮”的范围仍限于样例，真实会话采用持久分页历史。
 
-首个变更沿已确认的 [#23 内核入口与生命周期](../.scratch/scholoom-foundations/issues/23-kernel-entry-and-lifecycle.md#answer)。不重新初始化工程，也不先扩建一个与真实业务无关的演示系统。
+共同内核入口沿已确认的 [#23](../.scratch/scholoom-foundations/issues/23-kernel-entry-and-lifecycle.md#answer) 已交付。本轮按用户确认，将 P2 的必需文件保护与 P3a–P3c 合为一个单 Agent 闭环，先接 MiniMax M Plan 中国区；P3d 方法／能力调用仍为后续变更。未接入的库管理、受管计算和生态功能不因基本 harness 可用而视为已完成。
 
 ## 3. 总体顺序与依赖
 

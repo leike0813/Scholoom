@@ -4,11 +4,11 @@
 
 | 包 | 当前职责 | 后续实现边界 |
 | --- | --- | --- |
-| `apps/kernel` | 独立 Node 内核、CLI、发现与单实例协调、本机认证服务 | 数据权威、任务运行和宿主监督 |
+| `apps/kernel` | 独立内核、项目与安全文件、持久单 Agent、MiniMax 模型与凭据、CLI | 科研能力、受管计算和宿主监督 |
 | `apps/desktop` | Electron main、sandbox preload、React renderer | 人类工作台，经共同客户端调用内核 |
 | `apps/zotero-host` | 独立 Electron main 与隐藏 Chromium 页面 | 固定 Zotero 10 基线的通用兼容层与选定插件适配 |
 | `packages/protocol` | JSON Schema 与推导的 DTO、协议版本 | 客户端和内核共同使用的调用及事件契约 |
-| `packages/client` | 共同 WebSocket、认证、请求关联、状态及有界重连 | 业务调用、订阅与范围重同步 |
+| `packages/client` | 共同 WebSocket、认证、类型化业务调用、范围订阅及重连 | 后续领域能力 |
 
 共享包与内核构建为 ESM；Electron main/preload 构建为 CJS。根 `pnpm build` 按工作区依赖顺序构建。`pnpm typecheck` 先生成共享包声明，确保刚安装的工作区也能解析共享接口。
 
@@ -16,7 +16,7 @@ Electron 工作台和 CLI 共用独立 Node 内核，浏览器开发入口经同
 
 协议 schema 是 DTO 的事实源，类型从 schema 推导；客户端和内核使用 Ajv 校验消息、认证、状态及引导结果。连接状态不代表研究指令已经可执行。
 
-后续执行与扩展接线沿 [#07](../.scratch/scholoom-foundations/issues/07-agent-runtime-boundaries.md#answer)：内置 LangGraph harness、插件受管 MCP，以及另行定范围的候选对外 MCP 服务。当前骨架尚未实现这些能力；Paseo 仅作为设计与具体实现的参考，不引入其 daemon／provider 体系。
+执行沿 [#07](../.scratch/scholoom-foundations/issues/07-agent-runtime-boundaries.md#answer) 的 Deep Agents／LangChain／LangGraph 路线。当前支持单 Agent 材料任务；插件 MCP、科研方法／能力、受管 shell 和多 Agent 尚未接入。
 
 ## 本地工作
 
@@ -42,7 +42,7 @@ Electron 通过窄 preload 桥调用独立 Node CLI。开发环境使用 PATH �
 
 Vite 启动时发现或启动内核；浏览器页面初次只查询，用户重试才允许重新启动。引导只接受本机同源请求，运行资料不写入 URL 或构建产物；静态文件与模块入口拒绝读取运行凭据。意外断线会有界重连并重新查询状态，认证或协议错误直接停止尝试。
 
-工作台菜单“停止内核”会说明所有客户端受影响并要求确认。受理或连接关闭不代表退出，界面和 CLI 核对实际状态后才显示停止；不能确认时显示结果未知并提供查询。收到明确停机后客户端不会自动重启，用户可重试连接。停机、断线和重试保留当前页面中的指令草稿；整页刷新不提供草稿持久化。
+工作台菜单“停止内核”会说明所有客户端受影响并要求确认。受理或连接关闭不代表退出，界面和 CLI 核对实际状态后才显示停止；不能确认时显示结果未知并提供查询。收到明确停机后客户端不会自动重启，用户可重试连接。真实来源的指令、材料选择与未保存文件草稿按配置／项目／会话或文件保存在本地，可跨停机、断线及刷新恢复；本地存储不可用时退回内存。
 
 `pnpm dev:host` 启动隐藏宿主页面，供后续内部调试。宿主内部 DOM 用于兼容适配，不作为产品工作台。当前没有加载 Zotero 应用或插件。
 
@@ -52,7 +52,39 @@ Vite 启动时发现或启动内核；浏览器页面初次只查询，用户重
 
 日常反馈和最终产品都在 `apps/desktop/src/renderer/src/workbench/Workbench.tsx` 上演进，共用 `styles.css`（语义 token + 浅色/深色双主题，默认跟随系统，左区底部可手动切换）。工作台为三区骨架：左区（操作菜单、会话列表、内核状态）、中间区（tab 组 + Agent 面板）、右区（文件树、材料、任务）；左右区可折叠为图标轨（`Ctrl/Cmd+B`、`Ctrl/Cmd+Alt+B`）。Agent 面板固定在中间区：折叠态 dock 在底部（tool 消息固定顶部、最新 agent 消息截头留尾、精简 composer），点击展开为占满中间区的 overlay（完整消息流与 composer，Esc 收起）。tab 组支持激活、关闭与"向右拆分"按钮，内容类型（文献库/阅读器/编辑器/交互预览）暂为占位。外壳组件在 `workbench/shell/`，布局与视觉契约见 `docs/ui-design/`。`main.tsx` 只选择 session 来源。`workbench/session.ts` 定义界面输入：连接状态、材料及选择、可选的会话/文件树/任务数据、回调和 assistant-ui ExternalStoreAdapter；消息由来源提供，草稿由 assistant-ui Composer 管理，发送、消息呈现和重置都经过工作台的同一路径。接入真实内核时，来源经 `packages/client` 获取业务事实；领域 DTO 仍以 `packages/protocol` 的 schema 为准。
 
-默认浏览器与 Electron 首页显示真实内核来源的工作台；材料和消息为空，可以编辑草稿，发送禁用。连接状态、实例身份、重试及停机来自共同客户端与宿主查询。开发态显式打开 `?scenario=ui-foundation` 才加载 `scenarios/ui-foundation.tsx` 的样例来源。它提供两份虚拟材料和固定回复，仅保留最新一轮；回复记录发送时的材料选择，重置或刷新恢复初始状态。样例不读取文件、不调用模型、不连接内核、不持久化；生产构建忽略该参数并使用真实来源。
+默认首页接入真实内核；连接不等于模型及授权就绪。模型设置、项目打开与授权、会话、文件编辑、发送、取消和继续复用共同客户端。开发态显式打开 `?scenario=ui-foundation` 才加载隔离样例；它仍只保留最新一轮，使用固定材料和回复，不读文件、不调模型、不持久化；生产构建忽略样例参数。
+
+## 基本单 Agent harness
+
+更新内核实现后需重启已有内核；工作台重连会接回驻留实例，不会热替换其代码。
+
+在“模型设置”填写 MiniMax M Plan 中国区订阅 Key 即可；连接固定使用 `https://api.minimax.cn/anthropic` 和 `MiniMax-M3.1-Flash-Preview`，不回退到按量模型。也可在启动独立内核前注入 `MINIMAX_CN_API_KEY`；保存的凭据优先。环境变化需要重启内核才会继承，当前请求保留原凭据。不要将 Key 写入项目或命令参数。
+
+本机 `credentials/` 保存 AES-256-GCM 密文与独立主密钥，POSIX 目录／文件权限为 0700／0600，Windows 使用当前用户 ACL。系统不回读 Key，不通过静态服务、项目工具或普通诊断暴露它。主密钥同机自动解锁，不能抵御同权限进程；损坏时保留现场，不自动覆盖。
+
+普通会话可直接聊天。打开研究项目后，分别授权读取、普通写入和发送到 MiniMax；范围内不重复确认。新建会话，附加文件引用后发送，Agent 实际使用材料与成果来自工具记录。流式输出、追加指令的受理／消费、取消与继续均使用内核持久状态。关窗不取消工作；重启将未完成工作标为中断，用户明确继续后才核查 checkpoint 和当前文件。checkpoint 不可用时保留原记录，以新尝试接续；旧指令可由分页工具发现。
+
+项目的 `.scholoom/` 保存稳定身份、SQLite 事实、执行 checkpoint、有限文件历史及备份；正文以实际文件为准，目录移动后仍可打开。文件接口支持 UTF-8 文本，整份编辑上限 256 KiB；按文件串行核对整份读取依据，变化后重读，不自动合并。新建不覆盖已有文件，撤销保护后续内容。内部目录、凭据文件、越界路径和外部符号链接不在普通文件授权内。
+
+文件 tab 使用 CodeMirror 6，提供保存、差异、重新读取及历史撤销。会话草稿、材料选择和文件草稿按数据配置与对象保存在本地浏览器存储；浏览器存储不可用时仅保留本次页面的内存草稿。重新读取保留未保存内容，用户核对差异后再保存。恢复副本中的内容可打开、复制，并通过普通编辑和保存取回到当前项目。
+
+备份默认五分钟检查内部与外部文件变化，保留最近十份，可关闭或手动触发。数据库使用 backup，复制普通 UTF-8 材料，清单保存在备份的私有目录中并列出缺项；不包含外部链接、大文件、二进制或完整 checkpoint。文件与数据库不承诺全局瞬时一致。恢复目标必须是新的独立目录，保留当前项目；副本使用独立身份并重新授权。
+
+CLI 使用同一接口，例如：
+
+```sh
+pnpm kernel project-open --path /path/to/project
+pnpm kernel project-grant --project PROJECT_ID --read --write --send
+pnpm kernel session-create --project PROJECT_ID
+pnpm kernel send --project PROJECT_ID --session SESSION_ID --text '读取材料并保存分析'
+pnpm kernel session --project PROJECT_ID --session SESSION_ID
+pnpm kernel cancel --project PROJECT_ID --session SESSION_ID
+pnpm kernel continue --project PROJECT_ID --session SESSION_ID
+```
+
+请求受理立即返回指令／执行引用；回执丢失时保留原 `--instruction-id` 查询或补交。工作台刷新后会核对持久的待确认输入，未能确认时提供“按原身份补交”，保留当前草稿。缺失用量为未知；请求默认 180 秒、模型并发 1，安全临时失败最多额外两次重试，不重放已输出的流或未知副作用。取消只确认本地调度与工具停止，不代表远端已停止计费。当前执行默认最多 32 次模型请求，触限保留成果并等待继续。
+
+`pnpm test:kernel` 使用外部 HTTP 模型夹具，内部图、工具、文件和数据库均为真实实现。真实模型验收需显式运行 `SCHOOLOOM_LIVE_MODEL_TEST=1 pnpm test:kernel tests/kernel/minimax-live.spec.ts`，只使用隔离合成样本；默认测试不会使用真实 Key。该验证检查接线及可判定结果，不代表完整科研质量验收。
 
 本机日常启动：
 
@@ -60,7 +92,7 @@ Vite 启动时发现或启动内核；浏览器页面初次只查询，用户重
 pnpm dev:browser --port 5173 --strictPort
 ```
 
-在本项目 Orca 本地浏览器打开 `http://127.0.0.1:5173/`，交互演示打开 `http://127.0.0.1:5173/?scenario=ui-foundation`。用户直接操作页面，选中元素提交 Design Feedback；Agent 读取随消息附带的组件、selector、页面上下文和意见，修改共同源码，再在同一页面检查 HMR 和行为。操作细节或布局意见可以继续通过对话补充。Orca 是外部开发工具，科研 Agent 执行链由后续内核功能实现。
+在本项目 Orca 本地浏览器打开 `http://127.0.0.1:5173/`，交互演示打开 `http://127.0.0.1:5173/?scenario=ui-foundation`。用户直接操作页面，选中元素提交 Design Feedback；Agent 读取随消息附带的组件、selector、页面上下文和意见，修改共同源码，再在同一页面检查 HMR 和行为。操作细节或布局意见可以继续通过对话补充。Orca 是外部开发工具，产品内的科研 Agent 使用内置 harness。
 
 Agent 使用 Orca browser skill，先列出当前项目的标签，核对 URL 与 `browserPageId`；后续命令显式指定 `--worktree path:<本项目绝对路径>` 和 `--page <browserPageId>`。采用 snapshot → interact → snapshot 循环，导航或状态变化后重新读取；PowerShell 中引用元素写成 `'@e7'`。截图必须实际查看，语义快照不能替代视觉验收；检查 console 和 network 的错误。HMR 检查记录刷新前后的草稿、选择、消息和页面加载时间，组件结构变化可能重置状态。
 

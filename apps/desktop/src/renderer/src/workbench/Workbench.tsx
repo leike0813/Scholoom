@@ -3,7 +3,8 @@ import {
   ThreadPrimitive,
   useExternalStoreRuntime,
 } from '@assistant-ui/react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { readDraft, subscribeDraft, writeDraft } from './drafts';
 import type { WorkbenchSession } from './session';
 import { ActivityPane, ActivityRail, type ThemeMode } from './shell/ActivityPane';
 import { AgentDock } from './shell/AgentDock';
@@ -18,6 +19,31 @@ const DEFAULT_TABS: readonly TabItem[] = [
 ];
 
 const THEME_ORDER: readonly ThemeMode[] = ['system', 'light', 'dark'];
+
+function ComposerDraft({
+  storageKey,
+  runtime,
+}: {
+  storageKey: string | undefined;
+  runtime: ReturnType<typeof useExternalStoreRuntime>;
+}) {
+  useLayoutEffect(() => {
+    if (!storageKey) return;
+    void runtime.thread.composer.reset();
+    runtime.thread.composer.setText(readDraft(storageKey));
+    const unsubscribeStore = subscribeDraft(storageKey, () =>
+      runtime.thread.composer.setText(readDraft(storageKey)),
+    );
+    const unsubscribeComposer = runtime.thread.composer.subscribe(() =>
+      writeDraft(storageKey, runtime.thread.composer.getState().text),
+    );
+    return () => {
+      unsubscribeStore();
+      unsubscribeComposer();
+    };
+  }, [runtime, storageKey]);
+  return null;
+}
 
 export function Workbench({ session }: { session: WorkbenchSession }) {
   const runtime = useExternalStoreRuntime(session.adapter);
@@ -106,8 +132,37 @@ export function Workbench({ session }: { session: WorkbenchSession }) {
 
   const activeSession = session.sessions?.find((item) => item.id === session.activeSessionId);
 
+  useEffect(() => {
+    const target = session.fileTarget;
+    if (!target) return;
+    const tab = {
+      id: `${target.projectId}:${target.path}`,
+      title: target.path.split('/').at(-1) ?? target.path,
+      kind: 'editor' as const,
+      target,
+    };
+    setGroups((current) => {
+      const existing = current.findIndex((group) => group.tabs.some((item) => item.id === tab.id));
+      if (existing >= 0)
+        return current.map((group, index) =>
+          index === existing
+            ? {
+                ...group,
+                activeId: tab.id,
+                tabs: group.tabs.map((item) => (item.id === tab.id ? tab : item)),
+              }
+            : group,
+        );
+      if (!current.length) return [{ id: 'a', tabs: [tab], activeId: tab.id }];
+      return current.map((group, index) =>
+        index === 0 ? { ...group, tabs: [...group.tabs, tab], activeId: tab.id } : group,
+      );
+    });
+  }, [session.fileTarget]);
+
   return (
     <AssistantRuntimeProvider runtime={runtime}>
+      <ComposerDraft storageKey={session.draftKey} runtime={runtime} />
       <main className="shell">
         {leftCollapsed ? (
           <ActivityRail onExpand={() => setLeftCollapsed(false)} />
@@ -118,6 +173,7 @@ export function Workbench({ session }: { session: WorkbenchSession }) {
             sessions={session.sessions ?? []}
             activeSessionId={session.activeSessionId}
             selectSession={session.selectSession}
+            createSession={session.createSession}
             theme={theme}
             onCycleTheme={() =>
               setTheme((current) => {
@@ -130,11 +186,13 @@ export function Workbench({ session }: { session: WorkbenchSession }) {
         )}
 
         <ThreadPrimitive.Root className="center">
+          {session.controls}
           <TabGroups
             groups={groups}
             onActivate={activateTab}
             onClose={closeTab}
             onSplit={splitGroup}
+            renderFile={session.renderFile}
           />
           {agentExpanded ? (
             <AgentOverlay
@@ -142,12 +200,17 @@ export function Workbench({ session }: { session: WorkbenchSession }) {
               title={activeSession?.title ?? 'Agent 会话'}
               reset={session.reset ? reset : undefined}
               onCollapse={() => setAgentExpanded(false)}
+              cancel={session.cancel}
+              resume={session.resume}
+              loadEarlier={session.loadEarlier}
             />
           ) : (
             <AgentDock
               messages={session.adapter.messages ?? []}
               reset={session.reset ? reset : undefined}
               onExpand={() => setAgentExpanded(true)}
+              cancel={session.cancel}
+              resume={session.resume}
             />
           )}
         </ThreadPrimitive.Root>
@@ -162,6 +225,7 @@ export function Workbench({ session }: { session: WorkbenchSession }) {
             selectedMaterials={session.selectedMaterials}
             toggleMaterial={session.toggleMaterial}
             onCollapse={() => setRightCollapsed(true)}
+            fileNavigator={session.fileNavigator}
           />
         )}
       </main>

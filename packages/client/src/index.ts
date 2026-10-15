@@ -1,13 +1,19 @@
 import type { ErrorInfo, KernelEndpoint, KernelStatus, ShutdownAccepted } from '@scholoom/protocol';
 import {
+  type BusinessMethod,
+  type BusinessParams,
+  type BusinessResult,
   isJsonRpcNotification,
   isJsonRpcRequest,
   isJsonRpcResponse,
   isKernelEndpoint,
   isKernelStatus,
   isShutdownAccepted,
+  isWorkbenchChange,
   limits,
   protocolVersion,
+  validateBusiness,
+  type WorkbenchChange,
 } from '@scholoom/protocol';
 
 /** Connection state shared by every host of the kernel client. */
@@ -46,6 +52,7 @@ const stoppingInfo: ErrorInfo = {
 export class KernelClient {
   private readonly endpoint: KernelEndpoint;
   private listeners = new Set<() => void>();
+  private changeListeners = new Set<(change: WorkbenchChange) => void>();
   private snapshot: ConnectionSnapshot = { phase: 'disconnected' };
   private phase: Phase = 'disconnected';
   private kernelStatus: KernelStatus | null = null;
@@ -73,6 +80,38 @@ export class KernelClient {
   }
 
   readonly getSnapshot = (): ConnectionSnapshot => this.snapshot;
+
+  readonly subscribeChanges = (listener: (change: WorkbenchChange) => void): (() => void) => {
+    this.changeListeners.add(listener);
+    return () => {
+      this.changeListeners.delete(listener);
+    };
+  };
+
+  async call<M extends BusinessMethod>(
+    method: M,
+    params: BusinessParams<M>,
+  ): Promise<BusinessResult<M>> {
+    if (!validateBusiness(method, 'params', params))
+      throw new KernelClientError('invalidRequest', 'Invalid operation parameters.');
+    const read = [
+      'workbench.snapshot',
+      'workbench.watch',
+      'files.read',
+      'files.list',
+      'files.history',
+      'project.backups',
+    ].includes(method);
+    const result = await this.request(
+      method,
+      params,
+      limits.requestMs,
+      read ? 'unavailable' : 'outcomeUnknown',
+    );
+    if (!validateBusiness(method, 'result', result))
+      throw this.terminal({ code: 'protocolIncompatible', message: 'Invalid operation result.' });
+    return result as BusinessResult<M>;
+  }
 
   readonly subscribe = (listener: () => void): (() => void) => {
     this.listeners.add(listener);
@@ -414,6 +453,16 @@ export class KernelClient {
     }
     if (isJsonRpcNotification(message)) {
       if (message.method === 'kernel.stopping') this.handleStopping(message.params);
+      if (message.method === 'workbench.changed') {
+        if (!isWorkbenchChange(message.params)) {
+          this.terminal({
+            code: 'protocolIncompatible',
+            message: 'Invalid workbench notification.',
+          });
+          return;
+        }
+        for (const listener of this.changeListeners) listener(message.params);
+      }
       return;
     }
     this.terminal({

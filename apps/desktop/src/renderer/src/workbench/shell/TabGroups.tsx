@@ -1,3 +1,5 @@
+import type { ReactNode } from 'react';
+import type { FileTarget } from '../session';
 import { IconSplit } from './icons';
 
 export type TabKind = 'library' | 'reader' | 'editor' | 'preview';
@@ -6,6 +8,7 @@ export interface TabItem {
   id: string;
   title: string;
   kind: TabKind;
+  target?: FileTarget;
 }
 
 export interface TabGroupState {
@@ -36,9 +39,10 @@ export interface TabGroupsProps {
   onActivate: (groupIndex: number, tabId: string) => void;
   onClose: (groupIndex: number, tabId: string) => void;
   onSplit: (groupIndex: number) => void;
+  renderFile?: ((target: FileTarget) => ReactNode) | undefined;
 }
 
-export function TabGroups({ groups, onActivate, onClose, onSplit }: TabGroupsProps) {
+export function TabGroups({ groups, onActivate, onClose, onSplit, renderFile }: TabGroupsProps) {
   if (groups.length === 0) {
     return (
       <div className="center-empty">
@@ -96,7 +100,11 @@ export function TabGroups({ groups, onActivate, onClose, onSplit }: TabGroupsPro
               </button>
             </header>
             <div className="tab-content">
-              {active ? <TabPlaceholder kind={active.kind} /> : null}
+              {active?.target && renderFile ? (
+                renderFile(active.target)
+              ) : active ? (
+                <TabPlaceholder kind={active.kind} />
+              ) : null}
             </div>
           </section>
         );

@@ -149,9 +149,16 @@ test('browser bootstrap and static module routes protect credentials', async ({
   }
 });
 
-test('default workbench connects but keeps research sending unavailable', async ({
-  uiPage,
-}, info) => {
+test('workbench without a selected session keeps sending unavailable', async ({ uiPage }, info) => {
+  await uiPage.addInitScript(() => {
+    for (const key of Object.keys(localStorage)) {
+      if (
+        key.startsWith('scholoom.draft.v1:') &&
+        (key.endsWith('|session') || key.endsWith('|project'))
+      )
+        localStorage.removeItem(key);
+    }
+  });
   await uiPage.goto(rendererUrl);
 
   await expect(uiPage.getByRole('status', { name: '连接状态' })).toContainText('已连接');

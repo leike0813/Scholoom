@@ -1,6 +1,8 @@
 import { Ajv } from 'ajv';
 import type { FromSchema } from 'json-schema-to-ts';
 
+export * from './business.js';
+
 export const protocolVersion = 1;
 
 export const jsonRpcRequestSchema = {
@@ -44,6 +46,13 @@ export const errorInfoSchema = {
         'shuttingDown',
         'permissionDenied',
         'startupFailed',
+        'notFound',
+        'contentChanged',
+        'targetAmbiguous',
+        'tooLarge',
+        'credentialUnavailable',
+        'modelFailed',
+        'resourceLimit',
       ],
     },
     message: { type: 'string', maxLength: 512 },
@@ -203,6 +212,6 @@ export const limits = {
   authenticationMs: 3_000,
   requestMs: 5_000,
   lifecycleMs: 10_000,
-  frameBytes: 64 * 1024,
+  frameBytes: 2 * 1024 * 1024,
   reconnectDelays: [250, 500, 1_000, 2_000],
 } as const;

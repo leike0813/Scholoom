@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import type { FileNode, TaskSummary } from '../session';
 import { IconChevronLeft, IconChevronRight, IconFolder, IconTasks } from './icons';
 
@@ -38,6 +39,7 @@ export interface AuxiliaryPaneProps {
   selectedMaterials: readonly string[];
   toggleMaterial: (name: string) => void;
   onCollapse: () => void;
+  fileNavigator?: ReactNode;
 }
 
 export function AuxiliaryPane({
@@ -47,6 +49,7 @@ export function AuxiliaryPane({
   selectedMaterials,
   toggleMaterial,
   onCollapse,
+  fileNavigator,
 }: AuxiliaryPaneProps) {
   return (
     <aside className="side side--right" aria-label="文件与任务">
@@ -64,15 +67,16 @@ export function AuxiliaryPane({
           </button>
         </div>
         <div className="pane__body">
-          {fileTree.length === 0 ? (
-            <p className="empty-hint">暂无文件</p>
-          ) : (
-            <ul className="tree">
-              {fileTree.map((node) => (
-                <TreeNode key={node.name} node={node} depth={0} />
-              ))}
-            </ul>
-          )}
+          {fileNavigator ??
+            (fileTree.length === 0 ? (
+              <p className="empty-hint">暂无文件</p>
+            ) : (
+              <ul className="tree">
+                {fileTree.map((node) => (
+                  <TreeNode key={node.name} node={node} depth={0} />
+                ))}
+              </ul>
+            ))}
         </div>
       </section>
 

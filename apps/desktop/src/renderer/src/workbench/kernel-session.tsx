@@ -3,6 +3,7 @@ import { createKernelClient, KernelClientError } from '@scholoom/client';
 import type { BootstrapResult, ErrorInfo, KernelEndpoint } from '@scholoom/protocol';
 import { isBootstrapResult, limits } from '@scholoom/protocol';
 import { useEffect, useRef, useState } from 'react';
+import { useBusinessSession } from './business-session';
 import type { KernelPhase, WorkbenchConnection, WorkbenchSession } from './session';
 import { Workbench } from './Workbench';
 
@@ -31,7 +32,7 @@ const phaseMessages: Record<KernelPhase, string> = {
   unknown: '无法确认停机结果',
 };
 
-const errorMessages: Record<ErrorInfo['code'], string> = {
+const errorMessages: Partial<Record<ErrorInfo['code'], string>> = {
   authenticationFailed: '认证失败：内核拒绝了当前凭据',
   protocolIncompatible: '协议不兼容：客户端与内核版本不一致',
   instanceMismatch: '目标实例与发现结果不一致',
@@ -45,7 +46,7 @@ const errorMessages: Record<ErrorInfo['code'], string> = {
 
 const confirmIntervalMs = 400;
 
-/** 真实来源尚无材料与消息：草稿可编辑，发送始终禁用。 */
+/** 业务状态尚未就绪时仍可编辑草稿。 */
 const realSource: Omit<WorkbenchSession, 'status' | 'connection'> = {
   materials: [],
   selectedMaterials: [],
@@ -359,7 +360,10 @@ export function useKernelSession(): WorkbenchSession {
     view.phase === 'stopped' ||
     view.phase === 'unknown';
   const connection: WorkbenchConnection = {
-    message: view.error === undefined ? phaseMessages[view.phase] : errorMessages[view.error.code],
+    message:
+      view.error === undefined
+        ? phaseMessages[view.phase]
+        : (errorMessages[view.error.code] ?? view.error.message),
     instanceId: view.instanceId,
     error: view.error,
     retry: canRetry ? retryKernel : undefined,
@@ -367,7 +371,8 @@ export function useKernelSession(): WorkbenchSession {
     stop: view.phase === 'connected' ? stopKernel : undefined,
   };
 
-  return { ...realSource, status: view.phase, connection };
+  const business = useBusinessSession(clientRef.current, view.phase);
+  return { ...realSource, ...business, status: view.phase, connection };
 }
 
 /** 默认来源：真实内核连接状态，替换此前的未连接占位来源。 */

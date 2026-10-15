@@ -14,16 +14,29 @@
     }
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json && node --input-type=module -e \"import {cpSync} from 'node:fs'; cpSync('src/storage/migrations', 'dist/storage/migrations', {recursive:true});\"",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "start": "node dist/cli.js"
   },
   "dependencies": {
-    "@scholoom/protocol": "workspace:*",
+    "@langchain/anthropic": "1.5.12",
+    "@langchain/core": "1.2.17",
+    "@langchain/langgraph": "1.5.0",
+    "@langchain/langgraph-checkpoint": "1.2.0",
+    "@langchain/langgraph-checkpoint-sqlite": "1.1.0",
     "@scholoom/client": "workspace:*",
-    "ws": "8.22.0"
+    "@scholoom/protocol": "workspace:*",
+    "better-sqlite3": "12.11.1",
+    "deepagents": "1.15.0",
+    "drizzle-orm": "0.45.4",
+    "langchain": "1.5.16",
+    "langsmith": "0.9.0",
+    "ws": "8.22.0",
+    "zod": "4.3.6"
   },
   "devDependencies": {
-    "@types/ws": "8.18.2"
+    "@types/better-sqlite3": "7.6.13",
+    "@types/ws": "8.18.2",
+    "drizzle-kit": "0.31.11"
   }
 }

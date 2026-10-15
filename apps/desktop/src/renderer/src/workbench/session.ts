@@ -1,5 +1,12 @@
 import type { ExternalStoreAdapter, ThreadMessageLike } from '@assistant-ui/react';
 import type { ErrorInfo } from '@scholoom/protocol';
+import type { ReactNode } from 'react';
+
+export interface FileTarget {
+  projectId: string;
+  path: string;
+  create?: boolean;
+}
 
 /** 真实来源在界面上可区分的连接阶段；样例状态只由显式样例场景提供。 */
 export type KernelPhase =
@@ -61,6 +68,15 @@ export interface WorkbenchSession {
   toggleMaterial: (name: string) => void;
   adapter: ExternalStoreAdapter<ThreadMessageLike>;
   reset?: () => void;
+  draftKey?: string;
+  controls?: ReactNode;
+  fileNavigator?: ReactNode;
+  fileTarget?: FileTarget;
+  renderFile?: (target: FileTarget) => ReactNode;
+  createSession?: () => void;
+  cancel?: (() => void) | undefined;
+  resume?: (() => void) | undefined;
+  loadEarlier?: (() => void) | undefined;
   /** 会话列表；缺省时左区呈现空态。 */
   sessions?: readonly SessionSummary[];
   activeSessionId?: string;

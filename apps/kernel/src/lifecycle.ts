@@ -193,7 +193,10 @@ async function publishEndpoint(runtime: string, endpoint: KernelEndpoint): Promi
   }
 }
 
-export async function serveKernel(directory: string): Promise<void> {
+export async function serveKernel(
+  directory: string,
+  options: { modelEndpoint?: string; environment?: NodeJS.ProcessEnv } = {},
+): Promise<void> {
   const canonical = await canonicalDirectory(directory, true);
   if (!canonical) throw new Error('Missing data directory');
   const runtime = await prepareRuntime(canonical);
@@ -219,9 +222,17 @@ export async function serveKernel(directory: string): Promise<void> {
       state: 'running',
     };
     let endpoint: KernelEndpoint;
-    const server = await startKernelServer(status, async () => {
-      await publishEndpoint(runtime, { ...endpoint, state: 'stopping' });
-    });
+    const { KernelApplication } = await import('./application.js');
+    const application = new KernelApplication(canonical, options);
+    await application.initialize();
+    const server = await startKernelServer(
+      status,
+      async () => {
+        await publishEndpoint(runtime, { ...endpoint, state: 'stopping' });
+        await application.close();
+      },
+      application,
+    );
     endpoint = { ...status, url: server.url, token: server.token };
     try {
       await publishEndpoint(runtime, endpoint);
