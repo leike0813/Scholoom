@@ -1,4 +1,4 @@
-import { type ReactNode, useRef } from 'react';
+import { type ReactNode, useRef, useState } from 'react';
 import { relativeTime } from '../relative-time';
 import type { SessionSummary, WorkbenchConnection } from '../session';
 import {
@@ -26,6 +26,101 @@ function StatusMark({ session }: { session: SessionSummary }) {
   if (session.status === 'failed')
     return <span className="dot dot--err" role="img" aria-label="失败" />;
   return <span className="dot dot--idle" />;
+}
+
+interface ProjectGroup {
+  id: string;
+  sessions: SessionSummary[];
+}
+
+function groupSessionsByProject(sessions: readonly SessionSummary[]): ProjectGroup[] {
+  // 临时方案：所有会话归为 'default' 项目
+  // TODO: 当协议支持项目分组时，替换为真实项目分组逻辑
+  return sessions.length > 0
+    ? [{ id: 'default', sessions: [...sessions] }]
+    : [];
+}
+
+function ProjectNode({
+  project,
+  sessions,
+  activeSessionId,
+  selectSession,
+  onNewSession,
+}: {
+  project: ProjectGroup;
+  sessions: SessionSummary[];
+  activeSessionId: string | undefined;
+  selectSession: ((id: string) => void) | undefined;
+  onNewSession: (() => void) | undefined;
+}) {
+  const [expanded, setExpanded] = useState(true);
+
+  // 项目名称（暂时固定为"当前项目"）
+  const projectName = project.id === 'default' ? '当前项目' : project.id;
+
+  return (
+    <div className="project-node">
+      <button
+        type="button"
+        className="project-header"
+        onClick={() => setExpanded(!expanded)}
+        aria-expanded={expanded}
+        aria-label={`${projectName}，${expanded ? '已展开' : '已折叠'}`}
+      >
+        <span className={`project-header__chevron${expanded ? ' project-header__chevron--open' : ''}`}>
+          <IconChevronRight />
+        </span>
+        <span className="project-header__name">{projectName}</span>
+        <button
+          type="button"
+          className="project-header__new-session"
+          onClick={(e) => {
+            e.stopPropagation();
+            onNewSession?.();
+          }}
+          title="新建会话"
+          aria-label={`在${projectName}中新建会话`}
+        >
+          <IconPlus />
+        </button>
+      </button>
+
+      {expanded && (
+        <div className="session-list">
+          {sessions.length === 0 ? (
+            <p className="empty-hint" style={{ paddingLeft: '2rem' }}>
+              暂无会话
+            </p>
+          ) : (
+            <ul>
+              {sessions.map((session) => (
+                <li key={session.id}>
+                  <button
+                    type="button"
+                    className={`session${session.id === activeSessionId ? ' session--active' : ''}`}
+                    aria-pressed={session.id === activeSessionId}
+                    onClick={() => selectSession?.(session.id)}
+                  >
+                    <StatusMark session={session} />
+                    <span className="session__title" title={session.title}>
+                      {session.title}
+                    </span>
+                    <time className="session__time" dateTime={session.updatedAt}>
+                      {relativeTime(session.updatedAt)}
+                    </time>
+                    {session.unread ? (
+                      <span className="dot dot--unread" role="img" aria-label="有未读" />
+                    ) : null}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
 
 /** 明确停机入口：说明影响范围，确认与取消都是可键盘操作的常规控件。 */
@@ -91,6 +186,8 @@ export function ActivityPane({
   const kernelMessage =
     connection?.message ?? (status === 'sample' ? '样例场景 · 刷新后重置' : '内核未连接');
 
+  const projectGroups = groupSessionsByProject(sessions);
+
   return (
     <aside className="side side--left" aria-label="会话与导航">
       <div className="side__header">
@@ -136,32 +233,21 @@ export function ActivityPane({
         <span>会话</span>
       </div>
       {sessionNavigation ??
-        (sessions.length === 0 ? (
+        (projectGroups.length === 0 ? (
           <p className="empty-hint">暂无会话</p>
         ) : (
-          <ul className="session-list">
-            {sessions.map((item) => (
-              <li key={item.id}>
-                <button
-                  type="button"
-                  className={`session${item.id === activeSessionId ? ' session--active' : ''}`}
-                  aria-pressed={item.id === activeSessionId}
-                  onClick={() => selectSession?.(item.id)}
-                >
-                  <StatusMark session={item} />
-                  <span className="session__title" title={item.title}>
-                    {item.title}
-                  </span>
-                  <time className="session__time" dateTime={item.updatedAt}>
-                    {relativeTime(item.updatedAt)}
-                  </time>
-                  {item.unread ? (
-                    <span className="dot dot--unread" role="img" aria-label="有未读" />
-                  ) : null}
-                </button>
-              </li>
+          <nav className="project-tree" role="tree">
+            {projectGroups.map((project) => (
+              <ProjectNode
+                key={project.id}
+                project={project}
+                sessions={project.sessions}
+                activeSessionId={activeSessionId}
+                selectSession={selectSession}
+                onNewSession={createSession}
+              />
             ))}
-          </ul>
+          </nav>
         ))}
 
       <div className="kernel-status">
