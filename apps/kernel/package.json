@@ -14,7 +14,7 @@
     }
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json && node --input-type=module -e \"import {cpSync} from 'node:fs'; cpSync('src/storage/migrations', 'dist/storage/migrations', {recursive:true});\"",
+    "build": "tsc -p tsconfig.json && node --input-type=module -e \"import {cpSync} from 'node:fs'; cpSync('src/storage/migrations', 'dist/storage/migrations', {recursive:true}); cpSync('src/research/builtin', 'dist/research/builtin', {recursive:true});\"",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "start": "node dist/cli.js"
   },

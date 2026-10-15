@@ -165,7 +165,103 @@ const ok = object({ ok: { const: true } }, ['ok']);
 const project = { projectId: id } as const;
 const session = { projectId: id, sessionId: id } as const;
 
+export const researchInputSchema = object(
+  {
+    materialPaths: { type: 'array', items: id, minItems: 1, maxItems: 10, uniqueItems: true },
+    outputPath: id,
+    goal: { type: 'string', minLength: 1, maxLength: 4096 },
+  },
+  ['materialPaths', 'outputPath', 'goal'],
+);
+export const researchMethodSchema = object(
+  {
+    formatVersion: { const: 1 },
+    id,
+    version: id,
+    name: id,
+    description: text,
+    scope: { const: 'builtin' },
+    source: id,
+    inputSchema: { const: 'project-material-analysis' },
+    execution: { const: 'agent' },
+    resources: { type: 'array', items: { enum: ['read', 'write', 'send'] }, uniqueItems: true },
+    artifactRole: { const: 'report' },
+  },
+  [
+    'formatVersion',
+    'id',
+    'version',
+    'name',
+    'description',
+    'scope',
+    'source',
+    'inputSchema',
+    'execution',
+    'resources',
+    'artifactRole',
+  ],
+);
+export const researchRequestSchema = object(
+  { methodId: id, version: id, input: researchInputSchema, invocationId: id },
+  ['methodId', 'version', 'input'],
+);
+const researchFile = object({ path: id, fileId: id }, ['path', 'fileId']);
+export const researchAttemptSchema = object(
+  {
+    id,
+    invocationId: id,
+    attempt: count,
+    sessionId: id,
+    runId: id,
+    method: researchMethodSchema,
+    input: researchInputSchema,
+    state: { enum: ['running', 'completed', 'failed', 'cancelled', 'interrupted'] },
+    sources: array(researchFile),
+    used: array(researchFile),
+    artifacts: array(researchFile),
+    reportFileId: id,
+    delivery: { enum: ['pending', 'usable', 'incomplete'] },
+    issues: array(text),
+    researchAssessment: { const: 'notAssessed' },
+    createdAt: text,
+    finishedAt: text,
+  },
+  [
+    'id',
+    'invocationId',
+    'attempt',
+    'sessionId',
+    'runId',
+    'method',
+    'input',
+    'state',
+    'sources',
+    'used',
+    'artifacts',
+    'delivery',
+    'issues',
+    'researchAssessment',
+    'createdAt',
+  ],
+);
+export type ResearchInput = FromSchema<typeof researchInputSchema>;
+export type ResearchMethod = FromSchema<typeof researchMethodSchema>;
+export type ResearchRequest = FromSchema<typeof researchRequestSchema>;
+export type ResearchAttempt = FromSchema<typeof researchAttemptSchema>;
+
 export const businessSchemas = {
+  'research.methods': { params: object({}, []), result: array(researchMethodSchema) },
+  'research.method': {
+    params: object({ methodId: id, version: id }, ['methodId', 'version']),
+    result: object({ method: researchMethodSchema, content }, ['method', 'content']),
+  },
+  'research.attempts': {
+    params: object({ ...session, invocationId: id, offset: count, limit: page }, [
+      'projectId',
+      'sessionId',
+    ]),
+    result: object({ attempts: array(researchAttemptSchema), nextOffset: count }, ['attempts']),
+  },
   'workbench.snapshot': { params: object(scope, []), result: snapshotSchema },
   'workbench.watch': { params: object(scope, []), result: snapshotSchema },
   'provider.configure': {
@@ -343,6 +439,9 @@ export type WorkbenchSnapshot = FromSchema<typeof snapshotSchema>;
 export type WorkbenchChange = FromSchema<typeof changeSchema>;
 export type BusinessMethod = keyof typeof businessSchemas;
 type Inputs = {
+  'research.methods': FromSchema<(typeof businessSchemas)['research.methods']['params']>;
+  'research.method': FromSchema<(typeof businessSchemas)['research.method']['params']>;
+  'research.attempts': FromSchema<(typeof businessSchemas)['research.attempts']['params']>;
   'session.list': FromSchema<(typeof businessSchemas)['session.list']['params']>;
   'session.rename': FromSchema<(typeof businessSchemas)['session.rename']['params']>;
   'session.archive': FromSchema<(typeof businessSchemas)['session.archive']['params']>;
@@ -377,6 +476,9 @@ type Inputs = {
   'session.resume': FromSchema<(typeof businessSchemas)['session.resume']['params']>;
 };
 type Outputs = {
+  'research.methods': FromSchema<(typeof businessSchemas)['research.methods']['result']>;
+  'research.method': FromSchema<(typeof businessSchemas)['research.method']['result']>;
+  'research.attempts': FromSchema<(typeof businessSchemas)['research.attempts']['result']>;
   'session.list': FromSchema<(typeof businessSchemas)['session.list']['result']>;
   'session.rename': FromSchema<(typeof businessSchemas)['session.rename']['result']>;
   'session.archive': FromSchema<(typeof businessSchemas)['session.archive']['result']>;
@@ -413,6 +515,8 @@ type Outputs = {
 export type BusinessParams<M extends BusinessMethod> = Inputs[M];
 export type BusinessResult<M extends BusinessMethod> = Outputs[M];
 const ajv = new Ajv();
+export const isResearchMethod = ajv.compile<ResearchMethod>(researchMethodSchema);
+export const isResearchRequest = ajv.compile<ResearchRequest>(researchRequestSchema);
 const validators = new Map(
   Object.entries(businessSchemas).map(([name, schemas]) => [
     name,

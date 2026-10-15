@@ -58,9 +58,9 @@
 
 正式规格包含工程基础、共同内核生命周期、工作台基础／外壳、项目文件、模型与单 Agent；契约见 [当前正式规格](../openspec/specs)，基础 harness 实际结果见 [establish-basic-agent-harness 交付](../openspec/changes/archive/2026-10-15-establish-basic-agent-harness/delivery.md)。样例“只显示最新一轮”的范围仍限于样例，真实会话采用持久分页历史。
 
-共同内核入口沿已确认的 [#23](../.scratch/scholoom-foundations/issues/23-kernel-entry-and-lifecycle.md#answer) 已交付。本轮按用户确认，将 P2 的必需文件保护与 P3a–P3c 合为一个单 Agent 闭环，先接 MiniMax M Plan 中国区；P3d 方法／能力调用仍为后续变更。未接入的库管理、受管计算和生态功能不因基本 harness 可用而视为已完成。
+共同内核入口沿已确认的 [#23](../.scratch/scholoom-foundations/issues/23-kernel-entry-and-lifecycle.md#answer) 已交付。按用户确认，P2 的必需文件保护与 P3a–P3c 已合为一个单 Agent 闭环，先接 MiniMax M Plan 中国区；P3d 的共同方法／能力调用由后续独立变更接入。未接入的库管理、受管计算和生态功能不因基本 harness 可用而视为已完成。
 
-当前阶段目标为完整基础 Agent harness 及相应界面。P3a–P3c 的执行反馈由 [complete-agent-execution-workbench](../openspec/changes/archive/2026-10-15-complete-agent-execution-workbench/proposal.md) 补齐；[complete-project-file-workbench](../openspec/changes/archive/2026-10-15-complete-project-file-workbench/proposal.md) 已覆盖项目管理、目录与文件回收恢复、源码编辑和 Markdown 图片／公式预览。用户随后选择 [complete-agent-conversation-workbench](../openspec/changes/complete-agent-conversation-workbench/proposal.md)，补齐通用会话命名、查找、归档恢复及消息阅读、复制和材料打开。P3d 的最小方法／能力调用继续后置，不扩展到受管 shell、多 Agent、文献业务或 QMD／LaTeX 工程编译；完成证据集中在各 change 的 delivery，整个阶段仍按实际缺口验收。
+基础 Agent harness 及相应界面沿实际缺口验收。P3a–P3c 的执行反馈由 [complete-agent-execution-workbench](../openspec/changes/archive/2026-10-15-complete-agent-execution-workbench/proposal.md) 补齐；[complete-project-file-workbench](../openspec/changes/archive/2026-10-15-complete-project-file-workbench/proposal.md) 覆盖项目管理、目录与文件回收恢复、源码编辑和 Markdown 图片／公式预览；[complete-agent-conversation-workbench](../openspec/changes/archive/2026-10-15-complete-agent-conversation-workbench/proposal.md) 补齐通用会话管理与消息阅读。P3d 由 [establish-research-capability-runtime](../openspec/changes/archive/2026-10-16-establish-research-capability-runtime/proposal.md) 交付内置材料分析方法、共同调用、持久尝试及实际交付检查；完成证据集中在该 change 的 delivery。随后按 P4a 推进本地文献库，完整 Digest 沿 P4c 使用共同入口，方法管理沿 P5a 扩展。
 
 ## 3. 总体顺序与依赖
 

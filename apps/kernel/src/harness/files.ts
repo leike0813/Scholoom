@@ -1,4 +1,4 @@
-import { matchesGlob } from 'node:path';
+import { matchesGlob, resolve } from 'node:path';
 import type { ErrorInfo } from '@scholoom/protocol';
 import type {
   BackendProtocolV2,
@@ -22,6 +22,7 @@ export class ProjectBackend implements BackendProtocolV2 {
     private readonly used: (path: string, fileId: string) => void,
     private readonly saved: (path: string, fileId?: string) => void | Promise<void>,
     private readonly onError?: (error: ErrorInfo) => void,
+    private readonly expectedOutput?: { path: string; fileId: string },
   ) {}
   private local(path: string): string {
     return path.replace(/^\/+/, '');
@@ -29,6 +30,15 @@ export class ProjectBackend implements BackendProtocolV2 {
   private guard(): void {
     this.signal.throwIfAborted();
     this.project.check('send');
+  }
+  private async expectedIdentity(path: string): Promise<string | undefined> {
+    if (
+      this.expectedOutput &&
+      (await this.project.path(path, true)) ===
+        resolve(this.project.project.path, this.expectedOutput.path)
+    )
+      return this.expectedOutput.fileId;
+    return undefined;
   }
   private error(error: unknown): { error: string } {
     const info = failure(error);
@@ -56,11 +66,10 @@ export class ProjectBackend implements BackendProtocolV2 {
       this.guard();
       const local = this.local(path);
       const result = await this.project.read(local);
-      if (!result.truncated)
-        this.readBases.set(local, { basis: result.basis, content: result.content });
-      this.used(local, result.fileId ?? (await this.project.files.reference(local)).fileId);
       const lines = result.content.split('\n');
       const selected = lines.slice(offset, offset + Math.min(limit, 500));
+      if (offset < 0 || limit <= 0 || !selected.length)
+        throw new OperationError('invalidRequest', '材料读取范围无效或已超出正文。');
       const output: ReadResult = {
         content: selected.join('\n').slice(0, 16384),
         mimeType: 'text/plain',
@@ -68,6 +77,10 @@ export class ProjectBackend implements BackendProtocolV2 {
         startLine: offset + 1,
         endLine: offset + selected.length,
       };
+      if (!result.truncated)
+        this.readBases.set(local, { basis: result.basis, content: result.content });
+      if (output.content?.length)
+        this.used(local, result.fileId ?? (await this.project.files.reference(local)).fileId);
       if (offset + selected.length < lines.length) output.nextOffset = offset + selected.length;
       return output;
     } catch (error) {
@@ -93,7 +106,13 @@ export class ProjectBackend implements BackendProtocolV2 {
     try {
       this.guard();
       const local = this.local(path);
-      const edit = await this.project.save(local, content);
+      const edit = await this.project.save(
+        local,
+        content,
+        undefined,
+        undefined,
+        await this.expectedIdentity(local),
+      );
       await this.saved(local, edit.fileId);
       return { path };
     } catch (error) {
@@ -126,6 +145,8 @@ export class ProjectBackend implements BackendProtocolV2 {
           ? read.content.replaceAll(oldString, newString)
           : read.content.replace(oldString, newString),
         read.basis,
+        undefined,
+        await this.expectedIdentity(local),
       );
       this.readBases.delete(local);
       await this.saved(local, edit.fileId);

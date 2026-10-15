@@ -1,0 +1,13 @@
+{
+  "formatVersion": 1,
+  "id": "scholoom.material-analysis",
+  "version": "1.0.0",
+  "name": "材料分析",
+  "description": "读取项目文本，按研究目标保存有来源、结果与限制的分析报告。",
+  "scope": "builtin",
+  "source": "Scholoom; adapted from zotero-agents literature-analysis (see SOURCE.md)",
+  "inputSchema": "project-material-analysis",
+  "execution": "agent",
+  "resources": ["read", "write", "send"],
+  "artifactRole": "report"
+}

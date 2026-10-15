@@ -91,8 +91,52 @@ function planTurn(user: string, tools: Set<string>, toolId: string, reads: numbe
   });
   const tool = (name: string, input: Record<string, unknown>): Turn => ({
     stopReason: 'tool_use',
-    blocks: [thinking, { type: 'tool_use', id: toolId, name, input }],
+    blocks: [
+      thinking,
+      {
+        type: 'tool_use',
+        // Independent parent and capability conversations may reuse a provider call ID.
+        id:
+          name === 'invoke_research_capability' ||
+          (name === 'read_file' && user.includes('MODEL_RESEARCH_EXECUTION'))
+            ? 'research-shared-call'
+            : toolId,
+        name,
+        input,
+      },
+    ],
   });
+  if (user.includes('MODEL_RESEARCH_EXECUTION')) {
+    // Nested capability turn: run the synthetic material analysis itself.
+    if (!reads) return tool('read_file', { file_path: '/input.md' });
+    // Missing-artifact boundary: end without writing any output.
+    if (user.includes('MODEL_RESEARCH_NO_OUTPUT')) return text('未写出产物。');
+    if (!tools.has('write_file'))
+      return tool('write_file', {
+        file_path: '/analysis.md',
+        content: '# 分析\n\n来源：input.md。\n\n结果为42，依据来自合成材料。限制：仅合成样本。\n',
+      });
+    return text('分析报告已保存到 analysis.md。');
+  }
+  if (user.includes('MODEL_RESEARCH')) {
+    if (!tools.has('discover_research_methods')) return tool('discover_research_methods', {});
+    if (!tools.has('load_research_method'))
+      return tool('load_research_method', {
+        methodId: 'scholoom.material-analysis',
+        version: '1.0.0',
+      });
+    if (!tools.has('invoke_research_capability'))
+      return tool('invoke_research_capability', {
+        methodId: 'scholoom.material-analysis',
+        version: '1.0.0',
+        input: {
+          materialPaths: ['input.md'],
+          outputPath: 'analysis.md',
+          goal: 'MODEL_RESEARCH_EXECUTION 分析材料中结果42的依据和限制',
+        },
+      });
+    return text('分析报告已保存到 analysis.md。');
+  }
   if (user.includes('MODEL_REPLACED_MATERIAL')) {
     if (!reads) return tool('read_file', { file_path: '/input.md' });
     if (!tools.has('rename_project_path'))

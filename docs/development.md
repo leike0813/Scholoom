@@ -16,7 +16,7 @@ Electron 工作台和 CLI 共用独立 Node 内核，浏览器开发入口经同
 
 协议 schema 是 DTO 的事实源，类型从 schema 推导；客户端和内核使用 Ajv 校验消息、认证、状态及引导结果。连接状态不代表研究指令已经可执行。
 
-执行沿 [#07](../.scratch/scholoom-foundations/issues/07-agent-runtime-boundaries.md#answer) 的 Deep Agents／LangChain／LangGraph 路线。当前支持单 Agent 材料任务；插件 MCP、科研方法／能力、受管 shell 和多 Agent 尚未接入。
+执行沿 [#07](../.scratch/scholoom-foundations/issues/07-agent-runtime-boundaries.md#answer) 的 Deep Agents／LangChain／LangGraph 路线。当前支持单 Agent 材料任务与内置材料分析方法／能力；插件 MCP、受管 shell 和多 Agent 尚未接入。
 
 ## 本地工作
 
@@ -90,6 +90,12 @@ pnpm kernel continue --project PROJECT_ID --session SESSION_ID
 
 请求受理立即返回指令／执行引用；回执丢失时保留原 `--instruction-id` 查询或补交。工作台刷新后会核对持久的待确认输入，未能确认时提供“按原身份补交”，保留当前草稿。缺失用量为未知；请求默认 180 秒、模型并发 1，安全临时失败最多额外两次重试，不重放已输出的流或未知副作用。取消只确认本地调度与工具停止，不代表远端已停止计费。当前执行默认最多 32 次模型请求，触限保留成果并等待继续。
 
+内置科研方法通过 `discover_research_methods` 发现摘要、`load_research_method` 按身份与版本读取正文。普通方法可直接使用；明确能力工具 `invoke_research_capability` 自动核对输入和 read/write/send 授权，复用同一模型额度与安全文件工具。首项 `scholoom.material-analysis`（`1.0.0`）接受 `materialPaths`（1–10 个项目文本）、`outputPath` 和 `goal`，例如要求“按材料分析方法读取 input.md，分析结果依据与限制并保存 analysis.md”。无需先创建研究任务。
+
+工具详情返回稳定 `invocationId`、独立尝试、实际读取及保存文件、交付状态和缺项；`usable` 只表示本次报告实际保存、可读且输入已读取，科研充分性为 `notAssessed`。缺产物、失败或取消保留部分成果。明确重试前用 `read_research_attempts` 核查原记录，提供同一 `invocationId` 及原目标/输入；已有文件仍需读取后修改，不盲目重复未知效果。重启只将运行中尝试标为中断，不自动重跑。共同客户端的 `research.methods`、`research.method`、`research.attempts` 提供同一只读事实；尝试默认每页25、上限100条。
+
+方法内容与来源位于 `apps/kernel/src/research/builtin/`，随内核构建复制。首次仅加载内置的 JSON 形式 YAML 声明；用户/项目方法发现、派生和启用管理随 P5a，完整文献 Digest 随 P4c 接入共同能力入口。当前能力记录在项目数据库中，沿既有备份与独立副本恢复保存。
+
 `pnpm test:kernel` 使用外部 HTTP 模型夹具，内部图、工具、文件和数据库均为真实实现。真实模型验收需显式运行 `SCHOOLOOM_LIVE_MODEL_TEST=1 pnpm test:kernel tests/kernel/minimax-live.spec.ts`，只使用隔离合成样本；默认测试不会使用真实 Key。该验证检查接线及可判定结果，不代表完整科研质量验收。
 
 本机日常启动：
@@ -136,4 +142,4 @@ GitHub Actions 使用 Linux、Windows、macOS 矩阵运行同一检查与目录�
 
 设计模块、复用旧实现或重构前，按[架构优先的复用与必要重构](../.scratch/scholoom-foundations/issues/14-agent-development-discipline.md#架构优先的复用与必要重构)评估，并读取相邻的测试 oracle／TDD 与 deep module 约定。
 
-assistant-ui 已用于工作台的消息和 Composer；数据库、LangGraph harness、代码编辑与 Markdown 预览已随项目文件工作台接入。科研方法、受管执行和插件在对应功能接入时安装并验证。范围明确后建立模块，避免提前加入空目录和假实现。
+assistant-ui 已用于工作台的消息和 Composer；数据库、LangGraph harness、代码编辑与 Markdown 预览已随项目文件工作台接入。内置材料分析沿共同能力模块执行；受管执行和插件在对应功能接入时安装并验证。范围明确后建立模块，避免提前加入空目录和假实现。

@@ -6,6 +6,67 @@ import { createModelServer } from '../model-server.js';
 import { expect, test } from './fixture.js';
 import { armRpcGate, installRpcGate, releaseRpcGate } from './rpc-gate.js';
 
+test('user invokes a declared research capability and opens its checked report', async ({
+  uiPage,
+}) => {
+  test.setTimeout(60000);
+  const model = await createModelServer();
+  const stop = await startModelKernel(process.env.SCHOOLOOM_UI_DATA_DIR as string, model.url);
+  const project = await mkdtemp(join(tmpdir(), 'scholoom-ui-research-'));
+  try {
+    await writeFile(join(project, 'input.md'), '# 合成实验\n\n观察结果42，样本数1。\n');
+    await uiPage.goto('http://127.0.0.1:5174/');
+    await expect(uiPage.getByRole('status', { name: '连接状态' })).toContainText('已连接');
+    await uiPage.getByRole('button', { name: '设置', exact: true }).click();
+    await uiPage.getByText('模型设置', { exact: true }).click();
+    await uiPage.getByLabel('MiniMax API Key', { exact: true }).fill('synthetic-research-key');
+    await uiPage.getByRole('button', { name: '保存凭据' }).click();
+    await expect(uiPage.getByLabel('MiniMax API Key', { exact: true })).toHaveValue('');
+    await uiPage.getByText('打开项目', { exact: true }).click();
+    await uiPage.getByRole('textbox', { name: '项目目录', exact: true }).fill(project);
+    await uiPage.getByRole('button', { name: '打开目录' }).click();
+    await expect(uiPage.getByLabel('执行上下文')).toContainText(basename(project));
+    await uiPage.getByRole('button', { name: '设置', exact: true }).click();
+    await uiPage.getByText('项目权限与备份', { exact: true }).click();
+    for (const label of [
+      '读取项目材料',
+      '新建、修改、重命名和回收／恢复项目文件及目录',
+      '将项目材料发送到 MiniMax',
+    ])
+      await uiPage.getByLabel(label, { exact: true }).check();
+    await uiPage.getByRole('button', { name: '保存项目授权' }).click();
+    await uiPage.getByRole('button', { name: '新建会话', exact: true }).click();
+    await uiPage
+      .getByRole('textbox', { name: '研究指令' })
+      .fill('MODEL_RESEARCH 用材料分析方法处理 input.md 并保存 analysis.md');
+    await uiPage.getByRole('button', { name: '发送指令' }).click();
+    await expect
+      .poll(() => readFile(join(project, 'analysis.md'), 'utf8').catch(() => ''))
+      .toContain('42');
+    await expect(uiPage.getByRole('status', { name: '执行状态' })).toContainText('执行完成');
+    await uiPage.getByRole('button', { name: '展开 Agent 会话' }).click();
+    const tool = uiPage
+      .locator('details.tool-call')
+      .filter({ hasText: 'invoke_research_capability' });
+    await tool.locator('summary').click();
+    await expect(tool).toContainText('invocationId');
+    await expect(tool).toContainText('usable');
+    await expect(tool).toContainText('notAssessed');
+    await uiPage.getByRole('button', { name: '打开成果 analysis.md', exact: true }).click();
+    await expect(
+      uiPage.getByRole('textbox', { name: '文件内容 analysis.md', exact: true }),
+    ).toContainText('42');
+    await uiPage.reload();
+    await expect(
+      uiPage.getByRole('button', { name: '打开成果 analysis.md', exact: true }),
+    ).toBeVisible();
+  } finally {
+    await stop();
+    await model.close();
+    await rm(project, { recursive: true });
+  }
+});
+
 test('user configures, edits safely and receives a real persisted Agent result', async ({
   uiPage,
 }, info) => {

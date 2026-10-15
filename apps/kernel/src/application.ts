@@ -9,11 +9,13 @@ import { CredentialStore } from './credentials/store.js';
 import { Harness } from './harness/runtime.js';
 import { ModelAccess } from './models/minimax.js';
 import { Projects } from './projects/store.js';
+import { ResearchRuntime } from './research/runtime.js';
 
 export class KernelApplication {
   readonly projects: Projects;
   readonly credentials: CredentialStore;
   readonly harness: Harness;
+  readonly research: ResearchRuntime;
   private revision = 0;
   private listeners = new Set<(change: WorkbenchChange) => void>();
 
@@ -25,9 +27,13 @@ export class KernelApplication {
     process.env.LANGCHAIN_TRACING_V2 = 'false';
     this.projects = new Projects(directory);
     this.credentials = new CredentialStore(join(directory, 'credentials'), options.environment);
+    this.research = new ResearchRuntime((projectId, sessionId) =>
+      this.changed(projectId, sessionId),
+    );
     this.harness = new Harness(
       this.projects,
       new ModelAccess(this.credentials, options.modelEndpoint),
+      this.research,
       (projectId, sessionId, sessionsChanged) =>
         this.changed(projectId, sessionId, sessionsChanged),
     );
@@ -72,6 +78,16 @@ export class KernelApplication {
   async call(method: BusinessMethod, input: unknown): Promise<unknown> {
     // Dispatch after protocol validation; each branch consumes its schema's inferred type.
     switch (method) {
+      case 'research.methods':
+        return this.research.content.discover();
+      case 'research.method': {
+        const p = input as BusinessParams<'research.method'>;
+        return this.research.content.resolve(p.methodId, p.version);
+      }
+      case 'research.attempts': {
+        const p = input as BusinessParams<'research.attempts'>;
+        return this.research.list(this.projects.get(p.projectId), p);
+      }
       case 'workbench.snapshot':
       case 'workbench.watch':
         return this.snapshot(input as BusinessParams<'workbench.snapshot'>);

@@ -95,6 +95,9 @@ export class KernelClient {
     if (!validateBusiness(method, 'params', params))
       throw new KernelClientError('invalidRequest', 'Invalid operation parameters.');
     const read = [
+      'research.methods',
+      'research.method',
+      'research.attempts',
       'workbench.snapshot',
       'workbench.watch',
       'session.list',

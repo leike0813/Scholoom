@@ -17,10 +17,12 @@ import type {
   BusinessResult,
   ErrorInfo,
   Message,
+  ResearchRequest,
   Run,
   Session,
   WorkbenchSnapshot,
 } from '@scholoom/protocol';
+import { researchRequestSchema } from '@scholoom/protocol';
 import Database from 'better-sqlite3';
 import {
   CompositeBackend,
@@ -34,6 +36,7 @@ import { z } from 'zod';
 import { failure, OperationError } from '../errors.js';
 import { type ModelAccess, modelFailure } from '../models/minimax.js';
 import type { ProjectStore, Projects } from '../projects/store.js';
+import type { ResearchRuntime } from '../research/runtime.js';
 import { atomicPrivateFile, privateDirectory } from '../storage/private-files.js';
 import * as tables from '../storage/schema.js';
 import { ProjectBackend } from './files.js';
@@ -49,6 +52,29 @@ type Notify = (projectId?: string, sessionId?: string, sessionsChanged?: boolean
 const activeKey = (project: ProjectStore, sessionId: string) =>
   `${project.project.id}:${sessionId}`;
 const now = () => new Date().toISOString();
+const settleTools = async (pending: Set<Promise<unknown>>) => {
+  while (pending.size) await Promise.allSettled([...pending]);
+};
+const track = <T>(pending: Set<Promise<unknown>>, done: Promise<T>): Promise<T> => {
+  pending.add(done);
+  void done.then(
+    () => pending.delete(done),
+    () => pending.delete(done),
+  );
+  return done;
+};
+const trackBackend = <T extends object>(backend: T, pending: Set<Promise<unknown>>): T =>
+  new Proxy(backend, {
+    get(target, property, receiver) {
+      const value = Reflect.get(target, property, receiver);
+      if (typeof value !== 'function') return value;
+      return (...args: unknown[]) =>
+        track(
+          pending,
+          Promise.resolve().then(() => value.apply(target, args)),
+        );
+    },
+  });
 const toolPreview = (text: string) => ({
   text: text.slice(0, 16384),
   truncated: text.length > 16384,
@@ -72,6 +98,7 @@ export class Harness {
   constructor(
     private readonly projects: Projects,
     private readonly model: ModelAccess,
+    private readonly research: ResearchRuntime,
     private readonly notify: Notify,
   ) {}
 
@@ -79,6 +106,7 @@ export class Harness {
     for (const project of this.projects.all()) {
       if (this.initialized.has(project)) continue;
       this.initialized.add(project);
+      this.research.initialize(project);
       const directory = join(project.internal, 'pending-artifacts');
       await privateDirectory(directory);
       for (const entry of (await readdir(directory)).slice(0, 100)) {
@@ -444,6 +472,7 @@ export class Harness {
     let checkpointDb: Database.Database | undefined;
     const buffers = new Map<string, string>();
     const persistedAt = new Map<string, number>();
+    const inFlightTools = new Set<Promise<unknown>>();
     try {
       signal.throwIfAborted();
       project.check('send');
@@ -467,31 +496,34 @@ export class Harness {
       await privateDirectory(join(project.internal, 'scratch'));
       const used = new Map<string, string>();
       const toolContext = new AsyncLocalStorage<{ error?: ErrorInfo }>();
-      const scratchBackend = () =>
-        new Proxy(
-          new FilesystemBackend({
-            rootDir: join(project.internal, 'scratch'),
-            virtualMode: true,
-          }),
-          {
-            get(target, property, receiver) {
-              const value = Reflect.get(target, property, receiver);
-              if (
-                typeof value !== 'function' ||
-                !['ls', 'read', 'readRaw', 'write', 'edit', 'glob', 'grep', 'delete'].includes(
-                  String(property),
+      const scratchBackend = (pending = inFlightTools) =>
+        trackBackend(
+          new Proxy(
+            new FilesystemBackend({
+              rootDir: join(project.internal, 'scratch'),
+              virtualMode: true,
+            }),
+            {
+              get(target, property, receiver) {
+                const value = Reflect.get(target, property, receiver);
+                if (
+                  typeof value !== 'function' ||
+                  !['ls', 'read', 'readRaw', 'write', 'edit', 'glob', 'grep', 'delete'].includes(
+                    String(property),
+                  )
                 )
-              )
-                return value;
-              return async (...args: unknown[]) => {
-                const result = await value.apply(target, args);
-                const context = toolContext.getStore();
-                if (context && result?.error)
-                  context.error = { code: 'unavailable', message: result.error };
-                return result;
-              };
+                  return value;
+                return async (...args: unknown[]) => {
+                  const result = await value.apply(target, args);
+                  const context = toolContext.getStore();
+                  if (context && result?.error)
+                    context.error = { code: 'unavailable', message: result.error };
+                  return result;
+                };
+              },
             },
-          },
+          ),
+          pending,
         );
       const pendingDirectory = join(project.internal, 'pending-artifacts');
       await privateDirectory(pendingDirectory);
@@ -543,15 +575,18 @@ export class Harness {
         this.notify(project.project.id, run.sessionId);
       };
       const backend = new CompositeBackend(
-        new ProjectBackend(
-          project,
-          signal,
-          (path, fileId) => used.set(fileId, path),
-          saved,
-          (error) => {
-            const context = toolContext.getStore();
-            if (context) context.error = error;
-          },
+        trackBackend(
+          new ProjectBackend(
+            project,
+            signal,
+            (path, fileId) => used.set(fileId, path),
+            saved,
+            (error) => {
+              const context = toolContext.getStore();
+              if (context) context.error = error;
+            },
+          ),
+          inFlightTools,
         ),
         {
           '/conversation_history/': scratchBackend(),
@@ -645,121 +680,234 @@ export class Harness {
           const result = await handler(request);
           return result;
         },
-        wrapToolCall: async (request, handler) => {
-          signal.throwIfAborted();
-          project.check('send');
-          const callId = request.toolCall.id;
-          const key = `tool:${run.id}:${callId}`;
-          const input = toolPreview(JSON.stringify(request.toolCall.args));
-          const tool = {
-            runId: run.id,
-            name: request.toolCall.name,
-            input: input.text,
-            inputTruncated: input.truncated,
-          };
-          const message: Message = {
-            id: key,
-            sessionId: run.sessionId,
-            role: 'tool',
-            text: request.toolCall.name,
-            state: 'streaming',
-            materials: [],
-            createdAt: now(),
-            tool,
-          };
-          const recordResult = (result: ToolMessage, error?: ErrorInfo) => {
-            const output = toolPreview(visibleText(result));
-            this.putMessage(project, {
-              ...message,
-              state:
-                error?.code === 'outcomeUnknown'
-                  ? 'unknown'
-                  : result.status === 'error'
-                    ? 'error'
-                    : 'complete',
-              materials: [...used.values()],
-              materialFileIds: [...used.keys()],
-              tool: { ...tool, output: output.text, outputTruncated: output.truncated },
-            });
-          };
-          const previous = project.db
-            .select()
-            .from(tables.meta)
-            .where(eq(tables.meta.key, key))
-            .get();
-          if (previous) {
-            const record = JSON.parse(previous.value);
-            if (!record.result)
-              throw new OperationError(
-                'outcomeUnknown',
-                '中断前工具效果未知，请核查文件后使用新指令继续。',
-              );
-            const result = coerceMessageLikeToMessage(record.result);
-            if (!(result instanceof ToolMessage))
-              throw new OperationError('outcomeUnknown', '旧工具结果不可恢复。');
-            recordResult(result, record.error);
-            return result;
-          }
-          this.putMessage(project, message);
-          project.db
-            .insert(tables.meta)
-            .values({
-              key,
-              value: JSON.stringify({
-                name: request.toolCall.name,
-                args: request.toolCall.args,
-                state: 'pending',
-              }),
-            })
-            .run();
-          const context: { error?: ErrorInfo } = {};
-          let result: Awaited<ReturnType<typeof handler>>;
-          try {
-            result = await toolContext.run(context, () => handler(request));
-          } catch (error) {
-            const output = toolPreview(modelFailure(error));
-            this.putMessage(project, {
-              ...message,
-              state:
-                signal.aborted ||
-                (error instanceof OperationError && error.code === 'outcomeUnknown')
-                  ? 'unknown'
-                  : 'error',
-              tool: { ...tool, output: output.text, outputTruncated: output.truncated },
-            });
-            throw error;
-          }
-          if (result instanceof ToolMessage) {
-            if (context.error) result.status = 'error';
-            project.db
-              .update(tables.meta)
-              .set({ value: JSON.stringify({ result: result.toDict(), error: context.error }) })
-              .where(eq(tables.meta.key, key))
-              .run();
-            recordResult(result, context.error);
-          } else {
-            project.db.delete(tables.meta).where(eq(tables.meta.key, key)).run();
-            const update = isCommand(result) ? result.update : undefined;
-            const messages = update && !Array.isArray(update) ? update.messages : undefined;
-            const output = Array.isArray(messages)
-              ? messages
-                  .map(coerceMessageLikeToMessage)
-                  .find((item) => item instanceof ToolMessage && item.tool_call_id === callId)
-              : undefined;
-            if (output instanceof ToolMessage) recordResult(output, context.error);
-          }
-          return result;
-        },
       });
+      const createToolMiddleware = (namespace: string, pending: Set<Promise<unknown>>) =>
+        createMiddleware({
+          name: 'ScholoomToolReceipts',
+          wrapToolCall: (request, handler) => {
+            const done = (async () => {
+              signal.throwIfAborted();
+              project.check('send');
+              const callId = request.toolCall.id;
+              const key = `tool:${namespace}:${callId}`;
+              const input = toolPreview(JSON.stringify(request.toolCall.args));
+              const tool = {
+                runId: run.id,
+                name: request.toolCall.name,
+                input: input.text,
+                inputTruncated: input.truncated,
+              };
+              const message: Message = {
+                id: key,
+                sessionId: run.sessionId,
+                role: 'tool',
+                text: request.toolCall.name,
+                state: 'streaming',
+                materials: [],
+                createdAt: now(),
+                tool,
+              };
+              const recordResult = (result: ToolMessage, error?: ErrorInfo) => {
+                const output = toolPreview(visibleText(result));
+                this.putMessage(project, {
+                  ...message,
+                  state:
+                    error?.code === 'outcomeUnknown'
+                      ? 'unknown'
+                      : result.status === 'error'
+                        ? 'error'
+                        : 'complete',
+                  materials: [...used.values()],
+                  materialFileIds: [...used.keys()],
+                  tool: { ...tool, output: output.text, outputTruncated: output.truncated },
+                });
+              };
+              const previous = project.db
+                .select()
+                .from(tables.meta)
+                .where(eq(tables.meta.key, key))
+                .get();
+              if (previous) {
+                const record = JSON.parse(previous.value);
+                if (!record.result)
+                  throw new OperationError(
+                    'outcomeUnknown',
+                    '中断前工具效果未知，请核查文件后使用新指令继续。',
+                  );
+                const result = coerceMessageLikeToMessage(record.result);
+                if (!(result instanceof ToolMessage))
+                  throw new OperationError('outcomeUnknown', '旧工具结果不可恢复。');
+                recordResult(result, record.error);
+                return result;
+              }
+              this.putMessage(project, message);
+              project.db
+                .insert(tables.meta)
+                .values({
+                  key,
+                  value: JSON.stringify({
+                    name: request.toolCall.name,
+                    args: request.toolCall.args,
+                    state: 'pending',
+                  }),
+                })
+                .run();
+              const context: { error?: ErrorInfo } = {};
+              let result: Awaited<ReturnType<typeof handler>>;
+              try {
+                result = await toolContext.run(context, () => handler(request));
+              } catch (error) {
+                const output = toolPreview(modelFailure(error));
+                this.putMessage(project, {
+                  ...message,
+                  state:
+                    signal.aborted ||
+                    (error instanceof OperationError && error.code === 'outcomeUnknown')
+                      ? 'unknown'
+                      : 'error',
+                  tool: { ...tool, output: output.text, outputTruncated: output.truncated },
+                });
+                throw error;
+              }
+              if (result instanceof ToolMessage) {
+                if (context.error) result.status = 'error';
+                project.db
+                  .update(tables.meta)
+                  .set({ value: JSON.stringify({ result: result.toDict(), error: context.error }) })
+                  .where(eq(tables.meta.key, key))
+                  .run();
+                recordResult(result, context.error);
+              } else {
+                project.db.delete(tables.meta).where(eq(tables.meta.key, key)).run();
+                const update = isCommand(result) ? result.update : undefined;
+                const messages = update && !Array.isArray(update) ? update.messages : undefined;
+                const output = Array.isArray(messages)
+                  ? messages
+                      .map(coerceMessageLikeToMessage)
+                      .find((item) => item instanceof ToolMessage && item.tool_call_id === callId)
+                  : undefined;
+                if (output instanceof ToolMessage) recordResult(output, context.error);
+              }
+              return result;
+            })();
+            return track(pending, done);
+          },
+        });
       const buildAgent = () =>
         createDeepAgent({
           model,
           backend,
           checkpointer: saver,
-          middleware: [instructionMiddleware],
+          middleware: [instructionMiddleware, createToolMiddleware(run.id, inFlightTools)],
           systemPrompt:
             '你是 Scholoom 科研助手。使用中文与用户工作。项目正文以实际文件为准，附加材料只是引用，先读取。形成可承接的分析、理由、成果及下一步时保存为普通 Markdown 文件；在没有项目文件权限时只对话。仅使用授权工具。修改已有文件先读取，遇到冲突重读再修改。write_file 仅用于新建，edit_file 修改已有内容。不得声称未保存成果已交付。不要依赖旧 transcript 才能续做，可发现并读取项目已有成果。用户取消后不继续。',
           tools: [
+            {
+              name: 'discover_research_methods',
+              description: '发现可用科研方法摘要，不启动执行。',
+              schema: z.object({}),
+              func: async () => JSON.stringify(await this.research.content.discover()),
+            },
+            {
+              name: 'load_research_method',
+              description: '按身份及版本读取科研方法正文与能力声明，不建立任务或调用。',
+              schema: z.object({ methodId: z.string(), version: z.string() }),
+              func: async ({ methodId, version }: { methodId: string; version: string }) =>
+                JSON.stringify(await this.research.content.resolve(methodId, version)),
+            },
+            {
+              name: 'read_research_attempts',
+              description:
+                '分页核查本会话的科研能力调用、实际成果与缺项。重试前先核查；查询不执行模型。',
+              schema: z.object({
+                invocationId: z.string().optional(),
+                offset: z.number().int().min(0).default(0),
+              }),
+              func: async (input: { invocationId?: string; offset: number }) =>
+                JSON.stringify(this.research.list(project, { sessionId: run.sessionId, ...input })),
+            },
+            {
+              name: 'invoke_research_capability',
+              description:
+                '明确调用已发现的科研能力，输入及交付由运行时核对并自动保存调用/尝试。普通方法可直接加载使用。重试同一次科研使用前查询原记录并提供invocationId；独立目标不复用身份。',
+              schema: researchRequestSchema,
+              func: async (input: ResearchRequest) => {
+                try {
+                  const attempt = await this.research.invoke(input, {
+                    project,
+                    sessionId: run.sessionId,
+                    runId: run.id,
+                    signal,
+                    isStopping: () => this.stopped,
+                    execute: async (execution) => {
+                      const capabilityTools = new Set<Promise<unknown>>();
+                      const capabilityBackend = trackBackend(
+                        new ProjectBackend(
+                          project,
+                          signal,
+                          (path, fileId) => {
+                            used.set(fileId, path);
+                            execution.read(path, fileId);
+                          },
+                          async (path, fileId) => {
+                            const identity = fileId ?? (await project.files.reference(path)).fileId;
+                            execution.saved(path, identity);
+                            await saved(path, identity);
+                          },
+                          (error) => {
+                            execution.failed(`${error.code}: ${error.message}`);
+                            const context = toolContext.getStore();
+                            if (context) context.error = error;
+                          },
+                          execution.expectedOutput,
+                        ),
+                        capabilityTools,
+                      );
+                      const capability = createDeepAgent({
+                        model,
+                        backend: new CompositeBackend(capabilityBackend, {
+                          '/conversation_history/': scratchBackend(capabilityTools),
+                          '/large_tool_results/': scratchBackend(capabilityTools),
+                        }),
+                        middleware: [
+                          createToolMiddleware(
+                            `${run.id}:capability:${execution.attemptId}`,
+                            capabilityTools,
+                          ),
+                        ],
+                        systemPrompt:
+                          '你在当前 Scholoom 执行内运用科研方法。使用实际文件工具，保存要求的报告，保留来源及限制。只执行给定目标，不委派，不创建任务；工具错误与科研不足如实说明。',
+                      });
+                      try {
+                        await capability.invoke(
+                          { messages: [new HumanMessage(execution.prompt)] },
+                          {
+                            signal,
+                            recursionLimit: 1000,
+                          },
+                        );
+                      } finally {
+                        await settleTools(capabilityTools);
+                      }
+                    },
+                  });
+                  if (attempt.delivery !== 'usable') {
+                    const context = toolContext.getStore();
+                    if (context)
+                      context.error = {
+                        code: 'unavailable',
+                        message: '科研能力未完整交付，请核查尝试记录。',
+                      };
+                  }
+                  return JSON.stringify(attempt);
+                } catch (error) {
+                  const info = failure(error);
+                  const context = toolContext.getStore();
+                  if (context) context.error = info;
+                  return JSON.stringify({ error: info });
+                }
+              },
+            },
             ...(['mkdir', 'rename', 'trash', 'restore'] as const).map((kind) => ({
               name: `${kind}_project_path`,
               description: `对项目普通文件或目录执行${kind}。写授权包含回收／恢复；operationId须为唯一UUID，结果未知时先查询原操作。rename仅更改名称。`,
@@ -849,7 +997,7 @@ export class Harness {
               },
             },
           ].map((definition) =>
-            defineTool((input) => definition.func(input as never), {
+            defineTool((input) => track(inFlightTools, definition.func(input as never)), {
               name: definition.name,
               description: definition.description,
               schema: definition.schema,
@@ -974,8 +1122,10 @@ export class Harness {
           .onConflictDoUpdate({ target: tables.meta.key, set: { value: String(delivered.seq) } })
           .run();
       }
+      await settleTools(inFlightTools);
       this.setRun(project, { ...run, state: 'completed', remoteOutcome: 'completed' });
     } catch (error) {
+      await settleTools(inFlightTools);
       for (const [id, text] of buffers) {
         const prior = project.db
           .select()
