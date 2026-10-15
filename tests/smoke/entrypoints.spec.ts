@@ -1,6 +1,8 @@
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { _electron as electron, expect, test } from '@playwright/test';
+import { closeDesktop } from '../desktop-fixture.js';
+import { isolatedKernel, runKernel } from '../kernel-fixture.js';
 
 const projectRoot = fileURLToPath(new URL('../../', import.meta.url));
 
@@ -20,27 +22,69 @@ test('kernel CLI runs under independent Node', () => {
 });
 
 test('desktop loads React and its sandbox preload', async () => {
-  const app = await electron.launch({
-    args: [fileURLToPath(new URL('../../apps/desktop', import.meta.url))],
-  });
-  try {
-    const window = await app.firstWindow();
-    await expect(window.getByRole('heading', { level: 1 })).toBeVisible();
-    await expect(window.getByRole('status', { name: '连接状态' })).toContainText('未连接');
-    await expect(window.getByRole('button', { name: '发送指令' })).toBeDisabled();
-    const platform = await window.evaluate(() => Reflect.get(window, 'scholoomDesktop')?.platform);
-    expect(platform).toBe(process.platform);
-    expect(await window.evaluate(() => typeof Reflect.get(window, 'require'))).toBe('undefined');
+  await isolatedKernel(async (directory) => {
+    const app = await electron.launch({
+      args: [fileURLToPath(new URL('../../apps/desktop', import.meta.url))],
+      env: {
+        ...process.env,
+        SCHOOLOOM_DATA_DIR: directory,
+        SCHOOLOOM_NODE_EXECUTABLE: process.execPath,
+      },
+    });
+    try {
+      const window = await app.firstWindow();
+      await expect(window.getByRole('heading', { level: 1 })).toBeVisible();
+      await expect(window.getByRole('status', { name: '连接状态' })).toContainText('已连接');
+      await expect(window.getByRole('button', { name: '发送指令' })).toBeDisabled();
+      const platform = await window.evaluate(
+        () => Reflect.get(window, 'scholoomDesktop')?.platform,
+      );
+      expect(platform).toBe(process.platform);
+      expect(await window.evaluate(() => typeof Reflect.get(window, 'require'))).toBe('undefined');
 
-    await window.goto(
-      new URL('../../apps/desktop/out/renderer/index.html?scenario=ui-foundation', import.meta.url)
-        .href,
-    );
-    await expect(window.getByRole('status', { name: '连接状态' })).toContainText('未连接');
-    await expect(window.getByRole('checkbox')).toHaveCount(0);
-  } finally {
-    await app.close();
-  }
+      await window.goto(
+        new URL(
+          '../../apps/desktop/out/renderer/index.html?scenario=ui-foundation',
+          import.meta.url,
+        ).href,
+      );
+      await expect(window.getByRole('status', { name: '连接状态' })).toContainText('已连接');
+      await expect(window.getByRole('checkbox')).toHaveCount(0);
+    } finally {
+      await closeDesktop(app);
+    }
+    expect((await runKernel(directory, 'status')).state).toBe('running');
+  });
+});
+
+test('desktop closes without stopping kernel and a new window reconnects', async () => {
+  await isolatedKernel(async (directory) => {
+    let instanceId: string | undefined;
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      const app = await electron.launch({
+        args: [fileURLToPath(new URL('../../apps/desktop', import.meta.url))],
+        env: {
+          ...process.env,
+          SCHOOLOOM_DATA_DIR: directory,
+          SCHOOLOOM_NODE_EXECUTABLE: process.execPath,
+        },
+      });
+      try {
+        const page = await app.firstWindow();
+        await expect(page.getByRole('status', { name: '连接状态' })).toContainText('已连接');
+        const current = await runKernel(directory, 'status');
+        expect(current.state).toBe('running');
+        if (current.state === 'running') {
+          if (instanceId) expect(current.endpoint.instanceId).toBe(instanceId);
+          instanceId = current.endpoint.instanceId;
+          await expect(page.getByText(`实例 ${instanceId}`, { exact: true })).toBeVisible();
+        }
+      } finally {
+        await closeDesktop(app);
+      }
+      expect((await runKernel(directory, 'status')).state).toBe('running');
+    }
+  });
 });
 
 test('compatibility host loads its own hidden Chromium page', async () => {

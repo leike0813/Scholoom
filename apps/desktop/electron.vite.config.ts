@@ -4,6 +4,7 @@ import { defineConfig } from 'electron-vite';
 export default defineConfig({
   main: {
     build: {
+      externalizeDeps: { exclude: ['@scholoom/protocol'] },
       rollupOptions: { output: { format: 'cjs', entryFileNames: 'index.cjs' } },
     },
   },

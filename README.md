@@ -2,7 +2,7 @@
 
 面向科研 Agent 与研究者的本地工作台，覆盖文献管理、阅读、研究执行和论文写作。
 
-当前仓库包含独立 Node CLI、浏览器与 Electron 共用的 React／assistant-ui 工作台、独立 Electron 兼容宿主，以及共享协议和客户端包。科研功能、内核服务和 Zotero 插件适配仍需逐项实现。
+当前仓库包含独立 Node 内核、浏览器与 Electron 共用的 React／assistant-ui 工作台、独立 Electron 兼容宿主，以及共享协议和客户端包。工作台与 CLI 已接入真实内核生命周期；科研功能和 Zotero 插件适配仍需逐项实现。
 
 ## 开始开发
 
@@ -12,6 +12,9 @@
 pnpm install --frozen-lockfile
 pnpm build
 pnpm kernel --info
+pnpm kernel start
+pnpm kernel status
+pnpm kernel stop
 ```
 
 按需启动工作台或同一 renderer 的浏览器入口：
@@ -23,7 +26,9 @@ pnpm dev:browser
 
 Electron 运行时由 `pnpm setup:electron` 显式下载；工作台、宿主开发命令和 smoke 会先运行该步骤，已有匹配版本时直接复用。
 
-浏览器默认显示未连接工作台；日常 Orca 交互使用开发态 `http://127.0.0.1:5173/?scenario=ui-foundation`，在同一工作台注入样例数据。新功能继续扩展这套 UI，入口与操作机制见[共享工作台与日常交互](docs/development.md#共享工作台与日常交互)。
+浏览器开发命令发现或启动内核，Electron 打开时自动接入；三种入口默认共用被 Git 忽略的 `.scholoom-dev/` 配置。关窗不停止内核，CLI 或工作台菜单可以明确停止。研究指令能力尚未接入，连接成功后仍可编辑草稿、发送保持禁用。
+
+开发态 `http://127.0.0.1:5173/?scenario=ui-foundation` 在同一工作台注入隔离样例数据。实际入口、配置选择和故障处理见[开发说明](docs/development.md)。
 
 验证工程入口：
 
@@ -31,6 +36,7 @@ Electron 运行时由 `pnpm setup:electron` 显式下载；工作台、宿主开
 pnpm lint
 pnpm typecheck
 pnpm build
+pnpm test:kernel
 pnpm test:smoke
 pnpm setup:ui
 pnpm test:ui

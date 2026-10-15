@@ -34,6 +34,43 @@ body {
   color: #6b5f52;
 }
 
+.workbench__lifecycle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.workbench__lifecycle button,
+.workbench__menu summary {
+  padding: 8px 16px;
+  font: inherit;
+  border-radius: 8px;
+  border: 1px solid #d8cbb8;
+  background: #fffdfa;
+  color: inherit;
+  cursor: pointer;
+}
+
+.workbench__menu summary {
+  display: inline-block;
+}
+
+.workbench__menu[open] {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 16px;
+  border: 1px solid #e6ddd0;
+  border-radius: 12px;
+  background: #fffdfa;
+}
+
+.workbench__detail {
+  font-size: 13px;
+}
+
 .workbench__columns {
   display: grid;
   grid-template-columns: minmax(200px, 1fr) minmax(0, 2fr);

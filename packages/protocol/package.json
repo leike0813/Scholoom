@@ -18,6 +18,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
+    "ajv": "8.20.0",
     "json-schema-to-ts": "3.1.1"
   }
 }

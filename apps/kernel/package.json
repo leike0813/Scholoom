@@ -7,12 +7,23 @@
   "bin": {
     "scholoom-kernel": "./dist/cli.js"
   },
+  "exports": {
+    "./bootstrap": {
+      "types": "./dist/bootstrap.d.ts",
+      "import": "./dist/bootstrap.js"
+    }
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "start": "node dist/cli.js"
   },
   "dependencies": {
-    "@scholoom/protocol": "workspace:*"
+    "@scholoom/protocol": "workspace:*",
+    "@scholoom/client": "workspace:*",
+    "ws": "8.22.0"
+  },
+  "devDependencies": {
+    "@types/ws": "8.18.2"
   }
 }

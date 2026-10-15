@@ -2,6 +2,7 @@
   "name": "@scholoom/desktop",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "license": "AGPL-3.0-only",
   "description": "Scholoom research workbench",
   "main": "out/main/index.cjs",
@@ -17,6 +18,8 @@
     "@assistant-ui/react": "0.15.27",
     "react": "19.3.0",
     "react-dom": "19.3.0",
-    "@scholoom/client": "workspace:*"
+    "@scholoom/client": "workspace:*",
+    "@scholoom/protocol": "workspace:*",
+    "@scholoom/kernel": "workspace:*"
   }
 }

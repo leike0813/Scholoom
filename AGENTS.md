@@ -11,6 +11,7 @@
 ## 产品与架构约束
 
 - 科研内核可脱离工作台执行；GUI 与 Agent 共用领域能力和数据权威。跨端契约以 `packages/protocol` 的 schema 为源，工作台经 `packages/client` 接入。
+- 内核启动、停机或运行目录操作先核对[生命周期说明](docs/development.md#内核配置与生命周期)；配置使用本机文件系统，持锁期间保护同一运行锁文件。
 - 执行与扩展遵循 [#07](.scratch/scholoom-foundations/issues/07-agent-runtime-boundaries.md#answer)：统一内置 LangGraph harness，不支持 ACP 外部 Agent；MCP 能力经插件系统管理，对外 MCP 服务作为独立候选入口。多模型供应商共用同一执行机制。
 - 重计算放入 Worker 或受管进程，避免阻塞工作台与 Agent 调度；Synthesis 先用 TypeScript，具体复用与语言取舍沿[#19](.scratch/scholoom-foundations/issues/19-existing-source-and-rust-reuse.md)。
 - [Agent 会话](.scratch/scholoom-foundations/issues/43-free-agent-conversation-and-research-tasks.md)沿通用 harness，不分类型、不绑定研究任务；任务通过工具操作，多会话可处理同一对象。

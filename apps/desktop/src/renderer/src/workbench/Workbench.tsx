@@ -5,6 +5,7 @@ import {
   ThreadPrimitive,
   useExternalStoreRuntime,
 } from '@assistant-ui/react';
+import { useRef } from 'react';
 import type { WorkbenchSession } from './session';
 
 function UserMessage() {
@@ -29,8 +30,38 @@ function AssistantMessage() {
   );
 }
 
+/** 明确停机入口：说明影响范围，确认与取消都是可键盘操作的常规控件。 */
+function StopKernel({ onStop }: { onStop: () => void }) {
+  const menu = useRef<HTMLDetailsElement>(null);
+  const close = () => {
+    if (menu.current !== null) menu.current.open = false;
+  };
+
+  return (
+    <details className="workbench__menu" ref={menu}>
+      <summary>停止内核</summary>
+      <p>停止后所有已连接的客户端（包括其他窗口与 CLI）都会断开，需要重新启动才能继续。</p>
+      <div className="workbench__actions">
+        <button
+          type="button"
+          onClick={() => {
+            close();
+            onStop();
+          }}
+        >
+          确认停止
+        </button>
+        <button type="button" onClick={close}>
+          取消
+        </button>
+      </div>
+    </details>
+  );
+}
+
 export function Workbench({ session }: { session: WorkbenchSession }) {
   const runtime = useExternalStoreRuntime(session.adapter);
+  const connection = session.connection;
 
   const reset = () => {
     session.reset?.();
@@ -43,9 +74,26 @@ export function Workbench({ session }: { session: WorkbenchSession }) {
         <header className="workbench__header">
           <h1>Scholoom</h1>
           <p>科研工作台</p>
-          <p role="status" aria-label="连接状态">
-            {session.status === 'sample' ? '样例场景 · 刷新后重置' : '内核未连接'}
-          </p>
+          <div className="workbench__lifecycle">
+            <p role="status" aria-label="连接状态">
+              {connection?.message ??
+                (session.status === 'sample' ? '样例场景 · 刷新后重置' : '内核未连接')}
+            </p>
+            {connection?.instanceId ? (
+              <p className="workbench__detail">实例 {connection.instanceId}</p>
+            ) : null}
+            {connection?.retry ? (
+              <button type="button" onClick={connection.retry}>
+                重试连接
+              </button>
+            ) : null}
+            {connection?.inspect ? (
+              <button type="button" onClick={connection.inspect}>
+                查询状态
+              </button>
+            ) : null}
+            {connection?.stop ? <StopKernel onStop={connection.stop} /> : null}
+          </div>
         </header>
         <div className="workbench__columns">
           <section className="workbench__panel" aria-labelledby="materials-title">

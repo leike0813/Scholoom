@@ -9,6 +9,7 @@ test-results/
 .env.*
 !.env.example
 .DS_Store
+.scholoom-dev/
 
 .agents/
 .claude/

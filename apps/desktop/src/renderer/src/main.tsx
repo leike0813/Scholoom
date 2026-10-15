@@ -1,7 +1,6 @@
 import { lazy, StrictMode, Suspense } from 'react';
 import { createRoot } from 'react-dom/client';
-import { disconnectedSession } from './workbench/session';
-import { Workbench } from './workbench/Workbench';
+import { KernelWorkbench } from './workbench/kernel-session';
 import './styles.css';
 
 const root = document.getElementById('root');
@@ -15,7 +14,7 @@ const Scenario =
 createRoot(root).render(
   <StrictMode>
     <Suspense fallback={<p role="status">加载工作台…</p>}>
-      {Scenario ? <Scenario /> : <Workbench session={disconnectedSession} />}
+      {Scenario ? <Scenario /> : <KernelWorkbench />}
     </Suspense>
   </StrictMode>,
 );
