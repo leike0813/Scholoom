@@ -1,6 +1,7 @@
 import type { CSSProperties, ReactNode } from 'react';
+import { useState } from 'react';
 import type { FileNode, TaskSummary } from '../session';
-import { IconChevronLeft, IconChevronRight, IconFolder, IconTasks } from './icons';
+import { IconChevronLeft, IconChevronRight, IconFolder, IconTasks, IconPaperclip } from './icons';
 
 function TreeNode({ node, depth }: { node: FileNode; depth: number }) {
   return (
@@ -51,79 +52,115 @@ export function AuxiliaryPane({
   onCollapse,
   fileNavigator,
 }: AuxiliaryPaneProps) {
+  type TabId = 'files' | 'materials' | 'tasks';
+  const [activeTab, setActiveTab] = useState<TabId>('files');
+
   return (
-    <aside className="side side--right" aria-label="文件与任务">
-      <section className="pane" aria-label="文件">
-        <div className="pane__header">
+    <aside className="side side--right" aria-label="辅助面板">
+      <nav className="auxiliary-tabs" role="tablist">
+        <button
+          role="tab"
+          aria-selected={activeTab === 'files'}
+          aria-controls="tab-files"
+          className="auxiliary-tab"
+          onClick={() => setActiveTab('files')}
+        >
+          <IconFolder />
           <span>文件</span>
-          <button
-            type="button"
-            className="icon-btn icon-btn--sm"
-            onClick={onCollapse}
-            title="折叠右区 (Ctrl+Alt+B)"
-            aria-label="折叠右区"
-          >
-            <IconChevronRight />
-          </button>
-        </div>
-        <div className="pane__body">
-          {fileNavigator ??
-            (fileTree.length === 0 ? (
-              <p className="empty-hint">暂无文件</p>
-            ) : (
-              <ul className="tree">
-                {fileTree.map((node) => (
-                  <TreeNode key={node.name} node={node} depth={0} />
-                ))}
-              </ul>
-            ))}
-        </div>
-      </section>
-
-      <section className="pane" aria-label="材料">
-        <div className="pane__header">
+        </button>
+        <button
+          role="tab"
+          aria-selected={activeTab === 'materials'}
+          aria-controls="tab-materials"
+          className="auxiliary-tab"
+          onClick={() => setActiveTab('materials')}
+        >
+          <IconPaperclip />
           <span>材料</span>
-        </div>
-        <div className="pane__body">
-          {materials.length === 0 ? (
-            <p className="empty-hint">暂无材料</p>
-          ) : (
-            materials.map((name) => (
-              <label key={name} className="material-item">
-                <input
-                  type="checkbox"
-                  checked={selectedMaterials.includes(name)}
-                  onChange={() => toggleMaterial(name)}
-                />
-                <span>{name}</span>
-              </label>
-            ))
-          )}
-        </div>
-      </section>
-
-      <section className="pane" aria-label="任务">
-        <div className="pane__header">
+        </button>
+        <button
+          role="tab"
+          aria-selected={activeTab === 'tasks'}
+          aria-controls="tab-tasks"
+          className="auxiliary-tab"
+          onClick={() => setActiveTab('tasks')}
+        >
+          <IconTasks />
           <span>任务</span>
-        </div>
-        <div className="pane__body">
-          {tasks.length === 0 ? (
-            <p className="empty-hint">暂无任务</p>
-          ) : (
-            <ul className="task-list">
-              {tasks.map((task) => (
-                <li key={task.id} className="task">
-                  <TaskStatusPill status={task.status} />
-                  <span className="task__title" title={task.title}>
-                    {task.title}
-                  </span>
-                  <span className="task__time">{task.updatedAt}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      </section>
+        </button>
+        <div className="auxiliary-tabs__spacer" />
+        <button
+          type="button"
+          className="icon-btn icon-btn--sm"
+          onClick={onCollapse}
+          title="折叠右区 (Ctrl+Alt+B)"
+          aria-label="折叠右区"
+        >
+          <IconChevronRight />
+        </button>
+      </nav>
+
+      <div className="auxiliary-content" role="tabpanel">
+        {activeTab === 'files' && (
+          <section className="pane" aria-label="文件" id="tab-files">
+            <div className="pane__body">
+              {fileNavigator ??
+                (fileTree.length === 0 ? (
+                  <p className="empty-hint">暂无文件</p>
+                ) : (
+                  <ul className="tree">
+                    {fileTree.map((node) => (
+                      <TreeNode key={node.name} node={node} depth={0} />
+                    ))}
+                  </ul>
+                ))}
+            </div>
+          </section>
+        )}
+
+        {activeTab === 'materials' && (
+          <section className="pane" aria-label="材料" id="tab-materials">
+            <div className="pane__body">
+              {materials.length === 0 ? (
+                <p className="empty-hint">暂无材料</p>
+              ) : (
+                materials.map((name) => (
+                  <label key={name} className="material-item">
+                    <input
+                      type="checkbox"
+                      checked={selectedMaterials.includes(name)}
+                      onChange={() => toggleMaterial(name)}
+                    />
+                    <span>{name}</span>
+                  </label>
+                ))
+              )}
+            </div>
+          </section>
+        )}
+
+        {activeTab === 'tasks' && (
+          <section className="pane" aria-label="任务" id="tab-tasks">
+            <div className="pane__body">
+              {tasks.length === 0 ? (
+                <p className="empty-hint">暂无任务</p>
+              ) : (
+                <ul className="task-list">
+                  {tasks.map((task) => (
+                    <li key={task.id} className="task">
+                      <TaskStatusPill status={task.status} />
+                      <span className="task__title" title={task.title}>
+                        {task.title}
+                      </span>
+                      <span className="task__time">{task.updatedAt}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </section>
+        )}
+      </div>
     </aside>
   );
 }

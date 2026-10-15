@@ -244,3 +244,18 @@ export function IconPreview() {
     </Svg>
   );
 }
+
+export function IconPaperclip() {
+  return (
+    <Svg>
+      <path
+        d="M8.5 14.5l-5-5c-1.1-1.1-1.1-2.9 0-4s2.9-1.1 4 0l6 6c1.9 1.9 1.9 5 0 6.9s-5 1.9-6.9 0l-6-6"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
