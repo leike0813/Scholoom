@@ -96,7 +96,7 @@ export function AgentDock({ messages, context, reset, onExpand, cancel, resume }
           maxRows={4}
           submitMode="ctrlEnter"
         />
-        <div className="dock-composer__row">
+        <div className="composer-config">
           {reset ? (
             <button type="button" className="chip" onClick={reset}>
               重置示例
@@ -104,12 +104,12 @@ export function AgentDock({ messages, context, reset, onExpand, cancel, resume }
           ) : null}
           <span className="spacer" />
           {cancel ? (
-            <button type="button" onClick={cancel}>
+            <button type="button" className="btn" onClick={cancel}>
               取消执行
             </button>
           ) : null}
           {resume ? (
-            <button type="button" onClick={resume}>
+            <button type="button" className="btn" onClick={resume}>
               继续执行
             </button>
           ) : null}

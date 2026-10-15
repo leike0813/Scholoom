@@ -1,4 +1,5 @@
 import { type ReactNode, useRef } from 'react';
+import { relativeTime } from '../relative-time';
 import type { SessionSummary, WorkbenchConnection } from '../session';
 import {
   IconChat,
@@ -151,7 +152,9 @@ export function ActivityPane({
                   <span className="session__title" title={item.title}>
                     {item.title}
                   </span>
-                  <span className="session__time">{item.updatedAt}</span>
+                  <time className="session__time" dateTime={item.updatedAt}>
+                    {relativeTime(item.updatedAt)}
+                  </time>
                   {item.unread ? (
                     <span className="dot dot--unread" role="img" aria-label="有未读" />
                   ) : null}

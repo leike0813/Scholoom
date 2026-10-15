@@ -7,8 +7,16 @@ import type {
   ProjectBackup,
   WorkbenchSnapshot,
 } from '@scholoom/protocol';
-import { type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
+import {
+  type CSSProperties,
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import type { FileTarget } from './session';
+import { IconChevronRight } from './shell/icons';
 
 type Call = KernelClient['call'];
 type Listing<T> = { entries: T[]; next?: number };
@@ -111,7 +119,7 @@ export function ProjectControls({
             onChange={(event) => setKey(event.target.value)}
           />
         </label>
-        <button type="submit" disabled={!key.trim()}>
+        <button type="submit" className="btn" disabled={!key.trim()}>
           保存凭据
         </button>
       </form>
@@ -143,6 +151,7 @@ export function ProjectControls({
         ))}
         <button
           type="button"
+          className="btn"
           onClick={() =>
             run(async () => {
               await call('project.grant', { projectId: project.id, ...grants });
@@ -153,6 +162,7 @@ export function ProjectControls({
         </button>
         <button
           type="button"
+          className="btn"
           onClick={() =>
             run(async () => {
               await call('project.backup', { projectId: project.id });
@@ -164,6 +174,7 @@ export function ProjectControls({
         </button>
         <button
           type="button"
+          className="btn"
           onClick={() =>
             run(async () => {
               setBackups(await call('project.backups', { projectId: project.id }));
@@ -185,6 +196,7 @@ export function ProjectControls({
             <span>{backup.createdAt}</span>
             <button
               type="button"
+              className="btn"
               disabled={!destination.trim()}
               onClick={() =>
                 run(async () => {
@@ -264,7 +276,7 @@ export function ProjectControls({
                   onChange={(event) => setCreateName(event.target.value)}
                 />
               </label>
-              <button type="submit" disabled={!createPath.trim()}>
+              <button type="submit" className="btn" disabled={!createPath.trim()}>
                 创建项目
               </button>
             </form>
@@ -287,7 +299,9 @@ export function ProjectControls({
                   onChange={(event) => setPath(event.target.value)}
                 />
               </label>
-              <button type="submit">打开目录</button>
+              <button type="submit" className="btn">
+                打开目录
+              </button>
             </form>
           </details>
           {project && project.id !== 'application' ? (
@@ -304,6 +318,7 @@ export function ProjectControls({
               </label>
               <button
                 type="button"
+                className="btn"
                 disabled={!displayName.trim()}
                 onClick={() =>
                   run(async () => {
@@ -319,6 +334,7 @@ export function ProjectControls({
               </button>
               <button
                 type="button"
+                className="btn"
                 onClick={() =>
                   run(async () => {
                     await call('project.forget', { projectId: project.id });
@@ -345,15 +361,17 @@ export function ProjectControls({
 function TrashRow({
   entry,
   disabled,
+  busy,
   restore,
 }: {
   entry: FileLocation;
   disabled: boolean;
+  busy: boolean;
   restore: (destination: string) => void;
 }) {
   const [where, setWhere] = useState('');
   return (
-    <li>
+    <li className="trash-row">
       <span>{entry.path}</span>
       <input
         aria-label={`恢复位置 ${entry.path}`}
@@ -361,7 +379,13 @@ function TrashRow({
         value={where}
         onChange={(event) => setWhere(event.target.value)}
       />
-      <button type="button" disabled={disabled} onClick={() => restore(where.trim())}>
+      <button
+        type="button"
+        className="btn"
+        disabled={disabled || busy}
+        aria-busy={busy || undefined}
+        onClick={() => restore(where.trim())}
+      >
         恢复
       </button>
     </li>
@@ -393,6 +417,7 @@ export function ProjectNavigator({
   const [directoryName, setDirectoryName] = useState('');
   const [renameName, setRenameName] = useState('');
   const [confirming, setConfirming] = useState(false);
+  const [busy, setBusy] = useState<Record<string, boolean>>({});
   const epoch = useRef(0);
   const requests = useRef<Record<string, number>>({});
   const trashRequests = useRef(0);
@@ -475,11 +500,13 @@ export function ProjectNavigator({
     });
 
   const run = async (
+    key: string,
     action: () => Promise<FileOperation>,
     pending: Omit<FileOperation, 'state'>,
     after: () => void,
   ) => {
     setError('');
+    setBusy((current) => ({ ...current, [key]: true }));
     try {
       const value = await action();
       record(value);
@@ -491,6 +518,12 @@ export function ProjectNavigator({
       // 结果未知时保留操作身份，按原 operationId 核查，不重放移动。
       if (codeOf(reason) === 'outcomeUnknown')
         record({ ...pending, state: 'unknown', error: messageOf(reason) });
+    } finally {
+      setBusy((current) => {
+        const next = { ...current };
+        delete next[key];
+        return next;
+      });
     }
   };
 
@@ -532,6 +565,7 @@ export function ProjectNavigator({
     const operationId = crypto.randomUUID();
     const path = childOf(folder, name);
     void run(
+      'mkdir',
       () => client.call('files.mkdir', { projectId: project.id, path, operationId }),
       { id: operationId, kind: 'mkdir', path },
       () => setDirectoryName(''),
@@ -544,6 +578,7 @@ export function ProjectNavigator({
     if (!entry || !name) return;
     const operationId = crypto.randomUUID();
     void run(
+      'rename',
       () =>
         client.call('files.rename', { projectId: project.id, path: entry.path, name, operationId }),
       { id: operationId, kind: 'rename', path: entry.path },
@@ -560,6 +595,7 @@ export function ProjectNavigator({
     if (!entry) return;
     const operationId = crypto.randomUUID();
     void run(
+      'trash',
       () => client.call('files.trash', { projectId: project.id, path: entry.path, operationId }),
       { id: operationId, kind: 'trash', path: entry.path },
       () => {
@@ -575,6 +611,7 @@ export function ProjectNavigator({
   const restore = (entry: FileLocation, destination: string) => {
     const operationId = crypto.randomUUID();
     void run(
+      `restore:${entry.trashId ?? entry.fileId}`,
       () =>
         client.call('files.restore', {
           projectId: project.id,
@@ -616,14 +653,16 @@ export function ProjectNavigator({
   const renderDirectory = (path: string, depth: number) => {
     const page = dirs[path];
     for (const entry of page?.entries ?? []) {
+      const current = row?.path === entry.path;
       rows.push(
         <li
           key={entry.fileId ?? entry.path}
-          className={row?.path === entry.path ? 'tree__open' : undefined}
-          style={{ paddingLeft: `calc(var(--space-unit) * ${2 + depth * 3})` }}
+          className={`file-tree__row${current ? ' file-tree__row--selected' : ''}`}
+          style={{ '--depth': depth } as CSSProperties}
         >
           <button
             type="button"
+            className="file-tree__entry"
             aria-label={`${entry.kind === 'dir' ? '进入目录' : '打开文件'} ${entry.path}`}
             onClick={() => {
               setRow(entry);
@@ -638,11 +677,17 @@ export function ProjectNavigator({
                 });
             }}
           >
-            {entry.kind === 'dir' ? `${dirs[entry.path] ? '▾' : '▸'} ` : ''}
-            {entry.name}
+            {entry.kind === 'dir' ? (
+              <span
+                className={`file-tree__chevron${dirs[entry.path] ? ' file-tree__chevron--open' : ''}`}
+              >
+                <IconChevronRight />
+              </span>
+            ) : null}
+            <span>{entry.name}</span>
           </button>
           {entry.kind === 'file' ? (
-            <label>
+            <label className="file-tree__attach">
               <input
                 type="checkbox"
                 aria-label={`附加 ${entry.path}`}
@@ -651,6 +696,53 @@ export function ProjectNavigator({
               />
               附加
             </label>
+          ) : null}
+          {current ? (
+            <div className="file-tree__actions">
+              <label className="file-tree__rename">
+                新名称
+                <input
+                  aria-label="新名称"
+                  value={renameName}
+                  onChange={(event) => setRenameName(event.target.value)}
+                />
+              </label>
+              <button
+                type="button"
+                className="btn"
+                disabled={!project.write || !renameName.trim() || !!busy.rename}
+                aria-busy={!!busy.rename || undefined}
+                onClick={rename}
+              >
+                重命名
+              </button>
+              <button
+                type="button"
+                className="btn"
+                disabled={!project.write}
+                onClick={() => setConfirming(true)}
+              >
+                回收
+              </button>
+              {confirming ? (
+                <p className="file-tree__confirm" role="status">
+                  确认回收 {entry.path}
+                  {entry.kind === 'dir' ? '（含目录内容）' : ''}？可在回收站恢复。
+                  <button
+                    type="button"
+                    className="btn"
+                    disabled={!project.write || !!busy.trash}
+                    aria-busy={!!busy.trash || undefined}
+                    onClick={trashRow}
+                  >
+                    确认回收
+                  </button>
+                  <button type="button" className="btn" onClick={() => setConfirming(false)}>
+                    取消
+                  </button>
+                </p>
+              ) : null}
+            </div>
           ) : null}
         </li>,
       );
@@ -661,10 +753,12 @@ export function ProjectNavigator({
       rows.push(
         <li
           key={`${path}:more`}
-          style={{ paddingLeft: `calc(var(--space-unit) * ${2 + (depth + 1) * 3})` }}
+          className="file-tree__row"
+          style={{ '--depth': depth + 1 } as CSSProperties}
         >
           <button
             type="button"
+            className="file-tree__entry file-tree__more"
             aria-label={`更多文件 ${path || '项目根目录'}`}
             onClick={() => void load(path, next)}
           >
@@ -678,89 +772,69 @@ export function ProjectNavigator({
 
   return (
     <div className="project-files">
-      <p>{row ? `选中：${row.path}` : project.name}</p>
-      <button type="button" onClick={refresh}>
-        刷新文件
-      </button>
-      <ul className="tree">{rows}</ul>
-      {row ? (
-        <div>
+      <div className="file-tree-toolbar">
+        <span className="file-tree-toolbar__label">{row ? `选中：${row.path}` : project.name}</span>
+        <button type="button" className="btn" onClick={refresh}>
+          刷新文件
+        </button>
+      </div>
+      <div className="file-tree-create">
+        <p className="file-tree-create__hint">新建位置：{folder || '项目根目录'}</p>
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            createFile();
+          }}
+        >
           <label>
-            新名称
+            新文件
             <input
-              aria-label="新名称"
-              value={renameName}
-              onChange={(event) => setRenameName(event.target.value)}
+              aria-label="新文件名"
+              value={createName}
+              onChange={(event) => setCreateName(event.target.value)}
             />
           </label>
-          <button type="button" disabled={!project.write || !renameName.trim()} onClick={rename}>
-            重命名
+          <button type="submit" className="btn" disabled={!project.write || !createName.trim()}>
+            新建文件
           </button>
-          <button type="button" disabled={!project.write} onClick={() => setConfirming(true)}>
-            回收
+        </form>
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            mkdir();
+          }}
+        >
+          <label>
+            新目录
+            <input
+              aria-label="新建目录名"
+              value={directoryName}
+              onChange={(event) => setDirectoryName(event.target.value)}
+            />
+          </label>
+          <button
+            type="submit"
+            className="btn"
+            disabled={!project.write || !directoryName.trim() || !!busy.mkdir}
+            aria-busy={!!busy.mkdir || undefined}
+          >
+            新建目录
           </button>
-          {confirming ? (
-            <p role="status">
-              确认回收 {row.path}
-              {row.kind === 'dir' ? '（含目录内容）' : ''}？可在回收站恢复。
-              <button type="button" disabled={!project.write} onClick={trashRow}>
-                确认回收
-              </button>
-              <button type="button" onClick={() => setConfirming(false)}>
-                取消
-              </button>
-            </p>
-          ) : null}
-        </div>
-      ) : null}
-      <p>新建位置：{folder || '项目根目录'}</p>
-      <form
-        onSubmit={(event) => {
-          event.preventDefault();
-          createFile();
-        }}
-      >
-        <label>
-          新文件
-          <input
-            aria-label="新文件名"
-            value={createName}
-            onChange={(event) => setCreateName(event.target.value)}
-          />
-        </label>
-        <button type="submit" disabled={!project.write || !createName.trim()}>
-          新建文件
-        </button>
-      </form>
-      <form
-        onSubmit={(event) => {
-          event.preventDefault();
-          mkdir();
-        }}
-      >
-        <label>
-          新目录
-          <input
-            aria-label="新建目录名"
-            value={directoryName}
-            onChange={(event) => setDirectoryName(event.target.value)}
-          />
-        </label>
-        <button type="submit" disabled={!project.write || !directoryName.trim()}>
-          新建目录
-        </button>
-      </form>
+        </form>
+      </div>
+      <ul className="tree file-tree">{rows}</ul>
       {actions.length ? (
-        <details>
+        <details className="file-tree-details">
           <summary>结构操作</summary>
           {actions.map((operation) => (
-            <div key={operation.id}>
+            <div className="file-tree-op" key={operation.id}>
               <span>
                 {operationKind[operation.kind]} · {operation.path} ·{' '}
                 {operationState[operation.state]}
               </span>
               <button
                 type="button"
+                className="btn"
                 aria-label={`核查 ${operation.path}`}
                 onClick={() => check(operation)}
               >
@@ -772,6 +846,7 @@ export function ProjectNavigator({
         </details>
       ) : null}
       <details
+        className="file-tree-details"
         onToggle={(event) => {
           if (event.currentTarget.open && !trashRef.current) void loadTrash(0);
         }}
@@ -782,19 +857,20 @@ export function ProjectNavigator({
         ) : trash.entries.length === 0 ? (
           <p>暂无回收内容。</p>
         ) : (
-          <ul>
+          <ul className="trash-list">
             {trash.entries.map((entry) => (
               <TrashRow
                 key={entry.trashId ?? entry.fileId}
                 entry={entry}
                 disabled={!project.write}
+                busy={!!busy[`restore:${entry.trashId ?? entry.fileId}`]}
                 restore={(destination) => restore(entry, destination)}
               />
             ))}
           </ul>
         )}
         {trashNext === undefined ? null : (
-          <button type="button" onClick={() => void loadTrash(trashNext)}>
+          <button type="button" className="btn" onClick={() => void loadTrash(trashNext)}>
             更多回收项
           </button>
         )}

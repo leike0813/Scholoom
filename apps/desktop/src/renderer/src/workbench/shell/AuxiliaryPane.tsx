@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import type { FileNode, TaskSummary } from '../session';
 import { IconChevronLeft, IconChevronRight, IconFolder, IconTasks } from './icons';
 
@@ -7,7 +7,7 @@ function TreeNode({ node, depth }: { node: FileNode; depth: number }) {
     <>
       <li
         className={`tree__item ${node.kind === 'dir' ? 'tree__dir' : ''}${node.open ? ' tree__open' : ''}`}
-        style={{ paddingLeft: 8 + depth * 12 }}
+        style={{ '--depth': depth } as CSSProperties}
       >
         {node.kind === 'dir' ? '▾ ' : ''}
         {node.name}

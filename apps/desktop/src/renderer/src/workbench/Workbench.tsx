@@ -3,13 +3,21 @@ import {
   ThreadPrimitive,
   useExternalStoreRuntime,
 } from '@assistant-ui/react';
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import {
+  type CSSProperties,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 import { readDraft, subscribeDraft, writeDraft } from './drafts';
 import type { WorkbenchSession } from './session';
 import { ActivityPane, ActivityRail, type ThemeMode } from './shell/ActivityPane';
 import { AgentDock } from './shell/AgentDock';
 import { AgentOverlay } from './shell/AgentOverlay';
 import { AuxiliaryPane, AuxiliaryRail } from './shell/AuxiliaryPane';
+import { PaneHandle } from './shell/PaneHandle';
 import { type TabGroupState, TabGroups, type TabItem } from './shell/TabGroups';
 
 const THEME_ORDER: readonly ThemeMode[] = ['system', 'light', 'dark'];
@@ -45,6 +53,14 @@ export function Workbench({ session }: { session: WorkbenchSession }) {
   const [leftCollapsed, setLeftCollapsed] = useState(false);
   const [rightCollapsed, setRightCollapsed] = useState(false);
   const [agentExpanded, setAgentExpanded] = useState(false);
+  // 三区可调尺寸（默认值见 docs/ui-design/README.md 三区骨架一节），不持久化。
+  const [leftWidth, setLeftWidth] = useState(260);
+  const [rightWidth, setRightWidth] = useState(300);
+  const [dockHeight, setDockHeight] = useState(180);
+  const leftRef = useRef(leftWidth);
+  leftRef.current = leftWidth;
+  const rightRef = useRef(rightWidth);
+  rightRef.current = rightWidth;
   const [theme, setTheme] = useState<ThemeMode>('system');
   const [groups, setGroups] = useState<readonly TabGroupState[]>(
     session.initialTabs?.length
@@ -124,22 +140,6 @@ export function Workbench({ session }: { session: WorkbenchSession }) {
   }, [theme]);
 
   useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && agentExpanded) {
-        setAgentExpanded(false);
-        return;
-      }
-      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'b') {
-        event.preventDefault();
-        if (event.altKey) setRightCollapsed((value) => !value);
-        else setLeftCollapsed((value) => !value);
-      }
-    };
-    document.addEventListener('keydown', onKeyDown);
-    return () => document.removeEventListener('keydown', onKeyDown);
-  }, [agentExpanded]);
-
-  useEffect(() => {
     if (agentExpanded) {
       overlayRef.current?.querySelector('textarea')?.focus();
     } else if (wasExpandedRef.current) {
@@ -180,6 +180,27 @@ export function Workbench({ session }: { session: WorkbenchSession }) {
       return next;
     });
   }, []);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && agentExpanded) {
+        setAgentExpanded(false);
+        return;
+      }
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'b') {
+        event.preventDefault();
+        if (event.altKey) setRightCollapsed((value) => !value);
+        else setLeftCollapsed((value) => !value);
+        return;
+      }
+      if ((event.ctrlKey || event.metaKey) && event.key === '\\') {
+        event.preventDefault();
+        splitGroup(0);
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [agentExpanded, splitGroup]);
 
   const activeSession = session.sessions?.find((item) => item.id === session.activeSessionId);
   const settings = () => {
@@ -315,7 +336,16 @@ export function Workbench({ session }: { session: WorkbenchSession }) {
   return (
     <AssistantRuntimeProvider runtime={runtime}>
       <ComposerDraft storageKey={session.draftKey} runtime={runtime} />
-      <main className="shell">
+      <main
+        className="shell"
+        style={
+          {
+            '--pane-left-w': `${leftWidth}px`,
+            '--pane-right-w': `${rightWidth}px`,
+            '--dock-h': `${dockHeight}px`,
+          } as CSSProperties
+        }
+      >
         {leftCollapsed ? (
           <ActivityRail
             onExpand={() => setLeftCollapsed(false)}
@@ -343,6 +373,22 @@ export function Workbench({ session }: { session: WorkbenchSession }) {
           />
         )}
 
+        {!leftCollapsed && (
+          <PaneHandle
+            label="调整左区宽度"
+            orientation="vertical"
+            className="pane-handle--left"
+            varName="--pane-left-w"
+            value={leftWidth}
+            defaultValue={260}
+            min={220}
+            max={360}
+            sign={1}
+            reserve={() => rightRef.current + 490}
+            onChange={setLeftWidth}
+          />
+        )}
+
         <ThreadPrimitive.Root className="center">
           {!agentExpanded ? session.notices : null}
           {!agentExpanded ? session.artifacts : null}
@@ -354,6 +400,9 @@ export function Workbench({ session }: { session: WorkbenchSession }) {
             renderFile={session.renderFile}
             renderSettings={session.controls}
             onView={view}
+            contextName={session.executionContext?.project}
+            onCreateSession={session.createSession}
+            onOpenSettings={session.controls ? settings : undefined}
           />
           {agentExpanded ? (
             <AgentOverlay
@@ -371,16 +420,45 @@ export function Workbench({ session }: { session: WorkbenchSession }) {
               loadEarlier={session.loadEarlier}
             />
           ) : (
-            <AgentDock
-              messages={session.adapter.messages ?? []}
-              context={session.executionContext}
-              reset={session.reset ? reset : undefined}
-              onExpand={() => setAgentExpanded(true)}
-              cancel={session.cancel}
-              resume={session.resume}
-            />
+            <>
+              <PaneHandle
+                label="调整 Agent 面板高度"
+                orientation="horizontal"
+                varName="--dock-h"
+                value={dockHeight}
+                defaultValue={180}
+                min={120}
+                max={320}
+                sign={-1}
+                onChange={setDockHeight}
+              />
+              <AgentDock
+                messages={session.adapter.messages ?? []}
+                context={session.executionContext}
+                reset={session.reset ? reset : undefined}
+                onExpand={() => setAgentExpanded(true)}
+                cancel={session.cancel}
+                resume={session.resume}
+              />
+            </>
           )}
         </ThreadPrimitive.Root>
+
+        {!rightCollapsed && (
+          <PaneHandle
+            label="调整右区宽度"
+            orientation="vertical"
+            className="pane-handle--right"
+            varName="--pane-right-w"
+            value={rightWidth}
+            defaultValue={300}
+            min={260}
+            max={420}
+            sign={-1}
+            reserve={() => leftRef.current + 490}
+            onChange={setRightWidth}
+          />
+        )}
 
         {rightCollapsed ? (
           <AuxiliaryRail onExpand={() => setRightCollapsed(false)} />

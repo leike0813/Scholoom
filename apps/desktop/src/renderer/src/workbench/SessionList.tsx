@@ -1,8 +1,32 @@
 import type { KernelClient } from '@scholoom/client';
 import type { BusinessParams, BusinessResult, Session } from '@scholoom/protocol';
-import { useEffect, useState } from 'react';
+import { type RefObject, useEffect, useRef, useState } from 'react';
+import { relativeTime } from './relative-time';
 
 type Cursor = NonNullable<BusinessParams<'session.list'>['cursor']>;
+
+/** details 弹层通用关闭：点击外部或 Esc 合上，Esc 不冒泡到外层 overlay。 */
+function useDetailsDismiss(ref: RefObject<HTMLDetailsElement | null>) {
+  useEffect(() => {
+    const node = ref.current;
+    if (!node) return;
+    const onClick = (event: MouseEvent) => {
+      if (node.open && !node.contains(event.target as Node)) node.open = false;
+    };
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && node.open) {
+        event.stopPropagation();
+        node.open = false;
+      }
+    };
+    document.addEventListener('click', onClick, true);
+    document.addEventListener('keydown', onKey, true);
+    return () => {
+      document.removeEventListener('click', onClick, true);
+      document.removeEventListener('keydown', onKey, true);
+    };
+  }, [ref]);
+}
 
 function SessionRow({
   item,
@@ -22,6 +46,8 @@ function SessionRow({
   const [title, setTitle] = useState(item.title);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const menu = useRef<HTMLDetailsElement>(null);
+  useDetailsDismiss(menu);
   useEffect(() => setTitle(item.title), [item.title]);
   const running = ['queued', 'running', 'cancelling'].includes(item.state);
   const update = async (rename: boolean) => {
@@ -68,10 +94,10 @@ function SessionRow({
             {item.title}
           </span>
           <time className="session__time" dateTime={item.updatedAt}>
-            {item.updatedAt.slice(11, 16)}
+            {relativeTime(item.updatedAt)}
           </time>
         </button>
-        <details className="session-actions">
+        <details className="session-actions" ref={menu}>
           <summary className="session-actions-toggle" aria-label={`管理会话 ${item.title}`}>
             ⋯
           </summary>

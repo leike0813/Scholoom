@@ -191,3 +191,56 @@ export function IconTheme() {
     </Svg>
   );
 }
+
+export function IconReader() {
+  return (
+    <Svg>
+      <rect
+        x="3"
+        y="2"
+        width="10"
+        height="12"
+        rx="1.5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.2"
+      />
+      <path
+        d="M5.5 5.5h5M5.5 8h5M5.5 10.5h3"
+        stroke="currentColor"
+        strokeWidth="1.2"
+        strokeLinecap="round"
+      />
+    </Svg>
+  );
+}
+
+export function IconEdit() {
+  return (
+    <Svg>
+      <path
+        d="M9.8 2.9l3.3 3.3L6 13.3H2.7V10z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.2"
+        strokeLinejoin="round"
+      />
+      <path d="M8.5 4.2l3.3 3.3" stroke="currentColor" strokeWidth="1.2" />
+    </Svg>
+  );
+}
+
+export function IconPreview() {
+  return (
+    <Svg>
+      <path
+        d="M1.5 8s2.4-4.2 6.5-4.2S14.5 8 14.5 8 12.1 12.2 8 12.2 1.5 8 1.5 8z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.2"
+        strokeLinejoin="round"
+      />
+      <circle cx="8" cy="8" r="1.8" fill="none" stroke="currentColor" strokeWidth="1.2" />
+    </Svg>
+  );
+}

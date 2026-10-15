@@ -329,3 +329,65 @@ test('collapsed dock previews the latest sample exchange', async ({ uiPage }) =>
   await uiPage.getByRole('button', { name: '发送指令' }).click();
   await expect(dock).toContainText('未附加材料');
 });
+
+test('left pane resizes by dragging and resets on double click', async ({ uiPage }) => {
+  await uiPage.goto(rendererUrl);
+
+  const pane = uiPage.getByRole('complementary', { name: '会话与导航' });
+  await expect(pane).toBeVisible();
+  const width = async () => (await pane.boundingBox())?.width ?? 0;
+  expect(await width()).toBe(260);
+
+  const handle = uiPage.getByRole('separator', { name: '调整左区宽度' });
+  const box = await handle.boundingBox();
+  if (!box) throw new Error('左区手柄不可见');
+  await uiPage.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await uiPage.mouse.down();
+  await uiPage.mouse.move(box.x + box.width / 2 + 60, box.y + box.height / 2, { steps: 5 });
+  await uiPage.mouse.up();
+
+  const dragged = await width();
+  expect(dragged).toBeGreaterThan(220);
+  expect(dragged).toBeLessThan(360);
+  expect(dragged).not.toBe(260);
+
+  await handle.dblclick();
+  expect(await width()).toBe(260);
+});
+
+test('agent dock resizes by dragging and resets on double click', async ({ uiPage }) => {
+  await uiPage.goto(rendererUrl);
+
+  const dock = uiPage.locator('.agent-dock');
+  await expect(dock).toBeVisible();
+  const height = async () => (await dock.boundingBox())?.height ?? 0;
+  expect(await height()).toBe(180);
+
+  const handle = uiPage.getByRole('separator', { name: '调整 Agent 面板高度' });
+  const box = await handle.boundingBox();
+  if (!box) throw new Error('dock 手柄不可见');
+  await uiPage.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await uiPage.mouse.down();
+  await uiPage.mouse.move(box.x + box.width / 2, box.y + box.height / 2 - 40, { steps: 5 });
+  await uiPage.mouse.up();
+
+  const dragged = await height();
+  expect(dragged).toBeGreaterThan(120);
+  expect(dragged).toBeLessThan(320);
+  expect(dragged).not.toBe(180);
+
+  await handle.dblclick();
+  expect(await height()).toBe(180);
+});
+
+test('ctrl+backslash splits the active tab group only when possible', async ({ uiPage }) => {
+  await uiPage.goto(rendererUrl);
+  await uiPage.keyboard.press('Control+\\');
+  await expect(uiPage.getByLabel('标签组 2')).toHaveCount(0);
+
+  await uiPage.goto(sampleUrl);
+  await expect(uiPage.getByRole('tab', { name: /文献库/ })).toBeVisible();
+  await uiPage.keyboard.press('Control+\\');
+  await expect(uiPage.getByLabel('标签组 2')).toBeVisible();
+  await expect(uiPage.getByLabel('标签组 2').getByRole('tab', { name: /文献库/ })).toBeVisible();
+});

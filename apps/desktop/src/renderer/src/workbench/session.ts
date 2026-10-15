@@ -40,7 +40,7 @@ export interface SessionSummary {
   title: string;
   status: SessionStatus;
   unread?: boolean;
-  /** 相对时间文本，由来源生成（如 "2m"）。 */
+  /** ISO 时间戳；界面经 relativeTime 格式化为中文相对时间。 */
   updatedAt: string;
 }
 

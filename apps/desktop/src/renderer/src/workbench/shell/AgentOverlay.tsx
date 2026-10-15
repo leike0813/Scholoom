@@ -1,4 +1,10 @@
-import { ComposerPrimitive, MessagePrimitive, ThreadPrimitive } from '@assistant-ui/react';
+import {
+  ComposerPrimitive,
+  MessagePrimitive,
+  ThreadPrimitive,
+  useAuiState,
+} from '@assistant-ui/react';
+import type { Message } from '@scholoom/protocol';
 import { forwardRef } from 'react';
 import { MessageContent, MessageFacts, MessageFiles } from '../MessageContent';
 import type { WorkbenchSession } from '../session';
@@ -17,16 +23,47 @@ function UserMessage() {
   );
 }
 
+/**
+ * 每轮 Agent 工作结束处的分隔线。
+ * 耗时取指令受理（用户消息 createdAt）到最终输出落盘（assistant 消息 createdAt，
+ * 内核在完成时重写）的真实差值；轮次以工具消息收尾或无起始指令时只画线不带时长。
+ */
+function TurnSeparator() {
+  const seconds = useAuiState((state) => {
+    const messages = state.thread.messages;
+    const index = messages.findIndex((item) => item.id === state.message.id);
+    const current = messages[index];
+    const next = messages[index + 1];
+    if (!current || (next !== undefined && next.role !== 'user')) return null;
+    if ('status' in current && current.status?.type === 'running') return null;
+    const source = current.metadata.custom.source as Message | undefined;
+    if (source?.role !== 'assistant') return -1;
+    for (let i = index; i >= 0; i--) {
+      const item = messages[i];
+      if (item?.role === 'user') {
+        const elapsed = current.createdAt.getTime() - item.createdAt.getTime();
+        return elapsed >= 1000 ? Math.round(elapsed / 1000) : -1;
+      }
+    }
+    return -1;
+  });
+  if (seconds === null) return null;
+  return <div className="turn-separator">{seconds >= 0 ? `本轮用时 ${seconds} 秒` : null}</div>;
+}
+
 function AssistantMessage() {
   return (
-    <MessagePrimitive.Root asChild>
-      <article className="thread-msg thread-msg--assistant" aria-label="Agent 回复">
-        <MessagePrimitive.Parts
-          components={{ Text: MessageContent, tools: { Fallback: ToolCall } }}
-        />
-        <MessageFacts />
-      </article>
-    </MessagePrimitive.Root>
+    <>
+      <MessagePrimitive.Root asChild>
+        <article className="thread-msg thread-msg--assistant" aria-label="Agent 回复">
+          <MessagePrimitive.Parts
+            components={{ Text: MessageContent, tools: { Fallback: ToolCall } }}
+          />
+          <MessageFacts />
+        </article>
+      </MessagePrimitive.Root>
+      <TurnSeparator />
+    </>
   );
 }
 
@@ -65,6 +102,7 @@ export const AgentOverlay = forwardRef<HTMLDivElement, AgentOverlayProps>(functi
     <div className="agent-overlay" role="dialog" aria-label="Agent 会话" ref={ref}>
       <header className="overlay-header">
         <span className="overlay-header__title">{title}</span>
+        {context ? <span className="overlay-header__meta">{context.model}</span> : null}
         <span className="spacer" />
         <button
           type="button"
@@ -108,12 +146,12 @@ export const AgentOverlay = forwardRef<HTMLDivElement, AgentOverlayProps>(functi
             ) : null}
             <span className="spacer" />
             {cancel ? (
-              <button type="button" onClick={cancel}>
+              <button type="button" className="btn" onClick={cancel}>
                 取消执行
               </button>
             ) : null}
             {resume ? (
-              <button type="button" onClick={resume}>
+              <button type="button" className="btn" onClick={resume}>
                 继续执行
               </button>
             ) : null}

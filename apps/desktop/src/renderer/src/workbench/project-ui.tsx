@@ -192,6 +192,7 @@ export function FileEditor({
         </span>
         <button
           type="button"
+          className="btn"
           disabled={!!value.source?.truncated || saving}
           onClick={() => {
             void save();
@@ -201,6 +202,7 @@ export function FileEditor({
         </button>
         <button
           type="button"
+          className="btn"
           onClick={() => {
             void reload(true);
           }}
@@ -209,6 +211,7 @@ export function FileEditor({
         </button>
         <button
           type="button"
+          className="btn"
           onClick={() => {
             void currentPath()
               .then((current) =>

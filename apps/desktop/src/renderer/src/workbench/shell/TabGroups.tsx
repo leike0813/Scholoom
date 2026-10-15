@@ -1,6 +1,6 @@
-import type { ReactNode } from 'react';
+import type { KeyboardEvent, ReactNode } from 'react';
 import type { FileTarget } from '../session';
-import { IconSplit } from './icons';
+import { IconEdit, IconLibrary, IconPreview, IconReader, IconSettings, IconSplit } from './icons';
 
 export type TabKind = 'library' | 'reader' | 'editor' | 'preview' | 'settings';
 
@@ -25,6 +25,14 @@ const kindLabels: Record<TabKind, { title: string; description: string }> = {
   preview: { title: '交互预览', description: '交互预览界面将在后续变更接入，此页为框架占位。' },
 };
 
+const kindIcons: Record<TabKind, () => ReactNode> = {
+  settings: IconSettings,
+  library: IconLibrary,
+  reader: IconReader,
+  editor: IconEdit,
+  preview: IconPreview,
+};
+
 function TabPlaceholder({ kind }: { kind: TabKind }) {
   const label = kindLabels[kind];
   return (
@@ -35,6 +43,37 @@ function TabPlaceholder({ kind }: { kind: TabKind }) {
   );
 }
 
+/** WAI-ARIA tabs：方向键在同组 tab 间循环移动焦点并激活，Home/End 到两端。 */
+function tabKeyDown(
+  event: KeyboardEvent<HTMLElement>,
+  group: TabGroupState,
+  groupIndex: number,
+  tabId: string,
+  onActivate: (groupIndex: number, tabId: string) => void,
+) {
+  if (event.key === 'Enter' || event.key === ' ') {
+    event.preventDefault();
+    onActivate(groupIndex, tabId);
+    return;
+  }
+  const { tabs } = group;
+  const index = tabs.findIndex((tab) => tab.id === tabId);
+  if (index < 0) return;
+  let next = -1;
+  if (event.key === 'ArrowLeft') next = (index - 1 + tabs.length) % tabs.length;
+  if (event.key === 'ArrowRight') next = (index + 1) % tabs.length;
+  if (event.key === 'Home') next = 0;
+  if (event.key === 'End') next = tabs.length - 1;
+  const target = tabs[next];
+  if (next < 0 || target === undefined || target.id === tabId) return;
+  event.preventDefault();
+  onActivate(groupIndex, target.id);
+  event.currentTarget
+    .closest('.tab-bar')
+    ?.querySelector<HTMLElement>(`[data-tab-id="${CSS.escape(target.id)}"]`)
+    ?.focus();
+}
+
 export interface TabGroupsProps {
   groups: readonly TabGroupState[];
   onActivate: (groupIndex: number, tabId: string) => void;
@@ -43,6 +82,10 @@ export interface TabGroupsProps {
   onView?: ((groupIndex: number, mode: 'source' | 'preview' | 'split') => void) | undefined;
   renderSettings?: ReactNode;
   renderFile?: ((target: FileTarget, mode?: 'source' | 'preview') => ReactNode) | undefined;
+  /** 空态带入的当前工作区名；缺省时不显示。 */
+  contextName?: string | undefined;
+  onCreateSession?: (() => void) | undefined;
+  onOpenSettings?: (() => void) | undefined;
 }
 
 export function TabGroups({
@@ -53,12 +96,32 @@ export function TabGroups({
   renderFile,
   onView,
   renderSettings,
+  contextName,
+  onCreateSession,
+  onOpenSettings,
 }: TabGroupsProps) {
   if (groups.length === 0) {
     return (
       <div className="center-empty">
         <h2>当前没有打开的内容</h2>
-        <p>从文献库、文件树或 Agent 会话打开材料后，会在这里以 tab 呈现。</p>
+        <p>
+          {contextName ? `当前工作区：${contextName}。` : ''}
+          从文件树或 Agent 会话打开材料后，会在这里以 tab 呈现。
+        </p>
+        {onCreateSession || onOpenSettings ? (
+          <div className="center-empty__actions">
+            {onCreateSession ? (
+              <button type="button" className="btn" onClick={onCreateSession}>
+                开始新会话
+              </button>
+            ) : null}
+            {onOpenSettings ? (
+              <button type="button" className="btn" onClick={onOpenSettings}>
+                打开设置
+              </button>
+            ) : null}
+          </div>
+        ) : null}
       </div>
     );
   }
@@ -70,35 +133,35 @@ export function TabGroups({
         return (
           <section className="tab-group" key={group.id} aria-label={`标签组 ${groupIndex + 1}`}>
             <header className="tab-bar" role="tablist">
-              {group.tabs.map((tab) => (
-                <div
-                  key={tab.id}
-                  role="tab"
-                  tabIndex={0}
-                  aria-selected={tab.id === active?.id}
-                  className={`tab${tab.id === active?.id ? ' tab--active' : ''}`}
-                  onClick={() => onActivate(groupIndex, tab.id)}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter' || event.key === ' ') {
-                      event.preventDefault();
-                      onActivate(groupIndex, tab.id);
-                    }
-                  }}
-                >
-                  <span className="tab__title">{tab.title}</span>
-                  <button
-                    type="button"
-                    className="tab__close"
-                    aria-label={`关闭 ${tab.title}`}
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      onClose(groupIndex, tab.id);
-                    }}
+              {group.tabs.map((tab) => {
+                const Icon = kindIcons[tab.kind];
+                return (
+                  <div
+                    key={tab.id}
+                    role="tab"
+                    data-tab-id={tab.id}
+                    tabIndex={tab.id === active?.id ? 0 : -1}
+                    aria-selected={tab.id === active?.id}
+                    className={`tab${tab.id === active?.id ? ' tab--active' : ''}`}
+                    onClick={() => onActivate(groupIndex, tab.id)}
+                    onKeyDown={(event) => tabKeyDown(event, group, groupIndex, tab.id, onActivate)}
                   >
-                    ✕
-                  </button>
-                </div>
-              ))}
+                    <Icon />
+                    <span className="tab__title">{tab.title}</span>
+                    <button
+                      type="button"
+                      className="tab__close"
+                      aria-label={`关闭 ${tab.title}`}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onClose(groupIndex, tab.id);
+                      }}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                );
+              })}
               <div className="tab-bar__spacer" />
               <button
                 type="button"
@@ -112,13 +175,21 @@ export function TabGroups({
             </header>
             {active?.target ? (
               <div className="file-view-controls">
-                <button type="button" onClick={() => onView?.(groupIndex, 'source')}>
+                <button
+                  type="button"
+                  className="btn"
+                  onClick={() => onView?.(groupIndex, 'source')}
+                >
                   源码
                 </button>
-                <button type="button" onClick={() => onView?.(groupIndex, 'preview')}>
+                <button
+                  type="button"
+                  className="btn"
+                  onClick={() => onView?.(groupIndex, 'preview')}
+                >
                   预览
                 </button>
-                <button type="button" onClick={() => onView?.(groupIndex, 'split')}>
+                <button type="button" className="btn" onClick={() => onView?.(groupIndex, 'split')}>
                   并排预览
                 </button>
               </div>

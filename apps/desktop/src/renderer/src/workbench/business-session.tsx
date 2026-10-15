@@ -498,46 +498,65 @@ export function useBusinessSession(
         ) : null}
       </>
     ),
-    artifacts: snapshot?.artifacts.map((artifact) => (
-      <div className="execution-status artifact-row" key={`${artifact.runId}:${artifact.path}`}>
-        成果：{artifact.path} · {artifact.state === 'linked' ? '已保存并登记' : '登记结果待核查'}
-        <button
-          type="button"
-          aria-label={`打开成果 ${artifact.path}`}
-          disabled={!!artifact.location && artifact.location.state !== 'present'}
-          onClick={() =>
-            setFile({
-              projectId: selection.projectId,
-              path: artifact.location?.path ?? artifact.path,
-              ...(artifact.fileId ? { fileId: artifact.fileId } : {}),
-            })
-          }
-        >
-          打开成果
-        </button>
-        {artifact.location?.state === 'trashed' ? <span>已回收，可在回收站恢复</span> : null}
-        {artifact.location?.path && artifact.location.path !== artifact.path ? (
-          <span>当前位置：{artifact.location.path}</span>
-        ) : null}
-        {artifact.state !== 'linked' ? (
-          <button
-            type="button"
-            onClick={() =>
-              safe(() =>
-                call('artifacts.reconcile', {
+    artifacts: snapshot?.artifacts.map((artifact) => {
+      const name = artifact.path.split('/').pop() ?? artifact.path;
+      return (
+        <div className="artifact-card" key={`${artifact.runId}:${artifact.path}`}>
+          <div className="artifact-card__info">
+            <span className="artifact-card__name" title={artifact.path}>
+              {name}
+            </span>
+            <span className="artifact-card__path" title={artifact.path}>
+              {artifact.path}
+            </span>
+          </div>
+          <span className="artifact-card__state">
+            {artifact.state === 'linked' ? '已保存并登记' : '登记结果待核查'}
+          </span>
+          <div className="artifact-card__actions">
+            <button
+              type="button"
+              className="btn"
+              aria-label={`打开成果 ${artifact.path}`}
+              disabled={!!artifact.location && artifact.location.state !== 'present'}
+              onClick={() =>
+                setFile({
                   projectId: selection.projectId,
-                  sessionId: selection.sessionId,
-                  runId: artifact.runId,
-                  paths: [artifact.path],
-                }),
-              )
-            }
-          >
-            核查并补齐
-          </button>
-        ) : null}
-      </div>
-    )),
+                  path: artifact.location?.path ?? artifact.path,
+                  ...(artifact.fileId ? { fileId: artifact.fileId } : {}),
+                })
+              }
+            >
+              打开成果
+            </button>
+            {artifact.state !== 'linked' ? (
+              <button
+                type="button"
+                className="btn"
+                onClick={() =>
+                  safe(() =>
+                    call('artifacts.reconcile', {
+                      projectId: selection.projectId,
+                      sessionId: selection.sessionId,
+                      runId: artifact.runId,
+                      paths: [artifact.path],
+                    }),
+                  )
+                }
+              >
+                核查并补齐
+              </button>
+            ) : null}
+          </div>
+          {artifact.location?.state === 'trashed' ? (
+            <span className="artifact-card__note">已回收，可在回收站恢复</span>
+          ) : null}
+          {artifact.location?.path && artifact.location.path !== artifact.path ? (
+            <span className="artifact-card__note">当前位置：{artifact.location.path}</span>
+          ) : null}
+        </div>
+      );
+    }),
     fileNavigator:
       client && project && project.id !== 'application' ? (
         <ProjectNavigator
@@ -570,7 +589,7 @@ export function useBusinessSession(
     sessions: (snapshot?.sessions ?? []).map((item) => ({
       id: item.id,
       title: item.title,
-      updatedAt: item.updatedAt.slice(11, 16),
+      updatedAt: item.updatedAt,
       status: ['running', 'queued', 'cancelling'].includes(item.state)
         ? 'running'
         : item.state === 'failed'
