@@ -1,7 +1,7 @@
 import type { CSSProperties, ReactNode } from 'react';
 import { useState } from 'react';
 import type { FileNode, TaskSummary } from '../session';
-import { IconChevronLeft, IconChevronRight, IconFolder, IconTasks, IconPaperclip } from './icons';
+import { IconChevronLeft, IconChevronRight, IconFolder, IconPaperclip, IconTasks } from './icons';
 
 function TreeNode({ node, depth }: { node: FileNode; depth: number }) {
   return (
@@ -57,8 +57,9 @@ export function AuxiliaryPane({
 
   return (
     <aside className="side side--right" aria-label="辅助面板">
-      <nav className="auxiliary-tabs" role="tablist">
+      <div className="auxiliary-tabs" role="tablist">
         <button
+          type="button"
           role="tab"
           aria-selected={activeTab === 'files'}
           aria-controls="tab-files"
@@ -69,6 +70,7 @@ export function AuxiliaryPane({
           <span>文件</span>
         </button>
         <button
+          type="button"
           role="tab"
           aria-selected={activeTab === 'materials'}
           aria-controls="tab-materials"
@@ -79,6 +81,7 @@ export function AuxiliaryPane({
           <span>材料</span>
         </button>
         <button
+          type="button"
           role="tab"
           aria-selected={activeTab === 'tasks'}
           aria-controls="tab-tasks"
@@ -98,7 +101,7 @@ export function AuxiliaryPane({
         >
           <IconChevronRight />
         </button>
-      </nav>
+      </div>
 
       <div className="auxiliary-content" role="tabpanel">
         {activeTab === 'files' && (

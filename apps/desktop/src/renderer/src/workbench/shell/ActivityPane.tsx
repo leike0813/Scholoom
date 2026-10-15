@@ -36,9 +36,7 @@ interface ProjectGroup {
 function groupSessionsByProject(sessions: readonly SessionSummary[]): ProjectGroup[] {
   // 临时方案：所有会话归为 'default' 项目
   // TODO: 当协议支持项目分组时，替换为真实项目分组逻辑
-  return sessions.length > 0
-    ? [{ id: 'default', sessions: [...sessions] }]
-    : [];
+  return sessions.length > 0 ? [{ id: 'default', sessions: [...sessions] }] : [];
 }
 
 function ProjectNode({
@@ -68,7 +66,9 @@ function ProjectNode({
         aria-expanded={expanded}
         aria-label={`${projectName}，${expanded ? '已展开' : '已折叠'}`}
       >
-        <span className={`project-header__chevron${expanded ? ' project-header__chevron--open' : ''}`}>
+        <span
+          className={`project-header__chevron${expanded ? ' project-header__chevron--open' : ''}`}
+        >
           <IconChevronRight />
         </span>
         <span className="project-header__name">{projectName}</span>
@@ -236,7 +236,7 @@ export function ActivityPane({
         (projectGroups.length === 0 ? (
           <p className="empty-hint">暂无会话</p>
         ) : (
-          <nav className="project-tree" role="tree">
+          <div className="project-tree" role="tree">
             {projectGroups.map((project) => (
               <ProjectNode
                 key={project.id}
@@ -247,7 +247,7 @@ export function ActivityPane({
                 onNewSession={createSession}
               />
             ))}
-          </nav>
+          </div>
         ))}
 
       <div className="kernel-status">

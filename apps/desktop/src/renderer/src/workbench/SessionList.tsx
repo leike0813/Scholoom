@@ -1,8 +1,8 @@
 import type { KernelClient } from '@scholoom/client';
 import type { BusinessParams, BusinessResult, Session } from '@scholoom/protocol';
 import { type RefObject, useEffect, useRef, useState } from 'react';
-import { IconChevronRight } from './shell/icons';
 import { relativeTime } from './relative-time';
+import { IconChevronRight } from './shell/icons';
 
 type Cursor = NonNullable<BusinessParams<'session.list'>['cursor']>;
 
@@ -188,7 +188,9 @@ function ProjectNode({
         aria-expanded={expanded}
         aria-label={`${group.projectId}，${expanded ? '已展开' : '已折叠'}`}
       >
-        <span className={`project-header__chevron${expanded ? ' project-header__chevron--open' : ''}`}>
+        <span
+          className={`project-header__chevron${expanded ? ' project-header__chevron--open' : ''}`}
+        >
           <IconChevronRight />
         </span>
         <span className="project-header__name">{group.projectId}</span>
@@ -337,7 +339,7 @@ export function SessionList({
       {!page.sessions.length ? (
         <p className="empty-hint">{loading ? '正在读取会话…' : '没有匹配的会话'}</p>
       ) : null}
-      <nav className="project-tree" role="tree">
+      <div className="project-tree" role="tree">
         {projectGroups.map((group) => (
           <ProjectNode
             key={group.projectId}
@@ -349,7 +351,7 @@ export function SessionList({
             changed={changed}
           />
         ))}
-      </nav>
+      </div>
       <div className="session-pagination">
         <button
           type="button"

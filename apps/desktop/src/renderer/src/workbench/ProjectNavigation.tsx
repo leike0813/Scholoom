@@ -229,135 +229,133 @@ export function ProjectControls({
 
       <fieldset className="project-controls" disabled={!enabled}>
         {mode === 'project' ? (
-        <>
-          <label>
-            项目{' '}
-            <select
-              aria-label="当前项目"
-              value={selectedProject}
-              onChange={(event) => onSelect(event.target.value)}
-            >
-              {(snapshot?.projects ?? [])
-                .filter((item) => item.recent !== false || item.id === selectedProject)
-                .map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.name}
-                  </option>
-                ))}
-            </select>
-          </label>
-          <details>
-            <summary>新建项目</summary>
-            <form
-              onSubmit={(event) => {
-                event.preventDefault();
-                run(async () => {
-                  const directory = createPath.trim();
-                  const label = createName.trim();
-                  const created = await call(
-                    'project.create',
-                    label ? { path: directory, name: label } : { path: directory },
-                  );
-                  setCreatePath('');
-                  setCreateName('');
-                  onOpen(created);
-                });
-              }}
-            >
-              <label>
-                项目目录
-                <input
-                  aria-label="新建项目目录"
-                  value={createPath}
-                  onChange={(event) => setCreatePath(event.target.value)}
-                />
-              </label>
-              <label>
-                显示名
-                <input
-                  aria-label="新建项目显示名"
-                  value={createName}
-                  onChange={(event) => setCreateName(event.target.value)}
-                />
-              </label>
-              <button type="submit" className="btn" disabled={!createPath.trim()}>
-                创建项目
-              </button>
-            </form>
-          </details>
-          <details>
-            <summary>打开项目</summary>
-            <form
-              onSubmit={(event) => {
-                event.preventDefault();
-                run(async () => {
-                  onOpen(await call('project.open', { path }));
-                });
-              }}
-            >
-              <label>
-                项目目录
-                <input
-                  aria-label="项目目录"
-                  value={path}
-                  onChange={(event) => setPath(event.target.value)}
-                />
-              </label>
-              <button type="submit" className="btn">
-                打开目录
-              </button>
-            </form>
-          </details>
-          {project && project.id !== 'application' ? (
+          <>
+            <label>
+              项目{' '}
+              <select
+                aria-label="当前项目"
+                value={selectedProject}
+                onChange={(event) => onSelect(event.target.value)}
+              >
+                {(snapshot?.projects ?? [])
+                  .filter((item) => item.recent !== false || item.id === selectedProject)
+                  .map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.name}
+                    </option>
+                  ))}
+              </select>
+            </label>
             <details>
-              <summary>当前项目设置</summary>
-              <p>移出最近列表只改变列表记录，不删除目录内容，也不停止执行。</p>
-              <label>
-                显示名
-                <input
-                  aria-label="项目显示名"
-                  value={displayName}
-                  onChange={(event) => setDisplayName(event.target.value)}
-                />
-              </label>
-              <button
-                type="button"
-                className="btn"
-                disabled={!displayName.trim()}
-                onClick={() =>
+              <summary>新建项目</summary>
+              <form
+                onSubmit={(event) => {
+                  event.preventDefault();
                   run(async () => {
-                    const renamed = await call('project.rename', {
-                      projectId: project.id,
-                      name: displayName.trim(),
-                    });
-                    setDisplayName(renamed.name);
-                  })
-                }
+                    const directory = createPath.trim();
+                    const label = createName.trim();
+                    const created = await call(
+                      'project.create',
+                      label ? { path: directory, name: label } : { path: directory },
+                    );
+                    setCreatePath('');
+                    setCreateName('');
+                    onOpen(created);
+                  });
+                }}
               >
-                保存显示名
-              </button>
-              <button
-                type="button"
-                className="btn"
-                onClick={() =>
-                  run(async () => {
-                    await call('project.forget', { projectId: project.id });
-                    onSelect('application');
-                  })
-                }
-              >
-                移出最近列表
-              </button>
+                <label>
+                  项目目录
+                  <input
+                    aria-label="新建项目目录"
+                    value={createPath}
+                    onChange={(event) => setCreatePath(event.target.value)}
+                  />
+                </label>
+                <label>
+                  显示名
+                  <input
+                    aria-label="新建项目显示名"
+                    value={createName}
+                    onChange={(event) => setCreateName(event.target.value)}
+                  />
+                </label>
+                <button type="submit" className="btn" disabled={!createPath.trim()}>
+                  创建项目
+                </button>
+              </form>
             </details>
-          ) : null}
-        </>
-      ) : (
-        <>
-          {permission}
-        </>
-      )}
-      {error ? <p role="alert">{error}</p> : null}
-    </fieldset>
+            <details>
+              <summary>打开项目</summary>
+              <form
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  run(async () => {
+                    onOpen(await call('project.open', { path }));
+                  });
+                }}
+              >
+                <label>
+                  项目目录
+                  <input
+                    aria-label="项目目录"
+                    value={path}
+                    onChange={(event) => setPath(event.target.value)}
+                  />
+                </label>
+                <button type="submit" className="btn">
+                  打开目录
+                </button>
+              </form>
+            </details>
+            {project && project.id !== 'application' ? (
+              <details>
+                <summary>当前项目设置</summary>
+                <p>移出最近列表只改变列表记录，不删除目录内容，也不停止执行。</p>
+                <label>
+                  显示名
+                  <input
+                    aria-label="项目显示名"
+                    value={displayName}
+                    onChange={(event) => setDisplayName(event.target.value)}
+                  />
+                </label>
+                <button
+                  type="button"
+                  className="btn"
+                  disabled={!displayName.trim()}
+                  onClick={() =>
+                    run(async () => {
+                      const renamed = await call('project.rename', {
+                        projectId: project.id,
+                        name: displayName.trim(),
+                      });
+                      setDisplayName(renamed.name);
+                    })
+                  }
+                >
+                  保存显示名
+                </button>
+                <button
+                  type="button"
+                  className="btn"
+                  onClick={() =>
+                    run(async () => {
+                      await call('project.forget', { projectId: project.id });
+                      onSelect('application');
+                    })
+                  }
+                >
+                  移出最近列表
+                </button>
+              </details>
+            ) : null}
+          </>
+        ) : (
+          permission
+        )}
+        {error ? <p role="alert">{error}</p> : null}
+      </fieldset>
     </>
   );
 }

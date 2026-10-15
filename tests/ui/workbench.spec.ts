@@ -272,7 +272,7 @@ test('panes collapse to rails and restore', async ({ uiPage }) => {
   await uiPage.getByRole('button', { name: '折叠右区' }).click();
   await expect(uiPage.getByLabel('辅助区（已折叠）')).toBeVisible();
   await uiPage.getByRole('button', { name: '展开右区' }).click();
-  await expect(uiPage.getByRole('complementary', { name: '文件与任务' })).toBeVisible();
+  await expect(uiPage.getByRole('complementary', { name: '辅助面板' })).toBeVisible();
 });
 
 test('agent panel expands to overlay and keeps draft and focus', async ({ uiPage }) => {
