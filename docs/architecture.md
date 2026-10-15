@@ -35,7 +35,7 @@ Scholoom 是可独立执行完整科研工作的本地 Agent 系统。人类通�
 - 工作台（`apps/desktop`）：Electron 与浏览器共用 React renderer，经共同客户端接入真实内核；项目与文件工作台、Markdown 源码／预览／并排、设置页已接通，样例只在显式参数下注入。
 - 兼容宿主（`apps/zotero-host`）：独立 Electron 入口与隐藏页面原型，未接入内核监督、未加载插件。
 
-行为契约以[当前正式规格](../openspec/specs)为准，当前进行中的项目与文件工作台变更见 [complete-project-file-workbench](../openspec/changes/complete-project-file-workbench/)。本节只描述现状，不另建进度账本。
+行为契约以[当前正式规格](../openspec/specs)为准，项目与文件工作台交付见 [complete-project-file-workbench](../openspec/changes/archive/2026-10-15-complete-project-file-workbench/)，会话管理及消息阅读见 [complete-agent-conversation-workbench](../openspec/changes/complete-agent-conversation-workbench/)。会话列表分页与当前会话分别读取，归档仅限制后续执行；消息与文件预览复用有界 Markdown Worker。本节只描述现状，不另建进度账本。
 
 ## 3. 系统结构与运行部署
 

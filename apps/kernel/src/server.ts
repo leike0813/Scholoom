@@ -128,6 +128,7 @@ export async function startKernelServer(
     let scope: BusinessParams<'workbench.watch'> | undefined;
     let changeTimer: ReturnType<typeof setTimeout> | undefined;
     let latestRevision = 0;
+    let sessionsChanged = false;
     const flushChange = () => {
       changeTimer = undefined;
       if (!scope || socket.readyState !== 1) return;
@@ -142,17 +143,26 @@ export async function startKernelServer(
           params: {
             revision: latestRevision,
             resync: true,
+            ...(sessionsChanged ? { sessionsChanged: true } : {}),
             ...(scope.projectId ? { projectId: scope.projectId } : {}),
             ...(scope.sessionId ? { sessionId: scope.sessionId } : {}),
           },
         }),
       );
+      sessionsChanged = false;
     };
     const unsubscribe = application?.subscribe((change) => {
       if (!scope || !authenticated.has(socket)) return;
       if (scope.projectId && change.projectId && scope.projectId !== change.projectId) return;
-      if (scope.sessionId && change.sessionId && scope.sessionId !== change.sessionId) return;
+      if (
+        scope.sessionId &&
+        change.sessionId &&
+        scope.sessionId !== change.sessionId &&
+        !change.sessionsChanged
+      )
+        return;
       latestRevision = change.revision;
+      sessionsChanged ||= change.sessionsChanged === true;
       changeTimer ??= setTimeout(flushChange, 50);
     });
     socket.on('close', () => {
@@ -235,8 +245,18 @@ export async function startKernelServer(
           error(message.id, -32602, 'invalidRequest', 'Invalid operation parameters.');
           return;
         }
-        if (method === 'workbench.watch')
-          scope = message.params as BusinessParams<'workbench.watch'>;
+        if (method === 'workbench.watch') {
+          const next = message.params as BusinessParams<'workbench.watch'>;
+          if (
+            scope?.projectId !== next.projectId ||
+            (scope?.sessionId !== next.sessionId && !sessionsChanged)
+          ) {
+            clearTimeout(changeTimer);
+            changeTimer = undefined;
+            sessionsChanged = false;
+          }
+          scope = next;
+        }
         void application
           .call(method, message.params)
           .then((result) => {

@@ -97,6 +97,7 @@ export class KernelClient {
     const read = [
       'workbench.snapshot',
       'workbench.watch',
+      'session.list',
       'files.read',
       'files.list',
       'files.history',

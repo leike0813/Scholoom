@@ -73,6 +73,9 @@ export interface WorkbenchSession {
   controls?: ReactNode;
   notices?: ReactNode;
   projectControls?: ReactNode;
+  sessionNavigation?: ReactNode;
+  activeSessionTitle?: string;
+  openMessageFile?: (path: string, fileId?: string) => Promise<void>;
   projectId?: string;
   fileRevision?: number;
   resolveFiles?: ((fileIds: string[]) => Promise<FileLocation[]>) | undefined;

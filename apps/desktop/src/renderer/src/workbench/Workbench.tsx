@@ -317,7 +317,10 @@ export function Workbench({ session }: { session: WorkbenchSession }) {
       <ComposerDraft storageKey={session.draftKey} runtime={runtime} />
       <main className="shell">
         {leftCollapsed ? (
-          <ActivityRail onExpand={() => setLeftCollapsed(false)} />
+          <ActivityRail
+            onExpand={() => setLeftCollapsed(false)}
+            createSession={session.createSession}
+          />
         ) : (
           <ActivityPane
             status={session.status}
@@ -335,12 +338,13 @@ export function Workbench({ session }: { session: WorkbenchSession }) {
             }
             onCollapse={() => setLeftCollapsed(true)}
             projectControls={session.projectControls}
+            sessionNavigation={session.sessionNavigation}
             openSettings={session.controls ? settings : undefined}
           />
         )}
 
         <ThreadPrimitive.Root className="center">
-          {session.notices}
+          {!agentExpanded ? session.notices : null}
           {!agentExpanded ? session.artifacts : null}
           <TabGroups
             groups={groups}
@@ -354,9 +358,12 @@ export function Workbench({ session }: { session: WorkbenchSession }) {
           {agentExpanded ? (
             <AgentOverlay
               ref={overlayRef}
-              title={activeSession?.title ?? 'Agent 会话'}
+              title={session.activeSessionTitle ?? activeSession?.title ?? 'Agent 会话'}
+              messageKey={`${session.projectId ?? 'sample'}:${session.activeSessionId ?? ''}`}
+              openFile={session.openMessageFile}
               context={session.executionContext}
               artifacts={session.artifacts}
+              notices={session.notices}
               reset={session.reset ? reset : undefined}
               onCollapse={() => setAgentExpanded(false)}
               cancel={session.cancel}

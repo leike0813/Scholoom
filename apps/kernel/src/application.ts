@@ -28,7 +28,8 @@ export class KernelApplication {
     this.harness = new Harness(
       this.projects,
       new ModelAccess(this.credentials, options.modelEndpoint),
-      (projectId, sessionId) => this.changed(projectId, sessionId),
+      (projectId, sessionId, sessionsChanged) =>
+        this.changed(projectId, sessionId, sessionsChanged),
     );
   }
 
@@ -42,10 +43,11 @@ export class KernelApplication {
       this.listeners.delete(listener);
     };
   }
-  private changed(projectId?: string, sessionId?: string): void {
+  private changed(projectId?: string, sessionId?: string, sessionsChanged = false): void {
     const change: WorkbenchChange = { revision: ++this.revision, resync: true };
     if (projectId) change.projectId = projectId;
     if (sessionId) change.sessionId = sessionId;
+    if (sessionsChanged) change.sessionsChanged = true;
     for (const listener of this.listeners) listener(change);
   }
 
@@ -57,7 +59,13 @@ export class KernelApplication {
       ...(input.projectId
         ? { fileRevision: this.projects.get(input.projectId).files.revision }
         : {}),
-      ...this.harness.snapshot(input.projectId, input.sessionId, input.before, input.limit),
+      ...this.harness.snapshot(
+        input.projectId,
+        input.sessionId,
+        input.before,
+        input.limit,
+        input.includeSessions,
+      ),
     };
   }
 
@@ -189,6 +197,16 @@ export class KernelApplication {
       case 'session.create': {
         const p = input as BusinessParams<'session.create'>;
         return this.harness.create(p.projectId, p.title);
+      }
+      case 'session.list':
+        return this.harness.list(input as BusinessParams<'session.list'>);
+      case 'session.rename': {
+        const p = input as BusinessParams<'session.rename'>;
+        return this.harness.rename(p.projectId, p.sessionId, p.title);
+      }
+      case 'session.archive': {
+        const p = input as BusinessParams<'session.archive'>;
+        return this.harness.archive(p.projectId, p.sessionId, p.archived);
       }
       case 'session.send':
         return this.harness.send(input as BusinessParams<'session.send'>);

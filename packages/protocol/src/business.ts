@@ -24,9 +24,18 @@ export const runStateSchema = {
   enum: ['queued', 'running', 'cancelling', 'cancelled', 'completed', 'failed', 'interrupted'],
 } as const;
 export const sessionSchema = object(
-  { id, projectId: id, title: text, updatedAt: text, state: runStateSchema },
+  {
+    id,
+    projectId: id,
+    title: text,
+    updatedAt: text,
+    state: runStateSchema,
+    archived: flag,
+    titleSource: { enum: ['default', 'instruction', 'manual'] },
+  },
   ['id', 'projectId', 'title', 'updatedAt', 'state'],
 );
+const sessionCursor = object({ updatedAt: text, id }, ['updatedAt', 'id']);
 export const messageSchema = object(
   {
     id,
@@ -126,13 +135,20 @@ export const backupSchema = object({ id, createdAt: text, omitted: array(text) }
   'createdAt',
   'omitted',
 ]);
-const scope = { projectId: id, sessionId: id, before: id, limit: page } as const;
+const scope = {
+  projectId: id,
+  sessionId: id,
+  before: id,
+  limit: page,
+  includeSessions: flag,
+} as const;
 export const snapshotSchema = object(
   {
     revision: count,
     provider: providerSchema,
     projects: array(projectSchema),
     sessions: array(sessionSchema),
+    session: sessionSchema,
     messages: array(messageSchema),
     run: runSchema,
     artifacts: array(artifactSchema),
@@ -142,7 +158,7 @@ export const snapshotSchema = object(
   ['revision', 'provider', 'projects', 'sessions', 'messages', 'artifacts'],
 );
 export const changeSchema = object(
-  { revision: count, projectId: id, sessionId: id, resync: flag },
+  { revision: count, projectId: id, sessionId: id, resync: flag, sessionsChanged: flag },
   ['revision', 'resync'],
 );
 const ok = object({ ok: { const: true } }, ['ok']);
@@ -269,6 +285,31 @@ export const businessSchemas = {
     params: object({ ...project, title: text }, ['projectId']),
     result: sessionSchema,
   },
+  'session.list': {
+    params: object(
+      {
+        ...project,
+        archived: flag,
+        query: { type: 'string', maxLength: 200 },
+        cursor: sessionCursor,
+        limit: page,
+      },
+      ['projectId'],
+    ),
+    result: object({ sessions: array(sessionSchema), nextCursor: sessionCursor }, ['sessions']),
+  },
+  'session.rename': {
+    params: object({ ...session, title: { type: 'string', minLength: 1, maxLength: 200 } }, [
+      'projectId',
+      'sessionId',
+      'title',
+    ]),
+    result: sessionSchema,
+  },
+  'session.archive': {
+    params: object({ ...session, archived: flag }, ['projectId', 'sessionId', 'archived']),
+    result: sessionSchema,
+  },
   'session.send': {
     params: object(
       {
@@ -302,6 +343,9 @@ export type WorkbenchSnapshot = FromSchema<typeof snapshotSchema>;
 export type WorkbenchChange = FromSchema<typeof changeSchema>;
 export type BusinessMethod = keyof typeof businessSchemas;
 type Inputs = {
+  'session.list': FromSchema<(typeof businessSchemas)['session.list']['params']>;
+  'session.rename': FromSchema<(typeof businessSchemas)['session.rename']['params']>;
+  'session.archive': FromSchema<(typeof businessSchemas)['session.archive']['params']>;
   'project.create': FromSchema<(typeof businessSchemas)['project.create']['params']>;
   'project.rename': FromSchema<(typeof businessSchemas)['project.rename']['params']>;
   'project.forget': FromSchema<(typeof businessSchemas)['project.forget']['params']>;
@@ -333,6 +377,9 @@ type Inputs = {
   'session.resume': FromSchema<(typeof businessSchemas)['session.resume']['params']>;
 };
 type Outputs = {
+  'session.list': FromSchema<(typeof businessSchemas)['session.list']['result']>;
+  'session.rename': FromSchema<(typeof businessSchemas)['session.rename']['result']>;
+  'session.archive': FromSchema<(typeof businessSchemas)['session.archive']['result']>;
   'project.create': FromSchema<(typeof businessSchemas)['project.create']['result']>;
   'project.rename': FromSchema<(typeof businessSchemas)['project.rename']['result']>;
   'project.forget': FromSchema<(typeof businessSchemas)['project.forget']['result']>;

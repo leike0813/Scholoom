@@ -57,18 +57,16 @@ export function toolStateDot(state: Message['state']): string {
 }
 
 export function toThreadMessage(message: Message): ThreadMessageLike {
-  const common = { id: message.id, createdAt: new Date(message.createdAt) };
+  const common = {
+    id: message.id,
+    createdAt: new Date(message.createdAt),
+    metadata: { custom: { source: message } },
+  };
   if (message.role === 'user') {
-    const state = message.state === 'accepted' ? '已受理' : '已消费';
     return {
       ...common,
       role: 'user',
-      content:
-        message.text +
-        '\n（' +
-        state +
-        '）' +
-        (message.materials.length ? `\n附加材料：${message.materials.join('、')}` : ''),
+      content: message.text,
     };
   }
   const status =
@@ -109,8 +107,6 @@ export function toThreadMessage(message: Message): ThreadMessageLike {
     ...common,
     role: 'assistant',
     status,
-    content:
-      message.text +
-      (message.materials.length ? `\n实际使用材料：${message.materials.join('、')}` : ''),
+    content: message.text,
   };
 }

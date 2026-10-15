@@ -12,6 +12,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { draftKey, readDraft, writeDraft } from './drafts';
 import { FileEditor, ProjectControls, ProjectNavigator } from './project-ui';
 import { toThreadMessage } from './projection';
+import { SessionList } from './SessionList';
 import type { FileTarget, KernelPhase, WorkbenchSession } from './session';
 
 export function useBusinessSession(
@@ -32,6 +33,7 @@ export function useBusinessSession(
   const [earlierComplete, setEarlierComplete] = useState(false);
   const [configured, setConfigured] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [listEpoch, setListEpoch] = useState(0);
   const [recovered, setRecovered] = useState<BusinessParams<'session.send'>>();
   const directoryRef = useRef('');
   const currentDirectory = client?.getSnapshot().status?.dataDirectory;
@@ -48,6 +50,7 @@ export function useBusinessSession(
     try {
       result = await client.call('workbench.watch', {
         projectId: selected.projectId,
+        includeSessions: false,
         ...(selected.sessionId ? { sessionId: selected.sessionId } : {}),
       });
     } catch (reason) {
@@ -236,7 +239,7 @@ export function useBusinessSession(
     void action().catch(() => {});
   };
   const project = snapshot?.projects.find((item) => item.id === selection.projectId);
-  const session = snapshot?.sessions.find((item) => item.id === selection.sessionId);
+  const session = snapshot?.session;
   const running = snapshot?.run && ['running', 'queued', 'cancelling'].includes(snapshot.run.state);
   const messages = [...earlier, ...(snapshot?.messages ?? [])]
     .filter((message, i, all) => all.findIndex((other) => other.id === message.id) === i)
@@ -245,7 +248,7 @@ export function useBusinessSession(
     messages,
     convertMessage: (message) => message,
     isRunning: !!running,
-    isDisabled: creating,
+    isDisabled: creating || !!session?.archived,
     isSendDisabled:
       phase !== 'connected' ||
       !snapshot?.provider.configured ||
@@ -313,7 +316,10 @@ export function useBusinessSession(
     safe(async () => {
       try {
         const result = await call('session.create', { projectId: selected.projectId });
-        if (selected === selectedRef.current) select(selected.projectId, result.id);
+        if (selected === selectedRef.current) {
+          setListEpoch((value) => value + 1);
+          select(selected.projectId, result.id);
+        }
       } finally {
         setCreating(false);
       }
@@ -321,6 +327,31 @@ export function useBusinessSession(
   };
   return {
     projectId: selection.projectId,
+    ...(session ? { activeSessionTitle: session.title } : {}),
+    sessionNavigation: client ? (
+      <SessionList
+        key={`${selection.projectId}:${listEpoch}`}
+        client={client}
+        projectId={selection.projectId}
+        activeSessionId={selection.sessionId}
+        enabled={phase === 'connected' && configured}
+        select={(id) => select(selection.projectId, id)}
+        onChanged={refresh}
+      />
+    ) : undefined,
+    openMessageFile: async (path, fileId) => {
+      if (!client || phase !== 'connected') throw new Error('内核未连接。');
+      const selected = selectedRef.current;
+      let target = { projectId: selected.projectId, path, ...(fileId ? { fileId } : {}) };
+      if (fileId) {
+        const location = (
+          await client.call('files.resolve', { projectId: selected.projectId, fileIds: [fileId] })
+        )[0];
+        if (location?.state !== 'present') throw new Error('材料已回收或缺失，请先核查当前位置。');
+        target = { ...target, path: location.path };
+      }
+      if (selected === selectedRef.current) setFile(target);
+    },
     fileRevision: snapshot?.fileRevision ?? 0,
     resolveFiles: client
       ? (fileIds) => client.call('files.resolve', { projectId: selection.projectId, fileIds })
@@ -380,6 +411,26 @@ export function useBusinessSession(
     ),
     notices: (
       <>
+        {session?.archived ? (
+          <div className="execution-status" role="status">
+            会话已归档，历史和草稿保留。
+            <button
+              type="button"
+              disabled={phase !== 'connected'}
+              onClick={() =>
+                safe(async () => {
+                  await call('session.archive', {
+                    projectId: selection.projectId,
+                    sessionId: session.id,
+                    archived: false,
+                  });
+                })
+              }
+            >
+              恢复当前会话
+            </button>
+          </div>
+        ) : null}
         {recovered?.projectId === selection.projectId &&
         recovered.sessionId === selection.sessionId ? (
           <details className="execution-status">
@@ -387,6 +438,7 @@ export function useBusinessSession(
             <pre>{recovered.text}</pre>
             <button
               type="button"
+              disabled={!!session?.archived}
               onClick={() =>
                 safe(async () => {
                   const receipt = await call('session.send', recovered);
@@ -536,7 +588,7 @@ export function useBusinessSession(
             )
         : undefined,
     resume:
-      !running && snapshot?.run && session
+      !running && snapshot?.run && session && !session.archived
         ? () =>
             safe(() =>
               call('session.resume', { projectId: selection.projectId, sessionId: session.id }),
@@ -551,6 +603,7 @@ export function useBusinessSession(
               const page = await call('workbench.snapshot', {
                 projectId: selection.projectId,
                 sessionId: selection.sessionId,
+                includeSessions: false,
                 ...(before ? { before } : {}),
                 limit: 50,
               });

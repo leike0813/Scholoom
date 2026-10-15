@@ -19,7 +19,7 @@ export class ProjectBackend implements BackendProtocolV2 {
   constructor(
     private readonly project: ProjectStore,
     private readonly signal: AbortSignal,
-    private readonly used: (path: string) => void,
+    private readonly used: (path: string, fileId: string) => void,
     private readonly saved: (path: string, fileId?: string) => void | Promise<void>,
     private readonly onError?: (error: ErrorInfo) => void,
   ) {}
@@ -58,7 +58,7 @@ export class ProjectBackend implements BackendProtocolV2 {
       const result = await this.project.read(local);
       if (!result.truncated)
         this.readBases.set(local, { basis: result.basis, content: result.content });
-      this.used(local);
+      this.used(local, result.fileId ?? (await this.project.files.reference(local)).fileId);
       const lines = result.content.split('\n');
       const selected = lines.slice(offset, offset + Math.min(limit, 500));
       const output: ReadResult = {

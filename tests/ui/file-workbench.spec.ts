@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { startModelKernel } from '../model-kernel.js';
 import { createModelServer } from '../model-server.js';
 import { expect, test } from './fixture.js';
+import { armRpcGate, installRpcGate, releaseRpcGate } from './rpc-gate.js';
 
 test('project files share draft preview and survive directory rename, trash and recovery', async ({
   uiPage,
@@ -20,6 +21,7 @@ test('project files share draft preview and survive directory rename, trash and 
     if (request.url().includes('untrusted.example')) external.push(request.url());
   });
   try {
+    await installRpcGate(uiPage);
     await uiPage.goto('http://127.0.0.1:5174/');
     await expect(uiPage.getByRole('status', { name: '连接状态' })).toContainText('已连接');
     await uiPage.getByText('新建项目', { exact: true }).click();
@@ -58,12 +60,18 @@ test('project files share draft preview and survive directory rename, trash and 
     );
     await editor.fill(content);
     await uiPage.getByRole('button', { name: '并排预览', exact: true }).click();
+    await armRpcGate(uiPage, 'files.read');
     await uiPage.getByRole('button', { name: '保存文件', exact: true }).first().click();
     await expect
       .poll(() => readFile(join(project, 'notes', 'draft.md'), 'utf8').catch(() => ''))
       .toBe(content);
+    await uiPage.waitForFunction(() => !!Reflect.get(globalThis, '__scholoomRpcGate').held);
     await editor.fill(`${content}\nUnsaved latest paragraph.`);
     await uiPage.getByRole('button', { name: '并排预览', exact: true }).first().click();
+    await releaseRpcGate(uiPage);
+    await expect(
+      uiPage.getByRole('button', { name: '保存文件', exact: true }).first(),
+    ).toBeEnabled();
     const preview = uiPage.getByRole('region', { name: 'Markdown 预览', exact: true });
     await expect(preview.getByRole('heading', { name: 'Draft title' })).toBeVisible();
     await expect(preview.getByRole('cell', { name: '42', exact: true })).toBeVisible();
@@ -78,6 +86,7 @@ test('project files share draft preview and survive directory rename, trash and 
         }),
       )
       .toBe(true);
+    await expect(editor).toContainText('Unsaved latest paragraph');
     await expect(preview).toContainText('Unsaved latest paragraph');
     await expect(preview).toContainText('远端图片未加载');
     expect(await uiPage.evaluate(() => Reflect.get(globalThis, 'unsafePreview'))).toBeUndefined();

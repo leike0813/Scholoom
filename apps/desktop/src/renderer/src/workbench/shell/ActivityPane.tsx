@@ -59,6 +59,7 @@ function StopKernel({ onStop }: { onStop: () => void }) {
 }
 
 export interface ActivityPaneProps {
+  sessionNavigation?: ReactNode;
   projectControls?: ReactNode;
   openSettings?: (() => void) | undefined;
   status: string;
@@ -84,6 +85,7 @@ export function ActivityPane({
   onCollapse,
   projectControls,
   openSettings,
+  sessionNavigation,
 }: ActivityPaneProps) {
   const kernelMessage =
     connection?.message ?? (status === 'sample' ? '样例场景 · 刷新后重置' : '内核未连接');
@@ -132,31 +134,32 @@ export function ActivityPane({
       <div className="section-label">
         <span>会话</span>
       </div>
-      {sessions.length === 0 ? (
-        <p className="empty-hint">暂无会话</p>
-      ) : (
-        <ul className="session-list">
-          {sessions.map((item) => (
-            <li key={item.id}>
-              <button
-                type="button"
-                className={`session${item.id === activeSessionId ? ' session--active' : ''}`}
-                aria-pressed={item.id === activeSessionId}
-                onClick={() => selectSession?.(item.id)}
-              >
-                <StatusMark session={item} />
-                <span className="session__title" title={item.title}>
-                  {item.title}
-                </span>
-                <span className="session__time">{item.updatedAt}</span>
-                {item.unread ? (
-                  <span className="dot dot--unread" role="img" aria-label="有未读" />
-                ) : null}
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
+      {sessionNavigation ??
+        (sessions.length === 0 ? (
+          <p className="empty-hint">暂无会话</p>
+        ) : (
+          <ul className="session-list">
+            {sessions.map((item) => (
+              <li key={item.id}>
+                <button
+                  type="button"
+                  className={`session${item.id === activeSessionId ? ' session--active' : ''}`}
+                  aria-pressed={item.id === activeSessionId}
+                  onClick={() => selectSession?.(item.id)}
+                >
+                  <StatusMark session={item} />
+                  <span className="session__title" title={item.title}>
+                    {item.title}
+                  </span>
+                  <span className="session__time">{item.updatedAt}</span>
+                  {item.unread ? (
+                    <span className="dot dot--unread" role="img" aria-label="有未读" />
+                  ) : null}
+                </button>
+              </li>
+            ))}
+          </ul>
+        ))}
 
       <div className="kernel-status">
         <span
@@ -195,7 +198,13 @@ export function ActivityPane({
   );
 }
 
-export function ActivityRail({ onExpand }: { onExpand: () => void }) {
+export function ActivityRail({
+  onExpand,
+  createSession,
+}: {
+  onExpand: () => void;
+  createSession?: (() => void) | undefined;
+}) {
   return (
     <aside className="rail rail--left" aria-label="导航（已折叠）">
       <button
@@ -207,13 +216,29 @@ export function ActivityRail({ onExpand }: { onExpand: () => void }) {
       >
         <IconChevronRight />
       </button>
-      <button type="button" className="icon-btn" title="新建会话" aria-label="新建会话">
+      <button
+        type="button"
+        className="icon-btn"
+        title="新建会话"
+        aria-label="新建会话"
+        onClick={createSession}
+        disabled={!createSession}
+      >
         <IconPlus />
       </button>
-      <button type="button" className="icon-btn" title="文献库" aria-label="文献库">
+      <button type="button" className="icon-btn" title="文献库" aria-label="文献库" disabled>
         <IconLibrary />
       </button>
-      <button type="button" className="icon-btn" title="会话" aria-label="会话">
+      <button
+        type="button"
+        className="icon-btn"
+        title="会话"
+        aria-label="会话"
+        onClick={() => {
+          onExpand();
+          requestAnimationFrame(() => document.getElementById('session-search')?.focus());
+        }}
+      >
         <IconChat />
       </button>
     </aside>

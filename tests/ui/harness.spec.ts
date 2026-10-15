@@ -161,20 +161,18 @@ test('late send failure restores its original conversation and storage failures 
     await input.fill('会话 A 的未受理指令');
     await armRpcGate(uiPage, 'session.send');
     await uiPage.getByRole('button', { name: '发送指令' }).click();
-    const count = await uiPage.locator('.session-list button').count();
+    const sessions = uiPage.locator('.session-list button[aria-pressed]');
+    const count = await sessions.count();
     await uiPage.getByRole('button', { name: '新建会话', exact: true }).click();
-    await expect(uiPage.locator('.session-list button')).toHaveCount(count + 1);
-    await expect(uiPage.locator('.session-list button').first()).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
+    await expect(sessions).toHaveCount(count + 1);
+    await expect(sessions.first()).toHaveAttribute('aria-pressed', 'true');
     await expect(input).toHaveValue('');
     await input.fill('会话 B 的草稿');
     await releaseRpcGate(uiPage, true);
     await expect(uiPage.getByRole('alert')).toBeVisible();
     await expect(input).toHaveValue('会话 B 的草稿');
     await armRpcGate(uiPage, 'workbench.watch');
-    await uiPage.locator('.session-list button').nth(1).click();
+    await sessions.nth(1).click();
     await expect(uiPage.getByLabel('执行上下文')).toContainText('正在核对权限');
     await expect(uiPage.getByRole('button', { name: '发送指令', exact: true })).toBeDisabled();
     await releaseRpcGate(uiPage);
@@ -185,13 +183,13 @@ test('late send failure restores its original conversation and storage failures 
       };
     });
     await input.fill('会话 A 的新草稿');
-    await uiPage.locator('.session-list button').first().click();
+    await sessions.first().click();
     await expect(input).toHaveValue('会话 B 的草稿');
-    await uiPage.locator('.session-list button').nth(1).click();
+    await sessions.nth(1).click();
     await expect(input).toHaveValue('会话 A 的新草稿');
     await input.fill('');
-    await uiPage.locator('.session-list button').first().click();
-    await uiPage.locator('.session-list button').nth(1).click();
+    await sessions.first().click();
+    await sessions.nth(1).click();
     await expect(input).toHaveValue('');
     expect(model.requests).toHaveLength(0);
   } finally {
@@ -242,11 +240,15 @@ test('busy conversation accepts additions, cancellation survives reload and cont
     expect(JSON.stringify(model.requests.at(-1)?.messages)).toContain('追加要求');
     const before = model.requests.length;
     await armRpcGate(uiPage, 'session.send');
-    await input.fill('MODEL_CHAT 刷新前未确认的指令');
+    await input.fill(`MODEL_CHAT 刷新前未确认的指令\n${'合成长指令正文\n'.repeat(80)}`);
     await uiPage.getByRole('button', { name: '发送指令' }).click();
     await uiPage.reload();
+    await uiPage.getByRole('button', { name: '展开 Agent 会话' }).click();
     await uiPage.getByText('待核查指令', { exact: true }).click();
-    await expect(uiPage.getByText('MODEL_CHAT 刷新前未确认的指令', { exact: true })).toBeVisible();
+    await expect(uiPage.locator('details.execution-status pre')).toContainText(
+      '刷新前未确认的指令',
+    );
+    await expect(input).toBeInViewport();
     await input.fill('补交期间保留的新草稿');
     await expect(uiPage.getByRole('button', { name: '发送指令' })).toBeDisabled();
     await uiPage.getByRole('button', { name: '按原身份补交', exact: true }).click();

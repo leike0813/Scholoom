@@ -919,6 +919,125 @@ button {
   font-family: var(--font-prose);
   font-size: 14.5px;
 }
+
+.session-navigation {
+  min-height: 0;
+  overflow: auto;
+}
+.session-navigation > input {
+  width: 100%;
+  box-sizing: border-box;
+  font: var(--font-size-control) / 1.5 var(--font-ui);
+  color: var(--text-primary);
+  background: var(--bg);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  padding: var(--space-unit);
+}
+.session-filters button {
+  padding: var(--space-unit) calc(var(--space-unit) * 2);
+  border-radius: var(--radius-sm);
+}
+.session-filters button[aria-pressed="true"] {
+  background: var(--surface-active);
+}
+.session-navigation button:disabled {
+  color: var(--text-tertiary);
+  cursor: not-allowed;
+}
+.session-filters,
+.session-pagination,
+.session-row,
+.message-facts,
+.message-materials {
+  display: flex;
+  gap: calc(var(--space-unit) * 2);
+  align-items: center;
+}
+.session-row > .session {
+  flex: 1;
+  min-width: 0;
+}
+.session-actions {
+  position: relative;
+}
+.session-actions-toggle {
+  cursor: pointer;
+}
+.session-actions form {
+  position: absolute;
+  z-index: 2;
+  right: 0;
+  min-width: 180px;
+  padding: calc(var(--space-unit) * 3);
+  background: var(--elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.session-actions input {
+  width: 100%;
+  box-sizing: border-box;
+}
+.session-pagination {
+  justify-content: space-between;
+}
+.message-facts,
+.message-materials {
+  flex-wrap: wrap;
+  color: var(--text-secondary);
+  font-family: var(--font-ui);
+  font-size: var(--font-size-meta);
+  white-space: normal;
+}
+.message-materials {
+  width: 100%;
+}
+.message-user-text {
+  white-space: pre-wrap;
+}
+.markdown-message {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.markdown-message-plain {
+  white-space: pre-wrap;
+}
+.markdown-code {
+  position: relative;
+  min-width: 0;
+}
+.markdown-copy {
+  float: right;
+  font-family: var(--font-ui);
+  font-size: var(--font-size-meta);
+}
+.markdown-message table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+}
+.markdown-message td,
+.markdown-message th {
+  border: 1px solid var(--border);
+  padding: calc(var(--space-unit) * 2);
+}
+.markdown-message pre {
+  max-width: 100%;
+  overflow-x: auto;
+  white-space: pre;
+  background: var(--surface);
+  padding: calc(var(--space-unit) * 3);
+  border-radius: var(--radius);
+}
+.markdown-message code {
+  font-family: var(--font-mono);
+}
+.markdown-message .katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+}
 .thread-msg h3 {
   margin: 0 0 4px;
   font-size: 12px;

@@ -14,6 +14,7 @@ import { SqliteSaver } from '@langchain/langgraph-checkpoint-sqlite';
 import type {
   Artifact,
   BusinessParams,
+  BusinessResult,
   ErrorInfo,
   Message,
   Run,
@@ -27,7 +28,7 @@ import {
   FilesystemBackend,
   registerHarnessProfile,
 } from 'deepagents';
-import { and, desc, eq, gt, lt, sql } from 'drizzle-orm';
+import { and, desc, eq, gt, lt, or, sql } from 'drizzle-orm';
 import { createMiddleware, tool as defineTool } from 'langchain';
 import { z } from 'zod';
 import { failure, OperationError } from '../errors.js';
@@ -44,7 +45,7 @@ registerHarnessProfile('anthropic', {
 });
 
 type Active = { controller: AbortController; done: Promise<void> };
-type Notify = (projectId?: string, sessionId?: string) => void;
+type Notify = (projectId?: string, sessionId?: string, sessionsChanged?: boolean) => void;
 const activeKey = (project: ProjectStore, sessionId: string) =>
   `${project.project.id}:${sessionId}`;
 const now = () => new Date().toISOString();
@@ -114,18 +115,94 @@ export class Harness {
     }
   }
 
-  create(projectId: string, title = '新会话'): Session {
+  create(projectId: string, title?: string): Session {
     const project = this.projects.get(projectId);
     const value: Session = {
       id: randomUUID(),
       projectId,
-      title: title || '新会话',
+      title: title?.trim() || '新会话',
+      titleSource: title?.trim() ? 'manual' : 'default',
       updatedAt: now(),
       state: 'completed',
     };
     project.db.insert(tables.sessions).values({ id: value.id, value }).run();
     project.touch();
-    this.notify(projectId);
+    this.notify(projectId, undefined, true);
+    return value;
+  }
+
+  list(input: BusinessParams<'session.list'>): BusinessResult<'session.list'> {
+    const project = this.projects.get(input.projectId);
+    const updated = sql<string>`json_extract(${tables.sessions.value}, '$.updatedAt')`;
+    const cursor = input.cursor;
+    const limit = Math.min(input.limit ?? 50, 100);
+    const rows = project.db
+      .select()
+      .from(tables.sessions)
+      .where(
+        and(
+          sql`coalesce(json_extract(${tables.sessions.value}, '$.archived'), 0) = ${input.archived ? 1 : 0}`,
+          input.query
+            ? sql`instr(lower(json_extract(${tables.sessions.value}, '$.title')), lower(${input.query})) > 0`
+            : undefined,
+          cursor
+            ? or(
+                lt(updated, cursor.updatedAt),
+                and(eq(updated, cursor.updatedAt), lt(tables.sessions.id, cursor.id)),
+              )
+            : undefined,
+        ),
+      )
+      .orderBy(desc(updated), desc(tables.sessions.id))
+      .limit(limit + 1)
+      .all();
+    const more = rows.length > limit;
+    const sessions = rows.slice(0, limit).map((row) => row.value);
+    const last = sessions.at(-1);
+    return {
+      sessions,
+      ...(more && last ? { nextCursor: { updatedAt: last.updatedAt, id: last.id } } : {}),
+    };
+  }
+
+  rename(projectId: string, sessionId: string, title: string): Session {
+    const project = this.projects.get(projectId);
+    const normalized = title.trim();
+    if (!normalized || Array.from(normalized).length > 200)
+      throw new OperationError('invalidRequest', '会话标题应为 1 至 200 字符。');
+    const value: Session = {
+      ...this.session(project, sessionId),
+      title: normalized,
+      titleSource: 'manual',
+    };
+    project.db
+      .update(tables.sessions)
+      .set({ value })
+      .where(eq(tables.sessions.id, sessionId))
+      .run();
+    project.touch();
+    this.notify(projectId, sessionId, true);
+    return value;
+  }
+
+  archive(projectId: string, sessionId: string, archived: boolean): Session {
+    const project = this.projects.get(projectId);
+    const previous = this.session(project, sessionId);
+    if (
+      archived &&
+      (this.active.has(activeKey(project, sessionId)) ||
+        ['queued', 'running', 'cancelling'].includes(previous.state))
+    )
+      throw new OperationError('invalidRequest', '请等待执行停止后再归档会话。');
+    if (!!previous.archived === archived) return previous;
+    const value = { ...previous, archived };
+    project.db
+      .update(tables.sessions)
+      .set({ value })
+      .where(eq(tables.sessions.id, sessionId))
+      .run();
+    project.touch();
+    this.notify(projectId, sessionId, true);
     return value;
   }
 
@@ -158,7 +235,7 @@ export class Harness {
       .where(eq(tables.sessions.id, session.id))
       .run();
     project.touch();
-    this.notify(project.project.id, value.sessionId);
+    this.notify(project.project.id, value.sessionId, session.state !== value.state);
   }
 
   private putMessage(project: ProjectStore, value: Message): void {
@@ -187,12 +264,10 @@ export class Harness {
     for (const { value } of rows) this.putMessage(project, { ...value, state: 'unknown' });
   }
 
-  async send(
+  private acceptedInstruction(
+    project: ProjectStore,
     input: BusinessParams<'session.send'>,
-  ): Promise<{ instructionId: string; runId: string }> {
-    if (this.stopped) throw new OperationError('shuttingDown', '内核正在停止。');
-    const project = this.projects.get(input.projectId);
-    const session = this.session(project, input.sessionId);
+  ): BusinessResult<'session.send'> | undefined {
     const previous = project.db
       .select()
       .from(tables.instructions)
@@ -214,17 +289,34 @@ export class Harness {
         throw new OperationError('invalidRequest', '指令身份已用于其他内容。');
       return { instructionId: previous.id, runId: previous.runId };
     }
-    project.check('send');
-    if (!(await this.model.credentials.status()).configured)
-      throw new OperationError('credentialUnavailable', '请先配置 MiniMax API Key。');
-    if (input.materialFileIds && input.materialFileIds.length !== input.materials.length)
-      throw new OperationError('invalidRequest', '材料身份数量不一致。');
-    for (const [index, path] of input.materials.entries()) {
-      project.check('read');
-      const identity = input.materialFileIds?.[index];
-      if (identity && project.files.currentPath(identity) !== path)
-        throw new OperationError('contentChanged', '附加材料位置已变化，请重新选择后发送。');
-      await project.path(path);
+    return undefined;
+  }
+
+  async send(
+    input: BusinessParams<'session.send'>,
+  ): Promise<{ instructionId: string; runId: string }> {
+    if (this.stopped) throw new OperationError('shuttingDown', '内核正在停止。');
+    const project = this.projects.get(input.projectId);
+    const session = this.session(project, input.sessionId);
+    const previous = this.acceptedInstruction(project, input);
+    if (previous) return previous;
+    try {
+      project.check('send');
+      if (!(await this.model.credentials.status()).configured)
+        throw new OperationError('credentialUnavailable', '请先配置 MiniMax API Key。');
+      if (input.materialFileIds && input.materialFileIds.length !== input.materials.length)
+        throw new OperationError('invalidRequest', '材料身份数量不一致。');
+      for (const [index, path] of input.materials.entries()) {
+        project.check('read');
+        const identity = input.materialFileIds?.[index];
+        if (identity && project.files.currentPath(identity) !== path)
+          throw new OperationError('contentChanged', '附加材料位置已变化，请重新选择后发送。');
+        await project.path(path);
+      }
+    } catch (error) {
+      const accepted = this.acceptedInstruction(project, input);
+      if (accepted) return accepted;
+      throw error;
     }
     let run = this.latestRun(project, input.sessionId);
     const busy = this.active.has(activeKey(project, input.sessionId));
@@ -236,7 +328,25 @@ export class Harness {
         state: 'queued',
       };
     const accepted = run as Run;
+    let replay: BusinessResult<'session.send'> | undefined;
     project.db.transaction((tx) => {
+      replay = this.acceptedInstruction(project, input);
+      if (replay) return;
+      const current = tx
+        .select()
+        .from(tables.sessions)
+        .where(eq(tables.sessions.id, session.id))
+        .get()?.value;
+      if (!current || current.archived)
+        throw new OperationError('invalidRequest', '请先恢复已归档的会话。');
+      if (current.titleSource === 'default') {
+        const title =
+          Array.from(input.text.trim().replace(/\s+/gu, ' ')).slice(0, 40).join('') || '新会话';
+        tx.update(tables.sessions)
+          .set({ value: { ...current, title, titleSource: 'instruction' } })
+          .where(eq(tables.sessions.id, session.id))
+          .run();
+      }
       tx.insert(tables.instructions)
         .values({
           id: input.instructionId,
@@ -262,7 +372,9 @@ export class Harness {
         })
         .run();
     });
+    if (replay) return replay;
     this.setRun(project, accepted);
+    this.notify(project.project.id, session.id, true);
     if (!busy) this.schedule(project, accepted);
     return { instructionId: input.instructionId, runId: accepted.id };
   }
@@ -280,6 +392,8 @@ export class Harness {
 
   resume(projectId: string, sessionId: string): void {
     const project = this.projects.get(projectId);
+    if (this.session(project, sessionId).archived)
+      throw new OperationError('invalidRequest', '请先恢复已归档的会话。');
     project.check('send');
     if (this.stopped) throw new OperationError('shuttingDown', '内核正在停止。');
     if (this.active.has(activeKey(project, sessionId))) return;
@@ -351,7 +465,7 @@ export class Harness {
       }
       const model = await this.model.create(() => project.check('send'), signal);
       await privateDirectory(join(project.internal, 'scratch'));
-      const used = new Set<string>();
+      const used = new Map<string, string>();
       const toolContext = new AsyncLocalStorage<{ error?: ErrorInfo }>();
       const scratchBackend = () =>
         new Proxy(
@@ -432,7 +546,7 @@ export class Harness {
         new ProjectBackend(
           project,
           signal,
-          (path) => used.add(path),
+          (path, fileId) => used.set(fileId, path),
           saved,
           (error) => {
             const context = toolContext.getStore();
@@ -563,7 +677,8 @@ export class Harness {
                   : result.status === 'error'
                     ? 'error'
                     : 'complete',
-              materials: [...used],
+              materials: [...used.values()],
+              materialFileIds: [...used.keys()],
               tool: { ...tool, output: output.text, outputTruncated: output.truncated },
             });
           };
@@ -802,7 +917,8 @@ export class Harness {
                 role: 'assistant',
                 text: value,
                 state: 'streaming',
-                materials: [...used],
+                materials: [...used.values()],
+                materialFileIds: [...used.keys()],
                 createdAt: now(),
               });
               persistedAt.set(id, Date.now());
@@ -820,7 +936,8 @@ export class Harness {
               role: 'assistant',
               text: (text || buffers.get(id) || '').slice(-262144),
               state: 'complete',
-              materials: [...used],
+              materials: [...used.values()],
+              materialFileIds: [...used.keys()],
               createdAt: now(),
             });
           const usage = (
@@ -873,6 +990,7 @@ export class Harness {
             text,
             state: 'error',
             materials: prior?.materials ?? [],
+            ...(prior?.materialFileIds ? { materialFileIds: prior.materialFileIds } : {}),
             createdAt: prior?.createdAt ?? now(),
           });
       }
@@ -981,22 +1099,20 @@ export class Harness {
     sessionId?: string,
     before?: string,
     limit = 50,
-  ): Pick<WorkbenchSnapshot, 'sessions' | 'messages' | 'artifacts' | 'run' | 'nextBefore'> {
+    includeSessions = true,
+  ): Pick<
+    WorkbenchSnapshot,
+    'sessions' | 'session' | 'messages' | 'artifacts' | 'run' | 'nextBefore'
+  > {
     const result: Pick<
       WorkbenchSnapshot,
-      'sessions' | 'messages' | 'artifacts' | 'run' | 'nextBefore'
+      'sessions' | 'session' | 'messages' | 'artifacts' | 'run' | 'nextBefore'
     > = { sessions: [], messages: [], artifacts: [] };
     if (!projectId) return result;
     const project = this.projects.get(projectId);
-    result.sessions = project.db
-      .select()
-      .from(tables.sessions)
-      .limit(100)
-      .all()
-      .map((row) => row.value)
-      .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+    if (includeSessions) result.sessions = this.list({ projectId, limit: 100 }).sessions;
     if (!sessionId) return result;
-    this.session(project, sessionId);
+    result.session = this.session(project, sessionId);
     const cursor = before
       ? project.db.select().from(tables.messages).where(eq(tables.messages.id, before)).get()?.seq
       : undefined;

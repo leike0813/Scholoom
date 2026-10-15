@@ -9,6 +9,8 @@ const THINKING = '正在分析材料。';
 const SIGNATURE = 'synthetic-signature';
 const CHAT_TEXT = '收到。';
 const SAVED_TEXT = '分析已保存到 result.md。';
+export const MARKDOWN_TEXT =
+  '# 消息阅读样本\n\n| 项目 | 数值 |\n| --- | --- |\n| 合计 | 42 |\n\n```ts\nconst total = 42;\n```\n\n公式：$x^2$\n\n[查看材料](input.md)\n\n[中文材料](<材料 笔记.md#结论>)\n\n[外部资料](https://example.com/research)\n\n![远端图片](https://example.com/image.png)\n\n<script>window.untrustedMessage = true</script>';
 
 type Block = Record<string, unknown>;
 type Message = { role?: unknown; content?: unknown };
@@ -57,23 +59,31 @@ async function readJsonBody(req: IncomingMessage): Promise<Record<string, unknow
 
 // Thread progress is derived from the request itself: which tool_use blocks the caller
 // already sent back, so no session bookkeeping is needed.
-function inspect(body: Record<string, unknown>): { user: string; tools: Set<string> } {
+function inspect(body: Record<string, unknown>): {
+  user: string;
+  tools: Set<string>;
+  reads: number;
+} {
   const messages = Array.isArray(body.messages) ? (body.messages as Array<Message>) : [];
   const user: Array<string> = [];
   const tools = new Set<string>();
+  let reads = 0;
   for (const message of messages) {
     const content = message.content;
     if (typeof content === 'string') user.push(content);
     const blocks = Array.isArray(content) ? (content as Array<Block>) : [];
     for (const block of blocks) {
       if (message.role === 'user' && block.type === 'text') user.push(String(block.text ?? ''));
-      if (message.role !== 'user' && block.type === 'tool_use') tools.add(String(block.name ?? ''));
+      if (message.role !== 'user' && block.type === 'tool_use') {
+        tools.add(String(block.name ?? ''));
+        if (block.name === 'read_file') reads++;
+      }
     }
   }
-  return { user: user.join('\n'), tools };
+  return { user: user.join('\n'), tools, reads };
 }
 
-function planTurn(user: string, tools: Set<string>, toolId: string): Turn {
+function planTurn(user: string, tools: Set<string>, toolId: string, reads: number): Turn {
   const thinking: Block = { type: 'thinking', thinking: THINKING, signature: SIGNATURE };
   const text = (value: string): Turn => ({
     stopReason: 'end_turn',
@@ -83,6 +93,23 @@ function planTurn(user: string, tools: Set<string>, toolId: string): Turn {
     stopReason: 'tool_use',
     blocks: [thinking, { type: 'tool_use', id: toolId, name, input }],
   });
+  if (user.includes('MODEL_REPLACED_MATERIAL')) {
+    if (!reads) return tool('read_file', { file_path: '/input.md' });
+    if (!tools.has('rename_project_path'))
+      return tool('rename_project_path', {
+        path: 'input.md',
+        name: 'original.md',
+        operationId: 'fixture-original',
+      });
+    if (!tools.has('write_file'))
+      return tool('write_file', { file_path: '/input.md', content: '替代材料' });
+    if (reads < 2) return tool('read_file', { file_path: '/input.md' });
+    return text('两份材料分别保留身份。');
+  }
+  if (user.includes('MODEL_MARKDOWN'))
+    return tools.has('read_file')
+      ? text(MARKDOWN_TEXT)
+      : tool('read_file', { file_path: '/input.md' });
   if (user.includes('MODEL_STRUCTURE')) {
     if (!tools.has('mkdir_project_path'))
       return tool('mkdir_project_path', { path: 'managed', operationId: 'fixture-mkdir' });
@@ -298,8 +325,8 @@ export async function createModelServer(): Promise<ModelServer> {
     if (res.destroyed || res.writableEnded) return;
     sequence += 1;
     const suffix = String(sequence).padStart(4, '0');
-    const { user, tools } = inspect(body);
-    const turn = planTurn(user, tools, `toolu_fixture_${suffix}`);
+    const { user, tools, reads } = inspect(body);
+    const turn = planTurn(user, tools, `toolu_fixture_${suffix}`, reads);
     if (body.stream === true) {
       res.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-cache' });
       const body = streamBody(`msg_fixture_${suffix}`, turn);

@@ -1,5 +1,6 @@
 import { ComposerPrimitive, MessagePrimitive, ThreadPrimitive } from '@assistant-ui/react';
 import { forwardRef } from 'react';
+import { MessageContent, MessageFacts, MessageFiles } from '../MessageContent';
 import type { WorkbenchSession } from '../session';
 import { ExecutionContext, InstructionInput, InstructionSend } from './InstructionComposer';
 import { IconChevronDown } from './icons';
@@ -9,7 +10,8 @@ function UserMessage() {
   return (
     <MessagePrimitive.Root asChild>
       <article className="thread-msg thread-msg--user" aria-label="用户消息">
-        <MessagePrimitive.Parts />
+        <MessagePrimitive.Parts components={{ Text: MessageContent }} />
+        <MessageFacts />
       </article>
     </MessagePrimitive.Root>
   );
@@ -19,7 +21,10 @@ function AssistantMessage() {
   return (
     <MessagePrimitive.Root asChild>
       <article className="thread-msg thread-msg--assistant" aria-label="Agent 回复">
-        <MessagePrimitive.Parts components={{ tools: { Fallback: ToolCall } }} />
+        <MessagePrimitive.Parts
+          components={{ Text: MessageContent, tools: { Fallback: ToolCall } }}
+        />
+        <MessageFacts />
       </article>
     </MessagePrimitive.Root>
   );
@@ -27,8 +32,11 @@ function AssistantMessage() {
 
 export interface AgentOverlayProps {
   title: string;
+  messageKey: string;
+  openFile?: WorkbenchSession['openMessageFile'];
   context: WorkbenchSession['executionContext'];
   artifacts?: WorkbenchSession['artifacts'];
+  notices?: WorkbenchSession['notices'];
   reset?: (() => void) | undefined;
   onCollapse: () => void;
   cancel?: (() => void) | undefined;
@@ -38,7 +46,19 @@ export interface AgentOverlayProps {
 
 /** 展开态 Agent 面板：占满中间区的 overlay，完整消息流 + composer。 */
 export const AgentOverlay = forwardRef<HTMLDivElement, AgentOverlayProps>(function AgentOverlay(
-  { title, context, artifacts, reset, onCollapse, cancel, resume, loadEarlier },
+  {
+    title,
+    messageKey,
+    openFile,
+    context,
+    artifacts,
+    notices,
+    reset,
+    onCollapse,
+    cancel,
+    resume,
+    loadEarlier,
+  },
   ref,
 ) {
   return (
@@ -58,12 +78,15 @@ export const AgentOverlay = forwardRef<HTMLDivElement, AgentOverlayProps>(functi
       </header>
 
       <ThreadPrimitive.Viewport className="overlay-messages" aria-live="polite">
+        {notices}
         {loadEarlier ? (
           <button type="button" onClick={loadEarlier}>
             更早消息
           </button>
         ) : null}
-        <ThreadPrimitive.Messages components={{ UserMessage, AssistantMessage }} />
+        <MessageFiles.Provider key={messageKey} value={{ documentKey: messageKey, openFile }}>
+          <ThreadPrimitive.Messages components={{ UserMessage, AssistantMessage }} />
+        </MessageFiles.Provider>
         {artifacts}
       </ThreadPrimitive.Viewport>
 

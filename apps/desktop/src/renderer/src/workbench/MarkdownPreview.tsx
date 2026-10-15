@@ -13,7 +13,8 @@ import {
 } from 'react';
 import { jsx, jsxs } from 'react/jsx-runtime';
 import { assetTarget, linkTarget } from './markdown-paths';
-import type { PreviewNode, PreviewRequest, PreviewResponse } from './markdown-render';
+import { acquireMarkdownQueue, type MarkdownQueueHandle } from './markdown-queue';
+import type { PreviewNode } from './markdown-render';
 
 const MAX_CONCURRENT_READS = 4;
 const MAX_CACHED_RESOURCES = 8;
@@ -240,10 +241,7 @@ export function MarkdownPreview({
     busy: true,
   });
   const host = useRef<HTMLDivElement>(null);
-  const instance = useRef<Worker | null>(null);
-  const sequence = useRef(0);
-  const running = useRef(0);
-  const queued = useRef<PreviewRequest | null>(null);
+  const queue = useRef<MarkdownQueueHandle | null>(null);
   const requestedKey = useRef(documentKey);
   // 回调经 ref 转发，父组件传内联箭头函数也不会让资源状态和已加载图片反复重建。
   const handlers = useRef({ readResource, openFile, openExternal });
@@ -262,49 +260,17 @@ export function MarkdownPreview({
     return () => resources.dispose();
   }, [resources]);
 
+  // 与消息正文共用一次 Worker 引用：挂载时取得，卸载时释放。
   useEffect(() => {
-    const worker = new Worker(new URL('./markdown-worker.ts', import.meta.url), { type: 'module' });
-    instance.current = worker;
-    running.current = 0;
-    queued.current = null;
-    worker.onmessage = (event: MessageEvent<PreviewResponse>) => {
-      const response = event.data;
-      running.current = 0;
-      // 旧版本或旧文档的结果直接丢弃，绝不覆盖当前预览。
-      if (response.id === sequence.current) {
-        setPreview((current) =>
-          'tree' in response
-            ? { tree: response.tree, error: undefined, busy: false }
-            : { tree: current.tree, error: response.error, busy: false },
-        );
-      }
-      const next = queued.current;
-      queued.current = null;
-      if (next) {
-        running.current = next.id;
-        worker.postMessage(next);
-      }
-    };
-    worker.onerror = (event) => {
-      running.current = 0;
-      queued.current = null;
-      setPreview((current) => ({
-        tree: current.tree,
-        error: event.message || '预览进程不可用',
-        busy: false,
-      }));
-    };
+    const handle = acquireMarkdownQueue();
+    queue.current = handle;
     return () => {
-      worker.terminate();
-      instance.current = null;
-      running.current = 0;
-      queued.current = null;
+      queue.current = null;
+      handle.release();
     };
   }, []);
 
   useEffect(() => {
-    const id = sequence.current + 1;
-    sequence.current = id;
     // 切换文档时不留上一份文档的结果；同一文档内保留上一次成功预览。
     const switching = requestedKey.current !== documentKey;
     requestedKey.current = documentKey;
@@ -313,18 +279,19 @@ export function MarkdownPreview({
       error: undefined,
       busy: true,
     }));
-    const worker = instance.current;
-    const request = { id, content };
-    if (!worker) {
+    const handle = queue.current;
+    if (!handle) {
       setPreview({ tree: undefined, error: '预览进程未就绪', busy: false });
       return;
     }
-    // 最多一个运行中请求 + 一个最新待处理请求，连续编辑只保留最后一版。
-    if (running.current) queued.current = request;
-    else {
-      running.current = id;
-      worker.postMessage(request);
-    }
+    // 连续编辑只保留最后一版，旧文档或旧正文的结果由共享调度丢弃。
+    handle.request(content, (result) => {
+      setPreview((current) =>
+        'tree' in result
+          ? { tree: result.tree, error: undefined, busy: false }
+          : { tree: current.tree, error: result.error, busy: false },
+      );
+    });
   }, [content, documentKey]);
 
   const value = useMemo<PreviewValue>(
