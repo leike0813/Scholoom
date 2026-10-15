@@ -46,6 +46,13 @@
 - 数据库访问方式与 UI 负载能力按 [#12](.scratch/scholoom-foundations/issues/12-technology-stack.md#answer)在开发中和交付前复验，按证据调整。性能门槛沿 [#15](.scratch/scholoom-foundations/issues/15-validation-and-release-discipline.md#性能验收q5)仅用于确定性动作；Agent 整体任务耗时用于诊断，科研成果另行验收。
 - 原型、模块与整合交付分别记录真实接线、模拟边界及验证范围。本地通过不代表三平台验收；发布前按[#15](.scratch/scholoom-foundations/issues/15-validation-and-release-discipline.md)验证目标平台实际分发包及必要迁移、恢复路径。
 
+## UI 设计约束
+
+- 工作台视觉与布局的唯一事实源是[设计文档](docs/ui-design/README.md)；改动界面结构、间距、颜色、字体或状态呈现前先读取并对齐，调整设计本身时先更新该文档再改代码。
+- 样式只引用 `apps/desktop/src/renderer/src/styles.css` 顶部定义的语义 token；引入新语义时先加 token 并在浅色、深色两套映射中同时赋值，组件样式不写具体色值、字号或圆角。
+- 三区骨架与 Agent 面板双形态是稳定结构；新功能以 tab、面板、消息流组件或列表行接入，不另起布局，不绕过 dock/overlay 形态契约。
+- 可访问名（连接状态、研究指令、发送指令等）是双宿主测试的回归锚点，重命名或移动控件时同步核对 `tests/ui/`。
+
 ## 诊断、收尾与交接
 
 - 连续修复无效或特殊分支增加时，复查契约、模块职责和测试预期；以是否获得新证据、缩小问题范围判断进展，不设置固定失败次数门槛。
