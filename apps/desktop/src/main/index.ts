@@ -28,6 +28,27 @@ ipcMain.handle('kernel:bootstrap', async (event, mode: unknown) => {
       error: { code: 'permissionDenied', message: 'Invalid bootstrap source.' },
     };
   }
+  if (process.env.ELECTRON_RENDERER_URL) {
+    const endpoint = new URL('/__scholoom/kernel/bootstrap', process.env.ELECTRON_RENDERER_URL);
+    try {
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Scholoom-Bootstrap': '1',
+          Origin: endpoint.origin,
+        },
+        body: JSON.stringify({ mode }),
+      });
+      if (response.ok) return await response.json();
+    } catch {
+      // 由调试宿主持有内核；桥失败时交由界面重试。
+    }
+    return {
+      state: 'unknown',
+      error: { code: 'startupFailed', message: 'Development bootstrap unavailable.' },
+    };
+  }
   const { bootstrapKernel } = await import('@scholoom/kernel/bootstrap');
   return bootstrapKernel(mode as 'ensure' | 'inspect');
 });

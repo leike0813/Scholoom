@@ -71,6 +71,7 @@ export class KernelClient {
   private shutdownAccepted = false;
   private shutdownPending = 0;
   private disposed = false;
+  private developmentOwner = false;
 
   constructor(endpoint: KernelEndpoint) {
     if (!isKernelEndpoint(endpoint)) {
@@ -178,6 +179,15 @@ export class KernelClient {
     return status;
   }
 
+  /** Owns a development kernel until this connection closes. */
+  async attachDevelopment(): Promise<KernelStatus> {
+    const status = this.verifyStatus(
+      await this.request('kernel.development.attach', {}, limits.requestMs),
+    );
+    this.developmentOwner = true;
+    return status;
+  }
+
   /** Requests an explicit kernel shutdown; resolves once the kernel accepts it. */
   async shutdown(): Promise<ShutdownAccepted> {
     if (this.disposed) throw new KernelClientError('unavailable', 'Client has been disposed.');
@@ -215,7 +225,7 @@ export class KernelClient {
     }
   }
 
-  /** Stops reconnecting and closes the socket; the kernel keeps running. */
+  /** Closes the connection, releasing any development ownership. */
   dispose(): void {
     if (this.disposed) return;
     this.disposed = true;
@@ -256,6 +266,7 @@ export class KernelClient {
         await this.request('kernel.status', undefined, limits.requestMs),
       );
       this.kernelStatus = status;
+      if (this.developmentOwner) await this.attachDevelopment();
       this.reconnectAllowed = this.phase !== 'stopping' && status.state !== 'stopping';
       if (this.reconnectAllowed) this.shutdownAccepted = false;
       this.update(this.reconnectAllowed ? 'connected' : 'stopping');

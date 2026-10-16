@@ -40,7 +40,6 @@ const errorMessages: Partial<Record<ErrorInfo['code'], string>> = {
   unavailable: '内核未连接（不可达）',
   outcomeUnknown: '无法确认停机结果',
   shuttingDown: '内核正在停止',
-  permissionDenied: '权限不足，无法连接内核',
   startupFailed: '内核启动失败',
 };
 

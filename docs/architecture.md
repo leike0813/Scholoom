@@ -60,7 +60,7 @@ Scholoom 是可独立执行完整科研工作的本地 Agent 系统。人类通�
 | 受管执行进程 | 用户 JS／TS、自定义图、Python、CLI、渲染及需本机启动的插件服务 | 按实际调用管理资源与进程树，首阶段按可信代码执行 |
 | 独立 Electron 兼容宿主 | 原包装载、Zotero 可观察对象语义、DOM 和后台能力 | 按需启动；共享宿主失败时标记所有受影响调用 |
 
-内核与宿主独立于工作台生命周期。不默认开机自启，不新增常驻重启守护进程；无法连接尚存活的内核时不能强制替换。明确停止与连接中断必须区分。依据：[#09](../.scratch/scholoom-foundations/issues/09-electron-architecture.md)、[#23](../.scratch/scholoom-foundations/issues/23-kernel-entry-and-lifecycle.md)。
+内核与宿主独立于工作台生命周期。不默认开机自启，不新增常驻重启守护进程；无法连接尚存活的内核时不能强制替换。明确停止与连接中断必须区分。开发调试入口（`dev:browser`／`dev:desktop`）共享受管调试内核，所有权随实际开发宿主进程，最后一个宿主退出或异常失联时沿真实停机流程回收并保留数据；独立 CLI 与普通产品入口继续驻留，调试入口不接管被独立实例占用的配置。内核代码不做热替换，调试实例的共享、退出与回收由实际 dev 命令及开发 smoke 核对；运行入口见[开发说明](development.md#内核配置与生命周期)。依据：[#09](../.scratch/scholoom-foundations/issues/09-electron-architecture.md)、[#23](../.scratch/scholoom-foundations/issues/23-kernel-entry-and-lifecycle.md)。
 
 ### 3.2 七个逻辑模块
 

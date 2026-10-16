@@ -1,6 +1,7 @@
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
 import { fileURLToPath } from 'node:url';
+import { createDevelopmentKernel } from '../apps/kernel/dist/bootstrap.js';
 import { runKernel } from './kernel-fixture.js';
 
 export async function startModelKernel(
@@ -10,15 +11,19 @@ export async function startModelKernel(
   const stopped = await runKernel(directory, 'stop');
   if (stopped.state !== 'stopped') throw new Error('Previous isolated kernel did not stop');
   const module = fileURLToPath(new URL('../apps/kernel/dist/lifecycle.js', import.meta.url));
-  const source = `import { serveKernel } from ${JSON.stringify(module)}; try { await serveKernel(process.argv[1], {modelEndpoint:process.argv[2],environment:{}}); } catch { process.send?.({state:'failed'}); process.exitCode=1; } finally { process.disconnect?.(); }`;
+  const source = `import { serveKernel } from ${JSON.stringify(module)}; try { await serveKernel(process.argv[1], {modelEndpoint:process.argv[2],environment:{},development:true}); } catch { process.send?.({state:'failed'}); process.exitCode=1; } finally { process.disconnect?.(); }`;
   const child = spawn(
     process.execPath,
     ['--input-type=module', '-e', source, directory, endpoint],
     { stdio: ['ignore', 'ignore', 'ignore', 'ipc'] },
   );
   const [ready] = await once(child, 'message');
-  if (ready.state !== 'ready') throw new Error('Test-owned kernel did not start');
+  if (ready.state !== 'ready') throw new Error(`Test-owned kernel did not start: ${ready.state}`);
+  const owner = createDevelopmentKernel({ dataDirectory: directory });
+  const attached = await owner.bootstrap('inspect');
+  if (attached.state !== 'running') throw new Error('Test-owned kernel ownership failed');
   return async () => {
+    await owner.dispose();
     const exited = child.exitCode !== null ? Promise.resolve() : once(child, 'exit');
     const result = await runKernel(directory, 'stop');
     if (result.state !== 'stopped')

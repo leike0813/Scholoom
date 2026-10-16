@@ -102,6 +102,12 @@ export const bootstrapRequestSchema = {
 } as const;
 export type BootstrapRequest = FromSchema<typeof bootstrapRequestSchema>;
 
+export const developmentAttachSchema = {
+  type: 'object',
+  properties: {},
+  additionalProperties: false,
+} as const;
+
 export const bootstrapResultSchema = {
   anyOf: [
     {
@@ -202,6 +208,7 @@ export const isJsonRpcNotification = ajv.compile<JsonRpcNotification>(jsonRpcNot
 export const isKernelStatus = ajv.compile<KernelStatus>(kernelStatusSchema);
 export const isKernelEndpoint = ajv.compile<KernelEndpoint>(kernelEndpointSchema);
 export const isBootstrapRequest = ajv.compile<BootstrapRequest>(bootstrapRequestSchema);
+export const isDevelopmentAttach = ajv.compile(developmentAttachSchema);
 export const isBootstrapResult = ajv.compile<BootstrapResult>(bootstrapResultSchema);
 export const isAuthentication =
   ajv.compile<FromSchema<typeof authenticationSchema>>(authenticationSchema);

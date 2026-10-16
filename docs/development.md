@@ -26,7 +26,7 @@ Electron 工作台和 CLI 共用独立 Node 内核，浏览器开发入口经同
 
 ## 内核配置与生命周期
 
-开发入口和 CLI 默认共用仓库根 `.scholoom-dev/`。CLI 的 `--data-dir` 优先于 `SCHOOLOOM_DATA_DIR`，未指定时使用上述默认目录；Electron/Vite 使用同一环境变量。数据配置限定本机文件系统，不将运行目录放在 NFS 等网络文件系统。
+CLI 和普通产品实例默认使用仓库根 `.scholoom-dev/`；`pnpm dev:browser` 与 `pnpm dev:desktop` 默认使用 `.scholoom-dev/debug/`。`--data-dir` 优先于 `SCHOOLOOM_DATA_DIR`，未指定时使用对应默认目录；开发入口同样可用该环境变量覆盖调试配置。数据配置限定本机文件系统，不将运行目录放在 NFS 等网络文件系统。
 
 ```sh
 pnpm kernel start --data-dir /path/to/isolated-profile
@@ -38,9 +38,11 @@ pnpm kernel stop --data-dir /path/to/isolated-profile
 
 运行区的 `lifecycle.sqlite` 只承载系统排他锁，内核持锁至退出；`endpoint.json` 原子保存本次实例和连接资料，`kernel.log` 记录不含凭据的初始化诊断。锁文件持续保留，不能通过删除它来重启仍占用配置的进程。Node 24.12.0 会输出 `node:sqlite` 实验性告警。
 
-Electron 通过窄 preload 桥调用独立 Node CLI。开发环境使用 PATH 中的 `node`，也可由 `SCHOOLOOM_NODE_EXECUTABLE` 明确指定 Node 24；缺失或错误运行时显示启动失败，不使用 Electron 充当内核。当前产品目录包尚未提供独立 Node，成品分发由后续变更落实。
+Electron 通过窄 preload 桥请求内核引导：开发态主进程把请求转发给 electron-vite renderer 的 Vite 引导端点，生产态仍调用独立 Node CLI。内核使用 PATH 中的 `node`，也可由 `SCHOOLOOM_NODE_EXECUTABLE` 明确指定 Node 24；缺失或错误运行时显示启动失败，不使用 Electron 充当内核。当前产品目录包尚未提供独立 Node，成品分发由后续变更落实。
 
-Vite 启动时发现或启动内核；浏览器页面初次只查询，用户重试才允许重新启动。引导只接受本机同源请求，运行资料不写入 URL 或构建产物；静态文件与模块入口拒绝读取运行凭据。意外断线会有界重连并重新查询状态，认证或协议错误直接停止尝试。
+Vite 启动时发现或启动受管调试内核；浏览器页面初次只查询，用户重试才允许重新启动。引导只接受本机同源请求，运行资料不写入 URL 或构建产物；静态文件与模块入口拒绝读取运行凭据。意外断线会有界重连并重新查询状态，认证或协议错误直接停止尝试。
+
+开发调试内核由实际 Vite／electron-vite 宿主进程持有经认证的所有权，同一配置的多个调试宿主共享实例；页面刷新或 renderer 重载不回收内核，普通页面与业务连接也不延长其寿命。最后一个调试宿主退出或异常失联后，内核沿正常停机路径中止在途调用、保存并回收，调试配置、文献库和项目数据保留；启动后未完成所有权登记的实例在有界时间内自行退出。下一轮调试启动当前构建的新实例，内核代码不做热替换，需全部调试宿主结束后重新打开。独立 CLI 与普通产品实例继续默认驻留并在关窗后续跑；调试配置已被独立内核占用时，调试入口报告归属冲突并保留该实例，改用其他配置或先显式停止独立内核。
 
 工作台菜单“停止内核”会说明所有客户端受影响并要求确认。受理或连接关闭不代表退出，界面和 CLI 核对实际状态后才显示停止；不能确认时显示结果未知并提供查询。收到明确停机后客户端不会自动重启，用户可重试连接。真实来源的指令、材料选择与未保存文件草稿按配置／项目／会话或文件保存在本地，可跨停机、断线及刷新恢复；本地存储不可用时退回内存。
 
@@ -50,7 +52,7 @@ Vite 启动时发现或启动内核；浏览器页面初次只查询，用户重
 
 ## 共享工作台与日常交互
 
-日常反馈和最终产品都在 `apps/desktop/src/renderer/src/workbench/Workbench.tsx` 上演进，共用 `styles.css`（语义 token + 浅色/深色双主题，默认跟随系统，左区底部可手动切换）。工作台为三区骨架：左区（操作菜单、会话列表、内核状态）、中间区（tab 组 + Agent 面板）、右区（文件树、材料、任务）；左右区可折叠为图标轨（`Ctrl/Cmd+B`、`Ctrl/Cmd+Alt+B`）。Agent 面板固定在中间区：折叠态 dock 在底部（tool 消息固定顶部、最新 agent 消息截头留尾、精简 composer），点击展开为占满中间区的 overlay（完整消息流与 composer，Esc 收起）。tab 组支持激活、关闭与"向右拆分"按钮，文件、设置和题录库 tab 已接入真实内容，阅读器仍为占位。外壳组件在 `workbench/shell/`，布局与视觉契约见 `docs/ui-design/`。`main.tsx` 只选择 session 来源。`workbench/session.ts` 定义界面输入：连接状态、材料及选择、可选的会话/文件树/任务数据、回调和 assistant-ui ExternalStoreAdapter；消息由来源提供，草稿由 assistant-ui Composer 管理，发送、消息呈现和重置都经过工作台的同一路径。真实来源经 `packages/client` 获取业务事实；领域 DTO 仍以 `packages/protocol` 的 schema 为准。
+日常反馈和最终产品都在 `apps/desktop/src/renderer/src/workbench/Workbench.tsx` 上演进，共用 `styles.css`（语义 token + 浅色/深色双主题，默认跟随系统，左区底部可手动切换）。工作台为三区骨架：左区（操作菜单、会话列表、内核状态）、中间区（tab 组 + Agent 面板）、右区（文件树、材料、任务）；左右区可折叠为图标轨（`Ctrl/Cmd+B`、`Ctrl/Cmd+Alt+B`）。Agent 面板固定在中间区：折叠态 dock 在底部（tool 消息固定顶部、最新 agent 消息截头留尾、精简 composer），点击展开为占满中间区的 overlay（完整消息流与 composer，Esc 收起）。tab 组支持激活、关闭与"向右拆分"按钮，文件、设置和题录库 tab 已接入真实内容，PDF 阅读器及共享阅读记录也已接入。外壳组件在 `workbench/shell/`，布局与视觉契约见 `docs/ui-design/`。`main.tsx` 只选择 session 来源。`workbench/session.ts` 定义界面输入：连接状态、材料及选择、可选的会话/文件树/任务数据、回调和 assistant-ui ExternalStoreAdapter；消息由来源提供，草稿由 assistant-ui Composer 管理，发送、消息呈现和重置都经过工作台的同一路径。真实来源经 `packages/client` 获取业务事实；领域 DTO 仍以 `packages/protocol` 的 schema 为准。
 
 真实首页默认空 tab；连接不等于模型及授权就绪。设置 tab 集中模型、授权与备份，左区项目控件支持新建、打开、切换、显示名修改与移出最近列表（不删目录、不停止执行）；会话、文件编辑、发送、取消和继续复用共同客户端。开发态显式打开 `?scenario=ui-foundation` 才加载隔离样例；它仍只保留最新一轮，使用固定材料和回复，不读文件、不调模型、不持久化；生产构建忽略样例参数。
 
@@ -76,7 +78,7 @@ Vite 启动时发现或启动内核；浏览器页面初次只查询，用户重
 
 ## 基本单 Agent harness
 
-更新内核实现后需重启已有内核；工作台重连会接回驻留实例，不会热替换其代码。
+内核代码不会热替换。独立驻留实例在实现更新后需重启；调试内核需结束全部调试宿主，下一轮调试才加载新构建。工作台重连接回原实例。
 
 在“模型设置”填写 MiniMax M Plan 中国区订阅 Key 即可；连接固定使用 `https://api.minimax.cn/anthropic` 和 `MiniMax-M3.1-Flash-Preview`，不回退到按量模型。也可在启动独立内核前注入 `MINIMAX_CN_API_KEY`；保存的凭据优先。环境变化需要重启内核才会继承，当前请求保留原凭据。不要将 Key 写入项目或命令参数。
 
@@ -130,7 +132,7 @@ Agent 使用 Orca browser skill，先列出当前项目的标签，核对 URL �
 
 如果 CLI 无法新建本地标签，用户可手动打开上述链接，再列出标签并继续；桌面不在线或页面不可读时记录实际错误。已发送的结构化反馈可读取，独立轮询未发送注释尚未验证。Windows 路径实测见[验证记录](../.scratch/scholoom-foundations/research/orca-ui-windows-validation.md)。服务已有时先确认项目、端口和可达性，避免重复启动；仅停止本轮自行拥有的进程。
 
-新增 UI 行为直接扩展 Workbench，样例只注入状态与回调，验收扩展 `tests/ui/workbench.spec.ts`。材料、消息和事件处理各保留一个来源；跨宿主差异留在薄入口或适配层。题录库沿共同模块继续接入附件，阅读器与任务等 tab 内容按后续需求逐项接入。
+新增 UI 行为直接扩展 Workbench，样例只注入状态与回调，验收扩展 `tests/ui/workbench.spec.ts`。材料、消息和事件处理各保留一个来源；跨宿主差异留在薄入口或适配层。题录库沿共同模块继续接入附件，任务等其他 tab 内容按后续需求逐项接入。
 
 模块独立开发时，可在既有 UI harness 中增加专用可视化夹具，接入真实被测模块和交互组件，并明确输入及依赖替身；夹具与整合验收的边界见 [deep module 与独立交付](../.scratch/scholoom-foundations/issues/14-agent-development-discipline.md#deep-module-与独立交付)。
 
@@ -140,11 +142,13 @@ Agent 使用 Orca browser skill，先列出当前项目的标签，核对 URL �
 
 首次准备 UI 测试运行时执行 `pnpm setup:ui`，安装锁定 Playwright 版本的 Chromium headless shell；Linux 可用 `pnpm setup:ui --with-deps` 安装系统依赖。
 
-`pnpm check` 串联 lint、类型检查、构建、内核、smoke 和 UI 交互测试。单独运行测试前先执行 `pnpm build`。`pnpm test:kernel` 验证真实进程、并发启动/重启、配置隔离与别名、认证和协议、传输重连及停机结果未知；受控代理只在传输边界丢失或延迟消息，业务请求仍到达真实服务。
+`pnpm check` 串联 lint、类型检查、构建、内核、smoke 和 UI 交互测试。单独运行测试前先执行 `pnpm build`。`pnpm test:kernel` 验证真实进程、并发启动/重启、配置隔离与别名、认证和协议、传输重连、调试所有权共享与回收、独立驻留及停机结果未知；受控代理只在传输边界丢失或延迟消息，业务请求仍到达真实服务。
 
-`pnpm test:smoke` 启动构建后的应用，核对独立 Node CLI、真实工作台连接、生产样例隔离、sandbox preload、关窗续留和重开，以及宿主隐藏窗口。Electron fixture 经原生窗口关闭与应用退出核对所拥有进程的退出，再明确停止测试内核。
+`pnpm test:smoke` 启动构建后的应用，核对独立 Node CLI、真实工作台连接、生产样例隔离、sandbox preload、关窗续留和重开，以及宿主隐藏窗口；开发 smoke 运行实际 `dev:browser`／`dev:desktop` 命令，核对共享实例、退出顺序与最后退出后的回收。真实模型 UI 验收显式设置 `SCHOOLOOM_LIVE_MODEL_TEST=1`，只使用合成样本与环境中的模型凭据；默认回归不使用真实模型凭据，只在外部模型边界注入受控响应。Electron fixture 经原生窗口关闭与应用退出核对所拥有进程的退出，再明确停止测试内核。
 
 `pnpm test:ui` 使用 `playwright.ui.config.ts`，同一场景分别驱动 Chromium 和真实 Electron。它覆盖真实连接、内核连接重连、草稿保护、停机与重试、崩溃后用户重试及既有样例行为；浏览器引导和静态凭据访问检查执行一次。测试独占 `127.0.0.1:5174`，使用 `test-results` 下的独立配置；各套件的 trace 分目录保存。结束时关闭本轮应用与服务并确认内核退出，无法确认退出时保留配置供诊断。
+
+真实开发命令及模型 UI 验收位于 `tests/smoke/development.spec.ts`：普通场景使用浏览器5315／Electron CDP 9315，live 场景使用5316／9316，Electron renderer 使用本轮服务的实际 URL。显式运行 `SCHOOLOOM_LIVE_MODEL_TEST=1 pnpm test:smoke tests/smoke/development.spec.ts --grep 'live MiniMax' --output test-results/development-live`；Key 仅经环境注入，不录 trace，保存合成成果作为验收附件。Linux 命令自动化使用 electron-vite 的 `NO_SANDBOX=1` 环境选项，与既有 Playwright Electron 启动设置一致；产品默认 sandbox 设置不变，本机通过不代表目标平台 OS sandbox 或分发包已验收。
 
 无图形会话的 Linux 需要 Xvfb 和 Electron 所需动态库，使用 `xvfb-run -a pnpm check`。Smoke 检验工程入口，UI 测试检验共同界面行为；业务契约、科研效果、原生能力和插件支持仍须相应真实场景验收。
 

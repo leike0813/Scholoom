@@ -21,6 +21,7 @@ async function main() {
       json: { type: 'boolean' },
       'data-dir': { type: 'string' },
       'connection-info': { type: 'boolean' },
+      development: { type: 'boolean' },
       project: { type: 'string' },
       session: { type: 'string' },
       path: { type: 'string' },
@@ -135,7 +136,7 @@ async function main() {
   }
   if (positionals[0] === 'serve') {
     try {
-      await serveKernel(directory);
+      await serveKernel(directory, { development: values.development ?? false });
     } catch (error) {
       process.send?.({ state: 'failed' });
       console.error(
@@ -151,7 +152,7 @@ async function main() {
   let result: BootstrapResult;
   switch (positionals[0]) {
     case 'start':
-      result = await ensureKernel(directory);
+      result = await ensureKernel(directory, { development: values.development ?? false });
       break;
     case 'status':
       result = await inspectKernel(directory);

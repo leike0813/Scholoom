@@ -280,6 +280,7 @@ test('panes collapse to rails and restore', async ({ uiPage }) => {
 
 test('agent panel expands to overlay and keeps draft and focus', async ({ uiPage }) => {
   await uiPage.goto(rendererUrl);
+  await expect(uiPage.getByRole('button', { name: '新建会话', exact: true })).toBeEnabled();
 
   const draft = '形态切换之间保留这份草稿';
   await uiPage.getByRole('textbox', { name: '研究指令' }).fill(draft);

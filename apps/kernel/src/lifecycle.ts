@@ -209,7 +209,7 @@ async function publishEndpoint(runtime: string, endpoint: KernelEndpoint): Promi
 
 export async function serveKernel(
   directory: string,
-  options: { modelEndpoint?: string; environment?: NodeJS.ProcessEnv } = {},
+  options: { modelEndpoint?: string; environment?: NodeJS.ProcessEnv; development?: boolean } = {},
 ): Promise<void> {
   const canonical = await canonicalDirectory(directory, true);
   if (!canonical) throw new Error('Missing data directory');
@@ -246,6 +246,7 @@ export async function serveKernel(
         await application.close();
       },
       application,
+      options.development,
     );
     endpoint = { ...status, url: server.url, token: server.token };
     try {
@@ -270,7 +271,10 @@ export async function serveKernel(
   }
 }
 
-export async function ensureKernel(directory: string): Promise<BootstrapResult> {
+export async function ensureKernel(
+  directory: string,
+  options: { development?: boolean } = {},
+): Promise<BootstrapResult> {
   let result = await inspectKernel(directory);
   if (result.state === 'running' || result.state === 'unreachable') return result;
   if (result.state === 'unknown' && result.error?.code !== 'unavailable') return result;
@@ -285,11 +289,21 @@ export async function ensureKernel(directory: string): Promise<BootstrapResult> 
     if (result.state === 'stopped') {
       const runtime = await prepareRuntime(canonical);
       const log = await open(join(runtime, 'kernel.log'), 'a', 0o600);
-      const child = spawn(process.execPath, [cliPath, 'serve', '--data-dir', canonical], {
-        detached: process.platform !== 'win32', // Windows 不支持 detached + IPC 组合
-        windowsHide: true,
-        stdio: ['ignore', log.fd, log.fd, 'ipc'],
-      });
+      const child = spawn(
+        process.execPath,
+        [
+          cliPath,
+          'serve',
+          '--data-dir',
+          canonical,
+          ...(options.development ? ['--development'] : []),
+        ],
+        {
+          detached: process.platform !== 'win32', // Windows 不支持 detached + IPC 组合
+          windowsHide: true,
+          stdio: ['ignore', log.fd, log.fd, 'ipc'],
+        },
+      );
       await log.close();
       try {
         await new Promise<void>((resolveReady, reject) => {

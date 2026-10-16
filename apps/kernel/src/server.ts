@@ -6,6 +6,7 @@ import {
   type ErrorInfo,
   isAuthentication,
   isBusinessMethod,
+  isDevelopmentAttach,
   isJsonRpcNotification,
   isJsonRpcRequest,
   isJsonRpcResponse,
@@ -24,6 +25,7 @@ export async function startKernelServer(
   initialStatus: KernelStatus,
   onStopping: () => Promise<void>,
   application?: KernelApplication,
+  development = false,
 ) {
   let status = initialStatus;
   const token = randomBytes(32).toString('hex');
@@ -32,6 +34,8 @@ export async function startKernelServer(
   });
   const sockets = new WebSocketServer({ noServer: true, maxPayload: limits.frameBytes });
   const authenticated = new Set<WebSocket>();
+  const owners = new Set<WebSocket>();
+  let ownerDeadline: ReturnType<typeof setTimeout> | undefined;
   let resolveClosed: () => void = () => {};
   const closed = new Promise<void>((resolve) => {
     resolveClosed = resolve;
@@ -40,6 +44,7 @@ export async function startKernelServer(
 
   const stop = (): Promise<void> => {
     if (stopping) return stopping;
+    clearTimeout(ownerDeadline);
     status = { ...status, state: 'stopping' };
     stopping = (async () => {
       for (const socket of authenticated) {
@@ -69,6 +74,13 @@ export async function startKernelServer(
       }
     })();
     return stopping;
+  };
+
+  const stopDevelopment = () => {
+    void stop().catch(() => {
+      console.error(JSON.stringify({ code: 'outcomeUnknown', message: 'Kernel cleanup failed.' }));
+      process.exitCode = 1;
+    });
   };
 
   http.on('upgrade', (request, socket, head) => {
@@ -174,6 +186,7 @@ export async function startKernelServer(
       clearTimeout(changeTimer);
       unsubscribe?.();
       authenticated.delete(socket);
+      if (owners.delete(socket) && owners.size === 0) stopDevelopment();
     });
     socket.on('message', (bytes, binary) => {
       let message: unknown;
@@ -221,6 +234,23 @@ export async function startKernelServer(
           return;
         }
         reply(message, status);
+      } else if (message.method === 'kernel.development.attach') {
+        if (!isDevelopmentAttach(message.params)) {
+          error(message.id, -32602, 'invalidRequest', 'Development attach takes no parameters.');
+        } else if (!development) {
+          error(
+            message.id,
+            -32010,
+            'permissionDenied',
+            'Configuration belongs to an independent kernel.',
+          );
+        } else if (status.state !== 'running') {
+          error(message.id, -32004, 'shuttingDown', 'Kernel is stopping.');
+        } else {
+          owners.add(socket);
+          clearTimeout(ownerDeadline);
+          reply(message, status);
+        }
       } else if (message.method === 'kernel.shutdown') {
         if (!isShutdown(message.params)) {
           error(message.id, -32602, 'invalidRequest', 'Invalid shutdown parameters.');
@@ -288,5 +318,6 @@ export async function startKernelServer(
     });
   });
   const address = http.address() as AddressInfo;
+  if (development) ownerDeadline = setTimeout(stopDevelopment, limits.lifecycleMs);
   return { url: `ws://127.0.0.1:${address.port}/`, token, closed, stop };
 }
