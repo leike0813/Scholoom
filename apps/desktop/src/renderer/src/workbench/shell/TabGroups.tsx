@@ -1,3 +1,4 @@
+import type { LibraryAttachment } from '@scholoom/protocol';
 import type { KeyboardEvent, ReactNode } from 'react';
 import type { FileTarget } from '../session';
 import { IconEdit, IconLibrary, IconPreview, IconReader, IconSettings, IconSplit } from './icons';
@@ -9,6 +10,7 @@ export interface TabItem {
   title: string;
   kind: TabKind;
   target?: FileTarget;
+  material?: LibraryAttachment;
 }
 
 export interface TabGroupState {
@@ -82,6 +84,7 @@ export interface TabGroupsProps {
   onView?: ((groupIndex: number, mode: 'source' | 'preview' | 'split') => void) | undefined;
   renderSettings?: ReactNode;
   renderLibrary?: ReactNode | undefined;
+  renderPdf?: ((material: LibraryAttachment) => ReactNode) | undefined;
   renderFile?: ((target: FileTarget, mode?: 'source' | 'preview') => ReactNode) | undefined;
   /** 空态带入的当前工作区名；缺省时不显示。 */
   contextName?: string | undefined;
@@ -98,6 +101,7 @@ export function TabGroups({
   onView,
   renderSettings,
   renderLibrary,
+  renderPdf,
   contextName,
   onCreateSession,
   onOpenSettings,
@@ -197,7 +201,9 @@ export function TabGroups({
               </div>
             ) : null}
             <div className="tab-content">
-              {active?.target && renderFile ? (
+              {active?.material && renderPdf ? (
+                renderPdf(active.material)
+              ) : active?.target && renderFile ? (
                 renderFile(active.target, active.kind === 'preview' ? 'preview' : 'source')
               ) : active?.kind === 'library' && renderLibrary ? (
                 renderLibrary

@@ -13,6 +13,7 @@ import {
   type Plugin,
   type ResolvedConfig,
 } from 'vite';
+import { pdfAssets } from './pdf-assets';
 
 function kernelBootstrap(): Plugin {
   const runtime = resolve(process.env.SCHOOLOOM_DATA_DIR ?? defaultDataDirectory);
@@ -148,6 +149,6 @@ export default defineConfig({
     ],
   },
   root: fileURLToPath(new URL('./src/renderer', import.meta.url)),
-  plugins: [react(), kernelBootstrap()],
+  plugins: [react(), kernelBootstrap(), pdfAssets()],
   server: { host: '127.0.0.1', cors: false },
 });

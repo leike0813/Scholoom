@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { expect, test } from '@playwright/test';
@@ -9,6 +9,7 @@ import { startKernelServer } from '../../apps/kernel/dist/server.js';
 import { createKernelClient } from '../../packages/client/dist/index.js';
 import { protocolVersion } from '../../packages/protocol/dist/index.js';
 import { createModelServer } from '../model-server.js';
+import { syntheticPdf } from '../pdf-fixture.js';
 
 test('real RPC and Agent share material bytes while project paths and model sends remain authorized', async () => {
   const root = await mkdtemp(join(tmpdir(), 'scholoom-material-rpc-'));
@@ -94,6 +95,62 @@ test('real RPC and Agent share material bytes while project paths and model send
     expect(JSON.stringify(model.requests.at(-1))).toContain(
       Buffer.from('shared material 42\n').toString('base64'),
     );
+    const pdfPath = join(projectRoot, 'evidence.pdf');
+    const pdfBytes = syntheticPdf();
+    await writeFile(pdfPath, pdfBytes);
+    const pdfBatch = await client.call('library.importFiles', {
+      batchId: randomUUID(),
+      paths: [pdfPath],
+      storage: 'linked',
+      purpose: '正文',
+      version: 'unspecified',
+      origin: 'synthetic-pdf-rpc',
+    });
+    await expect
+      .poll(async () => (await client.call('library.batch', { batchId: pdfBatch.id })).batch.state)
+      .toBe('completed');
+    const pdfReceipt = (await client.call('library.batch', { batchId: pdfBatch.id })).entries[0];
+    assert(pdfReceipt?.sourceId);
+    const attachment = (await client.call('library.attachments', { sourceId: pdfReceipt.sourceId }))
+      .attachments[0];
+    assert(attachment);
+    const material = {
+      attachmentId: attachment.id,
+      materialVersionId: attachment.materialVersionId,
+    };
+    const userNote = await client.call('library.saveReadingRecord', {
+      ...material,
+      recordId: randomUUID(),
+      kind: 'highlight',
+      location: { pageIndex: 0, rects: [{ x: 72, y: 60, width: 145, height: 14 }] },
+      quote: 'Scholoom PDF evidence 42',
+      body: 'User reading interpretation',
+    });
+    expect(userNote.createdBy).toEqual({ kind: 'user' });
+    const recorder = await client.call('session.create', { projectId: project.id });
+    const recordScope = { projectId: project.id, sessionId: recorder.id };
+    const agentRecordId = randomUUID();
+    await client.call('session.send', {
+      ...recordScope,
+      instructionId: randomUUID(),
+      materials: [],
+      text: `MODEL_READING_RECORD ${attachment.id} ${attachment.materialVersionId} ${agentRecordId}`,
+    });
+    await expect
+      .poll(async () => (await client.call('workbench.snapshot', recordScope)).run?.state)
+      .toBe('completed');
+    const agentNote = await client.call('library.readingRecord', { recordId: agentRecordId });
+    expect(agentNote).toMatchObject({
+      body: 'Agent reading interpretation',
+      createdBy: { kind: 'agent', sessionId: recorder.id },
+    });
+    const records = await client.call('library.readingRecords', material);
+    expect(records.records.map((record) => record.id).sort()).toEqual(
+      [userNote.id, agentNote.id].sort(),
+    );
+    expect(JSON.stringify(model.requests.at(-1))).toContain('User reading interpretation');
+    expect(JSON.stringify(model.requests.at(-1))).toContain('Second page controlled result 73');
+    expect(await readFile(pdfPath)).toEqual(pdfBytes);
     await client.call('library.grant', { read: true, write: true, send: false, autoBackup: false });
     const requests = model.requests.length;
     await client.call('session.resume', readScope);
@@ -124,6 +181,9 @@ test('real RPC and Agent share material bytes while project paths and model send
     });
     await expect(
       client.call('library.readAttachment', { attachmentId: receipt.attachmentId }),
+    ).rejects.toMatchObject({ code: 'permissionDenied' });
+    await expect(
+      client.call('library.readingRecord', { recordId: agentRecordId }),
     ).rejects.toMatchObject({ code: 'permissionDenied' });
   } finally {
     client.dispose();

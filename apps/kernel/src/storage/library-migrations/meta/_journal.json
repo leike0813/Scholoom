@@ -15,6 +15,13 @@
       "when": 1792086460927,
       "tag": "0001_true_juggernaut",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1792089626703,
+      "tag": "0002_shared_reading",
+      "breakpoints": true
     }
   ]
 }

@@ -106,6 +106,28 @@ function planTurn(user: string, tools: Set<string>, toolId: string, reads: numbe
       },
     ],
   });
+  if (user.includes('MODEL_READING_RECORD')) {
+    const match = /MODEL_READING_RECORD ([\w-]+) ([\w-]+) ([\w-]+)/.exec(user);
+    const attachmentId = match?.[1],
+      materialVersionId = match?.[2],
+      recordId = match?.[3];
+    if (!tools.has('library_pdfInfo'))
+      return tool('library_pdfInfo', { attachmentId, materialVersionId });
+    if (!tools.has('library_readPdfPage'))
+      return tool('library_readPdfPage', { attachmentId, materialVersionId, pageIndex: 1 });
+    if (!tools.has('library_readingRecords'))
+      return tool('library_readingRecords', { attachmentId, materialVersionId });
+    if (!tools.has('library_saveReadingRecord'))
+      return tool('library_saveReadingRecord', {
+        recordId,
+        attachmentId,
+        materialVersionId,
+        kind: 'note',
+        quote: 'Second page controlled result 73',
+        body: 'Agent reading interpretation',
+      });
+    return text('已读取共同记录并保存自己的解释。');
+  }
   if (user.includes('MODEL_ATTACHMENT_IMPORT')) {
     if (!tools.has('library_importProjectFiles'))
       return tool('library_importProjectFiles', {

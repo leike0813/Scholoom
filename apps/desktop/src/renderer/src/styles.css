@@ -64,6 +64,23 @@
   padding: var(--space-unit);
   border-bottom: 1px solid var(--border);
 }
+.pdf-reader {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+.pdf-viewer {
+  flex: 1;
+  min-height: calc(var(--space-unit) * 65);
+}
+.pdf-viewer > div {
+  height: 100%;
+}
+.pdf-records {
+  max-height: 40%;
+  overflow: auto;
+}
 .markdown-preview {
   min-width: 0;
   overflow: auto;

@@ -26,16 +26,18 @@ Scholoom 是可独立执行完整科研工作的本地 Agent 系统。人类通�
 
 ## 2. 当前实现基线
 
-以下按当前代码与规格整理（2026-10-15 更新）；实际工程状态以代码、测试和[开发说明](development.md)为准，验证范围见对应变更的交付记录。
+以下按当前代码与规格整理（2026-10-16 更新）；实际工程状态以代码、测试和[开发说明](development.md)为准，验证范围见对应变更的交付记录。
 
 - 独立 Node 内核（`apps/kernel`）：生命周期排他锁与端点资料、CLI，以及项目数据库与迁移。
 - 项目文件模块：稳定项目与文件身份、文本读写保护、结构操作与回收恢复、备份。
 - 内置 Agent harness：LangGraph 单 Agent 执行、MiniMax 凭据、持久会话与工具记录。
+- 共同科研能力：内置材料分析方法、显式调用、持久尝试与实际产物检查，复用同一授权及执行机制。
+- 全局文献库：稳定题录、来源与发表版本、集合标签、逐项批次、托管／外链多附件、原字节及无窗口 PDF 按页取文；共同阅读记录保存摘录、版本、可信作者及修订历史，随数据库与托管材料备份及独立恢复。PDF 解析由有界 Worker 隔离；双宿主 EmbedPDF 阅读器只呈现及提交共同库记录，运行资源本地提供，原材料不写回。
 - 共享契约与客户端（`packages/protocol`、`packages/client`）：schema DTO、WebSocket、认证、类型化调用、范围订阅与重连。
 - 工作台（`apps/desktop`）：Electron 与浏览器共用 React renderer，经共同客户端接入真实内核；项目与文件工作台、Markdown 源码／预览／并排、设置页已接通，样例只在显式参数下注入。
 - 兼容宿主（`apps/zotero-host`）：独立 Electron 入口与隐藏页面原型，未接入内核监督、未加载插件。
 
-行为契约以[当前正式规格](../openspec/specs)为准，项目与文件工作台交付见 [complete-project-file-workbench](../openspec/changes/archive/2026-10-15-complete-project-file-workbench/)，会话管理及消息阅读见 [complete-agent-conversation-workbench](../openspec/changes/complete-agent-conversation-workbench/)。会话列表分页与当前会话分别读取，归档仅限制后续执行；消息与文件预览复用有界 Markdown Worker。本节只描述现状，不另建进度账本。
+行为契约以[当前正式规格](../openspec/specs)为准，项目与文件工作台交付见 [complete-project-file-workbench](../openspec/changes/archive/2026-10-15-complete-project-file-workbench/)，会话管理及消息阅读见 [complete-agent-conversation-workbench](../openspec/changes/archive/2026-10-15-complete-agent-conversation-workbench/)，共同能力见 [establish-research-capability-runtime](../openspec/changes/archive/2026-10-16-establish-research-capability-runtime/)，文献库及附件见[正式题录规格](../openspec/specs/literature-catalog/spec.md)与[附件交付](../openspec/changes/archive/2026-10-16-ingest-local-literature-attachments/)。会话列表分页与当前会话分别读取，归档仅限制后续执行；消息与文件预览复用有界 Markdown Worker。本节只描述现状，不另建进度账本。
 
 ## 3. 系统结构与运行部署
 

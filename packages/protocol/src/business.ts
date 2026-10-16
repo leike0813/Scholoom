@@ -271,6 +271,139 @@ export const libraryIngestSchema = object(
   ['batchId', 'json', 'version', 'origin'],
 );
 const libraryPage = { offset: count, limit: page } as const;
+const readingText = { type: 'string', maxLength: 16384 } as const;
+const readingIndex = { type: 'integer', minimum: 0, maximum: Number.MAX_SAFE_INTEGER } as const;
+const materialReference = { attachmentId: id, materialVersionId: id } as const;
+export const readingAuthorSchema = {
+  anyOf: [
+    object({ kind: { const: 'user' } }, ['kind']),
+    object({ kind: { const: 'agent' }, sessionId: id }, ['kind', 'sessionId']),
+  ],
+} as const;
+export const readingLocationSchema = object(
+  {
+    pageIndex: readingIndex,
+    rects: {
+      type: 'array',
+      maxItems: 128,
+      items: object(
+        {
+          x: { type: 'number', minimum: 0 },
+          y: { type: 'number', minimum: 0 },
+          width: { type: 'number', exclusiveMinimum: 0 },
+          height: { type: 'number', exclusiveMinimum: 0 },
+        },
+        ['x', 'y', 'width', 'height'],
+      ),
+    },
+  },
+  ['pageIndex'],
+);
+const readingFields = {
+  ...materialReference,
+  kind: { enum: ['bookmark', 'highlight', 'note'] },
+  location: readingLocationSchema,
+  quote: readingText,
+  body: readingText,
+} as const;
+export const readingRecordSchema = object(
+  {
+    ...readingFields,
+    id,
+    sourceId: id,
+    createdBy: readingAuthorSchema,
+    updatedBy: readingAuthorSchema,
+    createdAt: text,
+    updatedAt: text,
+    revision: count,
+    deleted: flag,
+  },
+  [
+    'id',
+    'sourceId',
+    'attachmentId',
+    'materialVersionId',
+    'kind',
+    'quote',
+    'body',
+    'createdBy',
+    'updatedBy',
+    'createdAt',
+    'updatedAt',
+    'revision',
+    'deleted',
+  ],
+);
+export const saveReadingRecordSchema = object(
+  { ...readingFields, recordId: id, expectedRevision: readingIndex },
+  ['recordId', 'attachmentId', 'materialVersionId', 'kind', 'quote', 'body'],
+);
+const readingSchemas = {
+  'library.pdfInfo': {
+    params: object(materialReference, ['attachmentId', 'materialVersionId']),
+    result: object({ ...materialReference, pageCount: count }, [
+      'attachmentId',
+      'materialVersionId',
+      'pageCount',
+    ]),
+  },
+  'library.readPdfPage': {
+    params: object(
+      {
+        ...materialReference,
+        pageIndex: readingIndex,
+        offset: readingIndex,
+        limit: { type: 'integer', minimum: 1, maximum: 32768 },
+      },
+      ['attachmentId', 'materialVersionId', 'pageIndex'],
+    ),
+    result: object(
+      {
+        ...materialReference,
+        pageIndex: count,
+        width: { type: 'number', exclusiveMinimum: 0 },
+        height: { type: 'number', exclusiveMinimum: 0 },
+        offset: count,
+        text: { type: 'string', maxLength: 32768 },
+        nextOffset: count,
+        hasText: flag,
+      },
+      [
+        'attachmentId',
+        'materialVersionId',
+        'pageIndex',
+        'width',
+        'height',
+        'offset',
+        'text',
+        'hasText',
+      ],
+    ),
+  },
+  'library.readingRecords': {
+    params: object({ ...materialReference, ...libraryPage, offset: readingIndex }, [
+      'attachmentId',
+      'materialVersionId',
+    ]),
+    result: object({ records: array(readingRecordSchema), nextOffset: count }, ['records']),
+  },
+  'library.readingRecord': {
+    params: object({ recordId: id }, ['recordId']),
+    result: readingRecordSchema,
+  },
+  'library.readingHistory': {
+    params: object({ recordId: id, ...libraryPage, offset: readingIndex }, ['recordId']),
+    result: object({ records: array(readingRecordSchema), nextOffset: count }, ['records']),
+  },
+  'library.saveReadingRecord': { params: saveReadingRecordSchema, result: readingRecordSchema },
+  'library.removeReadingRecord': {
+    params: object({ recordId: id, expectedRevision: readingIndex }, [
+      'recordId',
+      'expectedRevision',
+    ]),
+    result: readingRecordSchema,
+  },
+} as const;
 export const libraryAttachmentSchema = object(
   {
     id,
@@ -323,6 +456,7 @@ export const libraryImportProjectFilesSchema = object(
   ['batchId', 'projectId', 'projectPaths', 'purpose', 'version', 'origin'],
 );
 const librarySchemas = {
+  ...readingSchemas,
   'library.importFiles': { params: libraryImportFilesSchema, result: libraryBatchSchema },
   'library.importProjectFiles': {
     params: libraryImportProjectFilesSchema,
@@ -429,6 +563,11 @@ export type LibraryBatch = FromSchema<typeof libraryBatchSchema>;
 export type LibraryEntry = FromSchema<typeof libraryEntrySchema>;
 export type LibraryBackup = FromSchema<typeof libraryBackupSchema>;
 export type LibraryAttachment = FromSchema<typeof libraryAttachmentSchema>;
+export type ReadingAuthor = FromSchema<typeof readingAuthorSchema>;
+export type ReadingLocation = FromSchema<typeof readingLocationSchema>;
+export type ReadingRecord = FromSchema<typeof readingRecordSchema>;
+export type PdfInfo = FromSchema<(typeof readingSchemas)['library.pdfInfo']['result']>;
+export type PdfPageText = FromSchema<(typeof readingSchemas)['library.readPdfPage']['result']>;
 
 export const researchInputSchema = object(
   {
@@ -705,6 +844,15 @@ export type WorkbenchSnapshot = FromSchema<typeof snapshotSchema>;
 export type WorkbenchChange = FromSchema<typeof changeSchema>;
 export type BusinessMethod = keyof typeof businessSchemas;
 type Inputs = {
+  'library.pdfInfo': FromSchema<(typeof readingSchemas)['library.pdfInfo']['params']>;
+  'library.readPdfPage': FromSchema<(typeof readingSchemas)['library.readPdfPage']['params']>;
+  'library.readingRecords': FromSchema<(typeof readingSchemas)['library.readingRecords']['params']>;
+  'library.readingRecord': FromSchema<(typeof readingSchemas)['library.readingRecord']['params']>;
+  'library.readingHistory': FromSchema<(typeof readingSchemas)['library.readingHistory']['params']>;
+  'library.saveReadingRecord': FromSchema<typeof saveReadingRecordSchema>;
+  'library.removeReadingRecord': FromSchema<
+    (typeof readingSchemas)['library.removeReadingRecord']['params']
+  >;
   'library.importFiles': FromSchema<(typeof librarySchemas)['library.importFiles']['params']>;
   'library.importProjectFiles': FromSchema<
     (typeof librarySchemas)['library.importProjectFiles']['params']
@@ -766,6 +914,13 @@ type Inputs = {
   'session.resume': FromSchema<(typeof businessSchemas)['session.resume']['params']>;
 };
 type Outputs = {
+  'library.pdfInfo': PdfInfo;
+  'library.readPdfPage': PdfPageText;
+  'library.readingRecords': FromSchema<(typeof readingSchemas)['library.readingRecords']['result']>;
+  'library.readingRecord': ReadingRecord;
+  'library.readingHistory': FromSchema<(typeof readingSchemas)['library.readingHistory']['result']>;
+  'library.saveReadingRecord': ReadingRecord;
+  'library.removeReadingRecord': ReadingRecord;
   'library.importFiles': FromSchema<(typeof librarySchemas)['library.importFiles']['result']>;
   'library.importProjectFiles': FromSchema<
     (typeof librarySchemas)['library.importProjectFiles']['result']

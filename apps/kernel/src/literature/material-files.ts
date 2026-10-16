@@ -212,7 +212,13 @@ export class MaterialFiles {
       };
     }
   }
-  async read(record: StoredMaterial, offset: number, limit: number): Promise<Buffer> {
+  async read(
+    record: StoredMaterial,
+    offset: number,
+    limit: number,
+    signal?: AbortSignal,
+  ): Promise<Buffer> {
+    signal?.throwIfAborted();
     if (
       !Number.isSafeInteger(offset) ||
       offset < 0 ||
@@ -231,6 +237,7 @@ export class MaterialFiles {
           autoClose: false,
           highWaterMark: MATERIAL_CHUNK,
         })) {
+          signal?.throwIfAborted();
           size += chunk.length;
           if (size > MATERIAL_LIMIT) throw new OperationError('tooLarge', '材料超限。');
           hash.update(chunk);
@@ -274,6 +281,15 @@ export class MaterialFiles {
     if (content.hash !== record.hash)
       throw new OperationError('contentChanged', '新位置的内容不是原材料版本。');
     return { ...record, ...content };
+  }
+  async snapshot(record: StoredMaterial, signal: AbortSignal): Promise<ArrayBuffer> {
+    signal.throwIfAborted();
+    const bytes = new Uint8Array(record.byteLength);
+    for (let offset = 0; offset < bytes.length; offset += MATERIAL_CHUNK) {
+      signal.throwIfAborted();
+      bytes.set(await this.read(record, offset, MATERIAL_CHUNK, signal), offset);
+    }
+    return bytes.buffer;
   }
   async discard(id: string): Promise<void> {
     this.verified.delete(id);

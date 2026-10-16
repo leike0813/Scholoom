@@ -15,6 +15,8 @@ import {
   type LibraryEntry,
   type LibrarySource,
   type LibraryStatus,
+  type ReadingAuthor,
+  type ReadingRecord,
   validateBusiness,
 } from '@scholoom/protocol';
 import Database from 'better-sqlite3';
@@ -25,6 +27,7 @@ import { failure, OperationError } from '../errors.js';
 import * as tables from '../storage/library-schema.js';
 import { atomicPrivateFile, privateDirectory } from '../storage/private-files.js';
 import { MaterialFiles, type StoredMaterial } from './material-files.js';
+import { PdfReading, type PdfRequest } from './pdf-reading.js';
 
 type FileItem = { path: string; id: string; materialVersionId: string; sourceId: string };
 
@@ -68,6 +71,7 @@ export class LiteratureCatalog {
   private backingUp: Promise<LibraryBackup> | undefined;
   readonly directory: string;
   private readonly materials: MaterialFiles;
+  private readonly pdf = new PdfReading();
   constructor(
     private readonly profile: string,
     private readonly notify: () => void,
@@ -110,15 +114,21 @@ export class LiteratureCatalog {
       database.pragma('busy_timeout = 1000');
       if (database.pragma('quick_check', { simple: true }) !== 'ok') throw new Error('corrupt');
       const version = Number(database.pragma('user_version', { simple: true }));
-      if (version > 2) throw new Error('newer schema');
-      if (version < 2) {
-        if (stats) await database.backup(join(this.directory, 'before-migration.sqlite'));
+      if (version > 3) throw new Error('newer schema');
+      if (version < 3) {
+        if (stats)
+          await database.backup(
+            join(
+              this.directory,
+              version < 2 ? 'before-migration.sqlite' : 'before-migration-v2.sqlite',
+            ),
+          );
         migrate(drizzle(database), {
           migrationsFolder: fileURLToPath(
             new URL('../storage/library-migrations/', import.meta.url),
           ),
         });
-        database.pragma('user_version = 2');
+        database.pragma('user_version = 3');
       }
       this.database = database;
       this.store = drizzle(database, { schema: tables });
@@ -562,6 +572,74 @@ export class LiteratureCatalog {
       ...(offset + bytes.length < material.byteLength ? { nextOffset: offset + bytes.length } : {}),
     };
   }
+  private async readPdf<T>(
+    attachmentId: string,
+    materialVersionId: string,
+    request: PdfRequest,
+    signal?: AbortSignal,
+  ): Promise<T> {
+    this.check('read');
+    const material = this.material(attachmentId);
+    if (material.value.materialVersionId !== materialVersionId)
+      throw new OperationError('contentChanged', '材料版本不同。');
+    return this.pdf.run<T>(
+      async (signal) => {
+        this.check('read');
+        return this.materials.snapshot(material, signal);
+      },
+      request,
+      {
+        signal,
+        verify: async (_value, signal) => {
+          await this.materials.read(this.material(attachmentId), 0, 1, signal);
+          signal.throwIfAborted();
+          this.check('read');
+        },
+      },
+    );
+  }
+  async pdfInfo(
+    input: BusinessParams<'library.pdfInfo'>,
+    signal?: AbortSignal,
+  ): Promise<BusinessResult<'library.pdfInfo'>> {
+    if (!validateBusiness('library.pdfInfo', 'params', input))
+      throw new OperationError('invalidRequest', 'PDF引用无效。');
+    return {
+      ...input,
+      ...(await this.readPdf<{ pageCount: number }>(
+        input.attachmentId,
+        input.materialVersionId,
+        {
+          kind: 'info',
+        },
+        signal,
+      )),
+    };
+  }
+  async readPdfPage(
+    input: BusinessParams<'library.readPdfPage'>,
+    signal?: AbortSignal,
+  ): Promise<BusinessResult<'library.readPdfPage'>> {
+    if (!validateBusiness('library.readPdfPage', 'params', input))
+      throw new OperationError('invalidRequest', 'PDF读取范围无效。');
+    return {
+      attachmentId: input.attachmentId,
+      materialVersionId: input.materialVersionId,
+      ...(await this.readPdf<
+        Omit<BusinessResult<'library.readPdfPage'>, 'attachmentId' | 'materialVersionId'>
+      >(
+        input.attachmentId,
+        input.materialVersionId,
+        {
+          kind: 'text',
+          pageIndex: input.pageIndex,
+          ...(input.offset === undefined ? {} : { offset: input.offset }),
+          ...(input.limit === undefined ? {} : { limit: input.limit }),
+        },
+        signal,
+      )),
+    };
+  }
   async relocateAttachment(
     input: BusinessParams<'library.relocateAttachment'>,
   ): Promise<BusinessResult<'library.relocateAttachment'>> {
@@ -581,6 +659,236 @@ export class LiteratureCatalog {
       .run();
     this.changed();
     return this.materials.status(updated);
+  }
+  readingRecord(id: string): ReadingRecord {
+    this.check('read');
+    const row = this.db
+      .select()
+      .from(tables.readingRecords)
+      .where(eq(tables.readingRecords.id, id))
+      .get();
+    if (!row) throw new OperationError('notFound', '阅读记录不存在。');
+    return row.value;
+  }
+  readingRecords(
+    input: BusinessParams<'library.readingRecords'>,
+  ): BusinessResult<'library.readingRecords'> {
+    this.check('read');
+    if (!validateBusiness('library.readingRecords', 'params', input))
+      throw new OperationError('invalidRequest', '阅读记录查询范围无效。');
+    const material = this.material(input.attachmentId);
+    if (material.value.materialVersionId !== input.materialVersionId)
+      throw new OperationError('contentChanged', '材料版本不同。');
+    const offset = input.offset ?? 0,
+      limit = input.limit ?? 25;
+    const rows = this.db
+      .select()
+      .from(tables.readingRecords)
+      .where(
+        and(
+          eq(tables.readingRecords.attachmentId, input.attachmentId),
+          eq(tables.readingRecords.materialVersionId, input.materialVersionId),
+          eq(tables.readingRecords.deleted, false),
+        ),
+      )
+      .orderBy(asc(tables.readingRecords.id))
+      .limit(limit + 1)
+      .offset(offset)
+      .all();
+    const selected = listPage(
+      rows.map((row) => row.value),
+      offset,
+      limit,
+    );
+    return {
+      records: selected.rows,
+      ...(selected.nextOffset !== undefined ? { nextOffset: selected.nextOffset } : {}),
+    };
+  }
+  readingHistory(
+    input: BusinessParams<'library.readingHistory'>,
+  ): BusinessResult<'library.readingHistory'> {
+    this.readingRecord(input.recordId);
+    if (!validateBusiness('library.readingHistory', 'params', input))
+      throw new OperationError('invalidRequest', '阅读历史查询范围无效。');
+    const offset = input.offset ?? 0,
+      limit = input.limit ?? 25;
+    const rows = this.db
+      .select()
+      .from(tables.readingHistory)
+      .where(eq(tables.readingHistory.recordId, input.recordId))
+      .orderBy(desc(tables.readingHistory.seq))
+      .limit(limit + 1)
+      .offset(offset)
+      .all();
+    const selected = listPage(
+      rows.map((row) => row.value),
+      offset,
+      limit,
+    );
+    return {
+      records: selected.rows,
+      ...(selected.nextOffset !== undefined ? { nextOffset: selected.nextOffset } : {}),
+    };
+  }
+  async saveReadingRecord(
+    input: BusinessParams<'library.saveReadingRecord'>,
+    author: ReadingAuthor = { kind: 'user' },
+    signal?: AbortSignal,
+  ): Promise<ReadingRecord> {
+    this.check('read');
+    this.check('write');
+    if (
+      !validateBusiness('library.saveReadingRecord', 'params', input) ||
+      Buffer.byteLength(JSON.stringify(input)) > 65536 ||
+      (author.kind === 'agent' && !author.sessionId)
+    )
+      throw new OperationError('invalidRequest', '阅读记录输入无效或超限。');
+    const material = this.material(input.attachmentId);
+    if (material.value.materialVersionId !== input.materialVersionId)
+      throw new OperationError('contentChanged', '材料版本不同。');
+    const existing = this.db
+      .select()
+      .from(tables.readingRecords)
+      .where(eq(tables.readingRecords.id, input.recordId))
+      .get();
+    if (input.expectedRevision === undefined && existing) {
+      if (
+        !isDeepStrictEqual(existing.creation, input) ||
+        !isDeepStrictEqual(existing.createdBy, author)
+      )
+        throw new OperationError('contentChanged', '该阅读记录身份已有不同创建输入。');
+      return existing.value;
+    }
+    if (
+      (input.kind === 'highlight' && (!input.quote.trim() || !input.location?.rects?.length)) ||
+      (input.kind === 'bookmark' && !input.location) ||
+      (input.kind === 'note' && !input.body.trim())
+    )
+      throw new OperationError('invalidRequest', '阅读记录缺少摘录、位置或说明。');
+    const evidenceUnchanged =
+      existing &&
+      isDeepStrictEqual(existing.value.location, input.location) &&
+      existing.value.quote === input.quote;
+    if (!evidenceUnchanged) {
+      if (input.location) {
+        const size = await this.readPdf<{ width: number; height: number }>(
+          input.attachmentId,
+          input.materialVersionId,
+          { kind: 'geometry', pageIndex: input.location.pageIndex },
+          signal,
+        );
+        if (
+          input.location.rects?.some(
+            (rect) =>
+              rect.x + rect.width > size.width + 0.01 || rect.y + rect.height > size.height + 0.01,
+          )
+        )
+          throw new OperationError('invalidRequest', '批注区域超出PDF页面。');
+      } else await this.materials.read(material, 0, 1, signal);
+    }
+    signal?.throwIfAborted();
+    this.check('read');
+    this.check('write');
+    return this.db.transaction(() => {
+      const current = this.db
+        .select()
+        .from(tables.readingRecords)
+        .where(eq(tables.readingRecords.id, input.recordId))
+        .get();
+      if (current) {
+        if (input.expectedRevision === undefined) {
+          if (
+            isDeepStrictEqual(current.creation, input) &&
+            isDeepStrictEqual(current.createdBy, author)
+          )
+            return current.value;
+          throw new OperationError('contentChanged', '该阅读记录身份已使用。');
+        }
+        if (
+          current.value.deleted ||
+          current.value.revision !== input.expectedRevision ||
+          current.value.attachmentId !== input.attachmentId ||
+          current.value.materialVersionId !== input.materialVersionId ||
+          current.value.kind !== input.kind
+        )
+          throw new OperationError('contentChanged', '阅读记录已变化，请重读。');
+      } else if (input.expectedRevision !== undefined) {
+        throw new OperationError('notFound', '阅读记录不存在。');
+      }
+      const now = timestamp();
+      const record: ReadingRecord = {
+        id: input.recordId,
+        sourceId: material.value.sourceId,
+        attachmentId: input.attachmentId,
+        materialVersionId: input.materialVersionId,
+        kind: input.kind,
+        ...(input.location ? { location: input.location } : {}),
+        quote: input.quote,
+        body: input.body,
+        createdBy: current?.value.createdBy ?? author,
+        updatedBy: author,
+        createdAt: current?.value.createdAt ?? now,
+        updatedAt: now,
+        revision: (current?.value.revision ?? 0) + 1,
+        deleted: false,
+      };
+      if (current) {
+        this.db
+          .insert(tables.readingHistory)
+          .values({ recordId: record.id, value: current.value })
+          .run();
+        this.db
+          .update(tables.readingRecords)
+          .set({ value: record })
+          .where(eq(tables.readingRecords.id, record.id))
+          .run();
+      } else {
+        this.db
+          .insert(tables.readingRecords)
+          .values({
+            id: record.id,
+            attachmentId: record.attachmentId,
+            materialVersionId: record.materialVersionId,
+            deleted: false,
+            value: record,
+            creation: input,
+            createdBy: author,
+          })
+          .run();
+      }
+      this.changed();
+      return record;
+    });
+  }
+  removeReadingRecord(
+    input: BusinessParams<'library.removeReadingRecord'>,
+    author: ReadingAuthor = { kind: 'user' },
+  ): ReadingRecord {
+    this.check('read');
+    this.check('write');
+    if (!validateBusiness('library.removeReadingRecord', 'params', input))
+      throw new OperationError('invalidRequest', '阅读记录移除输入无效。');
+    return this.db.transaction(() => {
+      const before = this.readingRecord(input.recordId);
+      if (before.deleted || before.revision !== input.expectedRevision)
+        throw new OperationError('contentChanged', '阅读记录已变化，请重读。');
+      const record = {
+        ...before,
+        deleted: true,
+        revision: before.revision + 1,
+        updatedBy: author,
+        updatedAt: timestamp(),
+      };
+      this.db.insert(tables.readingHistory).values({ recordId: before.id, value: before }).run();
+      this.db
+        .update(tables.readingRecords)
+        .set({ deleted: true, value: record })
+        .where(eq(tables.readingRecords.id, before.id))
+        .run();
+      this.changed();
+      return record;
+    });
   }
   private batchValue(id: string): LibraryBatch {
     const row = this.db.select().from(tables.batches).where(eq(tables.batches.id, id)).get();
@@ -1046,6 +1354,7 @@ export class LiteratureCatalog {
   }
   async close(): Promise<void> {
     this.stopping = true;
+    this.pdf.close();
     if (this.timer) clearInterval(this.timer);
     await Promise.allSettled([...this.active.values()]);
     await this.backingUp?.catch(() => {});

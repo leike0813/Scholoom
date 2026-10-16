@@ -96,6 +96,24 @@ export class KernelApplication {
   async call(method: BusinessMethod, input: unknown): Promise<unknown> {
     // Dispatch after protocol validation; each branch consumes its schema's inferred type.
     switch (method) {
+      case 'library.pdfInfo':
+        return this.library.pdfInfo(input as BusinessParams<'library.pdfInfo'>);
+      case 'library.readPdfPage':
+        return this.library.readPdfPage(input as BusinessParams<'library.readPdfPage'>);
+      case 'library.readingRecords':
+        return this.library.readingRecords(input as BusinessParams<'library.readingRecords'>);
+      case 'library.readingRecord':
+        return this.library.readingRecord(
+          (input as BusinessParams<'library.readingRecord'>).recordId,
+        );
+      case 'library.readingHistory':
+        return this.library.readingHistory(input as BusinessParams<'library.readingHistory'>);
+      case 'library.saveReadingRecord':
+        return this.library.saveReadingRecord(input as BusinessParams<'library.saveReadingRecord'>);
+      case 'library.removeReadingRecord':
+        return this.library.removeReadingRecord(
+          input as BusinessParams<'library.removeReadingRecord'>,
+        );
       case 'library.importFiles':
         return this.library.importFiles(input as BusinessParams<'library.importFiles'>);
       case 'library.importProjectFiles':

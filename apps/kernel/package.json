@@ -19,6 +19,9 @@
     "start": "node dist/cli.js"
   },
   "dependencies": {
+    "@embedpdf/engines": "2.15.1",
+    "@embedpdf/models": "2.15.1",
+    "@embedpdf/pdfium": "2.15.1",
     "@langchain/anthropic": "1.5.12",
     "@langchain/core": "1.2.17",
     "@langchain/langgraph": "1.5.0",

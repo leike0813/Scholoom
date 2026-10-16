@@ -4,7 +4,7 @@
 
 | 包 | 当前职责 | 后续实现边界 |
 | --- | --- | --- |
-| `apps/kernel` | 独立内核、项目与安全文件、持久单 Agent、科研方法、共同题录库、MiniMax 模型与凭据、CLI | 附件与阅读分析、受管计算和宿主监督 |
+| `apps/kernel` | 独立内核、项目与安全文件、持久单 Agent、科研方法、共同题录与附件库、MiniMax 模型与凭据、CLI | 阅读分析、受管计算和宿主监督 |
 | `apps/desktop` | Electron main、sandbox preload、React renderer | 人类工作台，经共同客户端调用内核 |
 | `apps/zotero-host` | 独立 Electron main 与隐藏 Chromium 页面 | 固定 Zotero 10 基线的通用兼容层与选定插件适配 |
 | `packages/protocol` | JSON Schema 与推导的 DTO、协议版本 | 客户端和内核共同使用的调用及事件契约 |
@@ -62,13 +62,17 @@ Vite 启动时发现或启动内核；浏览器页面初次只查询，用户重
 
 规范化 DOI 与明确版本标签同时相同才自动复用条目，`unspecified` 和无 DOI 条目不自动合并。填补空字段时保留已有冲突及候选，预印本与正式版分别保存并可显式关联。题录更正核对修订号；集合支持父级与多重归属，标签和版本关系均沿同一接口保存。库查找、集合、历史及批次分页默认25、最多100条，题录列表还受512KiB响应预算约束；库变化只使相关投影重读。
 
-本地材料通过文献库 tab 输入本机绝对路径批量摄取，每次最多100份，单文件最多128MiB。默认复制到库私有材料目录，也可显式只登记外链；原文件保留。可以添加到既有题录并标明用途，未选题录时按文件名建立待核对候选，不猜测 DOI 或发表版本。附件登记与实际可读分开：详情按页核对文件状态，原字节按引用分段读取，每段最多256KiB；格式解析和阅读器沿 P4b。
+本地材料通过文献库 tab 输入本机绝对路径批量摄取，每次最多100份，单文件最多128MiB。默认复制到库私有材料目录，也可显式只登记外链；原文件保留。可以添加到既有题录并标明用途，未选题录时按文件名建立待核对候选，不猜测 DOI 或发表版本。附件登记与实际可读分开：详情按页核对文件状态，原字节按引用分段读取，每段最多256KiB。
 
 附件身份、材料版本与路径分开。同来源、用途和托管方式下相同内容可复用；外链移动后可以人工重新指定到同内容文件，内容不同则拒绝覆盖旧版本。材料读取核对记录内容，缓存仅用于同一文件身份、大小和时间戳均未变化的后续分段。外部编辑器不受应用锁约束，读取前后核对不能承诺阻止所有外部竞态。Agent 文件摄取只使用当前已授权项目内路径，批次保存项目归属，准备及提交前重新检查项目读取和库写入权限。
 
 库提供手动和默认五分钟的可关闭自动备份，保留最近十份。新备份包含数据库快照引用的托管材料，清单列出未复制的外链依赖和缺失材料；旧备份仍标明仅题录数据库。恢复要求新的独立配置目录，可在副本核查来源、历史及原字节；副本使用新库身份、关闭写入/外发且不自动接续批次，当前库和备份后的成果保留。恢复配置可通过已有 `--data-dir` 入口独立检查。v1 题录库升级到 v2 前保存数据库副本，并撤销旧写入和外发授权；用户需重新确认扩大后的文件管理及材料外发能力。
 
-共同客户端入口为 `library.status/grant/list/get/ingest/batch/batches/resume/update/collections/saveCollection/history/backup/backups/restore` 以及 `library.importFiles/importProjectFiles/attachments/readAttachment/relocateAttachment`；Agent 使用对应题录工具、当前项目的 `library_importProjectFiles` 与附件引用读取，不开放任意本机路径或重定位工具。题录和原字节可用不表示解析或科研分析完成；PDF阅读和分析沿 P4b/P4c。
+附件详情的“阅读记录”只展开所选材料，用户可保存整份材料的文献笔记、更正说明、查看旧修订或移除记录；摘录与说明分别显示。列表和历史每页25条，草稿按配置、材料版本与记录保存；冲突保留说明，明确重读后核对再保存。创建回执未知时保留原身份及原提交输入，提供核查与按原输入重试，不因输入变化重复建项。材料失效时旧摘录仍可查，说明可更正，新建笔记需材料可读。笔记与历史保存在库 v3 数据库中，随现有备份恢复；v2升级前保存 `before-migration-v2.sqlite`，保留原库身份与授权。
+
+共同客户端入口为 `library.status/grant/list/get/ingest/batch/batches/resume/update/collections/saveCollection/history/backup/backups/restore`、`library.importFiles/importProjectFiles/attachments/readAttachment/relocateAttachment`、`library.pdfInfo/readPdfPage` 及 `library.readingRecords/readingRecord/readingHistory/saveReadingRecord/removeReadingRecord`。Agent 使用同一入口对应的工具，创建者取实际会话身份；文件摄取只接受当前授权项目路径，不开放任意本机路径或重定位工具。
+
+附件“打开 PDF”进入共享 reader tab，可翻页、缩放、搜索和选择文字；选区按页进入记录草稿，明确保存后才显示持久高亮，书签和独立笔记沿同一面板。内核无需窗口即可取文：每次一页，默认16Ki字符、最多32Ki，可按 nextOffset 续取。解析串行 Worker、最多8项等待、自受理起30秒；超时及停机终止执行。PDF 调用及带位置的保存等待35秒，普通笔记沿原请求时限。无文字层不做OCR，加密材料不提供密码流程，原文件不写回。SDK、字体与许可见[第三方资源说明](third-party/pdf-reading.md)。EPUB／网页和科研分析分别沿 P4b 后续及 P4c。
 
 ## 基本单 Agent harness
 

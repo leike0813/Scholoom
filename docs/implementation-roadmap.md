@@ -151,9 +151,9 @@
 
 P4a 只需足以支撑第一条文献路径的摄取入口。在线发现和生态入口在 P5／E2 扩充，复用同一摄取服务；不另写一套临时文献库或把需要插件的功能伪装成已兼容。
 
-P4a 按可观察结果拆分：[本地题录库](../openspec/changes/archive/2026-10-16-establish-local-literature-catalog/proposal.md) 已交付手动/CSL JSON 摄取、独立题录权威、集合标签及批次保护；[本地材料与附件](../openspec/changes/archive/2026-10-16-ingest-local-literature-attachments/proposal.md) 接续交付默认托管/显式外链、多附件用途、逐项结果、引用读取、人工重定位及材料备份恢复。实际证据集中在各自 delivery；下一步 P4b 接解析和阅读，科研分析沿 P4c，删除/合并沿 P4d。
+P4a 按可观察结果拆分：[本地题录库](../openspec/changes/archive/2026-10-16-establish-local-literature-catalog/proposal.md) 已交付手动/CSL JSON 摄取、独立题录权威、集合标签及批次保护；[本地材料与附件](../openspec/changes/archive/2026-10-16-ingest-local-literature-attachments/proposal.md) 接续交付默认托管/显式外链、多附件用途、逐项结果、引用读取、人工重定位及材料备份恢复。实际证据集中在各自 delivery；P4b PDF 路径见下段，科研分析沿 P4c，删除/合并沿 P4d。
 
-P4b 的阅读器可先在共享工作台的简单面板接入。Figma 此时优先设计文献列表、详情、阅读和会话之间的关系；不必一口气画完写作、审阅与所有设置页。
+P4b 的 PDF 路径见[共享阅读变更](../openspec/changes/archive/2026-10-16-establish-shared-pdf-reading/proposal.md)：双宿主 reader tab、无窗口有界取文、共同书签／高亮／笔记、版本隔离与恢复；证据见同目录 delivery。EPUB／网页仍属后续范围，不能据此将整个 P4b 标为完成。Figma 此时优先设计文献列表、详情、阅读和会话之间的关系。
 
 ### P5：从文献与材料形成可追溯的研究判断
 

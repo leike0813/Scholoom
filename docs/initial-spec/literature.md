@@ -40,7 +40,7 @@
 
 ### Requirement: L-03 人与 Agent 共享阅读成果
 
-多附件用途和不依赖阅读窗口的原字节读取见[附件规格](../../openspec/specs/literature-attachments/spec.md)。系统 SHALL 支持 PDF、EPUB 和网页材料的阅读、搜索、选区、书签、批注与笔记；GUI 和 Agent 共用材料及结果，Agent 读取不依赖可见阅读窗口。原文摘录、批注作者、Agent 解释及材料版本 SHALL 可辨。
+PDF 阅读、无窗口取文、共同书签／高亮／笔记及可信作者见[正式阅读规格](../../openspec/specs/literature-reading/spec.md)；原字节读取见[附件规格](../../openspec/specs/literature-attachments/spec.md)。后续 EPUB 和网页材料 SHALL 支持阅读、搜索、选区、书签、批注与笔记，沿同一共享记录和材料版本契约接入；GUI 和 Agent 共用材料及结果，原文摘录、批注作者、Agent 解释及材料版本 SHALL 可辨。
 
 #### Scenario: 阅读器关闭后继续分析批注
 - **WHEN** Agent 读取用户保存的文献批注
@@ -48,7 +48,7 @@
 
 ### Requirement: L-04 材料位置失效时保留依据
 
-批注和证据引用 SHALL 保留原摘录及材料版本信息，替换已有批注依赖的附件时保留必要实际版本；关键证据及重要交付的材料留存沿[数据规格 D-01](data.md#requirement-d-01-权威归属与稳定身份)。材料替换后，旧记录保留在原版本；原版本可读时打开原版本，无法取得时显示摘录、版本和不可用原因。系统 SHALL 不用旧页码跳转到新材料，也不以候选位置或手动重绑迁移旧证据；重新核查新材料时建立新的记录和依据。
+PDF 记录失效、版本隔离及独立恢复见[正式阅读规格](../../openspec/specs/literature-reading/spec.md#requirement-版本失效与独立恢复)。其他格式和证据引用 SHALL 沿同一原则保留原摘录及材料版本，旧位置不重绑新版；重新核查时建立新记录。关键证据及重要交付的材料留存沿[数据规格 D-01](data.md#requirement-d-01-权威归属与稳定身份)。
 
 #### Scenario: PDF 换为最终发表版
 - **WHEN** 旧批注所依赖的 PDF 与当前附件版本不同

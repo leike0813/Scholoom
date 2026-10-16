@@ -1,5 +1,11 @@
 import type { KernelClient } from '@scholoom/client';
-import type { CslMetadata, LibraryBatch, LibrarySource, LibraryStatus } from '@scholoom/protocol';
+import type {
+  CslMetadata,
+  LibraryAttachment,
+  LibraryBatch,
+  LibrarySource,
+  LibraryStatus,
+} from '@scholoom/protocol';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AttachmentImport, AttachmentsPanel } from './AttachmentsPanel';
 import { draftKey, readDraft, writeDraft } from './drafts';
@@ -75,7 +81,15 @@ function useRead<T>(
   return { value: undefined, error: '' };
 }
 
-export function LibraryPanel({ client, enabled }: { client: KernelClient; enabled: boolean }) {
+export function LibraryPanel({
+  client,
+  enabled,
+  onOpenPdf,
+}: {
+  client: KernelClient;
+  enabled: boolean;
+  onOpenPdf?: (material: LibraryAttachment) => void;
+}) {
   const directory = client.getSnapshot().status?.dataDirectory ?? '';
   const [revision, setRevision] = useState(0);
   const [error, setError] = useState('');
@@ -716,6 +730,7 @@ export function LibraryPanel({ client, enabled }: { client: KernelClient; enable
                 {candidateNote(detail)}
               </p>
               <AttachmentsPanel
+                onOpenPdf={onOpenPdf}
                 key={detail.id}
                 client={client}
                 enabled={enabled}

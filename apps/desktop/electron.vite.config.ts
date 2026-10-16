@@ -1,6 +1,7 @@
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'electron-vite';
 import { defaultClientConditions } from 'vite';
+import { pdfAssets } from './pdf-assets';
 
 export default defineConfig({
   main: {
@@ -15,5 +16,8 @@ export default defineConfig({
       rollupOptions: { output: { format: 'cjs', entryFileNames: 'index.cjs' } },
     },
   },
-  renderer: { plugins: [react()], resolve: { conditions: ['worker', ...defaultClientConditions] } },
+  renderer: {
+    plugins: [react(), pdfAssets()],
+    resolve: { conditions: ['worker', ...defaultClientConditions] },
+  },
 });

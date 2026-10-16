@@ -828,11 +828,18 @@ export class Harness {
                 'library.history',
                 'library.attachments',
                 'library.readAttachment',
+                'library.pdfInfo',
+                'library.readPdfPage',
                 'library.importProjectFiles',
+                'library.readingRecords',
+                'library.readingRecord',
+                'library.readingHistory',
+                'library.saveReadingRecord',
+                'library.removeReadingRecord',
               ] as const
             ).map((method) => ({
               name: method.replace('.', '_'),
-              description: `共同文献库 ${method}。importProjectFiles只接受当前授权项目内相对路径，返回批次引用，用batch核查逐项结果。附件登记不等于可读；readAttachment按引用返回有界原字节base64，不表示已解析正文。库读取/写入/外发均需授权；未知批次先按原batchId核查。`,
+              description: `共同文献库 ${method}。importProjectFiles只接受当前授权项目内相对路径，返回批次引用，用batch核查逐项结果。附件登记不等于可读；readAttachment按引用返回有界原字节base64，不表示已解析正文。阅读记录绑定材料版本；quote是摘录，body是你的解释；更正/移除先读修订号，未知创建按原recordId核查。库读取/写入/外发均需授权；未知批次先按原batchId核查。`,
               schema:
                 method === 'library.importProjectFiles'
                   ? {
@@ -853,6 +860,44 @@ export class Harness {
                   this.library.check('send');
                   let result: unknown;
                   switch (method) {
+                    case 'library.pdfInfo':
+                      result = await this.library.pdfInfo(
+                        input as BusinessParams<'library.pdfInfo'>,
+                        signal,
+                      );
+                      break;
+                    case 'library.readPdfPage':
+                      result = await this.library.readPdfPage(
+                        input as BusinessParams<'library.readPdfPage'>,
+                        signal,
+                      );
+                      break;
+                    case 'library.readingRecords':
+                      result = this.library.readingRecords(
+                        input as BusinessParams<'library.readingRecords'>,
+                      );
+                      break;
+                    case 'library.readingRecord':
+                      result = this.library.readingRecord(String(input.recordId));
+                      break;
+                    case 'library.readingHistory':
+                      result = this.library.readingHistory(
+                        input as BusinessParams<'library.readingHistory'>,
+                      );
+                      break;
+                    case 'library.saveReadingRecord':
+                      result = await this.library.saveReadingRecord(
+                        input as BusinessParams<'library.saveReadingRecord'>,
+                        { kind: 'agent', sessionId: run.sessionId },
+                        signal,
+                      );
+                      break;
+                    case 'library.removeReadingRecord':
+                      result = this.library.removeReadingRecord(
+                        input as BusinessParams<'library.removeReadingRecord'>,
+                        { kind: 'agent', sessionId: run.sessionId },
+                      );
+                      break;
                     case 'library.attachments':
                       result = await this.library.attachments(
                         input as BusinessParams<'library.attachments'>,

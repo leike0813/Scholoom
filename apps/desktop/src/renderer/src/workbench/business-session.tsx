@@ -4,6 +4,7 @@ import type {
   BusinessMethod,
   BusinessParams,
   BusinessResult,
+  LibraryAttachment,
   Message,
   WorkbenchSnapshot,
 } from '@scholoom/protocol';
@@ -11,6 +12,7 @@ import { validateBusiness } from '@scholoom/protocol';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { draftKey, readDraft, writeDraft } from './drafts';
 import { LibraryPanel } from './LibraryPanel';
+import { PdfReader } from './PdfReader';
 import { FileEditor, ProjectControls, ProjectNavigator } from './project-ui';
 import { toThreadMessage } from './projection';
 import { SessionList } from './SessionList';
@@ -30,6 +32,7 @@ export function useBusinessSession(
   const [materials, setMaterials] = useState<string[]>([]);
   const [materialFileIds, setMaterialFileIds] = useState<Record<string, string>>({});
   const [file, setFile] = useState<FileTarget>();
+  const [pdfTarget, setPdfTarget] = useState<LibraryAttachment>();
   const [earlier, setEarlier] = useState<Message[]>([]);
   const [earlierComplete, setEarlierComplete] = useState(false);
   const [configured, setConfigured] = useState(false);
@@ -387,7 +390,19 @@ export function useBusinessSession(
           }}
         />
       ) : null,
-    library: client ? <LibraryPanel client={client} enabled={phase === 'connected'} /> : undefined,
+    library: client ? (
+      <LibraryPanel client={client} enabled={phase === 'connected'} onOpenPdf={setPdfTarget} />
+    ) : undefined,
+    pdfTarget,
+    renderPdf: (material) =>
+      client ? (
+        <PdfReader
+          key={`${material.id}:${material.materialVersionId}`}
+          client={client}
+          material={material}
+          enabled={phase === 'connected'}
+        />
+      ) : null,
     projectControls: (
       <ProjectControls
         snapshot={snapshot}

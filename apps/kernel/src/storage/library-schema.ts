@@ -4,6 +4,7 @@ import type {
   LibraryCollection,
   LibraryEntry,
   LibrarySource,
+  ReadingRecord,
 } from '@scholoom/protocol';
 import { sql } from 'drizzle-orm';
 import { index, integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
@@ -78,4 +79,28 @@ export const attachments = sqliteTable(
     index('attachment_source').on(t.sourceId),
     uniqueIndex('attachment_content').on(t.sourceId, t.purpose, t.storage, t.hash),
   ],
+);
+
+export const readingRecords = sqliteTable(
+  'reading_records',
+  {
+    id: text().primaryKey(),
+    attachmentId: text().notNull(),
+    materialVersionId: text().notNull(),
+    deleted: integer({ mode: 'boolean' }).notNull(),
+    value: text({ mode: 'json' }).$type<ReadingRecord>().notNull(),
+    creation: text({ mode: 'json' }).$type<BusinessParams<'library.saveReadingRecord'>>().notNull(),
+    createdBy: text({ mode: 'json' }).$type<ReadingRecord['createdBy']>().notNull(),
+  },
+  (t) => [index('reading_material').on(t.attachmentId, t.materialVersionId, t.id)],
+);
+
+export const readingHistory = sqliteTable(
+  'reading_history',
+  {
+    seq: integer().primaryKey({ autoIncrement: true }),
+    recordId: text().notNull(),
+    value: text({ mode: 'json' }).$type<ReadingRecord>().notNull(),
+  },
+  (t) => [index('reading_history_record').on(t.recordId, t.seq)],
 );

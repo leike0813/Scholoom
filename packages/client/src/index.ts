@@ -95,6 +95,11 @@ export class KernelClient {
     if (!validateBusiness(method, 'params', params))
       throw new KernelClientError('invalidRequest', 'Invalid operation parameters.');
     const read = [
+      'library.pdfInfo',
+      'library.readPdfPage',
+      'library.readingRecords',
+      'library.readingRecord',
+      'library.readingHistory',
       'library.attachments',
       'library.readAttachment',
       'library.status',
@@ -123,7 +128,11 @@ export class KernelClient {
     const result = await this.request(
       method,
       params,
-      limits.requestMs,
+      method === 'library.pdfInfo' ||
+        method === 'library.readPdfPage' ||
+        (method === 'library.saveReadingRecord' && 'location' in params)
+        ? 35000
+        : limits.requestMs,
       read ? 'unavailable' : 'outcomeUnknown',
     );
     if (!validateBusiness(method, 'result', result))

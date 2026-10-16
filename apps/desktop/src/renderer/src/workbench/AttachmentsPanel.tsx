@@ -1,6 +1,7 @@
 import type { KernelClient } from '@scholoom/client';
 import type { LibraryAttachment, LibraryBatch } from '@scholoom/protocol';
 import { useEffect, useRef, useState } from 'react';
+import { ReadingRecordsPanel } from './ReadingRecordsPanel';
 
 const PAGE = 25;
 /** 与协议 library.readAttachment 的分段上限一致：一次下载只读取有界片段。 */
@@ -160,6 +161,7 @@ export function AttachmentsPanel({
   sourceId,
   tick,
   onBatch,
+  onOpenPdf,
 }: {
   client: KernelClient;
   enabled: boolean;
@@ -168,6 +170,7 @@ export function AttachmentsPanel({
   sourceId: string;
   tick: number;
   onBatch: (batch: LibraryBatch) => void;
+  onOpenPdf?: ((material: LibraryAttachment) => void) | undefined;
 }) {
   const [paging, setPaging] = useState<{ sourceId: string; offsets: number[] }>({
     sourceId,
@@ -185,6 +188,7 @@ export function AttachmentsPanel({
   const [busyId, setBusyId] = useState('');
   const [rowError, setRowError] = useState<{ id: string; message: string }>();
   const [targets, setTargets] = useState<Record<string, string>>({});
+  const [recordsTarget, setRecordsTarget] = useState<{ sourceId: string; attachmentId: string }>();
   const urlRef = useRef('');
   const shownSource = useRef(sourceId);
   shownSource.current = sourceId;
@@ -304,6 +308,17 @@ export function AttachmentsPanel({
             </span>
             {attachment.error ? ` · ${attachment.error.message}` : ''}
             <div className="file-view-controls">
+              {onOpenPdf && attachment.name.toLowerCase().endsWith('.pdf') ? (
+                <button
+                  type="button"
+                  className="btn"
+                  aria-label={`打开 PDF ${attachment.name}`}
+                  disabled={!readable}
+                  onClick={() => onOpenPdf(attachment)}
+                >
+                  打开 PDF
+                </button>
+              ) : null}
               <button
                 type="button"
                 className="btn"
@@ -312,6 +327,25 @@ export function AttachmentsPanel({
                 onClick={() => download(attachment)}
               >
                 下载
+              </button>
+              <button
+                type="button"
+                className="btn"
+                aria-label={`阅读记录 ${attachment.name}`}
+                aria-expanded={
+                  recordsTarget?.sourceId === sourceId &&
+                  recordsTarget.attachmentId === attachment.id
+                }
+                disabled={!readable}
+                onClick={() =>
+                  setRecordsTarget((current) =>
+                    current?.sourceId === sourceId && current.attachmentId === attachment.id
+                      ? undefined
+                      : { sourceId, attachmentId: attachment.id },
+                  )
+                }
+              >
+                阅读记录
               </button>
               {attachment.storage === 'linked' ? (
                 <>
@@ -344,6 +378,18 @@ export function AttachmentsPanel({
               <p className="business-error" role="alert">
                 {rowError.message}
               </p>
+            ) : null}
+            {recordsTarget?.sourceId === sourceId &&
+            recordsTarget.attachmentId === attachment.id ? (
+              <ReadingRecordsPanel
+                key={`${client.getSnapshot().status?.dataDirectory}:${attachment.id}:${attachment.materialVersionId}`}
+                client={client}
+                enabled={enabled}
+                readable={readable}
+                writable={writable}
+                attachment={attachment}
+                tick={tick}
+              />
             ) : null}
           </li>
         ))}

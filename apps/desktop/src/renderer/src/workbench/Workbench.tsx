@@ -72,9 +72,39 @@ export function Workbench({ session }: { session: WorkbenchSession }) {
   useLayoutEffect(() => {
     const next = session.projectId ?? 'sample';
     if (next === currentProject.current) return;
-    projectGroups.current.set(currentProject.current, groups);
+    // 共同材料独立于项目会话；只把项目自己的tab存入项目布局。
+    projectGroups.current.set(
+      currentProject.current,
+      groups.flatMap((group) => {
+        const tabs = group.tabs.filter((tab) => !tab.material);
+        return tabs.length
+          ? [
+              {
+                ...group,
+                tabs,
+                activeId: tabs.some((tab) => tab.id === group.activeId)
+                  ? group.activeId
+                  : (tabs[0]?.id ?? null),
+              },
+            ]
+          : [];
+      }),
+    );
     currentProject.current = next;
-    setGroups(projectGroups.current.get(next) ?? []);
+    const restored = [...(projectGroups.current.get(next) ?? [])];
+    for (const group of groups) {
+      const tabs = group.tabs.filter((tab) => tab.material);
+      if (!tabs.length) continue;
+      const index = restored.findIndex((target) => target.id === group.id);
+      const target = restored[index];
+      const activeId = tabs.some((tab) => tab.id === group.activeId)
+        ? group.activeId
+        : (target?.activeId ?? tabs[0]?.id ?? null);
+      const combined = { ...group, tabs: [...(target?.tabs ?? []), ...tabs], activeId };
+      if (index >= 0) restored[index] = combined;
+      else restored.push(combined);
+    }
+    setGroups(restored);
   }, [session.projectId, groups]);
 
   const resolveFiles = useRef(session.resolveFiles);
@@ -337,6 +367,29 @@ export function Workbench({ session }: { session: WorkbenchSession }) {
     });
   }, [session.fileTarget, session.projectId]);
 
+  useEffect(() => {
+    const material = session.pdfTarget;
+    if (!material) return;
+    setAgentExpanded(false);
+    const tab = {
+      id: `pdf:${material.id}:${material.materialVersionId}`,
+      title: material.name,
+      kind: 'reader' as const,
+      material,
+    };
+    setGroups((current) => {
+      const existing = current.findIndex((group) => group.tabs.some((item) => item.id === tab.id));
+      if (existing >= 0)
+        return current.map((group, index) =>
+          index === existing ? { ...group, activeId: tab.id } : group,
+        );
+      if (!current.length) return [{ id: 'a', tabs: [tab], activeId: tab.id }];
+      return current.map((group, index) =>
+        index === 0 ? { ...group, tabs: [...group.tabs, tab], activeId: tab.id } : group,
+      );
+    });
+  }, [session.pdfTarget]);
+
   return (
     <AssistantRuntimeProvider runtime={runtime}>
       <ComposerDraft storageKey={session.draftKey} runtime={runtime} />
@@ -406,6 +459,7 @@ export function Workbench({ session }: { session: WorkbenchSession }) {
             renderFile={session.renderFile}
             renderSettings={session.controls}
             renderLibrary={session.library}
+            renderPdf={session.renderPdf}
             onView={view}
             contextName={session.executionContext?.project}
             onCreateSession={session.createSession}
