@@ -1,13 +1,14 @@
-import { type ReactNode, useRef, useState } from 'react';
+import { type ReactNode, useState } from 'react';
 import { relativeTime } from '../relative-time';
 import type { SessionSummary, WorkbenchConnection } from '../session';
 import {
-  IconChat,
-  IconChevronLeft,
-  IconChevronRight,
+  IconFolder,
+  IconFolderOpen,
   IconLibrary,
   IconPlus,
+  IconSearch,
   IconSettings,
+  IconSidebarLeft,
   IconTheme,
 } from './icons';
 
@@ -59,19 +60,19 @@ function ProjectNode({
 
   return (
     <div className="project-node">
-      <button
-        type="button"
-        className="project-header"
-        onClick={() => setExpanded(!expanded)}
-        aria-expanded={expanded}
-        aria-label={`${projectName}，${expanded ? '已展开' : '已折叠'}`}
-      >
-        <span
-          className={`project-header__chevron${expanded ? ' project-header__chevron--open' : ''}`}
+      <div className="project-row">
+        <button
+          type="button"
+          className="project-header"
+          onClick={() => setExpanded(!expanded)}
+          aria-expanded={expanded}
+          aria-label={`${projectName}，${expanded ? '已展开' : '已折叠'}`}
         >
-          <IconChevronRight />
-        </span>
-        <span className="project-header__name">{projectName}</span>
+          <span className="project-header__icon">
+            {expanded ? <IconFolderOpen /> : <IconFolder />}
+          </span>
+          <span className="project-header__name">{projectName}</span>
+        </button>
         <button
           type="button"
           className="project-header__new-session"
@@ -84,7 +85,7 @@ function ProjectNode({
         >
           <IconPlus />
         </button>
-      </button>
+      </div>
 
       {expanded && (
         <div className="session-list">
@@ -123,42 +124,12 @@ function ProjectNode({
   );
 }
 
-/** 明确停机入口：说明影响范围，确认与取消都是可键盘操作的常规控件。 */
-function StopKernel({ onStop }: { onStop: () => void }) {
-  const menu = useRef<HTMLDetailsElement>(null);
-  const close = () => {
-    if (menu.current !== null) menu.current.open = false;
-  };
-
-  return (
-    <details className="kernel-menu" ref={menu}>
-      <summary>停止内核</summary>
-      <div className="kernel-menu__body">
-        <p>停止后所有已连接的客户端（包括其他窗口与 CLI）都会断开，需要重新启动才能继续。</p>
-        <div className="kernel-menu__actions">
-          <button
-            type="button"
-            onClick={() => {
-              close();
-              onStop();
-            }}
-          >
-            确认停止
-          </button>
-          <button type="button" onClick={close}>
-            取消
-          </button>
-        </div>
-      </div>
-    </details>
-  );
-}
-
 export interface ActivityPaneProps {
   sessionNavigation?: ReactNode;
-  projectControls?: ReactNode;
   openSettings?: (() => void) | undefined;
   openLibrary?: (() => void) | undefined;
+  openSessionSearch?: (() => void) | undefined;
+  openProjectOnboarding?: (() => void) | undefined;
   status: string;
   connection?: WorkbenchConnection | undefined;
   sessions: readonly SessionSummary[];
@@ -180,48 +151,88 @@ export function ActivityPane({
   theme,
   onCycleTheme,
   onCollapse,
-  projectControls,
   openSettings,
   openLibrary,
+  openSessionSearch,
+  openProjectOnboarding,
   sessionNavigation,
 }: ActivityPaneProps) {
   const kernelMessage =
     connection?.message ?? (status === 'sample' ? '样例场景 · 刷新后重置' : '内核未连接');
-
+  const kernelDot =
+    status === 'connected'
+      ? 'dot dot--ok'
+      : status === 'error' || status === 'stopped'
+        ? 'dot dot--err'
+        : 'dot dot--idle';
   const projectGroups = groupSessionsByProject(sessions);
 
   return (
     <aside className="side side--left" aria-label="会话与导航">
       <div className="side__header">
         <h1 className="brand">Scholoom</h1>
-        <button
-          type="button"
-          className="icon-btn"
-          onClick={onCollapse}
-          title="折叠左区 (Ctrl+B)"
-          aria-label="折叠左区"
-        >
-          <IconChevronLeft />
-        </button>
+        <div className="side__header-actions">
+          <button
+            type="button"
+            className="icon-btn icon-btn--sm"
+            onClick={onCycleTheme}
+            title={themeLabels[theme]}
+            aria-label="切换主题"
+          >
+            <IconTheme />
+          </button>
+          <button
+            type="button"
+            className="icon-btn"
+            onClick={onCollapse}
+            title="折叠左区 (Ctrl+B)"
+            aria-label="折叠左区"
+          >
+            <IconSidebarLeft />
+          </button>
+        </div>
       </div>
 
-      <nav className="menu" aria-label="常用操作">
+      <nav className="side-nav" aria-label="常用操作">
         <button
           type="button"
-          className="menu__item"
+          className="side-nav__item"
           onClick={createSession}
           disabled={!createSession}
         >
           <IconPlus />
           新建会话
         </button>
-        <button type="button" className="menu__item" onClick={openLibrary} disabled={!openLibrary}>
+        <button
+          type="button"
+          className="side-nav__item"
+          onClick={openSessionSearch}
+          disabled={!openSessionSearch}
+        >
+          <IconSearch />
+          查找会话
+        </button>
+        <button
+          type="button"
+          className="side-nav__item"
+          onClick={openProjectOnboarding}
+          disabled={!openProjectOnboarding}
+        >
+          <IconFolder />
+          添加项目
+        </button>
+        <button
+          type="button"
+          className="side-nav__item"
+          onClick={openLibrary}
+          disabled={!openLibrary}
+        >
           <IconLibrary />
           文献库
         </button>
         <button
           type="button"
-          className="menu__item"
+          className="side-nav__item"
           onClick={openSettings}
           disabled={!openSettings}
         >
@@ -229,7 +240,6 @@ export function ActivityPane({
           设置
         </button>
       </nav>
-      {projectControls}
 
       <div className="section-label">
         <span>会话</span>
@@ -253,37 +263,46 @@ export function ActivityPane({
         ))}
 
       <div className="kernel-status">
-        <span
-          className={connection?.stop ? 'dot dot--ok' : 'dot dot--idle'}
-          role="img"
-          aria-label="连接指示"
-        />
+        <span className={kernelDot} role="img" aria-label="连接指示" />
         <p className="kernel-status__text" role="status" aria-label="连接状态">
           {kernelMessage}
         </p>
-        {connection?.instanceId ? (
-          <span className="kernel-status__detail">实例 {connection.instanceId}</span>
-        ) : null}
-        {connection?.retry ? (
-          <button type="button" className="text-btn" onClick={connection.retry}>
-            重试连接
-          </button>
-        ) : null}
-        {connection?.inspect ? (
-          <button type="button" className="text-btn" onClick={connection.inspect}>
-            查询状态
-          </button>
-        ) : null}
-        {connection?.stop ? <StopKernel onStop={connection.stop} /> : null}
-        <button
-          type="button"
-          className="icon-btn icon-btn--sm"
-          onClick={onCycleTheme}
-          title={themeLabels[theme]}
-          aria-label="切换主题"
-        >
-          <IconTheme />
-        </button>
+        <div className="kernel-status__popover">
+          <dl>
+            <div>
+              <dt>状态</dt>
+              <dd>{kernelMessage}</dd>
+            </div>
+            {connection?.instanceId ? (
+              <div>
+                <dt>实例</dt>
+                <dd>{connection.instanceId}</dd>
+              </div>
+            ) : null}
+            {connection?.error ? (
+              <div>
+                <dt>错误</dt>
+                <dd>
+                  {connection.error.code}：{connection.error.message}
+                </dd>
+              </div>
+            ) : null}
+          </dl>
+          {connection?.retry || connection?.inspect ? (
+            <div className="kernel-status__actions">
+              {connection.retry ? (
+                <button type="button" className="text-btn" onClick={connection.retry}>
+                  重试连接
+                </button>
+              ) : null}
+              {connection.inspect ? (
+                <button type="button" className="text-btn" onClick={connection.inspect}>
+                  查询状态
+                </button>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
       </div>
     </aside>
   );
@@ -293,10 +312,14 @@ export function ActivityRail({
   onExpand,
   createSession,
   openLibrary,
+  openSessionSearch,
+  openProjectOnboarding,
 }: {
   onExpand: () => void;
   createSession?: (() => void) | undefined;
   openLibrary?: (() => void) | undefined;
+  openSessionSearch?: (() => void) | undefined;
+  openProjectOnboarding?: (() => void) | undefined;
 }) {
   return (
     <aside className="rail rail--left" aria-label="导航（已折叠）">
@@ -307,7 +330,7 @@ export function ActivityRail({
         title="展开左区 (Ctrl+B)"
         aria-label="展开左区"
       >
-        <IconChevronRight />
+        <IconSidebarLeft />
       </button>
       <button
         type="button"
@@ -322,24 +345,32 @@ export function ActivityRail({
       <button
         type="button"
         className="icon-btn"
+        title="查找会话"
+        aria-label="查找会话"
+        onClick={openSessionSearch}
+        disabled={!openSessionSearch}
+      >
+        <IconSearch />
+      </button>
+      <button
+        type="button"
+        className="icon-btn"
+        title="添加项目"
+        aria-label="添加项目"
+        onClick={openProjectOnboarding}
+        disabled={!openProjectOnboarding}
+      >
+        <IconFolder />
+      </button>
+      <button
+        type="button"
+        className="icon-btn"
         title="文献库"
         aria-label="文献库"
         onClick={openLibrary}
         disabled={!openLibrary}
       >
         <IconLibrary />
-      </button>
-      <button
-        type="button"
-        className="icon-btn"
-        title="会话"
-        aria-label="会话"
-        onClick={() => {
-          onExpand();
-          requestAnimationFrame(() => document.getElementById('session-search')?.focus());
-        }}
-      >
-        <IconChat />
       </button>
     </aside>
   );

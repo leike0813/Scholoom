@@ -51,9 +51,9 @@ test('local PDF reader shares selected highlights, bookmarks and notes through t
     const reference = { attachmentId: material.id, materialVersionId: material.materialVersionId };
     await uiPage.goto('http://127.0.0.1:5174/');
     await expect(uiPage.getByRole('status', { name: '连接状态' })).toContainText('已连接');
-    await uiPage
-      .getByRole('combobox', { name: '当前项目', exact: true })
-      .selectOption('application');
+    await expect(
+      uiPage.getByRole('button', { name: '普通会话，已展开', exact: true }),
+    ).toBeVisible();
     await uiPage.getByRole('button', { name: '新建会话', exact: true }).click();
     const instruction = uiPage.getByRole('textbox', { name: '研究指令', exact: true });
     await instruction.fill('PDF 阅读期间保留的研究指令');
@@ -167,17 +167,15 @@ test('local PDF reader shares selected highlights, bookmarks and notes through t
     const otherTitle = `PDF另一会话-${randomUUID()}`;
     const otherProject = await client.call('project.open', { path: root });
     await client.call('session.create', { projectId: otherProject.id, title: otherTitle });
-    await uiPage
-      .getByRole('combobox', { name: '当前项目', exact: true })
-      .selectOption(otherProject.id);
+    await uiPage.getByLabel('管理项目 普通会话', { exact: true }).click();
+    await uiPage.getByRole('button', { name: otherProject.name, exact: true }).click();
     await uiPage.getByRole('button', { name: `打开会话 ${otherTitle}`, exact: true }).click();
     await expect(note).toHaveValue('阅读器中的文献笔记');
     await expect(
       reader.getByRole('button', { name: '标记第 2 页书签', exact: true }),
     ).toBeVisible();
-    await uiPage
-      .getByRole('combobox', { name: '当前项目', exact: true })
-      .selectOption('application');
+    await uiPage.getByLabel(`管理项目 ${otherProject.name}`, { exact: true }).click();
+    await uiPage.getByRole('button', { name: '普通会话', exact: true }).click();
     await uiPage.getByRole('button', { name: `打开会话 ${title}`, exact: true }).click();
     await expect(instruction).toHaveValue('PDF 阅读期间保留的研究指令');
     await records.getByRole('button', { name: '保存文献笔记', exact: true }).click();

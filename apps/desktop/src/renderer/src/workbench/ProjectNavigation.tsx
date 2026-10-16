@@ -1,5 +1,6 @@
 import type { KernelClient } from '@scholoom/client';
 import type {
+  Effort,
   FileEntry,
   FileLocation,
   FileOperation,
@@ -17,6 +18,7 @@ import {
 } from 'react';
 import type { FileTarget } from './session';
 import { IconChevronRight } from './shell/icons';
+import { ConfirmAction } from './shell/menu';
 
 type Call = KernelClient['call'];
 type Listing<T> = { entries: T[]; next?: number };
@@ -40,29 +42,23 @@ const operationState: Record<FileOperation['state'], string> = {
   failed: '未执行',
 };
 
-/** 左区项目入口（mode="project"）与中间区设置页（mode="settings"）共用同一份状态与调用。 */
+/** 中间区设置页：模型设置（应用默认与凭据）与当前项目权限、备份。 */
 export function ProjectControls({
   snapshot,
   selectedProject,
-  onSelect,
   call,
   onOpen,
   enabled,
-  mode = 'project',
 }: {
   snapshot: WorkbenchSnapshot | undefined;
   selectedProject: string;
-  onSelect: (id: string) => void;
   call: Call;
   onOpen: (project: Project) => void;
   enabled: boolean;
-  mode?: 'project' | 'settings';
 }) {
   const [key, setKey] = useState('');
-  const [path, setPath] = useState('');
-  const [createPath, setCreatePath] = useState('');
-  const [createName, setCreateName] = useState('');
-  const [displayName, setDisplayName] = useState('');
+  const [defaultModel, setDefaultModel] = useState('');
+  const [defaultEffort, setDefaultEffort] = useState<Effort | ''>('');
   const [error, setError] = useState('');
   const [grants, setGrants] = useState({
     read: false,
@@ -72,34 +68,135 @@ export function ProjectControls({
   });
   const [backups, setBackups] = useState<ProjectBackup[]>([]);
   const [destination, setDestination] = useState('');
+  const [archivedSessions, setArchivedSessions] = useState<
+    Array<{ id: string; title: string; updatedAt: string }>
+  >([]);
+  const [archivedCursor, setArchivedCursor] = useState<
+    { updatedAt: string; id: string } | undefined
+  >(undefined);
+  const [archivedLoading, setArchivedLoading] = useState(false);
+  const [archivedError, setArchivedError] = useState('');
+  const provider = snapshot?.provider;
   const project = snapshot?.projects.find((item) => item.id === selectedProject);
-  const {
-    id,
-    name = '',
-    read = false,
-    write = false,
-    send = false,
-    autoBackup = true,
-  } = project ?? {};
+  const { id, read = false, write = false, send = false, autoBackup = true } = project ?? {};
   useEffect(() => {
     if (!id) return;
     setGrants({ read, write, send, autoBackup });
     setBackups([]);
-    setDisplayName(name);
-  }, [id, name, read, write, send, autoBackup]);
+    setArchivedSessions([]);
+    setArchivedCursor(undefined);
+    setArchivedError('');
+  }, [id, read, write, send, autoBackup]);
+  const providerModel = provider?.model;
+  const providerDefaultEffort = provider?.defaultEffort;
+  useEffect(() => {
+    if (providerModel === undefined || providerDefaultEffort === undefined) return;
+    setDefaultModel(providerModel);
+    setDefaultEffort(providerDefaultEffort);
+  }, [providerModel, providerDefaultEffort]);
   const run = (action: () => Promise<unknown>) => {
     setError('');
     void action().catch((reason) => setError(messageOf(reason)));
   };
+  const loadArchivedSessions = useCallback(
+    (append = false) => {
+      if (!id || archivedLoading) return;
+      setArchivedLoading(true);
+      setArchivedError('');
+      void (async () => {
+        try {
+          const result = await call('session.list', {
+            projectId: id,
+            archived: true,
+            ...(append && archivedCursor ? { cursor: archivedCursor } : {}),
+          });
+          setArchivedSessions((prev) =>
+            append
+              ? // 去重：已有 id 则保留原有项
+                [...prev, ...result.sessions.filter((s) => !prev.find((p) => p.id === s.id))]
+              : result.sessions,
+          );
+          setArchivedCursor(result.nextCursor);
+        } catch (reason) {
+          setArchivedError(messageOf(reason));
+        } finally {
+          setArchivedLoading(false);
+        }
+      })();
+    },
+    [id, call, archivedLoading, archivedCursor],
+  );
+  const restoreSession = (sessionId: string) => {
+    if (!id) return;
+    setArchivedError('');
+    void (async () => {
+      try {
+        await call('session.archive', { projectId: id, sessionId, archived: false });
+        // 恢复成功后，从归档列表移除
+        setArchivedSessions((prev) => prev.filter((s) => s.id !== sessionId));
+        // 重新加载左侧列表中的活动会话
+        // 这里通过刷新 snapshot 来完成，依赖父组件处理
+      } catch (reason) {
+        setArchivedError(messageOf(reason));
+      }
+    })();
+  };
   const model = (
     <details>
       <summary>模型设置</summary>
-      <p>MiniMax M Plan 中国区 · {snapshot?.provider.model ?? 'MiniMax-M3.1-Flash-Preview'}</p>
+      <p>MiniMax M Plan 中国区 · {provider?.model ?? 'MiniMax-M3.1-Flash-Preview'}</p>
       <p role="status">
-        {snapshot?.provider.configured
-          ? `已配置 · ${snapshot.provider.source === 'saved' ? '本机凭据' : '环境变量'}`
+        {provider?.configured
+          ? `已配置 · ${provider.source === 'saved' ? '本机凭据' : '环境变量'}`
           : '请填写订阅 API Key'}
       </p>
+      <form
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (!defaultModel || !defaultEffort) return;
+          run(async () => {
+            await call('provider.setDefaults', { model: defaultModel, effort: defaultEffort });
+          });
+        }}
+      >
+        <label>
+          应用默认模型
+          <select
+            aria-label="应用默认模型"
+            value={defaultModel}
+            disabled={!enabled || !provider}
+            onChange={(event) => setDefaultModel(event.target.value)}
+          >
+            {(provider?.models ?? []).map((option) => (
+              <option key={option.id} value={option.id}>
+                {option.id}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          默认推理强度
+          <select
+            aria-label="默认推理强度"
+            value={defaultEffort}
+            disabled={!enabled || !provider}
+            onChange={(event) => setDefaultEffort(event.target.value as Effort)}
+          >
+            {(provider?.efforts ?? []).map((effort) => (
+              <option key={effort} value={effort}>
+                {effort}
+              </option>
+            ))}
+          </select>
+        </label>
+        <button
+          type="submit"
+          className="btn"
+          disabled={!enabled || !provider || !defaultModel || !defaultEffort}
+        >
+          保存默认设置
+        </button>
+      </form>
       <form
         onSubmit={(event) => {
           event.preventDefault();
@@ -125,6 +222,51 @@ export function ProjectControls({
       </form>
     </details>
   );
+  const archivedSection = project ? (
+    <details>
+      <summary>归档会话</summary>
+      <button
+        type="button"
+        className="btn"
+        disabled={!enabled}
+        onClick={() => loadArchivedSessions(false)}
+      >
+        加载归档会话
+      </button>
+      {archivedSessions.length > 0 ? (
+        <ul className="archived-sessions-list">
+          {archivedSessions.map((session) => (
+            <li key={session.id} className="archived-session-row">
+              <span className="archived-session-info">
+                <strong>{session.title}</strong>
+                <span>{session.updatedAt}</span>
+              </span>
+              <button
+                type="button"
+                className="btn"
+                disabled={!enabled}
+                onClick={() => restoreSession(session.id)}
+              >
+                恢复
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      {archivedCursor !== undefined ? (
+        <button
+          type="button"
+          className="btn"
+          disabled={!enabled || archivedLoading}
+          aria-busy={archivedLoading || undefined}
+          onClick={() => loadArchivedSessions(true)}
+        >
+          加载更多
+        </button>
+      ) : null}
+      {archivedError ? <p role="alert">{archivedError}</p> : null}
+    </details>
+  ) : null;
   const permission =
     project && project.id !== 'application' ? (
       <details>
@@ -224,136 +366,10 @@ export function ProjectControls({
     ) : null;
   return (
     <>
-      {/* 模型设置始终可用，不受连接状态影响 */}
-      {mode === 'settings' && model}
-
+      {model}
       <fieldset className="project-controls" disabled={!enabled}>
-        {mode === 'project' ? (
-          <>
-            <label>
-              项目{' '}
-              <select
-                aria-label="当前项目"
-                value={selectedProject}
-                onChange={(event) => onSelect(event.target.value)}
-              >
-                {(snapshot?.projects ?? [])
-                  .filter((item) => item.recent !== false || item.id === selectedProject)
-                  .map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {item.name}
-                    </option>
-                  ))}
-              </select>
-            </label>
-            <details>
-              <summary>新建项目</summary>
-              <form
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  run(async () => {
-                    const directory = createPath.trim();
-                    const label = createName.trim();
-                    const created = await call(
-                      'project.create',
-                      label ? { path: directory, name: label } : { path: directory },
-                    );
-                    setCreatePath('');
-                    setCreateName('');
-                    onOpen(created);
-                  });
-                }}
-              >
-                <label>
-                  项目目录
-                  <input
-                    aria-label="新建项目目录"
-                    value={createPath}
-                    onChange={(event) => setCreatePath(event.target.value)}
-                  />
-                </label>
-                <label>
-                  显示名
-                  <input
-                    aria-label="新建项目显示名"
-                    value={createName}
-                    onChange={(event) => setCreateName(event.target.value)}
-                  />
-                </label>
-                <button type="submit" className="btn" disabled={!createPath.trim()}>
-                  创建项目
-                </button>
-              </form>
-            </details>
-            <details>
-              <summary>打开项目</summary>
-              <form
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  run(async () => {
-                    onOpen(await call('project.open', { path }));
-                  });
-                }}
-              >
-                <label>
-                  项目目录
-                  <input
-                    aria-label="项目目录"
-                    value={path}
-                    onChange={(event) => setPath(event.target.value)}
-                  />
-                </label>
-                <button type="submit" className="btn">
-                  打开目录
-                </button>
-              </form>
-            </details>
-            {project && project.id !== 'application' ? (
-              <details>
-                <summary>当前项目设置</summary>
-                <p>移出最近列表只改变列表记录，不删除目录内容，也不停止执行。</p>
-                <label>
-                  显示名
-                  <input
-                    aria-label="项目显示名"
-                    value={displayName}
-                    onChange={(event) => setDisplayName(event.target.value)}
-                  />
-                </label>
-                <button
-                  type="button"
-                  className="btn"
-                  disabled={!displayName.trim()}
-                  onClick={() =>
-                    run(async () => {
-                      const renamed = await call('project.rename', {
-                        projectId: project.id,
-                        name: displayName.trim(),
-                      });
-                      setDisplayName(renamed.name);
-                    })
-                  }
-                >
-                  保存显示名
-                </button>
-                <button
-                  type="button"
-                  className="btn"
-                  onClick={() =>
-                    run(async () => {
-                      await call('project.forget', { projectId: project.id });
-                      onSelect('application');
-                    })
-                  }
-                >
-                  移出最近列表
-                </button>
-              </details>
-            ) : null}
-          </>
-        ) : (
-          permission
-        )}
+        {permission}
+        {archivedSection}
         {error ? <p role="alert">{error}</p> : null}
       </fieldset>
     </>
@@ -727,22 +743,14 @@ export function ProjectNavigator({
                 回收
               </button>
               {confirming ? (
-                <p className="file-tree__confirm" role="status">
-                  确认回收 {entry.path}
-                  {entry.kind === 'dir' ? '（含目录内容）' : ''}？可在回收站恢复。
-                  <button
-                    type="button"
-                    className="btn"
-                    disabled={!project.write || !!busy.trash}
-                    aria-busy={!!busy.trash || undefined}
-                    onClick={trashRow}
-                  >
-                    确认回收
-                  </button>
-                  <button type="button" className="btn" onClick={() => setConfirming(false)}>
-                    取消
-                  </button>
-                </p>
+                <ConfirmAction
+                  className="file-tree__confirm"
+                  description={`确认回收 ${entry.path}${entry.kind === 'dir' ? '（含目录内容）' : ''}？可在回收站恢复。`}
+                  confirmLabel="确认回收"
+                  busy={!!busy.trash}
+                  onConfirm={trashRow}
+                  onCancel={() => setConfirming(false)}
+                />
               ) : null}
             </div>
           ) : null}

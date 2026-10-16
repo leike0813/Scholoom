@@ -1,58 +1,14 @@
 import type { KernelClient } from '@scholoom/client';
-import type { BusinessParams, BusinessResult, Session } from '@scholoom/protocol';
-import { type RefObject, useEffect, useRef, useState } from 'react';
+import type { BusinessParams, Project, Session } from '@scholoom/protocol';
+import { type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
 import { relativeTime } from './relative-time';
-import { IconChevronRight } from './shell/icons';
+import { IconFolder, IconFolderOpen } from './shell/icons';
+import { ConfirmAction, ContextMenu, Menu, MenuFormItem, MenuItem } from './shell/menu';
 
 type Cursor = NonNullable<BusinessParams<'session.list'>['cursor']>;
 
-interface ProjectGroup {
-  projectId: string;
-  sessions: Session[];
-}
-
-function groupSessionsByProject(sessions: Session[]): ProjectGroup[] {
-  const groups: Record<string, Session[]> = {};
-
-  for (const session of sessions) {
-    const projectId = session.projectId;
-    if (!groups[projectId]) {
-      groups[projectId] = [];
-    }
-    const group = groups[projectId];
-    if (group) {
-      group.push(session);
-    }
-  }
-
-  return Object.entries(groups).map(([projectId, sessions]) => ({
-    projectId,
-    sessions,
-  }));
-}
-
-/** details 弹层通用关闭：点击外部或 Esc 合上，Esc 不冒泡到外层 overlay。 */
-function useDetailsDismiss(ref: RefObject<HTMLDetailsElement | null>) {
-  useEffect(() => {
-    const node = ref.current;
-    if (!node) return;
-    const onClick = (event: MouseEvent) => {
-      if (node.open && !node.contains(event.target as Node)) node.open = false;
-    };
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && node.open) {
-        event.stopPropagation();
-        node.open = false;
-      }
-    };
-    document.addEventListener('click', onClick, true);
-    document.addEventListener('keydown', onKey, true);
-    return () => {
-      document.removeEventListener('click', onClick, true);
-      document.removeEventListener('keydown', onKey, true);
-    };
-  }, [ref]);
-}
+const messageOf = (error: unknown) =>
+  error instanceof Error ? error.message : '操作未完成，请核对当前状态。';
 
 function SessionRow({
   item,
@@ -69,14 +25,15 @@ function SessionRow({
   client: KernelClient;
   changed: () => Promise<void>;
 }) {
+  const row = useRef<HTMLButtonElement>(null);
   const [title, setTitle] = useState(item.title);
+  const [menu, setMenu] = useState<{ x: number; y: number }>();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const menu = useRef<HTMLDetailsElement>(null);
-  useDetailsDismiss(menu);
   useEffect(() => setTitle(item.title), [item.title]);
   const running = ['queued', 'running', 'cancelling'].includes(item.state);
-  const update = async (rename: boolean) => {
+  const closeMenu = useCallback(() => setMenu(undefined), []);
+  const update = async (rename: boolean): Promise<boolean> => {
     setBusy(true);
     setError('');
     try {
@@ -93,21 +50,40 @@ function SessionRow({
           archived: !item.archived,
         });
       await changed();
+      return true;
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : '会话更新失败。');
+      setError(messageOf(reason));
+      return false;
     } finally {
       setBusy(false);
     }
+  };
+  const openKeyboardMenu = () => {
+    const rect = row.current?.getBoundingClientRect();
+    setMenu({ x: rect ? rect.left + 24 : 24, y: rect ? rect.bottom + 4 : 24 });
   };
   return (
     <li data-session-id={item.id}>
       <div className="session-row">
         <button
+          ref={row}
           type="button"
           className={`session${selected ? ' session--active' : ''}`}
           aria-label={`打开会话 ${item.title}`}
           aria-pressed={selected}
+          aria-haspopup="menu"
+          aria-expanded={menu !== undefined}
           onClick={select}
+          onContextMenu={(event) => {
+            event.preventDefault();
+            setMenu({ x: event.clientX, y: event.clientY });
+          }}
+          onKeyDown={(event) => {
+            if (event.key === 'ContextMenu' || (event.shiftKey && event.key === 'F10')) {
+              event.preventDefault();
+              openKeyboardMenu();
+            }
+          }}
         >
           <span
             className={
@@ -123,18 +99,21 @@ function SessionRow({
             {relativeTime(item.updatedAt)}
           </time>
         </button>
-        <details className="session-actions" ref={menu}>
-          <summary className="session-actions-toggle" aria-label={`管理会话 ${item.title}`}>
-            ⋯
-          </summary>
-          <form
-            onSubmit={(event) => {
-              event.preventDefault();
-              void update(true);
-            }}
+        {menu ? (
+          <ContextMenu
+            label={`管理会话 ${item.title}`}
+            position={menu}
+            onClose={closeMenu}
+            returnFocus={row}
           >
-            <label>
-              会话标题
+            <MenuFormItem
+              legend="会话标题"
+              onSubmit={() =>
+                void update(true).then((done) => {
+                  if (done) closeMenu();
+                })
+              }
+            >
               <input
                 aria-label={`会话标题 ${item.title}`}
                 value={title}
@@ -142,192 +121,274 @@ function SessionRow({
                 onChange={(event) => setTitle(event.target.value)}
                 disabled={!enabled || busy}
               />
-            </label>
-            <button type="submit" disabled={!enabled || busy || !title.trim()}>
-              保存标题
-            </button>
-            <button
-              type="button"
+              <button type="submit" className="btn" disabled={!enabled || busy || !title.trim()}>
+                保存标题
+              </button>
+            </MenuFormItem>
+            <MenuItem
               disabled={!enabled || busy || (running && !item.archived)}
-              onClick={() => void update(false)}
+              reason={running && !item.archived ? '停止执行后可归档' : undefined}
+              onSelect={() => update(false)}
             >
               {item.archived ? '恢复会话' : '归档会话'}
-            </button>
-            {running ? <p className="empty-hint">停止执行后可归档</p> : null}
+            </MenuItem>
             {error ? <p role="alert">{error}</p> : null}
-          </form>
-        </details>
+          </ContextMenu>
+        ) : null}
       </div>
     </li>
   );
 }
 
+/** 当前项目行：整行折叠/展开会话列表，行尾菜单集中项目操作。 */
 function ProjectNode({
-  group,
-  activeSessionId,
-  enabled,
-  select,
+  project,
+  projects,
   client,
+  enabled,
+  selectProject,
+  forgetProject,
   changed,
+  children,
 }: {
-  group: ProjectGroup;
-  activeSessionId: string;
-  enabled: boolean;
-  select: (id: string) => void;
+  project: Project | undefined;
+  projects: readonly Project[];
   client: KernelClient;
+  enabled: boolean;
+  selectProject: (id: string) => void;
+  forgetProject: (removedId: string, nextId: string) => void;
   changed: () => Promise<void>;
+  children: ReactNode;
 }) {
   const [expanded, setExpanded] = useState(true);
+  const [displayName, setDisplayName] = useState('');
+  const [confirming, setConfirming] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const id = project?.id ?? 'application';
+  const name = project?.name ?? '正在读取项目';
+  const application = id === 'application';
+  const recent = projects.filter((item) => item.id !== id && item.recent !== false);
+  useEffect(() => setDisplayName(name), [name]);
+  const run = async (action: () => Promise<unknown>): Promise<boolean> => {
+    setBusy(true);
+    setError('');
+    try {
+      await action();
+      await changed();
+      return true;
+    } catch (reason) {
+      setError(messageOf(reason));
+      return false;
+    } finally {
+      setBusy(false);
+    }
+  };
+  const forget = async () => {
+    const next =
+      projects.find((item) => item.id !== id && item.id !== 'application' && item.recent !== false)
+        ?.id ?? 'application';
+    const done = await run(() => client.call('project.forget', { projectId: id }));
+    if (done) forgetProject(id, next);
+  };
 
   return (
     <div className="project-node">
-      <button
-        type="button"
-        className="project-header"
-        onClick={() => setExpanded(!expanded)}
-        aria-expanded={expanded}
-        aria-label={`${group.projectId}，${expanded ? '已展开' : '已折叠'}`}
-      >
-        <span
-          className={`project-header__chevron${expanded ? ' project-header__chevron--open' : ''}`}
+      <div className="project-row">
+        <button
+          type="button"
+          className="project-header"
+          onClick={() => setExpanded(!expanded)}
+          aria-expanded={expanded}
+          aria-label={`${name}，${expanded ? '已展开' : '已折叠'}`}
         >
-          <IconChevronRight />
-        </span>
-        <span className="project-header__name">{group.projectId}</span>
-      </button>
-
-      {expanded && (
-        <ul className="session-list session-list--nested">
-          {group.sessions.map((item) => (
-            <SessionRow
-              key={item.id}
-              item={item}
-              selected={item.id === activeSessionId}
-              enabled={enabled}
-              client={client}
-              select={() => select(item.id)}
-              changed={changed}
-            />
-          ))}
-        </ul>
-      )}
+          <span className="project-header__icon">
+            {expanded ? <IconFolderOpen /> : <IconFolder />}
+          </span>
+          <span className="project-header__name" title={name}>
+            {name}
+          </span>
+        </button>
+        <Menu label={`管理项目 ${name}`} className="project-actions">
+          {recent.length ? (
+            <>
+              <p className="menu__hint">切换最近项目</p>
+              {recent.map((item) => (
+                <MenuItem key={item.id} disabled={!enabled} onSelect={() => selectProject(item.id)}>
+                  {item.name}
+                </MenuItem>
+              ))}
+            </>
+          ) : null}
+          {!application ? (
+            <>
+              <MenuFormItem
+                legend="显示名"
+                onSubmit={() =>
+                  void run(async () => {
+                    const renamed = await client.call('project.rename', {
+                      projectId: id,
+                      name: displayName.trim(),
+                    });
+                    setDisplayName(renamed.name);
+                  })
+                }
+              >
+                <input
+                  aria-label="项目显示名"
+                  value={displayName}
+                  maxLength={200}
+                  onChange={(event) => setDisplayName(event.target.value)}
+                  disabled={!enabled || busy}
+                />
+                <button
+                  type="submit"
+                  className="btn"
+                  disabled={!enabled || busy || !displayName.trim()}
+                >
+                  保存显示名
+                </button>
+              </MenuFormItem>
+              {confirming ? (
+                <ConfirmAction
+                  description="移出最近列表只改变列表记录，不删除目录内容，也不停止执行。"
+                  confirmLabel="确认移出"
+                  busy={busy}
+                  onConfirm={forget}
+                  onCancel={() => setConfirming(false)}
+                />
+              ) : (
+                <MenuItem
+                  disabled={!enabled || busy}
+                  onSelect={() => {
+                    setConfirming(true);
+                    return false;
+                  }}
+                >
+                  移出最近列表
+                </MenuItem>
+              )}
+            </>
+          ) : null}
+          {error ? <p role="alert">{error}</p> : null}
+        </Menu>
+      </div>
+      {expanded ? children : null}
     </div>
   );
 }
 
+/** 项目区底部”添加项目”行：已移至 ProjectOnboarding.tsx 作为弹窗形式。 */
+
 export function SessionList({
   client,
+  projects,
   projectId,
   activeSessionId,
   enabled,
   select,
+  selectProject,
+  forgetProject,
   onChanged,
 }: {
   client: KernelClient;
+  projects: readonly Project[];
   projectId: string;
   activeSessionId: string;
   enabled: boolean;
   select: (id: string) => void;
+  selectProject: (id: string) => void;
+  forgetProject: (removedId: string, nextId: string) => void;
   onChanged: () => Promise<void>;
 }) {
-  const [query, setQuery] = useState('');
-  const [archived, setArchived] = useState(false);
-  const [cursors, setCursors] = useState<Cursor[]>([]);
-  const [page, setPage] = useState<BusinessResult<'session.list'>>({ sessions: [] });
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [nextCursor, setNextCursor] = useState<Cursor>();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [revision, setRevision] = useState(0);
-  const cursor = cursors.at(-1);
-  // biome-ignore lint/correctness/useExhaustiveDependencies: 显式重试及写入回执触发同一范围重读。
+  const treeRef = useRef<HTMLDivElement>(null);
+
+  // 加载会话列表（固定 archived: false）
+  // biome-ignore lint/correctness/useExhaustiveDependencies: 固定依赖，revision 只作为刷新信号
   useEffect(() => {
     if (!enabled) return;
     let active = true;
-    let running = false;
-    let again = false;
-    const update = async () => {
-      if (!active) return;
-      if (running) {
-        again = true;
-        return;
-      }
-      running = true;
+    const load = async () => {
       setLoading(true);
       try {
-        const value = await client.call('session.list', {
+        const result = await client.call('session.list', {
           projectId,
-          archived,
-          query: query.trim(),
-          ...(cursor ? { cursor } : {}),
+          archived: false,
           limit: 50,
         });
         if (active) {
-          setPage(value);
+          setSessions(result.sessions);
+          setNextCursor(result.nextCursor);
           setError('');
         }
       } catch (reason) {
-        if (active) setError(reason instanceof Error ? reason.message : '会话列表读取失败。');
+        if (active) setError(messageOf(reason));
       } finally {
-        running = false;
         if (active) setLoading(false);
-        if (again) {
-          again = false;
-          void update();
-        }
       }
     };
-    setPage({ sessions: [] });
-    const timer = setTimeout(() => void update(), query ? 150 : 0);
+    void load();
     const unsubscribe = client.subscribeChanges((change) => {
-      if (change.sessionsChanged && (!change.projectId || change.projectId === projectId))
-        void update();
+      if (change.sessionsChanged && (!change.projectId || change.projectId === projectId)) {
+        void load();
+      }
     });
     return () => {
       active = false;
-      clearTimeout(timer);
       unsubscribe();
     };
-  }, [client, projectId, enabled, query, archived, cursor, revision]);
+  }, [client, projectId, enabled, revision]);
+
+  // 滚动加载下一页
+  const loadMore = useCallback(async () => {
+    if (!nextCursor || !enabled || loading) return;
+    try {
+      const result = await client.call('session.list', {
+        projectId,
+        archived: false,
+        cursor: nextCursor,
+        limit: 50,
+      });
+      setSessions((prev) => {
+        // 按 id 去重
+        const idSet = new Set(prev.map((s) => s.id));
+        const newItems = result.sessions.filter((s) => !idSet.has(s.id));
+        return [...prev, ...newItems];
+      });
+      setNextCursor(result.nextCursor);
+    } catch (reason) {
+      setError(messageOf(reason));
+    }
+  }, [client, projectId, nextCursor, enabled, loading]);
+
+  // 监听滚动事件
+  useEffect(() => {
+    const tree = treeRef.current;
+    if (!tree) return;
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = tree;
+      if (scrollHeight - scrollTop - clientHeight < 100) {
+        void loadMore();
+      }
+    };
+    tree.addEventListener('scroll', handleScroll);
+    return () => tree.removeEventListener('scroll', handleScroll);
+  }, [loadMore]);
+
   const changed = async () => {
     setRevision((value) => value + 1);
     await onChanged();
   };
-  const projectGroups = groupSessionsByProject(page.sessions);
+
+  const project = projects.find((item) => item.id === projectId);
+
   return (
     <section className="session-navigation" aria-label="会话管理">
-      <input
-        id="session-search"
-        type="search"
-        aria-label="查找会话标题"
-        placeholder="查找会话标题"
-        value={query}
-        maxLength={200}
-        onChange={(event) => {
-          setQuery(event.target.value);
-          setCursors([]);
-        }}
-      />
-      <div className="session-filters">
-        <button
-          type="button"
-          aria-pressed={!archived}
-          onClick={() => {
-            setArchived(false);
-            setCursors([]);
-          }}
-        >
-          活动
-        </button>
-        <button
-          type="button"
-          aria-pressed={archived}
-          onClick={() => {
-            setArchived(true);
-            setCursors([]);
-          }}
-        >
-          归档
-        </button>
-      </div>
       {error ? (
         <p role="alert">
           {error}
@@ -336,40 +397,32 @@ export function SessionList({
           </button>
         </p>
       ) : null}
-      {!page.sessions.length ? (
-        <p className="empty-hint">{loading ? '正在读取会话…' : '没有匹配的会话'}</p>
-      ) : null}
-      <div className="project-tree" role="tree">
-        {projectGroups.map((group) => (
-          <ProjectNode
-            key={group.projectId}
-            group={group}
-            activeSessionId={activeSessionId}
-            enabled={enabled}
-            select={select}
-            client={client}
-            changed={changed}
-          />
-        ))}
-      </div>
-      <div className="session-pagination">
-        <button
-          type="button"
-          disabled={!cursors.length || loading || !enabled}
-          onClick={() => setCursors((current) => current.slice(0, -1))}
+      <div className="project-tree" role="tree" ref={treeRef}>
+        <ProjectNode
+          project={project}
+          projects={projects}
+          client={client}
+          enabled={enabled}
+          selectProject={selectProject}
+          forgetProject={forgetProject}
+          changed={changed}
         >
-          上一页会话
-        </button>
-        <button
-          type="button"
-          disabled={!page.nextCursor || loading || !enabled}
-          onClick={() => {
-            const next = page.nextCursor;
-            if (next) setCursors((current) => [...current, next]);
-          }}
-        >
-          下一页会话
-        </button>
+          <ul className="session-list session-list--nested">
+            {sessions.map((item) => (
+              <SessionRow
+                key={item.id}
+                item={item}
+                selected={item.id === activeSessionId}
+                enabled={enabled}
+                client={client}
+                select={() => select(item.id)}
+                changed={changed}
+              />
+            ))}
+          </ul>
+        </ProjectNode>
+        {!sessions.length && !loading ? <p className="empty-hint">没有活动会话</p> : null}
+        {loading ? <p className="empty-hint">正在读取会话…</p> : null}
       </div>
     </section>
   );

@@ -17,6 +17,7 @@ import type {
   BusinessResult,
   ErrorInfo,
   Message,
+  ModelPreference,
   ResearchRequest,
   Run,
   Session,
@@ -35,7 +36,13 @@ import { createMiddleware, tool as defineTool } from 'langchain';
 import { z } from 'zod';
 import { failure, OperationError } from '../errors.js';
 import type { LiteratureCatalog } from '../literature/catalog.js';
-import { type ModelAccess, modelFailure } from '../models/minimax.js';
+import type { ModelConfigStore } from '../models/config-store.js';
+import {
+  type ModelAccess,
+  minimaxModels,
+  modelFailure,
+  type RunModelConfig,
+} from '../models/minimax.js';
 import type { ProjectStore, Projects } from '../projects/store.js';
 import type { ResearchRuntime } from '../research/runtime.js';
 import { atomicPrivateFile, privateDirectory } from '../storage/private-files.js';
@@ -99,6 +106,7 @@ export class Harness {
   constructor(
     private readonly projects: Projects,
     private readonly model: ModelAccess,
+    private readonly configs: ModelConfigStore,
     private readonly research: ResearchRuntime,
     private readonly library: LiteratureCatalog,
     private readonly notify: Notify,
@@ -195,6 +203,35 @@ export class Harness {
     };
   }
 
+  search(input: BusinessParams<'session.search'>): BusinessResult<'session.search'> {
+    const limit = Math.min(input.limit ?? 50, 100);
+    const projects = new Map(this.projects.list().map((project) => [project.id, project]));
+    const results: BusinessResult<'session.search'>['results'] = [];
+    const updated = sql<string>`json_extract(${tables.sessions.value}, '$.updatedAt')`;
+    for (const store of this.projects.all()) {
+      const project = projects.get(store.project.id);
+      if (!project?.recent) continue;
+      const rows = store.db
+        .select()
+        .from(tables.sessions)
+        .where(
+          input.query
+            ? sql`instr(lower(json_extract(${tables.sessions.value}, '$.title')), lower(${input.query})) > 0`
+            : undefined,
+        )
+        .orderBy(desc(updated), desc(tables.sessions.id))
+        .limit(limit)
+        .all();
+      for (const row of rows) results.push({ project, session: row.value });
+    }
+    results.sort(
+      (a, b) =>
+        b.session.updatedAt.localeCompare(a.session.updatedAt) ||
+        b.session.id.localeCompare(a.session.id),
+    );
+    return { results: results.slice(0, limit), truncated: results.length > limit };
+  }
+
   rename(projectId: string, sessionId: string, title: string): Session {
     const project = this.projects.get(projectId);
     const normalized = title.trim();
@@ -234,6 +271,47 @@ export class Harness {
     project.touch();
     this.notify(projectId, sessionId, true);
     return value;
+  }
+
+  async configure(
+    projectId: string,
+    sessionId: string,
+    modelConfig: ModelPreference | null,
+  ): Promise<Session> {
+    const project = this.projects.get(projectId);
+    const previous = this.session(project, sessionId);
+    const preference = modelConfig ?? {};
+    if (preference.model && !minimaxModels.some((item) => item.id === preference.model))
+      throw new OperationError('invalidRequest', `模型 ${preference.model} 不在当前模型目录。`);
+    if (preference.effort) {
+      const model = preference.model ?? (await this.configs.load()).model;
+      if (!minimaxModels.find((item) => item.id === model)?.supportsEffort)
+        throw new OperationError('invalidRequest', `模型 ${model} 不支持推理强度设置。`);
+    }
+    const value: Session = { ...previous };
+    if (preference.model || preference.effort)
+      value.modelConfig = {
+        ...(preference.model ? { model: preference.model } : {}),
+        ...(preference.effort ? { effort: preference.effort } : {}),
+      };
+    else delete value.modelConfig;
+    project.db
+      .update(tables.sessions)
+      .set({ value })
+      .where(eq(tables.sessions.id, sessionId))
+      .run();
+    project.touch();
+    this.notify(projectId, sessionId, true);
+    return value;
+  }
+
+  private async runConfig(session: Session): Promise<RunModelConfig> {
+    const defaults = await this.configs.load();
+    const model = session.modelConfig?.model ?? defaults.model;
+    const option = minimaxModels.find((item) => item.id === model);
+    if (!option) throw new OperationError('invalidRequest', `模型 ${model} 不在当前模型目录。`);
+    const effort = session.modelConfig?.effort ?? defaults.effort;
+    return option.supportsEffort ? { model, effort } : { model };
   }
 
   private session(project: ProjectStore, id: string): Session {
@@ -356,6 +434,7 @@ export class Harness {
         sessionId: session.id,
         attempt: (run?.attempt ?? 0) + 1,
         state: 'queued',
+        modelConfig: await this.runConfig(session),
       };
     const accepted = run as Run;
     let replay: BusinessResult<'session.send'> | undefined;
@@ -453,15 +532,29 @@ export class Harness {
           .limit(1)
           .get();
         if (!this.stopped && actual?.state === 'completed' && pending)
-          this.schedule(project, {
-            id: randomUUID(),
-            sessionId: run.sessionId,
-            attempt: actual.attempt + 1,
-            state: 'queued',
-          });
+          void this.scheduleNext(project, run.sessionId, actual.attempt + 1);
       });
     this.active.set(activeKey(project, run.sessionId), { controller, done });
     this.setRun(project, { ...run, state: 'queued' });
+  }
+
+  private async scheduleNext(
+    project: ProjectStore,
+    sessionId: string,
+    attempt: number,
+  ): Promise<void> {
+    try {
+      const modelConfig = await this.runConfig(this.session(project, sessionId));
+      this.schedule(project, {
+        id: randomUUID(),
+        sessionId,
+        attempt,
+        state: 'queued',
+        modelConfig,
+      });
+    } catch {
+      // 默认配置不可用时无法创建后续执行；未消费指令保留，可显式继续。
+    }
   }
 
   private async execute(
@@ -504,7 +597,7 @@ export class Harness {
           this.library.check('send');
         }
       };
-      const model = await this.model.create(authorizeModel, signal);
+      const model = await this.model.create(authorizeModel, signal, run.modelConfig);
       await privateDirectory(join(project.internal, 'scratch'));
       const used = new Map<string, string>();
       const toolContext = new AsyncLocalStorage<{ error?: ErrorInfo }>();
@@ -1200,6 +1293,7 @@ export class Harness {
             sessionId: run.sessionId,
             attempt: run.attempt + 1,
             state: 'queued',
+            ...(run.modelConfig ? { modelConfig: run.modelConfig } : {}),
           };
           checkpointDb.close();
           checkpointDb = new Database(join(project.internal, `checkpoints-${run.id}.sqlite`));

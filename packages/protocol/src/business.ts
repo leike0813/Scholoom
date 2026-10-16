@@ -23,6 +23,9 @@ export const projectSchema = object(
 export const runStateSchema = {
   enum: ['queued', 'running', 'cancelling', 'cancelled', 'completed', 'failed', 'interrupted'],
 } as const;
+export const effortSchema = { enum: ['low', 'medium', 'high', 'xhigh', 'max'] } as const;
+export const modelOptionSchema = object({ id, supportsEffort: flag }, ['id', 'supportsEffort']);
+export const modelPreferenceSchema = object({ model: id, effort: effortSchema }, []);
 export const sessionSchema = object(
   {
     id,
@@ -32,6 +35,7 @@ export const sessionSchema = object(
     state: runStateSchema,
     archived: flag,
     titleSource: { enum: ['default', 'instruction', 'manual'] },
+    modelConfig: modelPreferenceSchema,
   },
   ['id', 'projectId', 'title', 'updatedAt', 'state'],
 );
@@ -70,18 +74,22 @@ export const runSchema = object(
     inputTokens: count,
     outputTokens: count,
     remoteOutcome: { enum: ['unknown', 'completed'] },
+    modelConfig: object({ model: id, effort: effortSchema }, ['model']),
   },
   ['id', 'sessionId', 'attempt', 'state'],
 );
 export const providerSchema = object(
   {
     id: { const: 'minimax-cn-m-plan' },
-    model: { const: 'MiniMax-M3.1-Flash-Preview' },
+    model: id,
+    defaultEffort: effortSchema,
+    models: array(modelOptionSchema),
+    efforts: array(effortSchema),
     configured: flag,
     source: { enum: ['saved', 'environment', 'missing'] },
     error: text,
   },
-  ['id', 'model', 'configured', 'source'],
+  ['id', 'model', 'defaultEffort', 'models', 'efforts', 'configured', 'source'],
 );
 export const fileEntrySchema = object(
   { fileId: id, path: text, name: text, kind: { enum: ['file', 'dir'] } },
@@ -673,6 +681,10 @@ export const businessSchemas = {
     params: object({ apiKey: { type: 'string', minLength: 1, maxLength: 4096 } }, ['apiKey']),
     result: providerSchema,
   },
+  'provider.setDefaults': {
+    params: object({ model: id, effort: effortSchema }, ['model', 'effort']),
+    result: providerSchema,
+  },
   'project.open': { params: object({ path: id }, ['path']), result: projectSchema },
   'project.create': { params: object({ path: id, name: id }, ['path']), result: projectSchema },
   'project.rename': {
@@ -683,6 +695,18 @@ export const businessSchemas = {
     result: projectSchema,
   },
   'project.forget': { params: object(project, ['projectId']), result: ok },
+  'project.browseDirectories': {
+    params: object({ path: id, limit: page }, []),
+    result: object(
+      {
+        path: id,
+        parent: id,
+        directories: array(object({ name: id, path: id }, ['name', 'path'])),
+        truncated: flag,
+      },
+      ['path', 'directories', 'truncated'],
+    ),
+  },
   'files.mkdir': {
     params: object({ ...project, path: id, operationId: id }, ['projectId', 'path', 'operationId']),
     result: fileOperationSchema,
@@ -799,6 +823,18 @@ export const businessSchemas = {
     ),
     result: object({ sessions: array(sessionSchema), nextCursor: sessionCursor }, ['sessions']),
   },
+  'session.search': {
+    params: object({ query: { type: 'string', maxLength: 200 }, limit: page }, ['query']),
+    result: object(
+      {
+        results: array(
+          object({ project: projectSchema, session: sessionSchema }, ['project', 'session']),
+        ),
+        truncated: flag,
+      },
+      ['results', 'truncated'],
+    ),
+  },
   'session.rename': {
     params: object({ ...session, title: { type: 'string', minLength: 1, maxLength: 200 } }, [
       'projectId',
@@ -809,6 +845,13 @@ export const businessSchemas = {
   },
   'session.archive': {
     params: object({ ...session, archived: flag }, ['projectId', 'sessionId', 'archived']),
+    result: sessionSchema,
+  },
+  'session.configure': {
+    params: object(
+      { ...session, modelConfig: { anyOf: [modelPreferenceSchema, { const: null }] } },
+      ['projectId', 'sessionId', 'modelConfig'],
+    ),
     result: sessionSchema,
   },
   'session.send': {
@@ -829,6 +872,9 @@ export const businessSchemas = {
 } as const;
 
 export type Project = FromSchema<typeof projectSchema>;
+export type Effort = FromSchema<typeof effortSchema>;
+export type ModelOption = FromSchema<typeof modelOptionSchema>;
+export type ModelPreference = FromSchema<typeof modelPreferenceSchema>;
 export type Session = FromSchema<typeof sessionSchema>;
 export type Message = FromSchema<typeof messageSchema>;
 export type Run = FromSchema<typeof runSchema>;
@@ -881,11 +927,16 @@ type Inputs = {
   'research.method': FromSchema<(typeof businessSchemas)['research.method']['params']>;
   'research.attempts': FromSchema<(typeof businessSchemas)['research.attempts']['params']>;
   'session.list': FromSchema<(typeof businessSchemas)['session.list']['params']>;
+  'session.search': FromSchema<(typeof businessSchemas)['session.search']['params']>;
   'session.rename': FromSchema<(typeof businessSchemas)['session.rename']['params']>;
   'session.archive': FromSchema<(typeof businessSchemas)['session.archive']['params']>;
+  'session.configure': FromSchema<(typeof businessSchemas)['session.configure']['params']>;
   'project.create': FromSchema<(typeof businessSchemas)['project.create']['params']>;
   'project.rename': FromSchema<(typeof businessSchemas)['project.rename']['params']>;
   'project.forget': FromSchema<(typeof businessSchemas)['project.forget']['params']>;
+  'project.browseDirectories': FromSchema<
+    (typeof businessSchemas)['project.browseDirectories']['params']
+  >;
   'files.mkdir': FromSchema<(typeof businessSchemas)['files.mkdir']['params']>;
   'files.rename': FromSchema<(typeof businessSchemas)['files.rename']['params']>;
   'files.trash': FromSchema<(typeof businessSchemas)['files.trash']['params']>;
@@ -898,6 +949,7 @@ type Inputs = {
   'workbench.snapshot': FromSchema<(typeof businessSchemas)['workbench.snapshot']['params']>;
   'workbench.watch': FromSchema<(typeof businessSchemas)['workbench.watch']['params']>;
   'provider.configure': FromSchema<(typeof businessSchemas)['provider.configure']['params']>;
+  'provider.setDefaults': FromSchema<(typeof businessSchemas)['provider.setDefaults']['params']>;
   'project.open': FromSchema<(typeof businessSchemas)['project.open']['params']>;
   'project.grant': FromSchema<(typeof businessSchemas)['project.grant']['params']>;
   'files.list': FromSchema<(typeof businessSchemas)['files.list']['params']>;
@@ -949,11 +1001,16 @@ type Outputs = {
   'research.method': FromSchema<(typeof businessSchemas)['research.method']['result']>;
   'research.attempts': FromSchema<(typeof businessSchemas)['research.attempts']['result']>;
   'session.list': FromSchema<(typeof businessSchemas)['session.list']['result']>;
+  'session.search': FromSchema<(typeof businessSchemas)['session.search']['result']>;
   'session.rename': FromSchema<(typeof businessSchemas)['session.rename']['result']>;
   'session.archive': FromSchema<(typeof businessSchemas)['session.archive']['result']>;
+  'session.configure': FromSchema<(typeof businessSchemas)['session.configure']['result']>;
   'project.create': FromSchema<(typeof businessSchemas)['project.create']['result']>;
   'project.rename': FromSchema<(typeof businessSchemas)['project.rename']['result']>;
   'project.forget': FromSchema<(typeof businessSchemas)['project.forget']['result']>;
+  'project.browseDirectories': FromSchema<
+    (typeof businessSchemas)['project.browseDirectories']['result']
+  >;
   'files.mkdir': FromSchema<(typeof businessSchemas)['files.mkdir']['result']>;
   'files.rename': FromSchema<(typeof businessSchemas)['files.rename']['result']>;
   'files.trash': FromSchema<(typeof businessSchemas)['files.trash']['result']>;
@@ -966,6 +1023,7 @@ type Outputs = {
   'workbench.snapshot': FromSchema<(typeof businessSchemas)['workbench.snapshot']['result']>;
   'workbench.watch': FromSchema<(typeof businessSchemas)['workbench.watch']['result']>;
   'provider.configure': FromSchema<(typeof businessSchemas)['provider.configure']['result']>;
+  'provider.setDefaults': FromSchema<(typeof businessSchemas)['provider.setDefaults']['result']>;
   'project.open': FromSchema<(typeof businessSchemas)['project.open']['result']>;
   'project.grant': FromSchema<(typeof businessSchemas)['project.grant']['result']>;
   'files.list': FromSchema<(typeof businessSchemas)['files.list']['result']>;

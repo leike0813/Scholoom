@@ -1,0 +1,6 @@
+[submodule "references/paseo"]
+	path = references/paseo
+	url = https://github.com/getpaseo/paseo.git
+[submodule "references/codex"]
+	path = references/codex
+	url = https://github.com/openai/codex.git

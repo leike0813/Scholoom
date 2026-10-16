@@ -1,5 +1,5 @@
 import type { ExternalStoreAdapter, ThreadMessageLike } from '@assistant-ui/react';
-import type { ErrorInfo, FileLocation } from '@scholoom/protocol';
+import type { Effort, ErrorInfo, FileLocation, ModelOption } from '@scholoom/protocol';
 import type { ReactNode } from 'react';
 
 export interface FileTarget {
@@ -29,8 +29,6 @@ export interface WorkbenchConnection {
   retry?: (() => void) | undefined;
   /** 查询实际状态；只探测，不启动内核。 */
   inspect?: (() => void) | undefined;
-  /** 明确停止内核；确认原实例退出后才报告已停止。 */
-  stop?: (() => void) | undefined;
 }
 
 export type SessionStatus = 'running' | 'awaiting' | 'failed' | 'idle';
@@ -72,8 +70,11 @@ export interface WorkbenchSession {
   draftKey?: string;
   controls?: ReactNode;
   notices?: ReactNode;
-  projectControls?: ReactNode;
   sessionNavigation?: ReactNode;
+  openSessionSearch?: () => void;
+  sessionSearchDialog?: ReactNode;
+  openProjectOnboarding?: () => void;
+  projectOnboardingDialog?: ReactNode;
   activeSessionTitle?: string;
   openMessageFile?: (path: string, fileId?: string) => Promise<void>;
   projectId?: string;
@@ -94,12 +95,29 @@ export interface WorkbenchSession {
   renderPdf?: (material: import('@scholoom/protocol').LibraryAttachment) => ReactNode;
   createSession?: () => void;
   cancel?: (() => void) | undefined;
-  resume?: (() => void) | undefined;
   loadEarlier?: (() => void) | undefined;
+  /**
+   * composer 执行上下文：项目、权限只读段与模型/推理强度选择。
+   * 提供 modelOptions 与 onModelChange 时启用真实选择；null 选择表示“跟随默认”（清除会话覆盖）。
+   */
   executionContext?: {
     project: string;
     model: string;
     permissions: string;
+    effort?: string | undefined;
+    supportsEffort?: boolean | undefined;
+    defaultModel?: string | undefined;
+    defaultEffort?: string | undefined;
+    modelOverridden?: boolean;
+    effortOverridden?: boolean;
+    modelOptions?: readonly ModelOption[] | undefined;
+    effortOptions?: readonly Effort[] | undefined;
+    /** 归档、未连接或无会话时禁用选择。 */
+    configureDisabled?: boolean;
+    configureError?: string | undefined;
+    retryConfigure?: (() => void) | undefined;
+    onModelChange?: ((model: string | null) => void) | undefined;
+    onEffortChange?: ((effort: Effort | null) => void) | undefined;
   };
   /** 会话列表；缺省时左区呈现空态。 */
   sessions?: readonly SessionSummary[];

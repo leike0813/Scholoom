@@ -77,7 +77,6 @@ export interface AgentOverlayProps {
   reset?: (() => void) | undefined;
   onCollapse: () => void;
   cancel?: (() => void) | undefined;
-  resume?: (() => void) | undefined;
   loadEarlier?: (() => void) | undefined;
 }
 
@@ -93,7 +92,6 @@ export const AgentOverlay = forwardRef<HTMLDivElement, AgentOverlayProps>(functi
     reset,
     onCollapse,
     cancel,
-    resume,
     loadEarlier,
   },
   ref,
@@ -138,26 +136,24 @@ export const AgentOverlay = forwardRef<HTMLDivElement, AgentOverlayProps>(functi
             maxRows={10}
             submitMode="ctrlEnter"
           />
-          <div className="composer-config">
-            {reset ? (
-              <button type="button" className="chip" onClick={reset}>
-                重置示例
-              </button>
-            ) : null}
-            <span className="spacer" />
-            {cancel ? (
-              <button type="button" className="btn" onClick={cancel}>
-                取消执行
-              </button>
-            ) : null}
-            {resume ? (
-              <button type="button" className="btn" onClick={resume}>
-                继续执行
-              </button>
-            ) : null}
-            <InstructionSend />
-          </div>
-          <ExecutionContext context={context} />
+          <ExecutionContext
+            context={context}
+            actions={
+              <>
+                {reset ? (
+                  <button type="button" className="chip" onClick={reset}>
+                    重置示例
+                  </button>
+                ) : null}
+                {cancel ? (
+                  <button type="button" className="btn" onClick={cancel}>
+                    取消执行
+                  </button>
+                ) : null}
+                <InstructionSend />
+              </>
+            }
+          />
         </ComposerPrimitive.Root>
       </div>
     </div>

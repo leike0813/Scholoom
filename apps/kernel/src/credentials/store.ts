@@ -1,9 +1,14 @@
 import { createCipheriv, createDecipheriv, randomBytes } from 'node:crypto';
 import { lstat, open, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import type { ProviderStatus } from '@scholoom/protocol';
 import { OperationError } from '../errors.js';
 import { atomicPrivateFile, privateDirectory } from '../storage/private-files.js';
+
+export interface CredentialStatus {
+  configured: boolean;
+  source: 'saved' | 'environment' | 'missing';
+  error?: string;
+}
 
 export class CredentialStore {
   private tail = Promise.resolve();
@@ -57,13 +62,11 @@ export class CredentialStore {
     return { key, source: 'environment' };
   }
 
-  async status(): Promise<ProviderStatus> {
-    const base = { id: 'minimax-cn-m-plan', model: 'MiniMax-M3.1-Flash-Preview' } as const;
+  async status(): Promise<CredentialStatus> {
     try {
-      return { ...base, configured: true, source: (await this.get()).source };
+      return { configured: true, source: (await this.get()).source };
     } catch (error) {
       return {
-        ...base,
         configured: false,
         source: 'missing',
         error: error instanceof OperationError ? error.message : '凭据不可用。',
@@ -71,7 +74,7 @@ export class CredentialStore {
     }
   }
 
-  save(key: string): Promise<ProviderStatus> {
+  save(key: string): Promise<CredentialStatus> {
     const run = this.tail.then(async () => {
       if (!key.trim() || key.length > 4096)
         throw new OperationError('invalidRequest', 'API Key 不能为空。');

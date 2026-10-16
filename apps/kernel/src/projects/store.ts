@@ -41,7 +41,7 @@ const isPrivate = (name: string) =>
   name === '.env' ||
   name.startsWith('.env.') ||
   /\.(?:pem|key|crt)$/i.test(name);
-const within = (root: string, path: string) => {
+export const within = (root: string, path: string) => {
   const part = relative(root, path);
   return part === '' || (!isAbsolute(part) && part !== '..' && !part.startsWith(`..${sep}`));
 };

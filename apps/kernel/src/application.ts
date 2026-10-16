@@ -8,16 +8,20 @@ import type {
 import { CredentialStore } from './credentials/store.js';
 import { Harness } from './harness/runtime.js';
 import { LiteratureCatalog } from './literature/catalog.js';
+import { ModelConfigStore } from './models/config-store.js';
 import { ModelAccess } from './models/minimax.js';
+import { DirectoryBrowser } from './projects/directory-browser.js';
 import { Projects } from './projects/store.js';
 import { ResearchRuntime } from './research/runtime.js';
 
 export class KernelApplication {
   readonly projects: Projects;
   readonly credentials: CredentialStore;
+  readonly models: ModelAccess;
   readonly harness: Harness;
   readonly research: ResearchRuntime;
   readonly library: LiteratureCatalog;
+  private readonly directories: DirectoryBrowser;
   private revision = 0;
   private listeners = new Set<(change: WorkbenchChange) => void>();
 
@@ -28,6 +32,7 @@ export class KernelApplication {
     process.env.LANGSMITH_TRACING = 'false';
     process.env.LANGCHAIN_TRACING_V2 = 'false';
     this.projects = new Projects(directory);
+    this.directories = new DirectoryBrowser(directory);
     this.library = new LiteratureCatalog(
       directory,
       () => this.changed(undefined, undefined, false, true),
@@ -37,12 +42,15 @@ export class KernelApplication {
       },
     );
     this.credentials = new CredentialStore(join(directory, 'credentials'), options.environment);
+    const configs = new ModelConfigStore(join(directory, 'credentials'));
+    this.models = new ModelAccess(this.credentials, configs, options.modelEndpoint);
     this.research = new ResearchRuntime((projectId, sessionId) =>
       this.changed(projectId, sessionId),
     );
     this.harness = new Harness(
       this.projects,
-      new ModelAccess(this.credentials, options.modelEndpoint),
+      this.models,
+      configs,
       this.research,
       this.library,
       (projectId, sessionId, sessionsChanged) =>
@@ -78,7 +86,7 @@ export class KernelApplication {
   async snapshot(input: BusinessParams<'workbench.snapshot'>): Promise<WorkbenchSnapshot> {
     return {
       revision: this.revision,
-      provider: await this.credentials.status(),
+      provider: await this.models.status(),
       projects: this.projects.list(),
       ...(input.projectId
         ? { fileRevision: this.projects.get(input.projectId).files.revision }
@@ -174,8 +182,14 @@ export class KernelApplication {
       case 'workbench.watch':
         return this.snapshot(input as BusinessParams<'workbench.snapshot'>);
       case 'provider.configure': {
-        const value = await this.credentials.save(
-          (input as BusinessParams<'provider.configure'>).apiKey,
+        await this.credentials.save((input as BusinessParams<'provider.configure'>).apiKey);
+        const value = await this.models.status();
+        this.changed();
+        return value;
+      }
+      case 'provider.setDefaults': {
+        const value = await this.models.setDefaults(
+          input as BusinessParams<'provider.setDefaults'>,
         );
         this.changed();
         return value;
@@ -204,6 +218,8 @@ export class KernelApplication {
         this.changed();
         return { ok: true };
       }
+      case 'project.browseDirectories':
+        return this.directories.browse(input as BusinessParams<'project.browseDirectories'>);
       case 'files.mkdir':
       case 'files.rename':
       case 'files.trash':
@@ -298,6 +314,8 @@ export class KernelApplication {
       }
       case 'session.list':
         return this.harness.list(input as BusinessParams<'session.list'>);
+      case 'session.search':
+        return this.harness.search(input as BusinessParams<'session.search'>);
       case 'session.rename': {
         const p = input as BusinessParams<'session.rename'>;
         return this.harness.rename(p.projectId, p.sessionId, p.title);
@@ -305,6 +323,10 @@ export class KernelApplication {
       case 'session.archive': {
         const p = input as BusinessParams<'session.archive'>;
         return this.harness.archive(p.projectId, p.sessionId, p.archived);
+      }
+      case 'session.configure': {
+        const p = input as BusinessParams<'session.configure'>;
+        return this.harness.configure(p.projectId, p.sessionId, p.modelConfig);
       }
       case 'session.send':
         return this.harness.send(input as BusinessParams<'session.send'>);

@@ -1,15 +1,34 @@
 import { ChatAnthropic } from '@langchain/anthropic';
+import type { Effort, ModelOption, ProviderStatus } from '@scholoom/protocol';
 import type { CredentialStore } from '../credentials/store.js';
 import { OperationError } from '../errors.js';
+import type { ModelConfigStore } from './config-store.js';
 
-export const minimaxModel = 'MiniMax-M3.1-Flash-Preview';
 export const minimaxEndpoint = 'https://api.minimax.cn/anthropic';
+export const minimaxEfforts = ['low', 'medium', 'high', 'xhigh', 'max'] as const;
+export const minimaxModels: readonly ModelOption[] = [
+  { id: 'MiniMax-M3.1-Flash-Preview', supportsEffort: true },
+  { id: 'MiniMax-M3', supportsEffort: false },
+  { id: 'MiniMax-M2.7', supportsEffort: false },
+  { id: 'MiniMax-M2.7-highspeed', supportsEffort: false },
+];
+export const factoryDefaults: { model: string; effort: Effort } = {
+  model: 'MiniMax-M3.1-Flash-Preview',
+  effort: 'medium',
+};
+const adaptiveThinking = new Set(['MiniMax-M3.1-Flash-Preview', 'MiniMax-M3']);
+
+export interface RunModelConfig {
+  model: string;
+  effort?: Effort;
+}
 
 export class ModelAccess {
   private active = 0;
   private waiters: Array<() => void> = [];
   constructor(
     readonly credentials: CredentialStore,
+    private readonly configs: ModelConfigStore,
     private readonly endpoint = minimaxEndpoint,
   ) {
     if (endpoint !== minimaxEndpoint) {
@@ -19,10 +38,48 @@ export class ModelAccess {
     }
   }
 
+  async status(): Promise<ProviderStatus> {
+    const credential = await this.credentials.status();
+    let model = factoryDefaults.model;
+    let effort = factoryDefaults.effort;
+    let error = credential.error;
+    try {
+      const defaults = await this.configs.load();
+      model = defaults.model;
+      effort = defaults.effort;
+    } catch (cause) {
+      error = cause instanceof OperationError ? cause.message : '默认模型配置不可用。';
+    }
+    return {
+      id: 'minimax-cn-m-plan',
+      model,
+      defaultEffort: effort,
+      models: [...minimaxModels],
+      efforts: [...minimaxEfforts],
+      configured: credential.configured,
+      source: credential.source,
+      ...(error ? { error } : {}),
+    };
+  }
+
+  async setDefaults(input: { model: string; effort: Effort }): Promise<ProviderStatus> {
+    if (!minimaxModels.some((item) => item.id === input.model))
+      throw new OperationError('invalidRequest', `模型 ${input.model} 不在当前模型目录。`);
+    if (!(minimaxEfforts as readonly string[]).includes(input.effort))
+      throw new OperationError('invalidRequest', `推理强度 ${input.effort} 不在可用档位。`);
+    await this.configs.save({ model: input.model, effort: input.effort });
+    return this.status();
+  }
+
   async create(
     authorize: () => void = () => {},
     signal: AbortSignal = new AbortController().signal,
+    config?: RunModelConfig,
   ): Promise<ChatAnthropic> {
+    const resolved = config ?? (await this.configs.load());
+    const option = minimaxModels.find((item) => item.id === resolved.model);
+    if (!option)
+      throw new OperationError('invalidRequest', `模型 ${resolved.model} 不在当前模型目录。`);
     const { key } = await this.credentials.get();
     let requests = 0;
     const permitted = () => {
@@ -34,12 +91,14 @@ export class ModelAccess {
         );
     };
     return new ChatAnthropic({
-      model: minimaxModel,
+      model: option.id,
       apiKey: key,
       anthropicApiUrl: this.endpoint,
       maxTokens: 16384,
-      thinking: { type: 'adaptive' },
-      outputConfig: { effort: 'medium' },
+      ...(adaptiveThinking.has(option.id) ? { thinking: { type: 'adaptive' as const } } : {}),
+      ...(option.supportsEffort
+        ? { outputConfig: { effort: resolved.effort ?? factoryDefaults.effort } }
+        : {}),
       maxRetries: 0,
       clientOptions: {
         timeout: 180000,

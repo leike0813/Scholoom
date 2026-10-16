@@ -223,7 +223,7 @@ async function expectLibraryItem(page: Page, title: string): Promise<void> {
 }
 
 async function openProject(page: Page, directory: string): Promise<void> {
-  await page.getByText('打开项目', { exact: true }).click();
+  await page.getByLabel('添加项目', { exact: true }).click();
   await page.getByRole('textbox', { name: '项目目录', exact: true }).fill(directory);
   await page.getByRole('button', { name: '打开目录' }).click();
   await expect(page.getByLabel('执行上下文')).toContainText(basename(directory));

@@ -317,26 +317,6 @@ export function useKernelSession(): WorkbenchSession {
     })();
   };
 
-  const stopKernel = (): void => {
-    const client = clientRef.current;
-    const generation = generationRef.current;
-    if (client === null || !live(generation)) return;
-    const target = targetRef.current;
-    setView({ phase: 'stopping', instanceId: target });
-    void (async () => {
-      try {
-        await client.shutdown();
-      } catch (error) {
-        // 停机已发出但没有确认结果，不报告成功。
-        if (!live(generation)) return;
-        settledRef.current = true;
-        setView({ phase: 'unknown', instanceId: target, error: toErrorInfo(error) });
-        return;
-      }
-      await confirmExit(generation);
-    })();
-  };
-
   // biome-ignore lint/correctness/useExhaustiveDependencies: 只在挂载时引导一次，实现只读写 ref
   useEffect(() => {
     // Electron 首次进入负责发现或启动；浏览器开发入口只查询，不创建实例。
@@ -367,7 +347,6 @@ export function useKernelSession(): WorkbenchSession {
     error: view.error,
     retry: canRetry ? retryKernel : undefined,
     inspect: view.phase === 'unknown' || view.phase === 'stopping' ? inspectKernel : undefined,
-    stop: view.phase === 'connected' ? stopKernel : undefined,
   };
 
   const business = useBusinessSession(clientRef.current, view.phase);

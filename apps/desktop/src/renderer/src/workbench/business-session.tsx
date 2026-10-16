@@ -4,6 +4,7 @@ import type {
   BusinessMethod,
   BusinessParams,
   BusinessResult,
+  Effort,
   LibraryAttachment,
   Message,
   WorkbenchSnapshot,
@@ -13,9 +14,11 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { draftKey, readDraft, writeDraft } from './drafts';
 import { LibraryPanel } from './LibraryPanel';
 import { PdfReader } from './PdfReader';
+import { ProjectOnboardingDialog } from './ProjectOnboarding';
 import { FileEditor, ProjectControls, ProjectNavigator } from './project-ui';
 import { toThreadMessage } from './projection';
 import { SessionList } from './SessionList';
+import { SessionSearchDialog } from './SessionSearch';
 import type { FileTarget, KernelPhase, WorkbenchSession } from './session';
 
 export function useBusinessSession(
@@ -38,7 +41,14 @@ export function useBusinessSession(
   const [configured, setConfigured] = useState(false);
   const [creating, setCreating] = useState(false);
   const [listEpoch, setListEpoch] = useState(0);
+  const [sessionSearchOpen, setSessionSearchOpen] = useState(false);
+  const [projectOnboardingOpen, setProjectOnboardingOpen] = useState(false);
   const [recovered, setRecovered] = useState<BusinessParams<'session.send'>>();
+  const [restoreError, setRestoreError] = useState('');
+  const [configureError, setConfigureError] = useState('');
+  const pendingConfigure = useRef<(() => Promise<void>) | undefined>(undefined);
+  /** 不支持推理强度的模型只保存模型覆盖，effort 偏好本机保留，切回支持的模型时恢复。 */
+  const retainedEffort = useRef<Record<string, Effort>>({});
   const directoryRef = useRef('');
   const currentDirectory = client?.getSnapshot().status?.dataDirectory;
   if (currentDirectory) directoryRef.current = currentDirectory;
@@ -126,6 +136,9 @@ export function useBusinessSession(
   useEffect(() => {
     setEarlier([]);
     setEarlierComplete(false);
+    setRestoreError('');
+    setConfigureError('');
+    pendingConfigure.current = undefined;
     const key = draftKey(directory, selection.projectId, selection.sessionId, 'materials');
     try {
       setMaterials(JSON.parse(readDraft(key) || '[]'));
@@ -242,9 +255,64 @@ export function useBusinessSession(
   const safe = (action: () => Promise<unknown>) => {
     void action().catch(() => {});
   };
+  const openSessionSearch = useCallback(() => setSessionSearchOpen(true), []);
+  const closeSessionSearch = useCallback(() => setSessionSearchOpen(false), []);
+  const openProjectOnboarding = useCallback(() => setProjectOnboardingOpen(true), []);
+  const closeProjectOnboarding = useCallback(() => setProjectOnboardingOpen(false), []);
   const project = snapshot?.projects.find((item) => item.id === selection.projectId);
   const session = snapshot?.session;
   const running = snapshot?.run && ['running', 'queued', 'cancelling'].includes(snapshot.run.state);
+  const provider = snapshot?.provider;
+  const modelOverride = session?.modelConfig;
+  const effectiveModel = modelOverride?.model ?? provider?.model;
+  const modelOption = provider?.models.find((item) => item.id === effectiveModel);
+  const configureDisabled = phase !== 'connected' || !session || !!session.archived;
+  /** 会话级执行配置覆盖；失败保留快照中的当前值，在 composer 上下文内提示可重试。 */
+  const configureModel = (modelConfig: BusinessParams<'session.configure'>['modelConfig']) => {
+    if (!client || phase !== 'connected' || !session) return;
+    const attempt = async () => {
+      try {
+        await client.call('session.configure', {
+          projectId: selection.projectId,
+          sessionId: session.id,
+          modelConfig,
+        });
+        setConfigureError('');
+        pendingConfigure.current = undefined;
+      } catch (reason) {
+        setConfigureError(reason instanceof Error ? reason.message : '执行配置保存失败。');
+        pendingConfigure.current = attempt;
+      }
+    };
+    void attempt();
+  };
+  const effortKey = `${selection.projectId}:${session?.id ?? ''}`;
+  const changeModel = (model: string | null) => {
+    const next = { ...(session?.modelConfig ?? {}) };
+    if (model === null) delete next.model;
+    else next.model = model;
+    const target = model ?? provider?.model;
+    const supports = provider?.models.find((item) => item.id === target)?.supportsEffort ?? true;
+    if (supports) {
+      if (!next.effort && retainedEffort.current[effortKey])
+        next.effort = retainedEffort.current[effortKey];
+    } else if (next.effort) {
+      retainedEffort.current[effortKey] = next.effort;
+      delete next.effort;
+    }
+    configureModel(next.model || next.effort ? next : null);
+  };
+  const changeEffort = (effort: Effort | null) => {
+    const next = { ...(session?.modelConfig ?? {}) };
+    if (effort === null) {
+      delete next.effort;
+      delete retainedEffort.current[effortKey];
+    } else {
+      next.effort = effort;
+      retainedEffort.current[effortKey] = effort;
+    }
+    configureModel(next.model || next.effort ? next : null);
+  };
   const messages = [...earlier, ...(snapshot?.messages ?? [])]
     .filter((message, i, all) => all.findIndex((other) => other.id === message.id) === i)
     .map(toThreadMessage);
@@ -332,17 +400,55 @@ export function useBusinessSession(
   return {
     projectId: selection.projectId,
     ...(session ? { activeSessionTitle: session.title } : {}),
-    sessionNavigation: client ? (
-      <SessionList
-        key={`${selection.projectId}:${listEpoch}`}
-        client={client}
-        projectId={selection.projectId}
-        activeSessionId={selection.sessionId}
-        enabled={phase === 'connected' && configured}
-        select={(id) => select(selection.projectId, id)}
-        onChanged={refresh}
-      />
-    ) : undefined,
+    ...(client
+      ? {
+          sessionNavigation: (
+            <SessionList
+              key={`${selection.projectId}:${listEpoch}`}
+              client={client}
+              projects={snapshot?.projects ?? []}
+              projectId={selection.projectId}
+              activeSessionId={selection.sessionId}
+              enabled={phase === 'connected' && configured}
+              select={(id) => select(selection.projectId, id)}
+              selectProject={(id) => select(id, readDraft(draftKey(directory, id, 'session')))}
+              forgetProject={(removedId, nextId) => {
+                writeDraft(draftKey(directory, removedId, 'session'), '');
+                select(nextId, '');
+              }}
+              onChanged={refresh}
+            />
+          ),
+          openSessionSearch,
+          ...(sessionSearchOpen
+            ? {
+                sessionSearchDialog: (
+                  <SessionSearchDialog
+                    client={client}
+                    enabled={phase === 'connected' && configured}
+                    onClose={closeSessionSearch}
+                    onSelect={select}
+                  />
+                ),
+              }
+            : {}),
+          openProjectOnboarding,
+          ...(projectOnboardingOpen
+            ? {
+                projectOnboardingDialog: (
+                  <ProjectOnboardingDialog
+                    client={client}
+                    enabled={phase === 'connected' && configured}
+                    onClose={closeProjectOnboarding}
+                    openProject={(opened) => select(opened.id, '')}
+                  />
+                ),
+              }
+            : {}),
+          resolveFiles: (fileIds) =>
+            client.call('files.resolve', { projectId: selection.projectId, fileIds }),
+        }
+      : {}),
     openMessageFile: async (path, fileId) => {
       if (!client || phase !== 'connected') throw new Error('内核未连接。');
       const selected = selectedRef.current;
@@ -357,20 +463,30 @@ export function useBusinessSession(
       if (selected === selectedRef.current) setFile(target);
     },
     fileRevision: snapshot?.fileRevision ?? 0,
-    resolveFiles: client
-      ? (fileIds) => client.call('files.resolve', { projectId: selection.projectId, fileIds })
-      : undefined,
     adapter,
     executionContext: {
       project: project?.name ?? '正在读取项目',
-      model: snapshot?.provider.model ?? '模型未就绪',
+      model: effectiveModel ?? '模型未就绪',
       permissions: creating
         ? '正在创建会话'
         : phase !== 'connected'
           ? '内核未连接'
           : !project
             ? '正在核对权限'
-            : `读取${project.read ? '已授权' : '未授权'} · 写入${project.write ? '已授权' : '未授权'} · 外发${project.send ? '已授权' : '未授权'}${snapshot?.provider.configured ? '' : ' · 凭据未配置'}`,
+            : `读取${project.read ? '已授权' : '未授权'} · 写入${project.write ? '已授权' : '未授权'} · 外发${project.send ? '已授权' : '未授权'}${provider?.configured ? '' : ' · 凭据未配置'}`,
+      effort: modelOverride?.effort ?? retainedEffort.current[effortKey] ?? provider?.defaultEffort,
+      supportsEffort: modelOption?.supportsEffort ?? true,
+      defaultModel: provider?.model,
+      defaultEffort: provider?.defaultEffort,
+      modelOverridden: !!modelOverride?.model,
+      effortOverridden: !!modelOverride?.effort || !!retainedEffort.current[effortKey],
+      modelOptions: provider?.models,
+      effortOptions: provider?.efforts,
+      configureDisabled,
+      ...(configureError ? { configureError } : {}),
+      retryConfigure: () => void pendingConfigure.current?.(),
+      onModelChange: changeModel,
+      onEffortChange: changeEffort,
     },
     draftKey: draftKey(directory, selection.projectId, selection.sessionId || 'unsent'),
     ...(file ? { fileTarget: file } : {}),
@@ -403,28 +519,14 @@ export function useBusinessSession(
           enabled={phase === 'connected'}
         />
       ) : null,
-    projectControls: (
+    controls: (
       <ProjectControls
         snapshot={snapshot}
         selectedProject={selection.projectId}
-        onSelect={(id) => select(id, readDraft(draftKey(directory, id, 'session')))}
         call={call}
         onOpen={(value) => select(value.id)}
         enabled={phase === 'connected' && !!snapshot}
       />
-    ),
-    controls: (
-      <>
-        <ProjectControls
-          mode="settings"
-          snapshot={snapshot}
-          selectedProject={selection.projectId}
-          onSelect={(id) => select(id, readDraft(draftKey(directory, id, 'session')))}
-          call={call}
-          onOpen={(value) => select(value.id)}
-          enabled={phase === 'connected' && !!snapshot}
-        />
-      </>
     ),
     notices: (
       <>
@@ -434,18 +536,28 @@ export function useBusinessSession(
             <button
               type="button"
               disabled={phase !== 'connected'}
-              onClick={() =>
-                safe(async () => {
-                  await call('session.archive', {
-                    projectId: selection.projectId,
-                    sessionId: session.id,
-                    archived: false,
-                  });
-                })
-              }
+              onClick={() => {
+                if (!client || phase !== 'connected') return;
+                setRestoreError('');
+                void (async () => {
+                  try {
+                    await client.call('session.archive', {
+                      projectId: selection.projectId,
+                      sessionId: session.id,
+                      archived: false,
+                    });
+                    await refresh();
+                  } catch (reason) {
+                    setRestoreError(
+                      reason instanceof Error ? reason.message : '恢复会话失败，请重试。',
+                    );
+                  }
+                })();
+              }}
             >
               恢复当前会话
             </button>
+            {restoreError ? <p role="alert">{restoreError}</p> : null}
           </div>
         ) : null}
         {recovered?.projectId === selection.projectId &&
@@ -621,13 +733,6 @@ export function useBusinessSession(
         ? () =>
             safe(() =>
               call('session.cancel', { projectId: selection.projectId, sessionId: session.id }),
-            )
-        : undefined,
-    resume:
-      !running && snapshot?.run && session && !session.archived
-        ? () =>
-            safe(() =>
-              call('session.resume', { projectId: selection.projectId, sessionId: session.id }),
             )
         : undefined,
     loadEarlier:

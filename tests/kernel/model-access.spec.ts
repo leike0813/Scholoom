@@ -1,13 +1,14 @@
 // Model access contract over a loopback Anthropic boundary: retry budget for safe temporary
 // failures, no blind retry for provider rejections, and one shared concurrency slot released
 // on cancel. All credentials are synthetic and never read from the real environment.
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { expect, test } from '@playwright/test';
 import { CredentialStore } from '../../apps/kernel/dist/credentials/store.js';
+import { ModelConfigStore } from '../../apps/kernel/dist/models/config-store.js';
 import { ModelAccess } from '../../apps/kernel/dist/models/minimax.js';
 
 const SYNTHETIC_KEY = 'synthetic-key-not-a-secret';
@@ -16,6 +17,7 @@ const ANSWER = '合成答复。';
 interface Boundary {
   url: string;
   requests: string[];
+  bodies: Array<Record<string, unknown>>;
   hold: boolean;
   release: () => void;
   close: () => Promise<void>;
@@ -24,6 +26,7 @@ interface Boundary {
 // Scripted statuses: the last entry repeats, [503, 200] answers 503 once then 200.
 async function boundary(statuses: number[]): Promise<Boundary> {
   const requests: string[] = [];
+  const bodies: Array<Record<string, unknown>> = [];
   const waiting = new Set<() => void>();
   const pending = [...statuses];
   let hold = false;
@@ -33,7 +36,13 @@ async function boundary(statuses: number[]): Promise<Boundary> {
   };
   const server = createServer(async (req, res) => {
     requests.push(req.url ?? '');
-    for await (const chunk of req) void chunk;
+    const chunks: Buffer[] = [];
+    for await (const chunk of req) chunks.push(chunk as Buffer);
+    try {
+      bodies.push(JSON.parse(Buffer.concat(chunks).toString('utf8')) as Record<string, unknown>);
+    } catch {
+      /* Non-JSON probe requests carry no contract. */
+    }
     if (hold)
       await new Promise<void>((resolve) => {
         const wake = () => {
@@ -78,6 +87,7 @@ async function boundary(statuses: number[]): Promise<Boundary> {
   return {
     url: `http://127.0.0.1:${(server.address() as AddressInfo).port}/anthropic`,
     requests,
+    bodies,
     get hold() {
       return hold;
     },
@@ -98,7 +108,9 @@ async function access(url: string) {
   const root = await mkdtemp(join(tmpdir(), 'scholoom-model-access-'));
   const credentials = new CredentialStore(root, { MINIMAX_CN_API_KEY: SYNTHETIC_KEY });
   return {
-    access: new ModelAccess(credentials, url),
+    access: new ModelAccess(credentials, new ModelConfigStore(root), url),
+    credentials,
+    root,
     cleanup: () => rm(root, { recursive: true }),
   };
 }
@@ -170,6 +182,131 @@ test('cancelling a held call releases the single shared slot', async () => {
     expect(server.requests).toHaveLength(2);
   } finally {
     server.release();
+    await server.close();
+    await cleanup();
+  }
+});
+
+test('status exposes the model catalog, effort levels and factory defaults', async () => {
+  const server = await boundary([200]);
+  const { access: model, cleanup } = await access(server.url);
+  try {
+    const status = await model.status();
+    expect(status.model).toBe('MiniMax-M3.1-Flash-Preview');
+    expect(status.defaultEffort).toBe('medium');
+    expect(status.models).toEqual([
+      { id: 'MiniMax-M3.1-Flash-Preview', supportsEffort: true },
+      { id: 'MiniMax-M3', supportsEffort: false },
+      { id: 'MiniMax-M2.7', supportsEffort: false },
+      { id: 'MiniMax-M2.7-highspeed', supportsEffort: false },
+    ]);
+    expect(status.efforts).toEqual(['low', 'medium', 'high', 'xhigh', 'max']);
+    expect(status.configured).toBe(true);
+    expect(status.error).toBeUndefined();
+  } finally {
+    await server.close();
+    await cleanup();
+  }
+});
+
+test('capable models send the selected effort with adaptive thinking', async () => {
+  const server = await boundary([200]);
+  const { access: model, cleanup } = await access(server.url);
+  try {
+    await (
+      await model.create(undefined, undefined, {
+        model: 'MiniMax-M3.1-Flash-Preview',
+        effort: 'high',
+      })
+    ).invoke('合成请求');
+    const body = server.bodies.at(-1);
+    expect(body?.model).toBe('MiniMax-M3.1-Flash-Preview');
+    expect((body?.output_config as { effort?: string } | undefined)?.effort).toBe('high');
+    expect(body?.thinking).toMatchObject({ type: 'adaptive' });
+  } finally {
+    await server.close();
+    await cleanup();
+  }
+});
+
+test('models without the effort capability never send an effort field', async () => {
+  const server = await boundary([200]);
+  const { access: model, cleanup } = await access(server.url);
+  try {
+    for (const id of ['MiniMax-M3', 'MiniMax-M2.7', 'MiniMax-M2.7-highspeed'])
+      await (await model.create(undefined, undefined, { model: id, effort: 'max' })).invoke(
+        '合成请求',
+      );
+    const bodies = server.bodies.slice(-3);
+    expect(bodies.map((body) => body.model)).toEqual([
+      'MiniMax-M3',
+      'MiniMax-M2.7',
+      'MiniMax-M2.7-highspeed',
+    ]);
+    for (const body of bodies)
+      expect((body?.output_config as { effort?: string } | undefined)?.effort).toBeUndefined();
+    expect(bodies[0]?.thinking).toMatchObject({ type: 'adaptive' });
+  } finally {
+    await server.close();
+    await cleanup();
+  }
+});
+
+test('models outside the catalog are rejected without any HTTP request', async () => {
+  const server = await boundary([200]);
+  const { access: model, cleanup, root } = await access(server.url);
+  try {
+    await expect(
+      model.create(undefined, undefined, { model: 'MiniMax-M2.5' }),
+    ).rejects.toMatchObject({ code: 'invalidRequest' });
+    await expect(model.setDefaults({ model: 'MiniMax-M2.5', effort: 'low' })).rejects.toMatchObject(
+      { code: 'invalidRequest' },
+    );
+    expect(server.requests).toHaveLength(0);
+    await expect(stat(join(root, 'provider.json'))).rejects.toMatchObject({ code: 'ENOENT' });
+  } finally {
+    await server.close();
+    await cleanup();
+  }
+});
+
+test('saved defaults persist privately and drive later calls after a restart', async () => {
+  const server = await boundary([200]);
+  const { access: model, credentials, cleanup, root } = await access(server.url);
+  try {
+    const saved = await model.setDefaults({ model: 'MiniMax-M2.7', effort: 'low' });
+    expect(saved.model).toBe('MiniMax-M2.7');
+    expect(saved.defaultEffort).toBe('low');
+    if (process.platform !== 'win32')
+      expect((await stat(join(root, 'provider.json'))).mode & 0o077).toBe(0);
+    const restarted = new ModelAccess(credentials, new ModelConfigStore(root), server.url);
+    const status = await restarted.status();
+    expect(status.model).toBe('MiniMax-M2.7');
+    expect(status.defaultEffort).toBe('low');
+    await (await restarted.create()).invoke('合成请求');
+    const body = server.bodies.at(-1);
+    expect(body?.model).toBe('MiniMax-M2.7');
+    expect((body?.output_config as { effort?: string } | undefined)?.effort).toBeUndefined();
+  } finally {
+    await server.close();
+    await cleanup();
+  }
+});
+
+test('a damaged defaults file is diagnosed and left untouched until explicitly saved', async () => {
+  const server = await boundary([200]);
+  const { access: model, cleanup, root } = await access(server.url);
+  try {
+    const path = join(root, 'provider.json');
+    await writeFile(path, '损坏内容{{{', { mode: 0o600 });
+    expect((await model.status()).error).toBeTruthy();
+    await expect(model.create()).rejects.toMatchObject({ code: 'unavailable' });
+    expect(server.requests).toHaveLength(0);
+    expect(await readFile(path, 'utf8')).toBe('损坏内容{{{');
+    const repaired = await model.setDefaults({ model: 'MiniMax-M3', effort: 'low' });
+    expect(repaired.error).toBeUndefined();
+    expect(repaired.model).toBe('MiniMax-M3');
+  } finally {
     await server.close();
     await cleanup();
   }

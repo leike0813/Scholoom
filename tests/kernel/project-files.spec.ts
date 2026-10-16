@@ -1,11 +1,69 @@
 import { execFile } from 'node:child_process';
-import { mkdir, mkdtemp, readFile, rename, rm, symlink, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+import {
+  mkdir,
+  mkdtemp,
+  readFile,
+  realpath,
+  rename,
+  rm,
+  symlink,
+  writeFile,
+} from 'node:fs/promises';
+import { homedir, tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
 import { expect, test } from '@playwright/test';
 import { CredentialStore } from '../../apps/kernel/dist/credentials/store.js';
+import { DirectoryBrowser } from '../../apps/kernel/dist/projects/directory-browser.js';
 import { Projects } from '../../apps/kernel/dist/projects/store.js';
+
+test('directory browsing lists real directories, hides private entries and bounds pages', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'scholoom-browse-'));
+  const projects = new Projects(join(root, 'profile'));
+  try {
+    await mkdir(join(root, 'tree', 'beta', 'nested'), { recursive: true });
+    await mkdir(join(root, 'tree', 'alpha'));
+    await mkdir(join(root, 'tree', '.hidden'));
+    await writeFile(join(root, 'tree', 'note.md'), 'text');
+    await symlink(
+      join(root, 'tree', 'alpha'),
+      join(root, 'tree', 'linked'),
+      process.platform === 'win32' ? 'junction' : 'dir',
+    );
+    await projects.initialize();
+    const browser = new DirectoryBrowser(projects.directory);
+    const home = await browser.browse({});
+    expect(home.path).toBe(await realpath(homedir()));
+    const listing = await browser.browse({ path: join(root, 'tree') });
+    expect(listing.path).toBe(await realpath(join(root, 'tree')));
+    expect(listing.parent).toBe(await realpath(root));
+    expect(listing.directories.map((item) => item.name)).toEqual(['alpha', 'beta']);
+    expect(listing.directories[0]?.path).toBe(join(listing.path, 'alpha'));
+    expect(listing.truncated).toBe(false);
+    expect(
+      (await browser.browse({ path: join(root, 'tree', 'beta') })).directories.map(
+        (item) => item.name,
+      ),
+    ).toEqual(['nested']);
+    const top = await browser.browse({ path: root });
+    expect(top.directories.map((item) => item.name)).toEqual(['tree']);
+    expect(top.directories.some((item) => item.path === projects.directory)).toBe(false);
+    const limited = await browser.browse({ path: join(root, 'tree'), limit: 1 });
+    expect(limited.directories.map((item) => item.name)).toEqual(['alpha']);
+    expect(limited.truncated).toBe(true);
+    await expect(browser.browse({ path: join(root, 'tree', 'missing') })).rejects.toMatchObject({
+      code: 'notFound',
+    });
+    await expect(browser.browse({ path: join(root, 'tree', 'note.md') })).rejects.toMatchObject({
+      code: 'invalidRequest',
+    });
+    const filesystemRoot = await browser.browse({ path: '/' });
+    expect(filesystemRoot.parent).toBeUndefined();
+  } finally {
+    await projects.close();
+    await rm(root, { recursive: true });
+  }
+});
 
 test('credentials encrypt at rest, prefer saved values, survive restart, and preserve corruption', async () => {
   const root = await mkdtemp(join(tmpdir(), 'scholoom-credentials-'));

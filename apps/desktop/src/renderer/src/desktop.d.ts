@@ -7,6 +7,10 @@ declare global {
       | {
           platform: string;
           openExternal: (url: string) => Promise<void>;
+          pickDirectory: (options?: {
+            title?: string;
+            defaultPath?: string;
+          }) => Promise<string | null>;
           bootstrap: (mode: 'ensure' | 'inspect') => Promise<BootstrapResult>;
         }
       | undefined;

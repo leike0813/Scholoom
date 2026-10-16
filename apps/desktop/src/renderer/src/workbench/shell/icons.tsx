@@ -259,3 +259,44 @@ export function IconPaperclip() {
     </Svg>
   );
 }
+
+export function IconSearch() {
+  return (
+    <Svg>
+      <circle cx="7" cy="7" r="4.5" fill="none" stroke="currentColor" strokeWidth="1.4" />
+      <path d="m10.5 10.5 3 3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+    </Svg>
+  );
+}
+
+export function IconFolderOpen() {
+  return (
+    <Svg>
+      <path
+        d="M1.5 3.5h4l1.5 2h5.5M1.5 5.5v7h12l1.5-5H4"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.2"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+export function IconSidebarLeft() {
+  return (
+    <Svg>
+      <rect
+        x="1.5"
+        y="2.5"
+        width="13"
+        height="11"
+        rx="1.5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.2"
+      />
+      <path d="M5.5 2.5v11" stroke="currentColor" strokeWidth="1.2" />
+    </Svg>
+  );
+}

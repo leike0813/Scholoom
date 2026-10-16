@@ -22,7 +22,7 @@ test('user invokes a declared research capability and opens its checked report',
     await uiPage.getByLabel('MiniMax API Key', { exact: true }).fill('synthetic-research-key');
     await uiPage.getByRole('button', { name: '保存凭据' }).click();
     await expect(uiPage.getByLabel('MiniMax API Key', { exact: true })).toHaveValue('');
-    await uiPage.getByText('打开项目', { exact: true }).click();
+    await uiPage.getByLabel('添加项目', { exact: true }).click();
     await uiPage.getByRole('textbox', { name: '项目目录', exact: true }).fill(project);
     await uiPage.getByRole('button', { name: '打开目录' }).click();
     await expect(uiPage.getByLabel('执行上下文')).toContainText(basename(project));
@@ -87,7 +87,7 @@ test('user configures, edits safely and receives a real persisted Agent result',
     await uiPage.getByLabel('MiniMax API Key', { exact: true }).fill('synthetic-ui-key');
     await uiPage.getByRole('button', { name: '保存凭据' }).click();
     await expect(uiPage.getByLabel('MiniMax API Key', { exact: true })).toHaveValue('');
-    await uiPage.getByText('打开项目', { exact: true }).click();
+    await uiPage.getByLabel('添加项目', { exact: true }).click();
     await uiPage.getByRole('textbox', { name: '项目目录', exact: true }).fill(project);
     await uiPage.getByRole('button', { name: '打开目录' }).click();
     await expect(uiPage.getByLabel('执行上下文')).toContainText(basename(project));
@@ -214,9 +214,9 @@ test('late send failure restores its original conversation and storage failures 
     await uiPage.getByLabel('MiniMax API Key', { exact: true }).fill('synthetic-ui-key');
     await uiPage.getByRole('button', { name: '保存凭据' }).click();
     await expect(uiPage.getByLabel('MiniMax API Key', { exact: true })).toHaveValue('');
-    await uiPage
-      .getByRole('combobox', { name: '当前项目', exact: true })
-      .selectOption('application');
+    await expect(
+      uiPage.getByRole('button', { name: '普通会话，已展开', exact: true }),
+    ).toBeVisible();
     await uiPage.getByRole('button', { name: '新建会话', exact: true }).click();
     const input = uiPage.getByRole('textbox', { name: '研究指令' });
     await input.fill('会话 A 的未受理指令');
@@ -274,9 +274,9 @@ test('busy conversation accepts additions, cancellation survives reload and cont
     await uiPage.getByLabel('MiniMax API Key', { exact: true }).fill('synthetic-ui-key');
     await uiPage.getByRole('button', { name: '保存凭据' }).click();
     await expect(uiPage.getByLabel('MiniMax API Key', { exact: true })).toHaveValue('');
-    await uiPage
-      .getByRole('combobox', { name: '当前项目', exact: true })
-      .selectOption('application');
+    await expect(
+      uiPage.getByRole('button', { name: '普通会话，已展开', exact: true }),
+    ).toBeVisible();
     await uiPage.getByRole('button', { name: '新建会话', exact: true }).click();
     await expect(uiPage.getByRole('status', { name: '执行状态' })).toBeVisible();
     model.hold = true;

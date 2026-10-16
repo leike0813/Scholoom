@@ -25,7 +25,7 @@ test('conversation titles, archive and Markdown reading preserve the active work
     await uiPage.getByText('模型设置', { exact: true }).click();
     await uiPage.getByLabel('MiniMax API Key', { exact: true }).fill('synthetic-ui-key');
     await uiPage.getByRole('button', { name: '保存凭据' }).click();
-    await uiPage.getByText('打开项目', { exact: true }).click();
+    await uiPage.getByLabel('添加项目', { exact: true }).click();
     await uiPage.getByRole('textbox', { name: '项目目录', exact: true }).fill(project);
     await uiPage.getByRole('button', { name: '打开目录' }).click();
     await expect(uiPage.getByLabel('执行上下文')).toContainText(basename(project));
@@ -170,9 +170,6 @@ test('streaming Markdown keeps typing and cancellation available and never rende
     await uiPage.getByText('模型设置', { exact: true }).click();
     await uiPage.getByLabel('MiniMax API Key', { exact: true }).fill('synthetic-ui-key');
     await uiPage.getByRole('button', { name: '保存凭据' }).click();
-    await uiPage
-      .getByRole('combobox', { name: '当前项目', exact: true })
-      .selectOption('application');
     await uiPage.getByRole('button', { name: '新建会话', exact: true }).click();
     await uiPage.getByRole('textbox', { name: '研究指令' }).fill('MODEL_STREAM');
     await uiPage.getByRole('button', { name: '发送指令' }).click();
@@ -190,6 +187,153 @@ test('streaming Markdown keeps typing and cancellation available and never rende
     await uiPage.getByRole('textbox', { name: '研究指令' }).fill('新会话草稿');
     await expect(uiPage.getByRole('textbox', { name: '研究指令' })).toHaveValue('新会话草稿');
     await expect(uiPage.getByRole('article', { name: 'Agent 回复' })).toHaveCount(0);
+  } finally {
+    await stop();
+    await model.close();
+  }
+});
+
+test('archive and restore failures stay in place and retry succeeds', async ({ uiPage }, info) => {
+  test.setTimeout(60000);
+  const model = await createModelServer();
+  const stop = await startModelKernel(process.env.SCHOOLOOM_UI_DATA_DIR as string, model.url);
+  // 双宿主共用同一数据目录，标题按宿主区分，避免两次运行残留会话互相命中。
+  const title = `MODEL_CHAT 归档样本 ${info.project.name}`;
+  try {
+    await installRpcGate(uiPage);
+    await uiPage.goto('http://127.0.0.1:5174/');
+    await expect(uiPage.getByRole('status', { name: '连接状态' })).toContainText('已连接');
+    await uiPage.getByRole('button', { name: '设置', exact: true }).click();
+    await uiPage.getByText('模型设置', { exact: true }).click();
+    await uiPage.getByLabel('MiniMax API Key', { exact: true }).fill('synthetic-ui-key');
+    await uiPage.getByRole('button', { name: '保存凭据' }).click();
+    await uiPage.getByRole('button', { name: '新建会话', exact: true }).click();
+    const input = uiPage.getByRole('textbox', { name: '研究指令' });
+    await input.fill(title);
+    await uiPage.getByRole('button', { name: '发送指令', exact: true }).click();
+    await expect(uiPage.getByRole('status', { name: '执行状态' })).toContainText('执行完成');
+    await expect(
+      uiPage.getByRole('button', { name: `打开会话 ${title}`, exact: true }),
+    ).toBeVisible();
+    await input.fill('归档失败期间保留的草稿');
+
+    await uiPage.getByLabel(`管理会话 ${title}`, { exact: true }).click();
+    await armRpcGate(uiPage, 'session.archive');
+    await uiPage.getByRole('button', { name: '归档会话', exact: true }).click();
+    await uiPage.waitForFunction(() => !!Reflect.get(globalThis, '__scholoomRpcGate').held);
+    await releaseRpcGate(uiPage, true);
+    const menu = uiPage.locator('.session-actions .menu__body');
+    await expect(menu.getByRole('alert')).toBeVisible();
+    // 归档失败：错误留在菜单内，菜单不静默关闭，可直接重试。
+    await expect(menu.getByRole('button', { name: '归档会话', exact: true })).toBeVisible();
+    await menu.getByRole('button', { name: '归档会话', exact: true }).click();
+    await expect(input).toBeDisabled();
+    await expect(input).toHaveValue('归档失败期间保留的草稿');
+
+    // 当前会话恢复失败：错误行留在消息区的归档提示内。
+    const callout = uiPage.getByRole('status').filter({ hasText: '会话已归档' });
+    await expect(callout).toBeVisible();
+    const requests = model.requests.length;
+    await armRpcGate(uiPage, 'session.archive');
+    await callout.getByRole('button', { name: '恢复当前会话', exact: true }).click();
+    await uiPage.waitForFunction(() => !!Reflect.get(globalThis, '__scholoomRpcGate').held);
+    await releaseRpcGate(uiPage, true);
+    await expect(callout.getByRole('alert')).toBeVisible();
+    await expect(input).toBeDisabled();
+    await callout.getByRole('button', { name: '恢复当前会话', exact: true }).click();
+    await expect(input).toBeEnabled();
+    await expect(callout.getByRole('alert')).toHaveCount(0);
+    // 恢复不自动发送。
+    expect(model.requests.length).toBe(requests);
+  } finally {
+    await stop();
+    await model.close();
+  }
+});
+
+test('composer model and effort overrides follow defaults, persist and reach real requests', async ({
+  uiPage,
+}) => {
+  test.setTimeout(90000);
+  const model = await createModelServer();
+  const stop = await startModelKernel(process.env.SCHOOLOOM_UI_DATA_DIR as string, model.url);
+  const body = () => model.requests.at(-1) as Record<string, unknown>;
+  const effortOf = () =>
+    (body().output_config as Record<string, unknown> | undefined)?.effort ?? null;
+  try {
+    await installRpcGate(uiPage);
+    await uiPage.goto('http://127.0.0.1:5174/');
+    await expect(uiPage.getByRole('status', { name: '连接状态' })).toContainText('已连接');
+    await uiPage.getByRole('button', { name: '设置', exact: true }).click();
+    await uiPage.getByText('模型设置', { exact: true }).click();
+    await uiPage.getByLabel('MiniMax API Key', { exact: true }).fill('synthetic-ui-key');
+    await uiPage.getByRole('button', { name: '保存凭据' }).click();
+    // 应用默认推理强度经 provider.setDefaults 保存。
+    await uiPage.getByLabel('默认推理强度', { exact: true }).selectOption('low');
+    await uiPage.getByRole('button', { name: '保存默认设置', exact: true }).click();
+    await uiPage.getByRole('button', { name: '新建会话', exact: true }).click();
+
+    const modelSelect = uiPage.getByLabel('模型', { exact: true });
+    const effortSelect = uiPage.getByLabel('推理强度', { exact: true });
+    const input = uiPage.getByRole('textbox', { name: '研究指令' });
+    // 初始跟随应用默认。
+    await expect(modelSelect).toHaveValue('');
+    await expect(effortSelect).toHaveValue('');
+    await input.fill('MODEL_CHAT 默认配置');
+    await uiPage.getByRole('button', { name: '发送指令', exact: true }).click();
+    await expect.poll(() => model.requests.length).toBe(1);
+    expect(body().model).toBe('MiniMax-M3.1-Flash-Preview');
+    expect(effortOf()).toBe('low');
+
+    // 会话覆盖推理强度，dock 与 overlay 一致显示。
+    await effortSelect.selectOption('high');
+    await expect(effortSelect).toHaveValue('high');
+    await uiPage.getByRole('button', { name: '展开 Agent 会话' }).click();
+    await expect(uiPage.getByLabel('推理强度', { exact: true })).toHaveValue('high');
+    await uiPage.getByRole('button', { name: '收起会话', exact: true }).click();
+    await input.fill('MODEL_CHAT 会话覆盖');
+    await uiPage.getByRole('button', { name: '发送指令', exact: true }).click();
+    await expect.poll(() => model.requests.length).toBe(2);
+    expect(body().model).toBe('MiniMax-M3.1-Flash-Preview');
+    expect(effortOf()).toBe('high');
+
+    // 重载后覆盖保留。
+    await uiPage.reload();
+    await expect(uiPage.getByLabel('推理强度', { exact: true })).toHaveValue('high');
+
+    // 切到不支持推理强度的模型：选择禁用并说明原因，偏好保留。
+    await uiPage.getByLabel('模型', { exact: true }).selectOption('MiniMax-M3');
+    await expect(effortSelect).toBeDisabled();
+    await expect(uiPage.getByLabel('执行上下文')).toContainText('该模型不支持推理强度');
+    await input.fill('MODEL_CHAT 无强度模型');
+    await uiPage.getByRole('button', { name: '发送指令', exact: true }).click();
+    await expect.poll(() => model.requests.length).toBe(3);
+    expect(body().model).toBe('MiniMax-M3');
+    expect(effortOf()).toBeNull();
+    // 切回跟随默认后原 effort 覆盖继续生效。
+    await uiPage.getByLabel('模型', { exact: true }).selectOption('');
+    await expect(effortSelect).toHaveValue('high');
+    await expect(effortSelect).toBeEnabled();
+
+    // 覆盖保存失败：不乐观更新，保留快照值并在 composer 上下文内提示可重试。
+    await armRpcGate(uiPage, 'session.configure');
+    await effortSelect.selectOption('max');
+    await uiPage.waitForFunction(() => !!Reflect.get(globalThis, '__scholoomRpcGate').held);
+    await releaseRpcGate(uiPage, true);
+    const context = uiPage.getByLabel('执行上下文');
+    await expect(context.getByRole('alert')).toBeVisible();
+    await expect(effortSelect).toHaveValue('high');
+    await context.getByRole('button', { name: '重试', exact: true }).click();
+    await expect(context.getByRole('alert')).toHaveCount(0);
+    await expect(effortSelect).toHaveValue('max');
+
+    // 跟随默认清除覆盖，后续请求使用应用默认。
+    await effortSelect.selectOption('');
+    await input.fill('MODEL_CHAT 回到默认');
+    await uiPage.getByRole('button', { name: '发送指令', exact: true }).click();
+    await expect.poll(() => model.requests.length).toBe(4);
+    expect(body().model).toBe('MiniMax-M3.1-Flash-Preview');
+    expect(effortOf()).toBe('low');
   } finally {
     await stop();
     await model.close();

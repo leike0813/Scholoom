@@ -162,6 +162,70 @@ test('session discovery, naming and reversible archiving use persisted facts and
   }
 });
 
+test('session search spans recent projects and archived sessions with literal matching and bounded pages', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'scholoom-session-search-'));
+  const app = new KernelApplication(join(root, 'profile'), { environment: {} });
+  await app.initialize();
+  const status = {
+    protocolVersion,
+    nodeVersion: process.versions.node,
+    processId: process.pid,
+    instanceId: randomUUID(),
+    dataDirectory: join(root, 'profile'),
+    startedAt: new Date().toISOString(),
+    state: 'running' as const,
+  };
+  const server = await startKernelServer(status, () => app.close(), app);
+  const client = createKernelClient({ ...status, url: server.url, token: server.token });
+  try {
+    await client.connect();
+    const scope = { projectId: 'application' };
+    const first = await client.call('session.create', { ...scope, title: '目标 %_ 会话' });
+    const archived = await client.call('session.create', { ...scope, title: '归档笔记' });
+    await client.call('session.archive', { ...scope, sessionId: archived.id, archived: true });
+    await mkdir(join(root, 'other-project'));
+    const otherProject = await client.call('project.open', { path: join(root, 'other-project') });
+    const third = await client.call('session.create', {
+      projectId: otherProject.id,
+      title: '另一项目的目标',
+    });
+    const hits = await client.call('session.search', { query: '目标' });
+    expect(hits.truncated).toBe(false);
+    expect(hits.results.map((item) => item.session.id).sort()).toEqual([first.id, third.id].sort());
+    expect(hits.results.find((item) => item.session.id === third.id)?.project.id).toBe(
+      otherProject.id,
+    );
+    const literal = await client.call('session.search', { query: '%_' });
+    expect(literal.results.map((item) => item.session.id)).toEqual([first.id]);
+    const recent = await client.call('session.search', { query: '' });
+    expect(new Set(recent.results.map((item) => item.session.id))).toEqual(
+      new Set([first.id, archived.id, third.id]),
+    );
+    expect(recent.results.find((item) => item.session.id === archived.id)?.session.archived).toBe(
+      true,
+    );
+    for (let index = 1; index < recent.results.length; index++) {
+      const previous = recent.results[index - 1]?.session;
+      const current = recent.results[index]?.session;
+      expect(
+        (previous?.updatedAt ?? '') > (current?.updatedAt ?? '') ||
+          (previous?.updatedAt === current?.updatedAt &&
+            (previous?.id ?? '') > (current?.id ?? '')),
+      ).toBe(true);
+    }
+    const capped = await client.call('session.search', { query: '', limit: 2 });
+    expect(capped.results).toHaveLength(2);
+    expect(capped.truncated).toBe(true);
+    const browse = await client.call('project.browseDirectories', { path: root });
+    expect(browse.directories.map((item) => item.name)).toEqual(['other-project']);
+  } finally {
+    client.dispose();
+    await server.stop();
+    await app.close();
+    await rm(root, { recursive: true });
+  }
+});
+
 test('final acceptance rechecks archive and manual title after credential waiting', async () => {
   const root = await mkdtemp(join(tmpdir(), 'scholoom-session-race-'));
   const model = await createModelServer();
@@ -331,6 +395,175 @@ test('a concurrent receipt survives material changes during credential preflight
     ).toHaveLength(1);
     app.harness.cancel(store.project.id, session.id);
   } finally {
+    await app.close();
+    await model.close();
+    await rm(root, { recursive: true });
+  }
+});
+
+test('session overrides pin each run while provider defaults only affect later runs', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'scholoom-session-model-config-'));
+  const model = await createModelServer();
+  const app = new KernelApplication(join(root, 'profile'), {
+    modelEndpoint: model.url,
+    environment: { MINIMAX_CN_API_KEY: 'synthetic' },
+  });
+  await app.initialize();
+  const status = {
+    protocolVersion,
+    nodeVersion: process.versions.node,
+    processId: process.pid,
+    instanceId: randomUUID(),
+    dataDirectory: join(root, 'profile'),
+    startedAt: new Date().toISOString(),
+    state: 'running' as const,
+  };
+  const server = await startKernelServer(status, () => app.close(), app);
+  const client = createKernelClient({ ...status, url: server.url, token: server.token });
+  try {
+    await client.connect();
+    const scope = { projectId: 'application' };
+    const session = await client.call('session.create', scope);
+    const snap = (sessionId?: string) =>
+      client.call('workbench.snapshot', { ...scope, ...(sessionId ? { sessionId } : {}) });
+    const effortOf = (body: Record<string, unknown> | undefined) =>
+      (body?.output_config as { effort?: string } | undefined)?.effort;
+
+    const initial = await snap();
+    expect(initial.provider.model).toBe('MiniMax-M3.1-Flash-Preview');
+    expect(initial.provider.defaultEffort).toBe('medium');
+    expect(initial.provider.models).toEqual([
+      { id: 'MiniMax-M3.1-Flash-Preview', supportsEffort: true },
+      { id: 'MiniMax-M3', supportsEffort: false },
+      { id: 'MiniMax-M2.7', supportsEffort: false },
+      { id: 'MiniMax-M2.7-highspeed', supportsEffort: false },
+    ]);
+    expect(initial.provider.efforts).toEqual(['low', 'medium', 'high', 'xhigh', 'max']);
+
+    const overridden = await client.call('session.configure', {
+      ...scope,
+      sessionId: session.id,
+      modelConfig: { model: 'MiniMax-M2.7' },
+    });
+    expect(overridden.modelConfig).toEqual({ model: 'MiniMax-M2.7' });
+    await expect(
+      client.call('session.configure', {
+        ...scope,
+        sessionId: session.id,
+        modelConfig: { model: 'MiniMax-M2.7', effort: 'high' },
+      }),
+    ).rejects.toMatchObject({ code: 'invalidRequest' });
+    await expect(
+      client.call('session.configure', {
+        ...scope,
+        sessionId: session.id,
+        modelConfig: { model: 'MiniMax-M2.5' },
+      }),
+    ).rejects.toMatchObject({ code: 'invalidRequest' });
+    expect((await snap(session.id)).session?.modelConfig).toEqual({ model: 'MiniMax-M2.7' });
+
+    await client.call('session.send', {
+      ...scope,
+      sessionId: session.id,
+      instructionId: randomUUID(),
+      text: '合成指令一',
+      materials: [],
+    });
+    await expect.poll(async () => (await snap(session.id)).run?.state).toBe('completed');
+    expect((await snap(session.id)).run?.modelConfig).toEqual({ model: 'MiniMax-M2.7' });
+    const m27 = model.requests.filter((body) => body.model === 'MiniMax-M2.7');
+    expect(m27.length).toBeGreaterThan(0);
+    for (const body of m27) expect(effortOf(body)).toBeUndefined();
+
+    const updated = await client.call('provider.setDefaults', {
+      model: 'MiniMax-M3',
+      effort: 'low',
+    });
+    expect(updated.model).toBe('MiniMax-M3');
+    expect(updated.defaultEffort).toBe('low');
+    const cleared = await client.call('session.configure', {
+      ...scope,
+      sessionId: session.id,
+      modelConfig: null,
+    });
+    expect(cleared.modelConfig).toBeUndefined();
+    await client.call('session.send', {
+      ...scope,
+      sessionId: session.id,
+      instructionId: randomUUID(),
+      text: '合成指令二',
+      materials: [],
+    });
+    await expect.poll(async () => (await snap(session.id)).run?.attempt).toBe(2);
+    await expect.poll(async () => (await snap(session.id)).run?.state).toBe('completed');
+    expect((await snap(session.id)).run?.modelConfig).toEqual({ model: 'MiniMax-M3' });
+    const m3 = model.requests.filter((body) => body.model === 'MiniMax-M3');
+    expect(m3.length).toBeGreaterThan(0);
+    for (const body of m3) {
+      expect(effortOf(body)).toBeUndefined();
+      expect(body.thinking).toMatchObject({ type: 'adaptive' });
+    }
+
+    await client.call('provider.setDefaults', {
+      model: 'MiniMax-M3.1-Flash-Preview',
+      effort: 'high',
+    });
+    const beforeResume = model.requests.length;
+    await client.call('session.resume', { ...scope, sessionId: session.id });
+    await expect.poll(() => model.requests.length).toBeGreaterThan(beforeResume);
+    await expect.poll(async () => (await snap(session.id)).run?.state).toBe('completed');
+    expect(model.requests.at(-1)?.model).toBe('MiniMax-M3');
+    expect((await snap(session.id)).run?.modelConfig).toEqual({ model: 'MiniMax-M3' });
+
+    model.hold = true;
+    const beforeBusy = model.requests.length;
+    const receipt3 = await client.call('session.send', {
+      ...scope,
+      sessionId: session.id,
+      instructionId: randomUUID(),
+      text: 'MODEL_MARKDOWN',
+      materials: [],
+    });
+    await expect.poll(() => model.requests.length).toBe(beforeBusy + 1);
+    await client.call('provider.setDefaults', { model: 'MiniMax-M2.7', effort: 'low' });
+    const receipt4 = await client.call('session.send', {
+      ...scope,
+      sessionId: session.id,
+      instructionId: randomUUID(),
+      text: '合成指令四',
+      materials: [],
+    });
+    expect(receipt4.runId).toBe(receipt3.runId);
+    model.release();
+    await expect.poll(async () => (await snap(session.id)).run?.state).toBe('completed');
+    expect((await snap(session.id)).run?.modelConfig).toEqual({
+      model: 'MiniMax-M3.1-Flash-Preview',
+      effort: 'high',
+    });
+    for (const body of model.requests.slice(beforeBusy)) {
+      expect(body.model).toBe('MiniMax-M3.1-Flash-Preview');
+      expect(effortOf(body)).toBe('high');
+    }
+
+    const db = app.projects.get('application').db.$client;
+    const row = db.prepare('SELECT value FROM runs WHERE id = ?').get(receipt3.runId) as {
+      value: string;
+    };
+    const legacy = JSON.parse(row.value) as Record<string, unknown>;
+    delete legacy.modelConfig;
+    db.prepare('UPDATE runs SET value = ? WHERE id = ?').run(
+      JSON.stringify(legacy),
+      receipt3.runId,
+    );
+    const beforeLegacy = model.requests.length;
+    await client.call('session.resume', { ...scope, sessionId: session.id });
+    await expect.poll(() => model.requests.length).toBeGreaterThan(beforeLegacy);
+    await expect.poll(async () => (await snap(session.id)).run?.state).toBe('completed');
+    expect(model.requests.at(-1)?.model).toBe('MiniMax-M2.7');
+    expect(effortOf(model.requests.at(-1))).toBeUndefined();
+  } finally {
+    client.dispose();
+    await server.stop();
     await app.close();
     await model.close();
     await rm(root, { recursive: true });

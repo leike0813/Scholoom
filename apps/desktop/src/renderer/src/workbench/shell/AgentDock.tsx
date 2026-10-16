@@ -47,11 +47,10 @@ export interface AgentDockProps {
   reset?: (() => void) | undefined;
   onExpand: () => void;
   cancel?: (() => void) | undefined;
-  resume?: (() => void) | undefined;
 }
 
 /** 折叠态 Agent 面板：tool 消息固定顶部，agent 消息截头留尾，右侧精简 composer。 */
-export function AgentDock({ messages, context, reset, onExpand, cancel, resume }: AgentDockProps) {
+export function AgentDock({ messages, context, reset, onExpand, cancel }: AgentDockProps) {
   const preview = readDockPreview(messages);
   const tool = preview.tool;
 
@@ -96,26 +95,24 @@ export function AgentDock({ messages, context, reset, onExpand, cancel, resume }
           maxRows={4}
           submitMode="ctrlEnter"
         />
-        <div className="composer-config">
-          {reset ? (
-            <button type="button" className="chip" onClick={reset}>
-              重置示例
-            </button>
-          ) : null}
-          <span className="spacer" />
-          {cancel ? (
-            <button type="button" className="btn" onClick={cancel}>
-              取消执行
-            </button>
-          ) : null}
-          {resume ? (
-            <button type="button" className="btn" onClick={resume}>
-              继续执行
-            </button>
-          ) : null}
-          <InstructionSend />
-        </div>
-        <ExecutionContext context={context} />
+        <ExecutionContext
+          context={context}
+          actions={
+            <>
+              {reset ? (
+                <button type="button" className="chip" onClick={reset}>
+                  重置示例
+                </button>
+              ) : null}
+              {cancel ? (
+                <button type="button" className="btn" onClick={cancel}>
+                  取消执行
+                </button>
+              ) : null}
+              <InstructionSend />
+            </>
+          }
+        />
       </ComposerPrimitive.Root>
     </div>
   );

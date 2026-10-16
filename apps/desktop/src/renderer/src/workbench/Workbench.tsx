@@ -408,6 +408,8 @@ export function Workbench({ session }: { session: WorkbenchSession }) {
             onExpand={() => setLeftCollapsed(false)}
             createSession={session.createSession}
             openLibrary={openLibrary}
+            openSessionSearch={session.openSessionSearch}
+            openProjectOnboarding={session.openProjectOnboarding}
           />
         ) : (
           <ActivityPane
@@ -425,10 +427,11 @@ export function Workbench({ session }: { session: WorkbenchSession }) {
               })
             }
             onCollapse={() => setLeftCollapsed(true)}
-            projectControls={session.projectControls}
             sessionNavigation={session.sessionNavigation}
             openSettings={session.controls ? settings : undefined}
             openLibrary={openLibrary}
+            openSessionSearch={session.openSessionSearch}
+            openProjectOnboarding={session.openProjectOnboarding}
           />
         )}
 
@@ -477,7 +480,6 @@ export function Workbench({ session }: { session: WorkbenchSession }) {
               reset={session.reset ? reset : undefined}
               onCollapse={() => setAgentExpanded(false)}
               cancel={session.cancel}
-              resume={session.resume}
               loadEarlier={session.loadEarlier}
             />
           ) : (
@@ -499,7 +501,6 @@ export function Workbench({ session }: { session: WorkbenchSession }) {
                 reset={session.reset ? reset : undefined}
                 onExpand={() => setAgentExpanded(true)}
                 cancel={session.cancel}
-                resume={session.resume}
               />
             </>
           )}
@@ -534,6 +535,8 @@ export function Workbench({ session }: { session: WorkbenchSession }) {
             fileNavigator={session.fileNavigator}
           />
         )}
+        {session.sessionSearchDialog}
+        {session.projectOnboardingDialog}
       </main>
     </AssistantRuntimeProvider>
   );
