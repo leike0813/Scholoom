@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { basename, join } from 'node:path';
 import { startModelKernel } from '../model-kernel.js';
 import { createModelServer } from '../model-server.js';
-import { expect, test } from './fixture.js';
+import { addProject, expect, test } from './fixture.js';
 import { armRpcGate, installRpcGate, releaseRpcGate } from './rpc-gate.js';
 
 test('user invokes a declared research capability and opens its checked report', async ({
@@ -22,9 +22,7 @@ test('user invokes a declared research capability and opens its checked report',
     await uiPage.getByLabel('MiniMax API Key', { exact: true }).fill('synthetic-research-key');
     await uiPage.getByRole('button', { name: '保存凭据' }).click();
     await expect(uiPage.getByLabel('MiniMax API Key', { exact: true })).toHaveValue('');
-    await uiPage.getByLabel('添加项目', { exact: true }).click();
-    await uiPage.getByRole('textbox', { name: '项目目录', exact: true }).fill(project);
-    await uiPage.getByRole('button', { name: '打开目录' }).click();
+    await addProject(uiPage, project);
     await expect(uiPage.getByLabel('执行上下文')).toContainText(basename(project));
     await uiPage.getByRole('button', { name: '设置', exact: true }).click();
     await uiPage.getByText('项目权限与备份', { exact: true }).click();
@@ -87,9 +85,7 @@ test('user configures, edits safely and receives a real persisted Agent result',
     await uiPage.getByLabel('MiniMax API Key', { exact: true }).fill('synthetic-ui-key');
     await uiPage.getByRole('button', { name: '保存凭据' }).click();
     await expect(uiPage.getByLabel('MiniMax API Key', { exact: true })).toHaveValue('');
-    await uiPage.getByLabel('添加项目', { exact: true }).click();
-    await uiPage.getByRole('textbox', { name: '项目目录', exact: true }).fill(project);
-    await uiPage.getByRole('button', { name: '打开目录' }).click();
+    await addProject(uiPage, project);
     await expect(uiPage.getByLabel('执行上下文')).toContainText(basename(project));
     await uiPage.getByRole('button', { name: '设置', exact: true }).click();
     await uiPage.getByText('项目权限与备份', { exact: true }).click();
@@ -296,9 +292,11 @@ test('busy conversation accepts additions, cancellation survives reload and cont
     await expect(uiPage.getByRole('status', { name: '执行状态' })).toContainText('已取消');
     expect(model.requests).toHaveLength(1);
     model.release();
-    await uiPage.getByRole('button', { name: '继续执行', exact: true }).click();
+    // 取消后不提供“继续执行”按钮，由用户发送新的明确指令接续。
+    await input.fill('MODEL_CHAT 取消后的明确指令');
+    await uiPage.getByRole('button', { name: '发送指令' }).click();
     await expect(uiPage.getByRole('status', { name: '执行状态' })).toContainText('执行完成');
-    expect(JSON.stringify(model.requests.at(-1)?.messages)).toContain('追加要求');
+    expect(JSON.stringify(model.requests.at(-1)?.messages)).toContain('取消后的明确指令');
     const before = model.requests.length;
     await armRpcGate(uiPage, 'session.send');
     await input.fill(`MODEL_CHAT 刷新前未确认的指令\n${'合成长指令正文\n'.repeat(80)}`);

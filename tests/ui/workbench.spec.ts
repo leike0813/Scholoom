@@ -43,7 +43,7 @@ test('transport reconnect preserves the instruction draft', async ({ uiPage }) =
   await expect(input).toHaveValue('断线时保留这份草稿');
 });
 
-test('user shutdown affects other clients and retry preserves draft', async ({ uiPage }) => {
+test('CLI shutdown reaches every client and retry preserves draft', async ({ uiPage }) => {
   await uiPage.goto(rendererUrl);
   const status = uiPage.getByRole('status', { name: '连接状态' });
   await expect(status).toContainText('已连接');
@@ -53,15 +53,15 @@ test('user shutdown affects other clients and retry preserves draft', async ({ u
   try {
     const input = uiPage.getByRole('textbox', { name: '研究指令' });
     await input.fill('停机和重试后仍保留');
-    await uiPage.getByText('停止内核', { exact: true }).click();
-    await expect(uiPage.getByText(/所有已连接的客户端/)).toBeVisible();
-    await uiPage.getByRole('button', { name: '确认停止' }).click();
+    // 工作台不提供停止入口；停机经 CLI 发起，所有客户端收到同一停机通知。
+    await runKernel(dataDirectory(), 'stop');
     await expect(status).toContainText('已停止', { timeout: 15_000 });
     expect((await runKernel(dataDirectory(), 'status')).state).toBe('stopped');
     expect(observer.getSnapshot().phase).toBe('stopping');
     await expect(input).toHaveValue('停机和重试后仍保留');
     await uiPage.waitForTimeout(500);
     expect((await runKernel(dataDirectory(), 'status')).state).toBe('stopped');
+    await status.hover();
     await uiPage.getByRole('button', { name: '重试连接' }).click();
     await expect(status).toContainText('已连接');
     expect((await runningKernel(dataDirectory())).instanceId).not.toBe(endpoint.instanceId);
@@ -81,6 +81,8 @@ test('kernel crash requires user retry and keeps draft', async ({ uiPage }) => {
   process.kill(endpoint.processId, 'SIGKILL');
   await expect.poll(async () => (await runKernel(dataDirectory(), 'status')).state).toBe('stopped');
   const retry = uiPage.getByRole('button', { name: '重试连接' });
+  // 底栏只显示单行状态，重试位于 hover/focus 详情层；指针停留期间详情层随状态更新。
+  await status.hover();
   await expect(retry).toBeVisible({ timeout: 10_000 });
   expect((await runKernel(dataDirectory(), 'status')).state).toBe('stopped');
   await retry.click();

@@ -26,11 +26,18 @@ function SessionRow({
   changed: () => Promise<void>;
 }) {
   const row = useRef<HTMLButtonElement>(null);
+  const titleInput = useRef<HTMLInputElement>(null);
   const [title, setTitle] = useState(item.title);
   const [menu, setMenu] = useState<{ x: number; y: number }>();
+  const [editing, setEditing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   useEffect(() => setTitle(item.title), [item.title]);
+  useEffect(() => {
+    if (!editing) return;
+    titleInput.current?.focus();
+    titleInput.current?.select();
+  }, [editing]);
   const running = ['queued', 'running', 'cancelling'].includes(item.state);
   const closeMenu = useCallback(() => setMenu(undefined), []);
   const update = async (rename: boolean): Promise<boolean> => {
@@ -41,7 +48,7 @@ function SessionRow({
         await client.call('session.rename', {
           projectId: item.projectId,
           sessionId: item.id,
-          title,
+          title: title.trim(),
         });
       else
         await client.call('session.archive', {
@@ -58,47 +65,84 @@ function SessionRow({
       setBusy(false);
     }
   };
+  const stopEditing = () => {
+    setEditing(false);
+    setTitle(item.title);
+    setError('');
+    requestAnimationFrame(() => row.current?.focus());
+  };
   const openKeyboardMenu = () => {
     const rect = row.current?.getBoundingClientRect();
     setMenu({ x: rect ? rect.left + 24 : 24, y: rect ? rect.bottom + 4 : 24 });
   };
+  const dot = running ? 'dot dot--run' : item.state === 'failed' ? 'dot dot--err' : 'dot dot--idle';
+  const stateLabel = running ? '运行中' : item.state === 'failed' ? '失败' : '已停止';
   return (
     <li data-session-id={item.id}>
       <div className="session-row">
-        <button
-          ref={row}
-          type="button"
-          className={`session${selected ? ' session--active' : ''}`}
-          aria-label={`打开会话 ${item.title}`}
-          aria-pressed={selected}
-          aria-haspopup="menu"
-          aria-expanded={menu !== undefined}
-          onClick={select}
-          onContextMenu={(event) => {
-            event.preventDefault();
-            setMenu({ x: event.clientX, y: event.clientY });
-          }}
-          onKeyDown={(event) => {
-            if (event.key === 'ContextMenu' || (event.shiftKey && event.key === 'F10')) {
+        {editing ? (
+          <form
+            className="session session--editing"
+            onSubmit={(event) => {
               event.preventDefault();
-              openKeyboardMenu();
-            }
-          }}
-        >
-          <span
-            className={
-              running ? 'dot dot--run' : item.state === 'failed' ? 'dot dot--err' : 'dot dot--idle'
-            }
-            role="img"
-            aria-label={running ? '运行中' : item.state === 'failed' ? '失败' : '已停止'}
-          />
-          <span className="session__title" title={item.title}>
-            {item.title}
-          </span>
-          <time className="session__time" dateTime={item.updatedAt}>
-            {relativeTime(item.updatedAt)}
-          </time>
-        </button>
+              if (title.trim() === item.title) return stopEditing();
+              void update(true).then((done) =>
+                done ? stopEditing() : titleInput.current?.focus(),
+              );
+            }}
+          >
+            <span className={dot} role="img" aria-label={stateLabel} />
+            <input
+              ref={titleInput}
+              aria-label={`会话标题 ${item.title}`}
+              value={title}
+              maxLength={200}
+              required
+              disabled={!enabled || busy}
+              onChange={(event) => setTitle(event.target.value)}
+              onBlur={() => {
+                if (!busy) stopEditing();
+              }}
+              onKeyDown={(event) => {
+                if (event.key !== 'Escape') return;
+                event.preventDefault();
+                event.stopPropagation();
+                stopEditing();
+              }}
+            />
+          </form>
+        ) : (
+          <button
+            ref={row}
+            type="button"
+            className={`session${selected ? ' session--active' : ''}`}
+            aria-label={`打开会话 ${item.title}`}
+            aria-pressed={selected}
+            aria-haspopup="menu"
+            aria-expanded={menu !== undefined}
+            onClick={select}
+            onContextMenu={(event) => {
+              event.preventDefault();
+              setError('');
+              setMenu({ x: event.clientX, y: event.clientY });
+            }}
+            onKeyDown={(event) => {
+              if (event.key === 'ContextMenu' || (event.shiftKey && event.key === 'F10')) {
+                event.preventDefault();
+                setError('');
+                openKeyboardMenu();
+              }
+            }}
+          >
+            <span className={dot} role="img" aria-label={stateLabel} />
+            <span className="session__title" title={item.title}>
+              {item.title}
+            </span>
+            <time className="session__time" dateTime={item.updatedAt}>
+              {relativeTime(item.updatedAt)}
+            </time>
+          </button>
+        )}
         {menu ? (
           <ContextMenu
             label={`管理会话 ${item.title}`}
@@ -106,25 +150,9 @@ function SessionRow({
             onClose={closeMenu}
             returnFocus={row}
           >
-            <MenuFormItem
-              legend="会话标题"
-              onSubmit={() =>
-                void update(true).then((done) => {
-                  if (done) closeMenu();
-                })
-              }
-            >
-              <input
-                aria-label={`会话标题 ${item.title}`}
-                value={title}
-                maxLength={200}
-                onChange={(event) => setTitle(event.target.value)}
-                disabled={!enabled || busy}
-              />
-              <button type="submit" className="btn" disabled={!enabled || busy || !title.trim()}>
-                保存标题
-              </button>
-            </MenuFormItem>
+            <MenuItem disabled={!enabled || busy} onSelect={() => setEditing(true)}>
+              重命名
+            </MenuItem>
             <MenuItem
               disabled={!enabled || busy || (running && !item.archived)}
               reason={running && !item.archived ? '停止执行后可归档' : undefined}
@@ -136,6 +164,11 @@ function SessionRow({
           </ContextMenu>
         ) : null}
       </div>
+      {editing && error ? (
+        <p className="session-row__error" role="alert">
+          {error}
+        </p>
+      ) : null}
     </li>
   );
 }

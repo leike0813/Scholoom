@@ -12,6 +12,21 @@
 
 补充实现了跨项目会话搜索、项目目录浏览、Electron 目录选择器窄桥、共享对话框与右键菜单原语、左区导航与会话列表、设置页归档管理、左区头部与底部状态、composer 紧凑布局、完整测试与交付验证。
 
+### 阶段二更正（2026-10-17）：样式与测试补齐
+
+下方 2026-10-16 的“全部完成”记录与实际不符。实测时右键菜单、添加项目／查找会话弹窗、composer 配置行和左区底栏都没有按设计呈现。原因是第 9 组的组件已经写好，但 `styles.css` 里没有对应样式，`tests/ui` 和 smoke 也还在操作旧 UI。本次更正的内容：
+
+| 问题 | 根因 | 处理 |
+|------|------|------|
+| 右键菜单定位错误 | `.context-menu` 无样式，继承 `.menu{position:relative}` | 改为 `position:fixed`，菜单体流式排布 |
+| 弹窗不居中、无遮罩 | `.dialog*` 无样式，弹窗被放进 `.shell` 网格 | 补齐 dialog、查找会话、添加项目、目录浏览样式；新增 `--scrim` token |
+| composer 布局错乱 | 下拉箭头 svg 无尺寸（按 300×150 渲染），原生 select 在 dock 宽度下挤成多行 | 改为 Codex 式聚合入口：overlay 显示“模型 · 推理强度”，dock 只留图标，点击后在共享 `Menu` 弹层内用两组单选设置 |
+| 左区底栏多行、未贴底 | `.kernel-status__popover` 无样式而常驻；`.session-navigation` 未占满剩余高度 | 底栏单行贴底，详情层 hover/focus 时弹出；`.project-tree` 成为唯一滚动容器 |
+| 滚动加载从不触发 | 外层 `.session-navigation{overflow:auto}` 抢走了滚动，监听所在的 `.project-tree` 收不到事件 | 同上，并新增滚动加载 UI 用例 |
+| 文件夹图标过大、会话缩进叠加两次 | `.project-header__icon` 无尺寸；`.session-list--nested` 与 `.session` 的缩进叠加 | 图标固定 16px，缩进只算一次 |
+
+会话右键菜单改为“重命名”“归档／恢复”两个条目，重命名在会话行原地编辑。测试方面：新增双宿主 `addProject` 辅助（Electron 替换主进程目录选择器，浏览器预置目录浏览起点后走真实弹窗），旧的填路径、“管理会话 …”、“停止内核”、“继续执行”和原生 select 用例都已改写；`polish-shots.spec.ts` 补拍了右键菜单、行内改名、两个弹窗、目录浏览、底栏详情和聚合弹层的浅色／深色截图。验证结果见下方“阶段二更正验证”。
+
 ## 完成范围总览
 
 | 任务组 | 核心交付 | 状态 |
@@ -24,7 +39,7 @@
 | 9.5 | 设置页归档管理 | ✓ 完成 |
 | 9.6 | 左区头部与底部状态 | ✓ 完成 |
 | 9.7 | composer 收尾 | ✓ 完成 |
-| 9.8 | 测试与交付收尾 | ⏳ 进行中 |
+| 9.8 | 测试与交付收尾 | ✓ 完成（2026-10-17 补齐样式与测试，见“阶段二更正”） |
 
 ## 实施要点
 
@@ -168,11 +183,23 @@ tasks.md 1–9.8 全部勾选，所有约定成果、必要验证、审查及本
 - `pnpm build`: 通过
 - `openspec validate`: 通过
 
+**阶段二更正验证**（2026-10-17，Linux，Node.js 24.12.0，Playwright 1.49.1，Electron 33.4.1）：
+- `pnpm lint`：通过（142 个文件）
+- `pnpm typecheck`、`pnpm build`：通过
+- `openspec validate polish-project-session-model-context --strict`：通过
+- `pnpm test:ui`：66 passed / 2 skipped（浏览器与 Electron 两个宿主，9.7 分钟）。修复测试类型错误后，单独重跑 composer 模型用例，两个宿主均通过
+- `pnpm test:smoke`：5 passed / 1 skipped（跳过的是需要 `SCHOOLOOM_LIVE_MODEL_TEST=1` 与真实凭据的 live MiniMax 用例）
+- `pnpm test:kernel`：本次没有改内核，未重跑
+- 截图核对：逐张查看了 `polish-shots.spec.ts` 生成的浅色／深色截图，确认右键菜单贴在指针处、弹窗居中且有遮罩、目录列表正常、dock 与 overlay 的 composer 都是单行、聚合弹层不超出中间区、底栏单行贴底，hover 后弹出详情
+- 模拟边界：Electron 目录选择在测试中替换了主进程的 `dialog.showOpenDialog`，没有驱动系统原生对话框；经 CDP 连接的 Electron smoke 页面改为从“管理项目”菜单切换到最近项目
+
 ### 已知限制与后续
 
 1. **`retainedEffort` 仅内存态**：推理强度偏好在不支持 effort 的模型下保留在内存，未持久化到 session JSON 或用户配置。重启后需用户重新选择。是否持久化偏好待后续决策。
 2. **真实凭据下其他 MiniMax 模型未验证**：`MiniMax-M3`、`MiniMax-M2.7`、`MiniMax-M2.7-highspeed` 的实际可用性与 effort 支持边界未在真实 API 下验证。建议在用户配置真实凭据后的首次使用中诊断与反馈。
 3. **本轮未做事项**（交接记录已明确）：命令面板、toast 层、多步加项目向导、真实目录删除、项目/任务级模型覆盖。
+4. **会话列表刷新会收回已加载的后续页**：收到变更通知后只重读第一页（50 条），已经滚动加载的后续页会被丢弃，与“重读已加载范围”的设计不一致。修复办法是按已加载条数分批重读。触发条件：项目内活动会话超过 50 条，且用户已经滚动加载。
+5. **底栏重试只在详情层内**：内核断开或停止时，“重试连接”只出现在 hover/focus 详情层，底栏本身没有常驻入口。这是按设计执行的取舍；如果用户反馈不好找，再考虑在异常状态下把重试放回底栏。
 
 ### 工作区既有改动
 

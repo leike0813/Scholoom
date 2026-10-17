@@ -18,7 +18,7 @@ export function useMenuClose(): () => void {
 
 const focusable = (node: HTMLElement) => [
   ...node.querySelectorAll<HTMLElement>(
-    '.menu__body button:not([disabled]), .menu__body input:not([disabled]), .menu__body select:not([disabled])',
+    '.menu__body button:not(:disabled), .menu__body input:not(:disabled), .menu__body select:not(:disabled)',
   ),
 ];
 

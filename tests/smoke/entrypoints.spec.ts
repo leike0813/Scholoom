@@ -77,6 +77,7 @@ test('desktop closes without stopping kernel and a new window reconnects', async
         if (current.state === 'running') {
           if (instanceId) expect(current.endpoint.instanceId).toBe(instanceId);
           instanceId = current.endpoint.instanceId;
+          await page.getByRole('status', { name: '连接状态' }).hover();
           await expect(page.getByText(`实例 ${instanceId}`, { exact: true })).toBeVisible();
         }
       } finally {

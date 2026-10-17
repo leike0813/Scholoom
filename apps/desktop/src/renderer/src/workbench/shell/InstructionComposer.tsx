@@ -2,87 +2,147 @@ import { ComposerPrimitive, useAui, useAuiState } from '@assistant-ui/react';
 import type { Effort } from '@scholoom/protocol';
 import type { ComponentProps, ReactNode } from 'react';
 import type { WorkbenchSession } from '../session';
-import { IconChevronDown, IconSend } from './icons';
+import { IconChevronDown, IconSend, IconTune } from './icons';
+import { Menu } from './menu';
+
+type Context = NonNullable<WorkbenchSession['executionContext']>;
+
+function PickerOption({
+  name,
+  value,
+  current,
+  onSelect,
+  children,
+}: {
+  name: string;
+  value: string;
+  current: string;
+  onSelect: (value: string) => void;
+  children: ReactNode;
+}) {
+  return (
+    <label className="composer-picker__option">
+      <input
+        type="radio"
+        name={name}
+        value={value}
+        checked={current === value}
+        onChange={() => onSelect(value)}
+      />
+      <span>{children}</span>
+    </label>
+  );
+}
 
 /**
- * dock 与 overlay 共用的执行上下文配置行：权限只读段、模型选择、推理强度选择与发送动作同一行；
- * 模型与推理强度选项只来自内核下发的 provider 目录，“跟随默认”清除会话覆盖；项目环境行窄窗口可隐藏。
+ * Codex 式聚合入口：overlay 显示当前模型与推理强度，dock 只留图标；点击后在同一弹层内选择两项。
+ * “跟随默认”清除对应会话覆盖；所选模型不支持推理强度时禁用该组并说明原因。
+ */
+function ModelPicker({ context, compact }: { context: Context; compact: boolean }) {
+  const supportsEffort = context.supportsEffort !== false;
+  const summary =
+    supportsEffort && context.effort ? `${context.model} · ${context.effort}` : context.model;
+  const label = `模型与推理强度：${summary}`;
+  const trigger = compact ? (
+    <IconTune />
+  ) : (
+    <>
+      <span className="composer-picker__summary">{summary}</span>
+      <IconChevronDown />
+    </>
+  );
+  const className = `composer-picker${compact ? ' composer-picker--icon' : ''}`;
+  if (context.configureDisabled)
+    return (
+      <button type="button" className={className} aria-label={label} title={label} disabled>
+        {trigger}
+      </button>
+    );
+  return (
+    <span title={label} className="composer-picker__anchor">
+      <Menu label={label} summary={trigger} className={`menu--up ${className}`}>
+        <fieldset className="composer-picker__group">
+          <legend>模型</legend>
+          <PickerOption
+            name="composer-model"
+            value=""
+            current={context.modelOverridden ? context.model : ''}
+            onSelect={() => context.onModelChange?.(null)}
+          >
+            跟随默认（{context.defaultModel ?? context.model}）
+          </PickerOption>
+          {context.modelOptions?.map((option) => (
+            <PickerOption
+              key={option.id}
+              name="composer-model"
+              value={option.id}
+              current={context.modelOverridden ? context.model : ''}
+              onSelect={(value) => context.onModelChange?.(value)}
+            >
+              {option.id}
+            </PickerOption>
+          ))}
+        </fieldset>
+        <fieldset className="composer-picker__group" disabled={!supportsEffort}>
+          <legend>推理强度</legend>
+          {!supportsEffort ? <p className="menu__hint">该模型不支持推理强度</p> : null}
+          <PickerOption
+            name="composer-effort"
+            value=""
+            current={context.effortOverridden ? (context.effort ?? '') : ''}
+            onSelect={() => context.onEffortChange?.(null)}
+          >
+            跟随默认（{context.defaultEffort ?? context.effort}）
+          </PickerOption>
+          {context.effortOptions?.map((effort) => (
+            <PickerOption
+              key={effort}
+              name="composer-effort"
+              value={effort}
+              current={context.effortOverridden ? (context.effort ?? '') : ''}
+              onSelect={(value) => context.onEffortChange?.(value as Effort)}
+            >
+              {effort}
+            </PickerOption>
+          ))}
+        </fieldset>
+      </Menu>
+    </span>
+  );
+}
+
+/**
+ * dock 与 overlay 共用的执行上下文配置行：左侧权限只读段与模型／推理强度聚合入口，右侧取消／发送；
+ * 模型与推理强度选项只来自内核下发的 provider 目录；项目环境行窄窗口可隐藏。
  */
 export function ExecutionContext({
   context,
   actions,
+  compact = false,
 }: {
   context: WorkbenchSession['executionContext'];
   actions?: ReactNode;
+  /** dock 形态：聚合入口只显示图标。 */
+  compact?: boolean;
 }) {
   const configurable =
     !!context?.modelOptions?.length && !!context.onModelChange && !!context.onEffortChange;
-  const disabled = !context || !!context.configureDisabled;
-  const supportsEffort = context?.supportsEffort !== false;
+  const permissions = context ? `权限：${context.permissions}` : '权限未就绪';
   return (
     <section className="composer-context" aria-label="执行上下文">
       <div className="composer-config">
-        <span className="composer-context__field">
-          {context ? `权限：${context.permissions}` : '权限未就绪'}
-        </span>
-        {configurable && context ? (
-          <>
-            <label className="composer-context__control">
-              <span className="composer-context__label">模型</span>
-              <span className="composer-context__select-wrap">
-                <select
-                  className="composer-context__select"
-                  aria-label="模型"
-                  value={context.modelOverridden ? context.model : ''}
-                  disabled={disabled}
-                  onChange={(event) =>
-                    context.onModelChange?.(event.target.value === '' ? null : event.target.value)
-                  }
-                >
-                  <option value="">跟随默认（{context.defaultModel ?? context.model}）</option>
-                  {context.modelOptions?.map((option) => (
-                    <option key={option.id} value={option.id}>
-                      {option.id}
-                    </option>
-                  ))}
-                </select>
-                <IconChevronDown />
-              </span>
-            </label>
-            <label className="composer-context__control">
-              <span className="composer-context__label">推理强度</span>
-              <span className="composer-context__select-wrap">
-                <select
-                  className="composer-context__select"
-                  aria-label="推理强度"
-                  value={context.effortOverridden ? (context.effort ?? '') : ''}
-                  disabled={disabled || !supportsEffort}
-                  onChange={(event) =>
-                    context.onEffortChange?.(
-                      event.target.value === '' ? null : (event.target.value as Effort),
-                    )
-                  }
-                >
-                  <option value="">跟随默认（{context.defaultEffort ?? context.effort}）</option>
-                  {context.effortOptions?.map((effort) => (
-                    <option key={effort} value={effort}>
-                      {effort}
-                    </option>
-                  ))}
-                </select>
-                <IconChevronDown />
-              </span>
-            </label>
-            {!supportsEffort ? (
-              <span className="composer-context__hint">该模型不支持推理强度</span>
-            ) : null}
-          </>
-        ) : (
-          <span className="composer-context__field">
-            {context ? `模型：${context.model}` : '模型未就绪'}
+        <div className="composer-config__options">
+          <span className="composer-context__field" title={permissions}>
+            {permissions}
           </span>
-        )}
-        <span className="spacer" />
+          {configurable && context ? (
+            <ModelPicker context={context} compact={compact} />
+          ) : (
+            <span className="composer-context__field">
+              {context ? `模型：${context.model}` : '模型未就绪'}
+            </span>
+          )}
+        </div>
         <div className="composer-actions">{actions}</div>
       </div>
       {context?.configureError ? (

@@ -1,9 +1,11 @@
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { basename, join } from 'node:path';
+import { createKernelClient } from '../../packages/client/dist/index.js';
+import { runningKernel } from '../kernel-fixture.js';
 import { startModelKernel } from '../model-kernel.js';
 import { createModelServer, MARKDOWN_TEXT } from '../model-server.js';
-import { expect, test } from './fixture.js';
+import { addProject, expect, test } from './fixture.js';
 import { armRpcGate, installRpcGate, releaseRpcGate } from './rpc-gate.js';
 
 test('conversation titles, archive and Markdown reading preserve the active work', async ({
@@ -25,9 +27,7 @@ test('conversation titles, archive and Markdown reading preserve the active work
     await uiPage.getByText('模型设置', { exact: true }).click();
     await uiPage.getByLabel('MiniMax API Key', { exact: true }).fill('synthetic-ui-key');
     await uiPage.getByRole('button', { name: '保存凭据' }).click();
-    await uiPage.getByLabel('添加项目', { exact: true }).click();
-    await uiPage.getByRole('textbox', { name: '项目目录', exact: true }).fill(project);
-    await uiPage.getByRole('button', { name: '打开目录' }).click();
+    await addProject(uiPage, project);
     await expect(uiPage.getByLabel('执行上下文')).toContainText(basename(project));
     await uiPage.getByRole('button', { name: '设置', exact: true }).click();
     await uiPage.getByText('项目权限与备份', { exact: true }).click();
@@ -104,41 +104,53 @@ test('conversation titles, archive and Markdown reading preserve the active work
     ).toContainText('可定位材料');
     await expect(input).toHaveValue('归档前保留的草稿');
 
-    await uiPage.getByLabel('管理会话 MODEL_MARKDOWN 阅读样本', { exact: true }).click();
-    await uiPage.getByLabel('会话标题 MODEL_MARKDOWN 阅读样本', { exact: true }).fill('资料阅读');
-    await uiPage.getByRole('button', { name: '保存标题', exact: true }).click();
-    await expect(
-      uiPage.getByRole('button', { name: '打开会话 资料阅读', exact: true }),
-    ).toBeVisible();
-    await uiPage.getByLabel('查找会话标题', { exact: true }).fill('不匹配');
-    await expect(
-      uiPage.getByRole('button', { name: '打开会话 资料阅读', exact: true }),
-    ).toHaveCount(0);
+    await uiPage
+      .getByRole('button', { name: '打开会话 MODEL_MARKDOWN 阅读样本', exact: true })
+      .click({ button: 'right' });
+    await uiPage
+      .getByRole('menu', { name: '管理会话 MODEL_MARKDOWN 阅读样本' })
+      .getByRole('button', { name: '重命名', exact: true })
+      .click();
+    const titleInput = uiPage.getByLabel('会话标题 MODEL_MARKDOWN 阅读样本', { exact: true });
+    await expect(titleInput).toBeFocused();
+    await titleInput.fill('资料阅读');
+    await titleInput.press('Enter');
+    const renamed = uiPage.getByRole('button', { name: '打开会话 资料阅读', exact: true });
+    await expect(renamed).toBeVisible();
+    await uiPage.getByRole('button', { name: '查找会话', exact: true }).click();
+    const search = uiPage.getByRole('dialog', { name: '查找会话' });
+    const query = search.getByLabel('查找会话标题', { exact: true });
+    await query.fill('不匹配');
+    await expect(search.getByText('没有匹配的会话')).toBeVisible();
+    await armRpcGate(uiPage, 'session.search');
+    await query.fill('旧查询');
+    await uiPage.waitForFunction(() => !!Reflect.get(globalThis, '__scholoomRpcGate').held);
+    await query.fill('资料');
+    const found = search.getByRole('button', { name: '打开会话 资料阅读', exact: true });
+    await expect(found).toBeVisible();
+    await releaseRpcGate(uiPage);
+    await expect(found).toBeVisible();
+    await found.click();
+    await expect(search).toHaveCount(0);
     await expect(input).toHaveValue('归档前保留的草稿');
     await expect(uiPage.getByRole('button', { name: '发送指令', exact: true })).toBeEnabled();
-    await armRpcGate(uiPage, 'session.list');
-    await uiPage.getByLabel('查找会话标题', { exact: true }).fill('旧查询');
-    await uiPage.waitForFunction(() => !!Reflect.get(globalThis, '__scholoomRpcGate').held);
-    await uiPage.getByLabel('查找会话标题', { exact: true }).fill('资料');
-    await expect(
-      uiPage.getByRole('button', { name: '打开会话 资料阅读', exact: true }),
-    ).toBeVisible();
-    await releaseRpcGate(uiPage);
-    await expect(
-      uiPage.getByRole('button', { name: '打开会话 资料阅读', exact: true }),
-    ).toBeVisible();
-    await uiPage.getByLabel('管理会话 资料阅读', { exact: true }).click();
+    await renamed.focus();
+    await renamed.press('Shift+F10');
     const requests = model.requests.length;
-    await uiPage.getByRole('button', { name: '归档会话', exact: true }).click();
+    await uiPage
+      .getByRole('menu', { name: '管理会话 资料阅读' })
+      .getByRole('button', { name: '归档会话', exact: true })
+      .click();
     await expect(input).toBeDisabled();
     await expect(input).toHaveValue('归档前保留的草稿');
     await uiPage.reload();
     await expect(uiPage.getByRole('button', { name: '恢复当前会话', exact: true })).toBeVisible();
     await expect(input).toHaveValue('归档前保留的草稿');
-    await uiPage.getByRole('button', { name: '归档', exact: true }).click();
-    await expect(
-      uiPage.getByRole('button', { name: '打开会话 资料阅读', exact: true }),
-    ).toBeVisible();
+    await uiPage.getByRole('button', { name: '查找会话', exact: true }).click();
+    await query.fill('资料');
+    await expect(found).toContainText('已归档');
+    await query.press('Escape');
+    await expect(search).toHaveCount(0);
     await uiPage.getByRole('button', { name: '展开 Agent 会话' }).click();
     await expect(reply.getByRole('table')).toBeVisible();
     await uiPage.getByRole('button', { name: '恢复当前会话', exact: true }).click();
@@ -147,8 +159,8 @@ test('conversation titles, archive and Markdown reading preserve the active work
     await uiPage.screenshot({ path: info.outputPath('conversation-restored.png') });
     await uiPage.getByRole('button', { name: '收起会话', exact: true }).click();
     await uiPage.getByRole('button', { name: '折叠左区', exact: true }).click();
-    await uiPage.getByRole('button', { name: '会话', exact: true }).click();
-    await expect(uiPage.getByLabel('查找会话标题', { exact: true })).toBeFocused();
+    await uiPage.getByRole('button', { name: '查找会话', exact: true }).click();
+    await expect(query).toBeFocused();
     expect(errors).toEqual([]);
   } finally {
     await stop();
@@ -217,12 +229,14 @@ test('archive and restore failures stay in place and retry succeeds', async ({ u
     ).toBeVisible();
     await input.fill('归档失败期间保留的草稿');
 
-    await uiPage.getByLabel(`管理会话 ${title}`, { exact: true }).click();
+    await uiPage
+      .getByRole('button', { name: `打开会话 ${title}`, exact: true })
+      .click({ button: 'right' });
+    const menu = uiPage.getByRole('menu', { name: `管理会话 ${title}` });
     await armRpcGate(uiPage, 'session.archive');
-    await uiPage.getByRole('button', { name: '归档会话', exact: true }).click();
+    await menu.getByRole('button', { name: '归档会话', exact: true }).click();
     await uiPage.waitForFunction(() => !!Reflect.get(globalThis, '__scholoomRpcGate').held);
     await releaseRpcGate(uiPage, true);
-    const menu = uiPage.locator('.session-actions .menu__body');
     await expect(menu.getByRole('alert')).toBeVisible();
     // 归档失败：错误留在菜单内，菜单不静默关闭，可直接重试。
     await expect(menu.getByRole('button', { name: '归档会话', exact: true })).toBeVisible();
@@ -273,23 +287,35 @@ test('composer model and effort overrides follow defaults, persist and reach rea
     await uiPage.getByRole('button', { name: '保存默认设置', exact: true }).click();
     await uiPage.getByRole('button', { name: '新建会话', exact: true }).click();
 
-    const modelSelect = uiPage.getByLabel('模型', { exact: true });
-    const effortSelect = uiPage.getByLabel('推理强度', { exact: true });
+    // dock 与 overlay 共用聚合入口：点击后在同一弹层内选择模型与推理强度。
+    const picker = uiPage.locator('details.composer-picker');
+    const openPicker = async () => {
+      if (!(await picker.evaluate((node) => node.hasAttribute('open'))))
+        await uiPage.getByLabel(/^模型与推理强度：/).click();
+    };
+    const option = (group: '模型' | '推理强度', name: string | RegExp) =>
+      picker
+        .getByRole('group', { name: group })
+        .getByRole('radio', typeof name === 'string' ? { name, exact: true } : { name });
     const input = uiPage.getByRole('textbox', { name: '研究指令' });
     // 初始跟随应用默认。
-    await expect(modelSelect).toHaveValue('');
-    await expect(effortSelect).toHaveValue('');
+    await openPicker();
+    await expect(option('模型', /^跟随默认/)).toBeChecked();
+    await expect(option('推理强度', /^跟随默认/)).toBeChecked();
     await input.fill('MODEL_CHAT 默认配置');
     await uiPage.getByRole('button', { name: '发送指令', exact: true }).click();
     await expect.poll(() => model.requests.length).toBe(1);
     expect(body().model).toBe('MiniMax-M3.1-Flash-Preview');
     expect(effortOf()).toBe('low');
 
-    // 会话覆盖推理强度，dock 与 overlay 一致显示。
-    await effortSelect.selectOption('high');
-    await expect(effortSelect).toHaveValue('high');
+    // 会话覆盖推理强度，dock 与 overlay 一致显示；overlay 入口直接显示当前值。
+    await openPicker();
+    await option('推理强度', 'high').click();
+    await expect(option('推理强度', 'high')).toBeChecked();
     await uiPage.getByRole('button', { name: '展开 Agent 会话' }).click();
-    await expect(uiPage.getByLabel('推理强度', { exact: true })).toHaveValue('high');
+    await expect(uiPage.getByLabel(/^模型与推理强度：/)).toContainText(
+      'MiniMax-M3.1-Flash-Preview · high',
+    );
     await uiPage.getByRole('button', { name: '收起会话', exact: true }).click();
     await input.fill('MODEL_CHAT 会话覆盖');
     await uiPage.getByRole('button', { name: '发送指令', exact: true }).click();
@@ -299,36 +325,39 @@ test('composer model and effort overrides follow defaults, persist and reach rea
 
     // 重载后覆盖保留。
     await uiPage.reload();
-    await expect(uiPage.getByLabel('推理强度', { exact: true })).toHaveValue('high');
+    await openPicker();
+    await expect(option('推理强度', 'high')).toBeChecked();
 
     // 切到不支持推理强度的模型：选择禁用并说明原因，偏好保留。
-    await uiPage.getByLabel('模型', { exact: true }).selectOption('MiniMax-M3');
-    await expect(effortSelect).toBeDisabled();
-    await expect(uiPage.getByLabel('执行上下文')).toContainText('该模型不支持推理强度');
+    await option('模型', 'MiniMax-M3').click();
+    await expect(option('推理强度', 'high')).toBeDisabled();
+    await expect(picker).toContainText('该模型不支持推理强度');
     await input.fill('MODEL_CHAT 无强度模型');
     await uiPage.getByRole('button', { name: '发送指令', exact: true }).click();
     await expect.poll(() => model.requests.length).toBe(3);
     expect(body().model).toBe('MiniMax-M3');
     expect(effortOf()).toBeNull();
     // 切回跟随默认后原 effort 覆盖继续生效。
-    await uiPage.getByLabel('模型', { exact: true }).selectOption('');
-    await expect(effortSelect).toHaveValue('high');
-    await expect(effortSelect).toBeEnabled();
+    await openPicker();
+    await option('模型', /^跟随默认/).click();
+    await expect(option('推理强度', 'high')).toBeChecked();
+    await expect(option('推理强度', 'high')).toBeEnabled();
 
     // 覆盖保存失败：不乐观更新，保留快照值并在 composer 上下文内提示可重试。
     await armRpcGate(uiPage, 'session.configure');
-    await effortSelect.selectOption('max');
+    await option('推理强度', 'max').click();
     await uiPage.waitForFunction(() => !!Reflect.get(globalThis, '__scholoomRpcGate').held);
     await releaseRpcGate(uiPage, true);
     const context = uiPage.getByLabel('执行上下文');
     await expect(context.getByRole('alert')).toBeVisible();
-    await expect(effortSelect).toHaveValue('high');
+    await expect(option('推理强度', 'high')).toBeChecked();
     await context.getByRole('button', { name: '重试', exact: true }).click();
     await expect(context.getByRole('alert')).toHaveCount(0);
-    await expect(effortSelect).toHaveValue('max');
+    await openPicker();
+    await expect(option('推理强度', 'max')).toBeChecked();
 
     // 跟随默认清除覆盖，后续请求使用应用默认。
-    await effortSelect.selectOption('');
+    await option('推理强度', /^跟随默认/).click();
     await input.fill('MODEL_CHAT 回到默认');
     await uiPage.getByRole('button', { name: '发送指令', exact: true }).click();
     await expect.poll(() => model.requests.length).toBe(4);
@@ -337,5 +366,32 @@ test('composer model and effort overrides follow defaults, persist and reach rea
   } finally {
     await stop();
     await model.close();
+  }
+});
+
+test('session list loads the next page when scrolled to the end', async ({ uiPage }) => {
+  const project = await mkdtemp(join(tmpdir(), 'scholoom-scroll-ui-'));
+  const client = createKernelClient(
+    await runningKernel(process.env.SCHOOLOOM_UI_DATA_DIR as string),
+  );
+  await client.connect();
+  try {
+    const { id: projectId } = await client.call('project.open', { path: project });
+    await client.call('session.create', { projectId, title: '最早的会话' });
+    for (let index = 1; index < 60; index++)
+      await client.call('session.create', { projectId, title: `会话 ${index}` });
+    await uiPage.goto('http://127.0.0.1:5174/');
+    await expect(uiPage.getByRole('status', { name: '连接状态' })).toContainText('已连接');
+    await addProject(uiPage, project);
+    const tree = uiPage.getByRole('tree');
+    const oldest = tree.getByRole('button', { name: '打开会话 最早的会话', exact: true });
+    await expect(tree.locator('[data-session-id]')).toHaveCount(50);
+    await expect(oldest).toHaveCount(0);
+    await tree.evaluate((node) => node.scrollTo({ top: node.scrollHeight }));
+    await expect(oldest).toBeVisible();
+    await expect(tree.locator('[data-session-id]')).toHaveCount(60);
+  } finally {
+    client.dispose();
+    await rm(project, { recursive: true });
   }
 });

@@ -1,3 +1,4 @@
+import { basename, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   test as base,
@@ -88,3 +89,40 @@ export const test = base.extend<UiFixtures>({
 });
 
 export { expect };
+
+/**
+ * 经“添加项目”弹窗打开或新建项目。Electron 在主进程替换系统目录选择器；浏览器宿主把弹窗内
+ * 目录浏览器的起点预置为待选目录，再经真实 UI 选择。新建模式下 path 为新项目目录，选择其父目录。
+ */
+export async function addProject(
+  page: Page,
+  path: string,
+  { mode = 'open' }: { mode?: 'open' | 'create' } = {},
+): Promise<void> {
+  const selected = mode === 'open' ? path : dirname(path);
+  const desktop = desktops.get(page);
+  if (desktop)
+    await desktop.evaluate(({ dialog }, directory) => {
+      dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [directory] });
+    }, selected);
+  else
+    await page.evaluate(
+      (directory) => localStorage.setItem('scholoom.project-picker.directory', directory),
+      selected,
+    );
+  await page.getByRole('button', { name: '添加项目', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: '添加项目' });
+  if (mode === 'create') await dialog.getByRole('tab', { name: '新建项目' }).click();
+  await dialog.getByRole('button', { name: mode === 'open' ? '选择目录' : '选择父目录' }).click();
+  if (!desktop) {
+    // 内核返回真实路径（macOS 的 /var 会解析为 /private/var），只核对末级目录名。
+    await expect(dialog.getByRole('region', { name: '选择目录' }).locator('code')).toContainText(
+      basename(selected),
+    );
+    await dialog.getByRole('button', { name: '选择此目录' }).click();
+  }
+  if (mode === 'create') await dialog.getByLabel('新文件夹名称').fill(basename(path));
+  await expect(dialog.getByText(`项目名将使用目录名：${basename(path)}`)).toBeVisible();
+  await dialog.getByRole('button', { name: mode === 'open' ? '打开项目' : '创建项目' }).click();
+  await expect(dialog).toHaveCount(0);
+}

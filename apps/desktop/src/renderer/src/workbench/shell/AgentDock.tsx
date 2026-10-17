@@ -96,6 +96,7 @@ export function AgentDock({ messages, context, reset, onExpand, cancel }: AgentD
           submitMode="ctrlEnter"
         />
         <ExecutionContext
+          compact
           context={context}
           actions={
             <>

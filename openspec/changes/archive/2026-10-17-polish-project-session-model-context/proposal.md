@@ -10,7 +10,7 @@
 - 本轮 UI 打磨（同一变更内继续）：左区顶部动作改为新建会话／查找会话／添加项目／文献库／设置；查找会话打开跨最近项目的居中搜索弹窗（`session.search`，结果含归档标识），添加项目打开居中弹窗（“打开／新建”两种模式，Electron 用系统目录选择器，浏览器经内核 `project.browseDirectories` 目录浏览，项目名取目录最后一级）。
 - 会话列表改为滚动加载，移除内联搜索、活动／归档切换与翻页；归档会话集中到设置页管理与恢复；会话操作移入整行右键菜单（含 Shift+F10／ContextMenu 键盘入口），移除行尾“管理会话 ⋯”。
 - 内核状态固定为左区底部单行 LED + 状态文字，实例、错误、重试与查询移入 hover/focus 详情层；移除工作台“停止内核”入口，停机保留 CLI／RPC 能力；主题切换移到标题行折叠按钮左侧，折叠按钮使用左侧栏图标。
-- composer 沿用原生 `<select>`，按 Codex 紧凑布局组织配置行（左侧权限／模型／推理强度，右侧固定取消／发送）；移除工作台“继续执行”入口，内核 `session.resume` 与 CLI `continue` 能力保留。
+- composer 配置行左侧为权限与 Codex 式模型／推理强度聚合入口（overlay 显示当前值，dock 只留图标，点击后在弹层内同时设置两项），右侧固定取消／发送；移除工作台“继续执行”入口，内核 `session.resume` 与 CLI `continue` 能力保留。
 - 新增共享 `Menu`/`MenuItem`/`MenuFormItem`/`ConfirmAction` 原语（`workbench/shell/menu.tsx`），迁移会话菜单、内核停止确认、文件回收确认。
 - 协议新增 `effortSchema`、`modelOptionSchema`、`modelPreferenceSchema`，`providerSchema` 携带模型目录与默认配置，`sessionSchema` 增加 `modelConfig`，`runSchema` 记录实际执行配置；新增 `provider.setDefaults` 与 `session.configure` RPC；`session.send` 保持不变。
 - 内核新增模型配置模块：模型目录（4 个当前模型及 `supportsEffort` 能力位）、默认配置私有原子持久化（出厂默认 `MiniMax-M3.1-Flash-Preview + medium`）、按能力位组请求；Harness 在新建 run 时钉入“会话覆盖 ?? 应用默认”，busy 追加与 resume 沿用原 run 配置。

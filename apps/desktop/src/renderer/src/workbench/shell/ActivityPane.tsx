@@ -88,7 +88,7 @@ function ProjectNode({
       </div>
 
       {expanded && (
-        <div className="session-list">
+        <div className="session-list session-list--nested">
           {sessions.length === 0 ? (
             <p className="empty-hint" style={{ paddingLeft: '2rem' }}>
               暂无会话
@@ -262,32 +262,22 @@ export function ActivityPane({
           </div>
         ))}
 
-      <div className="kernel-status">
+      {/* biome-ignore lint/a11y/noNoninteractiveTabindex: 状态行需键盘可达，聚焦后经 :focus-within 展开详情层 */}
+      <div className="kernel-status" tabIndex={0}>
         <span className={kernelDot} role="img" aria-label="连接指示" />
         <p className="kernel-status__text" role="status" aria-label="连接状态">
           {kernelMessage}
         </p>
         <div className="kernel-status__popover">
-          <dl>
-            <div>
-              <dt>状态</dt>
-              <dd>{kernelMessage}</dd>
-            </div>
-            {connection?.instanceId ? (
-              <div>
-                <dt>实例</dt>
-                <dd>{connection.instanceId}</dd>
-              </div>
-            ) : null}
-            {connection?.error ? (
-              <div>
-                <dt>错误</dt>
-                <dd>
-                  {connection.error.code}：{connection.error.message}
-                </dd>
-              </div>
-            ) : null}
-          </dl>
+          <p>{kernelMessage}</p>
+          {connection?.instanceId ? (
+            <p className="kernel-status__meta">实例 {connection.instanceId}</p>
+          ) : null}
+          {connection?.error ? (
+            <p className="kernel-status__error">
+              {connection.error.code}：{connection.error.message}
+            </p>
+          ) : null}
           {connection?.retry || connection?.inspect ? (
             <div className="kernel-status__actions">
               {connection.retry ? (

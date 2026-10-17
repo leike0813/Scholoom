@@ -283,6 +283,22 @@ export function IconFolderOpen() {
   );
 }
 
+export function IconTune() {
+  return (
+    <Svg>
+      <path
+        d="M2 4.5h7M12.5 4.5H14M2 11.5h1.5M7 11.5h7"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.3"
+        strokeLinecap="round"
+      />
+      <circle cx="10.5" cy="4.5" r="1.6" fill="none" stroke="currentColor" strokeWidth="1.3" />
+      <circle cx="5.5" cy="11.5" r="1.6" fill="none" stroke="currentColor" strokeWidth="1.3" />
+    </Svg>
+  );
+}
+
 export function IconSidebarLeft() {
   return (
     <Svg>

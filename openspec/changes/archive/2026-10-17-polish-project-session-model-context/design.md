@@ -80,7 +80,7 @@ flowchart LR
 - `ProjectNavigation.tsx`：项目操作表单迁出 `ProjectControls`；设置页保留“模型设置”（应用默认模型与默认推理强度，经 `provider.setDefaults`）与“项目权限与备份”，并新增“归档会话” section：按当前项目（含 `application` 范围）调用 `session.list { archived: true }` 滚动列出，提供“恢复会话”，成功刷新归档与活动列表，失败错误留在对应行内；文件回收确认改用共享 `ConfirmAction`。
 - `ActivityPane.tsx`：标题行改为左侧 Scholoom 标题、右侧依次主题按钮（可访问名保持“切换主题”）与折叠按钮（左侧栏图标）；删除 `StopKernel` 及内核停止确认接线；底部内核状态固定单行 LED + 状态文字，实例 id、错误详情、“重试连接”“查询状态”移入 hover/focus 弹出层；样例 `ProjectNode` 与真实项目行样式对齐。
 - `session.ts` / `business-session.tsx`：扩展 `executionContext`，从 snapshot 派生有效模型、effort、能力位与覆盖状态；接线 `provider.setDefaults` 与 `session.configure`；失败保留当前值并在 composer 上下文内显示 `role="alert"` 可重试错误，不做乐观更新。本轮移除 UI 层 `resume` 接线（内核 `session.resume` RPC 与 harness 逻辑保留，供协议能力继续使用）。
-- `InstructionComposer.tsx`、`AgentDock.tsx`、`AgentOverlay.tsx`：激活选择器，移除 `value='medium'` 死值；归档、未连接、无会话时禁用；模型不支持 effort 时禁用推理强度并说明原因，偏好保留。本轮按 Codex 紧凑布局组织配置行：隐藏重复可见标签，模型／推理强度以原生 `<select>` 紧凑控件加下拉箭头呈现，左侧为权限与选择器、右侧固定取消／发送动作区，错误提示不挤压发送按钮；删除“继续执行”按钮及 `resume` prop。
+- `InstructionComposer.tsx`、`AgentDock.tsx`、`AgentOverlay.tsx`：激活选择器，移除 `value='medium'` 死值；归档、未连接、无会话时禁用；模型不支持 effort 时禁用推理强度并说明原因，偏好保留。本轮配置行左侧为权限与模型／推理强度聚合入口（Codex 式：overlay 显示当前值，dock 只留图标，点击后在共享 `Menu` 弹层内以两组单选设置），右侧固定取消／发送动作区，错误提示不挤压发送按钮；删除“继续执行”按钮及 `resume` prop。
 - `styles.css`：提取共享 menu/confirm 样式，补项目行选中态、composer 控件布局；只用语义 token，必要时新增 `--row-h` 并同步 token 表。本轮调整 `.side` flex 高度分配（会话导航 `flex: 1; min-height: 0`，底部状态 `flex: none` 不换行），新增搜索弹窗、项目弹窗、目录浏览器、右键菜单与内核详情弹出层样式，全部只使用现有语义 token，必要时先在 token 表补语义值。
 
 ### Electron 目录选择窄桥
@@ -152,7 +152,7 @@ sequenceDiagram
 - 内核测试（合成 loopback，不消耗真实 Key）：请求体含所选 model 与 effort；目录外模型拒绝且零 HTTP 请求；不支持 effort 的模型不发送 effort；默认配置持久化与损坏诊断；`session.configure` 设置/清除；新 run 钉入配置；busy 追加与 resume 不换配置；旧记录兼容；`provider.setDefaults` 影响后续 run、不影响已排队 run。本轮新增：目录浏览的普通目录、文件排除、链接排除、私有配置拒绝／隐藏、分页截断与不存在路径错误；跨项目搜索、归档结果标识、空查询最近列表、查询转义与 `truncated`。
 - UI 双宿主测试：依赖“当前项目 combobox”的流程改为项目行与“管理项目/添加项目”菜单；归档/恢复失败错误行、归档时 composer 禁用、恢复不自动发送；设置默认、会话覆盖与“跟随默认”、dock/overlay 一致、reload 保留；模型 fixture 断言请求体 `model` 与 `output_config.effort`；菜单 Esc/外点关闭基本行为；可访问名保持稳定或同步更新断言。本轮新增：搜索弹窗打开、跨项目／归档结果、旧查询不覆盖、右键重命名与归档、设置页恢复、折叠轨搜索入口；添加项目流程改为弹窗 + 目录选择（Electron stub 系统对话框，浏览器驱动真实目录浏览 UI），新建项目只输入文件夹名并断言项目名取目录名；滚动加载替代分页按钮；工作台无停止内核入口，停机经 CLI/client 后验证通知、草稿保留与重试，底部单行与 hover/focus 详情；“继续执行”路径改为取消后发送新的明确指令。
 - 最终验证：`pnpm lint`、`pnpm typecheck`、`pnpm build`、`pnpm test:kernel`、`pnpm test:ui`、`openspec validate polish-project-session-model-context --strict`；环境允许再跑 `pnpm check`；不以启动开发服务器替代验证。
-- 风险：MiniMax 各模型对 `thinking`/`output_config` 接受范围不同——用能力位分别组请求，失败直接报告不自动回退模型；M Plan 是否放行全部 4 个模型只能真实调用确认，本轮记录未验证范围。原生 `<select>` 视觉取舍已确认，本轮不引入自定义下拉。目录浏览 RPC 会暴露本机目录名：只接受已认证本机客户端，只列目录、不含文件，排除链接与应用私有目录，并保持单页上限。滚动加载沿用内核游标，刷新只重读已加载范围，不无限扩大投影。移除 UI 停机按钮改变既有 kernel-lifecycle 契约，因此先改 spec delta 与开发文档，再删 UI 接线。
+- 风险：MiniMax 各模型对 `thinking`/`output_config` 接受范围不同——用能力位分别组请求，失败直接报告不自动回退模型；M Plan 是否放行全部 4 个模型只能真实调用确认，本轮记录未验证范围。原生 `<select>` 在 dock 宽度下会把配置行挤成多行，实测后改为聚合入口弹层（单选组），沿用共享 `Menu` 原语，不另建下拉组件。目录浏览 RPC 会暴露本机目录名：只接受已认证本机客户端，只列目录、不含文件，排除链接与应用私有目录，并保持单页上限。滚动加载沿用内核游标，刷新只重读已加载范围，不无限扩大投影。移除 UI 停机按钮改变既有 kernel-lifecycle 契约，因此先改 spec delta 与开发文档，再删 UI 接线。
 
 ## 待办边界
 

@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { type Browser, chromium, expect, type Page, test } from '@playwright/test';
 import type { BootstrapResult } from '../../packages/protocol/dist/index.js';
 import { runKernel } from '../kernel-fixture.js';
+import { addProject } from '../ui/fixture.js';
 
 const projectRoot = fileURLToPath(new URL('../../', import.meta.url));
 const commandTimeoutMs = 60_000;
@@ -223,9 +224,14 @@ async function expectLibraryItem(page: Page, title: string): Promise<void> {
 }
 
 async function openProject(page: Page, directory: string): Promise<void> {
-  await page.getByLabel('添加项目', { exact: true }).click();
-  await page.getByRole('textbox', { name: '项目目录', exact: true }).fill(directory);
-  await page.getByRole('button', { name: '打开目录' }).click();
+  await addProject(page, directory);
+  await expect(page.getByLabel('执行上下文')).toContainText(basename(directory));
+}
+
+/** 经 CDP 连接的 Electron 页无法替换主进程目录选择器，改从“管理项目”菜单切换到已登记的最近项目。 */
+async function switchToRecentProject(page: Page, directory: string): Promise<void> {
+  await page.getByLabel(/^管理项目 /).click();
+  await page.getByRole('button', { name: basename(directory), exact: true }).click();
   await expect(page.getByLabel('执行上下文')).toContainText(basename(directory));
 }
 
@@ -296,10 +302,12 @@ test('real dev commands share one development kernel and the last owner recycles
     await waitConnected(electron.page);
 
     const endpoint = await runningKernel(directory);
-    for (const host of [page, electron.page])
+    for (const host of [page, electron.page]) {
+      await host.getByRole('status', { name: '连接状态' }).hover();
       await expect(
         host.getByText(`实例 ${endpoint.endpoint.instanceId}`, { exact: true }),
       ).toBeVisible({ timeout: 30_000 });
+    }
 
     await grantLibrary(page);
     await createLibraryItem(page, title);
@@ -307,6 +315,7 @@ test('real dev commands share one development kernel and the last owner recycles
 
     await page.reload();
     await waitConnected(page);
+    await page.getByRole('status', { name: '连接状态' }).hover();
     await expect(
       page.getByText(`实例 ${endpoint.endpoint.instanceId}`, { exact: true }),
     ).toBeVisible({ timeout: 30_000 });
@@ -444,7 +453,7 @@ test.describe('live development harness', () => {
         ).toBeVisible();
 
       await waitConnected(electron.page);
-      await openProject(electron.page, project);
+      await switchToRecentProject(electron.page, project);
       await electron.page.getByRole('button', { name: '刷新文件', exact: true }).click();
       await electron.page.getByRole('button', { name: '打开文件 result.md', exact: true }).click();
       const view = electron.page.getByRole('textbox', { name: '文件内容 result.md', exact: true });

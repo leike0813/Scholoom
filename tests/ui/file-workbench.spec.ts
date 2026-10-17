@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { startModelKernel } from '../model-kernel.js';
 import { createModelServer } from '../model-server.js';
-import { expect, test } from './fixture.js';
+import { addProject, expect, test } from './fixture.js';
 import { armRpcGate, installRpcGate, releaseRpcGate } from './rpc-gate.js';
 
 test('project files share draft preview and survive directory rename, trash and recovery', async ({
@@ -24,12 +24,9 @@ test('project files share draft preview and survive directory rename, trash and 
     await installRpcGate(uiPage);
     await uiPage.goto('http://127.0.0.1:5174/');
     await expect(uiPage.getByRole('status', { name: '连接状态' })).toContainText('已连接');
-    await uiPage.getByLabel('添加项目', { exact: true }).click();
-    await uiPage.getByLabel('新建项目目录', { exact: true }).fill(project);
-    await uiPage.getByLabel('新建项目显示名', { exact: true }).fill('File workbench');
-    await uiPage.getByRole('button', { name: '创建项目', exact: true }).click();
+    await addProject(uiPage, project, { mode: 'create' });
     await expect(
-      uiPage.getByRole('button', { name: 'File workbench，已展开', exact: true }),
+      uiPage.getByRole('button', { name: 'project，已展开', exact: true }),
     ).toBeVisible();
     await uiPage.getByRole('button', { name: '设置', exact: true }).click();
     await uiPage.getByText('模型设置', { exact: true }).click();
@@ -168,7 +165,7 @@ test('project files share draft preview and survive directory rename, trash and 
     await expect
       .poll(() => readFile(join(project, 'recovered', 'draft.md'), 'utf8'))
       .toContain('Unsaved latest paragraph');
-    await uiPage.getByLabel('管理项目 File workbench', { exact: true }).click();
+    await uiPage.getByLabel('管理项目 project', { exact: true }).click();
     await uiPage.getByLabel('项目显示名', { exact: true }).fill('Renamed workbench');
     await uiPage.getByRole('button', { name: '保存显示名', exact: true }).click();
     await expect(
@@ -179,9 +176,7 @@ test('project files share draft preview and survive directory rename, trash and 
     await expect(
       uiPage.getByRole('button', { name: '普通会话，已展开', exact: true }),
     ).toBeVisible();
-    await uiPage.getByLabel('添加项目', { exact: true }).click();
-    await uiPage.getByLabel('项目目录', { exact: true }).fill(project);
-    await uiPage.getByRole('button', { name: '打开目录', exact: true }).click();
+    await addProject(uiPage, project);
     await expect(
       uiPage.getByRole('button', { name: 'Renamed workbench，已展开', exact: true }),
     ).toBeVisible();
