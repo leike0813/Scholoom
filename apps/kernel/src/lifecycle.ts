@@ -1,11 +1,10 @@
-import { execFile, execSync, spawn } from 'node:child_process';
+import { execSync, spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
-import { chmod, mkdir, open, readFile, realpath, rename, stat, unlink } from 'node:fs/promises';
+import { mkdir, open, readFile, realpath, rename, stat, unlink } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { setTimeout as delay } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
-import { promisify } from 'node:util';
 import { createKernelClient, KernelClientError } from '@scholoom/client';
 import {
   type BootstrapResult,
@@ -17,11 +16,11 @@ import {
   protocolVersion,
 } from '@scholoom/protocol';
 import { startKernelServer } from './server.js';
+import { privateDirectory } from './storage/private-files.js';
 
 export { defaultDataDirectory } from './bootstrap.js';
 
 const cliPath = fileURLToPath(new URL('./cli.js', import.meta.url));
-const execute = promisify(execFile);
 
 function errorInfo(error: unknown): ErrorInfo {
   if (error instanceof KernelClientError) return { code: error.code, message: error.message };
@@ -171,24 +170,7 @@ export async function inspectKernel(directory: string): Promise<BootstrapResult>
 
 async function prepareRuntime(directory: string): Promise<string> {
   const runtime = join(directory, 'runtime');
-  await mkdir(runtime, { recursive: true, mode: 0o700 });
-  if (process.platform === 'win32') {
-    const script = [
-      '$acl = New-Object System.Security.AccessControl.DirectorySecurity',
-      '$acl.SetAccessRuleProtection($true, $false)',
-      '$sid = [System.Security.Principal.WindowsIdentity]::GetCurrent().User',
-      '$acl.SetOwner($sid)',
-      '$rule = New-Object System.Security.AccessControl.FileSystemAccessRule($sid, "FullControl", "ContainerInherit,ObjectInherit", "None", "Allow")',
-      '$acl.AddAccessRule($rule)',
-      'Set-Acl -LiteralPath $env:SCHOOLOOM_RUNTIME_ACL_PATH -AclObject $acl -ErrorAction Stop',
-    ].join('; ');
-    await execute('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', script], {
-      windowsHide: true,
-      env: { ...process.env, SCHOOLOOM_RUNTIME_ACL_PATH: runtime },
-    });
-  } else {
-    await chmod(runtime, 0o700);
-  }
+  await privateDirectory(runtime);
   return runtime;
 }
 
@@ -299,7 +281,7 @@ export async function ensureKernel(
           ...(options.development ? ['--development'] : []),
         ],
         {
-          detached: process.platform !== 'win32', // Windows 不支持 detached + IPC 组合
+          detached: true,
           windowsHide: true,
           stdio: ['ignore', log.fd, log.fd, 'ipc'],
         },

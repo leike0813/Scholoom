@@ -14,13 +14,15 @@ export async function privateDirectory(path: string): Promise<void> {
     return;
   }
   const script = [
+    '$ErrorActionPreference = "Stop"',
     '$acl = New-Object System.Security.AccessControl.DirectorySecurity',
     '$acl.SetAccessRuleProtection($true, $false)',
     '$sid = [System.Security.Principal.WindowsIdentity]::GetCurrent().User',
-    '$acl.SetOwner($sid)',
+    '$owner = [System.IO.Directory]::GetAccessControl($env:SCHOOLOOM_PRIVATE_PATH, [System.Security.AccessControl.AccessControlSections]::Owner).GetOwner([System.Security.Principal.SecurityIdentifier])',
+    'if ($owner.Value -ne $sid.Value) { $acl.SetOwner($sid) }',
     '$rule = New-Object System.Security.AccessControl.FileSystemAccessRule($sid, "FullControl", "ContainerInherit,ObjectInherit", "None", "Allow")',
     '$acl.AddAccessRule($rule)',
-    'Set-Acl -LiteralPath $env:SCHOOLOOM_PRIVATE_PATH -AclObject $acl -ErrorAction Stop',
+    '[System.IO.Directory]::SetAccessControl($env:SCHOOLOOM_PRIVATE_PATH, $acl)',
   ].join('; ');
   try {
     await promisify(execFile)(
