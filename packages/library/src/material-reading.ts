@@ -5,6 +5,7 @@ import {
   type ProcessReservation,
 } from '@scholoom/platform/node';
 import { type ErrorInfo, OperationError } from '@scholoom/protocol/core';
+import type { DocumentRequest } from './document-parser.js';
 import { MATERIAL_CHUNK } from './material-files.js';
 
 export type PdfRequest =
@@ -23,7 +24,7 @@ async function readOrAbort(read: Promise<ArrayBuffer>, signal: AbortSignal): Pro
     return await Promise.race([
       read,
       new Promise<never>((_resolve, reject) => {
-        abort = () => reject(new OperationError('shuttingDown', 'PDF材料读取已中止。'));
+        abort = () => reject(new OperationError('shuttingDown', '材料读取已中止。'));
         signal.addEventListener('abort', abort, { once: true });
       }),
     ]);
@@ -33,21 +34,21 @@ async function readOrAbort(read: Promise<ArrayBuffer>, signal: AbortSignal): Pro
 }
 
 /**
- * 串行隔离WASM到受管计算进程：容量在读取材料快照前取得，实际进程退出并释放材料后才安排下一项。
- * PDF字节按受控引用与当前任务令牌分块取回，停止或超时等真实收尾完成再复用容量。
+ * 串行隔离材料解析到受管计算进程：容量在读取材料快照前取得，实际进程退出并释放材料后才安排下一项。
+ * 材料字节按受控引用与当前任务令牌分块取回，停止或超时等真实收尾完成再复用容量。
  */
-export class PdfReading {
+export class MaterialReading {
   private queue: Job[] = [];
   private current: Job | undefined;
   private stopped = false;
   /** 计算进程入口可注入夹具，以核对分块协议边界。 */
   constructor(
-    private readonly entry: URL = EXECUTION_ENTRY,
+    private readonly entry: URL | undefined = undefined,
     private readonly processes?: ProcessAdmission,
   ) {}
   run<T>(
     load: (signal: AbortSignal) => Promise<ArrayBuffer>,
-    request: PdfRequest,
+    request: PdfRequest | DocumentRequest,
     options: {
       signal?: AbortSignal | undefined;
       waitForCapacity?: boolean;
@@ -55,11 +56,11 @@ export class PdfReading {
     } = {},
   ): Promise<T> {
     if (this.stopped)
-      return Promise.reject(new OperationError('shuttingDown', 'PDF读取正在停止。'));
+      return Promise.reject(new OperationError('shuttingDown', '材料读取正在停止。'));
     if (this.current && this.queue.length >= 8)
-      return Promise.reject(new OperationError('unavailable', 'PDF读取队列已满，请稍后重试。'));
+      return Promise.reject(new OperationError('unavailable', '材料读取队列已满，请稍后重试。'));
     if (options.signal?.aborted)
-      return Promise.reject(new OperationError('shuttingDown', 'PDF读取已取消。'));
+      return Promise.reject(new OperationError('shuttingDown', '材料读取已取消。'));
     let immediateReservation: ProcessReservation | undefined;
     try {
       if (options.waitForCapacity === false) immediateReservation = this.processes?.reserve();
@@ -94,7 +95,7 @@ export class PdfReading {
               reject(
                 error instanceof OperationError
                   ? error
-                  : new OperationError('outcomeUnknown', 'PDF资源停止尚未确认。'),
+                  : new OperationError('outcomeUnknown', '材料资源停止尚未确认。'),
               ),
           )
           .finally(complete);
@@ -119,7 +120,11 @@ export class PdfReading {
           const ref = randomUUID();
           const token = randomUUID();
           child = ManagedNode.start({
-            entry: this.entry,
+            entry:
+              this.entry ??
+              (request.kind === 'document'
+                ? new URL('./document-execution.js', import.meta.url)
+                : EXECUTION_ENTRY),
             instanceId: token,
             ...(reservation ? { reservation } : {}),
           });
@@ -164,7 +169,7 @@ export class PdfReading {
                         offset,
                         error: {
                           code: 'invalidRequest' as const,
-                          message: 'PDF分块范围无效。',
+                          message: '材料分块范围无效。',
                         },
                       },
                 )
@@ -178,30 +183,30 @@ export class PdfReading {
                 finish(
                   error instanceof OperationError
                     ? error
-                    : { code: 'unavailable', message: 'PDF交付核查失败。' },
+                    : { code: 'unavailable', message: '材料交付核查失败。' },
                 ),
               );
             } else if (message.kind === 'failure')
-              finish(message.error ?? { code: 'unavailable', message: 'PDF读取执行单元失败。' });
+              finish(message.error ?? { code: 'unavailable', message: '材料读取执行单元失败。' });
           });
           owned.once('failure', () =>
-            finish({ code: 'unavailable', message: 'PDF读取执行单元失败。' }),
+            finish({ code: 'unavailable', message: '材料读取执行单元失败。' }),
           );
           owned.once('exit', () => {
-            if (!delivered) finish({ code: 'unavailable', message: 'PDF读取未返回结果。' });
+            if (!delivered) finish({ code: 'unavailable', message: '材料读取未返回结果。' });
           });
           await owned.send({ kind: 'run', ref, token, size: bytes.byteLength, request });
         } catch (error) {
           finish(
             error instanceof OperationError
               ? error
-              : { code: 'unavailable', message: 'PDF材料读取失败。' },
+              : { code: 'unavailable', message: '材料读取失败。' },
           );
         }
       };
       const job: Job = {
         done,
-        cancel: () => finish({ code: 'shuttingDown', message: 'PDF读取已停止。' }),
+        cancel: () => finish({ code: 'shuttingDown', message: '材料读取已停止。' }),
         start: () => {
           if (settled) return;
           this.current = job;
@@ -209,7 +214,7 @@ export class PdfReading {
         },
       };
       const timer = setTimeout(
-        () => finish({ code: 'unavailable', message: 'PDF读取超时，请缩小范围后重试。' }),
+        () => finish({ code: 'unavailable', message: '材料读取超时，请缩小范围后重试。' }),
         30000,
       );
       options.signal?.addEventListener('abort', job.cancel, { once: true });

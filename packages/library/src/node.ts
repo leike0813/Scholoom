@@ -6,4 +6,4 @@ export {
   MaterialFiles,
   type StoredMaterial,
 } from './material-files.js';
-export { PdfReading, type PdfRequest } from './pdf-reading.js';
+export { MaterialReading, type PdfRequest } from './material-reading.js';

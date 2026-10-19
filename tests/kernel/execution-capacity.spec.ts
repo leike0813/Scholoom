@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { expect, test } from '@playwright/test';
 import { KernelApplication } from '../../apps/kernel/dist/application.js';
 import { Harness } from '../../packages/harness/dist/node.js';
-import { PdfReading } from '../../packages/library/dist/node.js';
+import { MaterialReading } from '../../packages/library/dist/node.js';
 import { ModelConfigStore } from '../../packages/models/dist/node.js';
 import { ProcessAdmission } from '../../packages/platform/dist/node.js';
 import { createModelServer } from '../model-server.js';
@@ -140,7 +140,7 @@ test('a capability cannot wait for its parent process slot and is refused before
 test('PDF material loading waits for the same host process capacity and releases it after the real child exits', async () => {
   const admission = new ProcessAdmission(1, 1);
   const occupied = admission.reserve();
-  const reading = new PdfReading(undefined, admission);
+  const reading = new MaterialReading(undefined, admission);
   let loaded = false;
   try {
     const result = reading.run(
@@ -165,7 +165,7 @@ test('PDF material loading waits for the same host process capacity and releases
 test('closing PDF while it waits for host capacity withdraws its reservation without loading material', async () => {
   const admission = new ProcessAdmission(1, 1);
   const occupied = admission.reserve();
-  const reading = new PdfReading(undefined, admission);
+  const reading = new MaterialReading(undefined, admission);
   let loaded = false;
   const pending = reading.run(
     async () => {
@@ -190,7 +190,7 @@ test('closing PDF while it waits for host capacity withdraws its reservation wit
 test('an Agent PDF request cannot queue behind a manual PDF that is waiting for its parent slot', async () => {
   const admission = new ProcessAdmission(1, 1);
   const parent = admission.reserve();
-  const reading = new PdfReading(undefined, admission);
+  const reading = new MaterialReading(undefined, admission);
   let loaded = false;
   const load = async () => {
     loaded = true;
@@ -214,7 +214,7 @@ test('an Agent PDF request cannot queue behind a manual PDF that is waiting for 
 test('controller loss cannot report a busy calculation stopped or release its process capacity', async () => {
   test.skip(process.platform === 'win32', 'POSIX signal fault injection');
   const admission = new ProcessAdmission(1, 0);
-  const reading = new PdfReading(
+  const reading = new MaterialReading(
     new URL('../fixtures/pdf-process/controller-loss.mjs', import.meta.url),
     admission,
   );

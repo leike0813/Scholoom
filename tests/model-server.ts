@@ -175,6 +175,32 @@ function planTurn(
     return text('工作上下文已保存。');
   }
   if (user.includes('MODEL_BUDGET')) return tool('read_file', { file_path: '/input.md' });
+  if (user.includes('MODEL_DOCUMENT_RECORD')) {
+    const match = /MODEL_DOCUMENT_RECORD ([\w-]+) ([\w-]+) ([\w-]+)/.exec(user);
+    const attachmentId = match?.[1],
+      materialVersionId = match?.[2],
+      recordId = match?.[3];
+    if (!tools.has('library_documentInfo'))
+      return tool('library_documentInfo', { attachmentId, materialVersionId });
+    if (!tools.has('library_readDocumentSection'))
+      return tool('library_readDocumentSection', {
+        attachmentId,
+        materialVersionId,
+        sectionId: 'OPS/ch2.xhtml',
+      });
+    if (!tools.has('library_readingRecords'))
+      return tool('library_readingRecords', { attachmentId, materialVersionId });
+    if (!tools.has('library_saveReadingRecord'))
+      return tool('library_saveReadingRecord', {
+        attachmentId,
+        materialVersionId,
+        recordId,
+        kind: 'note',
+        quote: '',
+        body: 'Agent document interpretation',
+      });
+    return text('已读取共同文档和阅读记录。');
+  }
   if (user.includes('MODEL_READING_RECORD')) {
     const match = /MODEL_READING_RECORD ([\w-]+) ([\w-]+) ([\w-]+)/.exec(user);
     const attachmentId = match?.[1],

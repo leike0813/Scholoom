@@ -1182,6 +1182,63 @@ button {
   background: var(--surface-hover);
 }
 
+.document-reader {
+  height: 100%;
+  overflow: auto;
+  padding: calc(var(--space-unit) * 3);
+  color: var(--text-primary);
+  background: var(--bg);
+}
+.document-reader .document-reader-toolbar,
+.document-reader-toolbar form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: calc(var(--space-unit) * 2);
+}
+.document-reader .document-reader-toolbar {
+  max-height: none;
+  overflow: visible;
+  padding: 0;
+}
+.document-reader-toolbar label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-unit);
+  margin: 0;
+}
+.document-prose {
+  font: var(--font-size-document) / 1.75 var(--font-prose);
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  padding: calc(var(--space-unit) * 3);
+}
+.document-prose table {
+  border-collapse: collapse;
+  max-width: 100%;
+  overflow: auto;
+}
+.document-prose th,
+.document-prose td {
+  border: 1px solid var(--border-strong);
+  padding: var(--space-unit) calc(var(--space-unit) * 2);
+}
+.document-prose mark {
+  color: var(--text-primary);
+  background: var(--await-bg);
+}
+.document-prose img {
+  max-width: 100%;
+  height: auto;
+}
+.document-search-results {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-unit);
+  max-height: calc(var(--space-unit) * 60);
+  overflow: auto;
+}
+
 /* ════════════ 中间区 · tab ════════════ */
 
 .center {

@@ -298,13 +298,20 @@ export function PdfReader({
     projected.current = [];
     const color = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
     for (const record of records) {
-      if (record.kind !== 'highlight' || !record.location?.rects?.length) continue;
+      const location = record.location;
+      if (
+        record.kind !== 'highlight' ||
+        !location ||
+        !('pageIndex' in location) ||
+        !location.rects?.length
+      )
+        continue;
       const page = registry
         ?.getPlugin<DocumentManagerPlugin>('document-manager')
         ?.provides()
-        ?.getActiveDocument()?.pages[record.location.pageIndex];
+        ?.getActiveDocument()?.pages[location.pageIndex];
       if (!page) continue;
-      const rects = record.location.rects.map((rect) =>
+      const rects = location.rects.map((rect) =>
         restoreRect(
           transformSize(page.size, page.rotation, 1),
           {
@@ -322,7 +329,7 @@ export function PdfReader({
         {
           annotation: {
             id,
-            pageIndex: record.location.pageIndex,
+            pageIndex: location.pageIndex,
             type: PdfAnnotationSubtype.HIGHLIGHT,
             rect: {
               origin: { x, y },
@@ -338,7 +345,7 @@ export function PdfReader({
           },
         },
       ]);
-      projected.current.push({ id, pageIndex: record.location.pageIndex });
+      projected.current.push({ id, pageIndex: location.pageIndex });
     }
   }, [registry, records, documentEpoch]);
 
@@ -356,11 +363,12 @@ export function PdfReader({
         attachmentId: material.id,
         materialVersionId: material.materialVersionId,
       });
-      if (record.location)
+      const location = record.location;
+      if (location && 'pageIndex' in location)
         registry
           ?.getPlugin<ScrollPlugin>('scroll')
           ?.provides()
-          ?.scrollToPage({ pageNumber: record.location.pageIndex + 1, behavior: 'instant' });
+          ?.scrollToPage({ pageNumber: location.pageIndex + 1, behavior: 'instant' });
     } catch (reason) {
       setError(messageOf(reason));
       setUnavailable(true);

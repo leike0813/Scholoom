@@ -60,7 +60,7 @@ test('local PDF reader shares selected highlights, bookmarks and notes through t
     await uiPage.getByRole('button', { name: '文献库', exact: true }).click();
     const open = async () => {
       await uiPage.getByLabel('查找题录', { exact: true }).fill(name);
-      await uiPage.getByRole('button', { name: `查看题录 ${name}`, exact: true }).click();
+      await uiPage.getByRole('row').filter({ hasText: name }).click();
       await uiPage.getByRole('button', { name: `打开 PDF ${name}`, exact: true }).click();
     };
     await open();
@@ -130,11 +130,15 @@ test('local PDF reader shares selected highlights, bookmarks and notes through t
       .poll(async () => (await client.call('library.readingRecords', reference)).records.length)
       .toBe(2);
     const rotated = (await client.call('library.readingRecords', reference)).records.find(
-      (record) => record.kind === 'highlight' && record.location?.pageIndex === 1,
+      (record) =>
+        record.kind === 'highlight' &&
+        record.location &&
+        'pageIndex' in record.location &&
+        record.location.pageIndex === 1,
     );
     expect(rotated?.quote).toBe('Second page controlled result 73');
-    expect(rotated?.location?.rects?.[0]?.x).toBeGreaterThan(480);
-    assert(rotated);
+    assert(rotated?.location && 'pageIndex' in rotated.location);
+    expect(rotated.location.rects?.[0]?.x).toBeGreaterThan(480);
     await expect
       .poll(() =>
         sdk.evaluate(async (el, id) => {

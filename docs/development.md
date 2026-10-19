@@ -6,7 +6,7 @@
 | --- | --- | --- |
 | `apps/kernel` | 内核宿主装配、CLI、物理容器升级和投影 | 绑定所属仓储与窄端口，不保留领域副本 |
 | `packages/projects` | 项目、文件身份、条件保存、回收及成果关联 | 受控原生入口 `/node`，宿主注入容器初始化 |
-| `packages/library` | 题录、附件、阅读记录、批次及 PDF 计算适配 | 受控原生入口 `/node`，项目材料经窄端口取得 |
+| `packages/library` | 题录、附件、阅读记录、批次及材料解析适配 | 受控原生入口 `/node`，项目材料经窄端口取得 |
 | `packages/harness` | 会话仓储、执行监督、工具收据、checkpoint 和受管执行桥 | `/execution` 运行实际图及 SDK；项目、文献、科研端口可独立替换 |
 | `packages/research` | 方法内容、尝试、实际读取与交付检查 | 仅访问自身表，生产经 broker 使用领域与 harness 契约 |
 | `packages/models`、`packages/platform`、`packages/broker` | 模型及凭据、资源与进程机制、能力路由及共同 RPC | 具体迁入及验收范围见当前 change |
@@ -109,7 +109,9 @@ Vite 启动时发现或启动受管调试内核；浏览器页面初次只查询
 
 共同客户端入口为 `library.status/grant/list/get/ingest/batch/batches/resume/update/collections/saveCollection/history/backup/backups/restore`、`library.importFiles/importProjectFiles/attachments/readAttachment/relocateAttachment`、`library.pdfInfo/readPdfPage` 及 `library.readingRecords/readingRecord/readingHistory/saveReadingRecord/removeReadingRecord`。Agent 使用同一入口对应的工具，创建者取实际会话身份；文件摄取只接受当前授权项目路径，不开放任意本机路径或重定位工具。
 
-附件“打开 PDF”进入共享 reader tab，可翻页、缩放、搜索和选择文字；选区按页进入记录草稿，明确保存后才显示持久高亮，书签和独立笔记沿同一面板。内核无需窗口即可取文：每次一页，默认16Ki字符、最多32Ki，可按 nextOffset 续取。解析串行 Worker、最多8项等待、自受理起30秒；超时及停机终止执行。PDF 调用及带位置的保存等待35秒，普通笔记沿原请求时限。无文字层不做OCR，加密材料不提供密码流程，原文件不写回。SDK、字体与许可见[第三方资源说明](third-party/pdf-reading.md)。EPUB／网页和科研分析分别沿 P4b 后续及 P4c。
+附件“打开 PDF”进入共享 reader tab，可翻页、缩放、搜索和选择文字；选区按页进入记录草稿，明确保存后才显示持久高亮，书签和独立笔记沿同一面板。内核无需窗口即可取文：每次一页，默认16Ki字符、最多32Ki，可按 nextOffset 续取。材料解析在受管操作系统进程执行，串行、最多8项等待、自受理起30秒；超时及停机确认退出后释放容量。解析调用及带位置保存等待35秒，普通笔记沿原请求时限。无文字层不做OCR，加密材料不提供密码流程，原文件不写回。SDK、字体与许可见[第三方资源说明](third-party/pdf-reading.md)。
+
+EPUB 2／3 重排版与单文件 HTML 快照复用 reader tab 和共同记录。`library.documentInfo` 分页读取章节，`library.readDocumentSection` 返回规范化正文及安全节点（默认16Ki／最多32Ki UTF-16单元，`textOnly` 可只取正文），`library.searchDocument` 每次至多扫描16章节并返回覆盖及继续位置，`library.readDocumentResource` 只读取本版本章节引用的栅格图片。位置使用 normalizationVersion=1、sectionId、start/end，不跨版本自动定位。HTML 只使用内嵌图片，EPUB 只使用容器内图片；不执行原始 HTML、脚本、外部实体或原书样式，不读取网页配套目录。固定版式、DRM 和在线获取未接入。依赖及许可见[文档解析说明](third-party/document-reading.md)；科研分析沿 P4c。
 
 ## 基本单 Agent harness
 

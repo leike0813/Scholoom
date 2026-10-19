@@ -560,7 +560,7 @@ test('failed restore never falls back to the original managed material', async (
     copy = new LiteratureCatalog(destination, () => {});
     await copy.initialize();
     await expect(copy.readAttachment({ attachmentId: item.attachmentId })).rejects.toMatchObject({
-      code: 'ENOENT',
+      code: 'notFound',
     });
     expect((await copy.attachments({ sourceId: item.sourceId })).attachments[0]?.state).toBe(
       'missing',

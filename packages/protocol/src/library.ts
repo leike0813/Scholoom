@@ -133,7 +133,7 @@ export const readingAuthorSchema = {
   ],
 } as const;
 
-export const readingLocationSchema = object(
+export const pdfLocationSchema = object(
   {
     pageIndex: readingIndex,
     rects: {
@@ -152,6 +152,178 @@ export const readingLocationSchema = object(
   },
   ['pageIndex'],
 );
+
+export const textLocationSchema = object(
+  {
+    kind: { const: 'text' },
+    normalizationVersion: { const: 1 },
+    sectionId: id,
+    start: readingIndex,
+    end: readingIndex,
+  },
+  ['kind', 'normalizationVersion', 'sectionId', 'start', 'end'],
+);
+export const readingLocationSchema = { anyOf: [pdfLocationSchema, textLocationSchema] } as const;
+
+export const documentNodeSchema = object(
+  {
+    tag: {
+      enum: [
+        'text',
+        'p',
+        'div',
+        'span',
+        'h1',
+        'h2',
+        'h3',
+        'h4',
+        'h5',
+        'h6',
+        'ul',
+        'ol',
+        'li',
+        'blockquote',
+        'pre',
+        'code',
+        'strong',
+        'em',
+        'sup',
+        'sub',
+        'table',
+        'thead',
+        'tbody',
+        'tr',
+        'th',
+        'td',
+        'a',
+        'img',
+        'br',
+      ],
+    },
+    parent: { type: 'integer', minimum: -1 },
+    start: count,
+    end: count,
+    text: { type: 'string', maxLength: 32768 },
+    href: { type: 'string', maxLength: 4096 },
+    resourceId: id,
+    alt: { type: 'string', maxLength: 1024 },
+    anchor: id,
+  },
+  ['tag', 'parent', 'start', 'end'],
+);
+const documentSectionSchema = object({ id, title: { type: 'string', maxLength: 1024 } }, [
+  'id',
+  'title',
+]);
+const documentCursorSchema = object({ sectionIndex: count, offset: count }, [
+  'sectionIndex',
+  'offset',
+]);
+const documentWait = { effect: 'read', returns: 'result', waitMs: 35000 } as const;
+export const documentSchemas = {
+  'library.documentInfo': {
+    semantics: documentWait,
+    params: object({ ...materialReference, ...libraryPage, offset: readingIndex }, [
+      'attachmentId',
+      'materialVersionId',
+    ]),
+    result: object(
+      {
+        ...materialReference,
+        format: { enum: ['epub', 'html'] },
+        title: { type: 'string', maxLength: 1024 },
+        sectionCount: count,
+        sections: { type: 'array', maxItems: 100, items: documentSectionSchema },
+        nextOffset: count,
+      },
+      ['attachmentId', 'materialVersionId', 'format', 'title', 'sectionCount', 'sections'],
+    ),
+  },
+  'library.readDocumentSection': {
+    semantics: documentWait,
+    params: object(
+      {
+        ...materialReference,
+        sectionId: id,
+        offset: readingIndex,
+        limit: { type: 'integer', minimum: 1, maximum: 32768 },
+        anchor: id,
+        textOnly: flag,
+      },
+      ['attachmentId', 'materialVersionId', 'sectionId'],
+    ),
+    result: object(
+      {
+        ...materialReference,
+        sectionId: id,
+        normalizationVersion: { const: 1 },
+        offset: count,
+        text: { type: 'string', maxLength: 32768 },
+        length: count,
+        nodes: { type: 'array', maxItems: 4096, items: documentNodeSchema },
+        nextOffset: count,
+      },
+      [
+        'attachmentId',
+        'materialVersionId',
+        'sectionId',
+        'normalizationVersion',
+        'offset',
+        'text',
+        'length',
+        'nodes',
+      ],
+    ),
+  },
+  'library.searchDocument': {
+    semantics: documentWait,
+    params: object(
+      {
+        ...materialReference,
+        query: { type: 'string', minLength: 1, maxLength: 256 },
+        limit: { type: 'integer', minimum: 1, maximum: 100 },
+        cursor: documentCursorSchema,
+      },
+      ['attachmentId', 'materialVersionId', 'query'],
+    ),
+    result: object(
+      {
+        ...materialReference,
+        hits: {
+          type: 'array',
+          maxItems: 100,
+          items: object(
+            { sectionId: id, start: count, end: count, quote: { type: 'string', maxLength: 1024 } },
+            ['sectionId', 'start', 'end', 'quote'],
+          ),
+        },
+        complete: flag,
+        nextCursor: documentCursorSchema,
+      },
+      ['attachmentId', 'materialVersionId', 'hits', 'complete'],
+    ),
+  },
+  'library.readDocumentResource': {
+    semantics: documentWait,
+    params: object({ ...materialReference, sectionId: id, resourceId: id, offset: readingIndex }, [
+      'attachmentId',
+      'materialVersionId',
+      'sectionId',
+      'resourceId',
+    ]),
+    result: object(
+      {
+        ...materialReference,
+        mimeType: { enum: ['image/png', 'image/jpeg', 'image/gif', 'image/webp'] },
+        byteLength: count,
+        offset: count,
+        base64: { type: 'string', maxLength: 349528 },
+        nextOffset: count,
+      },
+      ['attachmentId', 'materialVersionId', 'mimeType', 'byteLength', 'offset', 'base64'],
+    ),
+  },
+} as const;
 
 export const readingFields = {
   ...materialReference,
@@ -196,6 +368,7 @@ export const saveReadingRecordSchema = object(
 );
 
 export const readingSchemas = {
+  ...documentSchemas,
   'library.pdfInfo': {
     semantics: { effect: 'read', returns: 'result', waitMs: 35000 },
     params: object(materialReference, ['attachmentId', 'materialVersionId']),
@@ -485,6 +658,32 @@ export type LibraryBackup = FromSchema<typeof libraryBackupSchema>;
 export type LibraryAttachment = FromSchema<typeof libraryAttachmentSchema>;
 export type ReadingAuthor = FromSchema<typeof readingAuthorSchema>;
 export type ReadingLocation = FromSchema<typeof readingLocationSchema>;
+export type TextLocation = FromSchema<typeof textLocationSchema>;
+export type DocumentNode = FromSchema<typeof documentNodeSchema>;
+export type DocumentInputs = {
+  'library.documentInfo': FromSchema<(typeof documentSchemas)['library.documentInfo']['params']>;
+  'library.readDocumentSection': FromSchema<
+    (typeof documentSchemas)['library.readDocumentSection']['params']
+  >;
+  'library.searchDocument': FromSchema<
+    (typeof documentSchemas)['library.searchDocument']['params']
+  >;
+  'library.readDocumentResource': FromSchema<
+    (typeof documentSchemas)['library.readDocumentResource']['params']
+  >;
+};
+export type DocumentOutputs = {
+  'library.documentInfo': FromSchema<(typeof documentSchemas)['library.documentInfo']['result']>;
+  'library.readDocumentSection': FromSchema<
+    (typeof documentSchemas)['library.readDocumentSection']['result']
+  >;
+  'library.searchDocument': FromSchema<
+    (typeof documentSchemas)['library.searchDocument']['result']
+  >;
+  'library.readDocumentResource': FromSchema<
+    (typeof documentSchemas)['library.readDocumentResource']['result']
+  >;
+};
 export type ReadingRecord = FromSchema<typeof readingRecordSchema>;
 export type PdfInfo = FromSchema<(typeof readingSchemas)['library.pdfInfo']['result']>;
 export type PdfPageText = FromSchema<(typeof readingSchemas)['library.readPdfPage']['result']>;
@@ -540,6 +739,10 @@ export const libraryToolMethods = [
   'library.readAttachment',
   'library.pdfInfo',
   'library.readPdfPage',
+  'library.documentInfo',
+  'library.readDocumentSection',
+  'library.searchDocument',
+  'library.readDocumentResource',
   'library.importProjectFiles',
   'library.readingRecords',
   'library.readingRecord',

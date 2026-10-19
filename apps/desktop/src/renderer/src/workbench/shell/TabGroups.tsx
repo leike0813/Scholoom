@@ -84,7 +84,7 @@ export interface TabGroupsProps {
   onView?: ((groupIndex: number, mode: 'source' | 'preview' | 'split') => void) | undefined;
   renderSettings?: ReactNode;
   renderLibrary?: ReactNode | undefined;
-  renderPdf?: ((material: LibraryAttachment) => ReactNode) | undefined;
+  renderReader?: ((material: LibraryAttachment) => ReactNode) | undefined;
   renderFile?: ((target: FileTarget, mode?: 'source' | 'preview') => ReactNode) | undefined;
   /** 空态带入的当前工作区名；缺省时不显示。 */
   contextName?: string | undefined;
@@ -101,7 +101,7 @@ export function TabGroups({
   onView,
   renderSettings,
   renderLibrary,
-  renderPdf,
+  renderReader,
   contextName,
   onCreateSession,
   onOpenSettings,
@@ -201,8 +201,8 @@ export function TabGroups({
               </div>
             ) : null}
             <div className="tab-content">
-              {active?.material && renderPdf ? (
-                renderPdf(active.material)
+              {active?.material && renderReader ? (
+                renderReader(active.material)
               ) : active?.target && renderFile ? (
                 renderFile(active.target, active.kind === 'preview' ? 'preview' : 'source')
               ) : active?.kind === 'library' && renderLibrary ? (

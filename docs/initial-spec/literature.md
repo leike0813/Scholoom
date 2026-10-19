@@ -40,7 +40,7 @@
 
 ### Requirement: L-03 人与 Agent 共享阅读成果
 
-PDF 阅读、无窗口取文、共同书签／高亮／笔记及可信作者见[正式阅读规格](../../openspec/specs/literature-reading/spec.md)；原字节读取见[附件规格](../../openspec/specs/literature-attachments/spec.md)。后续 EPUB 和网页材料 SHALL 支持阅读、搜索、选区、书签、批注与笔记，沿同一共享记录和材料版本契约接入；GUI 和 Agent 共用材料及结果，原文摘录、批注作者、Agent 解释及材料版本 SHALL 可辨。
+PDF 阅读、无窗口取文、共同书签／高亮／笔记及可信作者见[正式阅读规格](../../openspec/specs/literature-reading/spec.md)；原字节读取见[附件规格](../../openspec/specs/literature-attachments/spec.md)。EPUB 2／3 重排版及单文件 HTML 快照的章节、搜索、选区和文本位置沿[正式阅读规格](../../openspec/specs/literature-reading/spec.md)；GUI 与 Agent 复用共同记录和材料版本，原文摘录、批注作者及解释分别呈现。在线获取、配套资源目录、固定版式及受保护材料继续沿对应未实施范围推进。
 
 #### Scenario: 阅读器关闭后继续分析批注
 - **WHEN** Agent 读取用户保存的文献批注

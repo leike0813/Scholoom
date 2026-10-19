@@ -2,6 +2,7 @@ import type { KernelClient } from '@scholoom/client';
 import type { LibraryAttachment, LibraryBatch } from '@scholoom/protocol';
 import { useEffect, useRef, useState } from 'react';
 import { ReadingRecordsPanel } from './ReadingRecordsPanel';
+import { readerKindForName } from './reader-material';
 
 const PAGE = 25;
 /** 与协议 library.readAttachment 的分段上限一致：一次下载只读取有界片段。 */
@@ -15,6 +16,7 @@ const ATTACHMENT_STATE: Record<LibraryAttachment['state'], { label: string; pill
   changed: { label: '内容已变', pill: 'pill--idle' },
   unavailable: { label: '不可用', pill: 'pill--idle' },
 };
+const READER_LABEL = { pdf: 'PDF', epub: 'EPUB', html: '网页' } as const;
 const MANAGE_HINT = '每行一份本机绝对路径，最多 100 份；按文件名建立待核对题录，外链只登记原位置。';
 const ATTACH_HINT = '每行一份本机绝对路径，最多 100 份；附件加入当前题录，外链只登记原位置。';
 
@@ -161,7 +163,7 @@ export function AttachmentsPanel({
   sourceId,
   tick,
   onBatch,
-  onOpenPdf,
+  onOpenReader,
 }: {
   client: KernelClient;
   enabled: boolean;
@@ -170,7 +172,7 @@ export function AttachmentsPanel({
   sourceId: string;
   tick: number;
   onBatch: (batch: LibraryBatch) => void;
-  onOpenPdf?: ((material: LibraryAttachment) => void) | undefined;
+  onOpenReader?: ((material: LibraryAttachment) => void) | undefined;
 }) {
   const [paging, setPaging] = useState<{ sourceId: string; offsets: number[] }>({
     sourceId,
@@ -298,101 +300,104 @@ export function AttachmentsPanel({
       )}
       {current && !attachments.length ? <p className="empty-hint">该题录还没有附件</p> : null}
       <ul>
-        {attachments.map((attachment) => (
-          <li key={attachment.id}>
-            {attachment.name} · {attachment.purpose} ·{' '}
-            {attachment.storage === 'managed' ? '托管副本' : '外链原件'} · {attachment.byteLength}{' '}
-            字节{' '}
-            <span className={`pill ${ATTACHMENT_STATE[attachment.state].pill}`}>
-              {ATTACHMENT_STATE[attachment.state].label}
-            </span>
-            {attachment.error ? ` · ${attachment.error.message}` : ''}
-            <div className="file-view-controls">
-              {onOpenPdf && attachment.name.toLowerCase().endsWith('.pdf') ? (
-                <button
-                  type="button"
-                  className="btn"
-                  aria-label={`打开 PDF ${attachment.name}`}
-                  disabled={!readable}
-                  onClick={() => onOpenPdf(attachment)}
-                >
-                  打开 PDF
-                </button>
-              ) : null}
-              <button
-                type="button"
-                className="btn"
-                aria-label={`下载 ${attachment.name}`}
-                disabled={!readable || busyId === attachment.id}
-                onClick={() => download(attachment)}
-              >
-                下载
-              </button>
-              <button
-                type="button"
-                className="btn"
-                aria-label={`阅读记录 ${attachment.name}`}
-                aria-expanded={
-                  recordsTarget?.sourceId === sourceId &&
-                  recordsTarget.attachmentId === attachment.id
-                }
-                disabled={!readable}
-                onClick={() =>
-                  setRecordsTarget((current) =>
-                    current?.sourceId === sourceId && current.attachmentId === attachment.id
-                      ? undefined
-                      : { sourceId, attachmentId: attachment.id },
-                  )
-                }
-              >
-                阅读记录
-              </button>
-              {attachment.storage === 'linked' ? (
-                <>
-                  <label>
-                    新路径
-                    <input
-                      aria-label={`新路径 ${attachment.name}`}
-                      value={targets[attachment.id] ?? ''}
-                      onChange={(event) =>
-                        setTargets((chosen) => ({
-                          ...chosen,
-                          [attachment.id]: event.target.value,
-                        }))
-                      }
-                    />
-                  </label>
+        {attachments.map((attachment) => {
+          const readerKind = readerKindForName(attachment.name);
+          return (
+            <li key={attachment.id}>
+              {attachment.name} · {attachment.purpose} ·{' '}
+              {attachment.storage === 'managed' ? '托管副本' : '外链原件'} · {attachment.byteLength}{' '}
+              字节{' '}
+              <span className={`pill ${ATTACHMENT_STATE[attachment.state].pill}`}>
+                {ATTACHMENT_STATE[attachment.state].label}
+              </span>
+              {attachment.error ? ` · ${attachment.error.message}` : ''}
+              <div className="file-view-controls">
+                {onOpenReader && readerKind ? (
                   <button
                     type="button"
                     className="btn"
-                    aria-label={`重新定位 ${attachment.name}`}
-                    disabled={!writable || busyId === attachment.id}
-                    onClick={() => relocate(attachment)}
+                    aria-label={`打开 ${READER_LABEL[readerKind]} ${attachment.name}`}
+                    disabled={!readable}
+                    onClick={() => onOpenReader(attachment)}
                   >
-                    重新定位
+                    打开 {READER_LABEL[readerKind]}
                   </button>
-                </>
+                ) : null}
+                <button
+                  type="button"
+                  className="btn"
+                  aria-label={`下载 ${attachment.name}`}
+                  disabled={!readable || busyId === attachment.id}
+                  onClick={() => download(attachment)}
+                >
+                  下载
+                </button>
+                <button
+                  type="button"
+                  className="btn"
+                  aria-label={`阅读记录 ${attachment.name}`}
+                  aria-expanded={
+                    recordsTarget?.sourceId === sourceId &&
+                    recordsTarget.attachmentId === attachment.id
+                  }
+                  disabled={!readable}
+                  onClick={() =>
+                    setRecordsTarget((current) =>
+                      current?.sourceId === sourceId && current.attachmentId === attachment.id
+                        ? undefined
+                        : { sourceId, attachmentId: attachment.id },
+                    )
+                  }
+                >
+                  阅读记录
+                </button>
+                {attachment.storage === 'linked' ? (
+                  <>
+                    <label>
+                      新路径
+                      <input
+                        aria-label={`新路径 ${attachment.name}`}
+                        value={targets[attachment.id] ?? ''}
+                        onChange={(event) =>
+                          setTargets((chosen) => ({
+                            ...chosen,
+                            [attachment.id]: event.target.value,
+                          }))
+                        }
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      className="btn"
+                      aria-label={`重新定位 ${attachment.name}`}
+                      disabled={!writable || busyId === attachment.id}
+                      onClick={() => relocate(attachment)}
+                    >
+                      重新定位
+                    </button>
+                  </>
+                ) : null}
+              </div>
+              {rowError?.id === attachment.id ? (
+                <p className="business-error" role="alert">
+                  {rowError.message}
+                </p>
               ) : null}
-            </div>
-            {rowError?.id === attachment.id ? (
-              <p className="business-error" role="alert">
-                {rowError.message}
-              </p>
-            ) : null}
-            {recordsTarget?.sourceId === sourceId &&
-            recordsTarget.attachmentId === attachment.id ? (
-              <ReadingRecordsPanel
-                key={`${client.getSnapshot().status?.dataDirectory}:${attachment.id}:${attachment.materialVersionId}`}
-                client={client}
-                enabled={enabled}
-                readable={readable}
-                writable={writable}
-                attachment={attachment}
-                tick={tick}
-              />
-            ) : null}
-          </li>
-        ))}
+              {recordsTarget?.sourceId === sourceId &&
+              recordsTarget.attachmentId === attachment.id ? (
+                <ReadingRecordsPanel
+                  key={`${client.getSnapshot().status?.dataDirectory}:${attachment.id}:${attachment.materialVersionId}`}
+                  client={client}
+                  enabled={enabled}
+                  readable={readable}
+                  writable={writable}
+                  attachment={attachment}
+                  tick={tick}
+                />
+              ) : null}
+            </li>
+          );
+        })}
       </ul>
       <div className="file-view-controls">
         <button

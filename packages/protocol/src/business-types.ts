@@ -23,6 +23,7 @@ export type Inputs = {
   'library.batch': FromSchema<(typeof businessSchemas)['library.batch']['params']>;
   'library.batches': FromSchema<(typeof businessSchemas)['library.batches']['params']>;
   'library.collections': FromSchema<(typeof businessSchemas)['library.collections']['params']>;
+  'library.documentInfo': FromSchema<(typeof businessSchemas)['library.documentInfo']['params']>;
   'library.get': FromSchema<(typeof businessSchemas)['library.get']['params']>;
   'library.grant': FromSchema<(typeof businessSchemas)['library.grant']['params']>;
   'library.history': FromSchema<(typeof businessSchemas)['library.history']['params']>;
@@ -35,6 +36,12 @@ export type Inputs = {
   'library.pdfInfo': FromSchema<(typeof businessSchemas)['library.pdfInfo']['params']>;
   'library.readAttachment': FromSchema<
     (typeof businessSchemas)['library.readAttachment']['params']
+  >;
+  'library.readDocumentResource': FromSchema<
+    (typeof businessSchemas)['library.readDocumentResource']['params']
+  >;
+  'library.readDocumentSection': FromSchema<
+    (typeof businessSchemas)['library.readDocumentSection']['params']
   >;
   'library.readPdfPage': FromSchema<(typeof businessSchemas)['library.readPdfPage']['params']>;
   'library.readingHistory': FromSchema<
@@ -57,6 +64,9 @@ export type Inputs = {
   >;
   'library.saveReadingRecord': FromSchema<
     (typeof businessSchemas)['library.saveReadingRecord']['params']
+  >;
+  'library.searchDocument': FromSchema<
+    (typeof businessSchemas)['library.searchDocument']['params']
   >;
   'library.status': FromSchema<(typeof businessSchemas)['library.status']['params']>;
   'library.update': FromSchema<(typeof businessSchemas)['library.update']['params']>;
@@ -108,6 +118,7 @@ export type Outputs = {
   'library.batch': FromSchema<(typeof businessSchemas)['library.batch']['result']>;
   'library.batches': FromSchema<(typeof businessSchemas)['library.batches']['result']>;
   'library.collections': FromSchema<(typeof businessSchemas)['library.collections']['result']>;
+  'library.documentInfo': FromSchema<(typeof businessSchemas)['library.documentInfo']['result']>;
   'library.get': FromSchema<(typeof businessSchemas)['library.get']['result']>;
   'library.grant': FromSchema<(typeof businessSchemas)['library.grant']['result']>;
   'library.history': FromSchema<(typeof businessSchemas)['library.history']['result']>;
@@ -120,6 +131,12 @@ export type Outputs = {
   'library.pdfInfo': FromSchema<(typeof businessSchemas)['library.pdfInfo']['result']>;
   'library.readAttachment': FromSchema<
     (typeof businessSchemas)['library.readAttachment']['result']
+  >;
+  'library.readDocumentResource': FromSchema<
+    (typeof businessSchemas)['library.readDocumentResource']['result']
+  >;
+  'library.readDocumentSection': FromSchema<
+    (typeof businessSchemas)['library.readDocumentSection']['result']
   >;
   'library.readPdfPage': FromSchema<(typeof businessSchemas)['library.readPdfPage']['result']>;
   'library.readingHistory': FromSchema<
@@ -142,6 +159,9 @@ export type Outputs = {
   >;
   'library.saveReadingRecord': FromSchema<
     (typeof businessSchemas)['library.saveReadingRecord']['result']
+  >;
+  'library.searchDocument': FromSchema<
+    (typeof businessSchemas)['library.searchDocument']['result']
   >;
   'library.status': FromSchema<(typeof businessSchemas)['library.status']['result']>;
   'library.update': FromSchema<(typeof businessSchemas)['library.update']['result']>;

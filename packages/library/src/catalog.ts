@@ -8,6 +8,8 @@ import { atomicPrivateFile, failure, privateDirectory } from '@scholoom/platform
 import { OperationError } from '@scholoom/protocol/core';
 import {
   type CslMetadata,
+  type DocumentInputs,
+  type DocumentOutputs,
   isCslMetadata,
   type LibraryBackup,
   type LibraryBatch,
@@ -26,8 +28,9 @@ import Database from 'better-sqlite3';
 import { and, asc, desc, eq, sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/better-sqlite3';
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
+import type { DocumentMethod, DocumentRequest } from './document-parser.js';
 import { MaterialFiles, type StoredMaterial } from './material-files.js';
-import { PdfReading, type PdfRequest } from './pdf-reading.js';
+import { MaterialReading, type PdfRequest } from './material-reading.js';
 import * as tables from './schema.js';
 
 type FileItem = { path: string; id: string; materialVersionId: string; sourceId: string };
@@ -76,7 +79,7 @@ export class LiteratureCatalog {
     private readonly profile: string,
     private readonly notify: () => void,
     private readonly projectFiles?: ProjectMaterialPort,
-    private readonly pdf = new PdfReading(),
+    private readonly reading = new MaterialReading(),
   ) {
     this.directory = join(profile, 'library');
     this.materials = new MaterialFiles(this.directory);
@@ -570,10 +573,10 @@ export class LiteratureCatalog {
       ...(offset + bytes.length < material.byteLength ? { nextOffset: offset + bytes.length } : {}),
     };
   }
-  private async readPdf<T>(
+  private async readMaterial<T>(
     attachmentId: string,
     materialVersionId: string,
-    request: PdfRequest,
+    request: PdfRequest | DocumentRequest,
     signal?: AbortSignal,
     waitForCapacity = true,
   ): Promise<T> {
@@ -581,7 +584,7 @@ export class LiteratureCatalog {
     const material = this.material(attachmentId);
     if (material.value.materialVersionId !== materialVersionId)
       throw new OperationError('contentChanged', '材料版本不同。');
-    return this.pdf.run<T>(
+    return this.reading.run<T>(
       async (signal) => {
         this.check('read');
         return this.materials.snapshot(material, signal);
@@ -607,7 +610,7 @@ export class LiteratureCatalog {
       throw new OperationError('invalidRequest', 'PDF引用无效。');
     return {
       ...input,
-      ...(await this.readPdf<{ pageCount: number }>(
+      ...(await this.readMaterial<{ pageCount: number }>(
         input.attachmentId,
         input.materialVersionId,
         {
@@ -628,7 +631,7 @@ export class LiteratureCatalog {
     return {
       attachmentId: input.attachmentId,
       materialVersionId: input.materialVersionId,
-      ...(await this.readPdf<
+      ...(await this.readMaterial<
         Omit<LibraryOutputs['library.readPdfPage'], 'attachmentId' | 'materialVersionId'>
       >(
         input.attachmentId,
@@ -643,6 +646,34 @@ export class LiteratureCatalog {
         waitForCapacity,
       )),
     };
+  }
+  async document<M extends DocumentMethod>(
+    method: M,
+    input: DocumentInputs[M],
+    signal?: AbortSignal,
+    waitForCapacity = true,
+  ): Promise<DocumentOutputs[M]> {
+    if (!validateLibrary(method, 'params', input))
+      throw new OperationError('invalidRequest', '文档引用或读取范围无效。');
+    this.check('read');
+    const name = this.material(input.attachmentId).value.name;
+    const format = /\.epub$/i.test(name) ? 'epub' : /\.html?$/i.test(name) ? 'html' : undefined;
+    if (!format) throw new OperationError('invalidRequest', '材料不是支持的EPUB或HTML。');
+    const request = { kind: 'document', format, method, input } as DocumentRequest;
+    const result = await this.readMaterial<DocumentOutputs[M]>(
+      input.attachmentId,
+      input.materialVersionId,
+      request,
+      signal,
+      waitForCapacity,
+    );
+    if (
+      !validateLibrary(method, 'result', result) ||
+      result.attachmentId !== input.attachmentId ||
+      result.materialVersionId !== input.materialVersionId
+    )
+      throw new OperationError('unavailable', '文档解析结果不符合共同契约。');
+    return result;
   }
   async relocateAttachment(
     input: LibraryInputs['library.relocateAttachment'],
@@ -765,7 +796,13 @@ export class LiteratureCatalog {
       return existing.value;
     }
     if (
-      (input.kind === 'highlight' && (!input.quote.trim() || !input.location?.rects?.length)) ||
+      (input.kind === 'highlight' &&
+        (!input.quote.trim() ||
+          !input.location ||
+          ('pageIndex' in input.location
+            ? !input.location.rects?.length
+            : input.location.end <= input.location.start ||
+              input.location.end - input.location.start !== input.quote.length))) ||
       (input.kind === 'bookmark' && !input.location) ||
       (input.kind === 'note' && !input.body.trim())
     )
@@ -775,8 +812,32 @@ export class LiteratureCatalog {
       isDeepStrictEqual(existing.value.location, input.location) &&
       existing.value.quote === input.quote;
     if (!evidenceUnchanged) {
-      if (input.location) {
-        const size = await this.readPdf<{ width: number; height: number }>(
+      if (input.location && 'kind' in input.location) {
+        const location = input.location;
+        if (location.end < location.start)
+          throw new OperationError('invalidRequest', '文字区间无效。');
+        const section = await this.document(
+          'library.readDocumentSection',
+          {
+            attachmentId: input.attachmentId,
+            materialVersionId: input.materialVersionId,
+            sectionId: location.sectionId,
+            offset: location.start,
+            limit: Math.max(2, Math.min(32768, location.end - location.start)),
+            textOnly: true,
+          },
+          signal,
+          author.kind !== 'agent',
+        );
+        if (
+          location.end > section.length ||
+          (input.quote &&
+            (input.quote.length !== location.end - location.start ||
+              section.text.slice(0, input.quote.length) !== input.quote))
+        )
+          throw new OperationError('invalidRequest', '摘录或区间与材料正文不同。');
+      } else if (input.location) {
+        const size = await this.readMaterial<{ width: number; height: number }>(
           input.attachmentId,
           input.materialVersionId,
           { kind: 'geometry', pageIndex: input.location.pageIndex },
@@ -1372,7 +1433,7 @@ export class LiteratureCatalog {
   }
   async close(): Promise<void> {
     this.stopping = true;
-    await this.pdf.close();
+    await this.reading.close();
     if (this.timer) clearInterval(this.timer);
     await Promise.allSettled([...this.active.values()]);
     await this.backingUp?.catch(() => {});

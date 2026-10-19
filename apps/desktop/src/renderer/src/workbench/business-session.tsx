@@ -12,12 +12,14 @@ import type {
 } from '@scholoom/protocol';
 import { validateBusiness } from '@scholoom/protocol';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { DocumentReader } from './DocumentReader';
 import { draftKey, readDraft, writeDraft } from './drafts';
-import { LibraryPanel } from './LibraryPanel';
+import { LibraryTab } from './library/LibraryTab';
 import { PdfReader } from './PdfReader';
 import { ProjectOnboardingDialog } from './ProjectOnboarding';
 import { FileEditor, ProjectControls, ProjectNavigator } from './project-ui';
 import { toThreadMessage } from './projection';
+import { readerKindForName } from './reader-material';
 import { SessionList } from './SessionList';
 import { SessionSearchDialog } from './SessionSearch';
 import type { FileTarget, KernelPhase, WorkbenchSession } from './session';
@@ -36,7 +38,7 @@ export function useBusinessSession(
   const [materials, setMaterials] = useState<string[]>([]);
   const [materialFileIds, setMaterialFileIds] = useState<Record<string, string>>({});
   const [file, setFile] = useState<FileTarget>();
-  const [pdfTarget, setPdfTarget] = useState<LibraryAttachment>();
+  const [readerTarget, setReaderTarget] = useState<LibraryAttachment>();
   const [earlier, setEarlier] = useState<Message[]>([]);
   const [earlierComplete, setEarlierComplete] = useState(false);
   const [configured, setConfigured] = useState(false);
@@ -505,18 +507,28 @@ export function useBusinessSession(
         />
       ) : null,
     library: client ? (
-      <LibraryPanel client={client} enabled={phase === 'connected'} onOpenPdf={setPdfTarget} />
+      <LibraryTab
+        client={client}
+        enabled={phase === 'connected'}
+        onOpenReader={(material) => setReaderTarget({ ...material })}
+      />
     ) : undefined,
-    pdfTarget,
-    renderPdf: (material) =>
-      client ? (
-        <PdfReader
-          key={`${material.id}:${material.materialVersionId}`}
+    readerTarget,
+    renderReader: (material) => {
+      if (!client) return null;
+      const kind = readerKindForName(material.name);
+      const key = `${material.id}:${material.materialVersionId}`;
+      return kind === 'pdf' ? (
+        <PdfReader key={key} client={client} material={material} enabled={phase === 'connected'} />
+      ) : kind ? (
+        <DocumentReader
+          key={key}
           client={client}
           material={material}
           enabled={phase === 'connected'}
         />
-      ) : null,
+      ) : null;
+    },
     controls: (
       <ProjectControls
         snapshot={snapshot}

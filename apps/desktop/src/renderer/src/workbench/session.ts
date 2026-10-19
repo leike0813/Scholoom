@@ -91,8 +91,8 @@ export interface WorkbenchSession {
   renderFile?: (target: FileTarget, mode?: 'source' | 'preview') => ReactNode;
   /** 共同文献库 tab 内容；缺省时该 tab 呈现占位。 */
   library?: ReactNode;
-  pdfTarget?: import('@scholoom/protocol').LibraryAttachment | undefined;
-  renderPdf?: (material: import('@scholoom/protocol').LibraryAttachment) => ReactNode;
+  readerTarget?: import('@scholoom/protocol').LibraryAttachment | undefined;
+  renderReader?: (material: import('@scholoom/protocol').LibraryAttachment) => ReactNode;
   createSession?: () => void;
   cancel?: (() => void) | undefined;
   loadEarlier?: (() => void) | undefined;

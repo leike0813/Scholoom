@@ -4,7 +4,7 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { expect, test } from '@playwright/test';
-import { LiteratureCatalog, PdfReading } from '../../packages/library/dist/node.js';
+import { LiteratureCatalog, MaterialReading } from '../../packages/library/dist/node.js';
 import { FRAME_BUDGET, LARGE_PAGE_TEXT, largePdf } from '../fixtures/pdf-process/large-pdf.js';
 import {
   encryptedPdf,
@@ -70,7 +70,7 @@ async function importPdf(root: string, bytes: Buffer) {
 }
 
 test('queue admits one running and eight waiting PDF requests, then refuses more', async () => {
-  const reading = new PdfReading();
+  const reading = new MaterialReading();
   const accepted = [outcome(reading.run(hangingLoad, { kind: 'info' }))];
   for (let index = 0; index < 8; index++)
     accepted.push(outcome(reading.run(hangingLoad, { kind: 'info' })));
@@ -82,7 +82,7 @@ test('queue admits one running and eight waiting PDF requests, then refuses more
 });
 
 test('shutdown aborts the running request and refuses later ones', async () => {
-  const reading = new PdfReading();
+  const reading = new MaterialReading();
   let signal: AbortSignal | undefined;
   let started!: () => void;
   const loading = new Promise<void>((resolve) => {
@@ -109,7 +109,7 @@ test('shutdown aborts the running request and refuses later ones', async () => {
 });
 
 test('a timed-out request releases the slot so a later read still completes', async () => {
-  const reading = new PdfReading();
+  const reading = new MaterialReading();
   const budget = captureAcceptanceBudget();
   try {
     const timedOut = outcome(reading.run(hangingLoad, { kind: 'info' }));
@@ -138,7 +138,7 @@ test('a damaged PDF is reported as unparsable, not as empty text', async () => {
 });
 
 test('delivery verification shares the request deadline and cancellation releases queued work', async () => {
-  const reading = new PdfReading();
+  const reading = new MaterialReading();
   const budget = captureAcceptanceBudget();
   let checking!: () => void;
   const entered = new Promise<void>((resolve) => {
@@ -221,7 +221,7 @@ test('a PDF beyond the control-frame budget still reads through bounded chunks',
 });
 
 test('cancellation mid-delivery stops the computation process before the slot is reused', async () => {
-  const reading = new PdfReading();
+  const reading = new MaterialReading();
   const controller = new AbortController();
   let reached!: () => void;
   const computed = new Promise<void>((resolve) => {
@@ -256,7 +256,7 @@ test('cancellation mid-delivery stops the computation process before the slot is
 
 test('chunk requests outside the delivered material are refused, not served', async () => {
   const bytes = Buffer.alloc(4096, 7);
-  const reading = new PdfReading(
+  const reading = new MaterialReading(
     new URL('../fixtures/pdf-process/chunk-probe.mjs', import.meta.url),
   );
   const { probes } = await reading
@@ -273,7 +273,7 @@ test('chunk requests outside the delivered material are refused, not served', as
     'invalidRequest',
   ]);
   expect(Buffer.from(probes[0]?.data ?? '', 'base64')).toEqual(bytes);
-  const real = new PdfReading();
+  const real = new MaterialReading();
   try {
     expect(
       await real.run(async () => toArrayBuffer(syntheticPdf()), { kind: 'info' }),
@@ -284,7 +284,7 @@ test('chunk requests outside the delivered material are refused, not served', as
 });
 
 test('a stalled computation is ended by escalation and its slot returns to the next request', async () => {
-  const reading = new PdfReading(
+  const reading = new MaterialReading(
     new URL('../fixtures/pdf-process/stalled-execution.mjs', import.meta.url),
   );
   const budget = captureAcceptanceBudget();
@@ -334,7 +334,7 @@ test('a stalled computation is ended by escalation and its slot returns to the n
 });
 
 test('a crashed computation fails its request while the deadline is still pending', async () => {
-  const reading = new PdfReading(
+  const reading = new MaterialReading(
     new URL('../fixtures/pdf-process/crash-execution.mjs', import.meta.url),
   );
   // 期限被替换为手动预算：请求只能因计算进程异常退出而失败。

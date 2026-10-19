@@ -369,11 +369,11 @@ export function Workbench({ session }: { session: WorkbenchSession }) {
   }, [session.fileTarget, session.projectId]);
 
   useEffect(() => {
-    const material = session.pdfTarget;
+    const material = session.readerTarget;
     if (!material) return;
     setAgentExpanded(false);
     const tab = {
-      id: `pdf:${material.id}:${material.materialVersionId}`,
+      id: `reader:${material.id}:${material.materialVersionId}`,
       title: material.name,
       kind: 'reader' as const,
       material,
@@ -389,7 +389,7 @@ export function Workbench({ session }: { session: WorkbenchSession }) {
         index === 0 ? { ...group, tabs: [...group.tabs, tab], activeId: tab.id } : group,
       );
     });
-  }, [session.pdfTarget]);
+  }, [session.readerTarget]);
 
   return (
     <AssistantRuntimeProvider runtime={runtime}>
@@ -463,7 +463,7 @@ export function Workbench({ session }: { session: WorkbenchSession }) {
             renderFile={session.renderFile}
             renderSettings={session.controls}
             renderLibrary={session.library}
-            renderPdf={session.renderPdf}
+            renderReader={session.renderReader}
             onView={view}
             contextName={session.executionContext?.project}
             onCreateSession={session.createSession}

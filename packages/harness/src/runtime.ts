@@ -1359,7 +1359,7 @@ export class Harness {
           tools: [
             ...libraryToolMethods.map((method) => ({
               name: method.replace('.', '_'),
-              description: `共同文献库 ${method}。importProjectFiles只接受当前授权项目内相对路径，返回批次引用，用batch核查逐项结果。附件登记不等于可读；readAttachment按引用返回有界原字节base64，不表示已解析正文。阅读记录绑定材料版本；quote是摘录，body是你的解释；更正/移除先读修订号，未知创建按原recordId核查。库读取/写入/外发均需授权；未知批次先按原batchId核查。`,
+              description: `共同文献库 ${method}。importProjectFiles只接受当前授权项目内相对路径，返回批次引用，用batch核查逐项结果。附件登记不等于可读；readAttachment按引用返回有界原字节base64，不表示已解析正文。EPUB/HTML用documentInfo分页章节、readDocumentSection分段正文（textOnly省略渲染节点）、searchDocument按nextCursor继续，complete才表示覆盖结束；文本位置沿normalizationVersion/sectionId/start/end，摘录须与该UTF-16区间一致。阅读记录绑定材料版本；quote是摘录，body是你的解释；更正/移除先读修订号，未知创建按原recordId核查。库读取/写入/外发均需授权；未知批次先按原batchId核查。`,
               schema:
                 method === 'library.importProjectFiles'
                   ? {

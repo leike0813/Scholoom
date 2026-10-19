@@ -73,7 +73,7 @@ test('PDF reads without a window and version-bound page geometry protects annota
       body: 'Second page',
       location: { pageIndex: 1 },
     });
-    expect(bookmark.location?.pageIndex).toBe(1);
+    expect(bookmark).toMatchObject({ location: { pageIndex: 1 } });
     expect(await readFile(path)).toEqual(bytes);
     const reading = catalog.readPdfPage({ ...ref, pageIndex: 0 });
     catalog.grant({ read: false, write: false, send: false, autoBackup: false });

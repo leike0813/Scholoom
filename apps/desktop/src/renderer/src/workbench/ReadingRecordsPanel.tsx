@@ -2,6 +2,7 @@ import type { KernelClient } from '@scholoom/client';
 import {
   type BusinessParams,
   type LibraryAttachment,
+  type ReadingLocation,
   type ReadingRecord,
   validateBusiness,
 } from '@scholoom/protocol';
@@ -32,6 +33,11 @@ const codeOf = (error: unknown): string | undefined => {
 /** 摘录与解释分开呈现；作者是注入的可信身份，不混作原文。 */
 const authorLabel = (author: ReadingRecord['createdBy']) =>
   author.kind === 'agent' ? `Agent 会话 ${author.sessionId}` : '用户';
+/** PDF 与规范化正文共用记录列表；位置只在各自联合分支内读取。 */
+const locationLabel = (location: ReadingLocation) =>
+  'pageIndex' in location
+    ? `第 ${location.pageIndex + 1} 页`
+    : `章节 ${location.sectionId} · 字符 ${location.start}${location.end === location.start ? '' : `–${location.end}`}`;
 
 /** 更正草稿保存编辑body和读取时的revision及原记录，刷新后仍按原修订提交。 */
 type EditDraft = { revision: number; body: string; record: ReadingRecord };
@@ -471,8 +477,9 @@ export function ReadingRecordsPanel({
       <div>
         {note?.capture ? (
           <p role="status">
-            待保存{KIND_LABEL[note.capture.kind]} · 第 {(note.capture.location?.pageIndex ?? 0) + 1}{' '}
-            页{note.capture.quote ? ` · ${note.capture.quote}` : ''}
+            待保存{KIND_LABEL[note.capture.kind]}
+            {note.capture.location ? ` · ${locationLabel(note.capture.location)}` : ''}
+            {note.capture.quote ? ` · ${note.capture.quote}` : ''}
           </p>
         ) : null}
         <label>
@@ -558,7 +565,7 @@ export function ReadingRecordsPanel({
               <div>
                 {KIND_LABEL[record.kind]} · {creator}
                 {updater === creator ? '' : ` · 更新者 ${updater}`}
-                {record.location ? ` · 第 ${record.location.pageIndex + 1} 页` : ''}
+                {record.location ? ` · ${locationLabel(record.location)}` : ''}
               </div>
               {record.quote ? <blockquote>{record.quote}</blockquote> : null}
               {record.body ? <p>{record.body}</p> : null}
@@ -570,7 +577,7 @@ export function ReadingRecordsPanel({
                     disabled={!active || !materialAvailable}
                     onClick={() => onLocate(record)}
                   >
-                    定位第 {record.location.pageIndex + 1} 页
+                    定位{locationLabel(record.location)}
                   </button>
                 ) : null}
                 <button

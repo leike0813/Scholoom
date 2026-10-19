@@ -24,10 +24,14 @@
     "@embedpdf/pdfium": "2.15.1",
     "@scholoom/platform": "workspace:*",
     "@scholoom/protocol": "workspace:*",
+    "@xmldom/xmldom": "0.9.12",
     "better-sqlite3": "12.11.1",
-    "drizzle-orm": "0.45.4"
+    "drizzle-orm": "0.45.4",
+    "parse5": "8.0.1",
+    "yauzl": "3.4.0"
   },
   "devDependencies": {
-    "@types/better-sqlite3": "7.6.13"
+    "@types/better-sqlite3": "7.6.13",
+    "@types/yauzl": "3.4.0"
   }
 }

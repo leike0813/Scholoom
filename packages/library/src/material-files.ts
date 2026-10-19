@@ -247,7 +247,10 @@ export class MaterialFiles {
       limit > MATERIAL_CHUNK
     )
       throw new OperationError('invalidRequest', '材料读取范围无效。');
-    const { handle, stats } = await this.file(record.path);
+    const { handle, stats } = await this.file(record.path).catch((error: unknown) => {
+      const reason = failure(error);
+      throw new OperationError(reason.code, reason.message);
+    });
     try {
       const fp = fingerprint(stats);
       if (this.verified.get(record.value.id) !== `${record.hash}:${fp}`) {

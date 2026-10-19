@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { Broker, type Handlers } from '@scholoom/broker';
-import { LiteratureCatalog, PdfReading } from '@scholoom/library/node';
+import { LiteratureCatalog, MaterialReading } from '@scholoom/library/node';
 import { ProcessAdmission } from '@scholoom/platform/node';
 import { DirectoryBrowser, Projects } from '@scholoom/projects/node';
 import {
@@ -161,7 +161,7 @@ export class ManualApplication {
         'project.checkRead': (input) => libraryMaterials.call('project.checkRead', input),
         'project.material': (input) => libraryMaterials.call('project.material', input),
       },
-      new PdfReading(undefined, this.processes),
+      new MaterialReading(undefined, this.processes),
     );
     this.broker.register('manual', this.foundationHandlers);
     this.broker.register('library-internal', {
@@ -283,6 +283,34 @@ export class ManualApplication {
     Handlers<BusinessInputs, BusinessOutputs>,
     FoundationMethod
   > = {
+    'library.documentInfo': (input, context) =>
+      this.library.document(
+        'library.documentInfo',
+        input,
+        context.signal,
+        context.role !== 'execution',
+      ),
+    'library.readDocumentSection': (input, context) =>
+      this.library.document(
+        'library.readDocumentSection',
+        input,
+        context.signal,
+        context.role !== 'execution',
+      ),
+    'library.searchDocument': (input, context) =>
+      this.library.document(
+        'library.searchDocument',
+        input,
+        context.signal,
+        context.role !== 'execution',
+      ),
+    'library.readDocumentResource': (input, context) =>
+      this.library.document(
+        'library.readDocumentResource',
+        input,
+        context.signal,
+        context.role !== 'execution',
+      ),
     'library.pdfInfo': async (input, context) => {
       return this.library.pdfInfo(input, context.signal, context.role !== 'execution');
     },
