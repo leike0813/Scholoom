@@ -7,9 +7,8 @@ import type { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { expect, test } from '@playwright/test';
-import { CredentialStore } from '../../apps/kernel/dist/credentials/store.js';
-import { ModelConfigStore } from '../../apps/kernel/dist/models/config-store.js';
-import { ModelAccess } from '../../apps/kernel/dist/models/minimax.js';
+import { ModelAccess } from '../../packages/models/dist/execution.js';
+import { CredentialStore, ModelConfigStore } from '../../packages/models/dist/node.js';
 
 const SYNTHETIC_KEY = 'synthetic-key-not-a-secret';
 const ANSWER = '合成答复。';

@@ -1,0 +1,28 @@
+{
+  "modules": [
+    {
+      "name": "alpha",
+      "package": "@fixture/alpha",
+      "root": "alpha",
+      "allows": [],
+      "systemAdapters": [],
+      "provides": ["research.analyze"],
+      "consumes": []
+    },
+    {
+      "name": "beta",
+      "package": "@fixture/beta",
+      "root": "beta",
+      "allows": [],
+      "systemAdapters": [],
+      "provides": ["research.analyze"],
+      "consumes": []
+    }
+  ],
+  "system": {
+    "pure": ["node:path", "node:crypto"],
+    "globals": ["fetch"],
+    "specifiers": ["electron"]
+  },
+  "exceptions": []
+}

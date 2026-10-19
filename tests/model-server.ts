@@ -63,11 +63,13 @@ function inspect(body: Record<string, unknown>): {
   user: string;
   tools: Set<string>;
   reads: number;
+  researchCalls: number;
 } {
   const messages = Array.isArray(body.messages) ? (body.messages as Array<Message>) : [];
   const user: Array<string> = [];
   const tools = new Set<string>();
   let reads = 0;
+  let researchCalls = 0;
   for (const message of messages) {
     const content = message.content;
     if (typeof content === 'string') user.push(content);
@@ -77,13 +79,21 @@ function inspect(body: Record<string, unknown>): {
       if (message.role !== 'user' && block.type === 'tool_use') {
         tools.add(String(block.name ?? ''));
         if (block.name === 'read_file') reads++;
+        if (block.name === 'invoke_research_capability') researchCalls++;
       }
     }
   }
-  return { user: user.join('\n'), tools, reads };
+  return { user: user.join('\n'), tools, reads, researchCalls };
 }
 
-function planTurn(user: string, tools: Set<string>, toolId: string, reads: number): Turn {
+function planTurn(
+  user: string,
+  tools: Set<string>,
+  toolId: string,
+  reads: number,
+  summary = false,
+  researchCalls = 0,
+): Turn {
   const thinking: Block = { type: 'thinking', thinking: THINKING, signature: SIGNATURE };
   const text = (value: string): Turn => ({
     stopReason: 'end_turn',
@@ -106,6 +116,65 @@ function planTurn(user: string, tools: Set<string>, toolId: string, reads: numbe
       },
     ],
   });
+  if (summary && user.includes('MODEL_SUMMARY_CONTEXT'))
+    return text('MODEL_SUMMARY_CONTEXT 有效摘要保留 effective_constraint_73。');
+  if (user.includes('MODEL_WITHDRAW_GOAL')) return text('已按最新要求结束旧目标。');
+  const retryInvocation = /MODEL_RETRY ([\w-]+)/.exec(user)?.[1];
+  if (retryInvocation) {
+    if (researchCalls < 2)
+      return tool('invoke_research_capability', {
+        methodId: 'scholoom.material-analysis',
+        version: '1.0.0',
+        invocationId: retryInvocation,
+        input: {
+          materialPaths: ['input.md'],
+          outputPath: 'analysis.md',
+          goal: 'MODEL_RESEARCH_EXECUTION 分析材料中结果42的依据和限制',
+        },
+      });
+    return text('已核查重试结果。');
+  }
+  if (user.includes('MODEL_OFFLOAD')) {
+    if (!tools.has('read_instructions')) return tool('read_instructions', {});
+    return text('已核查持久指令。');
+  }
+  if (user.includes('MODEL_WORK_MATERIALS')) {
+    if (!tools.has('read_file')) return tool('read_file', { file_path: '/workspace.md' });
+    if (!tools.has('write_file'))
+      return tool('write_file', {
+        file_path: '/continued.md',
+        content: '# 接续\n依据：workspace.md；已核查观测42。下一步：独立复验。\n',
+      });
+    return text('接续结果已保存到 continued.md。');
+  }
+  if (user.includes('MODEL_WORK_PLAN')) {
+    if (!tools.has('read_file')) return tool('read_file', { file_path: '/input.md' });
+    if (!tools.has('write_file'))
+      return tool('write_file', {
+        file_path: '/workspace.md',
+        content:
+          '# 工作记录\n目标：核查观测42。\n依据：input.md。\n决定：保留样本限制。\n进展：初步分析已保存。\n成果：样本观测为42，尚不能推广。\n下一步：独立复验。\n',
+      });
+    return text('工作记录已保存。');
+  }
+  if (user.includes('MODEL_SUMMARY_CONTEXT')) {
+    if (!tools.has('read_file')) return tool('read_file', { file_path: '/input.md' });
+    return text('压缩后的有效上下文已核查。');
+  }
+  if (user.includes('MODEL_SCRATCH_READ')) {
+    if (!tools.has('read_file'))
+      return tool('read_file', { file_path: '/large_tool_results/context.md' });
+    return text('已核查会话私有工作上下文。');
+  }
+  if (user.includes('MODEL_SCRATCH_WRITE')) {
+    if (!tools.has('write_file'))
+      return tool('write_file', {
+        file_path: '/large_tool_results/context.md',
+        content: user.includes('MODEL_SCRATCH_WRITE_EMPTY') ? '' : 'session_private_scratch_73',
+      });
+    return text('工作上下文已保存。');
+  }
+  if (user.includes('MODEL_BUDGET')) return tool('read_file', { file_path: '/input.md' });
   if (user.includes('MODEL_READING_RECORD')) {
     const match = /MODEL_READING_RECORD ([\w-]+) ([\w-]+) ([\w-]+)/.exec(user);
     const attachmentId = match?.[1],
@@ -182,7 +251,9 @@ function planTurn(user: string, tools: Set<string>, toolId: string, reads: numbe
         input: {
           materialPaths: ['input.md'],
           outputPath: 'analysis.md',
-          goal: 'MODEL_RESEARCH_EXECUTION 分析材料中结果42的依据和限制',
+          goal: user.includes('MODEL_SHARED_BUDGET')
+            ? 'MODEL_RESEARCH_EXECUTION MODEL_BUDGET 分析材料'
+            : 'MODEL_RESEARCH_EXECUTION 分析材料中结果42的依据和限制',
         },
       });
     return text('分析报告已保存到 analysis.md。');
@@ -220,7 +291,7 @@ function planTurn(user: string, tools: Set<string>, toolId: string, reads: numbe
       });
     if (!tools.has('trash_project_path'))
       return tool('trash_project_path', { path: 'renamed', operationId: 'fixture-trash' });
-    if (!tools.has('list_project_trash')) return tool('list_project_trash', { offset: 0 });
+    if (!tools.has('list_project_trash')) return tool('list_project_trash', {});
     if (!tools.has('restore_project_path'))
       return tool('restore_project_path', {
         trashId: 'fixture-trash',
@@ -419,8 +490,15 @@ export async function createModelServer(): Promise<ModelServer> {
     if (res.destroyed || res.writableEnded) return;
     sequence += 1;
     const suffix = String(sequence).padStart(4, '0');
-    const { user, tools, reads } = inspect(body);
-    const turn = planTurn(user, tools, `toolu_fixture_${suffix}`, reads);
+    const { user, tools, reads, researchCalls } = inspect(body);
+    const turn = planTurn(
+      user,
+      tools,
+      `toolu_fixture_${suffix}`,
+      reads,
+      !Array.isArray(body.tools) || body.tools.length === 0,
+      researchCalls,
+    );
     if (body.stream === true) {
       res.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-cache' });
       const body = streamBody(`msg_fixture_${suffix}`, turn);

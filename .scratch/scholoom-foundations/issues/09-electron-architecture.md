@@ -16,7 +16,7 @@ Blocked by: 05, 06, 07, 08, 13, 16, 18, 19
 
 [科研 Agent harness 与执行路线](07-agent-runtime-boundaries.md)已确定 LangGraph 系列基础和原生科研能力融合。模块共同实现任务身份、授权、调度、产物交付、正式节点与恢复契约，本票据此选择接口和物理部署方式。
 
-具体职责以[科研能力的运行时契约](18-native-capability-runtime-and-content.md)为依据；[源码复用取舍](19-existing-source-and-rust-reuse.md)已确认 Synthesis 先采用 TypeScript，吸纳 main、历史和适用 dev 实现。重计算应与工作台、桌面 main 和 Agent 调度的事件循环分离；本票选择 Worker、计算进程、数据通道、进度、取消与执行监督方式，使其仍由同一 harness 管理。Rust 可按具体实现收益后续评估，当前不整体迁入旧 Synthesis 子系统。
+具体职责以[科研能力的运行时契约](18-native-capability-runtime-and-content.md)为依据；[源码复用取舍](19-existing-source-and-rust-reuse.md)已确认 Synthesis 先采用 TypeScript，吸纳 main、历史和适用 dev 实现。重计算应与工作台、桌面 main 和 Agent 调度的事件循环分离，使用共同执行基础及相应监督；进程部署沿[会话执行进程决议](../../runtime-architecture/issues/03-session-execution-processes.md#answer)。Rust 可按具体实现收益后续评估，当前不整体迁入旧 Synthesis 子系统。
 
 原生契约已确定共同执行上下文、获授权服务、分批交付、正式决定与恢复接口。本票选择这些接口跨进程的承载、代码装载和执行监督方式，并落实 Node 程序、脚本、兼容宿主与插件能力的实际权限边界。
 
@@ -27,6 +27,8 @@ Zotero 兼容宿主已由 [#16](16-zotero-host-prototype.md) 确定为 Node＋Ch
 讨论接口和 DTO、IPC 边界、长期任务生命周期、工作台接入与退出时的执行行为、插件及原生扩展接入、读模型和变更提交。先确定模块职责，再选择物理进程划分；不照搬 Nimbalyst 的进程数量，也不把进程隔离等同于文件系统权限隔离。给出足够支持选型的架构，避免提前拆出无实际需要的服务或包。
 
 ## Answer
+
+模块依赖、跨模块调用与宿主装配沿[模块依赖决议](../../runtime-architecture/issues/01-module-dependencies-and-authority.md#answer)，执行部署、监督及故障范围沿[会话执行进程决议](../../runtime-architecture/issues/03-session-execution-processes.md#answer)。本票保留后台单实例、共同客户端和独立兼容宿主等基础选择，以下部署表述与该进程决议对齐。
 
 2026-10-04 用户依次确认独立后台内核、可信代码执行、原生模块集中部署（Q3）、共同客户端协议（Q4）、单内核实例（Q5）与原生能力执行分工（Q6），最后回复“批准”确认兼容宿主部署（Q7）和执行故障处理（Q8）。架构选择已收敛，本票解决；正式决定如下。
 
@@ -40,21 +42,23 @@ Zotero 兼容宿主已由 [#16](16-zotero-host-prototype.md) 确定为 Node＋Ch
 
 ### 原生内核模块集中部署（Q3）
 
-首阶段将 Agent／workflow／任务管理，以及文献、项目、证据和稿件等原生领域模块集中部署在一个独立 Node 内核进程中。模块通过明确接口协作，一个内核可管理全局文献库与多个项目；不按领域逐一拆成微服务。
+同一数据配置保留一个独立 Node 应用宿主，装配共同领域权威、broker、统一准入与执行监督；文献、项目、证据和稿件等领域模块及轻量操作保持集中部署。Agent 活动执行进入独占受管进程，具体分工沿[进程决议](../../runtime-architecture/issues/03-session-execution-processes.md#answer)，不按领域逐一拆成微服务。
 
-Electron main 承担窗口与系统集成，工作台承担编辑和呈现，两者作为内核客户端。Zotero 兼容宿主及所需 DOM／Workers 分开执行，由内核监督并接入同一文献权威。重计算进入 Worker，用户程序、脚本与工具按下述 Q6 分工采用受管进程；宿主部署与故障处理沿 Q7／Q8 实现。后续按实际性能与故障边界调整部署。
+Electron main 承担窗口与系统集成，工作台承担编辑和呈现，两者作为内核客户端。Zotero 兼容宿主及所需 DOM／Workers 分开执行，由内核监督并接入同一文献权威。计算、用户程序、脚本与工具按下述 Q6 及进程决议分工；宿主部署与故障处理沿 Q7／Q8 实现。
 
-2026-10-14 设计复审中，用户确认保留单内核，按具体执行风险隔离，不预先把 harness、文献模块和宿主监督拆为服务或为所有模块增加内部 RPC。内置重计算默认使用 Worker；有进程级崩溃风险的执行按实际需要使用受管子进程，Worker 不等于独立进程的故障隔离。模块经明确接口独立测试，不以拆进程为前提。首阶段不承诺模块独立升级、LangGraph 升级不停机或内核故障时持续执行；内核故障会中断依赖它的会话，工作台保留草稿和已显示内容，恢复后按 #25 接续。此选择控制部署和维护成本，后续按故障与负载证据调整。
+2026-10-18 进程复审确认活动执行及独立子 Agent、advisor 的进程隔离，理由与替代方案集中在进程决议。模块仍经明确接口独立测试，Worker 可用于受管进程内部，不能替代所需 OS 进程隔离。首阶段不承诺模块独立升级、LangGraph 升级不停机或宿主故障时持续执行；宿主故障允许执行中断，工作台保留草稿和已显示内容，恢复后显式接续。
 
 ### 共同客户端协议（Q4）
 
-Scholoom 自有 app-server 接口采用统一双向 JSON-RPC，以本地 WebSocket 作为 Electron 工作台、CLI 和浏览器开发入口连接同一独立内核的共同传输。操作请求、状态与增量通知、人类介入请求共用协议；协议 Schema 为共同事实源，生成客户端类型。监听限于本机并验证客户端身份。stdio 适配在存在具体子进程接入需求时再增加。
+Scholoom 自有 app-server 接口采用统一双向 JSON-RPC，以本地 WebSocket 作为 Electron 工作台、CLI 和浏览器开发入口连接同一独立内核的共同传输。操作请求、状态与增量通知、人类介入请求共用协议；协议 Schema 为共同事实源，生成客户端类型。监听限于本机并验证客户端身份。2026-10-18，[内部接口决议](../../runtime-architecture/issues/06-internal-interfaces-and-ipc.md#answer)确认进程内 broker 直调、自有 Node 子进程 IPC、Zotero 插件兼容宿主的受认证回环 WebSocket 及内部 Electron 窄桥；不增加通用 stdio RPC 入口，插件 MCP 沿其自身契约。
+
+2026-10-18，[远程部署决议](../../runtime-architecture/issues/05-local-and-remote-deployment.md#answer)确认客户机工作台可经 SSH 接入工作机完整环境，工作机内核仍仅回环监听；文献库、项目、执行、模型凭据及兼容宿主均在工作机。组件准备、材料传输、无桌面条件及断线升级沿该票，保持共同业务权威与既有生命周期，不据此声称远端接线已实现。
 
 任务与会话身份独立于连接和 RPC 请求编号；客户端断线不自动取消任务。重连读取当前状态、待处理介入请求并重新订阅。订阅须覆盖读取与接入之间的变化，采用有界补发或重新读取等方式避免遗漏；不预设完整事件回放系统。多个客户端观察同一内核，介入答复由内核校验并只应用一次。
 
 2026-10-14 确认订阅的恢复边界：队列属于内核 app-server 向客户端发送变化的临时缓冲，按订阅有界。溢出只使相关订阅失效，客户端保留旧画面并标明刷新，重读该范围快照；草稿和未保存编辑独立保留。通知允许省略中间展示过程，已保存结果和待处理事项仍由持久记录查询，不设无限核心事件队列。只合并明确可替代的更新，如同一执行的绝对进度；追加消息不能只保留最后一条。容量、粒度及刷新成本通过真实负载验证，关注重复重同步；此队列与任务调度及 Agent 持久收件箱分别实现。
 
-借鉴 Codex app-server 的通信模式及 Paseo 的连接、生命周期和诊断设计，Scholoom 维护自己的 daemon 与共同客户端。2026-10-14 按 [#07](07-agent-runtime-boundaries.md#answer)收敛执行与扩展：统一内置 LangGraph，不接入 ACP 外部 Agent；插件 MCP 由宿主管理，对外 MCP 服务为独立候选入口。具体连接、插件适配与恢复实现随接口设计落实。
+借鉴 Codex app-server 的通信模式及 Paseo 的连接、生命周期和诊断设计，Scholoom 维护自己的 daemon 与共同客户端。2026-10-14 按 [#07](07-agent-runtime-boundaries.md#answer)收敛执行与扩展：统一内置 LangGraph，不接入 ACP 外部 Agent；插件 MCP 由宿主管理。对外 MCP 已按[外部接口决议](../../runtime-architecture/issues/07-external-interfaces-and-extensions.md#answer)采纳，首批查询与有限工作请求通过 stdio、Streamable HTTP 及 Tasks 接入，A2A 后置；内部 app-server 的回环监听与公共 MCP 远程 HTTPS 接入分别配置。具体接线随 OpenSpec 实施验证。
 
 ### 内核实例与启动协调（Q5）
 
@@ -64,12 +68,12 @@ Scholoom 自有 app-server 接口采用统一双向 JSON-RPC，以本地 WebSock
 
 | 代码职责 | 执行位置 |
 | --- | --- |
-| 内置领域模块、Agent 调度和轻量能力 | 内核进程 |
-| 重计算 | Worker |
-| 用户添加的 JS／TS 程序及自定义图 | 受管执行进程 |
-| Python、命令行工具及需本机启动的插件服务 | 各自的受管进程 |
+| 领域权威、轻量操作、broker、统一准入与监督 | 应用宿主 |
+| LangGraph、模型 SDK 及执行侧编排 | 每次活动执行的独占进程，独立子 Agent 和 advisor 同理 |
+| PDF 等阻塞或进程崩溃风险的计算及原生处理 | 受管计算进程，Worker 可在进程内部 |
+| 用户 JS／TS、自定义图、Python、编译渲染及本机插件服务 | 各自受管程序进程 |
 
-内核统一管理任务、授权、进度、交付和取消；外部执行代码通过共同接口访问领域对象。执行上下文的任务与调用身份、获授权接口、事件、取消及交付通道沿 #18 的共同契约提供。更新用户程序或终止卡住的执行时，处理对应执行进程；运行中的调用如何采用更新内容沿既有方法与版本约定处理。进程分离用于故障处理和取消，沿用可信代码执行范围。
+具体生命周期、容量、归属及共享故障范围以[进程决议](../../runtime-architecture/issues/03-session-execution-processes.md#answer)为准，不在本票另维护一套规则。外部执行代码经 broker 使用共同领域接口，调用上下文沿 #18；公共程序执行能力独立于 harness，人工预览编译不要求建立 Agent 会话。
 
 ### 兼容宿主部署与生命周期（Q7）
 
@@ -81,9 +85,9 @@ Scholoom 自有 app-server 接口采用统一双向 JSON-RPC，以本地 WebSock
 
 - 取消先停止后续调度并请求执行协作退出，超过允许时间后终止对应受管执行单元，监督范围包括受管子进程。已完成的产物与实际修改保留。
 - 执行崩溃只处理受影响调用；共享宿主故障时标记全部受影响调用。可以重新启动执行环境，仅对确认可安全重试的操作有限重试；效果未知的写入先核查。
-- 内核意外退出后，下次启动将未正常结束的执行识别为中断，从持久材料和必要执行记录续做；checkpoint 不可用时按 [#25](25-harness-business-integration.md#持续保存分批交付与恢复)开启新执行尝试。首阶段不添加额外常驻监督守护进程，不盲目重放所有调用。
+- 内核意外退出后，下次启动识别未正常结束的执行，先核查遗留进程和实际效果，再由用户显式接续；checkpoint 不可用时按 [#25](25-harness-business-integration.md#持续保存分批交付与恢复)开启新执行尝试。首阶段不添加额外常驻监督守护进程，不盲目重放所有调用。
 
-具体超时、进程树终止、Worker 取消和恢复接线由实现及平台验收确定。上述是受管执行的处理契约，不承诺应用自身故障不会影响内核，也不将取消等同于撤销已经完成的操作。
+执行归属、旧实例及迟到操作、取消完成依据与故障保护范围沿[进程决议](../../runtime-architecture/issues/03-session-execution-processes.md#answer)。具体超时、跨平台进程收尾和恢复接线由实现验收确定，不将取消等同于撤销已完成操作。
 
 ### 接口与实现承接
 
@@ -94,12 +98,14 @@ flowchart LR
     Desktop[Electron 工作台] <-->|JSON-RPC / 本地 WebSocket| Kernel[独立 Node 内核]
     CLI[CLI] <-->|同一客户端协议| Kernel
     Browser[浏览器开发入口] <-->|同一客户端协议| Kernel
-    Kernel <--> Domain[文献／项目领域模块与数据权威]
-    Kernel <-->|执行上下文／进度／交付| Execution[Worker／受管执行进程]
-    Kernel <-->|领域适配／插件功能| Host[独立 Electron 兼容宿主]
+    Kernel <--> Broker[统一 broker]
+    Broker <--> Domain[文献／项目领域模块与数据权威]
+    Broker <--> Agent[独占 Agent 执行进程]
+    Broker <--> Execution[公共执行与受管计算／程序进程]
+    Broker <--> Host[独立 Electron 兼容宿主]
 ```
 
-图中领域模块部署在 Node 内核内，Worker 与受管执行进程按上述分工运行；模块不自动对应独立服务或发布包。读取、订阅和投影按当前任务与对象范围实现，具体 DTO、缓存更新及保存机制进入实现规格。
+图中领域模块与 broker 部署在 Node 应用宿主内，其他执行按进程决议分工；连线表达经 broker 的逻辑调用，不预定内部传输。模块不自动对应独立服务或发布包。读取、订阅和投影按当前任务与对象范围实现，具体 DTO、缓存更新及保存机制进入实施规格。
 
 [技术栈票 #12](12-technology-stack.md)据此选择框架、数据库接入、组件、工具链、仓库结构与运行时分发；具体启动发现、内部 IPC、接口字段和平台接线随实现规格落实。[验证与发布票 #15](15-validation-and-release-discipline.md)承接生命周期、取消、故障恢复及插件支持范围的验收。实现路线继续由用户决定时机，本票完成不自动启动实现规划、实验或应用开发。
 

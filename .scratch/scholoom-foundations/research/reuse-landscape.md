@@ -2,7 +2,7 @@
 
 调查日期：2026-10-11。用户已明确暂不考虑 Rust 应用路线，并要求在业务开发前调查成熟库、组件和可借鉴项目，以减少个人实现与维护负担。
 
-当前路线更新（2026-10-14）：执行统一使用内置 LangGraph harness，插件 MCP 与候选对外 MCP 分开设计，不支持 ACP 外部 Agent；Paseo 以设计借鉴为主。依据 [#07](../issues/07-agent-runtime-boundaries.md#answer)与 [#12](../issues/12-technology-stack.md)。各专题中原有 ACP／第三方执行器调查保留为历史候选证据，不作为当前实施建议。
+当前路线更新（2026-10-18）：执行统一使用内置 LangGraph harness，插件消费 MCP 与对外 MCP 分别管理；对外 MCP 已采纳，范围及 A2A 后置沿[外部接口决议](../../runtime-architecture/issues/07-external-interfaces-and-extensions.md#answer)，不支持 ACP 外部 Agent；Paseo 以设计借鉴为主。依据 [#07](../issues/07-agent-runtime-boundaries.md#answer)与 [#12](../issues/12-technology-stack.md)。各专题中原有 ACP／第三方执行器调查保留为历史候选证据，不作为当前实施建议。
 
 本次完成的是针对当前 PRD 的文档与源码调查。已有选型、已安装依赖、实际产品集成分别记录；本报告提出的组合和验证顺序尚未成为新的产品决定。未安装依赖、运行候选应用、调用模型或学术服务、启动开发服务器、改变现有实现和提交代码。
 
@@ -86,7 +86,7 @@ Scholoom 的通用基础能力可以大量复用。没有找到一套已经覆�
 | 嵌入与科研数据读取 | 受管 Worker/Python 已在路线内 | 比较小型本地多语模型与托管 embedding；CSV/Excel 评 PapaParse/SheetJS，分析复用 pandas/PyArrow | 把模型资源和数据外发纳入选择；不在 Node 再复制完整分析环境 |
 | 结构化存储 | better-sqlite3 + Drizzle | 维持；新 Node-API 版本另核目标平台，不自动升级 | 用已有事务、迁移、备份，领域与执行 checkpoint 分工 |
 | 双向内核协议 | JSON-RPC/本地 WebSocket/Schema SSOT | ws + vscode-jsonrpc 或 json-rpc-2.0；Ajv | 复用成熟协议实现，认证/单实例/恢复由共同客户端承接 |
-| MCP 扩展 | 插件受管接入；Scholoom 对外服务另属候选 | 按插件或对外入口的具体契约评估 SDK | 不接入 ACP 外部 Agent；插件调用不自动具备图级取消与恢复能力 |
+| MCP 扩展 | 插件受管接入；对外 MCP 已采纳，范围沿外部接口决议 | 按插件或对外入口的具体契约评估 SDK | 不接入 ACP 外部 Agent；插件调用不自动具备图级取消与恢复能力 |
 | 执行与限流 | Worker/受管子进程、统一上限 | spawn 基线，Execa 对照；p-queue 只在真实共用并发缺口采用 | 避免 Redis/Temporal 成为桌面安装前提 |
 | 文件、备份、诊断 | 开放文件、有界历史、自动备份、默认本地诊断 | Chokidar、diff、按需 ZIP 库、Pino | 复用基础算法，不误把 watcher/rename 当事务或恢复 |
 | 运行时与发布 | 独立 Node、electron-builder、uv、Quarto、Playwright | 先验实际安装包，再按阶段加 updater/可选诊断服务 | 核对本机开发之外的依赖、资源及生命周期成本 |

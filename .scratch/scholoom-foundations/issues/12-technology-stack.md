@@ -36,7 +36,7 @@ Scholoom 采用 AGPL-3.0 开源。第三方代码与资源保留各自声明，�
 
 工作台参考 Paseo 的面板组织与体验，服从 #10 已确认的布局。应用源码按具体模块吸纳；实际复用模块、接入边界和调查依据见 [Agent 面板复用调查](../research/agent-ui-reuse-evaluation.md)。文献、证据、研究任务／Agent／会话关系及内核消息投影由 Scholoom 定义；审批恢复与有界历史读取继续按既有契约实现和验收。
 
-2026-10-14 用户比较 Paseo 整体 fork、daemon／provider 吸纳及设计借鉴后，确认以借鉴为主，保留自有工作台与内核；执行统一使用 LangGraph 系列，不建设第三方 harness provider 体系。插件 MCP 与候选对外 MCP 的边界集中见 [#07](07-agent-runtime-boundaries.md#answer)。
+2026-10-14 用户比较 Paseo 整体 fork、daemon／provider 吸纳及设计借鉴后，确认以借鉴为主，保留自有工作台与内核；执行统一使用 LangGraph 系列，不建设第三方 harness provider 体系。插件消费 MCP 沿 [#07](07-agent-runtime-boundaries.md#answer)；对外 MCP 已采纳、A2A 后置，公共操作及传输边界沿[外部接口决议](../../runtime-architecture/issues/07-external-interfaces-and-extensions.md#answer)，所选 SDK 与客户端支持仍需实施前验证。
 
 2026-10-14 用户确认：assistant-ui 与工作台能承担真实负载仍是初步假设；开发中分别验证大量材料的有界读取、长会话加载内存和持续并发输出下的输入响应，交付前复验；沿既有有界读取、分页或虚拟化要求接入，实测不合适时允许调整组件接线。理由：负载结论应由实际运行证据决定。
 

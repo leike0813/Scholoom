@@ -1,0 +1,33 @@
+{
+  "modules": [
+    {
+      "name": "alpha",
+      "package": "@fixture/alpha",
+      "root": "alpha",
+      "allows": ["@fixture/beta/core"],
+      "systemAdapters": [
+        {
+          "path": "src/platform/**",
+          "apis": ["fs", "fetch", "process.env"]
+        }
+      ],
+      "provides": [],
+      "consumes": ["@fixture/beta/core"]
+    },
+    {
+      "name": "beta",
+      "package": "@fixture/beta",
+      "root": "beta",
+      "allows": [],
+      "systemAdapters": [],
+      "provides": [],
+      "consumes": []
+    }
+  ],
+  "system": {
+    "pure": ["node:path", "node:crypto"],
+    "globals": ["fetch", "process.env"],
+    "specifiers": ["electron"]
+  },
+  "exceptions": []
+}

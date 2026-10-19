@@ -1,4 +1,5 @@
 import { execFile } from 'node:child_process';
+import { sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createKernelClient, type KernelClient, KernelClientError } from '@scholoom/client';
 import {
@@ -22,7 +23,10 @@ export function bootstrapKernel(
   options: { dataDirectory?: string; nodeExecutable?: string; development?: boolean } = {},
 ): Promise<BootstrapResult> {
   const args = [
-    fileURLToPath(new URL('./cli.js', import.meta.url)),
+    fileURLToPath(new URL('./cli.js', import.meta.url)).replace(
+      `${sep}app.asar${sep}`,
+      `${sep}app.asar.unpacked${sep}`,
+    ),
     mode === 'ensure' ? 'start' : 'status',
     '--connection-info',
   ];

@@ -26,7 +26,7 @@ test('Windows private directories retain exclusive inheritable access without se
   }
   environment.PSModulePath = modules;
   const directory = testInfo.outputPath('私有 profile');
-  const helper = new URL('../../apps/kernel/dist/storage/private-files.js', import.meta.url).href;
+  const helper = new URL('../../packages/platform/dist/node.js', import.meta.url).href;
   const source = [
     `import { privateDirectory, atomicPrivateFile } from ${JSON.stringify(helper)};`,
     'await privateDirectory(process.argv[1]);',

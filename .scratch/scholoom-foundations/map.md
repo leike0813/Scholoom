@@ -10,13 +10,17 @@ Labels: wayfinder:map
 
 ### 当前讨论入口
 
+- 2026-10-17，用户开启[模块依赖、运行时进程与接口架构讨论](../runtime-architecture/map.md)，目标是形成可指导重构的决策，本轮不实施。讨论覆盖模块独立性、统一平台访问、Agent 执行故障隔离、进程与恢复、内部通信、SSH 远程工作区及 MCP／A2A 开放接口；已确认前提、进程拓扑与后续票以新地图为入口。
+
 - 2026-10-14，设计复审讨论已收束并获用户确认：保留 [#09](issues/09-electron-architecture.md)单内核与有界局部重同步；[#13](issues/13-storage-and-change-model.md)采用文件内容变化即重读、独立副本恢复与选择性取回；[#25](issues/25-harness-business-integration.md)明确 checkpoint 失效后新执行接续及产物关联部分成功；[#44](issues/44-defer-continuous-precise-source-location.md)补齐旧记录降级呈现。数据库/UI 能力沿 [#12](issues/12-technology-stack.md)作为开发中与交付前复验的假设，性能门槛沿 [#15](issues/15-validation-and-release-discipline.md)仅用于确定性动作，测试工具策略沿 [#20](issues/20-ui-debugging-and-e2e-harness.md)。本轮同步设计、PRD 与决议，未启动业务实施或宣称运行验收通过。
 
 - 2026-10-14，[多 Agent 交互初设 #46](issues/46-multi-agent-interaction.md)已采纳：内部共用原生 harness，区分 subagent 委派、已有会话主动协作与 advisor；跨会话采用持久收件箱、执行边界消费和有界唤醒，A2A 留作对外互操作候选。具体契约、SDK 接线及参数在实现中探索打磨，本轮只记录初设，未启动业务实施。
 
+- 2026-10-18，[外部接口决议](../runtime-architecture/issues/07-external-interfaces-and-extensions.md#answer)确认对外 MCP 首批查询与有限工作请求，支持 stdio、Streamable HTTP 及 Tasks，默认关闭并按调用方授权；A2A 后置到明确实际对接需求。工作请求沿协作机制与普通会话承接，目标尚待 OpenSpec 实施验证。
+
 - 2026-10-14，[执行与扩展边界 #07](issues/07-agent-runtime-boundaries.md#answer)已更新：统一内置 LangGraph／LangChain／Deep Agents，不支持 ACP 外部 Agent 或第三方 harness 接入；MCP 能力经插件系统管理，不提供任意 MCP 服务配置入口。Scholoom 自身对外 MCP 服务为独立候选，开放范围待定。[技术栈 #12](issues/12-technology-stack.md)保留自有 React DOM＋assistant-ui 工作台与 daemon，Paseo 以借鉴为主；本轮仅同步决议和设计文档。
 
-- 本轮还讨论了 SSH 远程工作区及模块独立验收。独立验收沿 [#14](issues/14-agent-development-discipline.md#deep-module-与独立交付)；远程工作区尚未确认数据部署、启动、凭据和 Zotero 宿主运行条件，候选及后续问题见[技术设计待决表](../../docs/technical-design.md#13-待决事项与实施调查)，不视为已批准实现范围。
+- 模块独立验收沿 [#14](issues/14-agent-development-discipline.md#deep-module-与独立交付)；SSH 工作区的支持情境、组件准备、数据与凭据位置、插件条件及断线升级已由[远程部署决议](../runtime-architecture/issues/05-local-and-remote-deployment.md#answer)确认。具体接线与验收由后续 OpenSpec 承接，当前实现仍为本机基线。
 
 - 2026-10-13，[开发纪律 #14](issues/14-agent-development-discipline.md)已补充实际路径交付、架构优先复用、测试 oracle／TDD、deep module 与独立夹具验收，以及早期反馈、模块诊断、按成果委派、独立验证和规则精简。用户另采纳无进展时复查假设、临时方案收尾及实际交接检查；本轮纪律讨论收束，后续依据开发反馈调整，当前不启动业务实施。
 
@@ -117,9 +121,9 @@ Labels: wayfinder:map
 - [选择 Zotero 生态兼容路线与首批兼容承诺](issues/05-zotero-compatibility-policy.md)：确定指定版本原包兼容、首批功能、界面适配与维护策略；宿主按 #16 选择 Node＋Chromium 通用层，支持范围随实际验收扩大。
 - [通过原型选择 Zotero 原插件的兼容宿主](issues/16-zotero-host-prototype.md)：采用 Node＋Chromium，固定 Zotero 10 基线建设通用层，以重要插件推动开发适配与验收；不承诺全部插件无缝运行，原型阶段结束。
 - [确定研究对象、长期文献库与项目的领域边界](issues/06-research-domain-boundaries.md)：确定来源与材料版本、证据和主张、稿件及修订对象的语义，明确跨项目复用与领域权威边界。
-- [确定科研 Agent harness 的职责与执行引擎路线](issues/07-agent-runtime-boundaries.md)：统一 LangGraph、LangChain 与 Deep Agents 基础，workflow 和 capability 原生融合，明确生命周期、插件 MCP 与候选对外 MCP 边界。
+- [确定科研 Agent harness 的职责与执行引擎路线](issues/07-agent-runtime-boundaries.md)：统一 LangGraph、LangChain 与 Deep Agents 基础，workflow 和 capability 原生融合，明确生命周期与插件 MCP；对外 MCP 已采纳，公共范围及 A2A 后置见运行时架构地图的外部接口决议。
 - [确定 zotero-agents 与 ResearchSpec 的复用和演进边界](issues/08-existing-project-integration.md)：三个项目保持平行，Scholoom 初期吸纳能力、后期独立演进；同步由用户掌握，核心模型、内容迁入和源码取舍独立成票。
-- [确定领域模块、Electron 进程与扩展宿主的架构](issues/09-electron-architecture.md)：独立 Node 内核集中部署原生模块，同一数据配置共用单实例；客户端采用双向 JSON-RPC＋本地 WebSocket。重计算和用户程序分开执行，兼容环境采用受内核监督的独立 Electron 宿主，取消与恢复按受影响调用和实际结果处理。
+- [确定领域模块、Electron 进程与扩展宿主的架构](issues/09-electron-architecture.md)：同一数据配置共用单一后台宿主与共同领域权威；客户端采用双向 JSON-RPC＋本地 WebSocket，兼容环境使用独立 Electron 宿主。执行部署与故障范围沿[会话执行进程决议](../runtime-architecture/issues/03-session-execution-processes.md#answer)。
 - [确定原生科研能力、Skill、工作流与科研 Agent 的核心模型](issues/17-native-research-capability-model.md)：明确方法、能力与工作流的关系，以及持续任务、调用、计划、交付和科研判断的边界；四类科研情境的语义核对通过。
 - [确定科研能力的运行时契约、内容编写与旧内容迁入](issues/18-native-capability-runtime-and-content.md)：确定标准 Skill、YAML 声明、原生执行与交付接口及工作包，方法留存与恢复按任务需要处理，不承诺兼容旧项目。
 - [确定既有源码、Synthesis 与 Rust 实现的复用取舍](issues/19-existing-source-and-rust-reuse.md)：按原生契约吸纳源码，Synthesis 先用 TypeScript 并独立执行重计算，main 和历史有完整实现候选；Python 按价值接入，受限第三方内容不默认内置。
@@ -133,7 +137,7 @@ Labels: wayfinder:map
 - [确定验证、兼容维护与跨平台发布纪律](issues/15-validation-and-release-discipline.md)：确定按影响范围验证、发布阶段与三平台分发包验收、固定基线升级维护、迁移及恢复、性能测量和 GitHub Releases／分阶段更新安排；#21 在初步实现后补齐科研评价，政策完成不表示实际验收或发布完成。
 - [确定模型接入、数据使用与执行资源配置](issues/22-model-data-and-execution-policy.md)：确定配置作用域、发送授权、凭据与诊断、执行上限、安全重试及显式模型切换；首阶段暂不提供金额预算功能。
 - [确定首个业务变更：共同内核入口与生命周期](issues/23-kernel-entry-and-lifecycle.md)：先在开发环境交付共同内核启动与连接、单实例、关窗续留、有界重连及明确停机，沿既有三平台验证安排落实；持续任务和独立 Node 分发由后续变更接入。
-- [确定七个逻辑模块及职责边界](issues/24-logical-modules-and-responsibilities.md)：确认文献管理、Agent harness、工作台、科研业务与内容、执行环境与沙箱、插件兼容及研究项目与资产的职责，执行环境归 harness 子系统；后续按模块细化。
+- [确定七个逻辑模块及职责边界](issues/24-logical-modules-and-responsibilities.md)：确认文献、harness、工作台、科研业务、执行基础、插件兼容及项目资产职责；公共执行基础独立于 harness，模块依赖与执行监督沿[运行时架构地图](../runtime-architecture/map.md)。
 - [从科研任务场景梳理旧工具链与业务模型问题](issues/26-research-scenarios-and-existing-toolchain.md)：完成首轮选题、检索与文献综合复盘，确认分层取材、自动分析与主题维护及旧综合设计融合方向；多 Agent 交接后置到模块设计，继续其他科研场景。
 - [复盘研究问题到研究结果与论证的旧工具链](issues/27-research-results-and-argumentation.md)：用户确认 ResearchSpec 本场景功能充分，重点改善科研产物的图形交互；后续业务功能与工作台设计借鉴 Codex 对象交互及 Nimbalyst 工件设计。
 - [复盘论文撰写、审阅与修订的旧工具链](issues/28-manuscript-writing-review-and-revision.md)：确认多模型分工审稿、QMD／LaTeX 实时预览及专门模型文风监督的需求；持续审阅和阶段性集中审阅两者都需要，具体机制留到模块设计。

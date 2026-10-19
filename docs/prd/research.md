@@ -71,7 +71,7 @@ Agent 是承担研究的执行者，按角色、资源与授权选择方法。�
 
 普通方法默认在当前工作中执行。需要并行、独立审阅或独立上下文时委派 worker，提供科研工作包：目标、相关任务、初始材料、可用资源、授权范围、交付要求和检查标准。执行者可在范围内继续发现材料，其权限同时受父任务与工作包限制。
 
-主 Agent 与 worker 共用内置 LangGraph harness，可选择不同模型供应商，流程控制、暂停与恢复沿同一机制。更换 Agent、会话或执行尝试从持续研究事实和产物续做，不要求精确重放全部历史。插件 MCP 提供受管理的工具能力，不作为外部 Agent 执行接入；候选对外 MCP 服务也不改变内部执行权威。
+主 Agent 与 worker 共用内置 LangGraph harness，可选择不同模型供应商，流程控制、暂停与恢复沿同一机制。更换 Agent、会话或执行尝试从持续研究事实和产物续做，不要求精确重放全部历史。插件 MCP 提供受管理的工具能力，不作为外部 Agent 执行接入；对外 MCP 的查询与有限工作请求同样不改变内部执行权威，公共范围沿[外部接口决议](../../.scratch/runtime-architecture/issues/07-external-interfaces-and-extensions.md#answer)，接线仍待实施。
 
 来源：[原生内容与工作包](../../.scratch/scholoom-foundations/issues/18-native-capability-runtime-and-content.md)、[Agent 接入](../../.scratch/scholoom-foundations/issues/02-agent-first-contract.md#answer)、[执行路线](../../.scratch/scholoom-foundations/issues/07-agent-runtime-boundaries.md)。
 
@@ -80,6 +80,8 @@ Agent 是承担研究的执行者，按角色、资源与授权选择方法。�
 Agent 可以按工作需要定向联系获授权的其他会话，提问、请求处理、转交工作或通知成果。已有会话各自保持交流与执行上下文，通信本身不取得对方会话控制权，也不要求创建或绑定研究任务。
 
 收件后有界唤醒处理：运行中的会话在下一可处理边界消费来信；空闲且允许自动协作时，在已有资源上限内处理；用户明确暂停或停止后保留来信并显示待处理。界面区分消息已受理、Agent 已消费和请求的实际结果，不能把收到通知显示成工作完成。
+
+后台或子执行结果交给负责的 Agent，由其结合目标、当前结果及有效授权判断后续；系统负责保存、投递和有界唤醒，不以结果到达直接判定业务应推进，沿[结果处理决议](../../.scratch/runtime-architecture/issues/04-execution-persistence-and-recovery.md#q8结果到达交给-agent-判断)。
 
 协作中的分析依据、决定与成果保存到工作区，回复可以引用这些材料；当前协作上下文不成为跨会话科研承接的唯一来源。subagent 委派与 advisor 沿各自管理和上下文约定，共用原生运行基础。
 

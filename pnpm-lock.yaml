@@ -124,15 +124,6 @@ importers:
 
   apps/kernel:
     dependencies:
-      '@embedpdf/engines':
-        specifier: 2.15.1
-        version: 2.15.1(preact@10.29.8)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@embedpdf/models':
-        specifier: 2.15.1
-        version: 2.15.1
-      '@embedpdf/pdfium':
-        specifier: 2.15.1
-        version: 2.15.1
       '@langchain/anthropic':
         specifier: 1.5.12
         version: 1.5.12(@langchain/core@1.2.17(ws@8.22.0))
@@ -148,12 +139,33 @@ importers:
       '@langchain/langgraph-checkpoint-sqlite':
         specifier: 1.1.0
         version: 1.1.0(@langchain/core@1.2.17(ws@8.22.0))(@langchain/langgraph-checkpoint@1.2.0(@langchain/core@1.2.17(ws@8.22.0)))
+      '@scholoom/broker':
+        specifier: workspace:*
+        version: link:../../packages/broker
       '@scholoom/client':
         specifier: workspace:*
         version: link:../../packages/client
+      '@scholoom/harness':
+        specifier: workspace:*
+        version: link:../../packages/harness
+      '@scholoom/library':
+        specifier: workspace:*
+        version: link:../../packages/library
+      '@scholoom/models':
+        specifier: workspace:*
+        version: link:../../packages/models
+      '@scholoom/platform':
+        specifier: workspace:*
+        version: link:../../packages/platform
+      '@scholoom/projects':
+        specifier: workspace:*
+        version: link:../../packages/projects
       '@scholoom/protocol':
         specifier: workspace:*
         version: link:../../packages/protocol
+      '@scholoom/research':
+        specifier: workspace:*
+        version: link:../../packages/research
       better-sqlite3:
         specifier: 12.11.1
         version: 12.11.1
@@ -188,11 +200,134 @@ importers:
 
   apps/zotero-host: {}
 
-  packages/client:
+  packages/broker:
     dependencies:
       '@scholoom/protocol':
         specifier: workspace:*
         version: link:../protocol
+
+  packages/client:
+    dependencies:
+      '@scholoom/broker':
+        specifier: workspace:*
+        version: link:../broker
+      '@scholoom/protocol':
+        specifier: workspace:*
+        version: link:../protocol
+
+  packages/harness:
+    dependencies:
+      '@langchain/core':
+        specifier: 1.2.17
+        version: 1.2.17(ws@8.22.0)
+      '@langchain/langgraph':
+        specifier: 1.5.0
+        version: 1.5.0(@langchain/core@1.2.17(ws@8.22.0))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(zod@4.3.6)
+      '@langchain/langgraph-checkpoint':
+        specifier: 1.2.0
+        version: 1.2.0(@langchain/core@1.2.17(ws@8.22.0))
+      '@langchain/langgraph-checkpoint-sqlite':
+        specifier: 1.1.0
+        version: 1.1.0(@langchain/core@1.2.17(ws@8.22.0))(@langchain/langgraph-checkpoint@1.2.0(@langchain/core@1.2.17(ws@8.22.0)))
+      '@scholoom/broker':
+        specifier: workspace:*
+        version: link:../broker
+      '@scholoom/models':
+        specifier: workspace:*
+        version: link:../models
+      '@scholoom/platform':
+        specifier: workspace:*
+        version: link:../platform
+      '@scholoom/protocol':
+        specifier: workspace:*
+        version: link:../protocol
+      better-sqlite3:
+        specifier: 12.11.1
+        version: 12.11.1
+      deepagents:
+        specifier: 1.15.0
+        version: 1.15.0(@langchain/anthropic@1.5.12(@langchain/core@1.2.17(ws@8.22.0)))(@langchain/core@1.2.17(ws@8.22.0))(@langchain/langgraph-checkpoint@1.2.0(@langchain/core@1.2.17(ws@8.22.0)))(@langchain/langgraph-sdk@1.12.4(@langchain/core@1.2.17(ws@8.22.0))(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@langchain/langgraph@1.5.0(@langchain/core@1.2.17(ws@8.22.0))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(zod@4.3.6))(langchain@1.5.16(@langchain/core@1.2.17(ws@8.22.0))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(ws@8.22.0))(langsmith@0.9.0(ws@8.22.0))
+      drizzle-orm:
+        specifier: 0.45.4
+        version: 0.45.4(@types/better-sqlite3@7.6.13)(better-sqlite3@12.11.1)
+      langchain:
+        specifier: 1.5.16
+        version: 1.5.16(@langchain/core@1.2.17(ws@8.22.0))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(ws@8.22.0)
+      langsmith:
+        specifier: 0.9.0
+        version: 0.9.0(ws@8.22.0)
+      zod:
+        specifier: 4.3.6
+        version: 4.3.6
+    devDependencies:
+      '@types/better-sqlite3':
+        specifier: 7.6.13
+        version: 7.6.13
+
+  packages/library:
+    dependencies:
+      '@embedpdf/engines':
+        specifier: 2.15.1
+        version: 2.15.1(preact@10.29.8)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@embedpdf/models':
+        specifier: 2.15.1
+        version: 2.15.1
+      '@embedpdf/pdfium':
+        specifier: 2.15.1
+        version: 2.15.1
+      '@scholoom/platform':
+        specifier: workspace:*
+        version: link:../platform
+      '@scholoom/protocol':
+        specifier: workspace:*
+        version: link:../protocol
+      better-sqlite3:
+        specifier: 12.11.1
+        version: 12.11.1
+      drizzle-orm:
+        specifier: 0.45.4
+        version: 0.45.4(@types/better-sqlite3@7.6.13)(better-sqlite3@12.11.1)
+    devDependencies:
+      '@types/better-sqlite3':
+        specifier: 7.6.13
+        version: 7.6.13
+
+  packages/models:
+    dependencies:
+      '@langchain/anthropic':
+        specifier: 1.5.12
+        version: 1.5.12(@langchain/core@1.2.17(ws@8.22.0))
+      '@scholoom/platform':
+        specifier: workspace:*
+        version: link:../platform
+      '@scholoom/protocol':
+        specifier: workspace:*
+        version: link:../protocol
+
+  packages/platform:
+    dependencies:
+      '@scholoom/protocol':
+        specifier: workspace:*
+        version: link:../protocol
+
+  packages/projects:
+    dependencies:
+      '@scholoom/platform':
+        specifier: workspace:*
+        version: link:../platform
+      '@scholoom/protocol':
+        specifier: workspace:*
+        version: link:../protocol
+      better-sqlite3:
+        specifier: 12.11.1
+        version: 12.11.1
+      drizzle-orm:
+        specifier: 0.45.4
+        version: 0.45.4(@types/better-sqlite3@7.6.13)(better-sqlite3@12.11.1)
+    devDependencies:
+      '@types/better-sqlite3':
+        specifier: 7.6.13
+        version: 7.6.13
 
   packages/protocol:
     dependencies:
@@ -202,6 +337,25 @@ importers:
       json-schema-to-ts:
         specifier: 3.1.1
         version: 3.1.1
+
+  packages/research:
+    dependencies:
+      '@scholoom/platform':
+        specifier: workspace:*
+        version: link:../platform
+      '@scholoom/protocol':
+        specifier: workspace:*
+        version: link:../protocol
+      better-sqlite3:
+        specifier: 12.11.1
+        version: 12.11.1
+      drizzle-orm:
+        specifier: 0.45.4
+        version: 0.45.4(@types/better-sqlite3@7.6.13)(better-sqlite3@12.11.1)
+    devDependencies:
+      '@types/better-sqlite3':
+        specifier: 7.6.13
+        version: 7.6.13
 
 packages:
 

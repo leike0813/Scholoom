@@ -153,7 +153,12 @@ test('real RPC and Agent share material bytes while project paths and model send
     expect(await readFile(pdfPath)).toEqual(pdfBytes);
     await client.call('library.grant', { read: true, write: true, send: false, autoBackup: false });
     const requests = model.requests.length;
-    await client.call('session.resume', readScope);
+    await client.call('session.send', {
+      ...readScope,
+      instructionId: randomUUID(),
+      text: '核对附件后接续',
+      materials: [],
+    });
     await expect
       .poll(async () => (await client.call('workbench.snapshot', readScope)).run?.state)
       .toBe('failed');

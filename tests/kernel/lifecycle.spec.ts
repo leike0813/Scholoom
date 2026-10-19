@@ -140,23 +140,27 @@ for (const scenario of [
   });
 }
 
-test('unreachable occupied configuration is preserved and never replaced', async () => {
-  await isolatedKernel(async (directory) => {
-    const endpoint = await runningKernel(directory);
-    const filename = join(directory, 'runtime', 'endpoint.json');
-    await writeFile(filename, JSON.stringify({ ...endpoint, token: 'x'.repeat(64) }));
-    try {
-      const result = await runKernel(directory, 'start');
-      expect(result.state).toBe('unreachable');
-      expect(result.state !== 'running' && result.error?.code).toBe('authenticationFailed');
-      const saved = JSON.parse(await readFile(filename, 'utf8'));
-      expect(saved.instanceId).toBe(endpoint.instanceId);
-      expect(saved.processId).toBe(endpoint.processId);
-    } finally {
-      await writeFile(filename, JSON.stringify(endpoint));
-    }
+for (const fault of [
+  { change: { token: 'x'.repeat(64) }, code: 'authenticationFailed' },
+  { change: { protocolVersion: protocolVersion - 1 }, code: 'protocolIncompatible' },
+] as const)
+  test(`unreachable occupied configuration is preserved and never replaced (${fault.code})`, async () => {
+    await isolatedKernel(async (directory) => {
+      const endpoint = await runningKernel(directory);
+      const filename = join(directory, 'runtime', 'endpoint.json');
+      await writeFile(filename, JSON.stringify({ ...endpoint, ...fault.change }));
+      try {
+        const result = await runKernel(directory, 'start');
+        expect(result.state).toBe('unreachable');
+        expect(result.state !== 'running' && result.error?.code).toBe(fault.code);
+        const saved = JSON.parse(await readFile(filename, 'utf8'));
+        expect(saved.instanceId).toBe(endpoint.instanceId);
+        expect(saved.processId).toBe(endpoint.processId);
+      } finally {
+        await writeFile(filename, JSON.stringify(endpoint));
+      }
+    });
   });
-});
 
 test('unauthenticated and malformed messages cannot query or stop the kernel', async () => {
   await isolatedKernel(async (directory) => {

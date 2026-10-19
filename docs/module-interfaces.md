@@ -8,24 +8,62 @@
 
 ## 1. 接口归属与调用方向
 
-七个逻辑模块不一一对应七个接口或进程。下列名称表示一个内聚模块向调用者提供的操作集合；允许在同一模块内实现，不预设必须创建同名 TypeScript interface、类或共享包。
+宏观模块采用私有 workspace 包及明确导出，逻辑职责不机械对应包或进程。下列名称表示模块提供的操作集合，不预设必须创建同名 TypeScript interface 或类。跨模块交互、宿主装配与数据权威以[模块依赖决议](../.scratch/runtime-architecture/issues/01-module-dependencies-and-authority.md#answer)为准；具体操作名与字段仍为候选。
 
 ![模块与接口依赖](diagrams/module-interfaces.svg)
 
-[PlantUML 图源](diagrams/module-interfaces.puml)。箭头由调用者指向提供方；异步通知不表示提供方反过来依赖 UI 或 Agent 实现。
+[PlantUML 图源](diagrams/module-interfaces.puml)。图表达调用者到提供方的能力关系，跨模块箭头统一由 broker 路由；异步通知不表示提供方依赖 UI 或 Agent 实现。broker 的逻辑关系见[模块依赖图](../.scratch/runtime-architecture/issues/01-module-dependencies-and-authority.md#产品构成与依赖方向)，通信承载与调度沿[内部接口决议](../.scratch/runtime-architecture/issues/06-internal-interfaces-and-ipc.md#answer)，不从逻辑箭头推定网络连接。
 
 | 提供方 | 接口面 | 主要调用者 | 调用与权威边界 |
 | --- | --- | --- | --- |
 | 内核入口 | `KernelControl`、`StateFeed` | CLI、工作台、共同客户端 | 跨进程；启动桥只在本机 Node／Electron 引导层，业务页不能任意启动程序 |
-| 文献管理 | `Literature`、`Materials` 的库范围操作 | GUI、harness、插件／Connector 适配 | 内核内直接调用；外部入口映射同一领域操作 |
+| 统一 broker | 能力注册、路由、模块消费范围约束与可信交互上下文 | 所有跨模块调用者 | 传递请求、结果与事件；装配、生命周期及应用级资源准入由宿主侧管理，业务规则、最终授权及持久化顺序归领域模块 |
+| 文献管理 | `Literature`、`Materials` 的库范围操作 | GUI、harness、插件／Connector 适配 | 经 broker 到达同一领域操作；文献模块掌握库数据与规则 |
 | 研究项目与资产 | `Workspaces`、`ResearchWork`、`Files`、`Decisions` | GUI、harness、科研工具 | 项目与库级任务使用同一工作契约，按 owner 落到对应存储 |
-| 科研业务与内容 | `ResearchContent`、`CapabilityExecutor` | harness | 内容发现与交付要求不负责进程调度；执行绑定使用获授权工具 |
+| 科研业务与内容 | `ResearchContent`、`CapabilityExecutor` | Agent 与业务适配 | 科研运行时依托 harness；方法与交付检查经适配接入，领域操作经 broker |
 | 内置 harness | `ResearchRuns`、受限执行上下文 | 入口、维护调度、科研能力 | 关联任务、调用、执行和会话；不复制领域事实 |
-| 执行环境 | `ManagedExecution`、`ModelCalls` | harness、程序／图适配、预览服务 | 进程、模型和工具监督；不自行判定科研交付 |
+| 公共执行基础 | `ManagedExecution` | harness、程序／图适配、预览服务 | 支持无 harness 的人工操作，平台提供进程机制；不自行判定科研交付 |
+| 模型接入 | `ModelCalls` | Agent 执行、子 Agent、advisor 等 | 宿主统一准入及额度，实际 SDK 调用在执行进程；连接与凭据沿共同模型政策 |
 | Zotero 兼容层 | `ZoteroHost` 及共同文献写回适配 | 内核监督与生态功能入口 | 独立宿主；插件内部对象保持可观察语义，跨进程传序列化数据 |
 | 工作台 | session／视图适配、对象指令入口 | React 组件与编辑阅读组件 | 消费客户端投影，草稿和选择属于本地 UI；不向内核提供第二个研究数据库 |
 
-`Materials` 按来源 owner 路由到库或项目材料实现，`ResearchWork` 同样可处理库级任务。二者是共同契约而非新的全局数据库。内核模块之间传领域参数和已验证上下文，不为每次进程内调用序列化 JSON-RPC。
+`Materials` 按来源 owner 路由到库或项目材料实现，`ResearchWork` 同样可处理库级任务。二者是共同契约而非新的全局数据库。模块经 broker 传递领域参数和可信上下文，包括对平台模块的调用；模块内部函数、静态类型和普通共享库依赖不经过 broker。模块只消费所需领域契约和受限、类型化的窄接口，生产装配经 broker 接入；独立测试可替换消费接口，无需启动完整 broker、宿主或无关模块，也不依赖全产品操作集合，依据[独立提取与测试边界](../.scratch/runtime-architecture/issues/01-module-dependencies-and-authority.md#包隔离与独立提取)。进程内路由不预设每次序列化 JSON-RPC，模块不能借路由取得其他模块的数据库连接或表。
+
+### 1.1 契约事实源与实现约束
+
+能力提供方维护无实现依赖的契约，沿 packages/protocol 按领域分入口组织；操作、输入、输出、事件和错误各自只声明一次。调用类型、提供者签名、窄消费接口、注册约束和运行时校验由声明推导或生成，broker 与传输适配共同消费。公共接入接口保持 schema 与输入／输出类型绑定，不接受仅操作键一致、载荷类型却独立定义的映射。公共上下文与错误归公共核心，broker 通用核心不依赖全产品领域聚合。
+
+协议变更从唯一声明传播到类型与校验，不兼容的调用方和提供者由检查指出；业务逻辑仍按变更含义调整。直接类型推导优先，确需生成映射时复用已有类型检查并核对生成物与声明的一致性；具体传播和验证要求沿[契约 SSOT](../.scratch/runtime-architecture/issues/01-module-dependencies-and-authority.md#契约-ssot-与传播q9)及[实现符合性](../.scratch/runtime-architecture/issues/01-module-dependencies-and-authority.md#注册与实现符合性q10)，不另建协议副本。
+
+模块允许依赖与提供／消费范围由机器可读架构策略统一维护，检查实际包声明及解析后的源码引用，覆盖反向依赖、静态循环、私有路径及 broker 绕行，类型引用同样受约束。broker 按宿主登记的消费范围提供调用入口；该范围控制不替代领域最终授权。
+
+提供者按契约约束的映射注册，编译核对签名，宿主按启用配置检查缺失及重复。跨信任／进程边界校验请求、结果与事件，授权、取消和副作用以代表性行为测试验证；必要检查接入本地与 CI。新边界即时启用检查，旧代码分批迁入并限定临时例外；注册与调用违约局部处置，未知副作用先核查。完整规则见[架构执行约束](../.scratch/runtime-architecture/issues/01-module-dependencies-and-authority.md#架构策略与依赖守卫q8)，现有功能的迁入及验证由 [migrate-runtime-architecture](../openspec/changes/migrate-runtime-architecture/tasks.md) 承接，实际覆盖范围以该变更的实施证据为准。
+
+### 1.2 平台能力与原生适配
+
+系统访问沿[平台决议](../.scratch/runtime-architecture/issues/02-platform-access.md#answer)，按文件、锁、进程、网络／环境、私有存储及宿主能力分组。普通模块经 broker 使用绑定资源范围的能力，领域继续掌握授权、身份与业务规则；纯计算可使用普通共享库。
+
+条件保存在资源执行端有界地完成重新定位、核对与写入；支持接口或字节注入的第三方依赖复用平台，必须原生访问的依赖收在明确资源及生命周期的适配器内。宿主注册真实可用的 Node、Electron 或浏览器适配，不能提供必要保证时明确报告。初始化沿宿主装配职责，不以初始化为由开放普通业务的系统访问。
+
+临时句柄及时释放，长期资源明确归属和收尾；断线、取消、已发生副作用及实际退出分别表达。共同契约区分原子替换、持久性、互斥与进程退出，平台诊断有界。系统访问守卫和真实目标环境验证沿同一票；现有功能的实施范围见 [platform-access](../openspec/specs/platform-access/spec.md) 与[迁移交付](../openspec/changes/migrate-runtime-architecture/delivery.md)。
+
+执行进程粒度、宿主准入与 harness 监督、后台移交、资源归属及取消完成依据沿[进程决议](../.scratch/runtime-architecture/issues/03-session-execution-processes.md#answer)。旧执行实例不能继续发起动作或覆盖新状态，已受理操作与迟到结果按实际效果收尾；状态写入与 checkpoint 归属沿[持久化与恢复决议](../.scratch/runtime-architecture/issues/04-execution-persistence-and-recovery.md#answer)，通信组织沿下节，精确字段由实施规格细化，不从候选接口名推导实现位置或恢复保证。
+
+### 1.3 通信承载与调用调度
+
+[内部接口决议](../.scratch/runtime-architecture/issues/06-internal-interfaces-and-ipc.md#answer)确认以下目标接线，共用领域契约与跨进程双向 JSON-RPC 机制，按入口角色注册操作；现有本机 broker、客户端 WebSocket 和 Node IPC 的实际范围见[迁移交付](../openspec/changes/migrate-runtime-architecture/delivery.md)，表中的插件兼容宿主接线仍属后续范围。
+
+| 路径 | 承载方式 |
+| --- | --- |
+| 同一进程内跨模块 | 经 broker 直接调用类型化异步接口，保留授权与领域检查 |
+| 应用宿主与自有 Node Agent／计算子进程 | 独立 Node IPC，日志与协议分开 |
+| 应用宿主与 Zotero 插件兼容宿主 | 受认证的回环 WebSocket，绑定内部角色与实例范围 |
+| Zotero 插件兼容宿主的主进程与内部页面 | Electron 窄 IPC／MessagePort 适配 |
+| 工作台／CLI 与内核 | 共同 WebSocket，远端经 SSH 隧道承载 |
+
+普通外部程序仍由受管执行能力管理，不强制实现 RPC；内部通道不增加通用 stdio RPC 入口，插件 MCP 按自身契约接入。对外 MCP 的 stdio 属于公共协议适配，不开放任意内部 RPC。跨进程传契约数据与受控资源引用，大材料使用所属模块的有界读取／传输，不传数据库连接、SDK 实例或进程内函数。
+
+双向调用可有界交错处理，等待对端不占住其回调所需的锁、事务或额度；会话串行及文件保存保护仍由所属模块执行。消息、在途请求及发送队列有界，超载在新工作受理前报告，保留响应与必要控制的处理能力；慢连接局部处置。通知重同步、持久消息与实际结果查询继续沿既有职责，通道断开不证明业务未执行。
 
 ## 2. 共用引用、上下文与返回形状
 
@@ -69,6 +107,8 @@ type Page<T> = { items: T[]; nextCursor?: string };
 
 短操作返回实际结果；长操作返回 `execution` 等稳定引用，状态从查询或订阅获得。领域结果用有含义的联合状态，例如修改返回 `applied | conflict`、决定答复返回 `applied | alreadyResolved | noLongerApplicable`；权限或协议错误使用结构化错误。
 
+操作的业务副作用类别、返回实际结果或受理引用的模式及等待策略沿同源契约声明，客户端与内部 RPC 据此处理超时、断线，不另列只读方法名单和特殊分支。等待时长与资源参数在实施中验证；这些是接口定义上的规则，不是逐次调用的通用台账。
+
 建议错误类别为 `invalidInput`、`permissionDenied`、`notFound`、`conflict`、`unavailable`、`incompatible`、`outcomeUnknown`。错误包含相关引用和是否可重试等信息，精确代码及 JSON-RPC 数值映射待规格定案。`outcomeUnknown` 表示尚不能确认副作用，不能作为“安全重试”信号。
 
 只有确需防止重复副作用的操作才使用持久操作键，例如迁入批次或外部提交。JSON-RPC 请求 ID 不充当幂等键。正式答复依待决定对象自身的状态保证一次应用；普通文件编辑核对该文件读取时的内容，不套全项目 revision 门禁。
@@ -76,6 +116,10 @@ type Page<T> = { items: T[]; nextCursor?: string };
 文件编辑复用上述分类并提供必要原因：内容变化要求重读，目标不明确需保留候选并澄清；目标不存在、权限不足和暂不可用分别处理，不全部归为内容冲突，也不统一自动重试。结果未知先核查实际保存内容。具体代码随 Schema 定案。
 
 ## 3. 工作台／CLI ↔ 内核入口
+
+本机与远端完整环境的接入沿[部署决议](../.scratch/runtime-architecture/issues/05-local-and-remote-deployment.md#answer)。SSH 适配负责远端引导、组件传输和隧道，不另定义业务 DTO；既有共同接口在所选工作机执行，资源路径按所在端解释。目录选择区分远端浏览与客户机文件选择，上传／导入及下载／导出表达副本，不把本机路径直接当作远端可读资源。草稿和未确认输入按环境及对象隔离，重连先核查实际状态，不自动补发新操作；引导及握手精确字段在实施规格确定。
+
+接入核对可信身份、目标实例与协议版本，并按角色报告实际注册的可用接口。首阶段支持当前协议版本，不要求应用版本号完全一致；缺少可选接口只限制相关功能，协议不兼容明确拒绝该连接，升级时机沿部署决议。接口发现不代替调用时授权检查，也不通过试探性写入判断兼容性。完整规则见[连接兼容决议](../.scratch/runtime-architecture/issues/06-internal-interfaces-and-ipc.md#q7按协议版本与角色可用接口判断兼容)。
 
 交互式科研界面的原生接口按 [#45](../.scratch/scholoom-foundations/issues/45-interactive-research-reports.md)纳入共同契约。Agent、科研能力与工作流需能呈现、更新界面并接收用户交互，浏览器与 Electron 共用接线；具体操作名、载荷、动作授权、等待与恢复语义尚未定案。迁入工作流使用同一接口，不按工作流另设交互协议。
 
@@ -87,9 +131,13 @@ type Page<T> = { items: T[]; nextCursor?: string };
 | `StateFeed.open` | 授权范围、投影种类、分页参数 → 订阅 ID、快照、基准游标 | 在内核协调挂接与读取，快照内含范围适用的待处理事项 |
 | `StateFeed.close` | 订阅 ID → 已释放 | 释放队列；不取消任务或修改业务状态 |
 
-跨进程业务命令建议采用 `literature.search`、`researchRuns.start` 等命名映射对应模块操作。内置模块直接调用领域接口，无需绕行 MCP 或 app-server。执行统一使用 LangGraph harness，不设置 ACP 外部执行适配。
+跨进程业务命令建议采用 `literature.search`、`researchRuns.start` 等命名映射对应模块操作。内置模块通过统一 broker 使用领域接口，broker 的内部接入不要求绕行 MCP 或客户端 app-server 传输。Agent 执行统一使用 LangGraph harness，人工文献管理、编辑、预览与编译独立于 harness，不设置 ACP 外部执行适配。
 
-插件 MCP 由插件声明并由宿主管理，向 harness 提供获授权工具和资源；不增加任意 MCP 服务的独立配置入口。插件声明、连接和生命周期接口待实施调查，不能把该扩展点当作第三方 harness 的执行接口。Scholoom 自身对外提供 MCP 服务另属候选：若采用，只映射已确认开放的共同领域操作或受管执行，内部流程仍由 LangGraph 控制；长任务引用、状态查询和断线不取消的契约沿共同入口。两者边界依据 [#07](../.scratch/scholoom-foundations/issues/07-agent-runtime-boundaries.md#answer)。
+插件 MCP 由插件声明并由宿主管理，向 harness 提供获授权工具和资源；不增加任意 MCP 服务的独立配置入口。插件声明、连接和生命周期接口待实施调查，不能把该扩展点当作第三方 harness 的执行接口。此消费方向沿 [#07](../.scratch/scholoom-foundations/issues/07-agent-runtime-boundaries.md#answer)，与下述公共服务分别管理。
+
+对外 MCP 沿[外部接口决议](../.scratch/runtime-architecture/issues/07-external-interfaces-and-extensions.md#answer)提供 stdio、Streamable HTTP 与 Tasks 扩展，并保留普通工具路径。公共适配仅发布已确认的查询及有限工作请求，复用提供方的 Schema、结果和副作用规则；调用方权限、插件公共发布与稳定版本独立于内部角色注册，不把表中的候选内部操作自动发布。服务默认关闭，HTTP 默认回环，明确配置后支持远程 HTTPS。
+
+工作请求沿协作请求和回复关联，提交、补充、撤回及查询共用所属收件与结果状态。可以指定获准接收请求的已有会话，未指定时创建普通会话；不因请求自动创建研究任务或独立委托资产。协议 Tasks 仅映射处理状态，取消须受请求归属及实际停止规则约束；会话被用户停止或归档后不因来信自动唤醒。字段、标准授权接线、所选 SDK 与双路径互操作由后续 OpenSpec 验证，本节不另立一份外部 DTO。
 
 通知建议包含 `subscriptionId`、本次实例身份、订阅内序号和有界事件。事件按业务用途分为对象失效提示、运行进展、消息增量、待决定事项变化及 `resyncRequired`。客户端收到失效提示后按引用读取；包含的快照／增量字段以对应投影 Schema 为准，不广播任意数据库行。
 
@@ -155,6 +203,8 @@ type Page<T> = { items: T[]; nextCursor?: string };
 
 通用会话／执行入口与科研能力调用分别建模，复用同一 LangGraph 控制机制，不引入第三方执行后端接口。模块独立测试通过已定义接口替换模型、工具或领域依赖；插件 MCP 的调用结果、取消和恢复按工具实际支持范围核对，不以协议响应替代科研交付检查。
 
+用户交互沿[会话边界](../.scratch/runtime-architecture/issues/04-execution-persistence-and-recovery.md#会话交互边界)：发送消息驱动同一 session，以下执行级 pause／resume 等候选操作用于内部编排，不要求用户通过另一操作接续会话，也不直接对应新的 UI 按钮。当前公开推进统一为 `session.send`；已移除 `session.resume` 与 CLI `continue`，正式行为见[会话规格](../openspec/specs/agent-harness/spec.md)。
+
 通用协作入口按已采纳的 [#46 初设](../.scratch/scholoom-foundations/issues/46-multi-agent-interaction.md)细化：提供获授权对象发现、请求／通知、回复及处理情况查询，复用 harness 生命周期控制；消息受理、消费和请求结果分别表达。下表 `ResearchRuns.delegate` 仅覆盖委派侧，不代替已有会话间的主动通信；通用工作包的任务／调用关联按实际业务关系提供。操作名、Schema 与恢复接线仍在实现中打磨，A2A 不作为内部接口前提。
 
 | 提供方／初步操作 | 输入 → 输出 | 约束 |
@@ -165,7 +215,7 @@ type Page<T> = { items: T[]; nextCursor?: string };
 | `ResearchRuns.get` | execution → 实际执行、产物、检查及障碍 | 执行结果与交付成立分别返回，内容有界 |
 | `ResearchRuns.pause / resume` | execution、理由／恢复意图 → 实际状态 | 暂停等到可恢复边界；恢复重读当前材料与决定，不等于重放旧调用 |
 | `ResearchRuns.cancel` | execution、理由 → cancelling 或已确认停止 | 沿依赖取消未完成单元，保留成果；不能确认时不报已取消 |
-| `ResearchRuns.delegate`（内核内） | 工作包、角色与模型、当前授权 → 子执行引用 | 仅独立目标需要子任务；并行／独立审阅不自动改业务归属 |
+| `ResearchRuns.delegate` | 工作包、角色与模型、当前授权 → 子执行引用 | 独立子 Agent 执行独占进程；业务任务关联可选，委派方负责收尾，后台继续需显式移交 |
 | `CapabilityExecutor.execute`（执行绑定） | request、受限 context → submission | 业务内容定义检查，harness 管生命周期；内部图步骤不自动注册子调用 |
 
 `submission` 建议包含实际产物引用、检查结果、未完成事项和必要方法／输入依据。harness 校验必要产物及正式要求后记录交付结果，不能仅凭 TypeScript 类型、Schema 合法或程序退出成功判定任务完成。
@@ -173,6 +223,8 @@ type Page<T> = { items: T[]; nextCursor?: string };
 每个能力调用只直接负责一个 task；同一次科研使用在重试、换 Agent 或恢复时沿用 invocation，可以增加 execution 或关联不同 session。`resume` 返回实际继续的执行引用；独立的新使用才创建新 invocation。内部运行记录按任务 owner 持久化，当前连接只决定如何呈现它们。
 
 checkpoint 不可用时可返回新的执行尝试，保留旧记录，依持久材料接续原工作；效果未知的副作用先核查，暂停／取消不自动恢复。通用会话恢复沿已保存指令、材料、正式决定和必要执行记录，不要求 task 存在，也不要求重建原图节点或完整 transcript。未处理指令及协作消息保留可查询处理状态，详见 [#25](../.scratch/scholoom-foundations/issues/25-harness-business-integration.md#持续保存分批交付与恢复)。
+
+保留中的会话正常跨轮保持有效上下文；工作所需内容独立保存，会话可用完即弃。核查复用所属模块已有状态和实际结果，harness 工具收据服务交互及内部恢复，不另建通用工具调用台账。必要记录保存失败时停止依赖它的新操作，局部故障不阻止独立工作；后台结果交 Agent 判断后续，harness 负责保存、投递及有界唤醒。完整约束沿[持久化与恢复决议](../.scratch/runtime-architecture/issues/04-execution-persistence-and-recovery.md#answer)。
 
 上下文的 `submitArtifacts` 通道将实际保存引用交 `ResearchWork.recordArtifacts`；运行时记录产生它们的调用和步骤。普通 Skill 使用及一次工具读取没有额外“登记—开工—结项”义务。advisor 是同一运行时的显式角色，其建议按执行边界注入；无建议静默，关闭后不新增监督或自动继续。
 
@@ -190,9 +242,9 @@ checkpoint 不可用时可返回新的执行尝试，保留旧记录，依持久
 | `ManagedExecution.start` | owner、可选父 execution、程序、参数数组、授权工作目录／资源、输出与时限 → run 引用 | 不以 shell 拼接代替明确参数；支持长任务，初始受理不代表运行成功 |
 | `ManagedExecution.inspect` | run 引用、日志分页 → 状态、退出信息、有界输出、实际产物 | 超时／不明与失败分别表达；重启后验证进程归属 |
 | `ManagedExecution.cancel` | run 引用 → 停止进展与确认结果 | 先请求协作退出，再按归属终止进程树；不误杀复用 PID |
-| `ModelCalls.generate`（内核内） | 命名模型配置、消息／材料、任务授权、限制 → 流式片段及最终用量／状态 | 调用前验证外发；共享重试上限；凭据不传给 UI；没有隐式供应商回退 |
+| `ModelCalls.generate`（执行侧） | 命名模型配置、消息／材料、任务授权、限制 → 流式片段及最终用量／状态 | 调用前验证外发及取得宿主准入；共享并发与重试上限；凭据不传给 UI；没有隐式供应商回退 |
 
-`run` 是执行环境的技术运行句柄，`execution` 是科研任务的执行记录，二者分开。一条科研执行可以关联多个程序运行；用户直接预览稿件只需项目 owner 和当前授权，可以没有科研任务或 execution。进程状态和日志以 run 查询，需要科研交付时才关联相应执行记录，不为每次编译建立科研任务。
+`run` 是执行环境的技术运行句柄，`execution` 是 Agent 执行记录，二者与 PID 分开，业务任务关联可选。一次 Agent 执行可以关联多个程序运行；用户直接预览稿件只需项目 owner 和当前授权，可以没有科研任务或 execution。进程状态和日志以 run 查询，需要科研交付时才关联相应执行记录，不为每次编译建立科研任务。
 
 受管子进程需要读写领域事实时，通过限定到该运行的桥接调用共同接口；不把进程内函数、数据库连接或整个 `CallContext` 序列化给它。首阶段可信代码执行不等于强安全隔离，桥接权限检查不能阻止已获本机代码执行权的恶意程序绕行操作系统。
 

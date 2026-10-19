@@ -3,7 +3,7 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { expect, test } from '@playwright/test';
-import { LiteratureCatalog } from '../../apps/kernel/dist/literature/catalog.js';
+import { LiteratureCatalog } from '../../packages/library/dist/node.js';
 
 async function fixture() {
   const root = await mkdtemp(join(tmpdir(), 'scholoom-catalog-'));

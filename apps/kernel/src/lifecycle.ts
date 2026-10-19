@@ -6,6 +6,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { setTimeout as delay } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
 import { createKernelClient, KernelClientError } from '@scholoom/client';
+import { privateDirectory } from '@scholoom/platform/node';
 import {
   type BootstrapResult,
   type ErrorInfo,
@@ -16,7 +17,6 @@ import {
   protocolVersion,
 } from '@scholoom/protocol';
 import { startKernelServer } from './server.js';
-import { privateDirectory } from './storage/private-files.js';
 
 export { defaultDataDirectory } from './bootstrap.js';
 

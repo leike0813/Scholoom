@@ -4,7 +4,7 @@
 
 建议实施顺序、阶段依赖及 Figma 并行安排见[实施路线图](../implementation-roadmap.md)。
 
-项目文本文件保护、MiniMax 模型接入及单 Agent 会话见[当前正式规格](../../openspec/specs)；项目管理、结构操作和 Markdown 编辑预览由 [文件工作台变更](../../openspec/changes/complete-project-file-workbench/proposal.md)细化，以该变更的 specs 和实际 delivery 为准。其余库、科研方法、受管计算与协作要求继续作为后续初设。
+项目文件、文献题录及附件阅读、MiniMax 模型接入、会话与内置材料分析能力见[当前正式规格](../../openspec/specs)。模块组合、broker、执行隔离及 checkpoint 接续由 [migrate-runtime-architecture](../../openspec/changes/migrate-runtime-architecture/delivery.md) 记录实际迁入和验收范围；后续科研业务、环境准备、插件及协作要求仍沿本初设逐项实施。
 
 本规格书将已确认的产品与设计决定整理为可观察要求和代表性场景，覆盖首阶段完整科研路径。它是一份按能力分章的初设，不表示功能已经实现，也不替代当前 OpenSpec 规格、实施调查或交付证据。
 
@@ -57,7 +57,7 @@
 
 | 方面 | 当前约束及依据 |
 | --- | --- |
-| 部署 | 同一应用数据配置一个独立 Node 内核，领域模块集中；按风险使用 Worker／受管进程，Zotero 兼容宿主独立。无模块独立升级或内核故障时持续运行承诺，见 #09 |
+| 部署 | 同一数据配置一个应用宿主及共同领域权威；活动 Agent 执行、独立子 Agent 及 advisor 执行独占进程，风险计算、程序和兼容宿主分别受管。生命周期及故障范围沿[进程决议](../../.scratch/runtime-architecture/issues/03-session-execution-processes.md#answer)，不承诺模块独立升级或宿主故障时持续运行 |
 | 执行 | 统一内置 LangGraph／LangChain／Deep Agents；多供应商共用同一执行机制，不支持 ACP 外部 Agent 或第三方 harness，见 #07 |
 | 扩展 | MCP 能力由插件声明、宿主管理；不提供独立的任意 MCP 配置入口。原生图、领域及 UI 扩展使用相应接口，见 #07 |
 | 数据 | 全局文献库与项目本地数据库各管权威，源文件承载正文和科研材料；SQLite／better-sqlite3／Drizzle 为当前路线，访问方式随负载验证调整，见 #12、#13 |
@@ -75,12 +75,13 @@
 | UI 实际负载 | 有界读取、分页／虚拟化及更新合并方向已定，具体接线待验 | 分别测试大量材料、长会话、持续输出；接入时与交付前复验，#12 |
 | 文件保存与恢复 | 内容变化即重读、副本恢复及选择性取回已定 | 文件依据表示、大小限额、各平台保存竞态、恢复界面与保留策略在对应变更确定，#13 |
 | 会话恢复与协作 | 安全续做、持久收件、有界唤醒已定 | 通用入口、saver 版本兼容、消费记录、子执行寿命、唤醒参数实施调查，#25、#43、#46 |
+| 内部接口与通信 | [承载、调度与契约语义](../../.scratch/runtime-architecture/issues/06-internal-interfaces-and-ipc.md#answer)已定 | 本机 broker、共享双向 RPC、角色注册与接口发现的正式契约见 [module-runtime](../../openspec/specs/module-runtime/spec.md) 与 [kernel-lifecycle](../../openspec/specs/kernel-lifecycle/spec.md)；远端及插件接线另行实施 |
 | 原生交互式科研界面 | 共同原生接口、工作区持久报告及交互回传方向已定 | 动作 Schema、等待恢复、资源访问与运行隔离在接入前细化，#45 |
 | 检索与维护 | 混合检索、覆盖说明、实际依赖和旧成果保护已定 | 索引产品、切分、嵌入、融合及维护调度参数按材料与效果调查，#33、#34 |
 | 预览体验 | 普通预览／工程执行、最后成功产物保护已定 | 布局、刷新策略、延迟目标按真实稿件讨论，#39 仍后置 |
 | 科研评价 | 产品入口真实科研与独立质量检查方向已定 | 功能初步可用后确定样本与评价细则，#21 仍后置；无 Agent 固定端到端性能基线 |
 | 生态与分发 | 原包兼容、单向迁入、三平台验收方向已定 | 支持矩阵、配对、原生模块 ABI、目标系统／架构、签名与离线准备随实际交付闭合，#15、#41 |
-| 远程与对外协议 | 当前本机基线不变 | SSH 远程工作区、对外 MCP 服务与 A2A 仅为候选，采用前另行确认 |
+| 远程与对外协议 | [SSH 部署目标](../../.scratch/runtime-architecture/issues/05-local-and-remote-deployment.md#answer)与[对外接口决议](../../.scratch/runtime-architecture/issues/07-external-interfaces-and-extensions.md#answer)已确认，当前实现仍为本机基线 | 远端接线与对外 MCP 均尚未实施，另以 OpenSpec 实施验收；对外 MCP 首批为查询与工作请求提交／补充／撤回，stdio 与 Streamable HTTP 含 Tasks，默认关闭、逐调用方授权、远程 HTTPS；A2A 待明确实际对接需求后增加 |
 
 ## 当前范围之外
 

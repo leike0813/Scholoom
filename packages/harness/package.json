@@ -1,0 +1,44 @@
+{
+  "name": "@scholoom/harness",
+  "version": "0.1.0",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./node": {
+      "types": "./dist/node.d.ts",
+      "import": "./dist/node.js"
+    },
+    "./execution": {
+      "types": "./dist/execution.d.ts",
+      "import": "./dist/execution.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@langchain/core": "1.2.17",
+    "@langchain/langgraph": "1.5.0",
+    "@langchain/langgraph-checkpoint": "1.2.0",
+    "@langchain/langgraph-checkpoint-sqlite": "1.1.0",
+    "@scholoom/broker": "workspace:*",
+    "@scholoom/models": "workspace:*",
+    "@scholoom/platform": "workspace:*",
+    "@scholoom/protocol": "workspace:*",
+    "better-sqlite3": "12.11.1",
+    "deepagents": "1.15.0",
+    "drizzle-orm": "0.45.4",
+    "langchain": "1.5.16",
+    "langsmith": "0.9.0",
+    "zod": "4.3.6"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "7.6.13"
+  }
+}

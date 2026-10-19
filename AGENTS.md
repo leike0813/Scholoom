@@ -11,12 +11,17 @@
 ## 产品与架构约束
 
 - 科研内核可脱离工作台执行；GUI 与 Agent 共用领域能力和数据权威。跨端契约以 `packages/protocol` 的 schema 为源，工作台经 `packages/client` 接入。
+- 模块设计、依赖调整与重构先核对[模块依赖决议](.scratch/runtime-architecture/issues/01-module-dependencies-and-authority.md#answer)：跨模块动作经统一 broker，宿主管装配与生命周期；模块掌握自身记录和授权，私有包支持提取。人工基础操作独立于 harness，科研运行时依托 harness；依赖方向与同源契约须有可执行守卫。
+- 调用、传输及调度沿[内部接口决议](.scratch/runtime-architecture/issues/06-internal-interfaces-and-ipc.md#answer)：进程内 broker 直调，跨进程共用 JSON-RPC 机制并按角色注册；Node 子进程用 IPC，Zotero 插件兼容宿主用回环 WebSocket。操作语义沿同源契约，双向等待及积压有界，具体字段与参数经实施验证。
+- 系统访问及原生适配沿[平台决议](.scratch/runtime-architecture/issues/02-platform-access.md#answer)：普通模块使用有资源范围的平台能力，原生访问限定到受控适配；保证、释放责任和不可用状态进入共同契约，跨平台承诺以真实目标环境验证为准。
 - 共同文献题录与附件由独立 library 管理，项目保留引用；库写入与材料外发分别授权。摄取、修订及接续沿[题录库规格](openspec/specs/literature-catalog/spec.md)，文件归属、版本核对和重定位沿[附件规格](openspec/specs/literature-attachments/spec.md)；题录、附件登记、实际可读与分析状态分别表达。
 - 内核启动、停机或运行目录操作先核对[生命周期说明](docs/development.md#内核配置与生命周期)：调试入口共用 `.scholoom-dev/debug/` 受管内核并随最后一个调试宿主退出回收；独立 CLI 与普通产品实例继续驻留，调试入口不接管其占用的配置。配置使用本机文件系统，持锁期间保护同一运行锁文件。
-- 执行与扩展遵循 [#07](.scratch/scholoom-foundations/issues/07-agent-runtime-boundaries.md#answer)：统一内置 LangGraph harness，不支持 ACP 外部 Agent；MCP 能力经插件系统管理，对外 MCP 服务作为独立候选入口。多模型供应商共用同一执行机制。
-- 重计算放入 Worker 或受管进程，避免阻塞工作台与 Agent 调度；Synthesis 先用 TypeScript，具体复用与语言取舍沿[#19](.scratch/scholoom-foundations/issues/19-existing-source-and-rust-reuse.md)。
-- [Agent 会话](.scratch/scholoom-foundations/issues/43-free-agent-conversation-and-research-tasks.md)沿通用 harness，不分类型、不绑定研究任务；任务通过工具操作，多会话可处理同一对象。
-- 科研分析、依据、决定和接续所需内容保存为工作区材料与研究记录；[跨会话续做](.scratch/scholoom-foundations/issues/35-research-workspace-context.md)不依赖旧 transcript。
+- 本机与 SSH 远程部署沿[部署决议](.scratch/runtime-architecture/issues/05-local-and-remote-deployment.md#answer)：支持本机或远端完整环境，远端数据及模型凭据随工作机；工作台负责 SSH 引导，材料明确传输，断线与升级保护已受理工作和草稿。当前仅本机接线，远端目标须经 OpenSpec 实施与真实验收。
+- 执行与扩展遵循 [#07](.scratch/scholoom-foundations/issues/07-agent-runtime-boundaries.md#answer)：统一内置 LangGraph harness，不支持 ACP 外部 Agent；多模型共用同一执行机制，harness 消费的 MCP 能力经插件系统管理。
+- 对外 MCP 及插件公共发布先核对[外部接口决议](.scratch/runtime-architecture/issues/07-external-interfaces-and-extensions.md#answer)：首批查询与有限工作请求，stdio／Streamable HTTP 及 Tasks 共用领域权威与调用方授权，服务默认关闭；A2A 后置。具体接线经 OpenSpec 实施验证。
+- 执行进程、调度及取消恢复先核对[进程决议](.scratch/runtime-architecture/issues/03-session-execution-processes.md#answer)：活动执行与独立子 Agent、advisor 执行独占进程，宿主统一准入，按执行归属收尾并核对已受理操作。Worker 不替代所需进程隔离；人工执行基础独立于 harness，具体计算部署、资源及共享故障范围沿该决议。Synthesis 的 TypeScript 与复用取舍沿[#19](.scratch/scholoom-foundations/issues/19-existing-source-and-rust-reuse.md)。
+- [Agent 会话](.scratch/scholoom-foundations/issues/43-free-agent-conversation-and-research-tasks.md)沿通用 harness，不分类型、不绑定研究任务；任务通过工具操作，多会话可处理同一对象。用户通过发送消息推进会话，执行恢复由内部处理，交互与接续沿[会话边界](.scratch/runtime-architecture/issues/04-execution-persistence-and-recovery.md#会话交互边界)。
+- 工作推进及接续所需分析、依据、决定、进展和下一步在形成时保存为工作区材料与所属记录，沿[工作区承接](.scratch/scholoom-foundations/issues/35-research-workspace-context.md)。会话可用完即弃，同一会话的连贯体验不替代这些事实源；任何工作推进均不以会话记录或上下文为必要依赖。
 - 文件并发、误操作与备份恢复按 [#13](.scratch/scholoom-foundations/issues/13-storage-and-change-model.md#answer)：内部按文件串行保存，内容变化即重读；恢复到独立副本并保护后续成果。checkpoint 失效后的新执行接续及产物关联部分成功沿 [#25](.scratch/scholoom-foundations/issues/25-harness-business-integration.md#持续保存分批交付与恢复)。
 - [交互式科研界面](.scratch/scholoom-foundations/issues/45-interactive-research-reports.md)是一等原生接口，供 Agent、能力和迁入工作流共同使用。
 - 现阶段排除依赖[持续精确原文定位](.scratch/scholoom-foundations/issues/44-defer-continuous-precise-source-location.md)的功能；保留当次选区、来源摘录和重新核查。

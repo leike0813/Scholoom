@@ -133,9 +133,6 @@ test('session discovery, naming and reversible archiving use persisted facts and
     await expect(
       client.call('session.send', { ...input, instructionId: randomUUID() }),
     ).rejects.toMatchObject({ code: 'invalidRequest' });
-    await expect(
-      client.call('session.resume', { ...scope, sessionId: automatic.id }),
-    ).rejects.toMatchObject({ code: 'invalidRequest' });
     expect(
       (await client.call('session.list', { ...scope, archived: true })).sessions.map(
         (item) => item.id,
@@ -287,9 +284,13 @@ test('archived session metadata and history survive restart and independent back
     const session = app.harness.create(project.project.id, '保留标题');
     app.harness.archive(project.project.id, session.id, true);
     const backup = await project.backup();
-    const restoredPath = await project.restore(backup.id, join(root, 'recovered'));
-    const copy = await app.projects.open(restoredPath);
-    expect(app.harness.snapshot(copy.project.id, session.id).session).toMatchObject({
+    const restored = await app.call('project.restore', {
+      projectId: project.project.id,
+      backupId: backup.id,
+      destination: join(root, 'recovered'),
+    });
+    const copy = app.projects.get(restored.id);
+    expect((await app.harness.snapshot(copy.project.id, session.id)).session).toMatchObject({
       title: '保留标题',
       archived: true,
       projectId: copy.project.id,
@@ -297,7 +298,7 @@ test('archived session metadata and history survive restart and independent back
     await app.close();
     app = new KernelApplication(directory, { environment: {} });
     await app.initialize();
-    expect(app.harness.snapshot(project.project.id, session.id).session).toMatchObject({
+    expect((await app.harness.snapshot(project.project.id, session.id)).session).toMatchObject({
       title: '保留标题',
       archived: true,
     });
@@ -509,11 +510,20 @@ test('session overrides pin each run while provider defaults only affect later r
       effort: 'high',
     });
     const beforeResume = model.requests.length;
-    await client.call('session.resume', { ...scope, sessionId: session.id });
+    await client.call('session.send', {
+      ...scope,
+      sessionId: session.id,
+      instructionId: randomUUID(),
+      text: '合成指令：新一轮',
+      materials: [],
+    });
     await expect.poll(() => model.requests.length).toBeGreaterThan(beforeResume);
     await expect.poll(async () => (await snap(session.id)).run?.state).toBe('completed');
-    expect(model.requests.at(-1)?.model).toBe('MiniMax-M3');
-    expect((await snap(session.id)).run?.modelConfig).toEqual({ model: 'MiniMax-M3' });
+    expect(model.requests.at(-1)?.model).toBe('MiniMax-M3.1-Flash-Preview');
+    expect((await snap(session.id)).run?.modelConfig).toEqual({
+      model: 'MiniMax-M3.1-Flash-Preview',
+      effort: 'high',
+    });
 
     model.hold = true;
     const beforeBusy = model.requests.length;
@@ -556,7 +566,13 @@ test('session overrides pin each run while provider defaults only affect later r
       receipt3.runId,
     );
     const beforeLegacy = model.requests.length;
-    await client.call('session.resume', { ...scope, sessionId: session.id });
+    await client.call('session.send', {
+      ...scope,
+      sessionId: session.id,
+      instructionId: randomUUID(),
+      text: '合成指令：核对旧记录后开始新轮',
+      materials: [],
+    });
     await expect.poll(() => model.requests.length).toBeGreaterThan(beforeLegacy);
     await expect.poll(async () => (await snap(session.id)).run?.state).toBe('completed');
     expect(model.requests.at(-1)?.model).toBe('MiniMax-M2.7');

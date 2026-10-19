@@ -5,9 +5,41 @@
   "license": "AGPL-3.0-only",
   "type": "module",
   "exports": {
+    "./execution": {
+      "types": "./dist/execution.d.ts",
+      "import": "./dist/execution.js"
+    },
+    "./models": {
+      "types": "./dist/models.d.ts",
+      "import": "./dist/models.js"
+    },
+    "./projects": {
+      "types": "./dist/projects.d.ts",
+      "import": "./dist/projects.js"
+    },
+    "./harness": {
+      "types": "./dist/harness.d.ts",
+      "import": "./dist/harness.js"
+    },
+    "./library": {
+      "types": "./dist/library.d.ts",
+      "import": "./dist/library.js"
+    },
+    "./research": {
+      "types": "./dist/research.d.ts",
+      "import": "./dist/research.js"
+    },
+    "./core": {
+      "types": "./dist/core.d.ts",
+      "import": "./dist/core.js"
+    },
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./platform": {
+      "types": "./dist/platform.d.ts",
+      "import": "./dist/platform.js"
     }
   },
   "files": [

@@ -18,6 +18,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
+    "@scholoom/broker": "workspace:*",
     "@scholoom/protocol": "workspace:*"
   }
 }

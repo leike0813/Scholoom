@@ -11,36 +11,40 @@ node "人类与工具入口" {
   Desktop --> Client
   Clients --> Client
 }
-node "独立 Node 内核\n同一数据配置单实例" as Kernel {
+node "独立 Node 应用宿主\n同一数据配置单实例" as Kernel {
   component "app-server\n认证 / 协议 / 订阅" as Server
+  component "统一 broker\n跨模块请求 / 结果 / 事件" as Broker
   component "文献 / 研究项目与资产" as Domain
   component "科研业务与内容" as Content
-  component "内置 LangGraph harness" as Harness
   component "插件管理\n配置 / 授权 / 生命周期" as PluginManager
-  component "受管执行环境" as Runtime
-  component "宿主监督" as Supervisor
-  Server --> Domain
-  Server --> Harness
-  Harness --> Content
-  Harness --> Domain
-  Harness --> Runtime
-  Harness --> PluginManager : 获授权能力
+  component "公共执行基础 / 平台\n人工路径独立于 harness" as Runtime
+  component "统一准入 / Agent 执行监督" as Supervisor
+  Server <--> Broker
+  Broker <--> Domain
+  Broker <--> Content
+  Broker <--> PluginManager
+  Broker <--> Runtime
+  Broker <--> Supervisor
 }
 Client <--> Server : 本机 WebSocket\n双向 JSON-RPC
 node "独立 Electron 兼容宿主" as Host {
   component "Zotero 契约 / 原插件\nNode + Chromium + Workers" as Plugins
 }
-node "受管执行单元" {
-  component "重计算 Worker" as Worker
+node "独占 Agent 执行进程\n独立子 Agent / advisor 同理" as Agent {
+  component "LangGraph / 上下文\n模型 SDK / 工具编排" as Harness
+}
+Harness <--> Broker : 同一领域与执行接口
+Supervisor --> Agent : 准入 / 健康 / 停止
+node "受管计算 / 程序进程" as Managed {
+  component "PDF / 原生计算\n内部可用 Worker" as Worker
   component "JS/TS / Python / 渲染工具" as Processes
 }
 Runtime --> Worker
 Runtime --> Processes
 component "插件提供的 MCP 服务\n按插件声明接入" as PluginMCP
 PluginManager --> PluginMCP : 工具 / 资源调用
-PluginManager --> Runtime : 本机服务受管启动
-Supervisor --> Host : 启动 / 故障 / 停止
-Plugins <--> Domain : 共同文献操作\n权威确认 / 缓存刷新
+Supervisor --> Host
+Plugins <--> Broker : 共同文献操作\n权威确认 / 缓存刷新
 database "文献库 SQLite" as LibraryDB
 database "项目内 SQLite" as ProjectDB
 folder "开放文件\n附件 / 稿件 / 代码 / 工件" as Files
@@ -48,13 +52,13 @@ Domain --> LibraryDB
 Domain --> ProjectDB
 Domain --> Files
 component "Scholoom Connector\n本机采集适配（建议）" as Connector
-Connector --> Domain : 摄取与保存
-component "Scholoom 对外 MCP 入口\n候选：开放范围待定" as MCP
-MCP ..> Domain : 同一授权与领域操作
-MCP ..> Harness : 受管执行
+Connector --> Broker : 摄取与保存
+component "Scholoom 对外 MCP 入口\nstdio / Streamable HTTP / Tasks" as MCP
+MCP --> Broker : 公共查询 / 工作请求\n调用方范围授权
 note bottom of Kernel
   关闭工作台不结束内核或任务。
-  图中模块不要求各建进程或包。
+  跨模块动作经 broker，通道沿内部接口决议。
   库、项目、开放文件各保留自身权威。
+  目标部署尚未实现，进程隔离不构成强安全沙箱。
 end note
 @enduml

@@ -5,7 +5,7 @@ import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { expect, test } from '@playwright/test';
-import { LiteratureCatalog } from '../../apps/kernel/dist/literature/catalog.js';
+import { LiteratureCatalog } from '../../packages/library/dist/node.js';
 import { syntheticPdf } from '../pdf-fixture.js';
 
 test('PDF reads without a window and version-bound page geometry protects annotations', async () => {
@@ -93,7 +93,7 @@ test('v2 migration preserves existing library grants and keeps an independent pr
     await mkdir(join(root, 'library'));
     const database = new Database(join(root, 'library', 'library.sqlite'));
     try {
-      const folder = new URL('../../apps/kernel/src/storage/library-migrations/', import.meta.url);
+      const folder = new URL('../../packages/library/src/migrations/', import.meta.url);
       const journal = JSON.parse(await readFile(new URL('meta/_journal.json', folder), 'utf8'));
       database.exec(
         'CREATE TABLE __drizzle_migrations (id INTEGER PRIMARY KEY AUTOINCREMENT, hash text NOT NULL, created_at numeric)',

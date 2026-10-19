@@ -32,7 +32,7 @@ Blocked by:
 
 ### 共同领域契约与执行边界
 
-2026-10-14 按 [#07 执行与扩展边界](07-agent-runtime-boundaries.md#answer)修订：GUI、CLI 与内置 Agent 共用文献库、研究项目、任务与产物的领域接口和状态契约，按有效授权访问。执行统一使用内置 LangGraph harness，不支持 ACP 外部 Agent 接入。Scholoom 对外提供 MCP 服务作为独立候选入口，开放范围待定；外部调用不等于托管外部执行器。
+2026-10-14 按 [#07 执行与扩展边界](07-agent-runtime-boundaries.md#answer)修订：GUI、CLI 与内置 Agent 共用文献库、研究项目、任务与产物的领域接口和状态契约，按有效授权访问。执行统一使用内置 LangGraph harness，不支持 ACP 外部 Agent 接入。Scholoom 对外 MCP 已按[外部接口决议](../../runtime-architecture/issues/07-external-interfaces-and-extensions.md#answer)确认首批查询与有限工作请求，调用方授权和内置执行边界沿该票；外部调用不等于托管外部执行器，接线仍待实施。
 
 ### 按任务主动获取上下文
 

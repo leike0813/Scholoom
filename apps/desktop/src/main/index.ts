@@ -50,7 +50,12 @@ ipcMain.handle('kernel:bootstrap', async (event, mode: unknown) => {
     };
   }
   const { bootstrapKernel } = await import('@scholoom/kernel/bootstrap');
-  return bootstrapKernel(mode as 'ensure' | 'inspect');
+  return bootstrapKernel(
+    mode as 'ensure' | 'inspect',
+    app.isPackaged
+      ? { dataDirectory: process.env.SCHOOLOOM_DATA_DIR ?? app.getPath('userData') }
+      : {},
+  );
 });
 
 ipcMain.handle('navigation:external', async (event, url: unknown) => {

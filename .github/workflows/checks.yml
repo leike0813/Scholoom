@@ -28,6 +28,7 @@ jobs:
       - run: pnpm setup:ui
         if: runner.os != 'Linux'
       - run: pnpm lint
+      - run: pnpm check:architecture
       - run: pnpm typecheck
       - run: pnpm build
       - run: pnpm test:kernel

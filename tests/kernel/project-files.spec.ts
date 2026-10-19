@@ -13,9 +13,15 @@ import { homedir, tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
 import { expect, test } from '@playwright/test';
-import { CredentialStore } from '../../apps/kernel/dist/credentials/store.js';
-import { DirectoryBrowser } from '../../apps/kernel/dist/projects/directory-browser.js';
-import { Projects } from '../../apps/kernel/dist/projects/store.js';
+import { initializeProjectContainer } from '../../apps/kernel/dist/storage/project-container.js';
+import { CredentialStore } from '../../packages/models/dist/node.js';
+import { DirectoryBrowser, Projects as ProjectModule } from '../../packages/projects/dist/node.js';
+
+class Projects extends ProjectModule {
+  constructor(directory: string) {
+    super(directory, initializeProjectContainer);
+  }
+}
 
 test('directory browsing lists real directories, hides private entries and bounds pages', async () => {
   const root = await mkdtemp(join(tmpdir(), 'scholoom-browse-'));
@@ -316,6 +322,9 @@ test('migration protects old database and requires renewed write grant; images s
     const store = await projects.create(join(root, 'project'));
     const id = store.project.id;
     store.grant({ read: true, write: true, send: true, autoBackup: false });
+    store.database.exec(
+      'DROP TABLE harness_meta; DROP TABLE research_attempts; DROP TABLE run_instances;',
+    );
     store.database.pragma('user_version = 1');
     await projects.close();
     projects = new Projects(join(root, 'profile'));

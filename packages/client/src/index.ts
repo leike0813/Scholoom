@@ -1,16 +1,17 @@
+import { RpcPeer } from '@scholoom/broker/rpc';
 import type { ErrorInfo, KernelEndpoint, KernelStatus, ShutdownAccepted } from '@scholoom/protocol';
 import {
-  type BusinessMethod,
-  type BusinessParams,
-  type BusinessResult,
+  type BusinessInputs,
+  type BusinessOutputs,
+  businessSchemas,
+  type CallArguments,
   isJsonRpcNotification,
-  isJsonRpcRequest,
-  isJsonRpcResponse,
   isKernelEndpoint,
   isKernelStatus,
   isShutdownAccepted,
   isWorkbenchChange,
   limits,
+  operationWait,
   protocolVersion,
   validateBusiness,
   type WorkbenchChange,
@@ -36,13 +37,6 @@ export class KernelClientError extends Error implements ErrorInfo {
   }
 }
 
-interface PendingRequest {
-  resolve: (result: unknown) => void;
-  reject: (error: KernelClientError) => void;
-  timer: ReturnType<typeof setTimeout>;
-  lossCode: ErrorInfo['code'];
-}
-
 const stoppingInfo: ErrorInfo = {
   code: 'shuttingDown',
   message: 'Kernel is stopping; exit has not been confirmed.',
@@ -59,8 +53,7 @@ export class KernelClient {
 
   private socket: WebSocket | null = null;
   private generation = 0;
-  private nextId = 1;
-  private pending = new Map<number, PendingRequest>();
+  private peer: RpcPeer | null = null;
   private inFlight: Promise<KernelStatus> | null = null;
 
   private reconnectAllowed = true;
@@ -89,56 +82,20 @@ export class KernelClient {
     };
   };
 
-  async call<M extends BusinessMethod>(
-    method: M,
-    params: BusinessParams<M>,
-  ): Promise<BusinessResult<M>> {
+  async call<A extends CallArguments<BusinessInputs>>(...args: A): Promise<BusinessOutputs[A[0]]> {
+    const [method, params] = args;
     if (!validateBusiness(method, 'params', params))
       throw new KernelClientError('invalidRequest', 'Invalid operation parameters.');
-    const read = [
-      'library.pdfInfo',
-      'library.readPdfPage',
-      'library.readingRecords',
-      'library.readingRecord',
-      'library.readingHistory',
-      'library.attachments',
-      'library.readAttachment',
-      'library.status',
-      'library.list',
-      'library.get',
-      'library.batch',
-      'library.batches',
-      'library.collections',
-      'library.history',
-      'library.backups',
-      'research.methods',
-      'research.method',
-      'research.attempts',
-      'workbench.snapshot',
-      'workbench.watch',
-      'session.list',
-      'files.read',
-      'files.list',
-      'files.history',
-      'project.backups',
-      'files.resolve',
-      'files.operation',
-      'files.trashList',
-      'files.resource',
-    ].includes(method);
+    const contract = businessSchemas[method];
     const result = await this.request(
       method,
       params,
-      method === 'library.pdfInfo' ||
-        method === 'library.readPdfPage' ||
-        (method === 'library.saveReadingRecord' && 'location' in params)
-        ? 35000
-        : limits.requestMs,
-      read ? 'unavailable' : 'outcomeUnknown',
+      operationWait(contract, params),
+      contract.semantics.effect === 'read' ? 'unavailable' : 'outcomeUnknown',
     );
     if (!validateBusiness(method, 'result', result))
       throw this.terminal({ code: 'protocolIncompatible', message: 'Invalid operation result.' });
-    return result as BusinessResult<M>;
+    return result as BusinessOutputs[A[0]];
   }
 
   readonly subscribe = (listener: () => void): (() => void) => {
@@ -290,6 +247,23 @@ export class KernelClient {
       throw toKernelClientError(error);
     }
     this.socket = socket;
+    this.peer = new RpcPeer(
+      {
+        send: (frame) => {
+          if (socket.readyState !== WebSocket.OPEN)
+            throw new KernelClientError('unavailable', 'Connection closed.');
+          if (socket.bufferedAmount > limits.frameBytes)
+            throw new KernelClientError('resourceLimit', 'Connection backlog is full.');
+          socket.send(frame);
+        },
+      },
+      {
+        notification: (method, params) => this.handleNotification(method, params),
+        invalid: (error) => {
+          this.terminal(error);
+        },
+      },
+    );
     socket.addEventListener('message', (event: MessageEvent) => {
       if (generation === this.generation) this.handleMessage(event.data);
     });
@@ -408,30 +382,21 @@ export class KernelClient {
     timeoutMs: number,
     lossCode: ErrorInfo['code'] = 'unavailable',
   ): Promise<unknown> {
-    return new Promise<unknown>((resolve, reject) => {
-      const socket = this.socket;
-      if (socket === null || socket.readyState !== WebSocket.OPEN) {
-        reject(new KernelClientError('unavailable', 'Not connected to the kernel.'));
-        return;
-      }
-      const id = this.nextId++;
-      const timer = setTimeout(() => {
-        this.pending.delete(id);
-        reject(new KernelClientError(lossCode, `Kernel did not answer ${method} in time.`));
-      }, timeoutMs);
-      this.pending.set(id, { resolve, reject, timer, lossCode });
-      try {
-        const envelope =
-          params === undefined
-            ? { jsonrpc: '2.0', id, method }
-            : { jsonrpc: '2.0', id, method, params };
-        socket.send(JSON.stringify(envelope));
-      } catch (error) {
-        this.pending.delete(id);
-        clearTimeout(timer);
-        reject(toKernelClientError(error, lossCode));
-      }
-    });
+    if (!this.isOpen() || !this.peer)
+      return Promise.reject(new KernelClientError('unavailable', 'Not connected to the kernel.'));
+    return this.peer
+      .request(method, params, {
+        waitMs: timeoutMs,
+        lossCode,
+        control: method.startsWith('kernel.'),
+      })
+      .catch((error: unknown) => {
+        const info = error as ErrorInfo;
+        throw new KernelClientError(
+          info.code ?? lossCode,
+          info.message ?? 'Kernel request failed.',
+        );
+      });
   }
 
   private verifyStatus(result: unknown): KernelStatus {
@@ -471,42 +436,16 @@ export class KernelClient {
       this.terminal({ code: 'protocolIncompatible', message: 'Kernel sent invalid JSON.' });
       return;
     }
-    if (isJsonRpcResponse(message)) {
-      const id = message.id;
-      if (typeof id !== 'number') return;
-      const entry = this.pending.get(id);
-      if (entry === undefined) return;
-      this.pending.delete(id);
-      clearTimeout(entry.timer);
-      if ('error' in message) {
-        entry.reject(new KernelClientError(message.error.data.code, message.error.data.message));
-      } else {
-        entry.resolve(message.result);
-      }
-      return;
+    if (isJsonRpcNotification(message)) this.handleNotification(message.method, message.params);
+    else this.peer?.receive(raw);
+  }
+
+  private handleNotification(method: string, params: unknown): void {
+    if (method === 'kernel.stopping') this.handleStopping(params);
+    if (method === 'workbench.changed') {
+      if (!isWorkbenchChange(params)) return;
+      for (const listener of this.changeListeners) listener(params);
     }
-    if (isJsonRpcRequest(message)) {
-      this.answerUnknownRequest(message.id);
-      return;
-    }
-    if (isJsonRpcNotification(message)) {
-      if (message.method === 'kernel.stopping') this.handleStopping(message.params);
-      if (message.method === 'workbench.changed') {
-        if (!isWorkbenchChange(message.params)) {
-          this.terminal({
-            code: 'protocolIncompatible',
-            message: 'Invalid workbench notification.',
-          });
-          return;
-        }
-        for (const listener of this.changeListeners) listener(message.params);
-      }
-      return;
-    }
-    this.terminal({
-      code: 'protocolIncompatible',
-      message: 'Kernel sent a message that violates the protocol.',
-    });
   }
 
   private handleStopping(params: unknown): void {
@@ -529,34 +468,9 @@ export class KernelClient {
     this.update('stopping');
   }
 
-  private answerUnknownRequest(id: number | string): void {
-    const socket = this.socket;
-    if (socket === null || socket.readyState !== WebSocket.OPEN) return;
-    try {
-      socket.send(
-        JSON.stringify({
-          jsonrpc: '2.0',
-          id,
-          error: {
-            code: -32601,
-            message: 'Method not found.',
-            data: { code: 'invalidRequest', message: 'Unknown method.' },
-          },
-        }),
-      );
-    } catch {
-      // The connection is already gone; there is nothing to answer.
-    }
-  }
-
   private rejectPending(info?: ErrorInfo): void {
-    const entries = [...this.pending.values()];
-    this.pending.clear();
-    for (const entry of entries) {
-      clearTimeout(entry.timer);
-      const failure = info ?? { code: entry.lossCode, message: 'Kernel connection was lost.' };
-      entry.reject(new KernelClientError(failure.code, failure.message));
-    }
+    this.peer?.close(info);
+    this.peer = null;
   }
 
   // Marks the connection as dead; callers decide whether to rethrow the returned error.

@@ -1,0 +1,2171 @@
+import { AsyncLocalStorage } from 'node:async_hooks';
+import { randomUUID } from 'node:crypto';
+import { readdir, readFile, unlink } from 'node:fs/promises';
+import { join } from 'node:path';
+import {
+  AIMessage,
+  type BaseMessage,
+  coerceMessageLikeToMessage,
+  HumanMessage,
+  mapStoredMessageToChatMessage,
+  ToolMessage,
+} from '@langchain/core/messages';
+import { isCommand } from '@langchain/langgraph';
+import { minimaxModels } from '@scholoom/models';
+import { type ModelAccess, modelFailure, type RunModelConfig } from '@scholoom/models/execution';
+import {
+  atomicPrivateFile,
+  failure,
+  ProcessAdmission,
+  type ProcessReservation,
+  privateDirectory,
+  processMayBeAlive,
+  ResourceAccess,
+} from '@scholoom/platform/node';
+import type { CallContext, ErrorInfo } from '@scholoom/protocol/core';
+import { OperationError } from '@scholoom/protocol/core';
+import type {
+  CapabilityExecution,
+  HarnessInputs,
+  HarnessOutputs,
+  HarnessSnapshot,
+  Message,
+  Run,
+  Session,
+} from '@scholoom/protocol/harness';
+import {
+  isLibraryToolCall,
+  type LibraryToolPort,
+  libraryOperations,
+  libraryToolMethods,
+} from '@scholoom/protocol/library';
+import type { ModelDefaults, ModelPreference } from '@scholoom/protocol/models';
+import type { Artifact, HarnessProjectPort, ProjectFilePort } from '@scholoom/protocol/projects';
+import type {
+  ResearchProgressPort,
+  ResearchRequest,
+  ResearchToolsPort,
+} from '@scholoom/protocol/research';
+import { researchRequestSchema } from '@scholoom/protocol/research';
+import type Database from 'better-sqlite3';
+import { CompositeBackend, FilesystemBackend, registerHarnessProfile } from 'deepagents';
+import { and, desc, eq, gt, lt, or, sql } from 'drizzle-orm';
+import { createMiddleware, tool as defineTool } from 'langchain';
+import { z } from 'zod';
+import type { Consumption } from './checkpoint.js';
+import { InstructionSaver } from './checkpoint.js';
+import {
+  claimCheckpoints,
+  openCheckpoint,
+  prepareScratch,
+  sessionScratch,
+} from './checkpoint-files.js';
+import { ProjectBackend } from './project-backend.js';
+import type { HarnessRecords } from './records.js';
+import { RemoteAgent } from './remote-agent.js';
+import * as tables from './schema.js';
+
+registerHarnessProfile('anthropic', {
+  generalPurposeSubagent: { enabled: false },
+  excludedTools: ['task', 'execute', 'delete'],
+  excludedMiddleware: ['AnthropicPromptCachingMiddleware', 'CacheBreakpointMiddleware'],
+});
+
+type Active = { controller: AbortController; done: Promise<void> };
+type Notify = (projectId?: string, sessionId?: string, sessionsChanged?: boolean) => void;
+export type HarnessProject = {
+  readonly id: string;
+  readonly internal: string;
+  readonly records: HarnessRecords;
+};
+export type HarnessStorage = {
+  get: (projectId: string) => HarnessProject;
+  all: () => HarnessProject[];
+  touch: (projectId: string) => void;
+};
+const activeKey = (project: HarnessProject, sessionId: string) => `${project.id}:${sessionId}`;
+const now = () => new Date().toISOString();
+const historyPrefix = '/conversation_history/';
+const settleTools = async (pending: Set<Promise<unknown>>) => {
+  while (pending.size) await Promise.allSettled([...pending]);
+};
+const track = <T>(pending: Set<Promise<unknown>>, done: Promise<T>): Promise<T> => {
+  pending.add(done);
+  void done.then(
+    () => pending.delete(done),
+    () => pending.delete(done),
+  );
+  return done;
+};
+const trackBackend = <T extends object>(backend: T, pending: Set<Promise<unknown>>): T =>
+  new Proxy(backend, {
+    get(target, property, receiver) {
+      const value = Reflect.get(target, property, receiver);
+      if (typeof value !== 'function') return value;
+      return (...args: unknown[]) =>
+        track(
+          pending,
+          Promise.resolve().then(() => value.apply(target, args)),
+        );
+    },
+  });
+const toolPreview = (text: string) => ({
+  text: text.slice(0, 16384),
+  truncated: text.length > 16384,
+});
+const visibleText = (message: BaseMessage): string =>
+  typeof message.content === 'string'
+    ? message.content
+    : message.content
+        .filter((block) => block.type === 'text')
+        .map((block) => ('text' in block ? String(block.text) : ''))
+        .join('');
+
+export class Harness {
+  private readonly hostInstanceId = randomUUID();
+  private readonly repositories = new Map<string, HarnessRecords>();
+  private repository(project: HarnessProject) {
+    this.repositories.set(project.internal, project.records);
+    return project.records;
+  }
+
+  private records(project: HarnessProject) {
+    return this.repository(project).db;
+  }
+  private port(
+    project?: HarnessProject,
+    sessionId?: string,
+    signal?: AbortSignal,
+  ): HarnessProjectPort {
+    return this.projectPort({
+      moduleId: 'harness',
+      role: 'host',
+      principal: { kind: 'system', id: 'host' },
+      ...(project ? { projectId: project.id } : {}),
+      ...(sessionId ? { sessionId } : {}),
+      ...(signal ? { signal } : {}),
+    });
+  }
+  private async currentPath(project: HarnessProject, fileId: string): Promise<string> {
+    const location = (
+      await this.port(project)['files.resolve']({ projectId: project.id, fileIds: [fileId] })
+    )[0];
+    if (location?.state !== 'present')
+      throw new OperationError('notFound', '原材料当前位置不可用。');
+    return location.path;
+  }
+  private initialized = new WeakSet<HarnessProject>();
+  private released = new WeakSet<HarnessProject>();
+  private active = new Map<string, Active>();
+  private stopped = false;
+  get isStopping(): boolean {
+    return this.stopped;
+  }
+  private readonly capabilityReservations = new AsyncLocalStorage<ProcessReservation>();
+  private readonly capabilityExecutors = new Map<
+    string,
+    {
+      context: CallContext;
+      execute: (input: CapabilityExecution, reservation: ProcessReservation) => Promise<void>;
+    }
+  >();
+  async executeCapability(input: CapabilityExecution, context: CallContext): Promise<void> {
+    const executor = context.runId ? this.capabilityExecutors.get(context.runId) : undefined;
+    const reservation = this.capabilityReservations.getStore();
+    if (
+      !executor ||
+      !reservation ||
+      context.role !== 'execution' ||
+      (['projectId', 'sessionId', 'runId', 'instanceId'] as const).some(
+        (key) => context[key] !== executor.context[key],
+      )
+    )
+      throw new OperationError('instanceMismatch', '能力执行不属于当前已准入的推进。');
+    context.signal?.throwIfAborted();
+    await executor.execute(input, reservation);
+  }
+  private pendingArtifacts = new Map<
+    string,
+    { projectId: string; sessionId: string; artifact: Artifact; receipt: string }
+  >();
+  constructor(
+    private readonly projects: HarnessStorage,
+    private readonly model: Pick<ModelAccess, 'execution'> & {
+      credentials: Pick<ModelAccess['credentials'], 'status'>;
+    },
+    private readonly configs: { load: () => Promise<ModelDefaults> },
+    private readonly researchTools: (context: CallContext) => ResearchToolsPort,
+    private readonly libraryTools: (context: CallContext) => LibraryToolPort,
+    private readonly notify: Notify,
+    private readonly projectPort: (context: CallContext) => HarnessProjectPort,
+    private readonly projectFiles: (context: CallContext) => ProjectFilePort,
+    private readonly researchProgress: (context: CallContext) => ResearchProgressPort,
+    private readonly processes = new ProcessAdmission(),
+  ) {}
+
+  async initialize(): Promise<void> {
+    for (const project of this.projects.all()) {
+      if (this.initialized.has(project)) continue;
+      this.initialized.add(project);
+      const directory = join(project.internal, 'pending-artifacts');
+      await privateDirectory(directory);
+      for (const entry of (await readdir(directory)).slice(0, 100)) {
+        const receipt = join(directory, entry);
+        try {
+          const item = JSON.parse(await readFile(receipt, 'utf8')) as {
+            sessionId: string;
+            artifact: Artifact;
+          };
+          await this.port(project)['project.path']({
+            projectId: project.id,
+            path: item.artifact.fileId
+              ? await this.currentPath(project, item.artifact.fileId)
+              : item.artifact.path,
+          });
+          this.pendingArtifacts.set(`${project.id}:${item.artifact.runId}:${item.artifact.path}`, {
+            projectId: project.id,
+            sessionId: item.sessionId,
+            artifact: { ...item.artifact, state: 'unknown' },
+            receipt,
+          });
+        } catch {
+          /* Preserve unreadable receipts for diagnosis. */
+        }
+      }
+      for (const row of this.records(project).select().from(tables.runs).all()) {
+        if (['queued', 'running', 'cancelling'].includes(row.value.state)) {
+          this.interruptTools(project, row.value);
+          this.setRun(project, { ...row.value, state: 'interrupted', remoteOutcome: 'unknown' });
+        }
+      }
+    }
+  }
+
+  create(projectId: string, title?: string): Session {
+    const project = this.projects.get(projectId);
+    const value: Session = {
+      id: randomUUID(),
+      projectId,
+      title: title?.trim() || '新会话',
+      titleSource: title?.trim() ? 'manual' : 'default',
+      updatedAt: now(),
+      state: 'completed',
+    };
+    this.records(project).transaction((tx) => {
+      tx.insert(tables.sessions).values({ id: value.id, value }).run();
+      tx.insert(tables.meta)
+        .values({ key: `scratch-isolated:${value.id}`, value: 'true' })
+        .run();
+    });
+    this.projects.touch(project.id);
+    this.notify(projectId, undefined, true);
+    return value;
+  }
+
+  list(input: HarnessInputs['session.list']): HarnessOutputs['session.list'] {
+    const project = this.projects.get(input.projectId);
+    const updated = sql<string>`json_extract(${tables.sessions.value}, '$.updatedAt')`;
+    const cursor = input.cursor;
+    const limit = Math.min(input.limit ?? 50, 100);
+    const rows = this.records(project)
+      .select()
+      .from(tables.sessions)
+      .where(
+        and(
+          sql`coalesce(json_extract(${tables.sessions.value}, '$.archived'), 0) = ${input.archived ? 1 : 0}`,
+          input.query
+            ? sql`instr(lower(json_extract(${tables.sessions.value}, '$.title')), lower(${input.query})) > 0`
+            : undefined,
+          cursor
+            ? or(
+                lt(updated, cursor.updatedAt),
+                and(eq(updated, cursor.updatedAt), lt(tables.sessions.id, cursor.id)),
+              )
+            : undefined,
+        ),
+      )
+      .orderBy(desc(updated), desc(tables.sessions.id))
+      .limit(limit + 1)
+      .all();
+    const more = rows.length > limit;
+    const sessions = rows.slice(0, limit).map((row) => row.value);
+    const last = sessions.at(-1);
+    return {
+      sessions,
+      ...(more && last ? { nextCursor: { updatedAt: last.updatedAt, id: last.id } } : {}),
+    };
+  }
+
+  async search(input: HarnessInputs['session.search']): Promise<HarnessOutputs['session.search']> {
+    const limit = Math.min(input.limit ?? 50, 100);
+    const projects = new Map(
+      (await this.port()['projects.list']({})).map((project) => [project.id, project]),
+    );
+    const results: HarnessOutputs['session.search']['results'] = [];
+    const updated = sql<string>`json_extract(${tables.sessions.value}, '$.updatedAt')`;
+    for (const store of this.projects.all()) {
+      const project = projects.get(store.id);
+      if (!project?.recent) continue;
+      const rows = this.records(store)
+        .select()
+        .from(tables.sessions)
+        .where(
+          input.query
+            ? sql`instr(lower(json_extract(${tables.sessions.value}, '$.title')), lower(${input.query})) > 0`
+            : undefined,
+        )
+        .orderBy(desc(updated), desc(tables.sessions.id))
+        .limit(limit)
+        .all();
+      for (const row of rows) results.push({ project, session: row.value });
+    }
+    results.sort(
+      (a, b) =>
+        b.session.updatedAt.localeCompare(a.session.updatedAt) ||
+        b.session.id.localeCompare(a.session.id),
+    );
+    return { results: results.slice(0, limit), truncated: results.length > limit };
+  }
+
+  rename(projectId: string, sessionId: string, title: string): Session {
+    const project = this.projects.get(projectId);
+    const normalized = title.trim();
+    if (!normalized || Array.from(normalized).length > 200)
+      throw new OperationError('invalidRequest', '会话标题应为 1 至 200 字符。');
+    const value: Session = {
+      ...this.session(project, sessionId),
+      title: normalized,
+      titleSource: 'manual',
+    };
+    this.records(project)
+      .update(tables.sessions)
+      .set({ value })
+      .where(eq(tables.sessions.id, sessionId))
+      .run();
+    this.projects.touch(project.id);
+    this.notify(projectId, sessionId, true);
+    return value;
+  }
+
+  archive(projectId: string, sessionId: string, archived: boolean): Session {
+    const project = this.projects.get(projectId);
+    const previous = this.session(project, sessionId);
+    if (
+      archived &&
+      (this.active.has(activeKey(project, sessionId)) ||
+        ['queued', 'running', 'cancelling'].includes(previous.state))
+    )
+      throw new OperationError('invalidRequest', '请等待执行停止后再归档会话。');
+    if (!!previous.archived === archived) return previous;
+    const value = { ...previous, archived };
+    this.records(project)
+      .update(tables.sessions)
+      .set({ value })
+      .where(eq(tables.sessions.id, sessionId))
+      .run();
+    this.projects.touch(project.id);
+    this.notify(projectId, sessionId, true);
+    return value;
+  }
+
+  async configure(
+    projectId: string,
+    sessionId: string,
+    modelConfig: ModelPreference | null,
+  ): Promise<Session> {
+    const project = this.projects.get(projectId);
+    const previous = this.session(project, sessionId);
+    const preference = modelConfig ?? {};
+    if (preference.model && !minimaxModels.some((item) => item.id === preference.model))
+      throw new OperationError('invalidRequest', `模型 ${preference.model} 不在当前模型目录。`);
+    if (preference.effort) {
+      const model = preference.model ?? (await this.configs.load()).model;
+      if (!minimaxModels.find((item) => item.id === model)?.supportsEffort)
+        throw new OperationError('invalidRequest', `模型 ${model} 不支持推理强度设置。`);
+    }
+    const value: Session = { ...previous };
+    if (preference.model || preference.effort)
+      value.modelConfig = {
+        ...(preference.model ? { model: preference.model } : {}),
+        ...(preference.effort ? { effort: preference.effort } : {}),
+      };
+    else delete value.modelConfig;
+    this.records(project)
+      .update(tables.sessions)
+      .set({ value })
+      .where(eq(tables.sessions.id, sessionId))
+      .run();
+    this.projects.touch(project.id);
+    this.notify(projectId, sessionId, true);
+    return value;
+  }
+
+  private async runConfig(session: Session): Promise<RunModelConfig> {
+    const defaults = await this.configs.load();
+    const model = session.modelConfig?.model ?? defaults.model;
+    const option = minimaxModels.find((item) => item.id === model);
+    if (!option) throw new OperationError('invalidRequest', `模型 ${model} 不在当前模型目录。`);
+    const effort = session.modelConfig?.effort ?? defaults.effort;
+    return option.supportsEffort ? { model, effort } : { model };
+  }
+
+  private session(project: HarnessProject, id: string): Session {
+    const row = this.records(project)
+      .select()
+      .from(tables.sessions)
+      .where(eq(tables.sessions.id, id))
+      .get();
+    if (!row) throw new OperationError('notFound', '会话不存在。');
+    return row.value;
+  }
+
+  getSession(projectId: string, sessionId: string): Session {
+    return this.session(this.projects.get(projectId), sessionId);
+  }
+
+  private latestRun(project: HarnessProject, sessionId: string): Run | undefined {
+    return this.records(project)
+      .select()
+      .from(tables.runs)
+      .where(eq(tables.runs.sessionId, sessionId))
+      .orderBy(desc(sql`json_extract(${tables.runs.value}, '$.attempt')`))
+      .limit(1)
+      .get()?.value;
+  }
+
+  private setRun(project: HarnessProject, value: Run): void {
+    this.records(project)
+      .insert(tables.runs)
+      .values({ id: value.id, sessionId: value.sessionId, value })
+      .onConflictDoUpdate({ target: tables.runs.id, set: { value } })
+      .run();
+    if (this.latestRun(project, value.sessionId)?.id !== value.id) return;
+    const session = this.session(project, value.sessionId);
+    this.records(project)
+      .update(tables.sessions)
+      .set({ value: { ...session, state: value.state, updatedAt: now() } })
+      .where(eq(tables.sessions.id, session.id))
+      .run();
+    this.projects.touch(project.id);
+    this.notify(project.id, value.sessionId, session.state !== value.state);
+  }
+
+  private putMessage(project: HarnessProject, value: Message): void {
+    this.records(project)
+      .insert(tables.messages)
+      .values({ id: value.id, sessionId: value.sessionId, value })
+      .onConflictDoUpdate({ target: tables.messages.id, set: { value } })
+      .run();
+    this.projects.touch(project.id);
+    this.notify(project.id, value.sessionId);
+  }
+
+  private interruptTools(project: HarnessProject, run: Run): void {
+    const rows = this.records(project)
+      .select()
+      .from(tables.messages)
+      .where(
+        and(
+          eq(tables.messages.sessionId, run.sessionId),
+          sql`json_extract(${tables.messages.value}, '$.role') = 'tool'`,
+          sql`json_extract(${tables.messages.value}, '$.state') = 'streaming'`,
+          sql`json_extract(${tables.messages.value}, '$.tool.runId') = ${run.id}`,
+        ),
+      )
+      .all();
+    for (const { value } of rows) this.putMessage(project, { ...value, state: 'unknown' });
+  }
+
+  private acceptedInstruction(
+    project: HarnessProject,
+    input: HarnessInputs['session.send'],
+  ): HarnessOutputs['session.send'] | undefined {
+    const previous = this.records(project)
+      .select()
+      .from(tables.instructions)
+      .where(eq(tables.instructions.id, input.instructionId))
+      .get();
+    if (previous) {
+      const original = this.records(project)
+        .select()
+        .from(tables.messages)
+        .where(eq(tables.messages.id, input.instructionId))
+        .get();
+      if (
+        previous.sessionId !== input.sessionId ||
+        original?.value.text !== input.text ||
+        JSON.stringify(original.value.materials) !== JSON.stringify(input.materials) ||
+        JSON.stringify(original.value.materialFileIds ?? []) !==
+          JSON.stringify(input.materialFileIds ?? [])
+      )
+        throw new OperationError('invalidRequest', '指令身份已用于其他内容。');
+      return { instructionId: previous.id, runId: previous.runId };
+    }
+    return undefined;
+  }
+
+  async send(
+    input: HarnessInputs['session.send'],
+  ): Promise<{ instructionId: string; runId: string }> {
+    if (this.stopped) throw new OperationError('shuttingDown', '内核正在停止。');
+    const project = this.projects.get(input.projectId);
+    const session = this.session(project, input.sessionId);
+    const previous = this.acceptedInstruction(project, input);
+    if (previous) return previous;
+    try {
+      await this.port(project)['project.check']({ projectId: project.id, access: 'send' });
+      if (!(await this.model.credentials.status()).configured)
+        throw new OperationError('credentialUnavailable', '请先配置 MiniMax API Key。');
+      if (input.materialFileIds && input.materialFileIds.length !== input.materials.length)
+        throw new OperationError('invalidRequest', '材料身份数量不一致。');
+      for (const [index, path] of input.materials.entries()) {
+        await this.port(project)['project.check']({ projectId: project.id, access: 'read' });
+        const identity = input.materialFileIds?.[index];
+        if (identity && (await this.currentPath(project, identity)) !== path)
+          throw new OperationError('contentChanged', '附加材料位置已变化，请重新选择后发送。');
+        await this.port(project)['project.path']({ projectId: project.id, path });
+      }
+    } catch (error) {
+      const accepted = this.acceptedInstruction(project, input);
+      if (accepted) return accepted;
+      throw error;
+    }
+    let run = this.latestRun(project, input.sessionId);
+    let busy = this.active.has(activeKey(project, input.sessionId));
+    let resuming = !busy && !!run && run.state !== 'completed';
+    if (resuming && run) {
+      const { error: _error, ...continuing } = run;
+      run = { ...continuing, state: 'queued' };
+    }
+    if (!busy && !resuming) {
+      const modelConfig = await this.runConfig(session);
+      busy = this.active.has(activeKey(project, input.sessionId));
+      run = this.latestRun(project, input.sessionId);
+      resuming = !busy && !!run && run.state !== 'completed';
+      if (!busy && !resuming)
+        run = {
+          id: randomUUID(),
+          sessionId: session.id,
+          attempt: (run?.attempt ?? 0) + 1,
+          state: 'queued',
+          modelConfig,
+        };
+    }
+    const accepted = run as Run;
+    if (this.released.has(project) || this.projects.get(project.id) !== project)
+      throw new OperationError('instanceMismatch', '项目位置已变化，请重新发送。');
+    const reservation = busy ? undefined : this.processes.reserve(true);
+    let scheduled = false;
+    try {
+      let replay: HarnessOutputs['session.send'] | undefined;
+      this.records(project).transaction((tx) => {
+        replay = this.acceptedInstruction(project, input);
+        if (replay) return;
+        const current = tx
+          .select()
+          .from(tables.sessions)
+          .where(eq(tables.sessions.id, session.id))
+          .get()?.value;
+        if (!current || current.archived)
+          throw new OperationError('invalidRequest', '请先恢复已归档的会话。');
+        if (current.titleSource === 'default') {
+          const title =
+            Array.from(input.text.trim().replace(/\s+/gu, ' ')).slice(0, 40).join('') || '新会话';
+          tx.update(tables.sessions)
+            .set({ value: { ...current, title, titleSource: 'instruction' } })
+            .where(eq(tables.sessions.id, session.id))
+            .run();
+        }
+        tx.insert(tables.instructions)
+          .values({
+            id: input.instructionId,
+            sessionId: session.id,
+            runId: accepted.id,
+            consumed: false,
+          })
+          .run();
+        tx.insert(tables.messages)
+          .values({
+            id: input.instructionId,
+            sessionId: session.id,
+            value: {
+              id: input.instructionId,
+              sessionId: session.id,
+              role: 'user',
+              text: input.text,
+              materials: input.materials,
+              ...(input.materialFileIds ? { materialFileIds: input.materialFileIds } : {}),
+              state: 'accepted',
+              createdAt: now(),
+            },
+          })
+          .run();
+      });
+      if (replay) return replay;
+      this.setRun(project, accepted);
+      this.notify(project.id, session.id, true);
+      if (!busy) {
+        this.schedule(project, accepted, resuming, reservation);
+        scheduled = true;
+      }
+      return { instructionId: input.instructionId, runId: accepted.id };
+    } finally {
+      if (!scheduled) reservation?.release();
+    }
+  }
+
+  cancel(projectId: string, sessionId: string): void {
+    const project = this.projects.get(projectId);
+    this.session(project, sessionId);
+    const run = this.latestRun(project, sessionId);
+    const active = this.active.get(activeKey(project, sessionId));
+    if (run && active) {
+      this.setRun(project, { ...run, state: 'cancelling', remoteOutcome: 'unknown' });
+      active.controller.abort(new Error('User cancelled'));
+    } else if (run && run.state === 'queued') this.setRun(project, { ...run, state: 'cancelled' });
+  }
+
+  private schedule(
+    project: HarnessProject,
+    run: Run,
+    resume = false,
+    reservation = this.processes.reserve(true),
+  ): void {
+    if (this.released.has(project) || this.projects.get(project.id) !== project) {
+      reservation.release();
+      throw new OperationError('instanceMismatch', '项目位置已变化，停止旧资源上的调度。');
+    }
+    const controller = new AbortController();
+    let entered = false;
+    const cancelReservation = () => {
+      if (!entered) reservation.release();
+    };
+    controller.signal.addEventListener('abort', cancelReservation, { once: true });
+    const done = Promise.resolve()
+      .then(async () => {
+        await reservation.ready;
+        controller.signal.throwIfAborted();
+        entered = true;
+        await this.execute(project, run, controller.signal, resume, reservation);
+      })
+      .catch((error) => {
+        if (!entered)
+          this.setRun(project, {
+            ...run,
+            state: controller.signal.aborted
+              ? this.stopped
+                ? 'interrupted'
+                : 'cancelled'
+              : 'failed',
+            error: modelFailure(error),
+            remoteOutcome: 'unknown',
+          });
+      })
+      .finally(() => {
+        controller.signal.removeEventListener('abort', cancelReservation);
+        reservation.release();
+        this.active.delete(activeKey(project, run.sessionId));
+        const actual = this.latestRun(project, run.sessionId);
+        const pending = this.records(project)
+          .select()
+          .from(tables.instructions)
+          .where(
+            and(
+              eq(tables.instructions.sessionId, run.sessionId),
+              eq(tables.instructions.consumed, false),
+            ),
+          )
+          .limit(1)
+          .get();
+        if (!this.stopped && actual?.state === 'completed' && pending)
+          void this.scheduleNext(project, run.sessionId, actual.attempt + 1);
+      });
+    this.active.set(activeKey(project, run.sessionId), { controller, done });
+    this.setRun(project, { ...run, state: 'queued' });
+  }
+
+  private async scheduleNext(
+    project: HarnessProject,
+    sessionId: string,
+    attempt: number,
+  ): Promise<void> {
+    try {
+      const modelConfig = await this.runConfig(this.session(project, sessionId));
+      this.schedule(project, {
+        id: randomUUID(),
+        sessionId,
+        attempt,
+        state: 'queued',
+        modelConfig,
+      });
+    } catch {
+      // 默认配置不可用时无法创建后续执行；未消费指令保留，可显式继续。
+    }
+  }
+
+  private async execute(
+    project: HarnessProject,
+    initial: Run,
+    signal: AbortSignal,
+    resume: boolean,
+    reservation: ProcessReservation,
+  ): Promise<void> {
+    let run = initial;
+    const continuingUnfinished = resume;
+    let checkpointDb: Database.Database | undefined;
+    const checkpointClaims: Array<() => void> = [];
+    const instanceId = randomUUID();
+    const buffers = new Map<string, string>();
+    const persistedAt = new Map<string, number>();
+    const inFlightTools = new Set<Promise<unknown>>();
+    let rootRequested = false;
+    let childOutcomeUnknown = false;
+    const rememberUnconfirmed = (id: string, parentInstanceId?: string) =>
+      this.records(project)
+        .insert(tables.instances)
+        .values({
+          id,
+          runId: run.id,
+          hostInstanceId: this.hostInstanceId,
+          value: {
+            instanceId: id,
+            runId: run.id,
+            hostInstanceId: this.hostInstanceId,
+            ...(parentInstanceId ? { parentInstanceId } : {}),
+            state: 'stopping',
+          },
+        })
+        .onConflictDoNothing()
+        .run();
+    const childrenUnsettled = () =>
+      childOutcomeUnknown ||
+      this.records(project)
+        .select()
+        .from(tables.instances)
+        .all()
+        .some(({ value }) => value.parentInstanceId === instanceId && value.state !== 'exited');
+    try {
+      signal.throwIfAborted();
+      await this.port(project)['project.check']({ projectId: project.id, access: 'send' });
+      const libraryContextKey = `library-context:${run.sessionId}`;
+      const library = this.libraryTools({
+        moduleId: 'harness',
+        role: 'execution',
+        principal: { kind: 'agent', id: run.sessionId },
+        projectId: project.id,
+        sessionId: run.sessionId,
+        signal,
+      });
+      const authorizeModel = async () => {
+        await this.port(project)['project.check']({ projectId: project.id, access: 'send' });
+        if (
+          this.records(project)
+            .select()
+            .from(tables.meta)
+            .where(eq(tables.meta.key, libraryContextKey))
+            .get()
+        ) {
+          await library.call('library.check', { access: 'read' });
+          await library.call('library.check', { access: 'send' });
+        }
+      };
+      const model = await this.model.execution(authorizeModel, signal, run.modelConfig);
+      const scratch = sessionScratch(project.internal, run.sessionId);
+      const used = new Map<string, string>();
+      const toolContext = new AsyncLocalStorage<{ error?: ErrorInfo }>();
+      const scratchResourcePrefix = `scratch-resource:${run.sessionId}:`;
+      const rememberScratch = (path: string) => {
+        this.records(project)
+          .insert(tables.meta)
+          .values({
+            key: `${scratchResourcePrefix}${encodeURIComponent(path)}`,
+            value: path.replace(/^\/+/, ''),
+          })
+          .onConflictDoNothing()
+          .run();
+      };
+      let scratchLost = false;
+      const scratchBackend = (pending = inFlightTools) =>
+        trackBackend(
+          new Proxy(
+            new FilesystemBackend({
+              rootDir: scratch,
+              virtualMode: true,
+            }),
+            {
+              get(target, property, receiver) {
+                const value = Reflect.get(target, property, receiver);
+                if (
+                  typeof value !== 'function' ||
+                  ![
+                    'ls',
+                    'read',
+                    'readRaw',
+                    'write',
+                    'edit',
+                    'glob',
+                    'grep',
+                    'delete',
+                    'uploadFiles',
+                    'downloadFiles',
+                  ].includes(String(property))
+                )
+                  return value;
+                return async (...args: unknown[]) => {
+                  const result = await value.apply(target, args);
+                  if (property === 'write' && !result?.error && typeof args[0] === 'string')
+                    rememberScratch(args[0]);
+                  if (property === 'uploadFiles' && Array.isArray(result)) {
+                    for (const file of result)
+                      if (!file.error && typeof file.path === 'string') rememberScratch(file.path);
+                  }
+                  if (
+                    property === 'downloadFiles' &&
+                    Array.isArray(result) &&
+                    result.some((file) => file.error)
+                  )
+                    scratchLost = true;
+                  if ((property === 'read' || property === 'readRaw') && result?.error) {
+                    scratchLost = true;
+                    result.error = `context_incomplete: ${result.error}`;
+                  }
+                  const context = toolContext.getStore();
+                  if (context && result?.error)
+                    context.error = { code: 'unavailable', message: result.error };
+                  return result;
+                };
+              },
+            },
+          ),
+          pending,
+        );
+      const pendingDirectory = join(project.internal, 'pending-artifacts');
+      await privateDirectory(pendingDirectory);
+      for (const entry of (await readdir(pendingDirectory)).slice(0, 100)) {
+        const filename = join(pendingDirectory, entry);
+        const pending = JSON.parse(await readFile(filename, 'utf8')) as {
+          sessionId: string;
+          artifact: Artifact;
+        };
+        if (pending.sessionId !== run.sessionId) continue;
+        const result = await this.reconcile(project.id, pending.sessionId, pending.artifact.runId, [
+          pending.artifact.path,
+        ]);
+        if (result[0]?.state === 'linked')
+          await unlink(filename).catch((error) => {
+            if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+          });
+      }
+      const saved = async (path: string, fileId?: string) => {
+        const identity =
+          fileId ??
+          (await this.port(project)['project.material']({ projectId: project.id, path })).fileId;
+        const artifact: Artifact = { path, fileId: identity, runId: run.id, state: 'linked' };
+        const pendingId = randomUUID();
+        await atomicPrivateFile(
+          pendingDirectory,
+          pendingId,
+          JSON.stringify({ sessionId: run.sessionId, artifact }),
+        );
+        const pendingKey = `${project.id}:${run.id}:${path}`;
+        this.pendingArtifacts.set(pendingKey, {
+          projectId: project.id,
+          sessionId: run.sessionId,
+          artifact: { ...artifact, state: 'unknown' },
+          receipt: join(pendingDirectory, pendingId),
+        });
+        try {
+          await this.port(project, run.sessionId)['project.linkArtifact']({
+            projectId: project.id,
+            sessionId: run.sessionId,
+            artifact,
+          });
+        } catch {
+          throw new OperationError('outcomeUnknown', `文件 ${path} 已保存，产物登记待核查。`);
+        }
+        await unlink(join(pendingDirectory, pendingId));
+        this.pendingArtifacts.delete(pendingKey);
+        this.notify(project.id, run.sessionId);
+      };
+      const predecessor = this.records(project)
+        .select()
+        .from(tables.runs)
+        .where(eq(tables.runs.sessionId, run.sessionId))
+        .all()
+        .map((row) => row.value)
+        .filter((previous) => previous.id !== run.id)
+        .sort((a, b) => b.attempt - a.attempt)[0];
+      for (const row of this.records(project).select().from(tables.instances).all()) {
+        const prior = row.value;
+        if (prior.state === 'exited' || ![run.id, predecessor?.id].includes(prior.runId)) continue;
+        if (!prior.processId || processMayBeAlive(prior.processId))
+          throw new OperationError('unavailable', '旧执行写者尚未排除，停止相关接续。');
+        this.records(project)
+          .update(tables.instances)
+          .set({ value: { ...prior, state: 'exited' } })
+          .where(eq(tables.instances.id, row.id))
+          .run();
+      }
+      checkpointClaims.push(
+        await claimCheckpoints(project.internal, [
+          run.id,
+          ...(predecessor ? [predecessor.id] : []),
+        ]),
+      );
+      let opened: Awaited<ReturnType<typeof openCheckpoint>>;
+      try {
+        opened = await openCheckpoint(
+          project.internal,
+          run.id,
+          resume ? undefined : predecessor?.id,
+        );
+        checkpointDb = opened.database;
+        const compatible = await new InstructionSaver(checkpointDb, async () => {}).getTuple({
+          configurable: { thread_id: run.id },
+        });
+        if (resume && !compatible) throw new Error('原尝试缺少有效checkpoint。');
+      } catch (error) {
+        checkpointDb?.close();
+        checkpointDb = undefined;
+        if (error instanceof OperationError && error.code !== 'unavailable') throw error;
+        if ((error as { code?: string }).code?.startsWith('SQLITE_BUSY'))
+          throw new OperationError('instanceMismatch', '旧Checkpoint写者尚未排除。');
+        run = { ...run, id: randomUUID(), attempt: run.attempt + 1, state: 'queued' };
+        checkpointClaims.push(await claimCheckpoints(project.internal, [run.id]));
+        resume = false;
+        opened = await openCheckpoint(project.internal, run.id);
+        opened.issue =
+          error instanceof Error ? error.message : 'Checkpoint不兼容，从持久事实回退。';
+        this.setRun(project, run);
+      }
+      const fileContext: CallContext = {
+        moduleId: 'harness',
+        role: 'execution',
+        principal: { kind: 'agent', id: run.sessionId },
+        projectId: project.id,
+        sessionId: run.sessionId,
+        runId: run.id,
+        instanceId,
+        signal,
+      };
+      const backend = new CompositeBackend(
+        trackBackend(
+          new ProjectBackend(
+            this.projectFiles(fileContext),
+            project.id,
+            signal,
+            (path, fileId) => {
+              used.set(fileId, path);
+            },
+            saved,
+            (error) => {
+              const context = toolContext.getStore();
+              if (context) context.error = error;
+            },
+          ),
+          inFlightTools,
+        ),
+        {
+          [historyPrefix]: scratchBackend(),
+          '/large_tool_results/': scratchBackend(),
+        },
+      );
+      const research = this.researchTools(fileContext);
+      const checkpointPath = opened.path;
+      checkpointDb = opened.database;
+      const scratchScope = this.records(project)
+        .select()
+        .from(tables.meta)
+        .where(eq(tables.meta.key, `scratch-isolated:${run.sessionId}`))
+        .get()?.value;
+      const legacyScratch = !scratchScope;
+      await prepareScratch(scratch, join(project.internal, 'scratch'), legacyScratch);
+      if (legacyScratch || scratchScope === 'legacy-unverified')
+        opened.issue ??= '旧临时上下文没有完整资源清单；原件保留，需核查持久工作材料。';
+      this.records(project)
+        .insert(tables.meta)
+        .values({
+          key: `scratch-isolated:${run.sessionId}`,
+          value: legacyScratch ? 'legacy-unverified' : 'true',
+        })
+        .onConflictDoNothing()
+        .run();
+      if (opened.issue)
+        this.records(project)
+          .insert(tables.meta)
+          .values({ key: `checkpoint-diagnostic:${run.id}`, value: opened.issue })
+          .onConflictDoUpdate({ target: tables.meta.key, set: { value: opened.issue } })
+          .run();
+      const confirmInstructions = async ({ checkpointId, instructionIds }: Consumption) => {
+        signal.throwIfAborted();
+        const saved = await saver.getTuple({
+          configurable: { thread_id: run.id, checkpoint_id: checkpointId },
+        });
+        const recorded: unknown = saved?.checkpoint.channel_values.instructionIds;
+        if (!Array.isArray(recorded) || instructionIds.some((id) => !recorded.includes(id)))
+          throw new OperationError('invalidRequest', '消费确认缺少已保存的checkpoint依据。');
+        const changed = this.repository(project).confirmConsumption(run.sessionId, run.id, {
+          checkpointId,
+          instructionIds,
+        });
+        if (changed) {
+          this.projects.touch(project.id);
+          this.notify(project.id, run.sessionId);
+        }
+      };
+      const saver = new InstructionSaver(checkpointDb, confirmInstructions);
+      const instructionMiddleware = createMiddleware({
+        name: 'ScholoomInstructions',
+        stateSchema: z.object({ instructionIds: z.array(z.string()).max(100).default([]) }),
+        beforeModel: async (state) => {
+          signal.throwIfAborted();
+          await this.port(project)['project.check']({ projectId: project.id, access: 'send' });
+          const present = new Set(state.messages.map((message) => message.id));
+          const pending = this.records(project)
+            .select()
+            .from(tables.instructions)
+            .where(
+              and(
+                eq(tables.instructions.sessionId, run.sessionId),
+                eq(tables.instructions.consumed, false),
+              ),
+            )
+            .orderBy(tables.instructions.seq)
+            .limit(100)
+            .all();
+          const incoming: HumanMessage[] = [];
+          if (scratchLost) {
+            incoming.push(
+              new HumanMessage({
+                id: `scratch-diagnostic:${run.id}`,
+                content: 'context_incomplete：临时上下文读取失败，请核查持久工作材料后继续。',
+              }),
+            );
+            scratchLost = false;
+          }
+          for (const previous of state.messages.slice(-100)) {
+            if (previous.getType() !== 'human' || !previous.id) continue;
+            const stored = this.records(project)
+              .select()
+              .from(tables.messages)
+              .where(eq(tables.messages.id, previous.id))
+              .get()?.value;
+            if (!stored?.materialFileIds?.length) continue;
+            const content = await this.instructionContent(project, stored);
+            if (content !== previous.content)
+              incoming.push(new HumanMessage({ id: previous.id, content }));
+          }
+          for (const item of pending) {
+            const message = this.records(project)
+              .select()
+              .from(tables.messages)
+              .where(eq(tables.messages.id, item.id))
+              .get()?.value;
+            if (!message) continue;
+            if (!present.has(item.id))
+              incoming.push(
+                new HumanMessage({
+                  id: item.id,
+                  content: await this.instructionContent(project, message),
+                }),
+              );
+          }
+          return {
+            ...(incoming.length ? { messages: incoming } : {}),
+            instructionIds: pending.map((item) => item.id),
+          };
+        },
+        wrapModelCall: async (request, handler) => {
+          this.setRun(project, { ...run, state: 'running' });
+          const result = await handler(request);
+          return result;
+        },
+      });
+      const createToolMiddleware = (namespace: string, pending: Set<Promise<unknown>>) =>
+        createMiddleware({
+          name: 'ScholoomToolReceipts',
+          wrapToolCall: (request, handler) => {
+            const done = (async () => {
+              signal.throwIfAborted();
+              await this.port(project)['project.check']({
+                projectId: project.id,
+                access: 'send',
+              });
+              signal.throwIfAborted();
+              const callId = request.toolCall.id;
+              const key = `tool:${namespace}:${callId}`;
+              const input = toolPreview(JSON.stringify(request.toolCall.args));
+              const tool = {
+                runId: run.id,
+                name: request.toolCall.name,
+                input: input.text,
+                inputTruncated: input.truncated,
+              };
+              const message: Message = {
+                id: key,
+                sessionId: run.sessionId,
+                role: 'tool',
+                text: request.toolCall.name,
+                state: 'streaming',
+                materials: [],
+                createdAt: now(),
+                tool,
+              };
+              const recordResult = (result: ToolMessage, error?: ErrorInfo) => {
+                const output = toolPreview(visibleText(result));
+                this.putMessage(project, {
+                  ...message,
+                  state:
+                    error?.code === 'outcomeUnknown'
+                      ? 'unknown'
+                      : result.status === 'error'
+                        ? 'error'
+                        : 'complete',
+                  materials: [...used.values()],
+                  materialFileIds: [...used.keys()],
+                  tool: { ...tool, output: output.text, outputTruncated: output.truncated },
+                });
+              };
+              const previous = this.records(project)
+                .select()
+                .from(tables.meta)
+                .where(eq(tables.meta.key, key))
+                .get();
+              if (previous) {
+                const record = JSON.parse(previous.value);
+                if (!record.result)
+                  throw new OperationError(
+                    'outcomeUnknown',
+                    '中断前工具效果未知，请核查文件后使用新指令继续。',
+                  );
+                const result = mapStoredMessageToChatMessage(record.result);
+                if (!(result instanceof ToolMessage))
+                  throw new OperationError('outcomeUnknown', '旧工具结果不可恢复。');
+                recordResult(result, record.error);
+                return result;
+              }
+              this.putMessage(project, message);
+              this.records(project)
+                .insert(tables.meta)
+                .values({
+                  key,
+                  value: JSON.stringify({
+                    name: request.toolCall.name,
+                    args: request.toolCall.args,
+                    state: 'pending',
+                  }),
+                })
+                .run();
+              const context: { error?: ErrorInfo } = {};
+              let result: Awaited<ReturnType<typeof handler>>;
+              try {
+                result = await toolContext.run(context, () => handler(request));
+              } catch (error) {
+                const output = toolPreview(modelFailure(error));
+                this.putMessage(project, {
+                  ...message,
+                  state:
+                    signal.aborted ||
+                    (error instanceof OperationError && error.code === 'outcomeUnknown')
+                      ? 'unknown'
+                      : 'error',
+                  tool: { ...tool, output: output.text, outputTruncated: output.truncated },
+                });
+                throw error;
+              }
+              if (result instanceof ToolMessage) {
+                if (context.error) result.status = 'error';
+                this.records(project)
+                  .update(tables.meta)
+                  .set({ value: JSON.stringify({ result: result.toDict(), error: context.error }) })
+                  .where(eq(tables.meta.key, key))
+                  .run();
+                recordResult(result, context.error);
+              } else {
+                this.records(project).delete(tables.meta).where(eq(tables.meta.key, key)).run();
+                const update = isCommand(result) ? result.update : undefined;
+                const messages = update && !Array.isArray(update) ? update.messages : undefined;
+                const output = Array.isArray(messages)
+                  ? messages
+                      .map(coerceMessageLikeToMessage)
+                      .find((item) => item instanceof ToolMessage && item.tool_call_id === callId)
+                  : undefined;
+                if (output instanceof ToolMessage) recordResult(output, context.error);
+              }
+              return result;
+            })();
+            return track(pending, done);
+          },
+        });
+      const childrenController = new AbortController();
+      const childSignal = AbortSignal.any([signal, childrenController.signal]);
+      const instanceLifecycle = (id: string, parentInstanceId?: string) => {
+        const update = (state: tables.RunInstance['state']) => {
+          const row = this.records(project)
+            .select()
+            .from(tables.instances)
+            .where(eq(tables.instances.id, id))
+            .get();
+          if (row)
+            this.records(project)
+              .update(tables.instances)
+              .set({ value: { ...row.value, state } })
+              .where(eq(tables.instances.id, id))
+              .run();
+        };
+        return {
+          authorize: () => {
+            if (this.latestRun(project, run.sessionId)?.id !== run.id)
+              throw new OperationError('instanceMismatch', '执行尝试已被替代。');
+            for (const instance of [id, ...(parentInstanceId ? [parentInstanceId] : [])]) {
+              const current = this.records(project)
+                .select()
+                .from(tables.instances)
+                .where(eq(tables.instances.id, instance))
+                .get()?.value;
+              if (
+                current?.hostInstanceId !== this.hostInstanceId ||
+                current.runId !== run.id ||
+                current.state !== 'running'
+              )
+                throw new OperationError('instanceMismatch', '执行实例资格已撤销。');
+            }
+          },
+          onStart: (owned: import('@scholoom/platform/node').ManagedNode) => {
+            if (!owned.identity)
+              throw new OperationError('unavailable', '执行未提供实际进程身份。');
+            const value: tables.RunInstance = {
+              instanceId: id,
+              hostInstanceId: this.hostInstanceId,
+              runId: run.id,
+              state: 'running',
+              processId: owned.identity.pid,
+              ...(parentInstanceId ? { parentInstanceId } : { checkpointPath }),
+            };
+            this.records(project)
+              .insert(tables.instances)
+              .values({ id, runId: run.id, hostInstanceId: this.hostInstanceId, value })
+              .run();
+          },
+          onStopping: () => {
+            try {
+              update('stopping');
+            } finally {
+              if (!parentInstanceId)
+                childrenController.abort(new Error('Parent execution stopped'));
+            }
+          },
+          onStop: () => update('exited'),
+        };
+      };
+      const { signal: _progressSignal, ...progressContext } = fileContext;
+      const progress = this.researchProgress(progressContext);
+      this.capabilityExecutors.set(run.id, {
+        context: fileContext,
+        execute: async (execution, childReservation) => {
+          const capabilityTools = new Set<Promise<unknown>>();
+          const childInstanceId = randomUUID();
+          const capabilityBackend = trackBackend(
+            new ProjectBackend(
+              this.projectFiles({
+                ...fileContext,
+                instanceId: childInstanceId,
+                signal: childSignal,
+              }),
+              project.id,
+              childSignal,
+              async (path, fileId) => {
+                used.set(fileId, path);
+                await progress({
+                  attemptId: execution.attemptId,
+                  event: { kind: 'read', file: { path, fileId } },
+                });
+              },
+              async (path, fileId) => {
+                const identity =
+                  fileId ??
+                  (
+                    await this.port(project)['project.material']({
+                      projectId: project.id,
+                      path,
+                    })
+                  ).fileId;
+                await progress({
+                  attemptId: execution.attemptId,
+                  event: { kind: 'saved', file: { path, fileId: identity } },
+                });
+                await saved(path, identity);
+              },
+              async (error) => {
+                await progress({
+                  attemptId: execution.attemptId,
+                  event: { kind: 'failed', issue: `${error.code}: ${error.message}` },
+                });
+                const context = toolContext.getStore();
+                if (context) context.error = error;
+              },
+              execution.expectedOutput,
+            ),
+            capabilityTools,
+          );
+          const capability = new RemoteAgent({
+            ...(childReservation ? { reservation: childReservation } : {}),
+            model,
+            signal: childSignal,
+            instanceId: childInstanceId,
+            ...instanceLifecycle(childInstanceId, instanceId),
+            backend: new CompositeBackend(capabilityBackend, {
+              [historyPrefix]: scratchBackend(capabilityTools),
+              '/large_tool_results/': scratchBackend(capabilityTools),
+            }),
+            middleware: [
+              createToolMiddleware(`${run.id}:capability:${execution.attemptId}`, capabilityTools),
+            ],
+            systemPrompt:
+              '你在当前 Scholoom 执行内运用科研方法。使用实际文件工具，保存要求的报告，保留来源及限制。只执行给定目标，不委派，不创建任务；工具错误与科研不足如实说明。',
+          });
+          try {
+            await capability.invoke(
+              { messages: [new HumanMessage(execution.prompt)] },
+              {
+                signal: childSignal,
+                recursionLimit: 1000,
+              },
+            );
+          } catch (error) {
+            if (error instanceof OperationError && error.code === 'outcomeUnknown') {
+              childOutcomeUnknown = true;
+              rememberUnconfirmed(childInstanceId, instanceId);
+            }
+            throw error;
+          } finally {
+            await settleTools(capabilityTools);
+          }
+        },
+      });
+      const buildAgent = () =>
+        new RemoteAgent({
+          model,
+          backend,
+          checkpointPath,
+          confirm: confirmInstructions,
+          signal,
+          instanceId,
+          reservation,
+          ...instanceLifecycle(instanceId),
+          middleware: [instructionMiddleware, createToolMiddleware(run.id, inFlightTools)],
+          systemPrompt:
+            '你是 Scholoom 科研助手。使用中文与用户工作。项目正文以实际文件为准，附加材料只是引用，先读取。形成可承接的分析、理由、成果及下一步时保存为普通 Markdown 文件；在没有项目文件权限时只对话。仅使用授权工具。修改已有文件先读取，遇到冲突重读再修改。write_file 仅用于新建，edit_file 修改已有内容。不得声称未保存成果已交付。不要依赖旧 transcript 才能续做，可发现并读取项目已有成果。用户取消后不继续。',
+          tools: [
+            ...libraryToolMethods.map((method) => ({
+              name: method.replace('.', '_'),
+              description: `共同文献库 ${method}。importProjectFiles只接受当前授权项目内相对路径，返回批次引用，用batch核查逐项结果。附件登记不等于可读；readAttachment按引用返回有界原字节base64，不表示已解析正文。阅读记录绑定材料版本；quote是摘录，body是你的解释；更正/移除先读修订号，未知创建按原recordId核查。库读取/写入/外发均需授权；未知批次先按原batchId核查。`,
+              schema:
+                method === 'library.importProjectFiles'
+                  ? {
+                      ...libraryOperations[method].params,
+                      properties: {
+                        ...libraryOperations[method].params.properties,
+                        projectId: { const: project.id },
+                      },
+                      required: libraryOperations[method].params.required.filter(
+                        (key) => key !== 'projectId',
+                      ),
+                    }
+                  : libraryOperations[method].params,
+              func: async (input: Record<string, unknown>) => {
+                try {
+                  signal.throwIfAborted();
+                  await this.port(project)['project.check']({
+                    projectId: project.id,
+                    access: 'send',
+                  });
+                  await library.call('library.check', { access: 'send' });
+                  const args: readonly [string, unknown] = [
+                    method,
+                    method === 'library.importProjectFiles'
+                      ? { ...input, projectId: project.id }
+                      : input,
+                  ];
+                  if (!isLibraryToolCall(args))
+                    throw new OperationError('invalidRequest', '文献工具参数不符合契约。');
+                  const result = await library.call(...args);
+                  signal.throwIfAborted();
+                  await this.port(project)['project.check']({
+                    projectId: project.id,
+                    access: 'send',
+                  });
+                  await library.call('library.check', { access: 'read' });
+                  await library.call('library.check', { access: 'send' });
+                  this.records(project)
+                    .insert(tables.meta)
+                    .values({ key: libraryContextKey, value: '1' })
+                    .onConflictDoNothing()
+                    .run();
+                  this.projects.touch(project.id);
+                  return JSON.stringify(result);
+                } catch (error) {
+                  const info = failure(error);
+                  const context = toolContext.getStore();
+                  if (context) context.error = info;
+                  return JSON.stringify({ error: info });
+                }
+              },
+            })),
+            {
+              name: 'discover_research_methods',
+              description: '发现可用科研方法摘要，不启动执行。',
+              schema: z.object({}),
+              func: async () => JSON.stringify(await research['research.methods']({})),
+            },
+            {
+              name: 'load_research_method',
+              description: '按身份及版本读取科研方法正文与能力声明，不建立任务或调用。',
+              schema: z.object({ methodId: z.string(), version: z.string() }),
+              func: async ({ methodId, version }: { methodId: string; version: string }) =>
+                JSON.stringify(await research['research.method']({ methodId, version })),
+            },
+            {
+              name: 'read_research_attempts',
+              description:
+                '分页核查本会话的科研能力调用、实际成果与缺项。重试前先核查；查询不执行模型。',
+              schema: z.object({
+                invocationId: z.string().optional(),
+                offset: z.number().int().min(0).default(0),
+              }),
+              func: async (input: { invocationId?: string; offset: number }) =>
+                JSON.stringify(
+                  await research['research.attempts']({
+                    projectId: project.id,
+                    sessionId: run.sessionId,
+                    ...input,
+                  }),
+                ),
+            },
+            {
+              name: 'invoke_research_capability',
+              description:
+                '明确调用已发现的科研能力，输入及交付由运行时核对并自动保存调用/尝试。普通方法可直接加载使用。重试同一次科研使用前查询原记录并提供invocationId；独立目标不复用身份。',
+              schema: researchRequestSchema,
+              func: async (input: ResearchRequest) => {
+                let childReservation: ProcessReservation | undefined;
+                try {
+                  childReservation = this.processes.reserve();
+                  const attempt = await this.capabilityReservations.run(childReservation, () =>
+                    research['research.invoke'](input),
+                  );
+                  if (attempt.delivery !== 'usable') {
+                    const context = toolContext.getStore();
+                    if (context)
+                      context.error = {
+                        code: 'unavailable',
+                        message: '科研能力未完整交付，请核查尝试记录。',
+                      };
+                  }
+                  return JSON.stringify(attempt);
+                } catch (error) {
+                  const info = failure(error);
+                  const context = toolContext.getStore();
+                  if (context) context.error = info;
+                  return JSON.stringify({ error: info });
+                } finally {
+                  childReservation?.release();
+                }
+              },
+            },
+            ...(['mkdir', 'rename', 'trash', 'restore'] as const).map((kind) => ({
+              name: `${kind}_project_path`,
+              description: `对项目普通文件或目录执行${kind}。写授权包含回收／恢复；operationId须为唯一UUID，结果未知时先查询原操作。rename仅更改名称。`,
+              schema: z.object({
+                operationId: z.string(),
+                path: z.string().optional(),
+                name: z.string().optional(),
+                trashId: z.string().optional(),
+                destination: z.string().optional(),
+              }),
+              func: async (input: {
+                operationId: string;
+                path?: string;
+                name?: string;
+                trashId?: string;
+                destination?: string;
+              }) => {
+                try {
+                  signal.throwIfAborted();
+                  await this.port(project, run.sessionId, signal)['project.check']({
+                    projectId: project.id,
+                    access: 'send',
+                  });
+                  const { operationId, ...parameters } = input;
+                  const projectId = project.id;
+                  let result: import('@scholoom/protocol/projects').FileOperation;
+                  if (kind === 'mkdir' || kind === 'trash') {
+                    if (!parameters.path)
+                      throw new OperationError('invalidRequest', '缺少目标路径。');
+                    result = await this.port(project, run.sessionId, signal)[
+                      kind === 'mkdir' ? 'files.mkdir' : 'files.trash'
+                    ]({ projectId, operationId, path: parameters.path });
+                  } else if (kind === 'rename') {
+                    if (!parameters.path || !parameters.name)
+                      throw new OperationError('invalidRequest', '缺少路径或名称。');
+                    result = await this.port(project, run.sessionId, signal)['files.rename']({
+                      projectId,
+                      operationId,
+                      path: parameters.path,
+                      name: parameters.name,
+                    });
+                  } else {
+                    if (!parameters.trashId)
+                      throw new OperationError('invalidRequest', '缺少回收身份。');
+                    result = await this.port(project, run.sessionId, signal)['files.restore']({
+                      projectId,
+                      operationId,
+                      trashId: parameters.trashId,
+                      ...(parameters.destination ? { destination: parameters.destination } : {}),
+                    });
+                  }
+                  this.notify(project.id, run.sessionId);
+                  return JSON.stringify(result);
+                } catch (error) {
+                  const result = failure(error);
+                  const context = toolContext.getStore();
+                  if (context) context.error = result;
+                  return JSON.stringify({ error: result });
+                }
+              },
+            })),
+            {
+              name: 'query_file_operation',
+              description: '查询未知的文件结构操作，核查实际位置而不重新执行。',
+              schema: z.object({ operationId: z.string() }),
+              func: async ({ operationId }: { operationId: string }) => {
+                signal.throwIfAborted();
+                await this.port(project, run.sessionId, signal)['project.check']({
+                  projectId: project.id,
+                  access: 'send',
+                });
+                return JSON.stringify(
+                  await this.port(project, run.sessionId, signal)['files.operation']({
+                    projectId: project.id,
+                    operationId,
+                  }),
+                );
+              },
+            },
+            {
+              name: 'list_project_trash',
+              description: '分页查看项目回收项。',
+              schema: z.object({ offset: z.number().int().min(0).default(0) }),
+              func: async ({ offset }: { offset: number }) => {
+                signal.throwIfAborted();
+                await this.port(project, run.sessionId, signal)['project.check']({
+                  projectId: project.id,
+                  access: 'send',
+                });
+                return JSON.stringify(
+                  await this.port(project, run.sessionId, signal)['files.trashList']({
+                    projectId: project.id,
+                    offset,
+                    limit: 25,
+                  }),
+                );
+              },
+            },
+            {
+              name: 'read_instructions',
+              description: '分页读取本会话全部持久用户指令与消费状态。续做时按需核对历史要求。',
+              schema: z.object({ after: z.number().int().min(0).default(0) }),
+              func: async ({ after }: { after: number }) => {
+                const rows = this.records(project)
+                  .select()
+                  .from(tables.instructions)
+                  .where(
+                    and(
+                      eq(tables.instructions.sessionId, run.sessionId),
+                      gt(tables.instructions.seq, after),
+                    ),
+                  )
+                  .orderBy(tables.instructions.seq)
+                  .limit(25)
+                  .all();
+                return JSON.stringify(
+                  await Promise.all(
+                    rows.map(async (row) => {
+                      const message = this.records(project)
+                        .select()
+                        .from(tables.messages)
+                        .where(eq(tables.messages.id, row.id))
+                        .get()?.value;
+                      return {
+                        sequence: row.seq,
+                        consumed: row.consumed,
+                        message,
+                        currentContent: message
+                          ? await this.instructionContent(project, message)
+                          : undefined,
+                      };
+                    }),
+                  ),
+                );
+              },
+            },
+          ].map((definition) =>
+            defineTool((input) => track(inFlightTools, definition.func(input as never)), {
+              name: definition.name,
+              description: definition.description,
+              schema: definition.schema,
+            }),
+          ),
+        });
+      const agent = buildAgent();
+      const config = {
+        configurable: { thread_id: run.id },
+        signal,
+        recursionLimit: 1000,
+        durability: 'sync' as const,
+        callbacks: [],
+      };
+      let input: { messages: BaseMessage[] } | null = { messages: [] };
+      const checkpoint = await saver.getTuple(config);
+      if (checkpoint) {
+        await saver.confirmLatest(config);
+        input = {
+          messages: this.checkpointToolResults(
+            project,
+            run.id,
+            predecessor?.id,
+            checkpoint.checkpoint.channel_values.messages,
+          ),
+        };
+      } else {
+        if (continuingUnfinished) {
+          const delivered = Number(
+            this.records(project)
+              .select()
+              .from(tables.meta)
+              .where(eq(tables.meta.key, `delivered:${run.sessionId}`))
+              .get()?.value ?? 0,
+          );
+          this.records(project)
+            .update(tables.instructions)
+            .set({ consumed: false })
+            .where(
+              and(
+                eq(tables.instructions.sessionId, run.sessionId),
+                gt(tables.instructions.seq, delivered),
+              ),
+            )
+            .run();
+        }
+        input = { messages: await this.continuation(project, run.sessionId) };
+      }
+      const summary = checkpoint?.checkpoint.channel_values._summarizationEvent;
+      let historyMissing = false;
+      const scratchReferences = new Set<string>();
+      const savedScratch = this.records(project)
+        .select()
+        .from(tables.meta)
+        .where(
+          sql`substr(${tables.meta.key},1,${scratchResourcePrefix.length}) = ${scratchResourcePrefix}`,
+        )
+        .limit(1001)
+        .all();
+      if (savedScratch.length > 1000) historyMissing = true;
+      for (const resource of savedScratch.slice(0, 1000)) scratchReferences.add(resource.value);
+      const storedMessages = checkpoint?.checkpoint.channel_values.messages;
+      if (Array.isArray(storedMessages)) {
+        for (const message of storedMessages) {
+          if (!(message instanceof HumanMessage)) continue;
+          const path = message.additional_kwargs.lc_evicted_to;
+          if (typeof path === 'string') {
+            const prefix = [historyPrefix, '/large_tool_results/'].find((prefix) =>
+              path.startsWith(prefix),
+            );
+            if (prefix) scratchReferences.add(path.slice(prefix.length));
+          }
+        }
+      }
+      if (summary && typeof summary === 'object' && 'filePath' in summary) {
+        historyMissing ||=
+          typeof summary.filePath !== 'string' || !summary.filePath.startsWith(historyPrefix);
+        if (typeof summary.filePath === 'string' && summary.filePath.startsWith(historyPrefix)) {
+          scratchReferences.add(summary.filePath.slice(historyPrefix.length));
+        }
+      }
+      if (scratchReferences.size) {
+        if (scratchReferences.size > 1000) historyMissing = true;
+        const resources = new ResourceAccess(this.hostInstanceId);
+        try {
+          const reference = await resources.bind({
+            root: scratch,
+            owner: run.sessionId,
+            consumers: ['harness'],
+            check: () => signal.throwIfAborted(),
+          });
+          try {
+            for (const path of [...scratchReferences].slice(0, 1000)) {
+              const history = await resources.read(
+                reference,
+                path,
+                {
+                  moduleId: 'harness',
+                  role: 'host',
+                  principal: { kind: 'system', id: this.hostInstanceId },
+                  signal,
+                },
+                0,
+                1,
+              );
+              if (
+                history.byteLength === 0 &&
+                summary &&
+                typeof summary === 'object' &&
+                'filePath' in summary &&
+                summary.filePath === `${historyPrefix}${path}`
+              )
+                historyMissing = true;
+            }
+          } finally {
+            resources.revoke(reference);
+          }
+        } catch {
+          historyMissing = true;
+        }
+      }
+      if (
+        opened.issue ||
+        historyMissing ||
+        (!checkpoint && (continuingUnfinished || predecessor))
+      ) {
+        this.records(project)
+          .insert(tables.meta)
+          .values({
+            key: `checkpoint-diagnostic:${run.id}`,
+            value: historyMissing
+              ? '临时上下文资源缺失或不可读。'
+              : '上下文未完整恢复，从持久指令和工作材料核查接续。',
+          })
+          .onConflictDoNothing()
+          .run();
+        input.messages.push(
+          new HumanMessage({
+            id: `context-diagnostic:${run.id}`,
+            content:
+              'context_incomplete：上下文未完整恢复。保留的摘要和领域成果仍可使用；缺失的临时图或原始历史不能视为完整资料，请先核查持久指令、工作材料及实际成果，再按最新要求推进。',
+          }),
+        );
+      }
+      rootRequested = true;
+      for await (const event of agent.streamEvents(input, { ...config, version: 'v2' })) {
+        signal.throwIfAborted();
+        if (event.event === 'on_chat_model_stream') {
+          const chunk = event.data.chunk;
+          if (!chunk) continue;
+          const id = `${run.id}:model:${event.run_id}`;
+          const text = visibleText(chunk);
+          if (text) {
+            const value = ((buffers.get(id) ?? '') + text).slice(-262144);
+            buffers.set(id, value);
+            if (Date.now() - (persistedAt.get(id) ?? 0) >= 50) {
+              this.putMessage(project, {
+                id,
+                sessionId: run.sessionId,
+                role: 'assistant',
+                text: value,
+                state: 'streaming',
+                materials: [...used.values()],
+                materialFileIds: [...used.keys()],
+                createdAt: now(),
+              });
+              persistedAt.set(id, Date.now());
+            }
+          }
+        }
+        if (event.event === 'on_chat_model_end') {
+          const message = event.data.output as AIMessage;
+          const id = `${run.id}:model:${event.run_id}`;
+          const text = visibleText(message);
+          if (text || buffers.has(id))
+            this.putMessage(project, {
+              id,
+              sessionId: run.sessionId,
+              role: 'assistant',
+              text: (text || buffers.get(id) || '').slice(-262144),
+              state: 'complete',
+              materials: [...used.values()],
+              materialFileIds: [...used.keys()],
+              createdAt: now(),
+            });
+          const usage = (
+            message as unknown as {
+              usage_metadata?: { input_tokens: number; output_tokens: number };
+            }
+          ).usage_metadata;
+          if (usage) {
+            run = {
+              ...run,
+              inputTokens: (run.inputTokens ?? 0) + usage.input_tokens,
+              outputTokens: (run.outputTokens ?? 0) + usage.output_tokens,
+            };
+          }
+        }
+      }
+      const delivered = this.records(project)
+        .select({ seq: tables.instructions.seq })
+        .from(tables.instructions)
+        .where(
+          and(
+            eq(tables.instructions.sessionId, run.sessionId),
+            eq(tables.instructions.consumed, true),
+          ),
+        )
+        .orderBy(desc(tables.instructions.seq))
+        .limit(1)
+        .get();
+      if (delivered) {
+        const key = `delivered:${run.sessionId}`;
+        this.records(project)
+          .insert(tables.meta)
+          .values({ key, value: String(delivered.seq) })
+          .onConflictDoUpdate({ target: tables.meta.key, set: { value: String(delivered.seq) } })
+          .run();
+      }
+      await settleTools(inFlightTools);
+      if (childrenUnsettled())
+        throw new OperationError('outcomeUnknown', '能力子执行尚未确认停止。');
+      this.setRun(project, { ...run, state: 'completed', remoteOutcome: 'completed' });
+    } catch (error) {
+      await settleTools(inFlightTools);
+      if (rootRequested && error instanceof OperationError && error.code === 'outcomeUnknown')
+        rememberUnconfirmed(instanceId);
+      for (const [id, text] of buffers) {
+        const prior = this.records(project)
+          .select()
+          .from(tables.messages)
+          .where(eq(tables.messages.id, id))
+          .get()?.value;
+        if (prior?.state !== 'complete')
+          this.putMessage(project, {
+            id,
+            sessionId: run.sessionId,
+            role: 'assistant',
+            text,
+            state: 'error',
+            materials: prior?.materials ?? [],
+            ...(prior?.materialFileIds ? { materialFileIds: prior.materialFileIds } : {}),
+            createdAt: prior?.createdAt ?? now(),
+          });
+      }
+      const stopUnknown =
+        (error instanceof OperationError && error.code === 'outcomeUnknown') || childrenUnsettled();
+      this.setRun(project, {
+        ...run,
+        state: stopUnknown
+          ? 'interrupted'
+          : signal.aborted
+            ? this.stopped
+              ? 'interrupted'
+              : 'cancelled'
+            : 'failed',
+        error:
+          signal.aborted &&
+          !stopUnknown &&
+          !(error instanceof OperationError && error.code === 'unavailable')
+            ? '本地执行已停止，已保存效果保留；远端停止状态未知。'
+            : modelFailure(error),
+        remoteOutcome: 'unknown',
+      });
+    } finally {
+      this.capabilityExecutors.delete(run.id);
+      try {
+        this.interruptTools(project, run);
+      } finally {
+        try {
+          checkpointDb?.close();
+        } finally {
+          for (const release of checkpointClaims.reverse()) release();
+        }
+      }
+    }
+  }
+
+  private async instructionContent(project: HarnessProject, message: Message): Promise<string> {
+    if (!message.materials.length) return message.text;
+    if (!message.materialFileIds?.length)
+      return `${message.text}\n附加材料引用（先读取再使用）：${message.materials.join(', ')}`;
+    const locations = await Promise.all(
+      message.materialFileIds.map(async (id, index) => {
+        try {
+          const location = (
+            await this.port(project)['files.resolve']({ projectId: project.id, fileIds: [id] })
+          )[0];
+          if (!location) throw new OperationError('notFound', '材料身份不可用。');
+          return {
+            fileId: id,
+            historicalPath: message.materials[index],
+            state: location.state,
+            ...(location.state === 'present' ? { currentPath: location.path } : {}),
+          };
+        } catch {
+          return { fileId: id, historicalPath: message.materials[index], state: 'missing' };
+        }
+      }),
+    );
+    return `${message.text}\n附加材料定位（按当前路径读取；历史路径不能指代同名新文件，回收或缺失项请核查）：${JSON.stringify(locations)}`;
+  }
+
+  private async continuation(project: HarnessProject, sessionId: string): Promise<BaseMessage[]> {
+    const messages = this.records(project)
+      .select()
+      .from(tables.messages)
+      .where(eq(tables.messages.sessionId, sessionId))
+      .orderBy(desc(tables.messages.seq))
+      .limit(30)
+      .all()
+      .reverse()
+      .map((row) => row.value);
+    return Promise.all(
+      messages
+        .filter(
+          (message) =>
+            (message.role === 'user' && message.state === 'consumed') ||
+            (message.role === 'assistant' && message.state === 'complete'),
+        )
+        .map(async (message) =>
+          message.role === 'user'
+            ? new HumanMessage({
+                id: message.id,
+                content: await this.instructionContent(project, message),
+              })
+            : new AIMessage({ id: message.id, content: message.text }),
+        ),
+    );
+  }
+
+  private checkpointToolResults(
+    project: HarnessProject,
+    runId: string,
+    predecessorId: string | undefined,
+    value: unknown,
+  ): ToolMessage[] {
+    if (!Array.isArray(value))
+      throw new OperationError('unavailable', 'Checkpoint缺少有效图消息。');
+    const messages = value.map(coerceMessageLikeToMessage);
+    const finished = new Set(
+      messages
+        .filter((message) => message instanceof ToolMessage)
+        .map((message) => message.tool_call_id),
+    );
+    const results: ToolMessage[] = [];
+    for (const message of messages) {
+      if (!(message instanceof AIMessage)) continue;
+      for (const call of message.tool_calls ?? []) {
+        if (!call.id || finished.has(call.id)) continue;
+        const keys = [runId, ...(predecessorId ? [predecessorId] : [])].map(
+          (id) => `tool:${id}:${call.id}`,
+        );
+        const receipt = keys
+          .map((key) =>
+            this.records(project).select().from(tables.meta).where(eq(tables.meta.key, key)).get(),
+          )
+          .find((row) => row);
+        if (receipt) {
+          const record = JSON.parse(receipt.value);
+          if (record.result) {
+            const saved = mapStoredMessageToChatMessage(record.result);
+            if (!(saved instanceof ToolMessage) || saved.tool_call_id !== call.id)
+              throw new OperationError('outcomeUnknown', '旧工具结果不符合所属调用。');
+            results.push(saved);
+            finished.add(call.id);
+            continue;
+          }
+        }
+        results.push(
+          new ToolMessage({
+            tool_call_id: call.id,
+            name: call.name,
+            status: 'error',
+            content: JSON.stringify({
+              error: {
+                code: receipt ? 'outcomeUnknown' : 'shuttingDown',
+                message: receipt
+                  ? '旧工具已受理但效果尚未确认；先核查所属记录或实际内容，只暂停相关动作，不能自动重放。'
+                  : '旧工具尚未受理；先依据最新指令重新决定。',
+              },
+              ...(receipt ? { receipt: receipt.key } : {}),
+            }),
+          }),
+        );
+        finished.add(call.id);
+      }
+    }
+    return results;
+  }
+
+  async reconcile(
+    projectId: string,
+    sessionId: string,
+    runId: string,
+    paths: string[],
+  ): Promise<Artifact[]> {
+    const project = this.projects.get(projectId);
+    this.session(project, sessionId);
+    const run = this.records(project)
+      .select()
+      .from(tables.runs)
+      .where(eq(tables.runs.id, runId))
+      .get();
+    if (!run || run.sessionId !== sessionId) throw new OperationError('notFound', '执行不存在。');
+    const results: Artifact[] = [];
+    for (const path of paths.slice(0, 100)) {
+      try {
+        const pending = this.pendingArtifacts.get(`${projectId}:${runId}:${path}`);
+        const file = await this.port(project)['files.read']({
+          projectId: project.id,
+          path: pending?.artifact.fileId
+            ? await this.currentPath(project, pending.artifact.fileId)
+            : path,
+        });
+        const artifact: Artifact = {
+          path,
+          ...(file.fileId ? { fileId: file.fileId } : {}),
+          runId,
+          state: 'linked',
+        };
+        await this.port(project, sessionId)['project.linkArtifact']({
+          projectId: project.id,
+          sessionId,
+          artifact,
+        });
+        const key = `${projectId}:${runId}:${path}`;
+        if (pending) await unlink(pending.receipt).catch(() => {});
+        this.pendingArtifacts.delete(key);
+        results.push(artifact);
+      } catch {
+        results.push({ path, runId, state: 'unknown' });
+      }
+    }
+    this.notify(projectId, sessionId);
+    return results;
+  }
+
+  async snapshot(
+    projectId?: string,
+    sessionId?: string,
+    before?: string,
+    limit = 50,
+    includeSessions = true,
+  ): Promise<HarnessSnapshot> {
+    const result: HarnessSnapshot = { sessions: [], messages: [], artifacts: [] };
+    if (!projectId) return result;
+    const project = this.projects.get(projectId);
+    if (includeSessions) result.sessions = this.list({ projectId, limit: 100 }).sessions;
+    if (!sessionId) return result;
+    result.session = this.session(project, sessionId);
+    const cursor = before
+      ? this.records(project)
+          .select()
+          .from(tables.messages)
+          .where(eq(tables.messages.id, before))
+          .get()?.seq
+      : undefined;
+    const rows = this.records(project)
+      .select()
+      .from(tables.messages)
+      .where(
+        and(
+          eq(tables.messages.sessionId, sessionId),
+          cursor ? lt(tables.messages.seq, cursor) : undefined,
+        ),
+      )
+      .orderBy(desc(tables.messages.seq))
+      .limit(limit + 1)
+      .all();
+    if (rows.length > limit) {
+      rows.pop();
+      const cursor = rows.at(-1)?.id;
+      if (cursor) result.nextBefore = cursor;
+    }
+    let bytes = 0;
+    const bounded = [];
+    for (const row of rows) {
+      const size = Buffer.byteLength(JSON.stringify(row.value));
+      if (bytes + size > 1500000 && bounded.length) {
+        result.nextBefore = bounded.at(-1)?.id as string;
+        break;
+      }
+      bytes += size;
+      bounded.push(row.value);
+    }
+    result.messages = bounded.reverse();
+    const run = this.latestRun(project, sessionId);
+    if (run) result.run = run;
+    result.artifacts = await this.port(project, sessionId)['project.artifacts']({
+      projectId,
+      sessionId,
+    });
+    for (const pending of this.pendingArtifacts.values()) {
+      if (
+        pending.projectId === projectId &&
+        pending.sessionId === sessionId &&
+        !result.artifacts.some(
+          (item) => item.path === pending.artifact.path && item.runId === pending.artifact.runId,
+        )
+      )
+        result.artifacts.unshift(pending.artifact);
+    }
+    result.artifacts = result.artifacts.slice(0, 100);
+    result.artifacts = await Promise.all(
+      result.artifacts.map(async (artifact) => {
+        if (!artifact.fileId) return artifact;
+        try {
+          const location = (
+            await this.port(project)['files.resolve']({
+              projectId,
+              fileIds: [artifact.fileId],
+            })
+          )[0];
+          return location ? { ...artifact, location } : artifact;
+        } catch {
+          return artifact;
+        }
+      }),
+    );
+    return result;
+  }
+
+  async close(): Promise<void> {
+    this.stopped = true;
+    const active = [...this.active.values()];
+    for (const item of active) item.controller.abort(new Error('Kernel stopping'));
+    await Promise.allSettled(active.map((item) => item.done));
+    for (const records of this.repositories.values()) records.close();
+    this.repositories.clear();
+  }
+
+  async releaseProject(projectId: string): Promise<void> {
+    const project = this.projects.get(projectId);
+    this.released.add(project);
+    const active = [...this.active.entries()]
+      .filter(([key]) => key.startsWith(`${projectId}:`))
+      .map(([, value]) => value);
+    for (const item of active) item.controller.abort(new Error('Project relocated'));
+    await Promise.all(active.map((item) => item.done));
+    if (
+      this.records(project)
+        .select()
+        .from(tables.instances)
+        .all()
+        .some(
+          ({ value }) =>
+            value.state !== 'exited' && (!value.processId || processMayBeAlive(value.processId)),
+        )
+    )
+      throw new OperationError('outcomeUnknown', '项目执行停止尚未确认，不能替换仓储。');
+    project.records.close();
+    this.repositories.delete(project.internal);
+    this.initialized.delete(project);
+    for (const [key, value] of this.pendingArtifacts)
+      if (value.projectId === projectId) this.pendingArtifacts.delete(key);
+  }
+}

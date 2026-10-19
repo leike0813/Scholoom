@@ -8,17 +8,27 @@ import { setTimeout as delay } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
 import { expect, test } from '@playwright/test';
 import { KernelApplication } from '../../apps/kernel/dist/application.js';
-import { ProjectBackend } from '../../apps/kernel/dist/harness/files.js';
-import type { CapabilityExecution } from '../../apps/kernel/dist/research/runtime.js';
 import { startKernelServer } from '../../apps/kernel/dist/server.js';
 import { createKernelClient } from '../../packages/client/dist/index.js';
+import { ProjectBackend } from '../../packages/harness/dist/node.js';
 import { protocolVersion, type ResearchRequest } from '../../packages/protocol/dist/index.js';
+import {
+  type CapabilityExecution,
+  ResearchRecords,
+  ResearchRuntime,
+} from '../../packages/research/dist/node.js';
 import { createModelServer } from '../model-server.js';
 
 const request: ResearchRequest = {
   methodId: 'scholoom.material-analysis',
   version: '1.0.0',
   input: { materialPaths: ['input.md'], outputPath: 'analysis.md', goal: '分析结果42的依据与限制' },
+};
+
+type TestExecution = CapabilityExecution & {
+  read: (path: string, fileId: string) => Promise<void>;
+  saved: (path: string, fileId: string) => Promise<void>;
+  failed: (issue: string) => Promise<void>;
 };
 
 async function setup() {
@@ -34,17 +44,27 @@ async function setup() {
   project.grant({ read: true, write: true, send: true, autoBackup: false });
   const session = app.harness.create(project.project.id);
   const controller = new AbortController();
+  const files = app.projectFiles({
+    moduleId: 'harness',
+    role: 'execution',
+    principal: { kind: 'agent', id: session.id },
+    projectId: project.project.id,
+    sessionId: session.id,
+    signal: controller.signal,
+  });
   const context = {
-    project,
+    projectId: project.project.id,
     sessionId: session.id,
     runId: randomUUID(),
+    instanceId: randomUUID(),
     signal: controller.signal,
     isStopping: () => false,
-    execute: async (execution: CapabilityExecution) => {
+    execute: async (execution: TestExecution) => {
       const backend = new ProjectBackend(
-        project,
+        files,
+        project.project.id,
         controller.signal,
-        execution.read,
+        (path, fileId) => execution.read(path, fileId),
         async (path, fileId) =>
           execution.saved(path, fileId ?? (await project.files.reference(path)).fileId),
         (error) => execution.failed(error.code),
@@ -54,6 +74,40 @@ async function setup() {
       await backend.write('/analysis.md', '# 分析\n\n来源 input.md；结果42；只有一个样本。\n');
     },
   };
+  const runtimes = new Set<ResearchRuntime>();
+  const research = (perform = context.execute) => {
+    let runtime!: ResearchRuntime;
+    runtime = new ResearchRuntime(() => {}, {
+      records: (projectId) => new ResearchRecords(app.projects.get(projectId).internal),
+      files: (callContext) => app.researchFiles(callContext),
+      session: async ({ projectId, sessionId }) => app.harness.getSession(projectId, sessionId),
+      execute: async (execution, callContext) => {
+        await perform({
+          ...execution,
+          read: async (path, fileId) => {
+            await runtime.progress(
+              { attemptId: execution.attemptId, event: { kind: 'read', file: { path, fileId } } },
+              callContext,
+            );
+          },
+          saved: async (path, fileId) => {
+            await runtime.progress(
+              { attemptId: execution.attemptId, event: { kind: 'saved', file: { path, fileId } } },
+              callContext,
+            );
+          },
+          failed: async (issue) => {
+            await runtime.progress(
+              { attemptId: execution.attemptId, event: { kind: 'failed', issue } },
+              callContext,
+            );
+          },
+        });
+      },
+    });
+    runtimes.add(runtime);
+    return runtime;
+  };
   return {
     root,
     app,
@@ -61,7 +115,10 @@ async function setup() {
     session,
     context,
     controller,
+    files,
+    research,
     close: async () => {
+      for (const runtime of runtimes) runtime.close();
       await app.close();
       await rm(root, { recursive: true });
     },
@@ -78,8 +135,11 @@ test('method discovery and loading are read-only; capability delivery checks act
     expect(
       (await f.app.research.content.resolve(request.methodId, request.version)).content,
     ).toContain('来源');
-    expect(f.app.research.list(f.project, { sessionId: f.session.id }).attempts).toEqual([]);
-    const attempt = await f.app.research.invoke(request, f.context);
+    expect(
+      (await f.app.research.list({ projectId: f.project.project.id, sessionId: f.session.id }))
+        .attempts,
+    ).toEqual([]);
+    const attempt = await f.research().invoke(request, f.context);
     expect(attempt).toMatchObject({
       state: 'completed',
       delivery: 'usable',
@@ -89,9 +149,16 @@ test('method discovery and loading are read-only; capability delivery checks act
     expect(attempt.used[0]?.fileId).toBe(attempt.sources[0]?.fileId);
     expect(await readFile(join(f.root, 'project', 'analysis.md'), 'utf8')).toContain('42');
     const backup = await f.project.backup();
-    const restored = await f.project.restore(backup.id, join(f.root, 'restored'));
-    const copy = await f.app.projects.open(restored);
-    expect(f.app.research.list(copy, { sessionId: f.session.id }).attempts[0]).toEqual(attempt);
+    const restored = await f.app.call('project.restore', {
+      projectId: f.project.project.id,
+      backupId: backup.id,
+      destination: join(f.root, 'restored'),
+    });
+    const copy = f.app.projects.get(restored.id);
+    expect(
+      (await f.app.research.list({ projectId: copy.project.id, sessionId: f.session.id }))
+        .attempts[0],
+    ).toEqual(attempt);
   } finally {
     await f.close();
   }
@@ -101,35 +168,32 @@ test('input and permissions are checked before executing; old output does not pr
   const f = await setup();
   try {
     let executed = 0;
-    const context = {
-      ...f.context,
-      execute: async () => {
-        executed++;
-      },
-    };
+    const research = f.research(async () => {
+      executed++;
+    });
     f.project.grant({ read: true, write: false, send: true, autoBackup: false });
-    await expect(f.app.research.invoke(request, context)).rejects.toMatchObject({
+    await expect(research.invoke(request, f.context)).rejects.toMatchObject({
       code: 'permissionDenied',
     });
     f.project.grant({ read: true, write: true, send: true, autoBackup: false });
     await expect(
-      f.app.research.invoke({ ...request, version: 'missing' }, context),
+      research.invoke({ ...request, version: 'missing' }, f.context),
     ).rejects.toMatchObject({ code: 'notFound' });
     await expect(
-      f.app.research.invoke(
+      research.invoke(
         { ...request, input: { ...request.input, materialPaths: ['../outside.md'] } },
-        context,
+        f.context,
       ),
     ).rejects.toMatchObject({ code: 'permissionDenied' });
     await expect(
-      f.app.research.invoke(
+      research.invoke(
         { ...request, input: { ...request.input, outputPath: 'input.md' } },
-        context,
+        f.context,
       ),
     ).rejects.toMatchObject({ code: 'invalidRequest' });
     expect(executed).toBe(0);
     await writeFile(join(f.root, 'project', 'analysis.md'), '已有报告不能冒充本次产物');
-    const result = await f.app.research.invoke(request, context);
+    const result = await research.invoke(request, f.context);
     expect(result).toMatchObject({ state: 'completed', delivery: 'incomplete', artifacts: [] });
     expect(result.issues.some((item) => item.startsWith('reportMissing:'))).toBe(true);
     expect(result.issues.some((item) => item.startsWith('inputNotRead:'))).toBe(true);
@@ -142,39 +206,56 @@ test('input and permissions are checked before executing; old output does not pr
 test('retry keeps invocation identity, rejects changed targets and concurrent execution, and pages attempts', async () => {
   const f = await setup();
   try {
-    const first = await f.app.research.invoke(request, { ...f.context, execute: async () => {} });
+    let execute: (execution: TestExecution) => Promise<void> = async () => {};
+    const research = f.research((execution) => execute(execution));
+    const first = await research.invoke(request, f.context);
     const retry = { ...request, invocationId: first.invocationId };
-    const second = await f.app.research.invoke(retry, f.context);
+    execute = f.context.execute;
+    const second = await research.invoke(retry, f.context);
     expect(second.invocationId).toBe(first.invocationId);
     expect(second.attempt).toBe(2);
     expect(second.id).not.toBe(first.id);
     expect(second.delivery).toBe('usable');
     await expect(
-      f.app.research.invoke({ ...retry, input: { ...retry.input, goal: '另一个目标' } }, f.context),
+      research.invoke({ ...retry, input: { ...retry.input, goal: '另一个目标' } }, f.context),
     ).rejects.toMatchObject({ code: 'invalidRequest' });
     let release!: () => void;
     const gate = new Promise<void>((resolve) => {
       release = resolve;
     });
-    const pending = f.app.research.invoke(retry, { ...f.context, execute: () => gate });
+    execute = () => gate;
+    const pending = research.invoke(retry, f.context);
     await expect
-      .poll(() =>
-        f.app.research
-          .list(f.project, { sessionId: f.session.id })
-          .attempts.some((item) => item.state === 'running'),
+      .poll(async () =>
+        (
+          await f.app.research.list({
+            projectId: f.project.project.id,
+            sessionId: f.session.id,
+          })
+        ).attempts.some((item) => item.state === 'running'),
       )
       .toBe(true);
-    await expect(f.app.research.invoke(retry, f.context)).rejects.toMatchObject({
+    await expect(research.invoke(retry, f.context)).rejects.toMatchObject({
       code: 'invalidRequest',
     });
     release();
     await pending;
-    const page = f.app.research.list(f.project, { sessionId: f.session.id, limit: 1 });
+    const page = await f.app.research.list({
+      projectId: f.project.project.id,
+      sessionId: f.session.id,
+      limit: 1,
+    });
     expect(page.attempts).toHaveLength(1);
     expect(page.nextOffset).toBe(1);
     expect(
-      f.app.research.list(f.project, { sessionId: f.session.id, limit: 1, offset: 1 }).attempts[0]
-        ?.id,
+      (
+        await f.app.research.list({
+          projectId: f.project.project.id,
+          sessionId: f.session.id,
+          limit: 1,
+          offset: 1,
+        })
+      ).attempts[0]?.id,
     ).not.toBe(page.attempts[0]?.id);
   } finally {
     await f.close();
@@ -184,43 +265,35 @@ test('retry keeps invocation identity, rejects changed targets and concurrent ex
 test('delivery and retry follow the saved report identity after its original path is reused', async () => {
   const f = await setup();
   try {
-    const first = await f.app.research.invoke(request, {
-      ...f.context,
-      execute: async (execution) => {
-        await f.context.execute(execution);
-        await f.project.files.mutate('rename', randomUUID(), {
-          path: 'analysis.md',
-          name: 'moved.md',
-        });
-        await f.project.save('analysis.md', '后来创建的独立文件');
-      },
+    const research = f.research(async (execution) => {
+      await f.context.execute(execution);
+      await f.project.files.mutate('rename', randomUUID(), {
+        path: 'analysis.md',
+        name: 'moved.md',
+      });
+      await f.project.save('analysis.md', '后来创建的独立文件');
     });
+    const first = await research.invoke(request, f.context);
     expect(first.delivery).toBe('usable');
-    const second = await f.app.research.invoke(
+    const retryResearch = f.research(async (execution) => {
+      const file = await f.project.read('input.md');
+      await execution.read(
+        file.path,
+        file.fileId ?? (await f.project.files.reference(file.path)).fileId,
+      );
+      const report = await f.project.read('moved.md');
+      const edit = await f.project.save('moved.md', `${report.content}\n补充限制。`, report.basis);
+      await execution.saved(
+        edit.path,
+        edit.fileId ?? (await f.project.files.reference(edit.path)).fileId,
+      );
+    });
+    const retry = await retryResearch.invoke(
       { ...request, invocationId: first.invocationId },
-      {
-        ...f.context,
-        execute: async (execution) => {
-          const file = await f.project.read('input.md');
-          execution.read(
-            file.path,
-            file.fileId ?? (await f.project.files.reference(file.path)).fileId,
-          );
-          const report = await f.project.read('moved.md');
-          const edit = await f.project.save(
-            'moved.md',
-            `${report.content}\n补充限制。`,
-            report.basis,
-          );
-          execution.saved(
-            edit.path,
-            edit.fileId ?? (await f.project.files.reference(edit.path)).fileId,
-          );
-        },
-      },
+      f.context,
     );
-    expect(second.delivery).toBe('usable');
-    expect(second.reportFileId).toBe(first.reportFileId);
+    expect(retry.delivery).toBe('usable');
+    expect(retry.reportFileId).toBe(first.reportFileId);
     expect(await readFile(join(f.root, 'project', 'analysis.md'), 'utf8')).toBe(
       '后来创建的独立文件',
     );
@@ -233,34 +306,31 @@ test('delivery and retry follow the saved report identity after its original pat
 test('a concurrent path replacement cannot redirect a retry into another report', async () => {
   const f = await setup();
   try {
-    const first = await f.app.research.invoke(request, f.context);
-    const second = await f.app.research.invoke(
-      { ...request, invocationId: first.invocationId },
-      {
-        ...f.context,
-        execute: async (execution) => {
-          await f.project.files.mutate('rename', randomUUID(), {
-            path: 'analysis.md',
-            name: 'kept.md',
-          });
-          await f.project.save('analysis.md', '另一份报告');
-          const backend = new ProjectBackend(
-            f.project,
-            f.controller.signal,
-            execution.read,
-            async (path, fileId) =>
-              execution.saved(path, fileId ?? (await f.project.files.reference(path)).fileId),
-            (error) => execution.failed(error.code),
-            execution.expectedOutput,
-          );
-          await backend.read('/input.md');
-          await backend.read('/analysis.md');
-          expect((await backend.edit('/analysis.md', '另一份报告', '错误修改')).error).toContain(
-            'contentChanged',
-          );
-        },
-      },
-    );
+    const first = await f.research().invoke(request, f.context);
+    const second = await f
+      .research(async (execution) => {
+        await f.project.files.mutate('rename', randomUUID(), {
+          path: 'analysis.md',
+          name: 'kept.md',
+        });
+        await f.project.save('analysis.md', '另一份报告');
+        const backend = new ProjectBackend(
+          f.files,
+          f.project.project.id,
+          f.controller.signal,
+          execution.read,
+          async (path, fileId) =>
+            execution.saved(path, fileId ?? (await f.project.files.reference(path)).fileId),
+          (error) => execution.failed(error.code),
+          execution.expectedOutput,
+        );
+        await backend.read('/input.md');
+        await backend.read('/analysis.md');
+        expect((await backend.edit('/analysis.md', '另一份报告', '错误修改')).error).toContain(
+          'contentChanged',
+        );
+      })
+      .invoke({ ...request, invocationId: first.invocationId }, f.context);
     expect(second.delivery).toBe('incomplete');
     expect(second.reportFileId).toBe(first.reportFileId);
     expect(await readFile(join(f.root, 'project', 'analysis.md'), 'utf8')).toBe('另一份报告');
@@ -273,11 +343,11 @@ test('a concurrent path replacement cannot redirect a retry into another report'
 test('an empty out-of-range page does not count as reading the input', async () => {
   const f = await setup();
   try {
-    const attempt = await f.app.research.invoke(request, {
-      ...f.context,
-      execute: async (execution) => {
+    const attempt = await f
+      .research(async (execution) => {
         const backend = new ProjectBackend(
-          f.project,
+          f.files,
+          f.project.project.id,
           f.controller.signal,
           execution.read,
           async (path, fileId) =>
@@ -285,8 +355,8 @@ test('an empty out-of-range page does not count as reading the input', async () 
         );
         expect((await backend.read('/input.md', 10000)).error).toBeTruthy();
         await backend.write('/analysis.md', '未取得输入正文的报告');
-      },
-    });
+      })
+      .invoke(request, f.context);
     expect(attempt.used).toEqual([]);
     expect(attempt.delivery).toBe('incomplete');
     expect(attempt.issues.some((item) => item.startsWith('inputNotRead:'))).toBe(true);
@@ -298,10 +368,10 @@ test('an empty out-of-range page does not count as reading the input', async () 
 test('identity is rechecked when another writer reuses a path during delivery or retry', async () => {
   const f = await setup();
   try {
+    const research = f.research();
     const original = f.project.read.bind(f.project);
-    const attempt = await f.app.research.invoke(request, {
-      ...f.context,
-      execute: async (execution) => {
+    const attempt = await f
+      .research(async (execution) => {
         await f.context.execute(execution);
         f.project.read = async (...args) => {
           f.project.read = original;
@@ -312,8 +382,8 @@ test('identity is rechecked when another writer reuses a path during delivery or
           await f.project.save('analysis.md', '替代文件不能作为原产物');
           return original(...args);
         };
-      },
-    });
+      })
+      .invoke(request, f.context);
     expect(attempt.delivery).toBe('incomplete');
     expect(attempt.issues.some((item) => item.includes('contentChanged'))).toBe(true);
     f.project.read = async (...args) => {
@@ -326,7 +396,7 @@ test('identity is rechecked when another writer reuses a path during delivery or
       return original(...args);
     };
     await expect(
-      f.app.research.invoke({ ...request, invocationId: attempt.invocationId }, f.context),
+      research.invoke({ ...request, invocationId: attempt.invocationId }, f.context),
     ).rejects.toMatchObject({ code: 'contentChanged' });
     expect(await readFile(join(f.root, 'project', 'actual.md'), 'utf8')).toContain('42');
     expect(await readFile(join(f.root, 'project', 'original.md'), 'utf8')).toContain('42');
@@ -372,12 +442,15 @@ test('cancellation waits for a capability file save before publishing terminal s
     app.harness.cancel(scope.projectId, scope.sessionId);
     await delay(100);
     expect((await app.snapshot(scope)).run?.state).toBe('cancelling');
-    expect(app.research.list(project, { sessionId: scope.sessionId }).attempts[0]?.state).toBe(
-      'running',
-    );
+    expect(
+      (await app.research.list({ projectId: project.project.id, sessionId: scope.sessionId }))
+        .attempts[0]?.state,
+    ).toBe('running');
     release();
     await expect.poll(async () => (await app.snapshot(scope)).run?.state).toBe('cancelled');
-    const attempt = app.research.list(project, { sessionId: scope.sessionId }).attempts[0];
+    const attempt = (
+      await app.research.list({ projectId: project.project.id, sessionId: scope.sessionId })
+    ).attempts[0];
     expect(attempt?.state).toBe('cancelled');
     expect(attempt?.artifacts).toHaveLength(1);
     expect(await readFile(join(f.root, 'project', 'analysis.md'), 'utf8')).toContain('42');
@@ -391,30 +464,34 @@ test('cancellation waits for a capability file save before publishing terminal s
 
 test('cancellation and restart retain partial artifacts without automatic work', async () => {
   const f = await setup();
+  const research = f.research(async (execution) => {
+    await f.context.execute(execution);
+    f.controller.abort();
+    f.controller.signal.throwIfAborted();
+  });
   try {
-    const attempt = await f.app.research.invoke(request, {
-      ...f.context,
-      execute: async (execution) => {
-        await f.context.execute(execution);
-        f.controller.abort();
-        f.controller.signal.throwIfAborted();
-      },
-    });
+    const attempt = await research.invoke(request, f.context);
     expect(attempt).toMatchObject({ state: 'cancelled', delivery: 'incomplete' });
     expect(attempt.artifacts).toHaveLength(1);
+    research.close();
     await f.app.close();
     const next = new KernelApplication(join(f.root, 'profile'), { environment: {} });
     try {
       await next.initialize();
       expect(
-        next.research.list(next.projects.get(f.project.project.id), { sessionId: f.session.id })
-          .attempts[0],
+        (
+          await next.research.list({
+            projectId: f.project.project.id,
+            sessionId: f.session.id,
+          })
+        ).attempts[0],
       ).toEqual(attempt);
       expect(await readFile(join(f.root, 'project', 'analysis.md'), 'utf8')).toContain('42');
     } finally {
       await next.close();
     }
   } finally {
+    research.close();
     await rm(f.root, { recursive: true });
   }
 });
@@ -423,21 +500,34 @@ test('process interruption leaves queryable attempts and files without restartin
   const root = await mkdtemp(join(tmpdir(), 'scholoom-research-crash-'));
   await mkdir(join(root, 'project'));
   await writeFile(join(root, 'project', 'input.md'), '结果42，样本数1。');
-  const module = fileURLToPath(new URL('../../apps/kernel/dist/application.js', import.meta.url));
-  const source = `import {KernelApplication} from ${JSON.stringify(module)};
+  const applicationModule = fileURLToPath(
+    new URL('../../apps/kernel/dist/application.js', import.meta.url),
+  );
+  const researchModule = fileURLToPath(
+    new URL('../../packages/research/dist/node.js', import.meta.url),
+  );
+  const source = `import {KernelApplication} from ${JSON.stringify(applicationModule)};
+    import {ResearchRecords, ResearchRuntime} from ${JSON.stringify(researchModule)};
     const app = new KernelApplication(process.argv[1], {environment:{}});
     await app.initialize();
     const project = await app.projects.open(process.argv[2]);
     project.grant({read:true,write:true,send:true,autoBackup:false});
     const session = app.harness.create(project.project.id);
-    await app.research.invoke(JSON.parse(process.argv[3]), {
-      project,sessionId:session.id,runId:'crash-test',signal:new AbortController().signal,isStopping:()=>false,
-      execute:async execution=>{
-        const file=await project.read('input.md'); execution.read(file.path,file.fileId);
-        const edit=await project.save('analysis.md','保存于中断前，结果42。'); execution.saved(edit.path,edit.fileId);
+    const runtime = new ResearchRuntime(()=>{}, {
+      records:projectId=>new ResearchRecords(app.projects.get(projectId).internal),
+      files:context=>app.researchFiles(context),
+      session:input=>app.harness.getSession(input.projectId,input.sessionId),
+      execute:async (execution,context)=>{
+        const file=await project.read('input.md');
+        await runtime.progress({attemptId:execution.attemptId,event:{kind:'read',file:{path:file.path,fileId:file.fileId??(await project.files.reference(file.path)).fileId}}},context);
+        const edit=await project.save('analysis.md','保存于中断前，结果42。');
+        await runtime.progress({attemptId:execution.attemptId,event:{kind:'saved',file:{path:edit.path,fileId:edit.fileId??(await project.files.reference(edit.path)).fileId}}},context);
         process.send({projectId:project.project.id,sessionId:session.id});
         await new Promise(()=>setInterval(()=>{},1000));
       }
+    });
+    await runtime.invoke(JSON.parse(process.argv[3]), {
+      projectId:project.project.id,sessionId:session.id,runId:'crash-test',instanceId:'crash-test',signal:new AbortController().signal,isStopping:()=>false
     });`;
   const child = spawn(
     process.execPath,
@@ -459,9 +549,9 @@ test('process interruption leaves queryable attempts and files without restartin
     const app = new KernelApplication(join(root, 'profile'), { environment: {} });
     try {
       await app.initialize();
-      const attempts = app.research.list(app.projects.get(scope.projectId), {
-        sessionId: scope.sessionId,
-      }).attempts;
+      const attempts = (
+        await app.research.list({ projectId: scope.projectId, sessionId: scope.sessionId })
+      ).attempts;
       expect(attempts).toHaveLength(1);
       expect(attempts[0]).toMatchObject({ state: 'interrupted', delivery: 'incomplete' });
       expect(attempts[0]?.artifacts).toHaveLength(1);

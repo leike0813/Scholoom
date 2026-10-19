@@ -1,0 +1,109 @@
+import { randomUUID } from 'node:crypto';
+import { chmod, link, lstat, unlink } from 'node:fs/promises';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import Database from 'better-sqlite3';
+import { drizzle } from 'drizzle-orm/better-sqlite3';
+import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
+
+const migrationsFolder = fileURLToPath(new URL('./migrations/', import.meta.url));
+const harnessKeys =
+  "key LIKE 'tool:%' OR key LIKE 'delivered:%' OR key LIKE 'library-context:%' OR key LIKE 'checkpoint-isolated:%'";
+
+/** Physical container upgrade; domain adapters only open their own tables afterwards. */
+export async function initializeProjectContainer(
+  database: Database.Database,
+  internal: string,
+): Promise<void> {
+  const version = database.pragma('user_version', { simple: true }) as number;
+  if (version > 3) throw new Error('Newer database');
+  if (version < 2) {
+    if (database.prepare("SELECT name FROM sqlite_master WHERE type='table'").all().length)
+      await database.backup(join(internal, 'before-migration.sqlite'));
+    migrate(drizzle(database), { migrationsFolder });
+    if (version === 1) {
+      const old = database.prepare("SELECT value FROM meta WHERE key='grants'").get() as
+        | { value: string }
+        | undefined;
+      if (old)
+        database
+          .prepare("UPDATE meta SET value=? WHERE key='grants'")
+          .run(JSON.stringify({ ...JSON.parse(old.value), write: false }));
+    }
+    database.pragma('user_version = 2');
+  }
+  if (version >= 3) return;
+  // Keep this version-specific source intact across retries of an interrupted upgrade.
+  const source = join(internal, 'before-migration-v3.sqlite');
+  let existing = false;
+  try {
+    const stat = await lstat(source);
+    if (!stat.isFile() || stat.isSymbolicLink()) throw new Error('Unsafe migration backup');
+    const backup = new Database(source, { readonly: true, fileMustExist: true });
+    try {
+      if (
+        backup.pragma('user_version', { simple: true }) !== 2 ||
+        backup.pragma('quick_check', { simple: true }) !== 'ok'
+      )
+        throw new Error('Invalid migration backup');
+    } finally {
+      backup.close();
+    }
+    existing = true;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+  }
+  if (!existing) {
+    const temporary = join(internal, `.migration-${randomUUID()}.sqlite`);
+    try {
+      await database.backup(temporary);
+      await chmod(temporary, 0o600);
+      await link(temporary, source);
+    } finally {
+      await unlink(temporary).catch(() => {});
+    }
+  }
+  database.transaction(() => {
+    database.exec(`
+      CREATE TABLE harness_meta (key TEXT PRIMARY KEY NOT NULL, value TEXT NOT NULL);
+      CREATE TABLE research_attempts (id TEXT PRIMARY KEY NOT NULL, value TEXT NOT NULL);
+      CREATE TABLE run_instances (id TEXT PRIMARY KEY NOT NULL, run_id TEXT NOT NULL,
+        host_instance_id TEXT NOT NULL, value TEXT NOT NULL);
+      INSERT INTO harness_meta SELECT key, value FROM meta WHERE ${harnessKeys};
+    `);
+    const attempts = database
+      .prepare("SELECT key, value FROM meta WHERE key LIKE 'research-attempt:%'")
+      .all() as { key: string; value: string }[];
+    const insert = database.prepare('INSERT INTO research_attempts (id,value) VALUES (?,?)');
+    for (const row of attempts) {
+      const parsed: unknown = JSON.parse(row.value);
+      if (
+        !parsed ||
+        typeof parsed !== 'object' ||
+        !('id' in parsed) ||
+        parsed.id !== row.key.slice('research-attempt:'.length)
+      )
+        throw new Error('Invalid research identity');
+      insert.run(parsed.id, row.value);
+    }
+    if (
+      database
+        .prepare(
+          `SELECT key,value FROM meta WHERE ${harnessKeys} EXCEPT SELECT key,value FROM harness_meta`,
+        )
+        .get()
+    )
+      throw new Error('Harness migration incomplete');
+    if (
+      database
+        .prepare(
+          "SELECT substr(key,18),value FROM meta WHERE key LIKE 'research-attempt:%' EXCEPT SELECT id,value FROM research_attempts",
+        )
+        .get()
+    )
+      throw new Error('Research migration incomplete');
+    database.exec(`DELETE FROM meta WHERE ${harnessKeys};
+      DELETE FROM meta WHERE key LIKE 'research-attempt:%';
+      PRAGMA user_version = 3;`);
+  })();
+}

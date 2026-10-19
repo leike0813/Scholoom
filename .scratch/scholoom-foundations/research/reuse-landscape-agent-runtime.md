@@ -1,6 +1,6 @@
 # Agent runtime 与 harness 复用调查
 
-当前路线更新（2026-10-14）：以 [#07](../issues/07-agent-runtime-boundaries.md#answer)为准，统一内置 LangGraph harness，不支持 ACP 外部 Agent。本文 ACP、pi、OpenCode 等调查及原推荐保留为历史候选证据；插件 MCP 是受管理扩展点，Scholoom 对外 MCP 为独立候选，不据本报告直接接入服务或执行器。
+当前路线更新（2026-10-18）：以 [#07](../issues/07-agent-runtime-boundaries.md#answer)为准，统一内置 LangGraph harness，不支持 ACP 外部 Agent。本文 ACP、pi、OpenCode 等调查及原推荐保留为历史候选证据；插件 MCP 是受管理扩展点，Scholoom 对外 MCP 已沿[外部接口决议](../../runtime-architecture/issues/07-external-interfaces-and-extensions.md#answer)采纳，A2A 后置；当前未完成接线，不据本报告直接接入服务或执行器。
 
 后续补查：[Codex harness 作为 Agent core](codex-harness-core-reuse.md)。本报告原有 18 项清单未充分覆盖 app-server，补充调查保留为参考。用户于 2026-10-11 在讨论图控制能力后确认维持 LangGraph/LangChain/Deep Agents 原方案，本轮不推进 Codex 主干替换、双层组合或对比原型。
 
@@ -75,7 +75,7 @@ Pi 与 oh-my-pi 合为一个谱系比较项；JSON Schema 的 Ajv 与 json-schem
 ### 协议、内容与 Schema
 
 8. **MCP TypeScript SDK — 推荐用于科研工具服务适配。** SDK 提供 server/client、tools/resources/prompts、stdio/Streamable HTTP 与认证 helper；它暴露工具协议，不定义 Scholoom 对象权限。\
-   当前用于评估插件受管 MCP 接入；Node 内核对外提供 MCP 服务另属候选，不提供任意 MCP 服务的独立配置入口，范围以 [#07](../issues/07-agent-runtime-boundaries.md#answer)为准。v2 Node/Bun/Deno；renderer 不应直接访问任意服务。根 LICENSE 当前说明迁移中的贡献按 MIT 或 Apache-2.0 分别适用；按实际发布包/文件检查 NOTICE 和传递依赖。无 SDK 使用费，远程服务可能收费。\
+   当前用于评估插件受管 MCP 接入；Node 内核对外提供 MCP 服务已采纳，不提供任意 MCP 服务的独立配置入口，公共范围以[外部接口决议](../../runtime-architecture/issues/07-external-interfaces-and-extensions.md#answer)为准。v2 Node/Bun/Deno；renderer 不应直接访问任意服务。根 LICENSE 当前说明迁移中的贡献按 MIT 或 Apache-2.0 分别适用；按实际发布包/文件检查 NOTICE 和传递依赖。无 SDK 使用费，远程服务可能收费。\
    源码：`packages/server`、`packages/client`；[v2 官方文档](https://ts.sdk.modelcontextprotocol.io/v2/)、[工具调用](https://ts.sdk.modelcontextprotocol.io/v2/clients/calling)、[LICENSE](https://github.com/modelcontextprotocol/typescript-sdk/blob/main/LICENSE)、[仓库与 v1/v2 维护说明](https://github.com/modelcontextprotocol/typescript-sdk)。v2 与 2026-07-28 spec 同步发布，v1 至少 6 个月继续维护；版本迁移是实际成本。
 
 9. **ACP TS SDK — 历史候选，当前不采用。** ACP 定义 client/agent JSON-RPC、初始化能力、session/prompt/progress、permission request、cancel 及可选文件/terminal 操作；`@agentclientprotocol/sdk` 帮忙搭建 TS client/agent。\

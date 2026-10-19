@@ -4,7 +4,12 @@
 
 | 包 | 当前职责 | 后续实现边界 |
 | --- | --- | --- |
-| `apps/kernel` | 独立内核、项目与安全文件、持久单 Agent、科研方法、共同题录与附件库、MiniMax 模型与凭据、CLI | 阅读分析、受管计算和宿主监督 |
+| `apps/kernel` | 内核宿主装配、CLI、物理容器升级和投影 | 绑定所属仓储与窄端口，不保留领域副本 |
+| `packages/projects` | 项目、文件身份、条件保存、回收及成果关联 | 受控原生入口 `/node`，宿主注入容器初始化 |
+| `packages/library` | 题录、附件、阅读记录、批次及 PDF 计算适配 | 受控原生入口 `/node`，项目材料经窄端口取得 |
+| `packages/harness` | 会话仓储、执行监督、工具收据、checkpoint 和受管执行桥 | `/execution` 运行实际图及 SDK；项目、文献、科研端口可独立替换 |
+| `packages/research` | 方法内容、尝试、实际读取与交付检查 | 仅访问自身表，生产经 broker 使用领域与 harness 契约 |
+| `packages/models`、`packages/platform`、`packages/broker` | 模型及凭据、资源与进程机制、能力路由及共同 RPC | 具体迁入及验收范围见当前 change |
 | `apps/desktop` | Electron main、sandbox preload、React renderer | 人类工作台，经共同客户端调用内核 |
 | `apps/zotero-host` | 独立 Electron main 与隐藏 Chromium 页面 | 固定 Zotero 10 基线的通用兼容层与选定插件适配 |
 | `packages/protocol` | JSON Schema 与推导的 DTO、协议版本 | 客户端和内核共同使用的调用及事件契约 |
@@ -15,6 +20,30 @@
 Electron 工作台和 CLI 共用独立 Node 内核，浏览器开发入口经同一客户端连接。关闭或退出工作台只关闭界面；兼容宿主尚未接入内核监督，也未加载插件。
 
 协议 schema 是 DTO 的事实源，类型从 schema 推导；客户端和内核使用 Ajv 校验消息、认证、状态及引导结果。连接状态不代表研究指令已经可执行。
+
+客户端与内核 WebSocket 入口共用双向 RPC peer，业务请求经 KernelApplication 的类型化提供者映射与 broker。协议版本为 2；操作载荷、等待策略及副作用由分域 schema 提供。Agent 和 PDF 已接受管 Node 子进程及 IPC，兼容宿主仍为骨架。按角色发现、普通模块迁包和完整实例资格仍沿 [migrate-runtime-architecture](../openspec/changes/migrate-runtime-architecture/tasks.md) 继续验收，实际覆盖见其 delivery。
+
+`pnpm check:architecture` 使用唯一 `architecture.json` 检查包依赖、循环、私有路径及普通模块系统访问，并在 CI 运行。精确迁移例外注明退出任务；当前检查通过不代表这些旧调用已迁完。`pnpm generate:contracts` 用 Node 24 装载 protocol 声明源，输出业务、执行及项目内部操作的类型映射更新 patch，映射继续引用原 schema；映射过期导致完整编译失败时仍可生成。`pnpm typecheck` 检查实际装配和编译期反例。
+
+执行控制映射也由 `generate:contracts` 产生 schema 引用。名额申请／释放、健康、停止、checkpoint 消费确认、图初始化、模型事件及工具接续共用声明派生的参数、提供者签名、结果和等待语义，并在 IPC 两侧校验。动态工具的输入仍从原注册 schema 解析，Zod 默认值在宿主执行前应用；模型描述复用 models schema。SDK 消息与 Command 的原生类型适配留在 harness 内。
+
+框架文件上传／下载已加入同一内部契约映射，以 base64 传输 SDK 字节并保留帧上限；连续压缩的历史追加经过实际 IPC 验证。会话临时资源位于 `.scholoom/harness/sessions/<sessionId>/scratch`；旧共享资源复制后保留原件，清单无法核对时持续提示 `context_incomplete`，新会话失败重试不继承旧共享目录。恢复核查最多 1000 个已保存引用，超限明确未完整核查，临时资源缺失不抹去摘要和领域成果。
+
+框架文件桥其余操作也逐项使用同源声明；SDK 适配同时接受 `BackendProtocolV2` 类型检查。`ProjectBackend` 已迁入 harness，只消费项目契约派生的六个方法，生产端口由宿主经 broker 绑定项目范围；独立测试可替换端口。预期文件身份传到 projects 的原有保存临界区，领域权限不转移到 broker。harness 宿主 facade 中其余领域引用仍沿 4.2 迁入。
+
+模型并发与 32 次根预算由宿主持有，父子进程、框架压缩和每次安全重试共用计数；子执行结束不返还已用预算。受控 HTTP／IPC 测试覆盖两会话串行、流结束释放、排队期间撤权及实例失效。凭据只交对应执行的内部模型适配，受管进程使用环境白名单；合成秘密测试核对 argv、环境、公开状态、运行记录、checkpoint 和项目备份，真实凭据与跨平台分发仍需各自验收。
+
+共同 peer 默认普通在途、入站及发送等待各 64，控制保留 8，单帧仍为 2 MiB。Linux Node 24 的受控 1 KiB 载荷样本中，64 个普通等待加 8 个控制等待共发送 72 帧、70,079 字节，约 3 ms 内明确拒绝第 65 个普通等待；该测量用于本地容量依据，不是网络性能或三平台承诺。小容量慢发送测试核对普通积压受限、控制优先及过载关闭不产生未处理拒绝。
+
+会话统一通过 `send` 推进。中断后的兼容接续沿原尝试及模型配置；正常新轮取得当前配置，从上一尝试的私有图状态导入上下文。checkpoint 位于项目 `.scholoom/harness/checkpoints/<runId>.sqlite`，独立 SQLite claim 锁与持久运行实例共同限制写者；不能排除旧进程时拒绝相关接续，不按旧 PID 终止其他进程。旧共享及独立 checkpoint 按线程惰性导入 namespace、pending writes，源数据保留；损坏则保留原件和诊断，使用新尝试核查持久指令及成果。临时恢复资料仍不计入成果备份。
+
+项目和文件原生适配位于私有 `@scholoom/projects/node`，只依赖项目契约及所需平台能力；物理 SQLite 容器初始化由内核宿主注入，项目包不反向导入内核、harness 或科研仓储。文件路径、身份、条件保存、串行协调、回收、备份与成果关联仍由同一项目实现负责。独立测试直接组合该包与初始化适配，无需启动 Agent 或模型。
+
+`ManualApplication` 是不装配模型、harness 或科研运行时的宿主组合，提供项目、文件、题录、附件和阅读记录操作；`KernelApplication` 在其上注册执行能力。认证状态中的 `capabilities` 来自实际注册的公共操作，内部控制不进入该集合；缺少可选提供者时仅对应调用返回 `unavailable`。人工组合不注册需要各模块共同恢复的 `project.restore`，该操作由完整宿主协调。library 通过同一 broker 的 `project.checkRead`／`project.material` 取得材料，消费范围来自 `architecture.json`；模块独立测试可替换这些契约派生端口。
+
+Agent、能力子执行与 PDF 共用宿主持有的进程容量，默认活动 4、等待 8、等待期限 30 秒，参数集中在 protocol 的 `limits`。父进程等待子执行时继续计占用；子执行不足即时拒绝，根执行可有限排队，取消排队不创建进程。容量在材料加载前取得，实际执行进程停止后释放；每个执行另有一个控制辅助进程，辅助开销不算作执行名额。Linux Node 24 的受控样本实际启动 4 对控制／执行进程，另排队 8 项，启动约 222 ms、收尾约 34 ms（测试升级期限 20 ms）；该样本只支持默认容量选择，不代表框架内存预算或跨平台性能。
+
+宿主按 5 秒间隔检查执行事件循环，单次健康请求最多等待 5 秒；模型等待期间仍应能回应。健康失败按归属停止，已受理工具失联保留效果未知；controller 退出不能代替实际停止确认。迟到事件及状态先核对尝试，旧尝试只补自己的历史。真实故障样本覆盖忙循环、模型等待、写入后暂停进程、实例撤权和另一会话／文献查询继续可用。
 
 执行沿 [#07](../.scratch/scholoom-foundations/issues/07-agent-runtime-boundaries.md#answer) 的 Deep Agents／LangChain／LangGraph 路线。当前支持单 Agent 材料任务与内置材料分析方法／能力；插件 MCP、受管 shell 和多 Agent 尚未接入。
 
@@ -28,6 +57,8 @@ Electron 工作台和 CLI 共用独立 Node 内核，浏览器开发入口经同
 
 CLI 和普通产品实例默认使用仓库根 `.scholoom-dev/`；`pnpm dev:browser` 与 `pnpm dev:desktop` 默认使用 `.scholoom-dev/debug/`。`--data-dir` 优先于 `SCHOOLOOM_DATA_DIR`，未指定时使用对应默认目录；开发入口同样可用该环境变量覆盖调试配置。数据配置限定本机文件系统，不将运行目录放在 NFS 等网络文件系统。
 
+当前发现、认证引导与目录选择仍是本机接线，尚无产品化 SSH 准备、隧道、传包与远端升级路径。[远程部署决议](../.scratch/runtime-architecture/issues/05-local-and-remote-deployment.md#answer)已确认本机或远端完整环境及目标行为；它不改变本节现有命令的含义，具体能力由后续 OpenSpec 实施并在真实远端验证，不能通过开放开发服务器监听地址代替。
+
 ```sh
 pnpm kernel start --data-dir /path/to/isolated-profile
 pnpm kernel status --data-dir /path/to/isolated-profile
@@ -38,7 +69,7 @@ pnpm kernel stop --data-dir /path/to/isolated-profile
 
 运行区的 `lifecycle.sqlite` 只承载系统排他锁，内核持锁至退出；`endpoint.json` 原子保存本次实例和连接资料，`kernel.log` 记录不含凭据的初始化诊断。锁文件持续保留，不能通过删除它来重启仍占用配置的进程。Node 24.12.0 会输出 `node:sqlite` 实验性告警。
 
-Electron 通过窄 preload 桥请求内核引导：开发态主进程把请求转发给 electron-vite renderer 的 Vite 引导端点，生产态仍调用独立 Node CLI。内核使用 PATH 中的 `node`，也可由 `SCHOOLOOM_NODE_EXECUTABLE` 明确指定 Node 24；缺失或错误运行时显示启动失败，不使用 Electron 充当内核。当前产品目录包尚未提供独立 Node，成品分发由后续变更落实。
+Electron 通过窄 preload 桥请求内核引导：开发态主进程把请求转发给 electron-vite renderer 的 Vite 引导端点，生产态调用独立 Node CLI。内核使用 PATH 中的 `node`，也可由 `SCHOOLOOM_NODE_EXECUTABLE` 明确指定 Node 24；缺失或错误运行时显示启动失败，不使用 Electron 充当内核。目录包将 Node 入口和运行依赖保留在 `app.asar.unpacked/node_modules`，引导适配转换到真实路径；LangGraph SDK 内自带的打包代码由 afterPack 保留。目录包不附带 Node 可执行程序。已打包桌面默认使用 Electron `userData` 配置目录，显式 `SCHOOLOOM_DATA_DIR` 仍优先。
 
 Vite 启动时发现或启动受管调试内核；浏览器页面初次只查询，用户重试才允许重新启动。引导只接受本机同源请求，运行资料不写入 URL 或构建产物；静态文件与模块入口拒绝读取运行凭据。意外断线会有界重连并重新查询状态，认证或协议错误直接停止尝试。
 
@@ -57,6 +88,8 @@ Vite 启动时发现或启动受管调试内核；浏览器页面初次只查询
 真实首页默认空 tab；连接不等于模型及授权就绪。设置 tab 集中模型、授权、备份与归档会话管理。左区顶部动作提供新建会话、查找会话、添加项目、文献库与设置；查找会话打开跨最近项目的弹窗搜索，添加项目打开弹窗并以“打开／新建”两种模式完成，项目行菜单支持切换、显示名修改与移出最近列表（经确认，不删目录、不停止执行）；会话、文件编辑、发送和取消复用共同客户端。开发态显式打开 `?scenario=ui-foundation` 才加载隔离样例；它仍只保留最新一轮，使用固定材料和回复，不读文件、不调模型、不持久化；生产构建忽略样例参数。
 
 添加项目弹窗的目录选择按宿主分路：Electron 经窄 preload 桥 `pickDirectory` 调用主进程系统目录选择器（只启用打开／新建目录，取消返回 `null`）；浏览器宿主没有系统路径选择能力，使用内核 `project.browseDirectories` RPC 在弹窗内浏览目录——只列目录不列文件，realpath 后要求普通目录，排除符号链接、隐藏项与应用私有配置目录，按名称排序并受单页上限约束，返回真实路径。跨最近项目的会话查找走 `session.search`，由内核一次有界合并返回，UI 不做逐项目查询。
+
+项目目录移动后经“打开项目”重新定位，宿主先协调原项目执行收尾，再关闭并重建 harness／research 仓储及私有目录绑定；会话、工具记录和成果身份随项目保留。无法排除旧执行写者时拒绝替换仓储，保留停止未知诊断。Windows 对打开中的 SQLite 文件有系统移动限制，移动前应关闭使用该项目的内核；Linux 的实跑不代表其他平台已验收。
 
 ## 本地文献库
 
@@ -88,6 +121,8 @@ Vite 启动时发现或启动受管调试内核；浏览器页面初次只查询
 
 普通会话可直接聊天。打开研究项目后，分别授权读取、普通写入和发送到 MiniMax；范围内不重复确认。新建会话，附加文件引用后发送，Agent 实际使用材料与成果来自工具记录。流式输出、追加指令的受理／消费、取消与继续均使用内核持久状态。关窗不取消工作；重启将未完成工作标为中断，用户明确继续后才核查 checkpoint 和当前文件。checkpoint 不可用时保留原记录，以新尝试接续；旧指令可由分页工具发现。
 
+工作台与 CLI 通过 `session.send` 推进，没有独立“继续”入口；旧公开恢复操作已删除。内部兼容接续及新一轮上下文导入使用上文私有 checkpoint 路径。运行记录由 harness 仓储维护；同步保存后经 IPC 幂等确认消费，保存失败、确认提交失败及确认回执丢失已有真实磁盘／子进程验证。完整领域迁包、执行桥协议收口和整合恢复范围以当前 change 的 tasks／delivery 为准。
+
 新会话以首条受理指令生成短标题，可在会话行右键菜单重命名。活动会话列表滚动加载；查找会话经顶部弹窗跨最近项目搜索，归档会话在设置页集中查看与恢复；筛选不切换接收者，当前会话独立读取。排队、运行或取消中的会话需等停止后归档；归档保留历史、成果、指令与草稿，禁止发送、继续及修改模型覆盖，恢复不自动执行。会话变化跨客户端更新列表，连续正文输出只刷新当前消息。
 
 展开会话可阅读 Markdown、代码、表格和公式，复制原始正文或代码；状态和材料引用单独呈现。材料按已记录的稳定文件身份打开，历史无身份记录标明按历史路径打开；相对链接以项目根为基准，复用文件 tab 并保留草稿。消息图片不自动加载，外链只在明确点击后打开，HTML 不执行。消息及文件预览共用有界 Worker 调度，消息只解析可见正文。
@@ -109,7 +144,6 @@ pnpm kernel session-create --project PROJECT_ID
 pnpm kernel send --project PROJECT_ID --session SESSION_ID --text '读取材料并保存分析'
 pnpm kernel session --project PROJECT_ID --session SESSION_ID
 pnpm kernel cancel --project PROJECT_ID --session SESSION_ID
-pnpm kernel continue --project PROJECT_ID --session SESSION_ID
 ```
 
 请求受理立即返回指令／执行引用；回执丢失时保留原 `--instruction-id` 查询或补交。工作台刷新后会核对持久的待确认输入，未能确认时提供“按原身份补交”，保留当前草稿。缺失用量为未知；请求默认 180 秒、模型并发 1，安全临时失败最多额外两次重试，不重放已输出的流或未知副作用。取消只确认本地调度与工具停止，不代表远端已停止计费。当前执行默认最多 32 次模型请求，触限保留成果并等待继续。
@@ -154,7 +188,7 @@ Agent 使用 Orca browser skill，先列出当前项目的标签，核对 URL �
 
 无图形会话的 Linux 需要 Xvfb 和 Electron 所需动态库，使用 `xvfb-run -a pnpm check`。Smoke 检验工程入口，UI 测试检验共同界面行为；业务契约、科研效果、原生能力和插件支持仍须相应真实场景验收。
 
-`pnpm package:dir` 构建并分别生成两个 Electron 目录包，输出到 `release/desktop` 和 `release/zotero-host`。当前不生成签名安装器、不打包独立内核运行时和科研执行工具。发布前再落实已确认的工具分发、签名和安装后验收。
+`pnpm package:dir` 构建并分别生成两个 Electron 目录包，输出到 `release/desktop` 和 `release/zotero-host`。桌面包包含内核、执行桥、原生依赖与 PDF WASM，仍要求本机 Node 24；不生成签名安装器或尚未实现的科研执行工具。`SCHOOLOOM_PACKAGED_DESKTOP=<实际桌面可执行文件>` 可让既有入口 smoke 启动该分发包；`SCHOOLOOM_PACKAGED_KERNEL=<解包的 @scholoom/kernel 目录> pnpm test:kernel tests/kernel/cli-runtime.spec.ts` 验证包内实际图、工具、持久化及 PDF 解析。本机目录包通过不替代目标平台签名、安装后及恢复验收。
 
 GitHub Actions 使用 Linux、Windows、macOS 矩阵运行同一检查与目录打包；远端结果以实际 workflow 运行为准。本机 Linux 通过不表示三平台已验收。
 

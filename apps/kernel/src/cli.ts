@@ -45,7 +45,7 @@ async function main() {
   }
   if (values.help || positionals.length === 0) {
     console.log(
-      'Usage: scholoom-kernel [start | status | stop] [--data-dir PATH] [--json]\n       project-open --path PATH\n       project-grant --project ID [--read] [--write] [--send]\n       session-create --project ID\n       send --project ID --session ID --text TEXT [--instruction-id ID]\n       session | cancel | continue --project ID --session ID\n       backup --project ID\n       restore --project ID --backup-id ID --path NEW_PATH\n       scholoom-kernel [--help | --info]',
+      'Usage: scholoom-kernel [start | status | stop] [--data-dir PATH] [--json]\n       project-open --path PATH\n       project-grant --project ID [--read] [--write] [--send]\n       session-create --project ID\n       send --project ID --session ID --text TEXT [--instruction-id ID]\n       session | cancel --project ID --session ID\n       backup --project ID\n       restore --project ID --backup-id ID --path NEW_PATH\n       scholoom-kernel [--help | --info]',
     );
     return;
   }
@@ -70,7 +70,6 @@ async function main() {
       'send',
       'session',
       'cancel',
-      'continue',
       'backup',
       'restore',
     ].includes(command ?? '')
@@ -113,9 +112,6 @@ async function main() {
           break;
         case 'cancel':
           result = await client.call('session.cancel', { projectId, sessionId });
-          break;
-        case 'continue':
-          result = await client.call('session.resume', { projectId, sessionId });
           break;
         case 'backup':
           result = await client.call('project.backup', { projectId });

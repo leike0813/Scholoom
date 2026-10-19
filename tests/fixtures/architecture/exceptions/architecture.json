@@ -1,0 +1,27 @@
+{
+  "modules": [
+    {
+      "name": "alpha",
+      "package": "@fixture/alpha",
+      "root": "alpha",
+      "allows": [],
+      "systemAdapters": [],
+      "provides": [],
+      "consumes": []
+    }
+  ],
+  "system": {
+    "pure": ["node:path"],
+    "globals": ["fetch"],
+    "specifiers": ["electron"]
+  },
+  "exceptions": [
+    {
+      "module": "alpha",
+      "path": "src/legacy/**",
+      "apis": ["fs"],
+      "reason": "legacy storage adapter moves to the platform package",
+      "removal": "task 2.1"
+    }
+  ]
+}

@@ -1,0 +1,888 @@
+import { randomUUID } from 'node:crypto';
+import { constants } from 'node:fs';
+import {
+  access,
+  copyFile,
+  link,
+  lstat,
+  mkdir,
+  open,
+  readdir,
+  readFile,
+  realpath,
+  rename,
+  rm,
+  stat,
+  unlink,
+  writeFile,
+} from 'node:fs/promises';
+import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
+import { atomicPrivateFile, fileFingerprint, privateDirectory } from '@scholoom/platform/node';
+import { OperationError } from '@scholoom/protocol/core';
+import {
+  type Artifact,
+  type FileContent,
+  type FileEdit,
+  type FileEntry,
+  type Project,
+  type ProjectBackup,
+  projectLimits,
+} from '@scholoom/protocol/projects';
+import Database from 'better-sqlite3';
+import { desc, eq, sql } from 'drizzle-orm';
+import { drizzle } from 'drizzle-orm/better-sqlite3';
+import { imageMime, ProjectFiles } from './files.js';
+import * as tables from './schema.js';
+
+/** Physical container upgrade injected by the host; projects never opens another module's tables. */
+export type ContainerInitializer = (database: Database.Database, internal: string) => Promise<void>;
+
+const hidden = new Set(['.scholoom', '.git', 'node_modules', 'dist', 'build', 'target', '.venv']);
+const isPrivate = (name: string) =>
+  hidden.has(name) ||
+  name === '.env' ||
+  name.startsWith('.env.') ||
+  /\.(?:pem|key|crt)$/i.test(name);
+export const within = (root: string, path: string) => {
+  const part = relative(root, path);
+  return part === '' || (!isAbsolute(part) && part !== '..' && !part.startsWith(`..${sep}`));
+};
+const exists = async (path: string) =>
+  access(path).then(
+    () => true,
+    () => false,
+  );
+
+export class ProjectStore {
+  async material(path: string): Promise<import('@scholoom/protocol/projects').ProjectMaterial> {
+    this.check('read');
+    const nativePath = await this.path(path);
+    const reference = await this.files.reference(path);
+    const stat = await lstat(nativePath, { bigint: true });
+    if (!stat.isFile()) throw new OperationError('invalidRequest', '材料必须是普通文件。');
+    this.check('read');
+    return {
+      projectId: this.project.id,
+      fileId: reference.fileId,
+      nativePath,
+      basis: fileFingerprint(stat),
+    };
+  }
+  readonly files: ProjectFiles;
+  readonly database: Database.Database;
+  readonly db;
+  readonly internal: string;
+  private bases = new Map<string, { path: string; content: string }>();
+  private dirty = false;
+  private changeVersion = 0;
+  private fileStamp = '';
+  private backingUp: Promise<ProjectBackup> | undefined;
+
+  private constructor(
+    readonly project: Project,
+    database: Database.Database,
+    private readonly applicationDirectory: string,
+    private readonly initializeContainer: ContainerInitializer,
+  ) {
+    this.database = database;
+    this.db = drizzle(database, { schema: tables });
+    this.internal = join(project.path, '.scholoom');
+    this.files = new ProjectFiles(this);
+  }
+
+  static async open(
+    path: string,
+    applicationDirectory: string,
+    initializeContainer: ContainerInitializer,
+    application = false,
+  ): Promise<ProjectStore> {
+    const root = await realpath(path);
+    if (!(await stat(root)).isDirectory())
+      throw new OperationError('invalidRequest', '请选择项目目录。');
+    const internal = join(root, '.scholoom');
+    if (!application && within(applicationDirectory, root))
+      throw new OperationError('permissionDenied', '不能将应用私有配置作为研究项目。');
+    await privateDirectory(internal);
+    const identityPath = join(internal, 'identity.json');
+    let identity: { id: string };
+    try {
+      identity = JSON.parse(await readFile(identityPath, 'utf8'));
+      if (typeof identity.id !== 'string' || !identity.id)
+        throw new Error('Invalid project identity');
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT')
+        throw new OperationError('unavailable', '项目身份文件损坏；已保留现场。');
+      identity = { id: application ? 'application' : randomUUID() };
+      try {
+        await writeFile(identityPath, JSON.stringify(identity), { flag: 'wx', mode: 0o600 });
+      } catch (failure) {
+        if ((failure as NodeJS.ErrnoException).code !== 'EEXIST') throw failure;
+        identity = JSON.parse(await readFile(identityPath, 'utf8'));
+      }
+    }
+    const dbPath = join(internal, 'project.sqlite');
+    if (await exists(dbPath)) {
+      const info = await lstat(dbPath);
+      if (!info.isFile() || info.isSymbolicLink())
+        throw new OperationError('permissionDenied', '数据库文件不安全。');
+    }
+    const database = new Database(dbPath);
+    try {
+      database.pragma('journal_mode = WAL');
+      database.pragma('busy_timeout = 1000');
+      if (database.pragma('quick_check', { simple: true }) !== 'ok')
+        throw new Error('Corrupt database');
+      await initializeContainer(database, internal);
+      const project: Project = {
+        id: identity.id,
+        path: root,
+        name: application ? '普通会话' : basename(root),
+        read: application,
+        write: false,
+        send: application,
+        autoBackup: !application,
+      };
+      const store = new ProjectStore(project, database, applicationDirectory, initializeContainer);
+      const grants = store.db.select().from(tables.meta).where(eq(tables.meta.key, 'grants')).get();
+      if (grants) Object.assign(project, JSON.parse(grants.value));
+      project.name =
+        store.db.select().from(tables.meta).where(eq(tables.meta.key, 'name')).get()?.value ??
+        project.name;
+      return store;
+    } catch {
+      database.close();
+      throw new OperationError('unavailable', '项目数据库损坏或版本不兼容；停止写入并保留现场。');
+    }
+  }
+
+  grant(values: Pick<Project, 'read' | 'write' | 'send' | 'autoBackup'>): Project {
+    this.db
+      .insert(tables.meta)
+      .values({ key: 'grants', value: JSON.stringify(values) })
+      .onConflictDoUpdate({ target: tables.meta.key, set: { value: JSON.stringify(values) } })
+      .run();
+    Object.assign(this.project, values);
+    this.dirty = true;
+    return this.project;
+  }
+
+  check(operation: 'read' | 'write' | 'send'): void {
+    if (this.project.id === 'application' && operation !== 'send')
+      throw new OperationError('permissionDenied', '普通会话没有项目文件权限。');
+    if (!this.project[operation])
+      throw new OperationError('permissionDenied', `项目尚未授权 ${operation}。`);
+  }
+
+  renameProject(name: string): Project {
+    if (this.project.id === 'application' || !name.trim() || name.length > 200)
+      throw new OperationError('invalidRequest', '项目名称无效。');
+    this.db
+      .insert(tables.meta)
+      .values({ key: 'name', value: name.trim() })
+      .onConflictDoUpdate({ target: tables.meta.key, set: { value: name.trim() } })
+      .run();
+    this.project.name = name.trim();
+    this.touch();
+    return this.project;
+  }
+
+  invalidateBases(paths: string[]): void {
+    for (const [key, basis] of this.bases)
+      if (paths.some((path) => basis.path === path || basis.path.startsWith(`${path}${sep}`)))
+        this.bases.delete(key);
+  }
+
+  async path(input: string, create = false): Promise<string> {
+    const portable = input.replaceAll('\\', '/');
+    if (
+      portable.split('/').some(isPrivate) ||
+      portable.includes('\0') ||
+      portable.split('/').includes('..')
+    )
+      throw new OperationError('permissionDenied', '不能访问私有或越界路径。');
+    const candidate = resolve(this.project.path, portable);
+    if (!within(this.project.path, candidate))
+      throw new OperationError('permissionDenied', '路径超出项目范围。');
+    let target: string;
+    try {
+      target = await realpath(candidate);
+    } catch (error) {
+      if (!create || (error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+      target = join(await realpath(dirname(candidate)), basename(candidate));
+    }
+    if (
+      !within(this.project.path, target) ||
+      within(this.applicationDirectory, target) ||
+      relative(this.project.path, target).split(sep).some(isPrivate)
+    )
+      throw new OperationError('permissionDenied', '目标超出授权范围。');
+    return target;
+  }
+
+  async list(
+    input = '',
+    offset = 0,
+    limit = 100,
+  ): Promise<{ entries: FileEntry[]; nextOffset?: number }> {
+    this.check('read');
+    const directory = await this.path(input);
+    const entries: FileEntry[] = [];
+    let skipped = 0;
+    const handle = await import('node:fs/promises').then((fs) => fs.opendir(directory));
+    for await (const entry of handle) {
+      if (
+        isPrivate(entry.name) ||
+        entry.isSymbolicLink() ||
+        (!entry.isFile() && !entry.isDirectory())
+      )
+        continue;
+      if (skipped++ < offset) continue;
+      if (entries.length === limit) return { entries, nextOffset: offset + limit };
+      entries.push({
+        fileId: (
+          await this.files.reference(relative(this.project.path, join(directory, entry.name)))
+        ).fileId,
+        name: entry.name,
+        kind: entry.isDirectory() ? 'dir' : 'file',
+        path: relative(this.project.path, join(directory, entry.name)).split(sep).join('/'),
+      });
+    }
+    return { entries };
+  }
+
+  async read(input: string, offset = 0): Promise<FileContent> {
+    this.check('read');
+    const path = await this.path(input);
+    return this.files.coordinate([path], async () => {
+      this.check('read');
+      if ((await this.path(input)) !== path)
+        throw new OperationError('contentChanged', '文件位置已变化，请重新读取。');
+      const handle = await open(path, constants.O_RDONLY | (constants.O_NONBLOCK ?? 0));
+      let value: string;
+      let truncated: boolean;
+      try {
+        const info = await handle.stat();
+        if (!info.isFile()) throw new OperationError('targetAmbiguous', '目标不是普通文件。');
+        const buffer = Buffer.alloc(
+          Math.min(projectLimits.fileBytes + 1, Math.max(0, info.size - offset)),
+        );
+        const { bytesRead } = await handle.read(buffer, 0, buffer.length, offset);
+        truncated = info.size > offset + projectLimits.fileBytes || offset > 0;
+        try {
+          value = new TextDecoder('utf-8', { fatal: true }).decode(
+            buffer.subarray(0, Math.min(bytesRead, projectLimits.fileBytes)),
+            { stream: truncated },
+          );
+        } catch {
+          throw new OperationError('invalidRequest', '本期仅支持 UTF-8 文本材料。');
+        }
+        if (value.includes('\0'))
+          throw new OperationError('invalidRequest', '本期仅支持 UTF-8 文本材料。');
+      } finally {
+        await handle.close();
+      }
+      const basis = randomUUID();
+      if (!truncated) {
+        if (this.bases.size >= 100) this.bases.delete(this.bases.keys().next().value as string);
+        this.bases.set(basis, { path, content: value });
+      }
+      return {
+        path: input,
+        fileId: (await this.files.reference(input)).fileId,
+        content: value,
+        basis,
+        truncated,
+      };
+    });
+  }
+
+  private serial<T>(path: string, run: () => Promise<T>): Promise<T> {
+    return this.files.coordinate([path], run);
+  }
+
+  async save(
+    input: string,
+    content: string,
+    basis?: string,
+    expected?: string,
+    expectedFileId?: string,
+  ): Promise<FileEdit> {
+    this.check('write');
+    if (Buffer.byteLength(content) > projectLimits.fileBytes)
+      throw new OperationError('tooLarge', '文件超过本期编辑上限。');
+    const target = await this.path(input, true);
+    return this.serial(target, async () => {
+      this.check('write');
+      if ((await this.path(input, true)) !== target)
+        throw new OperationError('contentChanged', '目标路径已变化。');
+      const create = basis === undefined && expected === undefined;
+      const priorReference = create ? undefined : await this.files.reference(input);
+      if (expectedFileId && priorReference?.fileId !== expectedFileId)
+        throw new OperationError('contentChanged', '文件身份或位置已变化，请重新读取。');
+      let before = '';
+      let mode = 0o600;
+      if (!create) {
+        const source = basis ? this.bases.get(basis) : undefined;
+        if (expected === undefined && (!source || source.path !== target))
+          throw new OperationError('contentChanged', '读取依据失效，请重新读取。');
+        const handle = await open(target, 'r');
+        try {
+          const info = await handle.stat();
+          mode = info.mode & 0o777;
+          if (info.size > projectLimits.fileBytes)
+            throw new OperationError('contentChanged', '文件已变化，请重新读取。');
+          before = await handle.readFile('utf8');
+        } finally {
+          await handle.close();
+        }
+        if (before !== (expected ?? source?.content))
+          throw new OperationError('contentChanged', '整份文件内容已变化，请重新读取后修改。');
+      } else if (await exists(target))
+        throw new OperationError('contentChanged', '新建目标已存在，不能覆盖。');
+      if (create) this.files.retirePath(relative(this.project.path, target).split(sep).join('/'));
+      const edit: FileEdit = {
+        id: randomUUID(),
+        path: input,
+        before,
+        after: content,
+        createdAt: new Date().toISOString(),
+        created: create,
+      };
+      const candidateDir = join(this.internal, 'candidates');
+      await privateDirectory(candidateDir);
+      const candidate = join(candidateDir, edit.id);
+      await writeFile(candidate, content, { mode: 0o600, flag: 'wx' });
+      const temporary = join(dirname(target), `.scholoom-${edit.id}.tmp`);
+      try {
+        const handle = await open(temporary, 'wx', mode);
+        try {
+          await handle.chmod(mode);
+          await handle.writeFile(content);
+          await handle.sync();
+        } finally {
+          await handle.close();
+        }
+        if (create) {
+          await link(temporary, target);
+          await unlink(temporary);
+        } else await rename(temporary, target);
+      } catch (error) {
+        await unlink(temporary).catch(() => {});
+        if ((await exists(target)) && (await readFile(target, 'utf8')) === content)
+          throw new OperationError(
+            'outcomeUnknown',
+            '文件可能已保存；请核查实际内容，候选已保留。',
+          );
+        throw error;
+      }
+      try {
+        edit.fileId = (priorReference ?? (await this.files.reference(input))).fileId;
+        this.db.transaction((tx) => {
+          tx.insert(tables.edits).values({ id: edit.id, path: input, value: edit }).run();
+          const old = tx
+            .select({ seq: tables.edits.seq })
+            .from(tables.edits)
+            .where(eq(tables.edits.path, input))
+            .orderBy(desc(tables.edits.seq))
+            .limit(100)
+            .offset(projectLimits.history)
+            .all();
+          for (const row of old) tx.delete(tables.edits).where(eq(tables.edits.seq, row.seq)).run();
+        });
+      } catch {
+        throw new OperationError('outcomeUnknown', '文件已保存，但历史登记结果未知；请核查。');
+      }
+      this.files.changed();
+      await unlink(candidate).catch(() => {});
+      return edit;
+    });
+  }
+
+  history(path: string): FileEdit[] {
+    this.check('read');
+    const ids = this.db
+      .select()
+      .from(tables.fileReferences)
+      .where(eq(tables.fileReferences.path, path))
+      .all()
+      .filter((row) => row.value.state === 'present')
+      .map((row) => row.id);
+    return this.db
+      .select()
+      .from(tables.edits)
+      .where(
+        ids.length
+          ? sql`json_extract(${tables.edits.value}, '$.fileId') IN (${sql.join(
+              ids.map((id) => sql`${id}`),
+              sql`,`,
+            )}) OR (${tables.edits.path} = ${path} AND json_extract(${tables.edits.value}, '$.fileId') IS NULL)`
+          : eq(tables.edits.path, path),
+      )
+      .orderBy(desc(tables.edits.seq))
+      .limit(projectLimits.history)
+      .all()
+      .map((row) => row.value)
+      .filter((edit) =>
+        edit.fileId
+          ? this.files.location(edit.fileId).path === path &&
+            this.files.location(edit.fileId).state === 'present'
+          : edit.path === path,
+      )
+      .slice(0, projectLimits.history);
+  }
+
+  async undo(editId: string): Promise<FileEdit> {
+    const row = this.db.select().from(tables.edits).where(eq(tables.edits.id, editId)).get();
+    if (!row) throw new OperationError('notFound', '修改历史不存在。');
+    const currentPath = row.value.fileId ? this.files.currentPath(row.value.fileId) : row.path;
+    if (!row.value.created)
+      return this.save(currentPath, row.value.before, undefined, row.value.after, row.value.fileId);
+    this.check('write');
+    const target = await this.path(currentPath);
+    return this.serial(target, async () => {
+      this.check('write');
+      if (
+        row.value.fileId &&
+        (this.files.currentPath(row.value.fileId) !== currentPath ||
+          (await this.files.reference(currentPath)).fileId !== row.value.fileId)
+      )
+        throw new OperationError('contentChanged', '原文件位置已变化，请重新读取。');
+      if ((await readFile(target, 'utf8')) !== row.value.after)
+        throw new OperationError('contentChanged', '后续修改不能被撤销覆盖。');
+      const retired = join(this.internal, 'reverted');
+      await privateDirectory(retired);
+      await rename(target, join(retired, row.value.id));
+      const edit: FileEdit = {
+        id: randomUUID(),
+        path: currentPath,
+        ...(row.value.fileId ? { fileId: row.value.fileId } : {}),
+        before: row.value.after,
+        after: '',
+        createdAt: new Date().toISOString(),
+      };
+      this.db.insert(tables.edits).values({ id: edit.id, path: edit.path, value: edit }).run();
+      if (row.value.fileId)
+        this.db
+          .update(tables.fileReferences)
+          .set({ value: { ...this.files.location(row.value.fileId), state: 'missing' } })
+          .where(eq(tables.fileReferences.id, row.value.fileId))
+          .run();
+      this.files.changed();
+      return edit;
+    });
+  }
+
+  touch(): void {
+    this.dirty = true;
+    this.changeVersion += 1;
+  }
+
+  linkArtifact(sessionId: string, artifact: Artifact): void {
+    this.db
+      .insert(tables.artifacts)
+      .values({
+        key: `${artifact.runId}:${artifact.fileId ?? artifact.path}`,
+        sessionId,
+        value: artifact,
+      })
+      .onConflictDoNothing()
+      .run();
+    this.touch();
+  }
+
+  artifacts(sessionId: string): Artifact[] {
+    return this.db
+      .select()
+      .from(tables.artifacts)
+      .where(eq(tables.artifacts.sessionId, sessionId))
+      .limit(100)
+      .all()
+      .map((row) => row.value);
+  }
+
+  async backups(): Promise<ProjectBackup[]> {
+    const directory = join(this.internal, 'backups');
+    if (!(await exists(directory))) return [];
+    const names = (await readdir(directory))
+      .filter((name) => !name.startsWith('.'))
+      .sort()
+      .reverse()
+      .slice(0, 10);
+    return Promise.all(
+      names.map(
+        async (name) =>
+          JSON.parse(
+            await readFile(join(directory, name, '.scholoom', 'backup-manifest.json'), 'utf8'),
+          ) as ProjectBackup,
+      ),
+    );
+  }
+
+  backup(): Promise<ProjectBackup> {
+    if (this.backingUp) return this.backingUp;
+    const run = this.makeBackup();
+    this.backingUp = run;
+    void run
+      .finally(() => {
+        this.backingUp = undefined;
+      })
+      .catch(() => {});
+    return run;
+  }
+
+  private async makeBackup(): Promise<ProjectBackup> {
+    const changeVersion = this.changeVersion;
+    const fileStamp = await this.diskStamp();
+    const backup: ProjectBackup = {
+      id: `${Date.now()}-${randomUUID()}`,
+      createdAt: new Date().toISOString(),
+      omitted: [],
+    };
+    const base = join(this.internal, 'backups');
+    await privateDirectory(base);
+    const temporary = join(base, `.${backup.id}`);
+    await privateDirectory(temporary);
+    await mkdir(join(temporary, '.scholoom'), { mode: 0o700 });
+    await this.database.backup(join(temporary, '.scholoom', 'project.sqlite'));
+    await copyFile(
+      join(this.internal, 'identity.json'),
+      join(temporary, '.scholoom', 'identity.json'),
+    );
+    // checkpoint is an execution aid; restored copies resume from durable project facts.
+    backup.omitted.push(
+      '.scholoom/checkpoints.sqlite（从持久材料安全接续）',
+      '外部链接、非图片二进制、超过256KiB文本及超过1MiB图片；非声明私有内容',
+    );
+    let seen = 0;
+    const walk = async (directory: string, output = temporary, retired = false): Promise<void> => {
+      const omission = (path: string) =>
+        backup.omitted.push(relative(this.project.path, path).split(sep).join('/'));
+      try {
+        const handle = await import('node:fs/promises').then((fs) => fs.opendir(directory));
+        for await (const entry of handle) {
+          if (++seen > 10000) {
+            backup.omitted.push('超过 10000 项的剩余材料');
+            if (retired) backup.omitted.push('.scholoom/trash/');
+            break;
+          }
+          if (isPrivate(entry.name)) {
+            if (retired) omission(join(directory, entry.name));
+            continue;
+          }
+          const source = join(directory, entry.name);
+          if (within(this.applicationDirectory, source)) {
+            omission(source);
+            continue;
+          }
+          const local = relative(
+            retired ? join(this.internal, 'trash') : this.project.path,
+            source,
+          );
+          if (entry.isSymbolicLink()) {
+            omission(source);
+            continue;
+          }
+          if (entry.isDirectory()) {
+            await mkdir(join(output, local), { recursive: true });
+            await walk(source, output, retired);
+          } else if (entry.isFile()) {
+            try {
+              if ((await stat(source)).size > 1048576) {
+                omission(source);
+                continue;
+              }
+              const data = await readFile(source);
+              if (
+                !imageMime(data) &&
+                (data.length > projectLimits.fileBytes ||
+                  data.includes(0) ||
+                  data.toString('utf8').includes('\uFFFD'))
+              ) {
+                omission(source);
+                continue;
+              }
+              await writeFile(join(output, local), data, { mode: 0o600 });
+            } catch {
+              omission(source);
+            }
+          } else omission(source);
+        }
+      } catch {
+        omission(directory);
+      }
+    };
+    await walk(this.project.path);
+    const trash = join(this.internal, 'trash');
+    if (await exists(trash)) {
+      await privateDirectory(trash);
+      const output = join(temporary, '.scholoom', 'trash');
+      await privateDirectory(output);
+      await walk(trash, output, true);
+    }
+    await atomicPrivateFile(
+      join(temporary, '.scholoom'),
+      'backup-manifest.json',
+      JSON.stringify(backup),
+    );
+    await rename(temporary, join(base, backup.id));
+    if (this.changeVersion === changeVersion) this.dirty = false;
+    this.fileStamp = fileStamp;
+    const old = (await readdir(base))
+      .filter((name) => !name.startsWith('.'))
+      .sort()
+      .reverse()
+      .slice(10);
+    for (const name of old) await rm(join(base, name), { recursive: true });
+    return backup;
+  }
+
+  async autoBackup(): Promise<void> {
+    if (!this.project.autoBackup || this.project.id === 'application') return;
+    const stamp = await this.diskStamp();
+    if (this.dirty || stamp !== this.fileStamp) await this.backup();
+  }
+
+  private async diskStamp(): Promise<string> {
+    const stamps: string[] = [];
+    const queue = [this.project.path];
+    let scanned = 0;
+    while (queue.length && scanned < 10000) {
+      const directory = queue.shift() as string;
+      const handle = await import('node:fs/promises').then((fs) => fs.opendir(directory));
+      for await (const entry of handle) {
+        if (++scanned > 10000) break;
+        const path = join(directory, entry.name);
+        if (
+          isPrivate(entry.name) ||
+          entry.isSymbolicLink() ||
+          within(this.applicationDirectory, path)
+        )
+          continue;
+        if (entry.isDirectory()) queue.push(path);
+        else if (entry.isFile()) {
+          const info = await stat(path);
+          stamps.push(
+            `${relative(this.project.path, path)}:${info.size}:${info.mtimeMs}:${info.ctimeMs}`,
+          );
+        }
+      }
+    }
+    return stamps.sort().join('\n');
+  }
+
+  async restore(id: string, destination: string): Promise<string> {
+    if (!(await this.backups()).some((item) => item.id === id))
+      throw new OperationError('notFound', '备份不存在。');
+    const target = resolve(destination);
+    if (within(this.project.path, target) || within(target, this.project.path))
+      throw new OperationError('permissionDenied', '恢复目录必须独立于当前项目。');
+    await mkdir(target, { mode: 0o700 });
+    const source = join(this.internal, 'backups', id);
+    const manifest = JSON.parse(
+      await readFile(join(source, '.scholoom', 'backup-manifest.json'), 'utf8'),
+    ) as ProjectBackup;
+    const { cp } = await import('node:fs/promises');
+    await cp(source, target, {
+      recursive: true,
+      force: false,
+      errorOnExist: true,
+      filter: (path) => path !== join(source, '.scholoom', 'backup-manifest.json'),
+    });
+    // A restored copy has independent identity so its facts cannot shadow the original.
+    const restoredId = randomUUID();
+    await atomicPrivateFile(
+      join(target, '.scholoom'),
+      'identity.json',
+      JSON.stringify({ id: restoredId }),
+    );
+    const copy = await ProjectStore.open(
+      target,
+      this.applicationDirectory,
+      this.initializeContainer,
+    );
+    try {
+      for (const omitted of manifest.omitted) {
+        const normalized = omitted.replaceAll('\\', '/');
+        if (normalized === '.scholoom/trash/' || normalized === '.scholoom/trash') {
+          for (const operation of copy.db.select().from(tables.fileOperations).all()) {
+            if (operation.value.kind === 'trash')
+              copy.db
+                .insert(tables.meta)
+                .values({ key: `incomplete-trash:${operation.id}`, value: omitted })
+                .onConflictDoNothing()
+                .run();
+          }
+        }
+        const match = /^\.scholoom\/trash\/([^/]+)(?:\/|$)/.exec(normalized);
+        if (match)
+          copy.db
+            .insert(tables.meta)
+            .values({ key: `incomplete-trash:${match[1]}`, value: omitted })
+            .onConflictDoNothing()
+            .run();
+      }
+      for (const operation of copy.db.select().from(tables.fileOperations).all()) {
+        const rebase = (path: string) =>
+          within(this.project.path, path) ? join(target, relative(this.project.path, path)) : path;
+        copy.db
+          .update(tables.fileOperations)
+          .set({
+            details: {
+              ...operation.details,
+              source: rebase(operation.details.source),
+              destination: rebase(operation.details.destination),
+            },
+          })
+          .where(eq(tables.fileOperations.id, operation.id))
+          .run();
+      }
+      copy.grant({ read: false, write: false, send: false, autoBackup: true });
+    } finally {
+      await copy.close();
+    }
+    return target;
+  }
+
+  async close(): Promise<void> {
+    await this.files.settle();
+    if (this.backingUp) await this.backingUp.catch(() => {});
+    this.database.close();
+  }
+}
+
+export class Projects {
+  private stores = new Map<string, ProjectStore>();
+  private recent = new Set<string>();
+  private registryWrite: Promise<unknown> = Promise.resolve();
+  private timer: ReturnType<typeof setInterval> | undefined;
+  constructor(
+    readonly directory: string,
+    private readonly initializeContainer: ContainerInitializer,
+    private readonly replacing: (projectId: string) => Promise<void> = async () => {},
+  ) {}
+
+  async initialize(): Promise<void> {
+    await privateDirectory(this.directory);
+    const application = join(this.directory, 'application');
+    await privateDirectory(application);
+    const store = await ProjectStore.open(
+      application,
+      this.directory,
+      this.initializeContainer,
+      true,
+    );
+    this.stores.set(store.project.id, store);
+    let registry: string[] = [];
+    try {
+      registry = JSON.parse(await readFile(join(this.directory, 'projects.json'), 'utf8'));
+    } catch {}
+    for (const path of registry.slice(0, 100)) {
+      try {
+        await this.open(path, false);
+      } catch {
+        /* Unavailable projects remain on disk for explicit reopening. */
+      }
+    }
+    this.timer = setInterval(() => {
+      for (const item of this.stores.values())
+        void item.autoBackup().catch(() => {
+          console.error(
+            JSON.stringify({
+              event: 'project.backup.failed',
+              projectId: item.project.id,
+              code: 'unavailable',
+            }),
+          );
+        });
+    }, 300000);
+    this.timer.unref();
+  }
+
+  async open(path: string, persist = true): Promise<ProjectStore> {
+    const canonical = await realpath(path);
+    const existing = [...this.stores.values()].find((store) => store.project.path === canonical);
+    if (existing) {
+      if (persist) {
+        this.recent.add(existing.project.id);
+        await this.persist();
+      }
+      return existing;
+    }
+    const store = await ProjectStore.open(canonical, this.directory, this.initializeContainer);
+    const prior = this.stores.get(store.project.id);
+    if (prior && (await exists(prior.project.path))) {
+      await store.close();
+      throw new OperationError(
+        'targetAmbiguous',
+        '另一个可达目录具有同一项目身份；请使用独立恢复副本。',
+      );
+    }
+    if (prior) {
+      try {
+        await this.replacing(store.project.id);
+        await prior.close();
+      } catch (error) {
+        await store.close();
+        throw error;
+      }
+    }
+    this.stores.set(store.project.id, store);
+    this.recent.add(store.project.id);
+    if (persist) await this.persist();
+    return store;
+  }
+
+  private persist(): Promise<unknown> {
+    const run = this.registryWrite
+      .catch(() => {})
+      .then(() =>
+        atomicPrivateFile(
+          this.directory,
+          'projects.json',
+          JSON.stringify(
+            this.list()
+              .filter((p) => p.id !== 'application' && this.recent.has(p.id))
+              .map((p) => p.path),
+          ),
+        ),
+      );
+    this.registryWrite = run;
+    return run;
+  }
+
+  async create(path: string, name?: string): Promise<ProjectStore> {
+    const target = resolve(path);
+    const parent = await realpath(dirname(target));
+    if (within(this.directory, join(parent, basename(target))))
+      throw new OperationError('permissionDenied', '不能在应用配置目录创建项目。');
+    await mkdir(join(parent, basename(target)));
+    const store = await this.open(target);
+    if (name) store.renameProject(name);
+    return store;
+  }
+  async forget(id: string): Promise<void> {
+    if (id === 'application') throw new OperationError('invalidRequest', '普通会话不能移出。');
+    this.get(id);
+    this.recent.delete(id);
+    await this.persist();
+  }
+
+  list(): Project[] {
+    return [...this.stores.values()].map((store) => ({
+      ...store.project,
+      recent: store.project.id === 'application' || this.recent.has(store.project.id),
+    }));
+  }
+  get(id: string): ProjectStore {
+    const store = this.stores.get(id);
+    if (!store) throw new OperationError('notFound', '项目未打开。');
+    return store;
+  }
+  all(): ProjectStore[] {
+    return [...this.stores.values()];
+  }
+  async close(): Promise<void> {
+    clearInterval(this.timer);
+    await Promise.all([...this.stores.values()].map((store) => store.close()));
+  }
+}

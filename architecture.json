@@ -1,0 +1,318 @@
+{
+  "modules": [
+    {
+      "name": "protocol",
+      "package": "@scholoom/protocol",
+      "root": "packages/protocol",
+      "sourceRoot": "src",
+      "allows": [],
+      "systemAdapters": [],
+      "provides": [],
+      "consumes": []
+    },
+    {
+      "name": "broker",
+      "package": "@scholoom/broker",
+      "root": "packages/broker",
+      "sourceRoot": "src",
+      "allows": ["@scholoom/protocol"],
+      "systemAdapters": [],
+      "provides": [],
+      "consumes": []
+    },
+    {
+      "name": "client",
+      "package": "@scholoom/client",
+      "root": "packages/client",
+      "sourceRoot": "src",
+      "allows": ["@scholoom/broker", "@scholoom/protocol"],
+      "systemAdapters": [],
+      "provides": [],
+      "consumes": []
+    },
+    {
+      "name": "platform",
+      "package": "@scholoom/platform",
+      "root": "packages/platform",
+      "sourceRoot": "src",
+      "allows": ["@scholoom/protocol"],
+      "systemAdapters": [
+        {
+          "path": "src/private-files.ts",
+          "apis": ["child_process", "fs", "fs/promises", "process.env"]
+        },
+        {
+          "path": "src/process-controller.ts",
+          "apis": ["child_process"]
+        },
+        {
+          "path": "src/processes.ts",
+          "apis": ["child_process", "process.env"]
+        },
+        {
+          "path": "src/resources.ts",
+          "apis": ["fs", "fs/promises"]
+        }
+      ],
+      "provides": [],
+      "consumes": []
+    },
+    {
+      "name": "models",
+      "package": "@scholoom/models",
+      "root": "packages/models",
+      "sourceRoot": "src",
+      "allows": ["@scholoom/platform", "@scholoom/protocol"],
+      "systemAdapters": [
+        {
+          "path": "src/config-store.ts",
+          "apis": ["fs", "fs/promises"]
+        },
+        {
+          "path": "src/credential-store.ts",
+          "apis": ["fs", "fs/promises", "process.env"]
+        },
+        {
+          "path": "src/execution-model.ts",
+          "apis": ["fetch"]
+        },
+        {
+          "path": "src/model-access.ts",
+          "apis": ["fetch"]
+        }
+      ],
+      "provides": [],
+      "consumes": []
+    },
+    {
+      "name": "library",
+      "package": "@scholoom/library",
+      "root": "packages/library",
+      "sourceRoot": "src",
+      "allows": ["@scholoom/platform", "@scholoom/protocol"],
+      "systemAdapters": [
+        { "path": "src/catalog.ts", "apis": ["fs/promises"] },
+        { "path": "src/material-files.ts", "apis": ["fs", "fs/promises"] },
+        { "path": "src/pdf-execution.ts", "apis": ["fs/promises", "module"] }
+      ],
+      "provides": [],
+      "consumes": ["project.checkRead", "project.material"]
+    },
+    {
+      "name": "projects",
+      "package": "@scholoom/projects",
+      "root": "packages/projects",
+      "sourceRoot": "src",
+      "allows": ["@scholoom/platform", "@scholoom/protocol"],
+      "systemAdapters": [
+        { "path": "src/store.ts", "apis": ["fs", "fs/promises"] },
+        { "path": "src/files.ts", "apis": ["fs", "fs/promises"] },
+        { "path": "src/directory-browser.ts", "apis": ["fs/promises", "os"] }
+      ],
+      "provides": ["project.checkRead", "project.material"],
+      "consumes": []
+    },
+    {
+      "name": "harness",
+      "package": "@scholoom/harness",
+      "root": "packages/harness",
+      "sourceRoot": "src",
+      "allows": [
+        "@scholoom/broker",
+        "@scholoom/models/execution",
+        "@scholoom/platform/node",
+        "@scholoom/protocol/core",
+        "@scholoom/protocol/execution",
+        "@scholoom/protocol/harness",
+        "@scholoom/protocol/models",
+        "@scholoom/protocol/projects",
+        "@scholoom/protocol/research",
+        "@scholoom/protocol/library",
+        "@scholoom/models"
+      ],
+      "systemAdapters": [
+        { "path": "src/checkpoint-files.ts", "apis": ["fs", "fs/promises"] },
+        { "path": "src/execution.ts", "apis": ["async_hooks"] },
+        { "path": "src/remote-agent.ts", "apis": ["async_hooks"] },
+        { "path": "src/runtime.ts", "apis": ["async_hooks", "fs/promises"] }
+      ],
+      "provides": [],
+      "consumes": [
+        "files.list",
+        "files.read",
+        "project.material",
+        "project.check",
+        "project.path",
+        "project.saveFile",
+        "research.methods",
+        "research.method",
+        "research.attempts",
+        "research.invoke",
+        "research.progress",
+        "library.check",
+        "library.list",
+        "library.get",
+        "library.ingest",
+        "library.batch",
+        "library.batches",
+        "library.resume",
+        "library.update",
+        "library.collections",
+        "library.saveCollection",
+        "library.history",
+        "library.attachments",
+        "library.readAttachment",
+        "library.pdfInfo",
+        "library.readPdfPage",
+        "library.importProjectFiles",
+        "library.readingRecords",
+        "library.readingRecord",
+        "library.readingHistory",
+        "library.saveReadingRecord",
+        "library.removeReadingRecord",
+        "projects.list",
+        "project.artifacts",
+        "project.linkArtifact",
+        "files.resolve",
+        "files.operation",
+        "files.mkdir",
+        "files.rename",
+        "files.trash",
+        "files.restore",
+        "files.trashList"
+      ]
+    },
+    {
+      "name": "research",
+      "package": "@scholoom/research",
+      "root": "packages/research",
+      "sourceRoot": "src",
+      "allows": [
+        "@scholoom/protocol/core",
+        "@scholoom/protocol/research",
+        "@scholoom/protocol/harness",
+        "@scholoom/protocol/projects",
+        "@scholoom/platform/node"
+      ],
+      "systemAdapters": [{ "path": "src/content.ts", "apis": ["fs/promises"] }],
+      "provides": [],
+      "consumes": [
+        "project.check",
+        "project.path",
+        "project.material",
+        "files.read",
+        "files.resolve",
+        "session.check",
+        "harness.execute"
+      ]
+    },
+    {
+      "name": "kernel",
+      "package": "@scholoom/kernel",
+      "root": "apps/kernel",
+      "sourceRoot": "src",
+      "allows": [
+        "@scholoom/harness/node",
+        "@scholoom/research/node",
+        "@scholoom/broker",
+        "@scholoom/client",
+        "@scholoom/library/node",
+        "@scholoom/models",
+        "@scholoom/platform",
+        "@scholoom/projects/node",
+        "@scholoom/protocol"
+      ],
+      "systemAdapters": [
+        {
+          "path": "src/application.ts",
+          "apis": ["fs/promises", "process.env"]
+        },
+        {
+          "path": "src/manual.ts",
+          "apis": ["fs"]
+        },
+        {
+          "path": "src/bootstrap.ts",
+          "apis": ["child_process", "process.env"]
+        },
+        {
+          "path": "src/cli.ts",
+          "apis": ["process.env"]
+        },
+        {
+          "path": "src/lifecycle.ts",
+          "apis": ["child_process", "fs", "fs/promises", "sqlite"]
+        },
+        {
+          "path": "src/server.ts",
+          "apis": ["http", "https", "net"]
+        },
+        {
+          "path": "src/storage/project-container.ts",
+          "apis": ["fs", "fs/promises"]
+        }
+      ],
+      "provides": [],
+      "consumes": ["models.status", "projects.list", "project.fileRevision", "harness.snapshot"]
+    },
+    {
+      "name": "desktop",
+      "package": "@scholoom/desktop",
+      "root": "apps/desktop",
+      "sourceRoot": "src",
+      "allows": ["@scholoom/client", "@scholoom/kernel", "@scholoom/protocol"],
+      "systemAdapters": [
+        {
+          "path": "src/main/**",
+          "apis": ["electron", "child_process", "fs", "fs/promises", "fetch", "process.env"]
+        },
+        {
+          "path": "src/preload/**",
+          "apis": ["electron"]
+        },
+        {
+          "path": "src/renderer/**",
+          "apis": ["fetch"]
+        }
+      ],
+      "provides": [],
+      "consumes": []
+    },
+    {
+      "name": "zotero-host",
+      "package": "@scholoom/zotero-host",
+      "root": "apps/zotero-host",
+      "sourceRoot": "src",
+      "allows": ["@scholoom/client", "@scholoom/protocol"],
+      "systemAdapters": [
+        {
+          "path": "src/main/**",
+          "apis": ["electron", "fs", "fs/promises", "process.env"]
+        },
+        {
+          "path": "src/renderer/**",
+          "apis": ["fetch"]
+        }
+      ],
+      "provides": [],
+      "consumes": []
+    }
+  ],
+  "system": {
+    "pure": [
+      "path",
+      "crypto",
+      "url",
+      "util",
+      "events",
+      "assert",
+      "buffer",
+      "stream",
+      "string_decoder",
+      "timers/promises"
+    ],
+    "specifiers": ["electron"],
+    "globals": ["fetch", "process.env"]
+  },
+  "exceptions": []
+}

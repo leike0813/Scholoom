@@ -8,31 +8,19 @@
 
 依据：[架构与客户端协议 #09](../../.scratch/scholoom-foundations/issues/09-electron-architecture.md#answer)、[生命周期 #23](../../.scratch/scholoom-foundations/issues/23-kernel-entry-and-lifecycle.md#answer)。
 
+跨模块 broker、内部通道、双向调用、版本与接口发现、操作等待策略沿[内部接口决议](../../.scratch/runtime-architecture/issues/06-internal-interfaces-and-ipc.md#answer)；以下共同领域及结果语义继续适用，具体声明和接线另以 OpenSpec 实施，不将初设视为已交付。
+
+对外 MCP 服务为已确认目标、尚未实施：stdio 与 Streamable HTTP（HTTP 默认回环，远程接入须明确配置 HTTPS）、默认关闭、按外部调用方逐方授权，含 Tasks 扩展并保留普通工具路径；范围沿[对外接口决议](../../.scratch/runtime-architecture/issues/07-external-interfaces-and-extensions.md#answer)，正式契约与接线由后续 OpenSpec 承接。
+
 ## Requirements
 
 ### Requirement: K-01 独立内核与单实例
 
-系统 SHALL 允许科研内核脱离可见工作台运行；同一应用数据配置由一个内核管理文献库及多个项目。GUI 和 CLI SHALL 共用发现与启动协调，状态查询和停止操作 SHALL 不创建内核。
-
-#### Scenario: 并发打开入口
-- **WHEN** GUI 与 CLI 同时请求连接同一尚未运行的数据配置
-- **THEN** 两者连接协调后启动的同一内核，不形成两个领域写入实例
-
-#### Scenario: 关闭工作台后继续
-- **WHEN** 已受理的工作正在执行而用户关闭工作台
-- **THEN** 内核继续执行；重新打开工作台可读取同一工作的实际进展、成果和待处理事项
+已转入[内核生命周期正式规格](../../openspec/specs/kernel-lifecycle/spec.md)的“共同配置与单实例”“明确停机与结果确认”及“调试内核归属与回收”；以正式规格区分普通关窗驻留与最后调试所有者退出回收。
 
 ### Requirement: K-02 连接与明确停机
 
-客户端 SHALL 区分断线、认证／协议不兼容、内核不可达和确认退出。断线可有界退避重连，存活但不可达时 SHALL 不替换实例；确认退出后由用户重试启动。明确停机 SHALL 说明所有客户端受影响，协调保存与退出，并阻止客户端自动拉起内核。
-
-#### Scenario: 内核不可达但存活
-- **WHEN** 客户端连接失败且不能确认内核退出
-- **THEN** 显示异常和重试入口，保留草稿与已显示内容，不创建替代实例或声称工作已停止
-
-#### Scenario: 停机响应丢失
-- **WHEN** 停机过程中连接中断或等待超时
-- **THEN** 返回无法确认的状态及查询入口，不把断线当作停机成功，也不自动重启内核
+已转入[内核生命周期正式规格](../../openspec/specs/kernel-lifecycle/spec.md)的“本机认证与共同协议”“有界恢复与界面保护”及“明确停机与结果确认”。版本、认证、草稿、重连和结果未知以该处要求及场景为准。
 
 ### Requirement: K-03 共同入口与操作结果
 

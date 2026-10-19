@@ -5,20 +5,20 @@ skinparam shadowing false
 skinparam componentStyle rectangle
 top to bottom direction
 component "工作台 / CLI\n共同协议入口" as Entry
-component "Scholoom 对外 MCP 入口\n候选：开放范围待定" as ExternalMCP
+component "Scholoom 对外 MCP 入口\nstdio / Streamable HTTP / Tasks" as ExternalMCP
 component "文献管理\nLiterature / Materials（库）" as Literature
 component "研究项目与研究资产\nWorkspaces / ResearchWork\nFiles / Decisions / Materials（项目）" as Work
 component "内置 LangGraph harness\n通用会话 / 科研执行" as Harness
 component "插件管理\n受管 MCP 能力" as PluginManager
 component "科研业务与内容\nResearchContent / CapabilityExecutor" as Content
-component "执行环境与沙箱\nManagedExecution / ModelCalls" as Runtime
+component "公共执行基础 / 模型接入\nManagedExecution / ModelCalls" as Runtime
 component "Zotero 兼容层\nZoteroHost / 写回适配" as Host
 Entry --> Literature : 查询 / 摄取 / 批注
 Entry --> Work : 工作区 / 编辑 / 正式答复
-Entry --> Harness : 执行 / 暂停 / 恢复 / 取消
-ExternalMCP ..> Literature : 受授权领域操作
-ExternalMCP ..> Work : 受授权领域操作
-ExternalMCP ..> Harness : 受管执行
+Entry --> Harness : 会话 / 发送消息 / 停止
+ExternalMCP --> Literature : 获授权查询
+ExternalMCP --> Work : 获授权查询
+ExternalMCP --> Harness : 提交 / 补充 / 请求撤回
 Harness --> PluginManager : 获授权工具 / 资源
 Harness --> Content : 解析定义 / 执行绑定
 Harness --> Work : 任务 / 工件 / 等待决定

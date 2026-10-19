@@ -1,3 +1,4 @@
+import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -5,6 +6,7 @@ import { join } from 'node:path';
 import { expect, test } from '@playwright/test';
 import { KernelApplication } from '../../apps/kernel/dist/application.js';
 import { startKernelServer } from '../../apps/kernel/dist/server.js';
+import { ToolMessage } from '../../apps/kernel/node_modules/@langchain/core/dist/messages/index.js';
 import { createKernelClient } from '../../packages/client/dist/index.js';
 import { protocolVersion } from '../../packages/protocol/dist/index.js';
 import { createModelServer } from '../model-server.js';
@@ -152,6 +154,60 @@ for (const parallel of [false, true]) {
   });
 }
 
+test('a malformed provider result after saving preserves unknown effects and never enters the graph', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'scholoom-tool-result-contract-'));
+  const model = await createModelServer();
+  const app = new KernelApplication(join(root, 'profile'), {
+    modelEndpoint: model.url,
+    environment: { MINIMAX_CN_API_KEY: 'synthetic' },
+  });
+  try {
+    await app.initialize();
+    const project = await app.projects.create(join(root, 'project'));
+    project.grant({ read: true, write: true, send: true, autoBackup: false });
+    await project.save('input.md', 'controlled evidence');
+    const save = project.save.bind(project);
+    let saves = 0;
+    project.save = async (...args) => {
+      const result = await save(...args);
+      if (args[0] === 'result.md') {
+        saves++;
+        return { ...result, path: { invalid_provider_marker: true } } as never;
+      }
+      return result;
+    };
+    const session = app.harness.create(project.project.id);
+    const scope = { projectId: project.project.id, sessionId: session.id };
+    const { runId } = await app.harness.send({
+      ...scope,
+      instructionId: randomUUID(),
+      text: 'MODEL_FIXTURE',
+      materials: [],
+    });
+    await expect.poll(async () => (await app.snapshot(scope)).run?.state).toBe('completed');
+    const snapshot = await app.snapshot(scope);
+    expect(snapshot.messages.find((message) => message.tool?.name === 'write_file')?.state).toBe(
+      'unknown',
+    );
+    expect(JSON.stringify(model.requests.at(-1)?.messages)).toContain('outcomeUnknown');
+    expect(JSON.stringify(model.requests.at(-1)?.messages)).not.toContain(
+      'invalid_provider_marker',
+    );
+    expect(await readFile(join(root, 'project', 'result.md'), 'utf8')).toContain('合成');
+    expect(saves).toBe(1);
+    const requests = model.requests.length;
+    expect(
+      await app.call('artifacts.reconcile', { ...scope, runId, paths: ['result.md'] }),
+    ).toContainEqual(expect.objectContaining({ path: 'result.md', state: 'linked' }));
+    expect(saves).toBe(1);
+    expect(model.requests).toHaveLength(requests);
+  } finally {
+    await app.close();
+    await model.close();
+    await rm(root, { recursive: true });
+  }
+});
+
 test('large tool previews are bounded without truncating the saved artifact', async () => {
   const root = await mkdtemp(join(tmpdir(), 'scholoom-tool-preview-'));
   const model = await createModelServer();
@@ -197,62 +253,113 @@ test('large tool previews are bounded without truncating the saved artifact', as
   }
 });
 
-test('cancelling an in-flight tool preserves unknown outcome across restart', async () => {
-  const root = await mkdtemp(join(tmpdir(), 'scholoom-tool-cancel-'));
-  const model = await createModelServer();
-  const options = { modelEndpoint: model.url, environment: { MINIMAX_CN_API_KEY: 'synthetic' } };
-  let app = new KernelApplication(join(root, 'profile'), options);
-  let release = () => {};
-  try {
-    await mkdir(join(root, 'project'));
-    await writeFile(join(root, 'project', 'input.md'), 'synthetic');
-    await app.initialize();
-    const project = await app.projects.open(join(root, 'project'));
-    project.grant({ read: true, write: true, send: true, autoBackup: false });
-    const original = project.read.bind(project);
-    const held = new Promise<void>((resolve) => {
-      release = resolve;
-    });
-    project.read = async (...args) => {
-      await held;
-      return original(...args);
-    };
-    const session = app.harness.create(project.project.id);
-    const scope = { projectId: project.project.id, sessionId: session.id };
-    await app.harness.send({
-      ...scope,
-      instructionId: randomUUID(),
-      text: 'MODEL_FIXTURE',
-      materials: [],
-    });
-    await expect
-      .poll(
-        async () =>
-          (await app.snapshot(scope)).messages.find((message) => message.tool?.name === 'read_file')
-            ?.state,
-      )
-      .toBe('streaming');
-    app.harness.cancel(scope.projectId, scope.sessionId);
-    release();
-    await expect.poll(async () => (await app.snapshot(scope)).run?.state).toBe('cancelled');
-    expect(
-      (await app.snapshot(scope)).messages.find((message) => message.tool?.name === 'read_file')
-        ?.state,
-    ).toBe('unknown');
-    await app.close();
-    app = new KernelApplication(join(root, 'profile'), options);
-    await app.initialize();
-    expect(
-      (await app.snapshot(scope)).messages.find((message) => message.tool?.name === 'read_file')
-        ?.state,
-    ).toBe('unknown');
-  } finally {
-    release();
-    await app.close();
-    await model.close();
-    await rm(root, { recursive: true });
-  }
-});
+for (const confirmed of [false, true]) {
+  test(`cancelling an in-flight tool preserves its receipt across restart (confirmed=${confirmed})`, async () => {
+    const root = await mkdtemp(join(tmpdir(), 'scholoom-tool-cancel-'));
+    const model = await createModelServer();
+    const options = { modelEndpoint: model.url, environment: { MINIMAX_CN_API_KEY: 'synthetic' } };
+    let app = new KernelApplication(join(root, 'profile'), options);
+    let release = () => {};
+    try {
+      await mkdir(join(root, 'project'));
+      await writeFile(join(root, 'project', 'input.md'), 'synthetic');
+      await app.initialize();
+      const project = await app.projects.open(join(root, 'project'));
+      project.grant({ read: true, write: true, send: true, autoBackup: false });
+      const original = project.read.bind(project);
+      const held = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      project.read = async (...args) => {
+        await held;
+        return original(...args);
+      };
+      const session = app.harness.create(project.project.id);
+      const scope = { projectId: project.project.id, sessionId: session.id };
+      await app.harness.send({
+        ...scope,
+        instructionId: randomUUID(),
+        text: 'MODEL_FIXTURE',
+        materials: [],
+      });
+      await expect
+        .poll(
+          async () =>
+            (await app.snapshot(scope)).messages.find(
+              (message) => message.tool?.name === 'read_file',
+            )?.state,
+        )
+        .toBe('streaming');
+      app.harness.cancel(scope.projectId, scope.sessionId);
+      release();
+      await expect.poll(async () => (await app.snapshot(scope)).run?.state).toBe('cancelled');
+      expect(
+        (await app.snapshot(scope)).messages.find((message) => message.tool?.name === 'read_file')
+          ?.state,
+      ).toBe('unknown');
+      if (confirmed) {
+        const receipt = (await app.snapshot(scope)).messages.find(
+          (message) => message.tool?.name === 'read_file',
+        );
+        assert(receipt?.tool);
+        const result = new ToolMessage({
+          tool_call_id: receipt.id.slice(`tool:${receipt.tool.runId}:`.length),
+          name: 'read_file',
+          content: 'confirmed_tool_result_73',
+        });
+        project.database
+          .prepare('UPDATE harness_meta SET value=? WHERE key=?')
+          .run(JSON.stringify({ result: result.toDict() }), receipt.id);
+      }
+      await app.close();
+      app = new KernelApplication(join(root, 'profile'), options);
+      await app.initialize();
+      expect(
+        (await app.snapshot(scope)).messages.find((message) => message.tool?.name === 'read_file')
+          ?.state,
+      ).toBe('unknown');
+      const previousRun = (await app.snapshot(scope)).run;
+      const accepted = await app.harness.send({
+        ...scope,
+        instructionId: randomUUID(),
+        text: 'MODEL_WITHDRAW_GOAL 撤回旧目标；不再写报告，仅确认最新要求。',
+        materials: [],
+      });
+      expect(accepted.runId).toBe(previousRun?.id);
+      await expect.poll(async () => (await app.snapshot(scope)).run?.state).toBe('completed');
+      const request = model.requests.at(-1);
+      expect(JSON.stringify(request?.messages)).toContain('MODEL_WITHDRAW_GOAL');
+      const blocks = (
+        (request?.messages ?? []) as {
+          content?: { type: string; id?: string; tool_use_id?: string }[];
+        }[]
+      ).flatMap((message) => (Array.isArray(message.content) ? message.content : []));
+      expect(blocks.filter((block) => block.type === 'tool_use').length).toBeGreaterThan(0);
+      expect(JSON.stringify(blocks.filter((block) => block.type === 'tool_result'))).toContain(
+        confirmed ? 'confirmed_tool_result_73' : 'outcomeUnknown',
+      );
+      expect(
+        blocks
+          .filter((block) => block.type === 'tool_result')
+          .map((block) => block.tool_use_id)
+          .sort(),
+      ).toEqual(
+        blocks
+          .filter((block) => block.type === 'tool_use')
+          .map((block) => block.id)
+          .sort(),
+      );
+      expect(
+        (await app.projects.get(scope.projectId).list()).entries.map((entry) => entry.path),
+      ).toEqual(['input.md']);
+    } finally {
+      release();
+      await app.close();
+      await model.close();
+      await rm(root, { recursive: true });
+    }
+  });
+}
 
 test('startup marks unfinished tool records unknown and retains confirmed results', async () => {
   const root = await mkdtemp(join(tmpdir(), 'scholoom-tool-interrupted-'));
@@ -347,7 +454,7 @@ test('accepted additions survive cancellation and checkpoint loss until explicit
     if (!material.fileId) throw new Error('Expected a registered material');
     const session = app.harness.create(projectId);
     model.hold = true;
-    await app.harness.send({
+    const firstReceipt = await app.harness.send({
       projectId,
       sessionId: session.id,
       instructionId: randomUUID(),
@@ -379,7 +486,10 @@ test('accepted additions survive cancellation and checkpoint loss until explicit
       )?.state,
     ).toBe('accepted');
     await app.close();
-    await writeFile(join(store.internal, 'checkpoints.sqlite'), 'damaged');
+    await writeFile(
+      join(store.internal, 'harness', 'checkpoints', `${firstReceipt.runId}.sqlite`),
+      'damaged',
+    );
     model.release();
     const priorRequests = model.requests.length;
     app = new KernelApplication(profile, {
@@ -389,7 +499,13 @@ test('accepted additions survive cancellation and checkpoint loss until explicit
     await app.initialize();
     expect((await app.snapshot({ projectId, sessionId: session.id })).run?.state).toBe('cancelled');
     expect(model.requests).toHaveLength(priorRequests);
-    app.harness.resume(projectId, session.id);
+    await app.harness.send({
+      projectId,
+      sessionId: session.id,
+      instructionId: randomUUID(),
+      text: 'MODEL_CHAT 核对材料后接续',
+      materials: [],
+    });
     await expect
       .poll(async () => (await app.snapshot({ projectId, sessionId: session.id })).run?.state, {
         timeout: 20000,
@@ -441,7 +557,7 @@ test('checkpoint fallback retains every unfinished instruction beyond the histor
     });
     await expect.poll(() => model.requests.length).toBe(1);
     const additions = Array.from(
-      { length: 40 },
+      { length: 120 },
       (_, i) => `requirement_${String(i).padStart(3, '0')}`,
     );
     for (const text of additions)
@@ -461,15 +577,35 @@ test('checkpoint fallback retains every unfinished instruction beyond the histor
           (await app.snapshot({ projectId: 'application', sessionId: session.id })).run?.state,
       )
       .toBe('cancelled');
+    const stoppedRun = (await app.snapshot({ projectId: 'application', sessionId: session.id }))
+      .run;
+    if (!stoppedRun) throw new Error('Expected the stopped attempt');
     await app.close();
-    await writeFile(join(profile, 'application', '.scholoom', 'checkpoints.sqlite'), 'damaged');
+    await writeFile(
+      join(
+        profile,
+        'application',
+        '.scholoom',
+        'harness',
+        'checkpoints',
+        `${stoppedRun.id}.sqlite`,
+      ),
+      'damaged',
+    );
     model.release();
     app = new KernelApplication(profile, {
       modelEndpoint: model.url,
       environment: { MINIMAX_CN_API_KEY: 'synthetic' },
     });
     await app.initialize();
-    app.harness.resume('application', session.id);
+    const requestsBeforeRecovery = model.requests.length;
+    await app.harness.send({
+      projectId: 'application',
+      sessionId: session.id,
+      instructionId: randomUUID(),
+      text: 'MODEL_CHAT 核对所有未完成指令后接续',
+      materials: [],
+    });
     await expect
       .poll(
         async () =>
@@ -477,8 +613,28 @@ test('checkpoint fallback retains every unfinished instruction beyond the histor
         { timeout: 20000 },
       )
       .toBe('completed');
-    const request = JSON.stringify(model.requests.at(-1)?.messages);
+    expect(
+      (await app.snapshot({ projectId: 'application', sessionId: session.id })).run?.attempt,
+    ).toBeGreaterThan(stoppedRun.attempt);
+    const request = JSON.stringify(
+      model.requests.slice(requestsBeforeRecovery).map((item) => item.messages),
+    );
     for (const text of additions) expect(request).toContain(text);
+    const history: string[] = [];
+    let before: string | undefined;
+    do {
+      const page = await app.snapshot({
+        projectId: 'application',
+        sessionId: session.id,
+        limit: 25,
+        ...(before ? { before } : {}),
+      });
+      history.push(
+        ...page.messages.filter((item) => item.role === 'user').map((item) => item.text),
+      );
+      before = page.nextBefore;
+    } while (before);
+    for (const text of additions) expect(history).toContain(text);
   } finally {
     await app.close();
     await model.close();
@@ -529,7 +685,9 @@ test('failed artifact registration keeps the saved file and reconcile links it o
         timeout: 20000,
       })
       .toContainEqual(expect.objectContaining(unknown));
-    expect((await app.snapshot({ projectId, sessionId })).run?.state).toBe('completed');
+    await expect
+      .poll(async () => (await app.snapshot({ projectId, sessionId })).run?.state)
+      .toBe('completed');
     expect(await readFile(join(root, 'project', 'result.md'), 'utf8')).toContain('合成样本');
 
     await app.close();

@@ -1,9 +1,10 @@
 import type { ExternalStoreAdapter, ThreadMessageLike } from '@assistant-ui/react';
 import type { KernelClient } from '@scholoom/client';
 import type {
-  BusinessMethod,
+  BusinessInputs,
+  BusinessOutputs,
   BusinessParams,
-  BusinessResult,
+  CallArguments,
   Effort,
   LibraryAttachment,
   Message,
@@ -224,14 +225,11 @@ export function useBusinessSession(
   }, [directory, recovered, snapshot]);
 
   const call = useCallback(
-    async <M extends BusinessMethod>(
-      method: M,
-      params: BusinessParams<M>,
-    ): Promise<BusinessResult<M>> => {
+    async <A extends CallArguments<BusinessInputs>>(...args: A): Promise<BusinessOutputs[A[0]]> => {
       if (!client || phase !== 'connected') throw new Error('内核未连接。');
       try {
         setError('');
-        const result = await client.call(method, params);
+        const result = await client.call<A>(...args);
         await refresh();
         return result;
       } catch (reason) {

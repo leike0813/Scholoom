@@ -5,6 +5,7 @@
       "apps/**",
       "packages/**",
       "tests/**",
+      "scripts/**",
       "*.json",
       "*.ts",
       "!**/dist",

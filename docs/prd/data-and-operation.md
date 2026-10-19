@@ -52,6 +52,8 @@ Agent 在提出方案、完成分析、改变条件或明确下一步时，通�
 
 checkpoint 可用且兼容时核对当前事实和授权后恢复；不可用时保留旧记录，从持久材料开启新执行尝试，接续原工作，不要求还原完整会话上下文或图节点。普通会话也可沿已保存指令、材料和执行记录接续，不自动创建任务；未处理指令及协作消息保留可查询状态，效果未知的操作先核查，用户暂停或取消的工作不自动启动。
 
+会话可随项目保存、用完即弃，工作推进不以备份或永久保留会话为前提；用户通过发送消息推进工作。操作核查复用所属模块已有状态与实际成果，不另建通用工具调用台账。后台结果由 Agent 判断后续，必要工作或操作安全记录无法保存时停止依赖它的新操作，独立工作可继续。完整边界见[持久化与恢复决议](../../.scratch/runtime-architecture/issues/04-execution-persistence-and-recovery.md#answer)。
+
 产物关联允许部分成功，保留已保存文件与已确认关联，逐项说明缺项或未知结果；重试补齐且不重复登记。部分产物可用不代表整个任务完成。依据 [harness 协作契约](../../.scratch/scholoom-foundations/issues/25-harness-business-integration.md#持续保存分批交付与恢复)。
 
 依据：[续做与复用场景](../../.scratch/scholoom-foundations/issues/29-research-continuation-and-reuse.md#answer)、[工作区承接](../../.scratch/scholoom-foundations/issues/35-research-workspace-context.md#answer)、[harness 协作](../../.scratch/scholoom-foundations/issues/25-harness-business-integration.md#answer)。
@@ -101,6 +103,12 @@ checkpoint 可用且兼容时核对当前事实和授权后恢复；不可用时
 程序执行时限与工具请求等待分别表达。短命令有有限默认时限，长计算按任务配置可在受管后台运行；没有日志不自动判定卡死。请求等待结束不等于后台计算失败。程序实际超时按取消路径收尾，初值随真实工具验证。
 
 依据：[模型政策](../../.scratch/scholoom-foundations/issues/22-model-data-and-execution-policy.md#answer)、[科研执行](../../.scratch/scholoom-foundations/issues/40-research-execution-environment.md#answer)。
+
+## 本机与远程运行
+
+支持全部本机运行，以及本机工作台经 SSH 接入远端完整环境；远端文献库、项目、Agent、模型配置与凭据均在工作机，不自动复制本机库或同步两端目录。用户仍通过同一工作台编辑、阅读和发送消息，材料通过明确上传／导入或下载／导出传递，传输与模型外发分别遵守已有授权。
+
+工作台负责远端准备与连接，复用客户机 SSH 配置和登录凭据；远端组件限当前用户目录，兼容时复用，升级由用户选择时机并保护已有工作。断线保留已打开内容和本机草稿，不显示为远端已保存，也不自动积攒新指令或修改等待重连执行；重连先核查实际状态、未知请求与当前文件。具体边界及组件下载回退沿[远程部署决议](../../.scratch/runtime-architecture/issues/05-local-and-remote-deployment.md#answer)。
 
 ## 生命周期、取消与恢复
 

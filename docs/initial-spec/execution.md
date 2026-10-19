@@ -6,7 +6,7 @@
 
 定义 Agent、模型调用、科研程序和插件工具在有效授权及资源限制下的执行行为，区分本地读取与外部发送、请求等待与实际运行、取消受理与停止确认，并在失败恢复时保护已经产生的成果和用户环境。
 
-依据：[执行路线 #07](../../.scratch/scholoom-foundations/issues/07-agent-runtime-boundaries.md#answer)、[配置政策 #22](../../.scratch/scholoom-foundations/issues/22-model-data-and-execution-policy.md#answer)、[执行环境 #40](../../.scratch/scholoom-foundations/issues/40-research-execution-environment.md#answer)。
+依据：[执行路线 #07](../../.scratch/scholoom-foundations/issues/07-agent-runtime-boundaries.md#answer)、[配置政策 #22](../../.scratch/scholoom-foundations/issues/22-model-data-and-execution-policy.md#answer)、[执行环境 #40](../../.scratch/scholoom-foundations/issues/40-research-execution-environment.md#answer)；进程部署、监督及故障范围沿[进程决议](../../.scratch/runtime-architecture/issues/03-session-execution-processes.md#answer)。
 
 ## Requirements
 

@@ -10,7 +10,7 @@ Electron 工作台、CLI 和浏览器开发入口采用共同客户端，经本�
 
 任务及会话身份独立于连接和请求编号。重连读取当前状态和待处理事项，恢复有界订阅，覆盖读取到接入之间的变化；不预设全量事件回放。多客户端介入答复由内核校验并只应用一次；stdio 按具体需求扩展。
 
-执行统一使用内置 LangGraph／LangChain／Deep Agents，不支持 ACP 外部 Agent 或第三方 harness 接入。harness 消费的 MCP 能力由插件声明、宿主管理配置、生命周期及授权，不提供任意 MCP 服务的独立配置入口；插件可沿原生领域、图和 UI 接口扩展，不强制使用 MCP。插件内部执行的取消、恢复和副作用按其实际契约处理。Scholoom 自身对外提供 MCP 服务是独立候选，是否提供及开放范围待定，若采用仍复用共同领域权威与内置执行。依据 [#07](../../.scratch/scholoom-foundations/issues/07-agent-runtime-boundaries.md#answer)。
+执行统一使用内置 LangGraph／LangChain／Deep Agents，不支持 ACP 外部 Agent 或第三方 harness 接入。harness 消费的 MCP 能力由插件声明、宿主管理配置、生命周期及授权，不提供任意 MCP 服务的独立配置入口；插件可沿原生领域、图和 UI 接口扩展，不强制使用 MCP。插件内部执行的取消、恢复和副作用按其实际契约处理。Scholoom 自身对外提供 MCP 服务已采纳：首批开放获授权的查询，以及提交工作请求、为自发起请求补充信息与请求撤回；支持 stdio 与 Streamable HTTP（含 Tasks 扩展，保留普通工具路径），默认关闭、按外部调用方逐方授权，远程接入须明确配置 HTTPS，复用共同领域权威与内置执行。A2A 本阶段不提供，待出现明确实际对接需求后再增加适配；目标尚未实施，接线与正式契约由后续 OpenSpec 承接。依据 [#07](../../.scratch/scholoom-foundations/issues/07-agent-runtime-boundaries.md#answer)、[对外接口决议](../../.scratch/runtime-architecture/issues/07-external-interfaces-and-extensions.md#answer)。
 
 | 执行对象 | 已选分工 |
 | --- | --- |
@@ -107,6 +107,8 @@ PRD 维护宏观产品设计；地图与票保留选择、理由和证据；CONT
 开发构建用于迭代，预览版明确验收过的功能、平台和限制，使用隔离样本验证。稳定版需要完整科研流程及真实科研效果通过；首个稳定版完成 Windows、macOS、Linux 三平台实际分发包验收，Linux 作为主要开发和日用验证平台。
 
 每个声称支持的系统检查实际安装后启动、独立 Node 和原生模块、兼容宿主、路径、阅读渲染工具及关键生命周期。构建成功不代替分发包验收；具体系统版本、CPU 架构、签名、公证和安装格式按实际发布条件落实，凭据及费用另行授权。
+
+[SSH 远程部署](../../.scratch/runtime-architecture/issues/05-local-and-remote-deployment.md#answer)以 Windows／macOS／Linux 为目标，优先验证 Linux。远端核心支持无桌面服务器，插件的依赖与显示条件分别验收，局部不可用不阻止其他工作。发布验证包含真实远端用户目录安装、目标运行包、下载失败后的本机传包、受限网络、断线草稿及未知请求核查、共享内核的择时升级；本机通过不代表远端已通过，运行组件可取得也不代表所有科研依赖可离线使用。
 
 Schema 升级、迁入和批量高影响变更先在副本或样本核对结果及恢复，保护源材料和必要备份，检查用户编辑及关联。备份实际恢复后核验，应用回退与数据恢复分别处理，保护升级后的新成果。
 

@@ -125,10 +125,22 @@ test('project files share draft preview and survive directory rename, trash and 
     const inputLatency = await uiPage.evaluate(
       () => Reflect.get(globalThis, 'previewInputLatency') as number,
     );
-    const cancelStart = Date.now();
+    const executionStatus = uiPage.getByRole('status', { name: '执行状态' });
+    await executionStatus.evaluate((element) => {
+      const started = performance.now();
+      const Observer = Reflect.get(globalThis, 'MutationObserver');
+      const observer = new Observer(() => {
+        if (!element.textContent?.includes('已取消')) return;
+        Reflect.set(globalThis, 'previewCancelLatency', performance.now() - started);
+        observer.disconnect();
+      });
+      observer.observe(element, { childList: true, characterData: true, subtree: true });
+    });
     await uiPage.getByRole('button', { name: '取消执行', exact: true }).click();
-    await expect(uiPage.getByRole('status', { name: '执行状态' })).toContainText('已取消');
-    const cancelLatency = Date.now() - cancelStart;
+    await expect(executionStatus).toContainText('已取消');
+    const cancelLatency = await uiPage.evaluate(
+      () => Reflect.get(globalThis, 'previewCancelLatency') as number,
+    );
     expect(inputLatency).toBeLessThan(1000);
     expect(cancelLatency).toBeLessThan(1000);
     const latencyPath = info.outputPath('preview-latency.json');

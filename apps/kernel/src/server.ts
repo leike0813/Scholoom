@@ -1,11 +1,12 @@
 import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { createServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
+import { RpcPeer } from '@scholoom/broker/rpc';
 import {
   type BusinessParams,
   type ErrorInfo,
   isAuthentication,
-  isBusinessMethod,
+  isBusinessCall,
   isDevelopmentAttach,
   isJsonRpcNotification,
   isJsonRpcRequest,
@@ -15,19 +16,19 @@ import {
   type KernelStatus,
   limits,
   protocolVersion,
-  validateBusiness,
 } from '@scholoom/protocol';
 import { type WebSocket, WebSocketServer } from 'ws';
 import type { KernelApplication } from './application.js';
-import { failure } from './errors.js';
+import { OperationError } from './errors.js';
 
 export async function startKernelServer(
   initialStatus: KernelStatus,
   onStopping: () => Promise<void>,
-  application?: KernelApplication,
+  application?: Pick<KernelApplication, 'call' | 'subscribe'> &
+    Partial<Pick<KernelApplication, 'available'>>,
   development = false,
 ) {
-  let status = initialStatus;
+  let status: KernelStatus = { ...initialStatus, capabilities: application?.available?.() ?? [] };
   const token = randomBytes(32).toString('hex');
   const http = createServer((_request, response) => {
     response.writeHead(404).end();
@@ -142,6 +143,82 @@ export async function startKernelServer(
     let latestRevision = 0;
     let sessionsChanged = false;
     let libraryChanged = false;
+    const peer = new RpcPeer(
+      {
+        send: (frame) =>
+          new Promise<void>((resolve, reject) => {
+            if (socket.readyState !== 1 || socket.bufferedAmount > limits.frameBytes) {
+              reject(new OperationError('unavailable', '连接积压或已关闭。'));
+              return;
+            }
+            socket.send(frame, (reason) => {
+              if (reason) reject(reason);
+              else resolve();
+            });
+          }),
+      },
+      {
+        control: (method) => method.startsWith('kernel.'),
+        request: async (method, params) => {
+          if (method === 'kernel.status') {
+            if (
+              params !== undefined &&
+              (!params ||
+                typeof params !== 'object' ||
+                Array.isArray(params) ||
+                Object.keys(params).length)
+            )
+              throw new OperationError('invalidRequest', 'Status takes no parameters.');
+            return status;
+          }
+          if (method === 'kernel.development.attach') {
+            if (!isDevelopmentAttach(params))
+              throw new OperationError('invalidRequest', 'Invalid attach parameters.');
+            if (!development)
+              throw new OperationError(
+                'permissionDenied',
+                'Configuration belongs to an independent kernel.',
+              );
+            if (status.state !== 'running')
+              throw new OperationError('shuttingDown', 'Kernel is stopping.');
+            owners.add(socket);
+            clearTimeout(ownerDeadline);
+            return status;
+          }
+          if (method === 'kernel.shutdown') {
+            if (!isShutdown(params))
+              throw new OperationError('invalidRequest', 'Invalid shutdown parameters.');
+            if (params.instanceId !== status.instanceId)
+              throw new OperationError('instanceMismatch', 'Kernel instance does not match.');
+            if (status.state === 'stopping')
+              throw new OperationError('shuttingDown', 'Kernel is stopping.');
+            status = { ...status, state: 'stopping' };
+            setImmediate(stopDevelopment);
+            return { instanceId: status.instanceId, state: 'stopping' };
+          }
+          if (!application) throw new OperationError('invalidRequest', 'Unknown method.');
+          if (status.state === 'stopping')
+            throw new OperationError('shuttingDown', 'Kernel is stopping.');
+          const args: readonly [string, unknown] = [method, params];
+          if (!isBusinessCall(args))
+            throw new OperationError('invalidRequest', 'Invalid operation parameters.');
+          if (args[0] === 'workbench.watch') {
+            const next = args[1];
+            if (
+              scope?.projectId !== next.projectId ||
+              (scope?.sessionId !== next.sessionId && !sessionsChanged)
+            ) {
+              clearTimeout(changeTimer);
+              changeTimer = undefined;
+              sessionsChanged = false;
+            }
+            scope = next;
+          }
+          return application.call(...args);
+        },
+        invalid: () => socket.close(1008, 'Invalid RPC'),
+      },
+    );
     const flushChange = () => {
       changeTimer = undefined;
       if (!scope || socket.readyState !== 1) return;
@@ -182,6 +259,7 @@ export async function startKernelServer(
       changeTimer ??= setTimeout(flushChange, 50);
     });
     socket.on('close', () => {
+      peer.close();
       clearTimeout(timeout);
       clearTimeout(changeTimer);
       unsubscribe?.();
@@ -195,6 +273,10 @@ export async function startKernelServer(
         message = JSON.parse(bytes.toString());
       } catch {
         error(null, -32700, 'invalidRequest', 'Invalid JSON message.');
+        return;
+      }
+      if (authenticated.has(socket)) {
+        peer.receive(bytes.toString());
         return;
       }
       if (!isJsonRpcRequest(message)) {
@@ -228,84 +310,8 @@ export async function startKernelServer(
         clearTimeout(timeout);
         authenticated.add(socket);
         reply(message, status);
-      } else if (message.method === 'kernel.status') {
-        if (message.params !== undefined && Object.keys(message.params).length !== 0) {
-          error(message.id, -32602, 'invalidRequest', 'Status takes no parameters.');
-          return;
-        }
-        reply(message, status);
-      } else if (message.method === 'kernel.development.attach') {
-        if (!isDevelopmentAttach(message.params)) {
-          error(message.id, -32602, 'invalidRequest', 'Development attach takes no parameters.');
-        } else if (!development) {
-          error(
-            message.id,
-            -32010,
-            'permissionDenied',
-            'Configuration belongs to an independent kernel.',
-          );
-        } else if (status.state !== 'running') {
-          error(message.id, -32004, 'shuttingDown', 'Kernel is stopping.');
-        } else {
-          owners.add(socket);
-          clearTimeout(ownerDeadline);
-          reply(message, status);
-        }
-      } else if (message.method === 'kernel.shutdown') {
-        if (!isShutdown(message.params)) {
-          error(message.id, -32602, 'invalidRequest', 'Invalid shutdown parameters.');
-        } else if (message.params.instanceId !== status.instanceId) {
-          error(message.id, -32003, 'instanceMismatch', 'Kernel instance does not match.');
-        } else if (status.state === 'stopping') {
-          error(message.id, -32004, 'shuttingDown', 'Kernel is stopping.');
-        } else {
-          status = { ...status, state: 'stopping' };
-          reply(message, { instanceId: status.instanceId, state: 'stopping' }, () => {
-            void stop().catch(() => {
-              console.error(
-                JSON.stringify({ code: 'outcomeUnknown', message: 'Kernel cleanup failed.' }),
-              );
-              process.exitCode = 1;
-            });
-          });
-        }
-      } else if (application && isBusinessMethod(message.method)) {
-        const method = message.method;
-        if (status.state === 'stopping') {
-          error(message.id, -32004, 'shuttingDown', 'Kernel is stopping.');
-          return;
-        }
-        if (!validateBusiness(method, 'params', message.params)) {
-          error(message.id, -32602, 'invalidRequest', 'Invalid operation parameters.');
-          return;
-        }
-        if (method === 'workbench.watch') {
-          const next = message.params as BusinessParams<'workbench.watch'>;
-          if (
-            scope?.projectId !== next.projectId ||
-            (scope?.sessionId !== next.sessionId && !sessionsChanged)
-          ) {
-            clearTimeout(changeTimer);
-            changeTimer = undefined;
-            sessionsChanged = false;
-          }
-          scope = next;
-        }
-        void application
-          .call(method, message.params)
-          .then((result) => {
-            if (!validateBusiness(method, 'result', result)) {
-              error(message.id, -32603, 'unavailable', 'Operation result could not be validated.');
-              return;
-            }
-            reply(message, result);
-          })
-          .catch((reason) => {
-            const info = failure(reason);
-            error(message.id, -32010, info.code, info.message);
-          });
       } else {
-        error(message.id, -32601, 'invalidRequest', 'Unknown method.');
+        peer.receive(bytes.toString());
       }
     });
   });

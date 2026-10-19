@@ -21,14 +21,14 @@ Scholoom 后续按哪些逻辑模块继续讨论，各模块分别承担哪些�
 | 模块 | 职责 |
 | --- | --- |
 | 文献管理 | 题录、集合、附件、批注、导入、检索、去重与文献身份，承担 Zotero 的位置 |
-| 内置 Agent harness | Agent、会话、持续任务、上下文、委派、工具调用、授权、人类介入与执行恢复 |
+| 内置 Agent harness | Agent、会话、通用执行、上下文、委派、工具调用、工具与委派范围限制、人类介入及恢复；领域最终授权沿[模块依赖决议](../../runtime-architecture/issues/01-module-dependencies-and-authority.md#answer) |
 | 工作台界面 | 编辑器、阅读器、Agent interface、资源导航、任务观察与产物审查 |
 | 科研业务与内容 | 内置 Skill、科研能力声明、workflow，以及具体科研方法与交付要求 |
-| 执行环境与沙箱 | 程序与工具的受管执行、环境供给、资源限制、取消及隔离，作为 harness 的子系统 |
+| 执行环境与沙箱 | 程序与工具的受管执行、环境供给、资源限制、取消及隔离；公共基础与 Agent 监督的关系沿[模块依赖决议](../../runtime-architecture/issues/01-module-dependencies-and-authority.md#answer) |
 | Zotero 插件兼容层 | 插件装载、宿主契约、DOM／Workers、插件状态及向原生文献服务的适配 |
 | 研究项目与研究资产 | 项目、研究材料、证据与主张关系、稿件、审稿问题及正式研究决定的管理 |
 
-七项是逻辑模块，不要求七个进程或七个包。既有集中 Node 内核、共同客户端协议、独立插件宿主及受管执行部署继续有效。模块内部分工和具体接口仍需逐项讨论。
+七项是逻辑职责，不机械对应七个进程或包。包隔离、模块调用与宿主装配以[模块依赖决议](../../runtime-architecture/issues/01-module-dependencies-and-authority.md#answer)为准；进程部署与监督沿[进程决议](../../runtime-architecture/issues/03-session-execution-processes.md#answer)，共同客户端与独立插件宿主保持原有职责。
 
 ### 领域归属与共同权威
 
@@ -42,7 +42,7 @@ Scholoom 后续按哪些逻辑模块继续讨论，各模块分别承担哪些�
 
 ### 执行环境与沙箱
 
-执行环境是 harness 的子系统，并保有明确接口，接受受管执行请求并返回执行状态与产物；科研任务是否完成由上层判断。
+执行能力面向人和 Agent 提供共同接口，接受受管执行请求并返回状态与产物；公共执行基础独立于 harness，平台提供进程机制，harness 承担 Agent 监督。具体进程、归属及收尾沿[进程决议](../../runtime-architecture/issues/03-session-execution-processes.md#answer)。科研任务是否完成仍由科研交付要求判断。
 
 资源约束与安全隔离强度分别表达。首阶段仍沿[架构票](09-electron-architecture.md)的可信代码执行决定，强隔离若要加入，需单独讨论。本票没有新增任意代码安全隔离承诺。
 

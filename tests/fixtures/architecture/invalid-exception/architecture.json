@@ -1,0 +1,27 @@
+{
+  "modules": [
+    {
+      "name": "alpha",
+      "package": "@fixture/alpha",
+      "root": "alpha",
+      "allows": [],
+      "systemAdapters": [],
+      "provides": [],
+      "consumes": []
+    }
+  ],
+  "system": {
+    "pure": ["node:path"],
+    "globals": ["fetch"],
+    "specifiers": ["electron"]
+  },
+  "exceptions": [
+    {
+      "module": "alpha",
+      "path": "**",
+      "reason": "silence the guard for the whole module",
+      "removal": "task 8.1"
+    },
+    { "module": "alpha", "path": "src/store/**", "reason": "storage adapter not migrated yet" }
+  ]
+}

@@ -2,13 +2,15 @@ import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
 import { once } from 'node:events';
-import { copyFile, mkdtemp, readFile, rename, rm, writeFile } from 'node:fs/promises';
+import { copyFile, lstat, mkdtemp, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, test } from '@playwright/test';
-import { LiteratureCatalog } from '../../apps/kernel/dist/literature/catalog.js';
+import { LiteratureCatalog } from '../../packages/library/dist/node.js';
+import { fileFingerprint } from '../../packages/platform/dist/node.js';
+import type { ProjectMaterialPort } from '../../packages/protocol/dist/projects.js';
 
 async function fixture() {
   const root = await mkdtemp(join(tmpdir(), 'scholoom-attachments-'));
@@ -247,18 +249,12 @@ test('v1 migration preserves identities and old receipts while clearing expanded
   const Database = require('better-sqlite3');
   const database = new Database(join(profile, 'library', 'library.sqlite'));
   const originalSql = await readFile(
-    new URL(
-      '../../apps/kernel/src/storage/library-migrations/0000_strange_micromacro.sql',
-      import.meta.url,
-    ),
+    new URL('../../packages/library/src/migrations/0000_strange_micromacro.sql', import.meta.url),
     'utf8',
   );
   const journal = JSON.parse(
     await readFile(
-      new URL(
-        '../../apps/kernel/src/storage/library-migrations/meta/_journal.json',
-        import.meta.url,
-      ),
+      new URL('../../packages/library/src/migrations/meta/_journal.json', import.meta.url),
       'utf8',
     ),
   );
@@ -365,9 +361,7 @@ test('process termination preserves committed attachments and resume handles onl
   const path = join(root, 'input.bin'),
     profile = join(root, 'profile');
   await writeFile(path, Buffer.alloc(256 * 1024, 42));
-  const module = fileURLToPath(
-    new URL('../../apps/kernel/dist/literature/catalog.js', import.meta.url),
-  );
+  const module = fileURLToPath(new URL('../../packages/library/dist/node.js', import.meta.url));
   const code = `const {LiteratureCatalog}=await import(process.argv[1]);
     let sent=false;const catalog=new LiteratureCatalog(process.argv[2],()=>{
       let batch;try{batch=catalog.batch({batchId:'crash'}).batch;}catch{return;}
@@ -426,17 +420,23 @@ test('revocation during project file preparation leaves a pending receipt for ex
   await writeFile(path, 'authorized material\n');
   let permitted = true,
     revokeInPath = true;
-  const access = {
-    check: () => {
+  const access: ProjectMaterialPort = {
+    'project.checkRead': async () => {
       if (!permitted)
         throw Object.assign(new Error('permission revoked'), { code: 'permissionDenied' });
+      return { ok: true };
     },
-    path: async () => {
+    'project.material': async () => {
       if (revokeInPath) {
         revokeInPath = false;
         permitted = false;
       }
-      return path;
+      return {
+        projectId: 'project',
+        fileId: 'source',
+        nativePath: path,
+        basis: fileFingerprint(await lstat(path, { bigint: true })),
+      };
     },
   };
   let catalog = new LiteratureCatalog(profile, () => {}, access);
@@ -451,7 +451,7 @@ test('revocation during project file preparation leaves a pending receipt for ex
       version: 'unspecified',
       origin: 'synthetic',
     };
-    catalog.importProjectFiles(input);
+    await catalog.importProjectFiles(input);
     await expect
       .poll(() => catalog.batch({ batchId: input.batchId }).batch.state)
       .toBe('interrupted');
@@ -486,9 +486,7 @@ test('complete material awaiting publication survives a crash without adopting c
   const profile = join(root, 'profile'),
     path = join(root, 'input.txt');
   await writeFile(path, 'material A\n');
-  const module = fileURLToPath(
-    new URL('../../apps/kernel/dist/literature/catalog.js', import.meta.url),
-  );
+  const module = fileURLToPath(new URL('../../packages/library/dist/node.js', import.meta.url));
   const code = `import fs from 'node:fs/promises';import {syncBuiltinESMExports} from 'node:module';
     fs.link=async()=>{setInterval(()=>{},1000);process.send('ready');await new Promise(()=>{});};syncBuiltinESMExports();
     const {LiteratureCatalog}=await import(process.argv[1]);const catalog=new LiteratureCatalog(process.argv[2],()=>{});
