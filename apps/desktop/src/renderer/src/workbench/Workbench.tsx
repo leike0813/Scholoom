@@ -19,6 +19,7 @@ import { AgentOverlay } from './shell/AgentOverlay';
 import { AuxiliaryPane, AuxiliaryRail } from './shell/AuxiliaryPane';
 import { PaneHandle } from './shell/PaneHandle';
 import { type TabGroupState, TabGroups, type TabItem } from './shell/TabGroups';
+import './library/library.css';
 
 const THEME_ORDER: readonly ThemeMode[] = ['system', 'light', 'dark'];
 

@@ -1,3 +1,7 @@
+/**
+ * 文献库面板 - 保留旧接口，内部委托给新的 LibraryTab
+ * 旧的大量状态管理逻辑将在后续 Phase 中逐步迁移到新组件
+ */
 import type { KernelClient } from '@scholoom/client';
 import type {
   CslMetadata,
@@ -9,6 +13,7 @@ import type {
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AttachmentImport, AttachmentsPanel } from './AttachmentsPanel';
 import { draftKey, readDraft, writeDraft } from './drafts';
+import { LibraryTab } from './library/LibraryTab';
 
 const PAGE = 25;
 /** 与协议 library.ingest.json 的上限一致；按字节核对多字节文本。 */
@@ -90,6 +95,14 @@ export function LibraryPanel({
   enabled: boolean;
   onOpenPdf?: (material: LibraryAttachment) => void;
 }) {
+  // Phase 1: 使用新的 LibraryTab，旧逻辑暂时保留但不渲染
+  const useNewUI = true;
+
+  if (useNewUI) {
+    return <LibraryTab client={client} enabled={enabled} onOpenPdf={onOpenPdf} />;
+  }
+
+  // 以下是旧UI逻辑（保留作为回退）
   const directory = client.getSnapshot().status?.dataDirectory ?? '';
   const [revision, setRevision] = useState(0);
   const [error, setError] = useState('');

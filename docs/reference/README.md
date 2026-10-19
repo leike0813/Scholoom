@@ -9,14 +9,16 @@
 | [`codex-atlas-specs.md`](codex-atlas-specs.md) | 图册实测规格（视觉） | `references/Codex-UI-Reference-Atlas.pdf` 每页只有散文观察，缺色值、尺寸、间距与状态矩阵。本文把 16 张官方素材逐张量成数值，并汇总语义色对照、尺寸阶梯、层级可读性与缺口清单 |
 | [`paseo-ui-patterns.md`](paseo-ui-patterns.md) | 外部前端做法（视觉层） | `references/paseo` 的 token 体系与几何常量成熟但读码成本高。本文整理字面量、控件几何、交互契约常量、可迁移做法与不可直接迁移的 RN 专有做法 |
 | [`paseo-ux-patterns.md`](paseo-ux-patterns.md) | 外部前端做法（UX 层） | 同上源码的另一半：**功能怎么组织、用户点了会发生什么**。信息架构、面板与命令的注册模型、会话与 turn 的状态机、控件按压与弹层行为、快捷键体系、错误与空态的多层表达，最后收敛成一份跨切片的差距总表 |
+| [`zotero-ui-patterns.md`](zotero-ui-patterns.md) | 外部文献库做法（视觉 + UX） | Zotero 的调色板/间距/行高实测值、三栏与面板的布局契约、虚拟化与列契约、section 懒渲染、命令与菜单三层、图标体系、a11y 与 RTL 规则 |
 
-三份的关系：**图册给数值，paseo 给组织方式与交互行为。** 图册提供本项目色值与尺寸的实测参照，
-paseo 提供单一来源、派生规则、注册表、状态推导这类结构性做法。
+四份的关系：**图册给数值，paseo 给组织方式与交互行为，Zotero 给文献库场景下的取值与契约。**
+图册提供本项目色值与尺寸的实测参照，paseo 提供单一来源、派生规则、注册表、状态推导这类结构性做法，
+Zotero 提供三栏骨架、令牌派生、虚拟化行高公式、命令/菜单三层这些在文献库场景里已被验证的取值与契约。
 它们都不替代现有事实源——颜色仍以 `apps/desktop/src/renderer/src/styles.css` 为准，
 结构决策仍以 [`docs/ui-design/README.md`](../ui-design/README.md) 为准。
 
 同目录之外，本项目已有的设计依据不在此重复：视觉与布局的唯一事实源是
-[`docs/ui-design/README.md`](../ui-design/README.md)，本文三份只被它引用。
+[`docs/ui-design/README.md`](../ui-design/README.md)，本文四份只被它引用。
 
 ## 为什么 UX 只做 paseo，不做 Codex
 
@@ -34,6 +36,11 @@ paseo 提供单一来源、派生规则、注册表、状态推导这类结构�
   （原生分辨率 1919×1145 至 8192×4608 不等）。采集 2026-10-14。第 1 页封面与第 2 页引用同一图像对象。
 - **`references/paseo`** — git submodule，commit `5c2a155`。渲染层 React Native + Expo，样式走
   `react-native-unistyles` v3；桌面主进程 `tsc` 直编译。
+- **本机 Zotero `9.0.4`** — `/usr/lib/zotero/app/omni.ja`，BuildID `20260522150903`。
+  [`zotero-ui-patterns.md`](zotero-ui-patterns.md) 按归档成员路径（`chrome/content/zotero/…`、
+  `chrome/skin/default/…`）复核 DOM id 与编译后取值。
+- **Zotero 源码检出** — `/home/joshua/Workspace/Code/JavaScript/zotero`，commit `2cdc2cc`
+  （`version` 文件 `11.0.SOURCE`，比安装版新，行号级引用一律按此 commit）。
 
 ## 复核方法
 
@@ -46,6 +53,8 @@ paseo 提供单一来源、派生规则、注册表、状态推导这类结构�
   逐条 `read` 核对 `路径:行号` 引用、行号漂移时按符号名改写。
 - [`paseo-ux-patterns.md` 附录](paseo-ux-patterns.md#附录复核方法) — 先看文件规模再决定读哪些，
   并附本项目现状的核对命令（键盘监听分布、ARIA 分布、缺失能力检索）。
+- [`zotero-ui-patterns.md` 附录](zotero-ui-patterns.md#附录复核方法) — `unzip -l` / `unzip -p` 列举与字面量检索归档、
+  `git grep -n` 核对源码树行号、隔离 profile 重采截图与像素量测（全部中间产物写 `/tmp/zotero-ui`）。
 
-未核实处三份文档都写 `unverified — 需确认` 或「未核实项」，不复用记忆代替回查。仓库改动范围应只有
+未核实处四份文档都写 `unverified — 需确认` 或「未核实项」，不复用记忆代替回查。仓库改动范围应只有
 本目录的四个 `.md` 文件；`styles.css`、`tests/ui/`、`docs/ui-design/` 均未改动。
