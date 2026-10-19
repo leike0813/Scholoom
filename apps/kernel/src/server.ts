@@ -143,6 +143,9 @@ export async function startKernelServer(
     let latestRevision = 0;
     let sessionsChanged = false;
     let libraryChanged = false;
+    const watches = new Map<string, string>();
+    const filePaths = new Set<string>();
+    let broadChange = false;
     const peer = new RpcPeer(
       {
         send: (frame) =>
@@ -211,10 +214,22 @@ export async function startKernelServer(
               clearTimeout(changeTimer);
               changeTimer = undefined;
               sessionsChanged = false;
+              filePaths.clear();
+              broadChange = false;
             }
             scope = next;
           }
-          return application.call(...args);
+          const result = await application.call(...args);
+          if (args[0] === 'files.watch') {
+            const watch = result as { watchId: string };
+            if (socket.readyState === 1) watches.set(watch.watchId, args[1].projectId);
+            else
+              await application.call('files.unwatch', {
+                projectId: args[1].projectId,
+                watchId: watch.watchId,
+              });
+          } else if (args[0] === 'files.unwatch') watches.delete(args[1].watchId);
+          return result;
         },
         invalid: () => socket.close(1008, 'Invalid RPC'),
       },
@@ -235,6 +250,7 @@ export async function startKernelServer(
             resync: true,
             ...(sessionsChanged ? { sessionsChanged: true } : {}),
             ...(libraryChanged ? { libraryChanged: true } : {}),
+            ...(!broadChange && filePaths.size ? { filePaths: [...filePaths] } : {}),
             ...(scope.projectId ? { projectId: scope.projectId } : {}),
             ...(scope.sessionId ? { sessionId: scope.sessionId } : {}),
           },
@@ -242,6 +258,8 @@ export async function startKernelServer(
       );
       sessionsChanged = false;
       libraryChanged = false;
+      filePaths.clear();
+      broadChange = false;
     };
     const unsubscribe = application?.subscribe((change) => {
       if (!scope || !authenticated.has(socket)) return;
@@ -256,6 +274,13 @@ export async function startKernelServer(
       latestRevision = change.revision;
       sessionsChanged ||= change.sessionsChanged === true;
       libraryChanged ||= change.libraryChanged === true;
+      if (change.filePaths && !broadChange) {
+        for (const path of change.filePaths) filePaths.add(path);
+        if (filePaths.size > 100) {
+          filePaths.clear();
+          broadChange = true;
+        }
+      } else broadChange = true;
       changeTimer ??= setTimeout(flushChange, 50);
     });
     socket.on('close', () => {
@@ -263,6 +288,9 @@ export async function startKernelServer(
       clearTimeout(timeout);
       clearTimeout(changeTimer);
       unsubscribe?.();
+      for (const [watchId, projectId] of watches)
+        void application?.call('files.unwatch', { projectId, watchId }).catch(() => {});
+      watches.clear();
       authenticated.delete(socket);
       if (owners.delete(socket) && owners.size === 0) stopDevelopment();
     });

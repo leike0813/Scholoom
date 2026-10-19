@@ -1,23 +1,11 @@
 import type { LibraryAttachment } from '@scholoom/protocol';
 import type { KeyboardEvent, ReactNode } from 'react';
 import type { FileTarget } from '../session';
+import type { TabGroupState, TabItem, TabKind } from '../tab-state';
+
+export type { TabGroupState, TabItem, TabKind } from '../tab-state';
+
 import { IconEdit, IconLibrary, IconPreview, IconReader, IconSettings, IconSplit } from './icons';
-
-export type TabKind = 'library' | 'reader' | 'editor' | 'preview' | 'settings';
-
-export interface TabItem {
-  id: string;
-  title: string;
-  kind: TabKind;
-  target?: FileTarget;
-  material?: LibraryAttachment;
-}
-
-export interface TabGroupState {
-  id: string;
-  tabs: readonly TabItem[];
-  activeId: string | null;
-}
 
 const kindLabels: Record<TabKind, { title: string; description: string }> = {
   settings: { title: '设置', description: '' },
@@ -85,7 +73,10 @@ export interface TabGroupsProps {
   renderSettings?: ReactNode;
   renderLibrary?: ReactNode | undefined;
   renderReader?: ((material: LibraryAttachment) => ReactNode) | undefined;
-  renderFile?: ((target: FileTarget, mode?: 'source' | 'preview') => ReactNode) | undefined;
+  renderFile?:
+    | ((target: FileTarget, mode?: 'source' | 'preview', onDirty?: () => void) => ReactNode)
+    | undefined;
+  onPin?: ((groupIndex: number, tabId: string) => void) | undefined;
   /** 空态带入的当前工作区名；缺省时不显示。 */
   contextName?: string | undefined;
   onCreateSession?: (() => void) | undefined;
@@ -98,6 +89,7 @@ export function TabGroups({
   onClose,
   onSplit,
   renderFile,
+  onPin,
   onView,
   renderSettings,
   renderLibrary,
@@ -148,8 +140,9 @@ export function TabGroups({
                     data-tab-id={tab.id}
                     tabIndex={tab.id === active?.id ? 0 : -1}
                     aria-selected={tab.id === active?.id}
-                    className={`tab${tab.id === active?.id ? ' tab--active' : ''}`}
+                    className={`tab${tab.id === active?.id ? ' tab--active' : ''}${tab.transient ? ' tab--transient' : ''}`}
                     onClick={() => onActivate(groupIndex, tab.id)}
+                    onDoubleClick={() => onPin?.(groupIndex, tab.id)}
                     onKeyDown={(event) => tabKeyDown(event, group, groupIndex, tab.id, onActivate)}
                   >
                     <Icon />
@@ -204,7 +197,11 @@ export function TabGroups({
               {active?.material && renderReader ? (
                 renderReader(active.material)
               ) : active?.target && renderFile ? (
-                renderFile(active.target, active.kind === 'preview' ? 'preview' : 'source')
+                renderFile(
+                  active.target,
+                  active.kind === 'preview' ? 'preview' : 'source',
+                  active.transient ? () => onPin?.(groupIndex, active.id) : undefined,
+                )
               ) : active?.kind === 'library' && renderLibrary ? (
                 renderLibrary
               ) : active?.kind === 'settings' ? (

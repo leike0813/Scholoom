@@ -39,7 +39,13 @@ test('conversation titles, archive and Markdown reading preserve the active work
       await uiPage.getByLabel(label, { exact: true }).check();
     await uiPage.getByRole('button', { name: '保存项目授权' }).click();
     await uiPage.getByRole('button', { name: '新建会话', exact: true }).click();
-    await uiPage.getByLabel('附加 input.md', { exact: true }).check();
+    await uiPage
+      .getByRole('treeitem', { name: '打开文件 input.md', exact: true })
+      .click({ button: 'right' });
+    await uiPage
+      .getByRole('menu', { name: '文件操作菜单', exact: true })
+      .getByRole('button', { name: '附加／移除会话材料', exact: true })
+      .click();
     const input = uiPage.getByRole('textbox', { name: '研究指令' });
     await input.fill('MODEL_MARKDOWN 阅读样本');
     await uiPage.getByRole('button', { name: '发送指令' }).click();
@@ -90,9 +96,16 @@ test('conversation titles, archive and Markdown reading preserve the active work
     await expect(
       uiPage.getByRole('textbox', { name: '文件内容 input.md', exact: true }),
     ).toContainText('可定位材料');
-    await uiPage.getByRole('button', { name: '打开文件 input.md', exact: true }).click();
-    await uiPage.getByRole('textbox', { name: '新名称', exact: true }).fill('renamed.md');
-    await uiPage.getByRole('button', { name: '重命名', exact: true }).click();
+    await uiPage
+      .getByRole('treeitem', { name: '打开文件 input.md', exact: true })
+      .click({ button: 'right' });
+    await uiPage
+      .getByRole('menu', { name: '文件操作菜单', exact: true })
+      .getByRole('button', { name: /重命名/ })
+      .click();
+    const rename = uiPage.getByLabel('新名称', { exact: true });
+    await rename.fill('renamed.md');
+    await rename.press('Enter');
     await expect
       .poll(() => readFile(join(project, 'renamed.md'), 'utf8').catch(() => ''))
       .toContain('可定位材料');

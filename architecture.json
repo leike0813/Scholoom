@@ -107,6 +107,8 @@
       "systemAdapters": [
         { "path": "src/store.ts", "apis": ["fs", "fs/promises"] },
         { "path": "src/files.ts", "apis": ["fs", "fs/promises"] },
+        { "path": "src/transfers.ts", "apis": ["fs", "fs/promises", "stream/promises"] },
+        { "path": "src/file-watch.ts", "apis": ["fs", "fs/promises"] },
         { "path": "src/directory-browser.ts", "apis": ["fs/promises", "os"] }
       ],
       "provides": ["project.checkRead", "project.material"],

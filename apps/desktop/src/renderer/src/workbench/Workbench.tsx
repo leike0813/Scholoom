@@ -19,6 +19,7 @@ import { AgentOverlay } from './shell/AgentOverlay';
 import { AuxiliaryPane, AuxiliaryRail } from './shell/AuxiliaryPane';
 import { PaneHandle } from './shell/PaneHandle';
 import { type TabGroupState, TabGroups, type TabItem } from './shell/TabGroups';
+import { openFileTab } from './tab-state';
 import './library/library.css';
 
 const THEME_ORDER: readonly ThemeMode[] = ['system', 'light', 'dark'];
@@ -68,7 +69,17 @@ export function Workbench({ session }: { session: WorkbenchSession }) {
       ? [{ id: 'a', tabs: session.initialTabs, activeId: session.initialTabs[0]?.id ?? null }]
       : [],
   );
+  const [activeGroupId, setActiveGroupId] = useState<string | null>(
+    session.initialTabs?.length ? 'a' : null,
+  );
   const projectGroups = useRef(new Map<string, readonly TabGroupState[]>());
+  const projectActiveGroups = useRef(new Map<string, string | null>());
+  const groupsRef = useRef(groups);
+  groupsRef.current = groups;
+  const activeGroupRef = useRef(activeGroupId);
+  activeGroupRef.current = activeGroupId;
+  const isFileDirtyRef = useRef(session.isFileDirty);
+  isFileDirtyRef.current = session.isFileDirty;
   const currentProject = useRef(session.projectId ?? 'sample');
   useLayoutEffect(() => {
     const next = session.projectId ?? 'sample';
@@ -91,6 +102,7 @@ export function Workbench({ session }: { session: WorkbenchSession }) {
           : [];
       }),
     );
+    projectActiveGroups.current.set(currentProject.current, activeGroupId);
     currentProject.current = next;
     const restored = [...(projectGroups.current.get(next) ?? [])];
     for (const group of groups) {
@@ -106,7 +118,14 @@ export function Workbench({ session }: { session: WorkbenchSession }) {
       else restored.push(combined);
     }
     setGroups(restored);
-  }, [session.projectId, groups]);
+    groupsRef.current = restored;
+    const restoredActive = projectActiveGroups.current.get(next);
+    const nextActiveGroup = restored.some((group) => group.id === restoredActive)
+      ? (restoredActive ?? null)
+      : (restored[0]?.id ?? null);
+    setActiveGroupId(nextActiveGroup);
+    activeGroupRef.current = nextActiveGroup;
+  }, [session.projectId, groups, activeGroupId]);
 
   const resolveFiles = useRef(session.resolveFiles);
   resolveFiles.current = session.resolveFiles;
@@ -179,38 +198,77 @@ export function Workbench({ session }: { session: WorkbenchSession }) {
     wasExpandedRef.current = agentExpanded;
   }, [agentExpanded]);
 
-  const activateTab = useCallback((groupIndex: number, tabId: string) => {
+  const activateTab = useCallback(
+    (groupIndex: number, tabId: string) => {
+      setActiveGroupId(groups[groupIndex]?.id ?? null);
+      setGroups((current) =>
+        current.map((group, index) =>
+          index === groupIndex ? { ...group, activeId: tabId } : group,
+        ),
+      );
+    },
+    [groups],
+  );
+
+  const pinTab = useCallback((groupIndex: number, tabId: string) => {
     setGroups((current) =>
-      current.map((group, index) => (index === groupIndex ? { ...group, activeId: tabId } : group)),
+      current.map((group, index) =>
+        index === groupIndex
+          ? {
+              ...group,
+              tabs: group.tabs.map((tab) =>
+                tab.id === tabId ? { ...tab, transient: false } : tab,
+              ),
+            }
+          : group,
+      ),
     );
   }, []);
 
-  const closeTab = useCallback((groupIndex: number, tabId: string) => {
-    setGroups((current) => {
-      const next = current.map((group, index) => {
-        if (index !== groupIndex) return group;
-        const tabs = group.tabs.filter((tab) => tab.id !== tabId);
-        const activeId = group.activeId === tabId ? (tabs[0]?.id ?? null) : group.activeId;
-        return { id: group.id, tabs, activeId };
+  const closeTab = useCallback(
+    (groupIndex: number, tabId: string) => {
+      const group = groups[groupIndex];
+      if (group?.activeId === tabId && group.tabs.length === 1) {
+        setActiveGroupId(groups.find((item) => item.id !== group.id)?.id ?? null);
+      }
+      setGroups((current) => {
+        const next = current.map((group, index) => {
+          if (index !== groupIndex) return group;
+          const tabs = group.tabs.filter((tab) => tab.id !== tabId);
+          const activeId = group.activeId === tabId ? (tabs[0]?.id ?? null) : group.activeId;
+          return { id: group.id, tabs, activeId };
+        });
+        return next.filter((group) => group.tabs.length > 0);
       });
-      return next.filter((group) => group.tabs.length > 0);
-    });
-  }, []);
+    },
+    [groups],
+  );
 
-  const splitGroup = useCallback((groupIndex: number) => {
-    setGroups((current) => {
-      if (current.length >= 2) return current;
-      const group = current[groupIndex];
-      if (group === undefined || group.activeId === null || group.tabs.length < 2) return current;
-      const active = group.tabs.find((tab) => tab.id === group.activeId);
-      if (active === undefined) return current;
-      const rest = group.tabs.filter((tab) => tab.id !== active.id);
-      const next: TabGroupState[] = [];
-      if (rest.length > 0) next.push({ id: group.id, tabs: rest, activeId: rest[0]?.id ?? null });
-      next.push({ id: group.id === 'a' ? 'b' : 'a', tabs: [active], activeId: active.id });
-      return next;
-    });
-  }, []);
+  const splitGroup = useCallback(
+    (groupIndex: number) => {
+      const candidate = groups[groupIndex];
+      if (groups.length < 2 && candidate?.activeId && candidate.tabs.length >= 2) {
+        setActiveGroupId(candidate.id === 'a' ? 'b' : 'a');
+      }
+      setGroups((current) => {
+        if (current.length >= 2) return current;
+        const group = current[groupIndex];
+        if (group === undefined || group.activeId === null || group.tabs.length < 2) return current;
+        const active = group.tabs.find((tab) => tab.id === group.activeId);
+        if (active === undefined) return current;
+        const rest = group.tabs.filter((tab) => tab.id !== active.id);
+        const next: TabGroupState[] = [];
+        if (rest.length > 0) next.push({ id: group.id, tabs: rest, activeId: rest[0]?.id ?? null });
+        next.push({
+          id: group.id === 'a' ? 'b' : 'a',
+          tabs: [active.transient ? { ...active, transient: false } : active],
+          activeId: active.id,
+        });
+        return next;
+      });
+    },
+    [groups],
+  );
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -234,13 +292,17 @@ export function Workbench({ session }: { session: WorkbenchSession }) {
   }, [agentExpanded, splitGroup]);
 
   const activeSession = session.sessions?.find((item) => item.id === session.activeSessionId);
+  const activeGroup = groups.find((group) => group.id === activeGroupId);
+  const activeFile = activeGroup?.tabs.find((tab) => tab.id === activeGroup.activeId)?.target;
   /** 用现有 tab 逻辑打开内容：收起 overlay，不切换会话。 */
   const openTab = (tab: TabItem) => {
     setAgentExpanded(false);
+    const targetGroupId =
+      groups.find((group) => group.id === activeGroupId)?.id ?? groups[0]?.id ?? 'a';
     setGroups((current) =>
       current.length
-        ? current.map((group, index) =>
-            index === 0
+        ? current.map((group) =>
+            group.id === targetGroupId
               ? {
                   ...group,
                   tabs: [...group.tabs.filter((item) => item.id !== tab.id), tab],
@@ -250,6 +312,7 @@ export function Workbench({ session }: { session: WorkbenchSession }) {
           )
         : [{ id: 'a', tabs: [tab], activeId: tab.id }],
     );
+    setActiveGroupId(targetGroupId);
   };
   const settings = () => openTab({ id: 'settings', title: '设置', kind: 'settings' });
   const openLibrary = session.library
@@ -261,11 +324,12 @@ export function Workbench({ session }: { session: WorkbenchSession }) {
       const active = group?.tabs.find((tab) => tab.id === group.activeId);
       if (!active?.target) return current;
       const key = `${active.target.projectId}:${active.target.fileId ?? active.target.path}`;
-      const editor: TabItem = { ...active, id: key, kind: 'editor' };
+      const editor: TabItem = { ...active, id: key, kind: 'editor', transient: false };
       const preview: TabItem = {
         ...active,
         id: `${key}:preview`,
         kind: 'preview',
+        transient: false,
         title: `${active.target.path.split('/').at(-1)} · 预览`,
       };
       if (mode === 'split') {
@@ -310,62 +374,13 @@ export function Workbench({ session }: { session: WorkbenchSession }) {
     if (!target || target.projectId !== session.projectId) return;
     // 成果经文件 tab 打开，收起 overlay 才能看到实际内容。
     setAgentExpanded(false);
-    const tab = {
-      id: `${target.projectId}:${target.fileId ?? target.path}`,
-      title: target.path.split('/').at(-1) ?? target.path,
-      kind: 'editor' as const,
+    const next = openFileTab(
+      { groups: groupsRef.current, activeGroupId: activeGroupRef.current },
       target,
-    };
-    setGroups((previous) => {
-      const current = target.fileId
-        ? previous.map((group) => {
-            let activeId = group.activeId;
-            const tabs = group.tabs.map((item) => {
-              if (
-                item.target?.projectId !== target.projectId ||
-                item.target.path !== target.path ||
-                item.target.fileId
-              )
-                return item;
-              const id = `${tab.id}${item.kind === 'preview' ? ':preview' : ''}`;
-              if (activeId === item.id) activeId = id;
-              return { ...item, id, target };
-            });
-            return { ...group, tabs, activeId };
-          })
-        : previous;
-      const existing = current.findIndex((group) =>
-        group.tabs.some(
-          (item) =>
-            item.id === tab.id ||
-            (item.kind === 'editor' &&
-              item.target?.projectId === target.projectId &&
-              item.target.path === target.path &&
-              !item.target.fileId),
-        ),
-      );
-      if (existing >= 0)
-        return current.map((group, index) =>
-          index === existing
-            ? {
-                ...group,
-                activeId: tab.id,
-                tabs: group.tabs.map((item) =>
-                  item.id === tab.id ||
-                  (item.kind === 'editor' &&
-                    item.target?.path === target.path &&
-                    !item.target.fileId)
-                    ? tab
-                    : item,
-                ),
-              }
-            : group,
-        );
-      if (!current.length) return [{ id: 'a', tabs: [tab], activeId: tab.id }];
-      return current.map((group, index) =>
-        index === 0 ? { ...group, tabs: [...group.tabs, tab], activeId: tab.id } : group,
-      );
-    });
+      isFileDirtyRef.current,
+    );
+    setGroups(next.groups);
+    setActiveGroupId(next.activeGroupId);
   }, [session.fileTarget, session.projectId]);
 
   useEffect(() => {
@@ -378,17 +393,40 @@ export function Workbench({ session }: { session: WorkbenchSession }) {
       kind: 'reader' as const,
       material,
     };
-    setGroups((current) => {
-      const existing = current.findIndex((group) => group.tabs.some((item) => item.id === tab.id));
-      if (existing >= 0)
-        return current.map((group, index) =>
+    const currentGroups = groupsRef.current;
+    const currentActiveGroupId = activeGroupRef.current;
+    const existingGroup = currentGroups.find((group) =>
+      group.tabs.some((item) => item.id === tab.id),
+    );
+    const targetGroup =
+      existingGroup ??
+      currentGroups.find((group) => group.id === currentActiveGroupId) ??
+      currentGroups[0];
+    setActiveGroupId(targetGroup?.id ?? 'a');
+    const existing = currentGroups.findIndex((group) =>
+      group.tabs.some((item) => item.id === tab.id),
+    );
+    if (existing >= 0) {
+      setGroups(
+        currentGroups.map((group, index) =>
           index === existing ? { ...group, activeId: tab.id } : group,
-        );
-      if (!current.length) return [{ id: 'a', tabs: [tab], activeId: tab.id }];
-      return current.map((group, index) =>
-        index === 0 ? { ...group, tabs: [...group.tabs, tab], activeId: tab.id } : group,
+        ),
       );
-    });
+    } else {
+      const target = targetGroup ?? { id: 'a', tabs: [], activeId: null };
+      const next = currentGroups.length
+        ? currentGroups.map((group) =>
+            group.id === target.id
+              ? {
+                  ...group,
+                  tabs: [...group.tabs.filter((item) => item.id !== tab.id), tab],
+                  activeId: tab.id,
+                }
+              : group,
+          )
+        : [{ id: 'a', tabs: [tab], activeId: tab.id }];
+      setGroups(next);
+    }
   }, [session.readerTarget]);
 
   return (
@@ -460,7 +498,12 @@ export function Workbench({ session }: { session: WorkbenchSession }) {
             onActivate={activateTab}
             onClose={closeTab}
             onSplit={splitGroup}
-            renderFile={session.renderFile}
+            renderFile={
+              session.renderFile
+                ? (target, mode, onDirty) => session.renderFile?.(target, mode, onDirty)
+                : undefined
+            }
+            onPin={pinTab}
             renderSettings={session.controls}
             renderLibrary={session.library}
             renderReader={session.renderReader}
@@ -533,7 +576,11 @@ export function Workbench({ session }: { session: WorkbenchSession }) {
             selectedMaterials={session.selectedMaterials}
             toggleMaterial={session.toggleMaterial}
             onCollapse={() => setRightCollapsed(true)}
-            fileNavigator={session.fileNavigator}
+            fileNavigator={
+              typeof session.fileNavigator === 'function'
+                ? session.fileNavigator(activeFile)
+                : session.fileNavigator
+            }
           />
         )}
         {session.sessionSearchDialog}

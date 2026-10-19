@@ -97,7 +97,7 @@ test('user configures, edits safely and receives a real persisted Agent result',
       await uiPage.getByLabel(label, { exact: true }).check();
     await uiPage.getByRole('button', { name: '保存项目授权' }).click();
     await uiPage.getByRole('button', { name: '新建会话', exact: true }).click();
-    await uiPage.getByRole('button', { name: '打开文件 input.md', exact: true }).click();
+    await uiPage.getByRole('treeitem', { name: '打开文件 input.md', exact: true }).click();
     const editor = uiPage.getByRole('textbox', { name: '文件内容 input.md', exact: true });
     await expect(editor).toContainText('合成材料');
     await editor.fill('# 输入\n\n用户草稿。\n');
@@ -116,9 +116,15 @@ test('user configures, edits safely and receives a real persisted Agent result',
     await expect.poll(() => readFile(join(project, 'input.md'), 'utf8')).toContain('用户补充');
     await expect(editor).toContainText('保存期间的新编辑');
     await uiPage.reload();
-    await uiPage.getByRole('button', { name: '打开文件 input.md', exact: true }).click();
+    await uiPage.getByRole('treeitem', { name: '打开文件 input.md', exact: true }).click();
     await expect(editor).toContainText('保存期间的新编辑');
-    await uiPage.getByLabel('附加 input.md', { exact: true }).check();
+    await uiPage
+      .getByRole('treeitem', { name: '打开文件 input.md', exact: true })
+      .click({ button: 'right' });
+    await uiPage
+      .getByRole('menu', { name: '文件操作菜单', exact: true })
+      .getByRole('button', { name: '附加／移除会话材料', exact: true })
+      .click();
     await uiPage
       .getByRole('textbox', { name: '研究指令' })
       .fill('MODEL_FIXTURE 读取材料并保存结果');

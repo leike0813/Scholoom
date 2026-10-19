@@ -4,6 +4,7 @@
 
 - 产品、领域与架构讨论：先读[决策地图](.scratch/scholoom-foundations/map.md)，再读相关票；具体决定以票为准，术语见 [CONTEXT.md](CONTEXT.md)，产品要求见 [PRD](docs/prd/README.md)。
 - 开发、调试与验证：先读[开发说明](docs/development.md)，命令以根 `package.json` 为准；模块与接口设计核对[架构文档](docs/architecture.md)、相关决议及[当前规格](openspec/specs)。技术与接口草稿中的候选方案不视为定案。
+- 修改工作区文件树、文件传输或范围监听时，先读[开发说明中的文件树与传输约定](docs/development.md#工作区文件树与传输)。
 - 规划、协作与交付：遵循[开发纪律 #14](.scratch/scholoom-foundations/issues/14-agent-development-discipline.md)；确定验收范围或准备发布时读[验证纪律 #15](.scratch/scholoom-foundations/issues/15-validation-and-release-discipline.md)。
 - 决策票保存选择与理由，OpenSpec 保存行为契约及实施变更，开发说明保存运行入口；更新对应事实源，其余引用，不另建重复 ADR 或进度账本。
 - 起草实施规格时参考[初设规格书](docs/initial-spec/README.md)，核对当前正式规格及原决议；初设不表示已实现，转入正式规格后以链接替换对应初设正文，避免维护两份契约。

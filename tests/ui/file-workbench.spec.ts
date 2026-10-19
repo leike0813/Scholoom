@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { startModelKernel } from '../model-kernel.js';
@@ -25,6 +25,7 @@ test('project files share draft preview and survive directory rename, trash and 
     await uiPage.goto('http://127.0.0.1:5174/');
     await expect(uiPage.getByRole('status', { name: '连接状态' })).toContainText('已连接');
     await addProject(uiPage, project, { mode: 'create' });
+    await mkdir(join(project, 'recovered'));
     await expect(
       uiPage.getByRole('button', { name: 'project，已展开', exact: true }),
     ).toBeVisible();
@@ -40,11 +41,16 @@ test('project files share draft preview and survive directory rename, trash and 
       .getByLabel('新建、修改、重命名和回收／恢复项目文件及目录', { exact: true })
       .check();
     await uiPage.getByRole('button', { name: '保存项目授权', exact: true }).click();
-    await uiPage.getByLabel('新建目录名', { exact: true }).fill('notes');
     await uiPage.getByRole('button', { name: '新建目录', exact: true }).click();
-    await uiPage.getByRole('button', { name: '进入目录 notes', exact: true }).click();
-    await uiPage.getByLabel('新文件名', { exact: true }).fill('draft.md');
+    const newDirectory = uiPage.getByLabel('新建目录名', { exact: true });
+    await newDirectory.fill('notes');
+    await newDirectory.press('Enter');
+    const notes = uiPage.getByRole('treeitem', { name: '进入目录 notes', exact: true });
+    await notes.click();
     await uiPage.getByRole('button', { name: '新建文件', exact: true }).click();
+    const newFile = uiPage.getByLabel('新文件名', { exact: true });
+    await newFile.fill('draft.md');
+    await newFile.press('Enter');
     const editor = uiPage.getByRole('textbox', { name: '文件内容 notes/draft.md', exact: true });
     const content =
       '# Draft title\n\n| Method | Score |\n| --- | --- |\n| A | 42 |\n\n$E=mc^2$\n\n![sample](../image.png)\n\n![remote](https://untrusted.example/image.png)\n\n<script>globalThis.unsafePreview=true</script>\n\n[unsafe](javascript:alert(1))\n';
@@ -55,7 +61,9 @@ test('project files share draft preview and survive directory rename, trash and 
         'base64',
       ),
     );
-    await editor.fill(content);
+    await editor.press('ControlOrMeta+a');
+    await uiPage.keyboard.insertText(content);
+    await expect(editor).toContainText('Method');
     await uiPage.getByRole('button', { name: '并排预览', exact: true }).click();
     await armRpcGate(uiPage, 'files.read');
     await uiPage.getByRole('button', { name: '保存文件', exact: true }).first().click();
@@ -63,7 +71,8 @@ test('project files share draft preview and survive directory rename, trash and 
       .poll(() => readFile(join(project, 'notes', 'draft.md'), 'utf8').catch(() => ''))
       .toBe(content);
     await uiPage.waitForFunction(() => !!Reflect.get(globalThis, '__scholoomRpcGate').held);
-    await editor.fill(`${content}\nUnsaved latest paragraph.`);
+    await editor.press('ControlOrMeta+a');
+    await uiPage.keyboard.insertText(`${content}\nUnsaved latest paragraph.`);
     await uiPage.getByRole('button', { name: '并排预览', exact: true }).first().click();
     await releaseRpcGate(uiPage);
     await expect(
@@ -156,20 +165,38 @@ test('project files share draft preview and survive directory rename, trash and 
     await uiPage.keyboard.insertText(`${content}\nUnsaved latest paragraph.`);
     await expect(preview.getByRole('heading', { name: 'Draft title' })).toBeVisible();
     await expect(preview.getByRole('heading', { name: 'Large preview' })).toHaveCount(0);
-    await uiPage.getByRole('button', { name: '进入目录 notes', exact: true }).click();
-    await uiPage.getByLabel('新名称', { exact: true }).fill('renamed');
-    await uiPage.getByRole('button', { name: '重命名', exact: true }).click();
+    await notes.click({ button: 'right' });
+    await uiPage
+      .getByRole('menu', { name: '文件操作菜单', exact: true })
+      .getByRole('button', { name: /重命名/ })
+      .click();
+    const rename = uiPage.getByLabel('新名称', { exact: true });
+    await rename.fill('renamed');
+    await rename.press('Enter');
     await expect(
       uiPage.getByRole('textbox', { name: '文件内容 renamed/draft.md', exact: true }),
     ).toContainText('Unsaved latest paragraph');
     await expect(preview).toContainText('Unsaved latest paragraph');
-    await uiPage.getByRole('button', { name: '进入目录 renamed', exact: true }).click();
-    await uiPage.getByRole('button', { name: '回收', exact: true }).click();
+    const renamedDirectory = uiPage.getByRole('treeitem', {
+      name: '进入目录 renamed',
+      exact: true,
+    });
+    if ((await renamedDirectory.getAttribute('aria-expanded')) !== 'true')
+      await renamedDirectory.click();
+    await uiPage
+      .getByRole('treeitem', { name: '打开文件 renamed/draft.md', exact: true })
+      .click({ button: 'right' });
+    await uiPage
+      .getByRole('menu', { name: '文件操作菜单', exact: true })
+      .getByRole('button', { name: '回收', exact: true })
+      .click();
     await uiPage.getByRole('button', { name: '确认回收', exact: true }).click();
     await expect(uiPage.getByRole('alert').filter({ hasText: '回收' }).first()).toBeVisible();
     await uiPage.getByText('回收站', { exact: true }).click();
-    await uiPage.getByLabel('恢复位置 renamed', { exact: true }).fill('recovered');
-    await uiPage.getByRole('button', { name: '恢复', exact: true }).click();
+    await uiPage
+      .getByLabel('恢复位置 renamed/draft.md', { exact: true })
+      .fill('recovered/draft.md');
+    await uiPage.getByRole('button', { name: '恢复 renamed/draft.md', exact: true }).click();
     await expect(
       uiPage.getByRole('textbox', { name: '文件内容 recovered/draft.md', exact: true }),
     ).toContainText('Unsaved latest paragraph');

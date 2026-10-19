@@ -11,9 +11,21 @@ import type {
   projectsOperations,
 } from './project-contracts.js';
 
+export * from './file-explorer-contracts.js';
 export * from './project-contracts.js';
 
 import type { FromSchema } from 'json-schema-to-ts';
+import type {
+  importEntrySchema,
+  transferEntrySchema,
+  transferSchema,
+  transferSourceSchema,
+} from './file-explorer-contracts.js';
+export type FileTransfer = FromSchema<typeof transferSchema>;
+export type TransferEntry = FromSchema<typeof transferEntrySchema>;
+export type TransferSource = FromSchema<typeof transferSourceSchema>;
+export type ImportEntry = FromSchema<typeof importEntrySchema>;
+
 import type { ContractParams, ContractResult } from './core.js';
 import type {
   Inputs as ExecutionInputs,

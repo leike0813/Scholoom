@@ -47,6 +47,14 @@ Agent、能力子执行与 PDF 共用宿主持有的进程容量，默认活动 
 
 执行沿 [#07](../.scratch/scholoom-foundations/issues/07-agent-runtime-boundaries.md#answer) 的 Deep Agents／LangChain／LangGraph 路线。当前支持单 Agent 材料任务与内置材料分析方法／能力；插件 MCP、受管 shell 和多 Agent 尚未接入。
 
+## 工作区文件树与传输
+
+文件树由 `apps/desktop/src/renderer/src/workbench/file-explorer/Explorer.tsx` 提供，浏览器与 Electron 共用；业务操作经共同 protocol/client，`files.transfer`、`files.transferStatus`、`files.transferDecide`、`files.transferCancel` 及 `files.importBegin`／`files.importChunk`／`files.importFinish` 是同一契约。导入按 256 KiB 分块，单任务最多 10000 项。目录列表按版本分页，每页最多 100 项，可用 anchor 定位；`ProjectFileWatches` 只监听显式项目路径范围，并在连接释放时清除订阅。
+
+传输日志写入现有 projects meta 记录，不涉及物理 schema 迁移；暂存文件位于项目 `.scholoom/transfers`。备份恢复到独立副本，不承接原传输日志。中断后的 status 仅核查原操作及实际位置：能排除回收受理且目标已完成时收束为 `partial`，结果仍无法确认时保留 `unknown`；查询不重放写入。
+
+定向诊断运行 `pnpm test:kernel tests/kernel/file-transfers.spec.ts tests/kernel/file-watch.spec.ts` 和 `pnpm test:ui tests/ui/file-explorer.spec.ts`；UI 准备及宿主范围见下文验证说明。
+
 ## 本地工作
 
 依赖和工具版本以 `package.json`、`pnpm-lock.yaml`、`.nvmrc` 为准。pnpm 的依赖安装脚本授权集中在 `pnpm-workspace.yaml`。Electron 42 起取消依赖的自动运行时下载，项目使用官方 `install-electron` 命令显式准备二进制，见 [上游安装说明](https://github.com/electron/electron/blob/main/docs/tutorial/installation.md)。
@@ -185,6 +193,8 @@ Agent 使用 Orca browser skill，先列出当前项目的标签，核对 URL �
 `pnpm test:smoke` 启动构建后的应用，核对独立 Node CLI、真实工作台连接、生产样例隔离、sandbox preload、关窗续留和重开，以及宿主隐藏窗口；开发 smoke 运行实际 `dev:browser`／`dev:desktop` 命令，核对共享实例、退出顺序与最后退出后的回收。真实模型 UI 验收显式设置 `SCHOOLOOM_LIVE_MODEL_TEST=1`，只使用合成样本与环境中的模型凭据；默认回归不使用真实模型凭据，只在外部模型边界注入受控响应。Electron fixture 经原生窗口关闭与应用退出核对所拥有进程的退出，再明确停止测试内核。
 
 `pnpm test:ui` 使用 `playwright.ui.config.ts`，同一场景分别驱动 Chromium 和真实 Electron。它覆盖真实连接、内核连接重连、草稿保护、停机与重试、崩溃后用户重试及既有样例行为；浏览器引导和静态凭据访问检查执行一次。测试独占 `127.0.0.1:5174`，使用 `test-results` 下的独立配置；各套件的 trace 分目录保存。结束时关闭本轮应用与服务并确认内核退出，无法确认退出时保留配置供诊断。
+
+UI 测试期间保持源码和共享包构建产物稳定；改动或重新构建会触发 Vite 热刷新，重置正在验收的组件状态。完成构建后再运行交互测试。
 
 真实开发命令及模型 UI 验收位于 `tests/smoke/development.spec.ts`：普通场景使用浏览器5315／Electron CDP 9315，live 场景使用5316／9316，Electron renderer 使用本轮服务的实际 URL。显式运行 `SCHOOLOOM_LIVE_MODEL_TEST=1 pnpm test:smoke tests/smoke/development.spec.ts --grep 'live MiniMax' --output test-results/development-live`；Key 仅经环境注入，不录 trace，保存合成成果作为验收附件。Linux 命令自动化使用 electron-vite 的 `NO_SANDBOX=1` 环境选项，与既有 Playwright Electron 启动设置一致；产品默认 sandbox 设置不变，本机通过不代表目标平台 OS sandbox 或分发包已验收。
 

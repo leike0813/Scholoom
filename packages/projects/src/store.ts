@@ -38,7 +38,7 @@ import * as tables from './schema.js';
 export type ContainerInitializer = (database: Database.Database, internal: string) => Promise<void>;
 
 const hidden = new Set(['.scholoom', '.git', 'node_modules', 'dist', 'build', 'target', '.venv']);
-const isPrivate = (name: string) =>
+export const isPrivate = (name: string) =>
   hidden.has(name) ||
   name === '.env' ||
   name.startsWith('.env.') ||
@@ -223,11 +223,15 @@ export class ProjectStore {
     input = '',
     offset = 0,
     limit = 100,
-  ): Promise<{ entries: FileEntry[]; nextOffset?: number }> {
+    version?: string,
+    anchor?: string,
+  ): Promise<{ entries: FileEntry[]; nextOffset?: number; version: string; offset: number }> {
     this.check('read');
     const directory = await this.path(input);
-    const entries: FileEntry[] = [];
-    let skipped = 0;
+    const before = fileFingerprint(await lstat(directory, { bigint: true }));
+    if (version && before !== version)
+      throw new OperationError('contentChanged', '目录已变化，请重新读取。');
+    const names: { name: string; kind: 'file' | 'dir' }[] = [];
     const handle = await import('node:fs/promises').then((fs) => fs.opendir(directory));
     for await (const entry of handle) {
       if (
@@ -236,18 +240,39 @@ export class ProjectStore {
         (!entry.isFile() && !entry.isDirectory())
       )
         continue;
-      if (skipped++ < offset) continue;
-      if (entries.length === limit) return { entries, nextOffset: offset + limit };
+      names.push({ name: entry.name, kind: entry.isDirectory() ? 'dir' : 'file' });
+    }
+    const collator = new Intl.Collator('en', { numeric: true, sensitivity: 'base' });
+    names.sort(
+      (a, b) =>
+        (a.kind === b.kind ? 0 : a.kind === 'dir' ? -1 : 1) ||
+        collator.compare(a.name, b.name) ||
+        a.name.localeCompare(b.name, 'en'),
+    );
+    if (anchor !== undefined) {
+      const index = names.findIndex((entry) => entry.name === anchor);
+      if (index < 0) throw new OperationError('notFound', '目录中没有此条目。');
+      offset = Math.floor(index / limit) * limit;
+    }
+    const entries: FileEntry[] = [];
+    for (const entry of names.slice(offset, offset + limit)) {
       entries.push({
         fileId: (
           await this.files.reference(relative(this.project.path, join(directory, entry.name)))
         ).fileId,
         name: entry.name,
-        kind: entry.isDirectory() ? 'dir' : 'file',
+        kind: entry.kind,
         path: relative(this.project.path, join(directory, entry.name)).split(sep).join('/'),
       });
     }
-    return { entries };
+    if (before !== fileFingerprint(await lstat(directory, { bigint: true })))
+      throw new OperationError('contentChanged', '目录已变化，请重新读取。');
+    return {
+      entries,
+      version: before,
+      offset,
+      ...(names.length > offset + limit ? { nextOffset: offset + limit } : {}),
+    };
   }
 
   async read(input: string, offset = 0): Promise<FileContent> {
@@ -550,6 +575,7 @@ export class ProjectStore {
     );
     // checkpoint is an execution aid; restored copies resume from durable project facts.
     backup.omitted.push(
+      '.scholoom/transfers（在途文件传输暂存；恢复副本不接续原传输）',
       '.scholoom/checkpoints.sqlite（从持久材料安全接续）',
       '外部链接、非图片二进制、超过256KiB文本及超过1MiB图片；非声明私有内容',
     );
@@ -701,6 +727,7 @@ export class ProjectStore {
       this.initializeContainer,
     );
     try {
+      copy.db.delete(tables.meta).where(sql`${tables.meta.key} LIKE 'file-transfer:%'`).run();
       for (const omitted of manifest.omitted) {
         const normalized = omitted.replaceAll('\\', '/');
         if (normalized === '.scholoom/trash/' || normalized === '.scholoom/trash') {

@@ -1,8 +1,8 @@
 /**
  * 虚拟化列表 hook
- * 参考 Zotero windowed-list.js：行高前缀和 + 二分可见区 + overscan
+ * 参考 Zotero windowed-list.js：固定行可见区与有限overscan。
  */
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 interface VirtualizedListOptions {
   rowHeight: number;
@@ -81,9 +81,11 @@ export function useVirtualizedList(
       const container = containerRef.current;
       if (!container || index < 0 || index >= offsets.length) return;
       const top = offsets[index]!;
-      container.scrollTop = top;
+      if (top < container.scrollTop) container.scrollTop = top;
+      else if (top + rowHeight > container.scrollTop + container.clientHeight)
+        container.scrollTop = top + rowHeight - container.clientHeight;
     },
-    [containerRef, offsets],
+    [containerRef, offsets, rowHeight],
   );
 
   // 滚动监听
@@ -101,11 +103,12 @@ export function useVirtualizedList(
 
     handleResize();
     container.addEventListener('scroll', handleScroll, { passive: true });
-    window.addEventListener('resize', handleResize);
+    const observer = new ResizeObserver(handleResize);
+    observer.observe(container);
 
     return () => {
       container.removeEventListener('scroll', handleScroll);
-      window.removeEventListener('resize', handleResize);
+      observer.disconnect();
     };
   }, [containerRef]);
 

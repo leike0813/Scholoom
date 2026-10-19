@@ -3,9 +3,9 @@
  */
 import type { LibrarySource } from '@scholoom/protocol';
 import { useCallback, useEffect, useRef } from 'react';
+import { useVirtualizedList } from '../useVirtualizedList';
 import { CatalogItemRow } from './CatalogItemRow';
 import type { CatalogSelection } from './CatalogSelection';
-import { useVirtualizedList } from './useVirtualizedList';
 
 const ROW_HEIGHT = 28;
 

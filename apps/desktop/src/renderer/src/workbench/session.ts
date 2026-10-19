@@ -7,6 +7,7 @@ export interface FileTarget {
   path: string;
   fileId?: string;
   create?: boolean;
+  openMode?: 'preview' | 'permanent';
 }
 
 /** 真实来源在界面上可区分的连接阶段；样例状态只由显式样例场景提供。 */
@@ -86,9 +87,10 @@ export interface WorkbenchSession {
     kind: 'library' | 'reader' | 'editor' | 'preview';
   }[];
   artifacts?: ReactNode;
-  fileNavigator?: ReactNode;
+  fileNavigator?: ReactNode | ((activeFile?: FileTarget) => ReactNode);
   fileTarget?: FileTarget;
-  renderFile?: (target: FileTarget, mode?: 'source' | 'preview') => ReactNode;
+  renderFile?: (target: FileTarget, mode?: 'source' | 'preview', onDirty?: () => void) => ReactNode;
+  isFileDirty?: (target: FileTarget) => boolean;
   /** 共同文献库 tab 内容；缺省时该 tab 呈现占位。 */
   library?: ReactNode;
   readerTarget?: import('@scholoom/protocol').LibraryAttachment | undefined;

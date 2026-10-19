@@ -82,6 +82,12 @@ importers:
       '@embedpdf/react-pdf-viewer':
         specifier: 2.15.1
         version: 2.15.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@headless-tree/core':
+        specifier: 1.8.0
+        version: 1.8.0
+      '@headless-tree/react':
+        specifier: 1.8.0
+        version: 1.8.0(@headless-tree/core@1.8.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@scholoom/client':
         specifier: workspace:*
         version: link:../../packages/client
@@ -1502,6 +1508,16 @@ packages:
 
   '@floating-ui/utils@0.2.12':
     resolution: {integrity: sha512-HpCo8tmWzLVad5s2d19EhAz5zqrrQ6s69qd6moPMQvkOuSwDT1YgRfWSVuc4ennqrgv3OHppiOGMQ7oC13yIww==}
+
+  '@headless-tree/core@1.8.0':
+    resolution: {integrity: sha512-mTTTzA94KzIYbJ2605IIcAZiJ075qe4FiPHop72KKC/XXe7gv7CBGY/WIB7k8CmlDnJEZulp8nm6pmGXLenu5A==}
+
+  '@headless-tree/react@1.8.0':
+    resolution: {integrity: sha512-T0IOukZUzRVwCCNzeDr5YxS+5eTjGLCBCItq00qUWDrSzOqawYZwyIZVSNhCdRfea47R1qDHkvca+8hxZ8mvYQ==}
+    peerDependencies:
+      '@headless-tree/core': '*'
+      react: '*'
+      react-dom: '*'
 
   '@isaacs/fs-minipass@4.0.1':
     resolution: {integrity: sha512-wgm9Ehl2jpeqP3zw/7mo3kRHFp5MEDhqAdwy1fTGkHAwnkGOVsgpvQhL8B5n1qlb01jV3n/bI0ZfZp5lWA1k4w==}
@@ -5732,6 +5748,14 @@ snapshots:
 
   '@floating-ui/utils@0.2.12': {}
 
+  '@headless-tree/core@1.8.0': {}
+
+  '@headless-tree/react@1.8.0(@headless-tree/core@1.8.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
+    dependencies:
+      '@headless-tree/core': 1.8.0
+      react: 19.3.0
+      react-dom: 19.3.0(react@19.3.0)
+
   '@isaacs/fs-minipass@4.0.1':
     dependencies:
       minipass: 7.1.3
@@ -5766,10 +5790,10 @@ snapshots:
       '@cfworker/json-schema': 4.1.1
       '@standard-schema/spec': 1.1.0
       js-tiktoken: 1.0.21
-      langsmith: 0.10.13(ws@8.22.0)
+      langsmith: 0.9.0(ws@8.22.0)
       mustache: 4.2.0
       p-queue: 6.6.2
-      zod: 4.6.5
+      zod: 4.3.6
     transitivePeerDependencies:
       - '@opentelemetry/api'
       - '@opentelemetry/exporter-trace-otlp-proto'

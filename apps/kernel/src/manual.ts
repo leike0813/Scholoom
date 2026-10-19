@@ -2,7 +2,12 @@ import { readFileSync } from 'node:fs';
 import { Broker, type Handlers } from '@scholoom/broker';
 import { LiteratureCatalog, MaterialReading } from '@scholoom/library/node';
 import { ProcessAdmission } from '@scholoom/platform/node';
-import { DirectoryBrowser, Projects } from '@scholoom/projects/node';
+import {
+  DirectoryBrowser,
+  FileTransfers,
+  ProjectFileWatches,
+  Projects,
+} from '@scholoom/projects/node';
 import {
   type BusinessInputs,
   type BusinessMethod,
@@ -93,6 +98,8 @@ export type FoundationMethod =
 export class ManualApplication {
   readonly projects: Projects;
   readonly library: LiteratureCatalog;
+  readonly transfers: FileTransfers;
+  readonly fileWatches: ProjectFileWatches;
   private readonly directories: DirectoryBrowser;
   protected readonly processes = new ProcessAdmission();
   protected revision = 0;
@@ -109,6 +116,14 @@ export class ManualApplication {
   constructor(directory: string) {
     this.projects = new Projects(directory, initializeProjectContainer, (id) =>
       this.projectReplacing(id),
+    );
+    this.transfers = new FileTransfers(this.projects, (projectId) => this.changed(projectId));
+    this.fileWatches = new ProjectFileWatches(
+      (id) => this.projects.get(id),
+      (projectId, paths) => {
+        this.projects.get(projectId).files.changed();
+        this.changed(projectId, undefined, false, false, paths);
+      },
     );
     this.directories = new DirectoryBrowser(directory);
     this.broker.register('project-materials', {
@@ -270,12 +285,14 @@ export class ManualApplication {
     sessionId?: string,
     sessionsChanged = false,
     libraryChanged = false,
+    filePaths?: string[],
   ): void {
     const change: WorkbenchChange = { revision: ++this.revision, resync: true };
     if (projectId) change.projectId = projectId;
     if (sessionId) change.sessionId = sessionId;
     if (sessionsChanged) change.sessionsChanged = true;
     if (libraryChanged) change.libraryChanged = true;
+    if (filePaths) change.filePaths = filePaths.slice(0, 100);
     for (const listener of this.listeners) listener(change);
   }
 
@@ -283,6 +300,17 @@ export class ManualApplication {
     Handlers<BusinessInputs, BusinessOutputs>,
     FoundationMethod
   > = {
+    'files.transfer': (input) => this.transfers.start(input),
+    'files.transferStatus': (input) =>
+      this.transfers.status(input.projectId, input.operationId, input.offset, input.limit),
+    'files.transferDecide': (input) => this.transfers.decide(input),
+    'files.transferCancel': (input) => this.transfers.cancel(input.projectId, input.operationId),
+    'files.importBegin': (input) => this.transfers.importBegin(input),
+    'files.importChunk': (input) => this.transfers.importChunk(input),
+    'files.importFinish': (input) =>
+      this.transfers.importFinish(input.projectId, input.operationId),
+    'files.watch': (input) => this.fileWatches.watch(input.projectId, input.paths),
+    'files.unwatch': async (input) => this.fileWatches.unwatch(input.projectId, input.watchId),
     'library.documentInfo': (input, context) =>
       this.library.document(
         'library.documentInfo',
@@ -502,7 +530,7 @@ export class ManualApplication {
     'files.list': async (input, context) => {
       const p = input;
       this.checkProjectScope(p.projectId, context);
-      return this.projects.get(p.projectId).list(p.path, p.offset, p.limit);
+      return this.projects.get(p.projectId).list(p.path, p.offset, p.limit, p.version, p.anchor);
     },
     'files.read': async (input, context) => {
       const p = input;
@@ -539,6 +567,8 @@ export class ManualApplication {
     return this.broker.available(Object.keys(businessSchemas) as BusinessMethod[]);
   }
   async close(): Promise<void> {
+    this.fileWatches.close();
+    await this.transfers.close();
     await this.library.close();
     await this.projects.close();
   }

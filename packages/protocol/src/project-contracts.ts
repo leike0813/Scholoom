@@ -1,3 +1,4 @@
+import { fileExplorerOperations } from './file-explorer-contracts.js';
 import {
   editSchema,
   fileSaveOperation,
@@ -48,7 +49,7 @@ export const fileLocationSchema = object(
 export const fileOperationSchema = object(
   {
     id,
-    kind: { enum: ['mkdir', 'rename', 'trash', 'restore'] },
+    kind: { enum: ['mkdir', 'rename', 'move', 'trash', 'restore'] },
     state: { enum: ['prepared', 'complete', 'unknown', 'failed'] },
     path: text,
     destination: text,
@@ -77,6 +78,7 @@ export const backupSchema = object({ id, createdAt: text, omitted: array(text) }
 ]);
 
 export const projectsOperations = {
+  ...fileExplorerOperations,
   'project.open': {
     semantics: { effect: 'write', returns: 'result', waitMs: 5000 },
     params: object({ path: id }, ['path']),
@@ -120,7 +122,7 @@ export const projectsOperations = {
   },
   'files.rename': {
     semantics: { effect: 'write', returns: 'result', waitMs: 5000 },
-    params: object({ ...project, path: id, name: id, operationId: id }, [
+    params: object({ ...project, path: id, name: id, operationId: id, expectedFileId: id }, [
       'projectId',
       'path',
       'name',
@@ -130,7 +132,11 @@ export const projectsOperations = {
   },
   'files.trash': {
     semantics: { effect: 'write', returns: 'result', waitMs: 5000 },
-    params: object({ ...project, path: id, operationId: id }, ['projectId', 'path', 'operationId']),
+    params: object({ ...project, path: id, operationId: id, expectedFileId: id }, [
+      'projectId',
+      'path',
+      'operationId',
+    ]),
     result: fileOperationSchema,
   },
   'files.restore': {
@@ -184,8 +190,14 @@ export const projectsOperations = {
   },
   'files.list': {
     semantics: { effect: 'read', returns: 'result', waitMs: 5000 },
-    params: object({ ...project, path: text, offset: count, limit: page }, ['projectId']),
-    result: object({ entries: array(fileEntrySchema), nextOffset: count }, ['entries']),
+    params: object(
+      { ...project, path: text, offset: count, limit: page, version: id, anchor: text },
+      ['projectId'],
+    ),
+    result: object(
+      { entries: array(fileEntrySchema), nextOffset: count, version: id, offset: count },
+      ['entries'],
+    ),
   },
   'files.read': {
     semantics: { effect: 'read', returns: 'result', waitMs: 5000 },

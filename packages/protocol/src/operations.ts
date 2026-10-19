@@ -32,6 +32,7 @@ export const changeSchema = object(
     resync: flag,
     sessionsChanged: flag,
     libraryChanged: flag,
+    filePaths: { type: 'array', items: { type: 'string' }, maxItems: 100 },
   },
   ['revision', 'resync'],
 );

@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { constants } from 'node:fs';
 import { link, lstat, mkdir, open, opendir, realpath, rename, unlink } from 'node:fs/promises';
 import { dirname, join, relative, sep } from 'node:path';
-import { failure, privateDirectory } from '@scholoom/platform/node';
+import { failure, fileFingerprint, privateDirectory } from '@scholoom/platform/node';
 import { OperationError } from '@scholoom/protocol/core';
 import type { FileLocation, FileOperation, Project } from '@scholoom/protocol/projects';
 import { eq, sql } from 'drizzle-orm';
@@ -109,7 +109,8 @@ export class ProjectFiles {
       .where(eq(tables.fileReferences.path, path))
       .all()
       .find((item) => item.value.state === 'present');
-    if (record && !fresh) return record.value;
+    if (record && !fresh && record.value.kind === (stats.isDirectory() ? 'dir' : 'file'))
+      return record.value;
     if (record) this.put({ ...record.value, state: 'missing' });
     if (stats.isSymbolicLink() || (!stats.isFile() && !stats.isDirectory()))
       throw new OperationError('permissionDenied', '不支持链接或特殊文件。');
@@ -193,16 +194,26 @@ export class ProjectFiles {
     };
   }
 
-  private async safeTree(root: string): Promise<void> {
+  async treeSnapshot(input: string): Promise<{ path: string; basis: string }[]> {
+    this.store.check('read');
+    return this.safeTree(await this.store.path(input));
+  }
+
+  private async safeTree(root: string): Promise<{ path: string; basis: string }[]> {
     const queue = [root];
+    const snapshot: { path: string; basis: string }[] = [];
     let seen = 0;
     while (queue.length) {
       const path = queue.shift() as string;
       if (++seen > 10000) throw new OperationError('resourceLimit', '目录超过本次结构操作范围。');
-      const stats = await lstat(path);
+      const stats = await lstat(path, { bigint: true });
       if (stats.isSymbolicLink() || (!stats.isDirectory() && !stats.isFile()))
         throw new OperationError('permissionDenied', '目录包含链接或特殊文件，请先处理。');
       await this.store.path(relative(this.store.project.path, path));
+      snapshot.push({
+        path: relative(this.store.project.path, path).split(sep).join('/'),
+        basis: fileFingerprint(stats),
+      });
       if (stats.isDirectory()) {
         for await (const entry of await opendir(path)) {
           if (seen + queue.length >= 10000)
@@ -211,6 +222,7 @@ export class ProjectFiles {
         }
       }
     }
+    return snapshot.sort((a, b) => a.path.localeCompare(b.path));
   }
 
   private async bindHistory(path: string): Promise<void> {
@@ -257,7 +269,15 @@ export class ProjectFiles {
   async mutate(
     kind: FileOperation['kind'],
     operationId: string,
-    input: { path?: string; name?: string; trashId?: string; destination?: string },
+    input: {
+      path?: string;
+      name?: string;
+      trashId?: string;
+      destination?: string;
+      expectedFileId?: string;
+      expectedBasis?: string;
+      expectedTree?: { path: string; basis: string }[];
+    },
   ): Promise<FileOperation> {
     this.store.check('write');
     if (!/^[A-Za-z0-9_-]{1,128}$/.test(operationId))
@@ -327,6 +347,8 @@ export class ProjectFiles {
             );
     if (source === destination && kind !== 'mkdir')
       throw new OperationError('invalidRequest', '新旧位置相同。');
+    if (kind === 'move' && destination.startsWith(`${source}${sep}`))
+      throw new OperationError('invalidRequest', '不能移入自身目录。');
     if (kind === 'trash') {
       await this.trashRoot();
       await privateDirectory(join(this.store.internal, 'trash', operationId));
@@ -344,9 +366,21 @@ export class ProjectFiles {
         return this.inspect(duplicate);
       }
       if (kind !== 'mkdir' && kind !== 'restore') {
-        await this.safeTree(source);
+        const snapshot = await this.safeTree(source);
+        if (
+          input.expectedTree &&
+          JSON.stringify(snapshot) !==
+            JSON.stringify([...input.expectedTree].sort((a, b) => a.path.localeCompare(b.path)))
+        )
+          throw new OperationError('contentChanged', '目录成员或内容已变化，请重新核查。');
         await this.bindHistory(candidate);
         location = await this.reference(candidate);
+        if (
+          (input.expectedFileId && location.fileId !== input.expectedFileId) ||
+          (input.expectedBasis &&
+            fileFingerprint(await lstat(source, { bigint: true })) !== input.expectedBasis)
+        )
+          throw new OperationError('contentChanged', '文件身份或内容已变化，请重新核查。');
       }
       if (await info(destination))
         throw new OperationError('contentChanged', '目标已存在，不能覆盖。');

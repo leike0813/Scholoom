@@ -5,6 +5,9 @@ import type { businessSchemas } from './operations.js';
 export type Inputs = {
   'artifacts.reconcile': FromSchema<(typeof businessSchemas)['artifacts.reconcile']['params']>;
   'files.history': FromSchema<(typeof businessSchemas)['files.history']['params']>;
+  'files.importBegin': FromSchema<(typeof businessSchemas)['files.importBegin']['params']>;
+  'files.importChunk': FromSchema<(typeof businessSchemas)['files.importChunk']['params']>;
+  'files.importFinish': FromSchema<(typeof businessSchemas)['files.importFinish']['params']>;
   'files.list': FromSchema<(typeof businessSchemas)['files.list']['params']>;
   'files.mkdir': FromSchema<(typeof businessSchemas)['files.mkdir']['params']>;
   'files.operation': FromSchema<(typeof businessSchemas)['files.operation']['params']>;
@@ -14,9 +17,15 @@ export type Inputs = {
   'files.resource': FromSchema<(typeof businessSchemas)['files.resource']['params']>;
   'files.restore': FromSchema<(typeof businessSchemas)['files.restore']['params']>;
   'files.save': FromSchema<(typeof businessSchemas)['files.save']['params']>;
+  'files.transfer': FromSchema<(typeof businessSchemas)['files.transfer']['params']>;
+  'files.transferCancel': FromSchema<(typeof businessSchemas)['files.transferCancel']['params']>;
+  'files.transferDecide': FromSchema<(typeof businessSchemas)['files.transferDecide']['params']>;
+  'files.transferStatus': FromSchema<(typeof businessSchemas)['files.transferStatus']['params']>;
   'files.trash': FromSchema<(typeof businessSchemas)['files.trash']['params']>;
   'files.trashList': FromSchema<(typeof businessSchemas)['files.trashList']['params']>;
   'files.undo': FromSchema<(typeof businessSchemas)['files.undo']['params']>;
+  'files.unwatch': FromSchema<(typeof businessSchemas)['files.unwatch']['params']>;
+  'files.watch': FromSchema<(typeof businessSchemas)['files.watch']['params']>;
   'library.attachments': FromSchema<(typeof businessSchemas)['library.attachments']['params']>;
   'library.backup': FromSchema<(typeof businessSchemas)['library.backup']['params']>;
   'library.backups': FromSchema<(typeof businessSchemas)['library.backups']['params']>;
@@ -100,6 +109,9 @@ export type Inputs = {
 export type Outputs = {
   'artifacts.reconcile': FromSchema<(typeof businessSchemas)['artifacts.reconcile']['result']>;
   'files.history': FromSchema<(typeof businessSchemas)['files.history']['result']>;
+  'files.importBegin': FromSchema<(typeof businessSchemas)['files.importBegin']['result']>;
+  'files.importChunk': FromSchema<(typeof businessSchemas)['files.importChunk']['result']>;
+  'files.importFinish': FromSchema<(typeof businessSchemas)['files.importFinish']['result']>;
   'files.list': FromSchema<(typeof businessSchemas)['files.list']['result']>;
   'files.mkdir': FromSchema<(typeof businessSchemas)['files.mkdir']['result']>;
   'files.operation': FromSchema<(typeof businessSchemas)['files.operation']['result']>;
@@ -109,9 +121,15 @@ export type Outputs = {
   'files.resource': FromSchema<(typeof businessSchemas)['files.resource']['result']>;
   'files.restore': FromSchema<(typeof businessSchemas)['files.restore']['result']>;
   'files.save': FromSchema<(typeof businessSchemas)['files.save']['result']>;
+  'files.transfer': FromSchema<(typeof businessSchemas)['files.transfer']['result']>;
+  'files.transferCancel': FromSchema<(typeof businessSchemas)['files.transferCancel']['result']>;
+  'files.transferDecide': FromSchema<(typeof businessSchemas)['files.transferDecide']['result']>;
+  'files.transferStatus': FromSchema<(typeof businessSchemas)['files.transferStatus']['result']>;
   'files.trash': FromSchema<(typeof businessSchemas)['files.trash']['result']>;
   'files.trashList': FromSchema<(typeof businessSchemas)['files.trashList']['result']>;
   'files.undo': FromSchema<(typeof businessSchemas)['files.undo']['result']>;
+  'files.unwatch': FromSchema<(typeof businessSchemas)['files.unwatch']['result']>;
+  'files.watch': FromSchema<(typeof businessSchemas)['files.watch']['result']>;
   'library.attachments': FromSchema<(typeof businessSchemas)['library.attachments']['result']>;
   'library.backup': FromSchema<(typeof businessSchemas)['library.backup']['result']>;
   'library.backups': FromSchema<(typeof businessSchemas)['library.backups']['result']>;

@@ -14,10 +14,12 @@ import { validateBusiness } from '@scholoom/protocol';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { DocumentReader } from './DocumentReader';
 import { draftKey, readDraft, writeDraft } from './drafts';
+import { fileDocument } from './file-document';
+import { FileExplorer } from './file-explorer/Explorer';
 import { LibraryTab } from './library/LibraryTab';
 import { PdfReader } from './PdfReader';
 import { ProjectOnboardingDialog } from './ProjectOnboarding';
-import { FileEditor, ProjectControls, ProjectNavigator } from './project-ui';
+import { FileEditor, ProjectControls } from './project-ui';
 import { toThreadMessage } from './projection';
 import { readerKindForName } from './reader-material';
 import { SessionList } from './SessionList';
@@ -127,7 +129,8 @@ export function useBusinessSession(
       }
     };
     void update();
-    const unsubscribe = client.subscribeChanges(() => {
+    const unsubscribe = client.subscribeChanges((change) => {
+      if (change.filePaths) return;
       void update();
     });
     return () => {
@@ -490,7 +493,15 @@ export function useBusinessSession(
     },
     draftKey: draftKey(directory, selection.projectId, selection.sessionId || 'unsent'),
     ...(file ? { fileTarget: file } : {}),
-    renderFile: (target, mode) =>
+    isFileDirty: (target) => {
+      const document = fileDocument(
+        draftKey(directory, target.projectId, target.fileId ?? target.path, 'file'),
+        draftKey(directory, target.projectId, target.path, 'file'),
+      );
+      const value = document.get();
+      return document.hasDraft() || (value.loaded && value.content !== value.source?.content);
+    },
+    renderFile: (target, mode, onDirty) =>
       client ? (
         <FileEditor
           key={`${target.projectId}:${target.fileId ?? target.path}:${mode ?? 'source'}`}
@@ -498,6 +509,7 @@ export function useBusinessSession(
           directory={directory}
           target={target}
           mode={mode ?? 'source'}
+          onDirty={onDirty}
           revision={snapshot?.fileRevision ?? 0}
           onOpenFile={setFile}
           onChanged={(stored) => {
@@ -697,34 +709,48 @@ export function useBusinessSession(
       );
     }),
     fileNavigator:
-      client && project && project.id !== 'application' ? (
-        <ProjectNavigator
-          key={project.id}
-          client={client}
-          project={project}
-          revision={snapshot?.fileRevision ?? 0}
-          open={setFile}
-          attach={(path, fileId) => {
-            const next = materials.includes(path)
-              ? materials.filter((item) => item !== path)
-              : [...materials, path];
-            setMaterials(next);
-            const ids = { ...materialFileIds };
-            if (next.includes(path) && fileId) ids[path] = fileId;
-            else delete ids[path];
-            setMaterialFileIds(ids);
-            writeDraft(
-              draftKey(directory, selection.projectId, selection.sessionId, 'material-file-ids'),
-              JSON.stringify(ids),
-            );
-            writeDraft(
-              draftKey(directory, selection.projectId, selection.sessionId, 'materials'),
-              JSON.stringify(next),
-            );
-          }}
-          selected={materials}
-        />
-      ) : undefined,
+      client && project && project.id !== 'application'
+        ? (activeFile) => (
+            <FileExplorer
+              key={project.id}
+              client={client}
+              project={project}
+              revision={snapshot?.fileRevision ?? 0}
+              activeFile={activeFile}
+              scope={directory}
+              open={setFile}
+              attach={(path, fileId) => {
+                const remove = materials.includes(path);
+                setMaterials((current) => {
+                  const next = remove
+                    ? current.filter((item) => item !== path)
+                    : [...new Set([...current, path])];
+                  writeDraft(
+                    draftKey(directory, selection.projectId, selection.sessionId, 'materials'),
+                    JSON.stringify(next),
+                  );
+                  return next;
+                });
+                setMaterialFileIds((current) => {
+                  const ids = { ...current };
+                  if (!remove && fileId) ids[path] = fileId;
+                  else delete ids[path];
+                  writeDraft(
+                    draftKey(
+                      directory,
+                      selection.projectId,
+                      selection.sessionId,
+                      'material-file-ids',
+                    ),
+                    JSON.stringify(ids),
+                  );
+                  return ids;
+                });
+              }}
+              selected={materials}
+            />
+          )
+        : undefined,
     sessions: (snapshot?.sessions ?? []).map((item) => ({
       id: item.id,
       title: item.title,

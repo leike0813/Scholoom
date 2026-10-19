@@ -10,8 +10,9 @@ import { fileDocument, useFileDocument } from './file-document';
 import { lineDiff } from './line-diff';
 import { MarkdownPreview } from './MarkdownPreview';
 import type { FileTarget } from './session';
+import { useFileWatch } from './useFileWatch';
 
-export { ProjectControls, ProjectNavigator } from './ProjectNavigation';
+export { ProjectControls } from './ProjectNavigation';
 
 export function FileEditor({
   client,
@@ -21,6 +22,7 @@ export function FileEditor({
   revision = 0,
   mode = 'source',
   onOpenFile,
+  onDirty,
 }: {
   client: KernelClient;
   directory: string;
@@ -29,6 +31,7 @@ export function FileEditor({
   revision?: number;
   mode?: 'source' | 'preview';
   onOpenFile?: (target: FileTarget) => void;
+  onDirty?: (() => void) | undefined;
 }) {
   const document = useMemo(
     () =>
@@ -42,6 +45,8 @@ export function FileEditor({
   const mount = useRef<HTMLDivElement>(null);
   const editor = useRef<EditorView | null>(null);
   const applying = useRef(false);
+  const dirtyCallback = useRef(onDirty);
+  dirtyCallback.current = onDirty;
   const active = useRef(0);
   const [path, setPath] = useState(target.path);
   const [edits, setEdits] = useState<FileEdit[]>([]);
@@ -100,6 +105,18 @@ export function FileEditor({
       active.current++;
     };
   }, [target.create, revision, reload, document]);
+  const watchError = useFileWatch(
+    client,
+    target.projectId,
+    [path],
+    (paths) => {
+      if (paths.some((item) => !item || item === path || path.startsWith(`${item}/`)))
+        void reload();
+    },
+    () => {
+      void reload();
+    },
+  );
   useEffect(() => {
     if (mode !== 'source' || !mount.current) return;
     const view = new EditorView({
@@ -113,8 +130,10 @@ export function FileEditor({
           EditorView.lineWrapping,
           EditorView.contentAttributes.of({ 'aria-label': `文件内容 ${path}` }),
           EditorView.updateListener.of((update) => {
-            if (update.docChanged && !applying.current)
+            if (update.docChanged && !applying.current) {
               document.update({ content: update.state.doc.toString() }, true);
+              dirtyCallback.current?.();
+            }
           }),
         ],
       }),
@@ -125,6 +144,9 @@ export function FileEditor({
       editor.current = null;
     };
   }, [document, mode, path]);
+  useEffect(() => {
+    if (mode === 'source' && target.openMode !== 'preview') editor.current?.focus();
+  }, [mode, target.openMode]);
   useEffect(() => {
     const view = editor.current;
     if (view && view.state.doc.toString() !== value.content) {
@@ -228,6 +250,7 @@ export function FileEditor({
         <p role="status">磁盘内容已变化。草稿已保留，请重新读取并核对差异。</p>
       ) : null}
       {value.error ? <p role="alert">{value.error} 草稿已保留。</p> : null}
+      {watchError ? <p role="status">自动更新暂不可用：{watchError}</p> : null}
       {mode === 'preview' ? (
         /\.(md|markdown)$/i.test(path) ? (
           <>
