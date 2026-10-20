@@ -48,6 +48,7 @@
   --radius-composer: 14px;
 
   --row-h: 32px;
+  --statusbar-h: 40px;
   --file-tree-row-height: 28px;
   --dock-height: 180px;
 
@@ -169,6 +170,7 @@
     --handle-hover: #3d3d3d;
     --handle-active: #5b8def;
     --row-h: 32px;
+    --statusbar-h: 40px;
     --file-tree-row-height: 28px;
     --font-size-meta: 12px;
     --font-size-label: 11px;
@@ -208,6 +210,7 @@
   --handle-hover: #3d3d3d;
   --handle-active: #5b8def;
   --row-h: 32px;
+  --statusbar-h: 40px;
   --font-size-meta: 12px;
   --font-size-label: 11px;
   --font-size-document: 15px;
@@ -274,6 +277,7 @@ button {
 .shell {
   display: grid;
   grid-template-columns: auto auto minmax(var(--center-min), 1fr) auto auto;
+  grid-template-rows: minmax(0, 1fr) var(--statusbar-h);
   height: 100vh;
   min-width: var(--app-min-width);
   overflow: hidden;
@@ -282,19 +286,24 @@ button {
 .side--left,
 .rail--left {
   grid-column: 1;
+  grid-row: 1 / -1;
 }
 .side--right,
 .rail--right {
   grid-column: 5;
+  grid-row: 1;
 }
 .center {
   grid-column: 3;
+  grid-row: 1;
 }
 .pane-handle--left {
   grid-column: 2;
+  grid-row: 1;
 }
 .pane-handle--right {
   grid-column: 4;
+  grid-row: 1;
 }
 
 /* 分隔手柄：hr 自带 separator 语义；拖拽中经 CSS 变量直接改尺寸，落定才回写状态。 */
@@ -351,6 +360,16 @@ button {
 }
 .rail--left {
   border-right: 1px solid var(--border);
+  position: relative;
+  padding-bottom: var(--statusbar-h);
+}
+.rail--left::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  height: var(--statusbar-h);
+  border-top: 1px solid var(--border);
 }
 .rail--right {
   border-left: 1px solid var(--border);
@@ -813,9 +832,10 @@ button {
   align-items: center;
   gap: 8px;
   margin-top: auto;
-  padding: 10px 12px;
+  height: var(--statusbar-h);
+  padding: 0 calc(var(--space-unit) * 3);
   border-top: 1px solid var(--border);
-  font-size: 12px;
+  font-size: var(--font-size-meta);
   color: var(--text-secondary);
 }
 .kernel-status__text {
@@ -869,6 +889,103 @@ button {
 .text-btn:hover {
   background: var(--surface-hover);
   color: var(--text-primary);
+}
+
+.statusbar {
+  grid-column: 2 / -1;
+  grid-row: 2;
+  position: relative;
+  z-index: 21;
+  display: flex;
+  align-items: stretch;
+  gap: calc(var(--space-unit) * 2);
+  height: var(--statusbar-h);
+  min-width: 0;
+  padding: 0 calc(var(--space-unit) * 2);
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-secondary);
+  font-size: var(--font-size-meta);
+}
+.statusbar__group {
+  display: flex;
+  align-items: stretch;
+  min-width: 0;
+}
+.statusbar__group--left {
+  flex: 1;
+}
+.statusbar__group--right {
+  flex-direction: row-reverse;
+  max-width: 65%;
+  position: sticky;
+  right: 0;
+  background: var(--surface);
+}
+.statusbar__item,
+.statusbar__item > .menu__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-unit);
+  min-width: 0;
+  max-width: 100%;
+  padding: 0 calc(var(--space-unit) * 2);
+  border-radius: 0;
+  white-space: nowrap;
+}
+.statusbar__item > .menu__toggle {
+  height: 100%;
+  color: inherit;
+}
+.statusbar__item svg {
+  flex: none;
+  width: calc(var(--space-unit) * 4);
+  height: calc(var(--space-unit) * 4);
+}
+.statusbar__text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.statusbar button.statusbar__item:hover {
+  background: var(--surface-hover);
+}
+.statusbar__item--error {
+  color: var(--status-error);
+}
+.statusbar__item--success {
+  color: var(--status-ok);
+}
+.statusbar__item--warning {
+  color: var(--text-primary);
+}
+.statusbar__notifications {
+  flex: 0 1 auto;
+  padding: 0;
+  min-width: calc(var(--space-unit) * 24);
+}
+.statusbar__notifications > .menu__body {
+  width: min(560px, calc(100vw - var(--space-unit) * 8));
+  min-width: 0;
+  max-width: none;
+  max-height: calc(100dvh - var(--statusbar-h) - var(--space-unit) * 4);
+  overflow: auto;
+  white-space: normal;
+}
+.statusbar__notice + .statusbar__notice {
+  margin-top: calc(var(--space-unit) * 2);
+  padding-top: calc(var(--space-unit) * 2);
+  border-top: 1px solid var(--border);
+}
+.statusbar__notice pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.statusbar__notice button {
+  margin-left: var(--space-unit);
+  padding: var(--space-unit) calc(var(--space-unit) * 2);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
 }
 
 /* 共享菜单与确认原语（shell/menu.tsx） */
@@ -2213,11 +2330,6 @@ button.composer-picker:disabled {
   white-space: nowrap;
   text-overflow: ellipsis;
   color: var(--text-tertiary);
-}
-.artifact-card__actions {
-  flex: none;
-  display: flex;
-  gap: var(--space-unit);
 }
 .artifact-card__note {
   flex-basis: 100%;

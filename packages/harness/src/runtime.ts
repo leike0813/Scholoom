@@ -1770,6 +1770,7 @@ export class Harness {
               this.putMessage(project, {
                 id,
                 sessionId: run.sessionId,
+                runId: run.id,
                 role: 'assistant',
                 text: value,
                 state: 'streaming',
@@ -1789,6 +1790,7 @@ export class Harness {
             this.putMessage(project, {
               id,
               sessionId: run.sessionId,
+              runId: run.id,
               role: 'assistant',
               text: (text || buffers.get(id) || '').slice(-262144),
               state: 'complete',
@@ -1848,6 +1850,7 @@ export class Harness {
           this.putMessage(project, {
             id,
             sessionId: run.sessionId,
+            runId: run.id,
             role: 'assistant',
             text,
             state: 'error',

@@ -60,6 +60,13 @@ export interface TaskSummary {
   updatedAt: string;
 }
 
+export interface WorkbenchNotice {
+  id: string;
+  severity: 'info' | 'warning' | 'error';
+  summary: string;
+  content: ReactNode;
+}
+
 export interface WorkbenchSession {
   status: KernelPhase | 'sample';
   connection?: WorkbenchConnection;
@@ -70,7 +77,12 @@ export interface WorkbenchSession {
   reset?: () => void;
   draftKey?: string;
   controls?: ReactNode;
-  notices?: ReactNode;
+  notices?: readonly WorkbenchNotice[];
+  executionStatus?: string;
+  projectTrust?: {
+    state: 'pending' | 'restricted';
+    request: () => void;
+  };
   sessionNavigation?: ReactNode;
   openSessionSearch?: () => void;
   sessionSearchDialog?: ReactNode;
@@ -87,7 +99,6 @@ export interface WorkbenchSession {
     title: string;
     kind: 'library' | 'reader' | 'editor' | 'preview';
   }[];
-  artifacts?: ReactNode;
   fileNavigator?: ReactNode | ((activeFile?: FileTarget) => ReactNode);
   fileTarget?: FileTarget;
   renderFile?: (

@@ -12,12 +12,14 @@ import {
   useState,
 } from 'react';
 import { readDraft, subscribeDraft, writeDraft } from './drafts';
+import { StatusBarProvider } from './StatusBarContext';
 import type { WorkbenchSession } from './session';
 import { ActivityPane, ActivityRail, type ThemeMode } from './shell/ActivityPane';
 import { AgentDock } from './shell/AgentDock';
 import { AgentOverlay } from './shell/AgentOverlay';
 import { AuxiliaryPane, AuxiliaryRail } from './shell/AuxiliaryPane';
 import { PaneHandle } from './shell/PaneHandle';
+import { StatusBar } from './shell/StatusBar';
 import { type TabGroupState, TabGroups, type TabItem } from './shell/TabGroups';
 import { openFileTab } from './tab-state';
 import './library/library.css';
@@ -52,6 +54,14 @@ function ComposerDraft({
 }
 
 export function Workbench({ session }: { session: WorkbenchSession }) {
+  return (
+    <StatusBarProvider>
+      <WorkbenchContent session={session} />
+    </StatusBarProvider>
+  );
+}
+
+function WorkbenchContent({ session }: { session: WorkbenchSession }) {
   const runtime = useExternalStoreRuntime(session.adapter);
 
   const [leftCollapsed, setLeftCollapsed] = useState(false);
@@ -534,8 +544,6 @@ export function Workbench({ session }: { session: WorkbenchSession }) {
         )}
 
         <ThreadPrimitive.Root className="center">
-          {!agentExpanded ? session.notices : null}
-          {!agentExpanded ? session.artifacts : null}
           <TabGroups
             groups={groups}
             onActivate={activateTab}
@@ -570,8 +578,6 @@ export function Workbench({ session }: { session: WorkbenchSession }) {
               messageKey={`${session.projectId ?? 'sample'}:${session.activeSessionId ?? ''}`}
               openFile={session.openMessageFile}
               context={session.executionContext}
-              artifacts={session.artifacts}
-              notices={session.notices}
               reset={session.reset ? reset : undefined}
               onCollapse={() => setAgentExpanded(false)}
               cancel={session.cancel}
@@ -634,6 +640,10 @@ export function Workbench({ session }: { session: WorkbenchSession }) {
             }
           />
         )}
+        <StatusBar
+          key={`${session.projectId ?? 'sample'}:${session.activeSessionId ?? ''}`}
+          session={session}
+        />
         {session.sessionSearchDialog}
         {session.projectOnboardingDialog}
         {session.projectTrustDialog}

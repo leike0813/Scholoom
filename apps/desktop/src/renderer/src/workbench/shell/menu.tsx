@@ -71,20 +71,46 @@ function useMenuBehavior(ref: RefObject<HTMLDetailsElement | null>) {
 /** 共享操作菜单：行尾 ⋯ 或文字触发，内容定位于触发处下方（menu--up 向上）。 */
 export function Menu({
   label,
+  title,
   summary,
   className = '',
   children,
+  open,
+  onOpenChange,
+  onActivate,
 }: {
   label: string;
+  title?: string | undefined;
   summary?: ReactNode;
   className?: string;
   children: ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  onActivate?: () => void;
 }) {
   const ref = useRef<HTMLDetailsElement>(null);
   useMenuBehavior(ref);
   return (
-    <details className={`menu${className ? ` ${className}` : ''}`} ref={ref}>
-      <summary className="menu__toggle" aria-label={label}>
+    <details
+      className={`menu${className ? ` ${className}` : ''}`}
+      ref={ref}
+      open={open}
+      onToggle={(event) => onOpenChange?.(event.currentTarget.open)}
+    >
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: summary 原生支持键盘触发，点击委派给已注册的动作 */}
+      <summary
+        className="menu__toggle"
+        aria-label={label}
+        title={title}
+        onClick={
+          onActivate
+            ? (event) => {
+                event.preventDefault();
+                onActivate();
+              }
+            : undefined
+        }
+      >
         {summary ?? '⋯'}
       </summary>
       <MenuClose.Provider

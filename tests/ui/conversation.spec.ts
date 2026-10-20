@@ -148,7 +148,16 @@ test('conversation titles, archive and Markdown reading preserve the active work
     await expect(input).toBeDisabled();
     await expect(input).toHaveValue('归档前保留的草稿');
     await uiPage.reload();
-    await expect(uiPage.getByRole('button', { name: '恢复当前会话', exact: true })).toBeVisible();
+    const notifications = uiPage.getByLabel('工作台通知', { exact: true });
+    await expect(notifications).toContainText('归档');
+    await notifications.click();
+    const noticeDetails = uiPage.getByRole('region', {
+      name: '工作台通知详情',
+      exact: true,
+    });
+    await expect(
+      noticeDetails.getByRole('button', { name: '恢复当前会话', exact: true }),
+    ).toBeVisible();
     await expect(input).toHaveValue('归档前保留的草稿');
     await uiPage.getByRole('button', { name: '查找会话', exact: true }).click();
     await query.fill('资料');
@@ -157,7 +166,8 @@ test('conversation titles, archive and Markdown reading preserve the active work
     await expect(search).toHaveCount(0);
     await uiPage.getByRole('button', { name: '展开 Agent 会话' }).click();
     await expect(reply.getByRole('table')).toBeVisible();
-    await uiPage.getByRole('button', { name: '恢复当前会话', exact: true }).click();
+    await notifications.click();
+    await noticeDetails.getByRole('button', { name: '恢复当前会话', exact: true }).click();
     await expect(input).toBeEnabled();
     expect(model.requests.length).toBe(requests);
     await uiPage.screenshot({ path: info.outputPath('conversation-restored.png') });
@@ -248,19 +258,25 @@ test('archive and restore failures stay in place and retry succeeds', async ({ u
     await expect(input).toBeDisabled();
     await expect(input).toHaveValue('归档失败期间保留的草稿');
 
-    // 当前会话恢复失败：错误行留在消息区的归档提示内。
-    const callout = uiPage.getByRole('status').filter({ hasText: '会话已归档' });
-    await expect(callout).toBeVisible();
+    // 当前会话恢复失败：错误留在状态栏通知详情内。
+    const notifications = uiPage.getByLabel('工作台通知', { exact: true });
+    await notifications.click();
+    const noticeDetails = uiPage.getByRole('region', {
+      name: '工作台通知详情',
+      exact: true,
+    });
+    const restore = noticeDetails.getByRole('button', { name: '恢复当前会话', exact: true });
+    await expect(restore).toBeVisible();
     const requests = model.requests.length;
     await armRpcGate(uiPage, 'session.archive');
-    await callout.getByRole('button', { name: '恢复当前会话', exact: true }).click();
+    await restore.click();
     await uiPage.waitForFunction(() => !!Reflect.get(globalThis, '__scholoomRpcGate').held);
     await releaseRpcGate(uiPage, true);
-    await expect(callout.getByRole('alert')).toBeVisible();
+    await expect(noticeDetails.getByRole('alert')).toBeVisible();
     await expect(input).toBeDisabled();
-    await callout.getByRole('button', { name: '恢复当前会话', exact: true }).click();
+    await restore.click();
     await expect(input).toBeEnabled();
-    await expect(callout.getByRole('alert')).toHaveCount(0);
+    await expect(noticeDetails.getByRole('alert')).toHaveCount(0);
     // 恢复不自动发送。
     expect(model.requests.length).toBe(requests);
   } finally {

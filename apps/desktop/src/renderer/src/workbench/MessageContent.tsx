@@ -1,5 +1,5 @@
 import { useAuiState } from '@assistant-ui/react';
-import type { Message } from '@scholoom/protocol';
+import type { Artifact, Message } from '@scholoom/protocol';
 import { createContext, useContext, useState } from 'react';
 import { MarkdownText } from './MarkdownText';
 import type { WorkbenchSession } from './session';
@@ -8,6 +8,51 @@ export const MessageFiles = createContext<{
   documentKey: string;
   openFile: WorkbenchSession['openMessageFile'];
 }>({ documentKey: '', openFile: undefined });
+
+export function MessageArtifacts() {
+  const artifacts = useAuiState((state) => state.message.metadata.custom.artifacts) as
+    | readonly Artifact[]
+    | undefined;
+  const { openFile } = useContext(MessageFiles);
+  const [error, setError] = useState('');
+  const open = async (artifact: Artifact) => {
+    setError('');
+    try {
+      await openFile?.(artifact.location?.path ?? artifact.path, artifact.fileId);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : '成果无法打开。');
+    }
+  };
+  return artifacts?.length ? (
+    <section aria-label="本轮成果">
+      {artifacts.map((artifact) => (
+        <div className="artifact-card" key={`${artifact.runId}:${artifact.path}`}>
+          <div className="artifact-card__info">
+            <span className="artifact-card__name" title={artifact.path}>
+              {artifact.path.split('/').pop() ?? artifact.path}
+            </span>
+            <span className="artifact-card__path" title={artifact.path}>
+              {artifact.location?.path ?? artifact.path}
+            </span>
+          </div>
+          <button
+            type="button"
+            className="btn"
+            aria-label={`打开成果 ${artifact.path}`}
+            disabled={!openFile || (!!artifact.location && artifact.location.state !== 'present')}
+            onClick={() => void open(artifact)}
+          >
+            打开成果
+          </button>
+          {artifact.location?.state === 'trashed' ? (
+            <span className="artifact-card__note">已回收，可在回收站恢复</span>
+          ) : null}
+        </div>
+      ))}
+      {error ? <p role="alert">{error}</p> : null}
+    </section>
+  ) : null;
+}
 
 export function MessageContent({ text }: { text: string }) {
   const { documentKey, openFile } = useContext(MessageFiles);

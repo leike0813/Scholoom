@@ -424,6 +424,7 @@ test('pending project asks on entry and keeps an explicit restricted decision af
   try {
     const project = await client.call('project.create', { path: join(root, 'pending-project') });
     expect(project.trust).toBe('pending');
+    await installRpcGate(uiPage);
     await uiPage.goto('http://127.0.0.1:5174/');
     await expect(uiPage.getByRole('status', { name: '连接状态' })).toContainText('已连接');
     await uiPage.getByLabel('管理项目 pending-project', { exact: true }).click();
@@ -445,6 +446,25 @@ test('pending project asks on entry and keeps an explicit restricted decision af
     await uiPage.reload();
     await expect(uiPage.getByLabel('执行上下文')).toContainText('受限项目');
     await expect(dialog).toHaveCount(0);
+    const access = uiPage.getByRole('button', { name: '项目访问状态', exact: true });
+    await expect(access).toContainText('受限模式');
+    await access.click();
+    await expect(dialog).toBeVisible();
+    await dialog.getByRole('button', { name: '取消', exact: true }).click();
+    await expect(dialog).toHaveCount(0);
+    await expect(access).toBeFocused();
+    await access.click();
+    await armRpcGate(uiPage, 'project.grant');
+    await dialog.getByRole('button', { name: '信任项目', exact: true }).click();
+    await uiPage.waitForFunction(() => !!Reflect.get(globalThis, '__scholoomRpcGate').held);
+    await releaseRpcGate(uiPage, true);
+    await expect(dialog.getByRole('alert')).toBeVisible();
+    await expect(access).toContainText('受限模式');
+    await expect(uiPage.getByLabel('工作台通知', { exact: true })).toContainText('通知 0');
+    await dialog.getByRole('button', { name: '信任项目', exact: true }).click();
+    await expect(dialog).toHaveCount(0);
+    await expect(access).toHaveCount(0);
+    await expect(uiPage.getByLabel('执行上下文')).toContainText('已信任项目');
   } finally {
     client.dispose();
     await rm(root, { recursive: true });

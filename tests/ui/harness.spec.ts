@@ -1,6 +1,7 @@
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { basename, join } from 'node:path';
+import { DatabaseSync } from 'node:sqlite';
 import { startModelKernel } from '../model-kernel.js';
 import { createModelServer } from '../model-server.js';
 import { addProject, createSession, expect, test } from './fixture.js';
@@ -37,6 +38,10 @@ test('user invokes a declared research capability and opens its checked report',
       .poll(() => readFile(join(project, 'analysis.md'), 'utf8').catch(() => ''))
       .toContain('42');
     await expect(uiPage.getByRole('status', { name: '执行状态' })).toContainText('执行完成');
+    await expect(
+      uiPage.getByRole('button', { name: '打开成果 analysis.md', exact: true }),
+    ).toHaveCount(0);
+    await expect(uiPage.getByLabel('工作台通知', { exact: true })).toContainText('analysis.md');
     await uiPage.getByRole('button', { name: '展开 Agent 会话' }).click();
     const tool = uiPage
       .locator('details.tool-call')
@@ -45,13 +50,23 @@ test('user invokes a declared research capability and opens its checked report',
     await expect(tool).toContainText('invocationId');
     await expect(tool).toContainText('usable');
     await expect(tool).toContainText('notAssessed');
-    await uiPage.getByRole('button', { name: '打开成果 analysis.md', exact: true }).click();
+    await uiPage
+      .getByRole('article', { name: 'Agent 回复' })
+      .getByRole('button', { name: '打开成果 analysis.md', exact: true })
+      .click();
     await expect(
       uiPage.getByRole('textbox', { name: '文件内容 analysis.md', exact: true }),
     ).toContainText('42');
     await uiPage.reload();
+    await expect(uiPage.getByRole('status', { name: '连接状态' })).toContainText('已连接');
     await expect(
       uiPage.getByRole('button', { name: '打开成果 analysis.md', exact: true }),
+    ).toHaveCount(0);
+    await uiPage.getByRole('button', { name: '展开 Agent 会话', exact: true }).click();
+    await expect(
+      uiPage
+        .getByRole('article', { name: 'Agent 回复' })
+        .getByRole('button', { name: '打开成果 analysis.md', exact: true }),
     ).toBeVisible();
   } finally {
     await stop();
@@ -118,11 +133,46 @@ test('user configures, edits safely and receives a real persisted Agent result',
     await uiPage
       .getByRole('textbox', { name: '研究指令' })
       .fill('MODEL_FIXTURE 读取材料并保存结果');
+    const failRegistration = new DatabaseSync(join(project, '.scholoom', 'project.sqlite'));
+    try {
+      failRegistration.exec(
+        "CREATE TRIGGER ui_registration_failure BEFORE INSERT ON artifacts BEGIN SELECT RAISE(ABORT, 'synthetic registration failure'); END;",
+      );
+    } finally {
+      failRegistration.close();
+    }
     await uiPage.getByRole('button', { name: '发送指令' }).click();
     await expect
       .poll(() => readFile(join(project, 'result.md'), 'utf8').catch(() => ''))
       .toContain('合成样本');
     expect(runtimeErrors).toEqual([]);
+    await expect(
+      uiPage.getByRole('button', { name: '打开成果 result.md', exact: true }),
+    ).toHaveCount(0);
+    const notifications = uiPage.getByLabel('工作台通知', { exact: true });
+    await expect(notifications).toContainText('result.md');
+    await uiPage.getByRole('textbox', { name: '研究指令' }).fill('查看成果时保留的草稿');
+    await notifications.click();
+    const details = uiPage.getByRole('region', { name: '工作台通知详情', exact: true });
+    await expect(details).toContainText('待核查');
+    await armRpcGate(uiPage, 'artifacts.reconcile');
+    await details.getByRole('button', { name: '核查并补齐', exact: true }).click();
+    await releaseRpcGate(uiPage, true);
+    await expect(details.getByRole('alert')).toBeVisible();
+    await expect(notifications).toContainText('通知 1');
+    const allowRegistration = new DatabaseSync(join(project, '.scholoom', 'project.sqlite'));
+    try {
+      allowRegistration.exec('DROP TRIGGER ui_registration_failure');
+    } finally {
+      allowRegistration.close();
+    }
+    await details.getByRole('button', { name: '核查并补齐', exact: true }).click();
+    await expect(details).toContainText('已保存并登记');
+    await expect(details.getByRole('alert')).toHaveCount(0);
+    await expect(uiPage.getByRole('textbox', { name: '研究指令' })).toHaveValue(
+      '查看成果时保留的草稿',
+    );
+    await uiPage.keyboard.press('Escape');
     await uiPage.getByRole('button', { name: '展开 Agent 会话' }).click();
     await expect(
       uiPage
@@ -141,7 +191,11 @@ test('user configures, edits safely and receives a real persisted Agent result',
     await uiPage.screenshot({ path: info.outputPath('harness-tools-dark.png') });
     await uiPage.getByRole('button', { name: '切换主题', exact: true }).click();
     await uiPage.getByRole('textbox', { name: '研究指令' }).fill('查看成果时保留的草稿');
-    await uiPage.getByRole('button', { name: '打开成果 result.md', exact: true }).click();
+    await uiPage
+      .getByRole('article', { name: 'Agent 回复' })
+      .filter({ hasText: '分析已保存到 result.md' })
+      .getByRole('button', { name: '打开成果 result.md', exact: true })
+      .click();
     await expect(uiPage.getByRole('dialog', { name: 'Agent 会话', exact: true })).toHaveCount(0);
     await expect(
       uiPage.getByRole('textbox', { name: '文件内容 result.md', exact: true }),
@@ -180,7 +234,11 @@ test('user configures, edits safely and receives a real persisted Agent result',
     const composer = uiPage.getByRole('textbox', { name: '研究指令' });
     await composer.fill(draft);
     await uiPage.getByRole('button', { name: '发送指令' }).click();
-    await expect(uiPage.getByRole('alert')).toBeVisible();
+    await expect(notifications).not.toContainText('通知 0');
+    await notifications.click();
+    await expect(
+      uiPage.getByRole('region', { name: '工作台通知详情', exact: true }).getByRole('alert'),
+    ).toBeVisible();
     await expect(composer).toHaveValue(draft);
     await uiPage.reload();
     await expect(composer).toHaveValue(draft);
@@ -222,7 +280,8 @@ test('late send failure restores its original conversation and storage failures 
     await expect(input).toHaveValue('');
     await input.fill('会话 B 的草稿');
     await releaseRpcGate(uiPage, true);
-    await expect(uiPage.getByRole('alert')).toBeVisible();
+    // 旧会话的迟到错误不成为当前会话的通知，原指令仍恢复到原草稿。
+    await expect(uiPage.getByLabel('工作台通知', { exact: true })).toContainText('通知 0');
     await expect(input).toHaveValue('会话 B 的草稿');
     await armRpcGate(uiPage, 'workbench.watch');
     await sessions.nth(1).click();
@@ -299,7 +358,15 @@ test('busy conversation accepts additions, cancellation survives reload and cont
     await uiPage.getByRole('button', { name: '发送指令' }).click();
     await uiPage.reload();
     await uiPage.getByRole('button', { name: '展开 Agent 会话' }).click();
-    await uiPage.getByText('待核查指令', { exact: true }).click();
+    const notifications = uiPage.getByLabel('工作台通知', { exact: true });
+    await expect(notifications).toContainText('待核查');
+    await notifications.click();
+    const noticeDetails = uiPage.getByRole('region', { name: '工作台通知详情', exact: true });
+    await noticeDetails
+      .locator('details')
+      .filter({ hasText: '待核查指令' })
+      .locator('summary')
+      .click();
     await expect(uiPage.locator('details.execution-status pre')).toContainText(
       '刷新前未确认的指令',
     );

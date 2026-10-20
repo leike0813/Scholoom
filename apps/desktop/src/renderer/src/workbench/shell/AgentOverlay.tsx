@@ -6,7 +6,7 @@ import {
 } from '@assistant-ui/react';
 import type { Message } from '@scholoom/protocol';
 import { forwardRef } from 'react';
-import { MessageContent, MessageFacts, MessageFiles } from '../MessageContent';
+import { MessageArtifacts, MessageContent, MessageFacts, MessageFiles } from '../MessageContent';
 import type { WorkbenchSession } from '../session';
 import { ExecutionContext, InstructionInput, InstructionSend } from './InstructionComposer';
 import { IconChevronDown } from './icons';
@@ -60,6 +60,7 @@ function AssistantMessage() {
             components={{ Text: MessageContent, tools: { Fallback: ToolCall } }}
           />
           <MessageFacts />
+          <MessageArtifacts />
         </article>
       </MessagePrimitive.Root>
       <TurnSeparator />
@@ -72,8 +73,6 @@ export interface AgentOverlayProps {
   messageKey: string;
   openFile?: WorkbenchSession['openMessageFile'];
   context: WorkbenchSession['executionContext'];
-  artifacts?: WorkbenchSession['artifacts'];
-  notices?: WorkbenchSession['notices'];
   reset?: (() => void) | undefined;
   onCollapse: () => void;
   cancel?: (() => void) | undefined;
@@ -82,18 +81,7 @@ export interface AgentOverlayProps {
 
 /** 展开态 Agent 面板：占满中间区的 overlay，完整消息流 + composer。 */
 export const AgentOverlay = forwardRef<HTMLDivElement, AgentOverlayProps>(function AgentOverlay(
-  {
-    title,
-    messageKey,
-    openFile,
-    context,
-    artifacts,
-    notices,
-    reset,
-    onCollapse,
-    cancel,
-    loadEarlier,
-  },
+  { title, messageKey, openFile, context, reset, onCollapse, cancel, loadEarlier },
   ref,
 ) {
   return (
@@ -114,7 +102,6 @@ export const AgentOverlay = forwardRef<HTMLDivElement, AgentOverlayProps>(functi
       </header>
 
       <ThreadPrimitive.Viewport className="overlay-messages" aria-live="polite">
-        {notices}
         {loadEarlier ? (
           <button type="button" onClick={loadEarlier}>
             更早消息
@@ -123,7 +110,6 @@ export const AgentOverlay = forwardRef<HTMLDivElement, AgentOverlayProps>(functi
         <MessageFiles.Provider key={messageKey} value={{ documentKey: messageKey, openFile }}>
           <ThreadPrimitive.Messages components={{ UserMessage, AssistantMessage }} />
         </MessageFiles.Provider>
-        {artifacts}
       </ThreadPrimitive.Viewport>
 
       <div className="overlay-composer">

@@ -1,5 +1,5 @@
 import type { ThreadMessageLike } from '@assistant-ui/react';
-import type { Message } from '@scholoom/protocol';
+import type { Artifact, Message } from '@scholoom/protocol';
 
 /** 工具记录在界面中的呈现视图；形状由本模块投影，渲染组件只读这一层。 */
 export interface ToolCallView {
@@ -15,6 +15,10 @@ interface ToolCallPartLike {
   toolName: string;
   args?: unknown;
   result?: unknown;
+}
+
+export function artifactStateLabel(artifact: Artifact): string {
+  return artifact.state === 'linked' ? '已保存并登记' : '登记结果待核查';
 }
 
 type ToolCallArgs = {
@@ -56,11 +60,36 @@ export function toolStateDot(state: Message['state']): string {
   return 'dot dot--ok';
 }
 
-export function toThreadMessage(message: Message): ThreadMessageLike {
+/** 成果只附在已加载且明确属于同执行的最后回复，无正文时保留工具结果入口。 */
+export function toThreadMessages(
+  messages: readonly Message[],
+  artifacts: readonly Artifact[],
+): ThreadMessageLike[] {
+  const replies = new Map<string, string>();
+  const tools = new Map<string, string>();
+  for (const message of messages) {
+    if (message.role === 'assistant' && message.runId) replies.set(message.runId, message.id);
+    if (message.role === 'tool' && message.tool) tools.set(message.tool.runId, message.id);
+  }
+  const attached = new Map<string, Artifact[]>();
+  for (const artifact of artifacts) {
+    const id = replies.get(artifact.runId) ?? tools.get(artifact.runId);
+    if (!id) continue;
+    const list = attached.get(id) ?? [];
+    list.push(artifact);
+    attached.set(id, list);
+  }
+  return messages.map((message) => toThreadMessage(message, attached.get(message.id)));
+}
+
+export function toThreadMessage(
+  message: Message,
+  artifacts?: readonly Artifact[],
+): ThreadMessageLike {
   const common = {
     id: message.id,
     createdAt: new Date(message.createdAt),
-    metadata: { custom: { source: message } },
+    metadata: { custom: { source: message, artifacts: artifacts ?? [] } },
   };
   if (message.role === 'user') {
     return {

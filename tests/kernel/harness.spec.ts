@@ -86,6 +86,9 @@ test('real graph reads, writes and retains thinking across model tool turns', as
     expect(JSON.parse(tools[0]?.tool?.input ?? '{}').file_path).toBe('/input.md');
     expect(tools[0]?.tool?.output).toContain('合成材料');
     expect(tools.every((message) => message.tool?.runId === receipt.runId)).toBe(true);
+    const replies = snapshot.messages.filter((message) => message.role === 'assistant');
+    expect(replies.length).toBeGreaterThan(0);
+    expect(replies.every((message) => message.runId === receipt.runId)).toBe(true);
     expect(snapshot.messages.find((message) => message.role === 'assistant')?.text).not.toContain(
       '正在分析材料',
     );

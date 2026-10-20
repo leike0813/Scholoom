@@ -4,7 +4,7 @@ import { join, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createKernelClient } from '../../packages/client/dist/index.js';
 import { runKernel, runningKernel } from '../kernel-fixture.js';
-import { expect, test } from './fixture.js';
+import { createSession, expect, test } from './fixture.js';
 
 const rendererUrl = 'http://127.0.0.1:5174/';
 const sampleUrl = `${rendererUrl}?scenario=ui-foundation`;
@@ -51,6 +51,7 @@ test('CLI shutdown reaches every client and retry preserves draft', async ({ uiP
   const observer = createKernelClient(endpoint);
   await observer.connect();
   try {
+    await createSession(uiPage);
     const input = uiPage.getByRole('textbox', { name: '研究指令' });
     await input.fill('停机和重试后仍保留');
     // 工作台不提供停止入口；停机经 CLI 发起，所有客户端收到同一停机通知。

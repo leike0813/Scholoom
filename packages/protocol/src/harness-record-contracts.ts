@@ -22,6 +22,7 @@ export const messageSchema = object(
   {
     id,
     sessionId: id,
+    runId: id,
     role: { enum: ['user', 'assistant', 'tool'] },
     text: content,
     state: { enum: ['accepted', 'consumed', 'streaming', 'complete', 'error', 'unknown'] },

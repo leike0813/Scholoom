@@ -12,6 +12,7 @@ import type {
 } from '@scholoom/protocol';
 import { validateBusiness } from '@scholoom/protocol';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { ArtifactNotice } from './ArtifactNotice';
 import { DocumentReader } from './DocumentReader';
 import { draftKey, readDraft, writeDraft } from './drafts';
 import { fileDocument } from './file-document';
@@ -21,7 +22,7 @@ import { PdfReader } from './PdfReader';
 import { ProjectOnboardingDialog } from './ProjectOnboarding';
 import { ProjectTrustDialog } from './ProjectTrustDialog';
 import { FileEditor, ProjectControls } from './project-ui';
-import { toThreadMessage } from './projection';
+import { artifactStateLabel, toThreadMessages } from './projection';
 import { readerKindForName } from './reader-material';
 import { SessionList } from './SessionList';
 import { SessionSearchDialog } from './SessionSearch';
@@ -243,13 +244,15 @@ export function useBusinessSession(
   const call = useCallback(
     async <A extends CallArguments<BusinessInputs>>(...args: A): Promise<BusinessOutputs[A[0]]> => {
       if (!client || phase !== 'connected') throw new Error('内核未连接。');
+      const selected = selectedRef.current;
       try {
         setError('');
         const result = await client.call<A>(...args);
         await refresh();
         return result;
       } catch (reason) {
-        setError(reason instanceof Error ? reason.message : '操作失败，请核对当前状态。');
+        if (selected === selectedRef.current)
+          setError(reason instanceof Error ? reason.message : '操作失败，请核对当前状态。');
         throw reason;
       }
     },
@@ -261,6 +264,8 @@ export function useBusinessSession(
     writeDraft(draftKey(directory, projectId, 'session'), sessionId);
     const next = { projectId, sessionId };
     selectedRef.current = next;
+    setError('');
+    setRestoreError('');
     setEarlier([]);
     setEarlierComplete(false);
     setRecovered(undefined);
@@ -328,9 +333,14 @@ export function useBusinessSession(
     }
     configureModel(next.model || next.effort ? next : null);
   };
-  const messages = [...earlier, ...(snapshot?.messages ?? [])]
-    .filter((message, i, all) => all.findIndex((other) => other.id === message.id) === i)
-    .map(toThreadMessage);
+  const messages = toThreadMessages(
+    [
+      ...new Map(
+        [...earlier, ...(snapshot?.messages ?? [])].map((message) => [message.id, message]),
+      ).values(),
+    ],
+    snapshot?.artifacts ?? [],
+  );
   const adapter: ExternalStoreAdapter<ThreadMessageLike> = {
     messages,
     convertMessage: (message) => message,
@@ -461,11 +471,14 @@ export function useBusinessSession(
                     path={project.path}
                     enabled={phase === 'connected'}
                     onChoose={async (trust) => {
-                      await call('project.grant', {
+                      if (!client || phase !== 'connected') throw new Error('内核未连接。');
+                      // 信任失败由确认弹窗处理，不重复投影为全局通知。
+                      await client.call('project.grant', {
                         projectId: project.id,
                         trust,
                         autoBackup: project.autoBackup,
                       });
+                      await refresh();
                       setRequestedTrust('');
                     }}
                     onClose={() => {
@@ -601,100 +614,18 @@ export function useBusinessSession(
         enabled={phase === 'connected' && !!snapshot}
       />
     ),
-    notices: (
-      <>
-        {project && project.id !== 'application' && project.trust !== 'trusted' ? (
-          <div className="execution-status" role="status">
-            受限项目可人工浏览和编辑，信任后可使用 Agent。
-            <button
-              type="button"
-              disabled={phase !== 'connected'}
-              onClick={() => setRequestedTrust(project.id)}
-            >
-              信任项目…
-            </button>
-          </div>
-        ) : null}
-        {session?.archived ? (
-          <div className="execution-status" role="status">
-            会话已归档，历史和草稿保留。
-            <button
-              type="button"
-              disabled={phase !== 'connected'}
-              onClick={() => {
-                if (!client || phase !== 'connected') return;
-                setRestoreError('');
-                void (async () => {
-                  try {
-                    await client.call('session.archive', {
-                      projectId: selection.projectId,
-                      sessionId: session.id,
-                      archived: false,
-                    });
-                    await refresh();
-                  } catch (reason) {
-                    setRestoreError(
-                      reason instanceof Error ? reason.message : '恢复会话失败，请重试。',
-                    );
-                  }
-                })();
-              }}
-            >
-              恢复当前会话
-            </button>
-            {restoreError ? <p role="alert">{restoreError}</p> : null}
-          </div>
-        ) : null}
-        {recovered?.projectId === selection.projectId &&
-        recovered.sessionId === selection.sessionId ? (
-          <details className="execution-status">
-            <summary>待核查指令</summary>
-            <pre>{recovered.text}</pre>
-            <button
-              type="button"
-              disabled={!!session?.archived}
-              onClick={() =>
-                safe(async () => {
-                  const receipt = await call('session.send', recovered);
-                  const draft = draftKey(directory, recovered.projectId, recovered.sessionId);
-                  if (readDraft(draft).trim() === recovered.text) writeDraft(draft, '');
-                  const key = draftKey(
-                    directory,
-                    recovered.projectId,
-                    recovered.sessionId,
-                    'pending',
-                  );
-                  try {
-                    if (JSON.parse(readDraft(key)).instructionId === receipt.instructionId)
-                      writeDraft(key, '');
-                  } catch {}
-                  setRecovered((current) =>
-                    current?.instructionId === receipt.instructionId ? undefined : current,
-                  );
-                })
-              }
-            >
-              按原身份补交
-            </button>
-          </details>
-        ) : null}
-        {error ? (
-          <div className="business-error" role="alert">
-            {error}{' '}
-            <button type="button" onClick={() => safe(refresh)}>
-              刷新状态
-            </button>
-          </div>
-        ) : null}
-        {snapshot?.run?.error ? (
-          <div className="business-error" role="status">
-            {snapshot.run.error}
-          </div>
-        ) : null}
-        {session ? (
-          <div className="execution-status" role="status" aria-label="执行状态">
-            {session.title} ·{' '}
-            {snapshot?.run
+    ...(project && project.id !== 'application' && project.trust !== 'trusted'
+      ? {
+          projectTrust: {
+            state: project.trust,
+            request: () => setRequestedTrust(project.id),
+          },
+        }
+      : {}),
+    ...(session
+      ? {
+          executionStatus: `${session.title} · ${
+            snapshot?.run
               ? {
                   queued: '排队中',
                   running: '执行中',
@@ -704,73 +635,149 @@ export function useBusinessSession(
                   failed: '执行失败',
                   interrupted: '已中断',
                 }[snapshot.run.state]
-              : '空闲'}
-            {snapshot?.messages.some((message) => message.state === 'accepted')
-              ? ' · 有已受理指令等待消费'
-              : ''}
-          </div>
-        ) : null}
-      </>
-    ),
-    artifacts: snapshot?.artifacts.map((artifact) => {
-      const name = artifact.path.split('/').pop() ?? artifact.path;
-      return (
-        <div className="artifact-card" key={`${artifact.runId}:${artifact.path}`}>
-          <div className="artifact-card__info">
-            <span className="artifact-card__name" title={artifact.path}>
-              {name}
-            </span>
-            <span className="artifact-card__path" title={artifact.path}>
-              {artifact.path}
-            </span>
-          </div>
-          <span className="artifact-card__state">
-            {artifact.state === 'linked' ? '已保存并登记' : '登记结果待核查'}
-          </span>
-          <div className="artifact-card__actions">
-            <button
-              type="button"
-              className="btn"
-              aria-label={`打开成果 ${artifact.path}`}
-              disabled={!!artifact.location && artifact.location.state !== 'present'}
-              onClick={() =>
-                setFile({
+              : '空闲'
+          }${snapshot?.messages.some((message) => message.state === 'accepted') ? ' · 有已受理指令等待消费' : ''}`,
+        }
+      : {}),
+    notices: [
+      ...(session?.archived
+        ? [
+            {
+              id: 'archived',
+              severity: 'warning' as const,
+              summary: '会话已归档',
+              content: (
+                <div className="execution-status" role="status">
+                  会话已归档，历史和草稿保留。
+                  <button
+                    type="button"
+                    disabled={phase !== 'connected'}
+                    onClick={() => {
+                      if (!client || phase !== 'connected') return;
+                      setRestoreError('');
+                      void (async () => {
+                        try {
+                          await client.call('session.archive', {
+                            projectId: selection.projectId,
+                            sessionId: session.id,
+                            archived: false,
+                          });
+                          await refresh();
+                        } catch (reason) {
+                          if (selectedRef.current === selection)
+                            setRestoreError(
+                              reason instanceof Error ? reason.message : '恢复会话失败，请重试。',
+                            );
+                        }
+                      })();
+                    }}
+                  >
+                    恢复当前会话
+                  </button>
+                  {restoreError ? <p role="alert">{restoreError}</p> : null}
+                </div>
+              ),
+            },
+          ]
+        : []),
+      ...(recovered?.projectId === selection.projectId &&
+      recovered.sessionId === selection.sessionId
+        ? [
+            {
+              id: 'pending-instruction',
+              severity: 'warning' as const,
+              summary: '待核查指令',
+              content: (
+                <details className="execution-status">
+                  <summary>待核查指令</summary>
+                  <pre>{recovered.text}</pre>
+                  <button
+                    type="button"
+                    disabled={!!session?.archived}
+                    onClick={() =>
+                      safe(async () => {
+                        const receipt = await call('session.send', recovered);
+                        const draft = draftKey(directory, recovered.projectId, recovered.sessionId);
+                        if (readDraft(draft).trim() === recovered.text) writeDraft(draft, '');
+                        const key = draftKey(
+                          directory,
+                          recovered.projectId,
+                          recovered.sessionId,
+                          'pending',
+                        );
+                        try {
+                          if (JSON.parse(readDraft(key)).instructionId === receipt.instructionId)
+                            writeDraft(key, '');
+                        } catch {}
+                        setRecovered((current) =>
+                          current?.instructionId === receipt.instructionId ? undefined : current,
+                        );
+                      })
+                    }
+                  >
+                    按原身份补交
+                  </button>
+                </details>
+              ),
+            },
+          ]
+        : []),
+      ...(error
+        ? [
+            {
+              id: 'business-error',
+              severity: 'error' as const,
+              summary: error,
+              content: (
+                <div className="business-error" role="alert">
+                  {error}{' '}
+                  <button type="button" onClick={() => safe(refresh)}>
+                    刷新状态
+                  </button>
+                </div>
+              ),
+            },
+          ]
+        : []),
+      ...(snapshot?.run?.error
+        ? [
+            {
+              id: 'run-error',
+              severity: 'error' as const,
+              summary: snapshot.run.error,
+              content: (
+                <div className="business-error" role="status">
+                  {snapshot.run.error}
+                </div>
+              ),
+            },
+          ]
+        : []),
+      ...(snapshot?.artifacts ?? []).map((artifact) => {
+        const state = artifactStateLabel(artifact);
+        return {
+          id: `artifact:${artifact.runId}:${artifact.path}`,
+          severity: artifact.state === 'linked' ? ('info' as const) : ('warning' as const),
+          summary: `${artifact.path.split('/').pop() ?? artifact.path} · ${state}`,
+          content: (
+            <ArtifactNotice
+              artifact={artifact}
+              enabled={!!client && phase === 'connected'}
+              reconcile={async () => {
+                if (!client || phase !== 'connected') throw new Error('内核未连接。');
+                await client.call('artifacts.reconcile', {
                   projectId: selection.projectId,
-                  path: artifact.location?.path ?? artifact.path,
-                  ...(artifact.fileId ? { fileId: artifact.fileId } : {}),
-                })
-              }
-            >
-              打开成果
-            </button>
-            {artifact.state !== 'linked' ? (
-              <button
-                type="button"
-                className="btn"
-                onClick={() =>
-                  safe(() =>
-                    call('artifacts.reconcile', {
-                      projectId: selection.projectId,
-                      sessionId: selection.sessionId,
-                      runId: artifact.runId,
-                      paths: [artifact.path],
-                    }),
-                  )
-                }
-              >
-                核查并补齐
-              </button>
-            ) : null}
-          </div>
-          {artifact.location?.state === 'trashed' ? (
-            <span className="artifact-card__note">已回收，可在回收站恢复</span>
-          ) : null}
-          {artifact.location?.path && artifact.location.path !== artifact.path ? (
-            <span className="artifact-card__note">当前位置：{artifact.location.path}</span>
-          ) : null}
-        </div>
-      );
-    }),
+                  sessionId: selection.sessionId,
+                  runId: artifact.runId,
+                  paths: [artifact.path],
+                });
+                if (selection === selectedRef.current) await refresh();
+              }}
+            />
+          ),
+        };
+      }),
+    ],
     fileNavigator:
       client && project && project.id !== 'application'
         ? (activeFile) => (
