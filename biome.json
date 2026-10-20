@@ -10,7 +10,8 @@
       "*.ts",
       "!**/dist",
       "!**/out",
-      "!**/release"
+      "!**/release",
+      "!packages/editor/vendor"
     ]
   },
   "formatter": {

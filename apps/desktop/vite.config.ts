@@ -9,6 +9,7 @@ export default defineConfig({
   resolve: { conditions: ['worker', ...defaultClientConditions] },
   optimizeDeps: {
     include: [
+      '@scholoom/editor/visual',
       'unified',
       'remark-parse',
       'remark-gfm',

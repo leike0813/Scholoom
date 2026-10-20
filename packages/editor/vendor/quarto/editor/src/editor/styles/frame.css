@@ -1,0 +1,18 @@
+/*
+ * frame.css
+ *
+ * Copyright (C) 2022-2026 by Posit Software, PBC
+ */
+
+.ProseMirror {
+  position: relative;
+  height: 100%;
+  width: 100%;
+  outline: none;
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+.ProseMirror:focus {
+  outline: none;
+}

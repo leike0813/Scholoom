@@ -1,0 +1,15 @@
+{
+  "name": "@scholoom/quarto-core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "main": "./src/index.ts",
+  "types": "./types/index.d.ts",
+  "dependencies": {
+    "js-yaml": "5.4.2",
+    "markdown-it": "15.0.2",
+    "markdown-it-attrs": "4.5.0",
+    "wcwidth": "1.0.1"
+  }
+}

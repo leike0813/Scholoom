@@ -1,7 +1,7 @@
 import type { LibraryAttachment } from '@scholoom/protocol';
 import type { KeyboardEvent, ReactNode } from 'react';
 import type { FileTarget } from '../session';
-import type { TabGroupState, TabItem, TabKind } from '../tab-state';
+import type { FileViewMode, TabGroupState, TabKind } from '../tab-state';
 
 export type { TabGroupState, TabItem, TabKind } from '../tab-state';
 
@@ -69,12 +69,19 @@ export interface TabGroupsProps {
   onActivate: (groupIndex: number, tabId: string) => void;
   onClose: (groupIndex: number, tabId: string) => void;
   onSplit: (groupIndex: number) => void;
-  onView?: ((groupIndex: number, mode: 'source' | 'preview' | 'split') => void) | undefined;
+  onView?:
+    | ((groupIndex: number, mode: FileViewMode | 'split' | 'split-render') => void)
+    | undefined;
   renderSettings?: ReactNode;
   renderLibrary?: ReactNode | undefined;
   renderReader?: ((material: LibraryAttachment) => ReactNode) | undefined;
   renderFile?:
-    | ((target: FileTarget, mode?: 'source' | 'preview', onDirty?: () => void) => ReactNode)
+    | ((
+        target: FileTarget,
+        mode?: FileViewMode,
+        onDirty?: () => void,
+        viewId?: string,
+      ) => ReactNode)
     | undefined;
   onPin?: ((groupIndex: number, tabId: string) => void) | undefined;
   /** 空态带入的当前工作区名；缺省时不显示。 */
@@ -184,12 +191,36 @@ export function TabGroups({
                 <button
                   type="button"
                   className="btn"
+                  disabled={!/\.(md|markdown|qmd)$/i.test(active.target.path)}
+                  onClick={() => onView?.(groupIndex, 'visual')}
+                >
+                  可视编辑
+                </button>
+                <button
+                  type="button"
+                  className="btn"
                   onClick={() => onView?.(groupIndex, 'preview')}
                 >
                   预览
                 </button>
                 <button type="button" className="btn" onClick={() => onView?.(groupIndex, 'split')}>
                   并排预览
+                </button>
+                <button
+                  type="button"
+                  className="btn"
+                  disabled={!/\.(md|markdown|qmd|tex)$/i.test(active.target.path)}
+                  onClick={() => onView?.(groupIndex, 'render')}
+                >
+                  完整排版
+                </button>
+                <button
+                  type="button"
+                  className="btn"
+                  disabled={!/\.(md|markdown|qmd|tex)$/i.test(active.target.path)}
+                  onClick={() => onView?.(groupIndex, 'split-render')}
+                >
+                  并排排版
                 </button>
               </div>
             ) : null}
@@ -199,8 +230,9 @@ export function TabGroups({
               ) : active?.target && renderFile ? (
                 renderFile(
                   active.target,
-                  active.kind === 'preview' ? 'preview' : 'source',
+                  active.editorMode ?? (active.kind === 'preview' ? 'preview' : 'source'),
                   active.transient ? () => onPin?.(groupIndex, active.id) : undefined,
+                  group.id,
                 )
               ) : active?.kind === 'library' && renderLibrary ? (
                 renderLibrary

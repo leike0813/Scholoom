@@ -1,0 +1,11 @@
+/*
+ * line_block-styles.css
+ *
+ * Copyright (C) 2022-2026 by Posit Software, PBC
+ */
+
+.ProseMirror div.line-block > p {
+  white-space: pre-wrap; 
+}
+
+

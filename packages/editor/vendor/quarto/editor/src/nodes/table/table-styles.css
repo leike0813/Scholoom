@@ -1,0 +1,27 @@
+/*
+ * table-styles.css
+ *
+ * Copyright (C) 2022-2026 by Posit Software, PBC
+ */
+
+.ProseMirror table {
+  width: auto;
+}
+
+.ProseMirror .table-container table {
+  margin: 0;
+  width: 100%;
+}
+
+.ProseMirror .table-container th, .ProseMirror .table-container td {
+  min-width: 1em;
+}
+
+.ProseMirror .table-container .tableWrapper {
+  margin: 1em 0;
+}
+
+.ProseMirror .table-container .table-caption-inactive {
+  display: none;
+}
+

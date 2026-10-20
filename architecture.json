@@ -38,6 +38,14 @@
       "allows": ["@scholoom/protocol"],
       "systemAdapters": [
         {
+          "path": "src/command.ts",
+          "apis": ["process.env"]
+        },
+        {
+          "path": "src/command-worker.ts",
+          "apis": ["child_process", "process.env"]
+        },
+        {
           "path": "src/private-files.ts",
           "apis": ["child_process", "fs", "fs/promises", "process.env"]
         },
@@ -56,6 +64,41 @@
       ],
       "provides": [],
       "consumes": []
+    },
+    {
+      "name": "editor",
+      "package": "@scholoom/editor",
+      "root": "packages/editor",
+      "sourceRoot": "src",
+      "allows": [
+        "@scholoom/platform/node",
+        "@scholoom/protocol/core",
+        "@scholoom/protocol/editor",
+        "@scholoom/protocol/projects"
+      ],
+      "systemAdapters": [
+        { "path": "src/resources.ts", "apis": ["fs", "fs/promises"] },
+        { "path": "src/runtime.ts", "apis": ["fs/promises"] }
+      ],
+      "provides": [
+        "editor.tools",
+        "editor.convert",
+        "editor.render",
+        "editor.job",
+        "editor.cancel",
+        "editor.output",
+        "editor.export"
+      ],
+      "consumes": [
+        "project.check",
+        "project.material",
+        "files.read",
+        "files.resolve",
+        "platform.editorCommand",
+        "files.importBegin",
+        "files.importChunk",
+        "files.importFinish"
+      ]
     },
     {
       "name": "models",
@@ -219,6 +262,7 @@
       "sourceRoot": "src",
       "allows": [
         "@scholoom/harness/node",
+        "@scholoom/editor/node",
         "@scholoom/research/node",
         "@scholoom/broker",
         "@scholoom/client",
@@ -266,7 +310,7 @@
       "package": "@scholoom/desktop",
       "root": "apps/desktop",
       "sourceRoot": "src",
-      "allows": ["@scholoom/client", "@scholoom/kernel", "@scholoom/protocol"],
+      "allows": ["@scholoom/client", "@scholoom/editor", "@scholoom/kernel", "@scholoom/protocol"],
       "systemAdapters": [
         {
           "path": "src/main/**",

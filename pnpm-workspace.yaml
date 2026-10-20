@@ -1,6 +1,7 @@
 packages:
   - apps/*
   - packages/*
+  - packages/editor/vendor/quarto/*
 
 autoInstallPeers: false
 
@@ -9,6 +10,7 @@ allowBuilds:
   electron: true
   esbuild: true
   electron-winstaller: false
+  core-js-pure: false
 
 minimumReleaseAgeExclude:
   - '@assistant-ui/core@0.3.26'

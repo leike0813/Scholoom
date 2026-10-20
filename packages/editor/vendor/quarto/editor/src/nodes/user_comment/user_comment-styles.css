@@ -1,0 +1,14 @@
+/*
+ * user_comment-styles.css
+ *
+ * Copyright (C) 2019-2026 by Posit Software, PBC
+ */
+
+.pm-user-comment-thread:focus-within .pm-user-comment-add,
+.pm-user-comment-view.pm-user-comment-active .pm-user-comment-add {
+  display: block;
+}
+.pm-user-comment-thread.active .pm-user-comment-add,
+.pm-user-comment-add {
+  display: none;
+}

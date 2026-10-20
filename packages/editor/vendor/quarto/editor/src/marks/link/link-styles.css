@@ -1,0 +1,30 @@
+/*
+ * link-styles.css
+ *
+ * Copyright (C) 2022-2026 by Posit Software, PBC
+ */
+
+
+.ProseMirror a:hover {
+  cursor: text;
+}
+
+.ProseMirror .pm-popup-link > * {
+  vertical-align: middle;
+  display: inline-block;
+}
+
+.ProseMirror .pm-popup-link a {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  margin-right: 4px;
+  padding-left: 2px;
+}
+
+
+
+.ProseMirror .pm-popup-link .pm-image-button {
+  margin-left: 10px;
+}

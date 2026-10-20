@@ -89,8 +89,14 @@ export interface WorkbenchSession {
   artifacts?: ReactNode;
   fileNavigator?: ReactNode | ((activeFile?: FileTarget) => ReactNode);
   fileTarget?: FileTarget;
-  renderFile?: (target: FileTarget, mode?: 'source' | 'preview', onDirty?: () => void) => ReactNode;
+  renderFile?: (
+    target: FileTarget,
+    mode?: import('./tab-state.js').FileViewMode,
+    onDirty?: () => void,
+    viewId?: string,
+  ) => ReactNode;
   isFileDirty?: (target: FileTarget) => boolean;
+  flushFile?: (target: FileTarget) => Promise<void>;
   /** 共同文献库 tab 内容；缺省时该 tab 呈现占位。 */
   library?: ReactNode;
   readerTarget?: import('@scholoom/protocol').LibraryAttachment | undefined;

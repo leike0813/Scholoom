@@ -4,6 +4,13 @@ import type { businessSchemas } from './operations.js';
 
 export type Inputs = {
   'artifacts.reconcile': FromSchema<(typeof businessSchemas)['artifacts.reconcile']['params']>;
+  'editor.cancel': FromSchema<(typeof businessSchemas)['editor.cancel']['params']>;
+  'editor.convert': FromSchema<(typeof businessSchemas)['editor.convert']['params']>;
+  'editor.export': FromSchema<(typeof businessSchemas)['editor.export']['params']>;
+  'editor.job': FromSchema<(typeof businessSchemas)['editor.job']['params']>;
+  'editor.output': FromSchema<(typeof businessSchemas)['editor.output']['params']>;
+  'editor.render': FromSchema<(typeof businessSchemas)['editor.render']['params']>;
+  'editor.tools': FromSchema<(typeof businessSchemas)['editor.tools']['params']>;
   'files.history': FromSchema<(typeof businessSchemas)['files.history']['params']>;
   'files.importBegin': FromSchema<(typeof businessSchemas)['files.importBegin']['params']>;
   'files.importChunk': FromSchema<(typeof businessSchemas)['files.importChunk']['params']>;
@@ -108,6 +115,13 @@ export type Inputs = {
 };
 export type Outputs = {
   'artifacts.reconcile': FromSchema<(typeof businessSchemas)['artifacts.reconcile']['result']>;
+  'editor.cancel': FromSchema<(typeof businessSchemas)['editor.cancel']['result']>;
+  'editor.convert': FromSchema<(typeof businessSchemas)['editor.convert']['result']>;
+  'editor.export': FromSchema<(typeof businessSchemas)['editor.export']['result']>;
+  'editor.job': FromSchema<(typeof businessSchemas)['editor.job']['result']>;
+  'editor.output': FromSchema<(typeof businessSchemas)['editor.output']['result']>;
+  'editor.render': FromSchema<(typeof businessSchemas)['editor.render']['result']>;
+  'editor.tools': FromSchema<(typeof businessSchemas)['editor.tools']['result']>;
   'files.history': FromSchema<(typeof businessSchemas)['files.history']['result']>;
   'files.importBegin': FromSchema<(typeof businessSchemas)['files.importBegin']['result']>;
   'files.importChunk': FromSchema<(typeof businessSchemas)['files.importChunk']['result']>;

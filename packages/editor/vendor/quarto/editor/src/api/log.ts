@@ -1,0 +1,13 @@
+/*
+ * log.ts
+ *
+ * Copyright (C) 2022-2026 by Posit Software, PBC
+ */
+
+export function logException(e: unknown) {
+  // TODO: log exceptions (we don't want to use console.log in production code, so this would
+  // utilize some sort of external logging facility)
+  if (e instanceof Error) {
+     // console.log(e);
+  }
+}

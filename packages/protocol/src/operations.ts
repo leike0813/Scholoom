@@ -1,3 +1,4 @@
+import { editorOperations } from './editor.js';
 import { harnessOperations, harnessSnapshotSchema } from './harness.js';
 import { libraryOperations } from './library.js';
 import { modelsOperations, providerSchema } from './models.js';
@@ -38,6 +39,7 @@ export const changeSchema = object(
 );
 
 export const businessSchemas = {
+  ...editorOperations,
   ...modelsOperations,
   ...projectsOperations,
   ...harnessOperations,

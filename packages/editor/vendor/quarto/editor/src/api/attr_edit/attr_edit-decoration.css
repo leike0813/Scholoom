@@ -1,0 +1,50 @@
+/*
+ * attr_edit-decoration.css
+ *
+ * Copyright (C) 2022-2026 by Posit Software, PBC
+ */
+
+.pm-attr-edit-decoration {
+  position: absolute;
+  right: 5px;
+  z-index: 9;
+  background-color: transparent;
+  font-size: 10px;
+}
+
+.pm-div .pm-attr-edit-decoration {
+  margin-top: 10px;
+  right: 10px;
+}
+
+
+
+.pm-attr-edit-decoration .attr-edit-widget {
+  padding: 2px;
+  height: 18px;
+  -webkit-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  cursor: pointer;
+}
+
+.pm-attr-edit-decoration .attr-edit-tag {
+  border-radius: 20px;
+  margin-right: 6px;
+  padding-left: 7px;
+  padding-right: 7px;
+  font-weight: normal;
+  white-space: nowrap;
+}
+
+.pm-attr-edit-decoration .attr-edit-button {
+  margin-top: 1px;
+  -webkit-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+.pm-attr-edit-decoration .attr-edit-button img {
+  width: 18px;
+  height: 18px;
+}

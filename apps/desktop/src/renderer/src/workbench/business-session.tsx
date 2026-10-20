@@ -499,15 +499,25 @@ export function useBusinessSession(
         draftKey(directory, target.projectId, target.path, 'file'),
       );
       const value = document.get();
-      return document.hasDraft() || (value.loaded && value.content !== value.source?.content);
+      return (
+        !!value.conversionOwner ||
+        document.hasDraft() ||
+        (value.loaded && value.content !== value.source?.content)
+      );
     },
-    renderFile: (target, mode, onDirty) =>
+    flushFile: async (target) =>
+      fileDocument(
+        draftKey(directory, target.projectId, target.fileId ?? target.path, 'file'),
+        draftKey(directory, target.projectId, target.path, 'file'),
+      ).flush(),
+    renderFile: (target, mode, onDirty, viewId) =>
       client ? (
         <FileEditor
-          key={`${target.projectId}:${target.fileId ?? target.path}:${mode ?? 'source'}`}
+          key={`${target.projectId}:${target.fileId ?? target.path}`}
           client={client}
           directory={directory}
           target={target}
+          editorViewId={viewId}
           mode={mode ?? 'source'}
           onDirty={onDirty}
           revision={snapshot?.fileRevision ?? 0}

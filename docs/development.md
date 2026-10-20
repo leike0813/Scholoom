@@ -9,6 +9,7 @@
 | `packages/library` | 题录、附件、阅读记录、批次及材料解析适配 | 受控原生入口 `/node`，项目材料经窄端口取得 |
 | `packages/harness` | 会话仓储、执行监督、工具收据、checkpoint 和受管执行桥 | `/execution` 运行实际图及 SDK；项目、文献、科研端口可独立替换 |
 | `packages/research` | 方法内容、尝试、实际读取与交付检查 | 仅访问自身表，生产经 broker 使用领域与 harness 契约 |
+| `packages/editor` | 人工科研写作的开放格式转换、受管排版与产物 | `ManualApplication` 独立装配，不加载 harness、会话或模型；行为以当前 editor OpenSpec 为准 |
 | `packages/models`、`packages/platform`、`packages/broker` | 模型及凭据、资源与进程机制、能力路由及共同 RPC | 具体迁入及验收范围见当前 change |
 | `apps/desktop` | Electron main、sandbox preload、React renderer | 人类工作台，经共同客户端调用内核 |
 | `apps/zotero-host` | 独立 Electron main 与隐藏 Chromium 页面 | 固定 Zotero 10 基线的通用兼容层与选定插件适配 |
@@ -60,6 +61,20 @@ Agent、能力子执行与 PDF 共用宿主持有的进程容量，默认活动 
 依赖和工具版本以 `package.json`、`pnpm-lock.yaml`、`.nvmrc` 为准。pnpm 的依赖安装脚本授权集中在 `pnpm-workspace.yaml`。Electron 42 起取消依赖的自动运行时下载，项目使用官方 `install-electron` 命令显式准备二进制，见 [上游安装说明](https://github.com/electron/electron/blob/main/docs/tutorial/installation.md)。
 
 `pnpm dev:desktop` 使用 electron-vite；`pnpm dev:browser` 使用同一 React renderer。浏览器入口没有 Electron bridge，界面业务功能经共同客户端实现。
+
+## 科研写作与排版
+
+写作能力由 `packages/editor` 提供，人工工作台经 `ManualApplication` 和共同 broker 调用；该组合不装配 harness、会话或模型。当前机器核对到 Quarto 1.9.37、配套 Pandoc 3.8.3、latexmk 4.87 和 MiKTeX；这些版本不代表其他机器或分发包已具备相同工具，产品可用性通过 `editor.tools` 查询。
+
+源码与 QMD／Markdown 可视编辑共用同一草稿。Markdown／QMD 轻量预览读取未保存草稿；完整排版读取已保存稿件，打开预览或保存时更新当前选择格式。QMD 默认 HTML，切换 PDF 后更新 PDF；LaTeX 保留原生多文件工程并编译 PDF。HTML、PDF、DOCX 均可通过显式导出生成到工作区，沿用既有文件冲突与传输保护。
+
+可视编辑尚未转换成源码时，刷新或卸载先记录当前编辑状态；重开经同一转换服务恢复到草稿，不隐式保存到磁盘。载入与恢复期间正文只读，转换失败仍保留恢复记录；多个视图共享恢复发布和转换占用。
+
+`editor.job` 返回排版状态、diagnostics、有限 `log` 及 `lastSuccess`。排版失败或取消时核对最后成功产物及其输入版本，不把旧产物说成当前稿件的结果。实施状态及实际验证范围见[科研写作编辑器 change](../openspec/changes/add-research-writing-editor/delivery.md)和 `tasks.md`；该 change 保留实施工件，尚未归档。
+
+产物缓存按项目限制为 256 MiB／64 份；单个产物最多 128 MiB、单文件最多 64 MiB、资源最多 1000 个。已有稿件按替换后的净占用准入，提交余量最多 128 MiB／1 份，切换成功后回收可淘汰旧版。缓存保护最后成功产物、最近 5 分钟读取的产物及导出；受保护的暂留产物仍计入后续准入，历史收据保留，过期产物查询返回 `notFound`。
+
+相关验证入口为 `pnpm build`、`pnpm test:kernel tests/kernel/editor.spec.ts tests/kernel/editor-runtime.spec.ts tests/kernel/editor-source.spec.ts` 和 `pnpm test:ui tests/ui/writing-editor.spec.ts tests/ui/writing-editor-recovery.spec.ts tests/ui/writing-editor-pdf.spec.ts tests/ui/file-workbench.spec.ts`。`test:ui` 使用项目既有 Chromium 与真实 Electron 双宿主场景，覆盖学术内容往返、待转换草稿恢复、QMD／多文件 TeX PDF 预览及导出；文件工作台场景核对共享草稿、冲突、结构变化、主题与长稿输入性能。独立组件与实际内核产物验证另有对应测试；各层实际结果及平台边界见交付记录。
 
 ## 内核配置与生命周期
 

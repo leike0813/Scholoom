@@ -1,0 +1,12 @@
+/*
+ * rmd_chunk-styles.css
+ *
+ * Copyright (C) 2022-2026 by Posit Software, PBC
+ */
+
+.pm-image-preview img.pm-image-centered {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+

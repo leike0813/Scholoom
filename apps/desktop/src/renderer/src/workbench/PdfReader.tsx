@@ -76,6 +76,46 @@ function PdfViewport({
   );
 }
 
+export function RenderedPdf({ url }: { url: string }) {
+  const config = useMemo<PDFViewerConfig>(
+    () => ({
+      src: url,
+      wasmUrl: new URL(assets.wasmUrl, window.location.href).href,
+      fontFallback: {
+        defaultFont: new URL(assets.fontFallback.defaultFont, window.location.href).href,
+        fonts: Object.fromEntries(
+          Object.entries(assets.fontFallback.fonts).map(([charset, value]) => [
+            charset,
+            new URL(value, window.location.href).href,
+          ]),
+        ),
+      },
+      fonts: { ui: null, signature: null },
+      stamp: { libraries: [], manifests: [], defaultLibrary: false },
+      theme: { preference: 'system', light: colors, dark: colors },
+      annotations: { autoCommit: false, locked: { type: LockModeType.All } },
+      form: { withForms: false },
+      render: { withForms: false },
+      disabledCategories: [
+        'annotation',
+        'redaction',
+        'stamp',
+        'signature',
+        'form',
+        'document-open',
+        'print',
+        'export',
+      ],
+    }),
+    [url],
+  );
+  return (
+    <section className="pdf-viewer" aria-label="排版 PDF">
+      <PDFViewer config={config} />
+    </section>
+  );
+}
+
 export function PdfReader({
   client,
   material,

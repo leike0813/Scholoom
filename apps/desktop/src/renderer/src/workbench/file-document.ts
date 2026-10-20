@@ -8,10 +8,18 @@ export interface FileDocumentState {
   error: string;
   diskChanged: boolean;
   loaded: boolean;
+  conversionOwner?: string | undefined;
+  visualRecovery?: unknown;
 }
 const documents = new Map<
   string,
-  { key: string; value: FileDocumentState; listeners: Set<() => void> }
+  {
+    identity: string;
+    key: string;
+    value: FileDocumentState;
+    listeners: Set<() => void>;
+    flushers: Set<() => Promise<void>>;
+  }
 >();
 
 export function fileDocument(key: string, legacyKey: string) {
@@ -19,20 +27,42 @@ export function fileDocument(key: string, legacyKey: string) {
   if (!document) {
     const stored = readDraft(key) || readDraft(legacyKey);
     let content = '';
+    let visualRecovery: unknown;
     try {
-      content = JSON.parse(stored).content ?? '';
+      const draft = JSON.parse(stored);
+      content = draft.content ?? '';
+      visualRecovery = draft.visualRecovery;
     } catch {}
     if (stored && !readDraft(key)) writeDraft(key, stored);
     if (legacyKey !== key) writeDraft(legacyKey, '');
     document = {
+      identity: crypto.randomUUID(),
       key,
-      value: { content, source: undefined, error: '', diskChanged: false, loaded: false },
+      value: {
+        content,
+        visualRecovery,
+        source: undefined,
+        error: '',
+        diskChanged: false,
+        loaded: false,
+      },
       listeners: new Set(),
+      flushers: new Set(),
     };
     documents.set(key, document);
   }
   const current = document;
   return {
+    identity: current.identity,
+    registerFlusher: (flush: () => Promise<void>) => {
+      current.flushers.add(flush);
+      return () => {
+        current.flushers.delete(flush);
+      };
+    },
+    flush: async () => {
+      for (const flush of current.flushers) await flush();
+    },
     get: () => current.value,
     subscribe: (listener: () => void) => {
       current.listeners.add(listener);
@@ -42,7 +72,14 @@ export function fileDocument(key: string, legacyKey: string) {
     },
     update: (patch: Partial<FileDocumentState>, persist = false) => {
       current.value = { ...current.value, ...patch };
-      if (persist) writeDraft(current.key, JSON.stringify({ content: current.value.content }));
+      if (persist)
+        writeDraft(
+          current.key,
+          JSON.stringify({
+            content: current.value.content,
+            visualRecovery: current.value.visualRecovery,
+          }),
+        );
       for (const listener of current.listeners) listener();
     },
     hasDraft: () => !!readDraft(current.key),

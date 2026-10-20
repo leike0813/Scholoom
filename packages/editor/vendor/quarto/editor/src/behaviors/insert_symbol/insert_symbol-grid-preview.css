@@ -1,0 +1,44 @@
+/*
+ * insert_symbol-grid-preview.css
+ *
+ * Copyright (C) 2022-2026 by Posit Software, PBC
+ */
+
+.pm-popup-insert-symbol-preview-container {
+  display: flex;
+  justify-content: space-between;
+}
+
+.pm-popup-insert-symbol-preview-thumbnail {
+  display: flex;
+  align-items: center;
+  padding-left: 10px;
+}
+
+.pm-popup-insert-symbol-preview-summary {
+  display: flex;
+  flex-direction: column;
+  align-items: left;
+  padding-left: 10px;
+}
+
+.pm-popup-insert-symbol-preview-name {
+  font-weight: normal;
+  font-size: 13px;
+  text-align: left;
+  text-transform: lowercase;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pm-popup-insert-symbol-preview-markdown {
+  font-weight: lighter;
+  font-size: 12px;
+  text-align: left;
+}
+
+.pm-popup-insert-symbol-preview-action {
+  padding-right: 10px;
+  display: flex;
+  align-items: center;
+}

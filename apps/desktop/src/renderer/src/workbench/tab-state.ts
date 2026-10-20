@@ -2,6 +2,7 @@ import type { LibraryAttachment } from '@scholoom/protocol';
 import type { FileTarget } from './session.js';
 
 export type TabKind = 'library' | 'reader' | 'editor' | 'preview' | 'settings';
+export type FileViewMode = 'source' | 'visual' | 'preview' | 'render';
 export interface TabItem {
   id: string;
   title: string;
@@ -9,6 +10,7 @@ export interface TabItem {
   target?: FileTarget;
   material?: LibraryAttachment;
   transient?: boolean;
+  editorMode?: FileViewMode;
 }
 export interface TabGroupState {
   id: string;

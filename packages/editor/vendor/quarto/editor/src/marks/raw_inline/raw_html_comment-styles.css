@@ -1,0 +1,10 @@
+/*
+ * raw_html_comment-styles.css
+ *
+ * Copyright (C) 2022-2026 by Posit Software, PBC
+ */
+
+
+.ProseMirror .pm-comment-hidden {
+  display: none;
+}

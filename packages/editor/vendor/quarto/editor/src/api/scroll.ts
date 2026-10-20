@@ -1,0 +1,67 @@
+/*
+ * scroll.ts
+ *
+ * Copyright (C) 2022-2026 by Posit Software, PBC
+ */
+
+import { EditorView } from 'prosemirror-view';
+import { findDomRefAtPos, findParentNodeOfTypeClosestToPos } from 'prosemirror-utils';
+
+import zenscroll from 'zenscroll';
+
+import { editingRootNodeClosestToPos, editingRootNode } from './node';
+
+export function scrollIntoView(
+  view: EditorView,
+  pos: number,
+  center = true,
+  duration?: number,
+  offset?: number,
+  onDone?: VoidFunction,
+) {
+  // resolve position and determine container
+  const $pos = view.state.doc.resolve(pos);
+  const container = editingRootNodeClosestToPos($pos);
+
+  // if we have a container then do the scroll
+  if (container) {
+    const schema = view.state.schema;
+    const containerEl = view.nodeDOM(container.pos) as HTMLElement;
+    const parentList = findParentNodeOfTypeClosestToPos($pos, [schema.nodes.ordered_list, schema.nodes.bullet_list]);
+    const parentDiv = schema.nodes.div ? findParentNodeOfTypeClosestToPos($pos, schema.nodes.div) : undefined;
+    const resultPos =  (parentList || parentDiv) ? $pos.before(2) : pos;
+    const resultNode = findDomRefAtPos(resultPos, view.domAtPos.bind(view))
+    if (resultNode) {
+      const scrollNode = resultNode instanceof HTMLElement ? resultNode : resultNode.parentElement;
+      if (scrollNode) {
+        const scroller = zenscroll.createScroller(editorScrollContainer(containerEl), duration, offset);
+      if (center) {
+        scroller.center(scrollNode, duration, offset, onDone);
+      } else {
+        scroller.intoView(scrollNode, duration, onDone);
+      }
+      }
+    }
+  }
+}
+
+export function scrollToPos(view: EditorView, pos: number, duration?: number, offset?: number, onDone?: VoidFunction) {
+  const node = view.nodeDOM(pos);
+  const scrollNode = node instanceof HTMLElement ? node : node?.parentElement;
+  if (scrollNode) {
+    const editingRoot = editingRootNode(view.state.selection)!;
+    const container = view.nodeDOM(editingRoot.pos) as HTMLElement;
+    const scroller = zenscroll.createScroller(editorScrollContainer(container), duration, offset);
+    if (duration) {
+      scroller.to(scrollNode, duration, onDone);
+    } else {
+      scroller.to(scrollNode, 0, onDone);
+    }
+  }
+}
+
+export const kPmScrollContainer = 'pm-scroll-container';
+
+export function editorScrollContainer(container: HTMLElement) : HTMLElement {
+  return (container.closest(`.${kPmScrollContainer}`)|| container) as HTMLElement;
+}

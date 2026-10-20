@@ -1,0 +1,12 @@
+/*
+ * hr-styles.css
+ *
+ * Copyright (C) 2022-2026 by Posit Software, PBC
+ */
+
+.ProseMirror hr {
+  padding: 1px 0;
+  border: none;
+  margin: 1.2em 0;
+}
+

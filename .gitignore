@@ -3,6 +3,7 @@ dist/
 out/
 release/
 *.tsbuildinfo
+packages/editor/vendor/**/types/
 playwright-report/
 test-results/
 .env

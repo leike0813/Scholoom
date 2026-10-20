@@ -36,29 +36,11 @@
 
 ### Requirement: W-04 开放稿件与共同编辑
 
-新稿 SHALL 默认使用 QMD、笔记使用 Markdown，既有 LaTeX 多文件工程保持原生形式。QMD／Markdown 的源码和可视编辑 SHALL 操作同一源文件，未知语法保留源码入口；LaTeX 提供源码与编译 PDF。引文、TeX 公式和交叉引用 SHALL 沿开放格式保存，文件保护沿[数据规格](data.md)。
-
-#### Scenario: 可视编辑器遇到不支持语法
-- **WHEN** 稿件包含可视编辑不能完整处理的内容
-- **THEN** 保留源码并提供源码编辑方式，不静默丢弃或改写未知内容
-
-#### Scenario: 打开已有 LaTeX 工程
-- **WHEN** 用户选择包含多个源文件和资源的 LaTeX 项目
-- **THEN** 按原工程编辑及编译，不要求先转换为 QMD
+W-04 已纳入当前[科研写作编辑器 change](../../openspec/changes/add-research-writing-editor/specs/workspace-editor/spec.md)的 workspace-editor 契约；具体行为以该 active spec 为准，本初设不重复维护第二份契约。该 change 尚未归档并同步到 main specs。
 
 ### Requirement: W-05 预览与工程执行边界
 
-普通预览 SHALL 使用应用提供的转换与排版链路展示正文和已有结果，不运行工程计算代码、自定义 hooks 或 Lua filters 等可执行扩展；需要项目执行的渲染沿[受管执行与授权](execution.md)处理。预览失败 SHALL 保留最后成功产物并显示其状态，旧请求晚到不覆盖较新展示。
-
-#### Scenario: 文档声明执行钩子
-- **WHEN** 用户仅打开普通预览
-- **THEN** 不运行工程自定义钩子或过滤器；若目标呈现需要工程执行，说明并沿对应授权路径运行，不仅依赖禁用代码单元的选项
-
-#### Scenario: 新一次编译失败
-- **WHEN** 当前源码编译失败而存在先前成功预览
-- **THEN** 保留旧预览并明确它不是当前源码的成功结果，提供失败信息
-
-布局、刷新策略与延迟目标仍沿 #39 讨论，不在初设固定具体数值。
+W-05 已纳入当前[科研写作编辑器 change](../../openspec/changes/add-research-writing-editor/specs/manuscript-rendering/spec.md)的 manuscript-rendering 契约；具体行为以该 active spec 为准，本初设不重复维护第二份契约。该 change 尚未归档并同步到 main specs；预览与渲染体验的历史调查及未验收边界继续见 [#39](../../.scratch/scholoom-foundations/issues/39-writing-live-preview.md)。
 
 ### Requirement: W-06 交互式科研界面与持久报告
 

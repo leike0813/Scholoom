@@ -1,5 +1,6 @@
 export * from './business.js';
 export * from './core.js';
+export * from './editor.js';
 export * from './harness.js';
 export * from './library.js';
 export * from './models.js';

@@ -19,6 +19,7 @@
     "start": "node dist/cli.js"
   },
   "dependencies": {
+    "@scholoom/editor": "workspace:*",
     "@scholoom/harness": "workspace:*",
     "@scholoom/research": "workspace:*",
     "@langchain/anthropic": "1.5.12",

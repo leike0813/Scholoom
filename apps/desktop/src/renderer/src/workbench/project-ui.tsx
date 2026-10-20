@@ -1,18 +1,21 @@
-import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
-import { markdown } from '@codemirror/lang-markdown';
-import { EditorState } from '@codemirror/state';
-import { EditorView, keymap } from '@codemirror/view';
 import type { KernelClient } from '@scholoom/client';
 import type { FileEdit } from '@scholoom/protocol';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { draftKey } from './drafts';
+import { RenderPane } from './editor/RenderPane';
+import { SourceEditor } from './editor/SourceEditor';
 import { fileDocument, useFileDocument } from './file-document';
 import { lineDiff } from './line-diff';
 import { MarkdownPreview } from './MarkdownPreview';
 import type { FileTarget } from './session';
+import type { FileViewMode } from './tab-state';
 import { useFileWatch } from './useFileWatch';
 
 export { ProjectControls } from './ProjectNavigation';
+
+const VisualEditor = lazy(() =>
+  import('./editor/VisualEditor').then((module) => ({ default: module.VisualEditor })),
+);
 
 export function FileEditor({
   client,
@@ -23,15 +26,17 @@ export function FileEditor({
   mode = 'source',
   onOpenFile,
   onDirty,
+  editorViewId,
 }: {
   client: KernelClient;
   directory: string;
   target: FileTarget;
   onChanged: (target: FileTarget) => void;
   revision?: number;
-  mode?: 'source' | 'preview';
+  mode?: FileViewMode;
   onOpenFile?: (target: FileTarget) => void;
   onDirty?: (() => void) | undefined;
+  editorViewId?: string | undefined;
 }) {
   const document = useMemo(
     () =>
@@ -42,9 +47,29 @@ export function FileEditor({
     [directory, target.projectId, target.fileId, target.path],
   );
   const value = useFileDocument(document);
-  const mount = useRef<HTMLDivElement>(null);
-  const editor = useRef<EditorView | null>(null);
-  const applying = useRef(false);
+  const instanceId = useId();
+  const viewId = editorViewId ?? instanceId;
+  const unregisterFlush = useRef<(() => void) | undefined>(undefined);
+  const registerFlush = useCallback(
+    (next: (() => Promise<void>) | undefined) => {
+      unregisterFlush.current?.();
+      unregisterFlush.current = next ? document.registerFlusher(next) : undefined;
+    },
+    [document],
+  );
+  const pending = useCallback(
+    (active: boolean) => {
+      if (active) {
+        if (document.get().conversionOwner !== viewId) document.update({ conversionOwner: viewId });
+      } else if (document.get().conversionOwner === viewId)
+        document.update({ conversionOwner: undefined });
+    },
+    [document, viewId],
+  );
+  const readOnly =
+    !!value.source?.truncated ||
+    !!value.visualRecovery ||
+    (!!value.conversionOwner && value.conversionOwner !== viewId);
   const dirtyCallback = useRef(onDirty);
   dirtyCallback.current = onDirty;
   const active = useRef(0);
@@ -76,7 +101,8 @@ export function FileEditor({
         if (source.fileId)
           document.moveTo(draftKey(directory, target.projectId, source.fileId, 'file'));
         const state = document.get();
-        const dirty = state.loaded && state.content !== state.source?.content;
+        const dirty =
+          !!state.conversionOwner || (state.loaded && state.content !== state.source?.content);
         if (!explicit && dirty && state.source?.content !== source.content) {
           document.update({ diskChanged: true, error: '' });
           return;
@@ -117,48 +143,12 @@ export function FileEditor({
       void reload();
     },
   );
-  useEffect(() => {
-    if (mode !== 'source' || !mount.current) return;
-    const view = new EditorView({
-      parent: mount.current,
-      state: EditorState.create({
-        doc: document.get().content,
-        extensions: [
-          markdown(),
-          history(),
-          keymap.of([...defaultKeymap, ...historyKeymap]),
-          EditorView.lineWrapping,
-          EditorView.contentAttributes.of({ 'aria-label': `文件内容 ${path}` }),
-          EditorView.updateListener.of((update) => {
-            if (update.docChanged && !applying.current) {
-              document.update({ content: update.state.doc.toString() }, true);
-              dirtyCallback.current?.();
-            }
-          }),
-        ],
-      }),
-    });
-    editor.current = view;
-    return () => {
-      view.destroy();
-      editor.current = null;
-    };
-  }, [document, mode, path]);
-  useEffect(() => {
-    if (mode === 'source' && target.openMode !== 'preview') editor.current?.focus();
-  }, [mode, target.openMode]);
-  useEffect(() => {
-    const view = editor.current;
-    if (view && view.state.doc.toString() !== value.content) {
-      applying.current = true;
-      view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: value.content } });
-      applying.current = false;
-    }
-  }, [value.content]);
   const save = async () => {
-    const submitted = document.get().content;
+    if (saving || document.get().source?.truncated || document.get().visualRecovery) return;
     setSaving(true);
     try {
+      await document.flush();
+      const submitted = document.get().content;
       const current = await currentPath();
       const source = document.get().source;
       const edit = await client.call('files.save', {
@@ -174,7 +164,13 @@ export function FileEditor({
       const latest = document.get();
       if (edit.fileId) document.moveTo(draftKey(directory, target.projectId, edit.fileId, 'file'));
       document.update({ source: stored, error: '', diskChanged: false });
-      if (latest.content === submitted && stored.content === submitted) document.clearDraft();
+      if (
+        latest.content === submitted &&
+        stored.content === submitted &&
+        !latest.conversionOwner &&
+        !latest.visualRecovery
+      )
+        document.clearDraft();
       onChanged({
         projectId: target.projectId,
         path: current,
@@ -215,7 +211,7 @@ export function FileEditor({
         <button
           type="button"
           className="btn"
-          disabled={!!value.source?.truncated || saving}
+          disabled={!!value.source?.truncated || !!value.visualRecovery || saving}
           onClick={() => {
             void save();
           }}
@@ -251,8 +247,8 @@ export function FileEditor({
       ) : null}
       {value.error ? <p role="alert">{value.error} 草稿已保留。</p> : null}
       {watchError ? <p role="status">自动更新暂不可用：{watchError}</p> : null}
-      {mode === 'preview' ? (
-        /\.(md|markdown)$/i.test(path) ? (
+      {mode === 'preview' && !value.visualRecovery ? (
+        /\.(md|markdown|qmd)$/i.test(path) ? (
           <>
             <p className="preview-status">
               {value.content !== value.source?.content ? '未保存草稿预览' : '已保存内容预览'}
@@ -270,9 +266,64 @@ export function FileEditor({
         ) : (
           <p>此文件提供源码查看，Markdown 文件可预览。</p>
         )
+      ) : mode === 'render' && !value.visualRecovery ? (
+        <RenderPane
+          key={`${target.projectId}:${path}`}
+          client={client}
+          target={{ ...target, path }}
+          savedContent={value.source?.content ?? ''}
+          dirty={value.content !== value.source?.content}
+        />
+      ) : mode === 'visual' || value.visualRecovery ? (
+        <Suspense fallback={<p role="status">正在打开可视编辑器…</p>}>
+          <VisualEditor
+            client={client}
+            projectId={target.projectId}
+            path={path}
+            content={value.content}
+            recovery={value.visualRecovery}
+            getRecovery={() => document.get().visualRecovery}
+            onCheckpoint={(visualRecovery) => {
+              if (document.get().conversionOwner === viewId)
+                document.update({ visualRecovery }, true);
+            }}
+            onRecover={(checkpoint, content) => {
+              if (document.get().visualRecovery === checkpoint) {
+                document.update(
+                  { content, visualRecovery: undefined, conversionOwner: undefined },
+                  true,
+                );
+                dirtyCallback.current?.();
+              }
+              return document.get().content;
+            }}
+            readOnly={readOnly}
+            onPending={pending}
+            registerFlush={registerFlush}
+            onSave={save}
+            onChange={(content) => {
+              if (document.get().conversionOwner !== viewId) return;
+              document.update({ content, visualRecovery: undefined }, true);
+              dirtyCallback.current?.();
+            }}
+            onError={(error) => document.update({ error })}
+          />
+        </Suspense>
       ) : (
         <>
-          <div className="codemirror-host" ref={mount} />
+          <SourceEditor
+            documentId={document.identity}
+            viewId={viewId}
+            path={path}
+            content={value.content}
+            readOnly={readOnly}
+            autoFocus={target.openMode !== 'preview'}
+            onSave={save}
+            onChange={(content) => {
+              document.update({ content }, true);
+              dirtyCallback.current?.();
+            }}
+          />
           <details>
             <summary>查看差异</summary>
             {differences ? (

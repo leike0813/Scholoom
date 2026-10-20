@@ -1,7 +1,9 @@
 import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { Broker, type Handlers } from '@scholoom/broker';
+import { EditorRuntime } from '@scholoom/editor/node';
 import { LiteratureCatalog, MaterialReading } from '@scholoom/library/node';
-import { ProcessAdmission } from '@scholoom/platform/node';
+import { ProcessAdmission, runCommand } from '@scholoom/platform/node';
 import {
   DirectoryBrowser,
   FileTransfers,
@@ -18,6 +20,12 @@ import {
   OperationError,
   type WorkbenchChange,
 } from '@scholoom/protocol';
+import {
+  type EditorCommandInput,
+  type EditorCommandResult,
+  type EditorInputs,
+  editorPlatformOperations,
+} from '@scholoom/protocol/editor';
 import {
   type HarnessModuleInputs,
   type HarnessModuleOutputs,
@@ -58,6 +66,7 @@ import {
 import { initializeProjectContainer } from './storage/project-container.js';
 
 const applicationSchemas = {
+  ...editorPlatformOperations,
   ...businessSchemas,
   ...projectMaterialOperations,
   ...projectExecutionOperations,
@@ -67,16 +76,18 @@ const applicationSchemas = {
   ...projectHarnessOperations,
   ...modelsModuleOperations,
 } as const;
-type ApplicationInputs = BusinessInputs &
-  ProjectMaterialInputs &
+type ApplicationInputs = BusinessInputs & {
+  'platform.editorCommand': EditorCommandInput;
+} & ProjectMaterialInputs &
   ProjectExecutionInputs &
   HarnessModuleInputs &
   ResearchModuleInputs &
   LibraryModuleInputs &
   ProjectHarnessInputs &
   ModelsModuleInputs;
-type ApplicationOutputs = BusinessOutputs &
-  ProjectMaterialOutputs &
+type ApplicationOutputs = BusinessOutputs & {
+  'platform.editorCommand': EditorCommandResult;
+} & ProjectMaterialOutputs &
   ProjectExecutionOutputs &
   HarnessModuleOutputs &
   ResearchModuleOutputs &
@@ -92,10 +103,12 @@ const materialMethods = Object.keys(projectMaterialOperations).filter(
   (method): method is keyof ProjectMaterialInputs => libraryConsumes.includes(method),
 );
 export type FoundationMethod =
+  | keyof EditorInputs
   | Exclude<keyof ProjectsInputs, 'project.restore' | 'artifacts.reconcile'>
   | keyof LibraryInputs;
 
 export class ManualApplication {
+  readonly editor: EditorRuntime;
   readonly projects: Projects;
   readonly library: LiteratureCatalog;
   readonly transfers: FileTransfers;
@@ -117,6 +130,55 @@ export class ManualApplication {
     this.projects = new Projects(directory, initializeProjectContainer, (id) =>
       this.projectReplacing(id),
     );
+    this.editor = new EditorRuntime(join(directory, 'editor'), (context, signal) => {
+      const port = this.modulePort({ ...context, ...(signal ? { signal } : {}) }, 'editor');
+      return {
+        check: async (projectId, access) => {
+          await port.call('project.check', { projectId, access });
+        },
+        read: (projectId, path) => port.call('files.read', { projectId, path }),
+        material: (projectId, path) => port.call('project.material', { projectId, path }),
+        locate: async (projectId, fileId) => {
+          const [location] = await port.call('files.resolve', { projectId, fileIds: [fileId] });
+          if (location?.state !== 'present')
+            throw new OperationError('notFound', '原稿已移动或缺失。');
+          return location.path;
+        },
+        command: (input) => port.call('platform.editorCommand', input),
+        importBegin: (input) => port.call('files.importBegin', input),
+        importChunk: (input) => port.call('files.importChunk', input),
+        importFinish: (input) => port.call('files.importFinish', input),
+      };
+    });
+    this.broker.register('editor-platform', {
+      'platform.editorCommand': async (input, context) => {
+        if (context.moduleId !== 'editor')
+          throw new OperationError('permissionDenied', '编译命令只允许编辑器能力消费。');
+        const workspace = this.editor.commandWorkspace(input.workspaceId);
+        if (workspace.projectId) this.projects.get(workspace.projectId).check('read');
+        const reservation = this.processes.reserve(true);
+        const abort = () => reservation.release();
+        context.signal?.addEventListener('abort', abort, { once: true });
+        if (context.signal?.aborted) abort();
+        try {
+          await reservation.ready;
+          if (workspace.projectId) this.projects.get(workspace.projectId).check('read');
+          return await runCommand(
+            {
+              executable: input.tool,
+              args: input.args,
+              cwd: workspace.directory,
+              timeoutMs: input.timeoutMs,
+              ...(input.input !== undefined ? { input: input.input } : {}),
+            },
+            { signal: context.signal, reservation },
+          );
+        } finally {
+          context.signal?.removeEventListener('abort', abort);
+          reservation.release();
+        }
+      },
+    });
     this.transfers = new FileTransfers(this.projects, (projectId) => this.changed(projectId));
     this.fileWatches = new ProjectFileWatches(
       (id) => this.projects.get(id),
@@ -300,6 +362,13 @@ export class ManualApplication {
     Handlers<BusinessInputs, BusinessOutputs>,
     FoundationMethod
   > = {
+    'editor.tools': (_input, context) => this.editor.tools(context),
+    'editor.convert': (input, context) => this.editor.convert(input, context),
+    'editor.render': (input, context) => this.editor.render(input, context),
+    'editor.job': (input, context) => this.editor.job(input, context),
+    'editor.cancel': (input, context) => this.editor.cancel(input, context),
+    'editor.output': (input, context) => this.editor.output(input, context),
+    'editor.export': (input, context) => this.editor.export(input, context),
     'files.transfer': (input) => this.transfers.start(input),
     'files.transferStatus': (input) =>
       this.transfers.status(input.projectId, input.operationId, input.offset, input.limit),
@@ -567,6 +636,7 @@ export class ManualApplication {
     return this.broker.available(Object.keys(businessSchemas) as BusinessMethod[]);
   }
   async close(): Promise<void> {
+    await this.editor.close();
     this.fileWatches.close();
     await this.transfers.close();
     await this.library.close();

@@ -1,0 +1,60 @@
+/*
+ * footnote-styles.css
+ *
+ * Copyright (C) 2022-2026 by Posit Software, PBC
+ */
+
+.ProseMirror .footnote {
+  vertical-align: baseline;
+  position: relative;
+  cursor: default;
+}
+
+.ProseMirror > .body,
+.ProseMirror > .notes {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow-y: auto;
+}
+
+.ProseMirror > .body {
+  top: 0;
+}
+
+.ProseMirror > .notes {
+  height: 0;
+}
+
+.ProseMirror > .body.editing-footnote {
+  bottom: 160px;
+  border-bottom: 1px solid;
+}
+
+.ProseMirror > .notes.editing-footnote {
+  height: 150px;
+  padding-top: 10px;
+  z-index: 5;
+}
+
+.ProseMirror .note {
+  display: none; 
+}
+
+.ProseMirror .note.active {
+  display: flex;
+}
+
+.ProseMirror .footnote.active {
+  outline: 2px solid;
+}
+
+.ProseMirror .note .note-label {
+  flex: none;
+  padding-right: 8px;
+}
+
+.ProseMirror .note .note-content {
+  flex: 1;
+}

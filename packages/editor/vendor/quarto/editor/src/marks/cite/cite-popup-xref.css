@@ -1,0 +1,28 @@
+/*
+ * xref-popup-xref.css
+ *
+ * Copyright (C) 2022-2026 by Posit Software, PBC
+ */
+
+.pm-cite-xref-popup {
+  max-width: 350px; /* also in xref-popup.tsx */
+}
+
+.pm-cite-xref-popup-key {
+  cursor: pointer !important;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: wrap;
+}
+
+.pm-cite-xref-popup-text {
+  opacity: 0.9;
+  font-size: 0.9em;
+  margin-top: 3px;
+}
+
+.pm-cite-xref-popup-file {
+  opacity: 0.6;
+  font-size: 0.9em;
+  margin-top: 3px;
+}

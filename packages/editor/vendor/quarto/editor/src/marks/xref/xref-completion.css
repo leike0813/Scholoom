@@ -1,0 +1,22 @@
+/*
+ * xref-completion.css
+ *
+ * Copyright (C) 2022-2026 by Posit Software, PBC
+ */
+
+.pm-xref-completion-item .pm-completion-item-id {
+  justify-content: stretch;
+  align-items: flex-start;
+}
+
+.pm-xref-completion-item .pm-completion-item-id > *:first-child {
+  flex: 2
+}
+
+.pm-xref-completion-item .pm-completion-item-id > *:last-child {
+  flex: 1;
+  align-self: flex-end;
+  text-align: right;
+}
+
+

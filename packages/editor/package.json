@@ -1,0 +1,75 @@
+{
+  "name": "@scholoom/editor",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "license": "AGPL-3.0-only",
+  "description": "Shared manuscript conversion and rendering",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./node": {
+      "types": "./dist/node.d.ts",
+      "import": "./dist/node.js"
+    },
+    "./visual": {
+      "types": "./dist/visual.d.ts",
+      "import": "./dist/quarto.js"
+    },
+    "./visual.css": "./dist/quarto.css"
+  },
+  "scripts": {
+    "build": "node build-visual.mjs && tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@scholoom/platform": "workspace:*",
+    "@scholoom/protocol": "workspace:*",
+    "editor": "workspace:@scholoom/quarto-editor@*",
+    "bibliojson": "4.1.0",
+    "clipboard": "2.0.11",
+    "diff-match-patch": "1.0.5",
+    "fuse.js": "7.5.0",
+    "js-yaml": "5.4.2",
+    "lodash.debounce": "4.0.8",
+    "lodash.uniqby": "4.7.0",
+    "markdown-it": "15.0.2",
+    "markdown-it-attrs": "4.5.0",
+    "pinyin": "4.0.0",
+    "prosemirror-changeset": "2.4.4",
+    "prosemirror-commands": "1.7.2",
+    "prosemirror-dropcursor": "1.8.4",
+    "prosemirror-gapcursor": "1.4.1",
+    "prosemirror-history": "1.5.1",
+    "prosemirror-inputrules": "1.5.1",
+    "prosemirror-keymap": "1.2.3",
+    "prosemirror-model": "1.25.12",
+    "prosemirror-schema-list": "1.5.1",
+    "prosemirror-state": "1.4.4",
+    "prosemirror-tables": "1.8.5",
+    "prosemirror-transform": "1.12.2",
+    "prosemirror-utils": "1.2.2",
+    "prosemirror-view": "1.42.6",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "react-textarea-autosize": "8.5.9",
+    "react-window": "2.3.3",
+    "remark-gfm": "4.0.1",
+    "remark-parse": "11.0.0",
+    "semver": "7.8.5",
+    "sentence-splitter": "5.0.1",
+    "thenby": "1.4.1",
+    "tlite": "0.1.9",
+    "transliteration": "2.6.1",
+    "unified": "11.0.5",
+    "vscode-languageserver-types": "3.18.4",
+    "wcwidth": "1.0.1",
+    "yaml": "2.9.1",
+    "zenscroll": "4.0.2"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2"
+  }
+}
