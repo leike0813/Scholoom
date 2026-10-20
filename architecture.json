@@ -74,13 +74,19 @@
         "@scholoom/platform/node",
         "@scholoom/protocol/core",
         "@scholoom/protocol/editor",
-        "@scholoom/protocol/projects"
+        "@scholoom/protocol/projects",
+        "@scholoom/protocol/resources"
       ],
       "systemAdapters": [
         { "path": "src/resources.ts", "apis": ["fs", "fs/promises"] },
         { "path": "src/runtime.ts", "apis": ["fs/promises"] }
       ],
       "provides": [
+        "resources.describe",
+        "resources.read",
+        "resources.save",
+        "resources.document",
+        "resources.cancel",
         "editor.tools",
         "editor.convert",
         "editor.render",
@@ -90,6 +96,17 @@
         "editor.export"
       ],
       "consumes": [
+        "files.readBytes",
+        "project.saveFile",
+        "library.attachment",
+        "library.status",
+        "library.readAttachment",
+        "library.pdfInfo",
+        "library.readPdfPage",
+        "library.documentInfo",
+        "library.readDocumentSection",
+        "library.searchDocument",
+        "library.readDocumentResource",
         "project.check",
         "project.material",
         "files.read",

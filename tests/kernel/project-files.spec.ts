@@ -253,6 +253,42 @@ test('project identity survives relocation without a global registry', async () 
   }
 });
 
+test('binary reads follow a stable file identity, return bounded byte chunks, and reject stale bases', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'scholoom-file-bytes-'));
+  const projects = new Projects(join(root, 'profile'));
+  try {
+    await projects.initialize();
+    const store = await projects.create(join(root, 'project'));
+    const content = Buffer.from(Array.from({ length: 262150 }, (_, index) => index % 256));
+    await writeFile(join(root, 'project', 'binary.dat'), content);
+    const { fileId } = await store.files.reference('binary.dat');
+    const first = await store.files.readBytes(fileId, { limit: 262144 });
+    expect(first).toMatchObject({ fileId, path: 'binary.dat', size: content.length, offset: 0 });
+    expect(Buffer.from(first.data, 'base64')).toEqual(content.subarray(0, 262144));
+    expect(first.nextOffset).toBe(262144);
+    if (first.nextOffset === undefined) throw new Error('Expected a continuation offset');
+    await store.files.mutate('rename', 'move-binary', { path: 'binary.dat', name: 'moved.dat' });
+    const last = await store.files.readBytes(fileId, {
+      basis: first.basis,
+      offset: first.nextOffset,
+    });
+    expect(last.path).toBe('moved.dat');
+    expect(Buffer.from(last.data, 'base64')).toEqual(content.subarray(262144));
+    expect(last.nextOffset).toBeUndefined();
+
+    await writeFile(join(root, 'project', 'moved.dat'), Buffer.from('changed'));
+    await expect(store.files.readBytes(fileId, { basis: first.basis })).rejects.toMatchObject({
+      code: 'contentChanged',
+    });
+    await expect(store.files.readBytes(fileId, { offset: 99 })).rejects.toMatchObject({
+      code: 'invalidRequest',
+    });
+  } finally {
+    await projects.close();
+    await rm(root, { recursive: true });
+  }
+});
+
 test('project management and structural operations preserve identity, history, trash and later targets', async () => {
   const root = await mkdtemp(join(tmpdir(), 'scholoom-structure-'));
   let projects = new Projects(join(root, 'profile'));

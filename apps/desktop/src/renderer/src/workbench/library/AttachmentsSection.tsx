@@ -10,7 +10,7 @@ export function AttachmentsSection({
   sourceId,
   tick,
   onBatch,
-  onOpenReader,
+  onOpenResource,
 }: {
   client: KernelClient;
   enabled: boolean;
@@ -19,7 +19,7 @@ export function AttachmentsSection({
   sourceId: string;
   tick: number;
   onBatch: (batch: LibraryBatch) => void;
-  onOpenReader?: ((material: LibraryAttachment) => void) | undefined;
+  onOpenResource?: ((material: LibraryAttachment) => void) | undefined;
 }) {
   return (
     <div className="catalog-section" data-section="attachments" id="section-attachments">
@@ -32,7 +32,7 @@ export function AttachmentsSection({
         sourceId={sourceId}
         tick={tick}
         onBatch={onBatch}
-        onOpenReader={onOpenReader}
+        onOpenResource={onOpenResource}
       />
     </div>
   );

@@ -12,6 +12,7 @@ import {
   useState,
 } from 'react';
 import { readDraft, subscribeDraft, writeDraft } from './drafts';
+import { projectTarget, resourceKey } from './resource-controller';
 import { StatusBarProvider } from './StatusBarContext';
 import type { WorkbenchSession } from './session';
 import { ActivityPane, ActivityRail, type ThemeMode } from './shell/ActivityPane';
@@ -21,12 +22,12 @@ import { AuxiliaryPane, AuxiliaryRail } from './shell/AuxiliaryPane';
 import { PaneHandle } from './shell/PaneHandle';
 import { StatusBar } from './shell/StatusBar';
 import { type TabGroupState, TabGroups, type TabItem } from './shell/TabGroups';
-import { openFileTab } from './tab-state';
+import { normalizeLegacyTab, openResourceTab, resourceTabKind } from './tab-state';
 import './library/library.css';
 
 const THEME_ORDER: readonly ThemeMode[] = ['system', 'light', 'dark'];
 const isGlobalTab = (tab: TabItem) =>
-  !!tab.material || tab.kind === 'library' || tab.kind === 'settings';
+  tab.resource?.locator.source === 'library' || tab.kind === 'library' || tab.kind === 'settings';
 
 function ComposerDraft({
   storageKey,
@@ -78,7 +79,16 @@ function WorkbenchContent({ session }: { session: WorkbenchSession }) {
   const [theme, setTheme] = useState<ThemeMode>('system');
   const [groups, setGroups] = useState<readonly TabGroupState[]>(
     session.initialTabs?.length
-      ? [{ id: 'a', tabs: session.initialTabs, activeId: session.initialTabs[0]?.id ?? null }]
+      ? [
+          {
+            id: 'a',
+            tabs: session.initialTabs.flatMap((tab) => {
+              const normalized = normalizeLegacyTab(tab);
+              return normalized ? [normalized] : [];
+            }),
+            activeId: session.initialTabs[0]?.id ?? null,
+          },
+        ]
       : [],
   );
   const [activeGroupId, setActiveGroupId] = useState<string | null>(
@@ -90,8 +100,8 @@ function WorkbenchContent({ session }: { session: WorkbenchSession }) {
   groupsRef.current = groups;
   const activeGroupRef = useRef(activeGroupId);
   activeGroupRef.current = activeGroupId;
-  const isFileDirtyRef = useRef(session.isFileDirty);
-  isFileDirtyRef.current = session.isFileDirty;
+  const isResourceDirtyRef = useRef(session.isResourceDirty);
+  isResourceDirtyRef.current = session.isResourceDirty;
   const currentProject = useRef(session.projectId ?? 'sample');
   useLayoutEffect(() => {
     const next = session.projectId ?? 'sample';
@@ -144,7 +154,11 @@ function WorkbenchContent({ session }: { session: WorkbenchSession }) {
   const fileIds = JSON.stringify([
     ...new Set(
       groups.flatMap((group) =>
-        group.tabs.flatMap((tab) => (tab.target?.fileId ? [tab.target.fileId] : [])),
+        group.tabs.flatMap((tab) =>
+          tab.resource?.locator.source === 'project' && tab.resource.locator.fileId
+            ? [tab.resource.locator.fileId]
+            : [],
+        ),
       ),
     ),
   ]);
@@ -168,12 +182,20 @@ function WorkbenchContent({ session }: { session: WorkbenchSession }) {
         current.map((group) => ({
           ...group,
           tabs: group.tabs.map((tab) => {
-            const path = tab.target?.fileId ? paths.get(tab.target.fileId) : undefined;
-            return path && tab.target && path !== tab.target.path
+            const locator = tab.resource?.locator;
+            const path =
+              locator?.source === 'project' && locator.fileId
+                ? paths.get(locator.fileId)
+                : undefined;
+            return path && tab.resource && locator?.source === 'project' && path !== locator.path
               ? {
                   ...tab,
                   title: `${path.split('/').at(-1)}${tab.kind === 'preview' ? ' · 预览' : ''}`,
-                  target: { ...tab.target, path },
+                  resource: {
+                    ...tab.resource,
+                    name: path.split('/').at(-1) ?? path,
+                    locator: { ...locator, path },
+                  },
                 }
               : tab;
           }),
@@ -210,12 +232,13 @@ function WorkbenchContent({ session }: { session: WorkbenchSession }) {
     wasExpandedRef.current = agentExpanded;
   }, [agentExpanded]);
 
-  const flushFileRef = useRef(session.flushFile);
-  flushFileRef.current = session.flushFile;
+  const flushResourceRef = useRef(session.flushResource);
+  flushResourceRef.current = session.flushResource;
   const flushGroup = useCallback((groupIndex: number, apply: () => void) => {
     const group = groupsRef.current[groupIndex];
-    const target = group?.tabs.find((tab) => tab.id === group.activeId)?.target;
-    if (target && flushFileRef.current) void flushFileRef.current(target).then(apply, () => {});
+    const target = group?.tabs.find((tab) => tab.id === group.activeId)?.resource;
+    if (target && flushResourceRef.current)
+      void flushResourceRef.current(target).then(apply, () => {});
     else apply();
   }, []);
 
@@ -322,7 +345,8 @@ function WorkbenchContent({ session }: { session: WorkbenchSession }) {
 
   const activeSession = session.sessions?.find((item) => item.id === session.activeSessionId);
   const activeGroup = groups.find((group) => group.id === activeGroupId);
-  const activeFile = activeGroup?.tabs.find((tab) => tab.id === activeGroup.activeId)?.target;
+  const activeResource = activeGroup?.tabs.find((tab) => tab.id === activeGroup.activeId)?.resource;
+  const activeFile = activeResource ? projectTarget(activeResource) : undefined;
   /** 用现有 tab 逻辑打开内容：收起 overlay，不切换会话。 */
   const openTab = (tab: TabItem) => {
     flushGroup(
@@ -359,12 +383,43 @@ function WorkbenchContent({ session }: { session: WorkbenchSession }) {
     setGroups((current) => {
       const group = current[groupIndex];
       const active = group?.tabs.find((tab) => tab.id === group.activeId);
-      if (!active?.target) return current;
-      const key = `${active.target.projectId}:${active.target.fileId ?? active.target.path}`;
+      if (!active?.resource) return current;
+      const key = resourceKey(active.resource);
+      if (active.resource.locator.source === 'library') {
+        if (mode !== 'source' && mode !== 'preview') return current;
+        const preview = mode === 'preview';
+        const target: TabItem = {
+          ...active,
+          id: `${key}${preview ? ':preview' : ''}`,
+          kind: preview ? 'preview' : 'editor',
+          transient: false,
+          title: `${active.resource.name}${preview ? ' · 预览' : ''}`,
+          editorMode: mode,
+        };
+        return current.map((item, index) =>
+          index === groupIndex
+            ? {
+                ...item,
+                tabs: [
+                  ...item.tabs.filter(
+                    (tab) =>
+                      !tab.resource ||
+                      resourceKey(tab.resource) !== key ||
+                      (tab.kind !== 'editor' && tab.kind !== 'preview'),
+                  ),
+                  target,
+                ],
+                activeId: target.id,
+              }
+            : item,
+        );
+      }
+      const projectFile = projectTarget(active.resource);
+      if (!projectFile || active.resource.locator.source !== 'project') return current;
       const editor: TabItem = {
         ...active,
         id: key,
-        kind: 'editor',
+        kind: resourceTabKind(active.resource),
         transient: false,
         editorMode: mode === 'visual' ? 'visual' : 'source',
       };
@@ -373,7 +428,7 @@ function WorkbenchContent({ session }: { session: WorkbenchSession }) {
         id: `${key}:preview`,
         kind: 'preview',
         transient: false,
-        title: `${active.target.path.split('/').at(-1)} · 预览`,
+        title: `${active.resource.name} · 预览`,
         editorMode: mode === 'split-render' || mode === 'render' ? 'render' : 'preview',
       };
       if (mode === 'split' || mode === 'split-render') {
@@ -414,19 +469,20 @@ function WorkbenchContent({ session }: { session: WorkbenchSession }) {
     });
 
   useEffect(() => {
-    const target = session.fileTarget;
-    if (!target || target.projectId !== session.projectId) return;
-    // 成果经文件 tab 打开，收起 overlay 才能看到实际内容。
+    const target = session.resourceTarget;
+    if (!target) return;
+    if (target.locator.source === 'project' && target.locator.projectId !== currentProject.current)
+      return;
     setAgentExpanded(false);
     let live = true;
     flushGroup(
       groupsRef.current.findIndex((group) => group.id === activeGroupRef.current),
       () => {
         if (!live) return;
-        const next = openFileTab(
+        const next = openResourceTab(
           { groups: groupsRef.current, activeGroupId: activeGroupRef.current },
           target,
-          isFileDirtyRef.current,
+          isResourceDirtyRef.current,
         );
         setGroups(next.groups);
         setActiveGroupId(next.activeGroupId);
@@ -435,53 +491,7 @@ function WorkbenchContent({ session }: { session: WorkbenchSession }) {
     return () => {
       live = false;
     };
-  }, [session.fileTarget, session.projectId, flushGroup]);
-
-  useEffect(() => {
-    const material = session.readerTarget;
-    if (!material) return;
-    setAgentExpanded(false);
-    const tab = {
-      id: `reader:${material.id}:${material.materialVersionId}`,
-      title: material.name,
-      kind: 'reader' as const,
-      material,
-    };
-    const currentGroups = groupsRef.current;
-    const currentActiveGroupId = activeGroupRef.current;
-    const existingGroup = currentGroups.find((group) =>
-      group.tabs.some((item) => item.id === tab.id),
-    );
-    const targetGroup =
-      existingGroup ??
-      currentGroups.find((group) => group.id === currentActiveGroupId) ??
-      currentGroups[0];
-    setActiveGroupId(targetGroup?.id ?? 'a');
-    const existing = currentGroups.findIndex((group) =>
-      group.tabs.some((item) => item.id === tab.id),
-    );
-    if (existing >= 0) {
-      setGroups(
-        currentGroups.map((group, index) =>
-          index === existing ? { ...group, activeId: tab.id } : group,
-        ),
-      );
-    } else {
-      const target = targetGroup ?? { id: 'a', tabs: [], activeId: null };
-      const next = currentGroups.length
-        ? currentGroups.map((group) =>
-            group.id === target.id
-              ? {
-                  ...group,
-                  tabs: [...group.tabs.filter((item) => item.id !== tab.id), tab],
-                  activeId: tab.id,
-                }
-              : group,
-          )
-        : [{ id: 'a', tabs: [tab], activeId: tab.id }];
-      setGroups(next);
-    }
-  }, [session.readerTarget]);
+  }, [session.resourceTarget, flushGroup]);
 
   return (
     <AssistantRuntimeProvider runtime={runtime}>
@@ -549,20 +559,20 @@ function WorkbenchContent({ session }: { session: WorkbenchSession }) {
             onActivate={activateTab}
             onClose={closeTab}
             onSplit={splitGroup}
-            renderFile={
-              session.renderFile
-                ? (target, mode, onDirty) => session.renderFile?.(target, mode, onDirty)
+            renderResource={
+              session.renderResource
+                ? (target, mode, onDirty, viewId) =>
+                    session.renderResource?.(target, mode, onDirty, viewId)
                 : undefined
             }
             onPin={pinTab}
             renderSettings={session.controls}
             renderLibrary={session.library}
-            renderReader={session.renderReader}
             onView={(groupIndex, mode) => {
               const group = groupsRef.current[groupIndex];
-              const target = group?.tabs.find((tab) => tab.id === group.activeId)?.target;
+              const target = group?.tabs.find((tab) => tab.id === group.activeId)?.resource;
               void (
-                target && session.flushFile ? session.flushFile(target) : Promise.resolve()
+                target && session.flushResource ? session.flushResource(target) : Promise.resolve()
               ).then(
                 () => view(groupIndex, mode),
                 () => {},

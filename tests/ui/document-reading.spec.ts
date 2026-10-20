@@ -212,7 +212,7 @@ for (const format of ['epub', 'html'] as const) {
       await open.click();
       await expect(records).toContainText('跨节点摘录的用户说明');
       await reader.getByRole('textbox', { name: '搜索文档', exact: true }).fill('evidence');
-      await armRpcGate(uiPage, 'library.searchDocument');
+      await armRpcGate(uiPage, 'resources.document', 'searchDocument');
       await reader.getByRole('button', { name: '搜索文档', exact: true }).click();
       await uiPage.evaluate(() => {
         const gate = Reflect.get(globalThis, '__scholoomRpcGate');
@@ -232,8 +232,12 @@ for (const format of ['epub', 'html'] as const) {
         send: false,
         autoBackup: false,
       });
-      await expect(reader).toContainText('尚未授权读取');
+      await expect(reader.getByRole('alert')).toContainText('授权');
       await expect(article).toHaveCount(0);
+      await expect(records).not.toContainText('跨节点摘录的用户说明');
+      await expect(
+        records.getByRole('button', { name: '保存文献笔记', exact: true }),
+      ).toBeDisabled();
       await expect(reader.getByRole('region', { name: '文档搜索结果' })).toHaveCount(0);
       await client.call('library.grant', {
         read: true,

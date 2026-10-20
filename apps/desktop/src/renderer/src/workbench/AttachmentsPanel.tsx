@@ -163,7 +163,7 @@ export function AttachmentsPanel({
   sourceId,
   tick,
   onBatch,
-  onOpenReader,
+  onOpenResource,
 }: {
   client: KernelClient;
   enabled: boolean;
@@ -172,7 +172,7 @@ export function AttachmentsPanel({
   sourceId: string;
   tick: number;
   onBatch: (batch: LibraryBatch) => void;
-  onOpenReader?: ((material: LibraryAttachment) => void) | undefined;
+  onOpenResource?: ((material: LibraryAttachment) => void) | undefined;
 }) {
   const [paging, setPaging] = useState<{ sourceId: string; offsets: number[] }>({
     sourceId,
@@ -312,15 +312,15 @@ export function AttachmentsPanel({
               </span>
               {attachment.error ? ` · ${attachment.error.message}` : ''}
               <div className="file-view-controls">
-                {onOpenReader && readerKind ? (
+                {onOpenResource ? (
                   <button
                     type="button"
                     className="btn"
-                    aria-label={`打开 ${READER_LABEL[readerKind]} ${attachment.name}`}
+                    aria-label={`打开 ${readerKind ? READER_LABEL[readerKind] : '文本'} ${attachment.name}`}
                     disabled={!readable}
-                    onClick={() => onOpenReader(attachment)}
+                    onClick={() => onOpenResource(attachment)}
                   >
-                    打开 {READER_LABEL[readerKind]}
+                    打开 {readerKind ? READER_LABEL[readerKind] : '文本'}
                   </button>
                 ) : null}
                 <button

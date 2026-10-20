@@ -1,6 +1,6 @@
-import type { LibraryAttachment } from '@scholoom/protocol';
 import type { KeyboardEvent, ReactNode } from 'react';
-import type { FileTarget } from '../session';
+import { readerKindForName } from '../reader-material';
+import type { ResourceTarget } from '../resource-controller';
 import type { FileViewMode, TabGroupState, TabKind } from '../tab-state';
 
 export type { TabGroupState, TabItem, TabKind } from '../tab-state';
@@ -74,10 +74,9 @@ export interface TabGroupsProps {
     | undefined;
   renderSettings?: ReactNode;
   renderLibrary?: ReactNode | undefined;
-  renderReader?: ((material: LibraryAttachment) => ReactNode) | undefined;
-  renderFile?:
+  renderResource?:
     | ((
-        target: FileTarget,
+        target: ResourceTarget,
         mode?: FileViewMode,
         onDirty?: () => void,
         viewId?: string,
@@ -94,12 +93,11 @@ export function TabGroups({
   onActivate,
   onClose,
   onSplit,
-  renderFile,
+  renderResource,
   onPin,
   onView,
   renderSettings,
   renderLibrary,
-  renderReader,
   contextName,
   onOpenSettings,
 }: TabGroupsProps) {
@@ -126,6 +124,16 @@ export function TabGroups({
     <div className="tab-groups">
       {groups.map((group, groupIndex) => {
         const active = group.tabs.find((tab) => tab.id === group.activeId) ?? group.tabs[0];
+        const resource = active?.resource;
+        const isLibraryText =
+          resource?.locator.source === 'library' &&
+          !readerKindForName(resource.name) &&
+          /\.(txt|md|markdown|qmd|rst|csv|json|ya?ml|toml|bib|tex)$/i.test(resource.name);
+        const projectPath =
+          resource?.locator.source === 'project' ? (resource.locator.path ?? '') : '';
+        const isProjectText =
+          resource?.locator.source === 'project' &&
+          /\.(md|markdown|qmd|tex|txt|rst|csv|json|ya?ml|toml|bib)$/i.test(projectPath);
         return (
           <section className="tab-group" key={group.id} aria-label={`标签组 ${groupIndex + 1}`}>
             <header className="tab-bar" role="tablist">
@@ -170,7 +178,7 @@ export function TabGroups({
                 <IconSplit />
               </button>
             </header>
-            {active?.target ? (
+            {isLibraryText || isProjectText ? (
               <div className="file-view-controls">
                 <button
                   type="button"
@@ -182,45 +190,51 @@ export function TabGroups({
                 <button
                   type="button"
                   className="btn"
-                  disabled={!/\.(md|markdown|qmd)$/i.test(active.target.path)}
-                  onClick={() => onView?.(groupIndex, 'visual')}
-                >
-                  可视编辑
-                </button>
-                <button
-                  type="button"
-                  className="btn"
                   onClick={() => onView?.(groupIndex, 'preview')}
                 >
                   预览
                 </button>
-                <button type="button" className="btn" onClick={() => onView?.(groupIndex, 'split')}>
-                  并排预览
-                </button>
-                <button
-                  type="button"
-                  className="btn"
-                  disabled={!/\.(md|markdown|qmd|tex)$/i.test(active.target.path)}
-                  onClick={() => onView?.(groupIndex, 'render')}
-                >
-                  完整排版
-                </button>
-                <button
-                  type="button"
-                  className="btn"
-                  disabled={!/\.(md|markdown|qmd|tex)$/i.test(active.target.path)}
-                  onClick={() => onView?.(groupIndex, 'split-render')}
-                >
-                  并排排版
-                </button>
+                {isProjectText ? (
+                  <>
+                    <button
+                      type="button"
+                      className="btn"
+                      disabled={!/\.(md|markdown|qmd)$/i.test(projectPath)}
+                      onClick={() => onView?.(groupIndex, 'visual')}
+                    >
+                      可视编辑
+                    </button>
+                    <button
+                      type="button"
+                      className="btn"
+                      onClick={() => onView?.(groupIndex, 'split')}
+                    >
+                      并排预览
+                    </button>
+                    <button
+                      type="button"
+                      className="btn"
+                      disabled={!/\.(md|markdown|qmd|tex)$/i.test(projectPath)}
+                      onClick={() => onView?.(groupIndex, 'render')}
+                    >
+                      完整排版
+                    </button>
+                    <button
+                      type="button"
+                      className="btn"
+                      disabled={!/\.(md|markdown|qmd|tex)$/i.test(projectPath)}
+                      onClick={() => onView?.(groupIndex, 'split-render')}
+                    >
+                      并排排版
+                    </button>
+                  </>
+                ) : null}
               </div>
             ) : null}
             <div className="tab-content">
-              {active?.material && renderReader ? (
-                renderReader(active.material)
-              ) : active?.target && renderFile ? (
-                renderFile(
-                  active.target,
+              {active?.resource && renderResource ? (
+                renderResource(
+                  active.resource,
                   active.editorMode ?? (active.kind === 'preview' ? 'preview' : 'source'),
                   active.transient ? () => onPin?.(groupIndex, active.id) : undefined,
                   group.id,

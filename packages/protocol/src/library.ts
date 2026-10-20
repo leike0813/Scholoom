@@ -507,6 +507,11 @@ export const libraryImportProjectFilesSchema = object(
 );
 
 export const librarySchemas = {
+  'library.attachment': {
+    semantics: { effect: 'read', returns: 'result', waitMs: 5000 },
+    params: object({ attachmentId: id }, ['attachmentId']),
+    result: libraryAttachmentSchema,
+  },
   ...readingSchemas,
   'library.importFiles': {
     semantics: { effect: 'write', returns: 'reference', waitMs: 5000 },

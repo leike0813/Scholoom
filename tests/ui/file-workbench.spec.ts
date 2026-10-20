@@ -47,6 +47,7 @@ test('project files share draft preview and survive directory rename, trash and 
     await newFile.fill('draft.md');
     await newFile.press('Enter');
     const editor = uiPage.getByRole('textbox', { name: '文件内容 notes/draft.md', exact: true });
+    await expect(editor).toHaveAttribute('contenteditable', 'true');
     const content =
       '# Draft title\n\n| Method | Score |\n| --- | --- |\n| A | 42 |\n\n$E=mc^2$\n\n![sample](../image.png)\n\n![remote](https://untrusted.example/image.png)\n\n<script>globalThis.unsafePreview=true</script>\n\n[unsafe](javascript:alert(1))\n';
     await writeFile(
@@ -60,7 +61,7 @@ test('project files share draft preview and survive directory rename, trash and 
     await uiPage.keyboard.insertText(content);
     await expect(editor).toContainText('Method');
     await uiPage.getByRole('button', { name: '并排预览', exact: true }).click();
-    await armRpcGate(uiPage, 'files.read');
+    await armRpcGate(uiPage, 'resources.read');
     await uiPage.getByRole('button', { name: '保存文件', exact: true }).first().click();
     await expect
       .poll(() => readFile(join(project, 'notes', 'draft.md'), 'utf8').catch(() => ''))

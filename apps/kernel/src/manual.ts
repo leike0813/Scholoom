@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { Broker, type Handlers } from '@scholoom/broker';
-import { EditorRuntime } from '@scholoom/editor/node';
+import { EditorRuntime, ResourceAccess } from '@scholoom/editor/node';
 import { LiteratureCatalog, MaterialReading } from '@scholoom/library/node';
 import { ProcessAdmission, runCommand } from '@scholoom/platform/node';
 import {
@@ -18,6 +18,8 @@ import {
   type CallArguments,
   type CallContext,
   OperationError,
+  type ResourceInputs,
+  type ResourceLibraryPort,
   type WorkbenchChange,
 } from '@scholoom/protocol';
 import {
@@ -103,11 +105,13 @@ const materialMethods = Object.keys(projectMaterialOperations).filter(
   (method): method is keyof ProjectMaterialInputs => libraryConsumes.includes(method),
 );
 export type FoundationMethod =
+  | keyof ResourceInputs
   | keyof EditorInputs
   | Exclude<keyof ProjectsInputs, 'project.restore' | 'artifacts.reconcile'>
   | keyof LibraryInputs;
 
 export class ManualApplication {
+  readonly resources: ResourceAccess;
   readonly editor: EditorRuntime;
   readonly projects: Projects;
   readonly library: LiteratureCatalog;
@@ -115,6 +119,7 @@ export class ManualApplication {
   readonly fileWatches: ProjectFileWatches;
   private readonly directories: DirectoryBrowser;
   protected readonly processes = new ProcessAdmission();
+  private readonly resourceReading = new MaterialReading(undefined, this.processes);
   protected revision = 0;
   private listeners = new Set<(change: WorkbenchChange) => void>();
   protected readonly broker = new Broker<
@@ -188,6 +193,48 @@ export class ManualApplication {
       },
     );
     this.directories = new DirectoryBrowser(directory);
+    this.resources = new ResourceAccess(
+      (context) => {
+        const port = this.modulePort(context, 'editor');
+        return {
+          project: {
+            'files.resolve': (input) => port.call('files.resolve', input),
+            'files.read': (input) => port.call('files.read', input),
+            'files.readBytes': (input) => port.call('files.readBytes', input),
+            'project.material': (input) => port.call('project.material', input),
+            'project.saveFile': (input) => port.call('project.saveFile', input),
+          },
+          library: Object.fromEntries(
+            [
+              'attachment',
+              'status',
+              'readAttachment',
+              'pdfInfo',
+              'readPdfPage',
+              'documentInfo',
+              'readDocumentSection',
+              'searchDocument',
+              'readDocumentResource',
+            ].map((method) => [
+              `library.${method}`,
+              (input: never) => port.call(`library.${method}` as keyof ResourceLibraryPort, input),
+            ]),
+          ) as ResourceLibraryPort,
+        };
+      },
+      {
+        run: (load, format, method, input, options) => {
+          type Request = Parameters<MaterialReading['run']>[1];
+          const request =
+            method === 'pdfInfo'
+              ? { kind: 'info' as const }
+              : method === 'readPdfPage'
+                ? { kind: 'text' as const, ...input }
+                : { kind: 'document' as const, format, method: `library.${method}`, input };
+          return this.resourceReading.run(load, request as Request, options);
+        },
+      },
+    );
     this.registerProjectHandlers('project-materials', {
       'project.checkRead': ({ projectId, agent }, context) => {
         return this.projectMaterialAccess(projectId, agent, context, () => {
@@ -397,6 +444,21 @@ export class ManualApplication {
     Handlers<BusinessInputs, BusinessOutputs>,
     FoundationMethod
   > = {
+    'resources.cancel': (input, context) => this.resources.cancel(input.requestId, context),
+    'resources.describe': (input, context) => this.resources.describe(input.locator, context),
+    'resources.read': (input, context) => this.resources.read(input, context),
+    'resources.document': (input, context) => this.resources.document(input, context),
+    'resources.save': async (input, context) => {
+      const result = await this.resources.save(input, context);
+      if (input.ref.source === 'project') this.changed(input.ref.projectId);
+      return result;
+    },
+    'library.attachment': (input) => this.library.attachment(input.attachmentId),
+    'files.readBytes': (input, context) => {
+      this.checkProjectScope(input.projectId, context);
+      const { projectId, fileId, ...range } = input;
+      return this.projects.get(projectId).files.readBytes(fileId, range);
+    },
     'editor.tools': (_input, context) => this.editor.tools(context),
     'editor.convert': (input, context) => this.editor.convert(input, context),
     'editor.render': (input, context) => this.editor.render(input, context),
@@ -668,6 +730,7 @@ export class ManualApplication {
     return this.broker.available(Object.keys(businessSchemas) as BusinessMethod[]);
   }
   async close(): Promise<void> {
+    await this.resourceReading.close();
     await this.editor.close();
     this.fileWatches.close();
     await this.transfers.close();

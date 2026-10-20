@@ -4,6 +4,7 @@ import { libraryOperations } from './library.js';
 import { modelsOperations, providerSchema } from './models.js';
 import { projectSchema, projectsOperations } from './projects.js';
 import { researchOperations } from './research.js';
+import { resourceOperations } from './resources.js';
 import { array, count, flag, id, object, page } from './schema.js';
 
 const scope = {
@@ -41,6 +42,7 @@ export const changeSchema = object(
 );
 
 export const businessSchemas = {
+  ...resourceOperations,
   ...editorOperations,
   ...modelsOperations,
   ...projectsOperations,

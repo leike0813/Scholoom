@@ -20,8 +20,11 @@ export type DocumentRequest = {
     kind: 'document';
     format: 'epub' | 'html';
     method: M;
-    input: LibraryInputs[M];
+    input: Omit<LibraryInputs[M], 'attachmentId' | 'materialVersionId'>;
   };
+}[DocumentMethod];
+type ParsedDocument = {
+  [M in DocumentMethod]: Omit<LibraryOutputs[M], 'attachmentId' | 'materialVersionId'>;
 }[DocumentMethod];
 const MAX_DOCUMENT = 8 * 1024 * 1024;
 const MAX_EXPANDED = 256 * 1024 * 1024;
@@ -577,12 +580,8 @@ function fragment(
 export async function executeDocument(
   bytes: Buffer,
   request: DocumentRequest,
-): Promise<LibraryOutputs[DocumentMethod]> {
+): Promise<ParsedDocument> {
   const publication = new Publication(bytes, request.format);
-  const reference = {
-    attachmentId: request.input.attachmentId,
-    materialVersionId: request.input.materialVersionId,
-  };
   try {
     await publication.initialize();
     switch (request.method) {
@@ -590,7 +589,6 @@ export async function executeDocument(
         const { offset = 0, limit = 25 } = request.input;
         if (offset > publication.sections.length) invalid('章节分页位置无效。');
         return {
-          ...reference,
           format: request.format,
           title: publication.title,
           sectionCount: publication.sections.length,
@@ -608,7 +606,6 @@ export async function executeDocument(
           offset = node.start;
         }
         return {
-          ...reference,
           sectionId,
           normalizationVersion: 1,
           ...fragment(document, offset, limit, request.input.textOnly),
@@ -645,7 +642,6 @@ export async function executeDocument(
             });
             if (hits.length >= limit)
               return {
-                ...reference,
                 hits,
                 complete: false,
                 nextCursor: { sectionIndex: index, offset: pattern.lastIndex },
@@ -653,7 +649,6 @@ export async function executeDocument(
           }
         }
         return {
-          ...reference,
           hits,
           complete: stop === publication.sections.length,
           ...(stop < publication.sections.length
@@ -667,7 +662,6 @@ export async function executeDocument(
         if (offset > bytes.length) invalid('图片读取位置无效。');
         const end = Math.min(bytes.length, offset + 256 * 1024);
         return {
-          ...reference,
           mimeType,
           byteLength: bytes.length,
           offset,

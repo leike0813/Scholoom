@@ -11,10 +11,11 @@ import {
   type SelectionPlugin,
   ZoomMode,
 } from '@embedpdf/react-pdf-viewer';
-import type { KernelClient } from '@scholoom/client';
-import type { LibraryAttachment, ReadingRecord } from '@scholoom/protocol';
+import type { ReadingRecord } from '@scholoom/protocol';
+import type { ResourceDescriptor } from '@scholoom/protocol/resources';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { prepareReadingRecord, ReadingRecordsPanel } from './ReadingRecordsPanel';
+import type { ReadingRecordAdapter, WorkbenchResourcePort } from './resource-controller';
 
 const messageOf = (reason: unknown) =>
   reason instanceof Error ? reason.message : 'PDF读取未完成。';
@@ -117,16 +118,19 @@ export function RenderedPdf({ url }: { url: string }) {
 }
 
 export function PdfReader({
-  client,
-  material,
+  resource,
+  port,
+  records: recordAdapter,
   enabled,
 }: {
-  client: KernelClient;
-  material: LibraryAttachment;
+  resource: ResourceDescriptor;
+  port: WorkbenchResourcePort;
+  records?: ReadingRecordAdapter | undefined;
   enabled: boolean;
 }) {
   const [tick, setTick] = useState(0);
-  const [grants, setGrants] = useState({ read: false, write: false });
+  const [grants, setGrants] = useState({ read: false });
+  const [recordWrite, setRecordWrite] = useState(false);
   const [url, setUrl] = useState('');
   const [error, setError] = useState('');
   const [unavailable, setUnavailable] = useState(false);
@@ -136,49 +140,82 @@ export function PdfReader({
   const [documentEpoch, setDocumentEpoch] = useState(0);
   const [records, setRecords] = useState<ReadingRecord[]>([]);
   const projected = useRef<{ id: string; pageIndex: number }[]>([]);
-  const active = enabled && grants.read;
+  const resourceKey = JSON.stringify([resource.ref, resource.basis]);
+  const [authorizedKey, setAuthorizedKey] = useState('');
+  const active = enabled && grants.read && authorizedKey === resourceKey;
   useEffect(
     () =>
-      client.subscribeChanges((change) => {
-        if (change.libraryChanged) setTick((value) => value + 1);
+      port.subscribe(() => {
+        setTick((value) => value + 1);
       }),
-    [client],
+    [port],
   );
-  // biome-ignore lint/correctness/useExhaustiveDependencies: 库通知仅刷新授权，不重载材料和viewer。
+  // biome-ignore lint/correctness/useExhaustiveDependencies: resource notifications explicitly refresh describe authorization.
   useEffect(() => {
-    if (!enabled) return;
     let current = true;
-    void client.call('library.status', {}).then(
-      async (status) => {
-        if (!current) return;
-        setGrants(status);
-        if (!status.read) return;
-        try {
-          const value = await client.call('library.readAttachment', {
-            attachmentId: material.id,
-            limit: 1,
-          });
-          if (value.materialVersionId !== material.materialVersionId)
-            throw new Error('材料版本已变化。');
-          if (current) setUnavailable(false);
-        } catch (reason) {
+    if (!enabled) {
+      setGrants({ read: false });
+      setAuthorizedKey('');
+      return () => {
+        current = false;
+      };
+    }
+    void port
+      .describe({ ...resource.ref })
+      .then(
+        (fresh) => {
+          if (!current) return;
+          if (fresh.basis !== resource.basis) throw new Error('材料依据已变化，请重新打开资源。');
+          setUnavailable(!fresh.capabilities.read);
+          setError(fresh.unavailableReason ?? '');
+          setGrants({ read: fresh.capabilities.read });
+          setAuthorizedKey(resourceKey);
+        },
+        (reason) => {
           if (current) {
+            setGrants({ read: false });
+            setAuthorizedKey('');
             setUnavailable(true);
             setError(messageOf(reason));
           }
-        }
-      },
-      (reason) => {
+        },
+      )
+      .catch((reason) => {
         if (current) {
-          setGrants({ read: false, write: false });
+          setGrants({ read: false });
+          setAuthorizedKey('');
+          setUnavailable(true);
           setError(messageOf(reason));
         }
-      },
-    );
+      });
     return () => {
       current = false;
     };
-  }, [client, enabled, tick, material.id, material.materialVersionId]);
+  }, [port, enabled, resource, resourceKey, tick]);
+  useEffect(() => {
+    if (!recordAdapter || !enabled || !resource.capabilities.readingRecords) {
+      setRecordWrite(false);
+      return;
+    }
+    let live = true;
+    const refresh = () => {
+      setRecordWrite(false);
+      void recordAdapter.status().then(
+        (status) => {
+          if (live) setRecordWrite(status.write);
+        },
+        () => {
+          if (live) setRecordWrite(false);
+        },
+      );
+    };
+    refresh();
+    const unsubscribe = recordAdapter.subscribe(refresh);
+    return () => {
+      live = false;
+      unsubscribe();
+    };
+  }, [recordAdapter, enabled, resource.capabilities.readingRecords]);
 
   useEffect(() => {
     if (!active) return;
@@ -186,26 +223,29 @@ export function PdfReader({
     let objectUrl = '';
     setError('');
     void (async () => {
-      await client.call('library.pdfInfo', {
-        attachmentId: material.id,
-        materialVersionId: material.materialVersionId,
-      });
+      await port.document(resource, 'pdfInfo', {});
       const parts: BlobPart[] = [];
       let offset = 0;
       for (;;) {
         if (!current) return;
-        const result = await client.call('library.readAttachment', {
-          attachmentId: material.id,
+        const result = await port.read({
+          ref: resource.ref,
+          basis: resource.basis,
+          encoding: 'base64',
           offset,
           limit: 262144,
         });
         if (!current) return;
-        if (result.materialVersionId !== material.materialVersionId)
-          throw new Error('材料已变化，保留原版本阅读记录。');
-        const bytes = Uint8Array.from(atob(result.base64), (char) => char.charCodeAt(0));
-        if (offset + bytes.length > 134217728) throw new Error('PDF超过128MiB读取上限。');
+        if (result.unit !== 'byte' || result.offset !== offset || result.basis !== resource.basis)
+          throw new Error('材料依据或读取位置已变化。');
+        const bytes = Uint8Array.from(atob(result.data), (char) => char.charCodeAt(0));
+        if (result.size > 134217728 || offset + bytes.length > result.size)
+          throw new Error('PDF超过128MiB读取上限。');
         parts.push(bytes);
-        if (result.nextOffset === undefined) break;
+        if (result.nextOffset === undefined) {
+          if (offset + bytes.length !== result.size) throw new Error('PDF读取不完整。');
+          break;
+        }
         if (result.nextOffset <= offset) throw new Error('材料读取位置未推进。');
         offset = result.nextOffset;
       }
@@ -223,7 +263,7 @@ export function PdfReader({
       if (objectUrl) URL.revokeObjectURL(objectUrl);
       setUrl('');
     };
-  }, [client, active, material.id, material.materialVersionId]);
+  }, [port, resource, active]);
 
   const ready = useCallback((value: PluginRegistry) => {
     const cleanups: (() => void)[] = [];
@@ -391,7 +431,8 @@ export function PdfReader({
 
   const prepare = (evidence: Pick<ReadingRecord, 'kind' | 'quote' | 'location'>) => {
     try {
-      prepareReadingRecord(client, material, evidence);
+      if (!recordAdapter) return;
+      prepareReadingRecord(recordAdapter, evidence);
       setError('');
     } catch (reason) {
       setError(messageOf(reason));
@@ -399,10 +440,7 @@ export function PdfReader({
   };
   const locate = async (record: ReadingRecord) => {
     try {
-      await client.call('library.pdfInfo', {
-        attachmentId: material.id,
-        materialVersionId: material.materialVersionId,
-      });
+      await port.document(resource, 'pdfInfo', {});
       const location = record.location;
       if (location && 'pageIndex' in location)
         registry
@@ -415,13 +453,13 @@ export function PdfReader({
     }
   };
   return (
-    <section className="pdf-reader" aria-label={`PDF 阅读 ${material.name}`}>
+    <section className="pdf-reader" aria-label={`PDF 阅读 ${resource.name}`}>
       {error ? (
         <p className="business-error" role="alert">
           {error}
         </p>
       ) : null}
-      {!active ? <p className="empty-hint">需连接内核并授权库读取。</p> : null}
+      {!active ? <p className="empty-hint">当前资源不可读取。</p> : null}
       <div className="pdf-viewer">
         {url && active ? (
           <PdfViewport key={url} config={config} onReady={ready} />
@@ -431,50 +469,51 @@ export function PdfReader({
           </p>
         )}
       </div>
-      <div className="file-view-controls">
-        <button
-          type="button"
-          className="btn"
-          disabled={!active || !grants.write || !url || unavailable}
-          onClick={() =>
-            prepare({ kind: 'bookmark', quote: '', location: { pageIndex: page - 1 } })
-          }
-        >
-          标记第 {page} 页书签
-        </button>
-        {selections.map((selection) => (
+      {recordAdapter && resource.capabilities.readingRecords ? (
+        <div className="file-view-controls">
           <button
             type="button"
             className="btn"
-            key={selection.pageIndex}
-            disabled={!active || !grants.write || unavailable}
+            disabled={!active || !recordWrite || !url || unavailable}
             onClick={() =>
-              prepare({
-                kind: 'highlight',
-                quote: selection.quote,
-                location: { pageIndex: selection.pageIndex, rects: selection.rects },
-              })
+              prepare({ kind: 'bookmark', quote: '', location: { pageIndex: page - 1 } })
             }
           >
-            保留第 {selection.pageIndex + 1} 页选区
+            标记第 {page} 页书签
           </button>
-        ))}
-      </div>
-      <details className="pdf-records" open>
-        <summary>共同阅读记录</summary>
-        <ReadingRecordsPanel
-          client={client}
-          enabled={enabled}
-          readable={grants.read}
-          writable={grants.write}
-          attachment={{ ...material, state: unavailable ? 'unavailable' : 'available' }}
-          tick={tick}
-          onRecords={setRecords}
-          onLocate={(record) => {
-            void locate(record);
-          }}
-        />
-      </details>
+          {selections.map((selection) => (
+            <button
+              type="button"
+              className="btn"
+              key={selection.pageIndex}
+              disabled={!active || !recordWrite || unavailable}
+              onClick={() =>
+                prepare({
+                  kind: 'highlight',
+                  quote: selection.quote,
+                  location: { pageIndex: selection.pageIndex, rects: selection.rects },
+                })
+              }
+            >
+              保留第 {selection.pageIndex + 1} 页选区
+            </button>
+          ))}
+        </div>
+      ) : null}
+      {recordAdapter && resource.capabilities.readingRecords ? (
+        <details className="pdf-records" open>
+          <summary>共同阅读记录</summary>
+          <ReadingRecordsPanel
+            adapter={recordAdapter}
+            enabled={enabled}
+            materialAvailable={!unavailable && resource.capabilities.read}
+            onRecords={setRecords}
+            onLocate={(record) => {
+              void locate(record);
+            }}
+          />
+        </details>
+      ) : null}
     </section>
   );
 }

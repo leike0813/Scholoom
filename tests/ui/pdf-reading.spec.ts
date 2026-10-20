@@ -169,17 +169,14 @@ test('local PDF reader shares selected highlights, bookmarks and notes through t
       title,
     });
     const otherTitle = `PDF另一会话-${randomUUID()}`;
-    const otherProject = await client.call('project.open', { path: root });
+    const otherProject = await client.call('project.open', { path: root, trust: 'restricted' });
     await client.call('session.create', { projectId: otherProject.id, title: otherTitle });
-    await uiPage.getByLabel('管理项目 普通会话', { exact: true }).click();
-    await uiPage.getByRole('button', { name: otherProject.name, exact: true }).click();
+    await uiPage.getByRole('button', { name: `${otherProject.name}，已折叠`, exact: true }).click();
     await uiPage.getByRole('button', { name: `打开会话 ${otherTitle}`, exact: true }).click();
     await expect(note).toHaveValue('阅读器中的文献笔记');
     await expect(
       reader.getByRole('button', { name: '标记第 2 页书签', exact: true }),
     ).toBeVisible();
-    await uiPage.getByLabel(`管理项目 ${otherProject.name}`, { exact: true }).click();
-    await uiPage.getByRole('button', { name: '普通会话', exact: true }).click();
     await uiPage.getByRole('button', { name: `打开会话 ${title}`, exact: true }).click();
     await expect(instruction).toHaveValue('PDF 阅读期间保留的研究指令');
     await records.getByRole('button', { name: '保存文献笔记', exact: true }).click();

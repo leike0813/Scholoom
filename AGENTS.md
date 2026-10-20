@@ -47,6 +47,7 @@
 ## UI 与真实验证
 
 - UI 在 [Workbench.tsx](apps/desktop/src/renderer/src/workbench/Workbench.tsx) 上演进；浏览器与 Electron 共用组件、session 和事件路径，宿主差异留在薄适配层。调试与验收按[#20](.scratch/scholoom-foundations/issues/20-ui-debugging-and-e2e-harness.md)及开发说明处理。
+- 项目文件与库附件共用[资源打开接口](docs/development.md#共同资源打开)：格式视图经共同端口取文，所属领域核对身份、版本和权限；库导航保持当前 harness 项目，Agent 经工具取用文献。
 - 使用既有 UI harness 尽早提供可操作反馈；模块专用可视化夹具接入真实模块和组件，明确依赖替身，不另建业务实现或产品工作台。
 - 首条真实业务路径贯通后建立对应 e2e，关键动作经用户入口并核对持久化或产物。整合 e2e 运行真实内部接线，可在外部模型／远程依赖边界使用受控响应。
 - 维护双宿主 UI 测试；preload、IPC、原生能力与生命周期在真实 Electron 验证。真实科研 Agent 验收经产品入口运行，外部 Agent 代写产物不算通过。

@@ -5,6 +5,10 @@
   "license": "AGPL-3.0-only",
   "type": "module",
   "exports": {
+    "./resources": {
+      "types": "./dist/resources.d.ts",
+      "import": "./dist/resources.js"
+    },
     "./editor": {
       "types": "./dist/editor.d.ts",
       "import": "./dist/editor.js"

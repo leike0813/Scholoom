@@ -196,6 +196,31 @@ export const projectsOperations = {
     params: object({ ...project, path: id, offset: count }, ['projectId', 'path']),
     result: fileSchema,
   },
+  'files.readBytes': {
+    semantics: { effect: 'read', returns: 'result', waitMs: 5000 },
+    params: object(
+      {
+        ...project,
+        fileId: id,
+        basis: id,
+        offset: count,
+        limit: { type: 'integer', minimum: 1, maximum: 262144 },
+      },
+      ['projectId', 'fileId'],
+    ),
+    result: object(
+      {
+        fileId: id,
+        path: id,
+        basis: id,
+        size: { type: 'integer', minimum: 0, maximum: 134217728 },
+        offset: count,
+        data: { type: 'string', maxLength: 349528 },
+        nextOffset: count,
+      },
+      ['fileId', 'path', 'basis', 'size', 'offset', 'data'],
+    ),
+  },
   'files.save': fileSaveOperation,
   'files.history': {
     semantics: { effect: 'read', returns: 'result', waitMs: 5000 },
@@ -238,7 +263,13 @@ export const projectsOperations = {
   },
 } as const;
 
-export const projectLimits = { fileBytes: 262144, readBytes: 16384, history: 20 } as const;
+export const projectLimits = {
+  fileBytes: 262144,
+  readBytes: 16384,
+  binaryFileBytes: 134217728,
+  binaryChunkBytes: 262144,
+  history: 20,
+} as const;
 
 export const projectMaterialOperations = {
   'project.checkRead': {

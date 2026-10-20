@@ -1,14 +1,11 @@
 import type { ExternalStoreAdapter, ThreadMessageLike } from '@assistant-ui/react';
 import type { Effort, ErrorInfo, FileLocation, ModelOption } from '@scholoom/protocol';
 import type { ReactNode } from 'react';
+import type { ResourceTarget } from './resource-controller.js';
 
-export interface FileTarget {
-  projectId: string;
-  path: string;
-  fileId?: string;
-  create?: boolean;
-  openMode?: 'preview' | 'permanent';
-}
+export type { FileTarget } from './resource-controller.js';
+
+import type { FileTarget } from './resource-controller.js';
 
 /** 真实来源在界面上可区分的连接阶段；样例状态只由显式样例场景提供。 */
 export type KernelPhase =
@@ -100,19 +97,17 @@ export interface WorkbenchSession {
     kind: 'library' | 'reader' | 'editor' | 'preview';
   }[];
   fileNavigator?: ReactNode | ((activeFile?: FileTarget) => ReactNode);
-  fileTarget?: FileTarget;
-  renderFile?: (
-    target: FileTarget,
+  resourceTarget?: ResourceTarget;
+  renderResource?: (
+    target: ResourceTarget,
     mode?: import('./tab-state.js').FileViewMode,
     onDirty?: () => void,
     viewId?: string,
   ) => ReactNode;
-  isFileDirty?: (target: FileTarget) => boolean;
-  flushFile?: (target: FileTarget) => Promise<void>;
+  isResourceDirty?: (target: ResourceTarget) => boolean;
+  flushResource?: (target: ResourceTarget) => Promise<void>;
   /** 共同文献库 tab 内容；缺省时该 tab 呈现占位。 */
   library?: ReactNode;
-  readerTarget?: import('@scholoom/protocol').LibraryAttachment | undefined;
-  renderReader?: (material: import('@scholoom/protocol').LibraryAttachment) => ReactNode;
   createSession?: () => void;
   cancel?: (() => void) | undefined;
   loadEarlier?: (() => void) | undefined;

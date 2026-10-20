@@ -20,7 +20,7 @@ interface CatalogItemPaneProps {
   writable: boolean;
   tick: number;
   onBatch: (batch: LibraryBatch) => void;
-  onOpenReader?: ((material: LibraryAttachment) => void) | undefined;
+  onOpenResource?: ((material: LibraryAttachment) => void) | undefined;
 }
 
 export function CatalogItemPane({
@@ -31,7 +31,7 @@ export function CatalogItemPane({
   writable,
   tick,
   onBatch,
-  onOpenReader,
+  onOpenResource,
 }: CatalogItemPaneProps) {
   const [activeSection, setActiveSection] = useState<SidenavSection>('metadata');
   const contentRef = useRef<HTMLDivElement>(null);
@@ -69,7 +69,7 @@ export function CatalogItemPane({
           sourceId={entry.id}
           tick={tick}
           onBatch={onBatch}
-          onOpenReader={onOpenReader}
+          onOpenResource={onOpenResource}
         />
         <ReadingSection />
         <TagsSection sourceId={entry.id} />

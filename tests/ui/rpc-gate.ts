@@ -5,6 +5,7 @@ export async function installRpcGate(page: Page): Promise<void> {
     const send = WebSocket.prototype.send;
     const gate = {
       method: '',
+      operation: '',
       held: undefined as { socket: WebSocket; payload: string; id: number | string } | undefined,
       release(fail = false) {
         const held = gate.held;
@@ -31,7 +32,11 @@ export async function installRpcGate(page: Page): Promise<void> {
     WebSocket.prototype.send = function (payload) {
       if (typeof payload === 'string') {
         const message = JSON.parse(payload);
-        if (gate.method && message.method === gate.method) {
+        if (
+          gate.method &&
+          message.method === gate.method &&
+          (!gate.operation || message.params?.request?.method === gate.operation)
+        ) {
           gate.method = '';
           gate.held = { socket: this, payload, id: message.id };
           return;
@@ -42,10 +47,15 @@ export async function installRpcGate(page: Page): Promise<void> {
   });
 }
 
-export async function armRpcGate(page: Page, method: string): Promise<void> {
-  await page.evaluate((method) => {
-    Reflect.get(globalThis, '__scholoomRpcGate').method = method;
-  }, method);
+export async function armRpcGate(page: Page, method: string, operation = ''): Promise<void> {
+  await page.evaluate(
+    ({ method, operation }) => {
+      const gate = Reflect.get(globalThis, '__scholoomRpcGate');
+      gate.method = method;
+      gate.operation = operation;
+    },
+    { method, operation },
+  );
 }
 
 export async function releaseRpcGate(page: Page, fail = false): Promise<void> {

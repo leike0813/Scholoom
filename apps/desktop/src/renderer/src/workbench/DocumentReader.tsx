@@ -1,11 +1,9 @@
-import type { KernelClient } from '@scholoom/client';
+import type { DocumentNode, ReadingRecord, TextLocation } from '@scholoom/protocol';
 import type {
-  DocumentNode,
-  DocumentOutputs,
-  LibraryAttachment,
-  ReadingRecord,
-  TextLocation,
-} from '@scholoom/protocol';
+  ResourceDescriptor,
+  ResourceDocumentInputs,
+  ResourceDocumentOutputs,
+} from '@scholoom/protocol/resources';
 import {
   createElement,
   type ReactNode,
@@ -16,24 +14,25 @@ import {
   useState,
 } from 'react';
 import { prepareReadingRecord, ReadingRecordsPanel } from './ReadingRecordsPanel';
+import type { ReadingRecordAdapter, WorkbenchResourcePort } from './resource-controller';
 
-type Section = DocumentOutputs['library.readDocumentSection'];
-type Info = DocumentOutputs['library.documentInfo'];
-type Search = DocumentOutputs['library.searchDocument'];
+type Section = ResourceDocumentOutputs['readDocumentSection'];
+type Info = ResourceDocumentOutputs['documentInfo'];
+type Search = ResourceDocumentOutputs['searchDocument'];
 type Target = { sectionId: string; offset: number; anchor?: string };
 const messageOf = (error: unknown) => (error instanceof Error ? error.message : '文档读取未完成。');
 
 function DocumentImage({
-  client,
-  material,
+  port,
+  resource,
   sectionId,
   resourceId,
   alt,
   active,
   enqueue,
 }: {
-  client: KernelClient;
-  material: LibraryAttachment;
+  port: WorkbenchResourcePort;
+  resource: ResourceDescriptor;
   sectionId: string;
   resourceId: string | undefined;
   alt: string;
@@ -67,13 +66,16 @@ function DocumentImage({
         let offset = 0;
         let mimeType = '';
         for (;;) {
-          const value = await client.call('library.readDocumentResource', {
-            attachmentId: material.id,
-            materialVersionId: material.materialVersionId,
+          const input: ResourceDocumentInputs['readDocumentResource'] = {
             sectionId,
             resourceId,
             offset,
-          });
+          };
+          const value = await port.document<'readDocumentResource'>(
+            resource,
+            'readDocumentResource',
+            input,
+          );
           if (!current) return;
           if (value.byteLength > 1024 * 1024 || value.offset !== offset)
             throw new Error('图片超出读取范围。');
@@ -94,17 +96,7 @@ function DocumentImage({
       current = false;
       if (url) URL.revokeObjectURL(url);
     };
-  }, [
-    client,
-    material.id,
-    material.materialVersionId,
-    sectionId,
-    resourceId,
-    active,
-    visible,
-    retry,
-    enqueue,
-  ]);
+  }, [port, resource, sectionId, resourceId, active, visible, retry, enqueue]);
   return (
     <span ref={element} className="document-image">
       {image && active ? (
@@ -168,21 +160,19 @@ function selectionPoint(container: HTMLElement, node: Node, offset: number): num
 }
 
 export function DocumentReader({
-  client,
-  material,
+  resource,
+  port,
+  records: recordAdapter,
   enabled,
 }: {
-  client: KernelClient;
-  material: LibraryAttachment;
+  resource: ResourceDescriptor;
+  port: WorkbenchResourcePort;
+  records?: ReadingRecordAdapter | undefined;
   enabled: boolean;
 }) {
-  const reference = useMemo(
-    () => ({ attachmentId: material.id, materialVersionId: material.materialVersionId }),
-    [material.id, material.materialVersionId],
-  );
   const [tick, setTick] = useState(0);
-  const [grants, setGrants] = useState({ read: false, write: false });
-  const [attachment, setAttachment] = useState(material);
+  const [grants, setGrants] = useState({ read: false });
+  const [recordWrite, setRecordWrite] = useState(false);
   const [error, setError] = useState('');
   const [actionError, setActionError] = useState('');
   const [info, setInfo] = useState<Info>();
@@ -213,11 +203,39 @@ export function DocumentReader({
   const article = useRef<HTMLElement>(null);
   const searchEpoch = useRef(0);
   const mounted = useRef(true);
-  const key = target ? `${target.sectionId}:${target.offset}:${target.anchor ?? ''}` : '';
+  const resourceKey = JSON.stringify([resource.ref, resource.basis]);
+  const key = target
+    ? `${resourceKey}:${target.sectionId}:${target.offset}:${target.anchor ?? ''}`
+    : '';
   const section = received?.key === key ? received.value : undefined;
-  const active = enabled && grants.read && attachment.state === 'available';
+  const [authorizedKey, setAuthorizedKey] = useState('');
+  const active = enabled && grants.read && authorizedKey === resourceKey;
   const activeRef = useRef(active);
   activeRef.current = active;
+  useEffect(() => {
+    if (!recordAdapter || !enabled || !resource.capabilities.readingRecords) {
+      setRecordWrite(false);
+      return;
+    }
+    let live = true;
+    const refresh = () => {
+      setRecordWrite(false);
+      void recordAdapter.status().then(
+        (status) => {
+          if (live) setRecordWrite(status.write);
+        },
+        () => {
+          if (live) setRecordWrite(false);
+        },
+      );
+    };
+    refresh();
+    const unsubscribe = recordAdapter.subscribe(refresh);
+    return () => {
+      live = false;
+      unsubscribe();
+    };
+  }, [recordAdapter, enabled, resource.capabilities.readingRecords]);
   useEffect(() => {
     if (active) return;
     searchEpoch.current++;
@@ -232,12 +250,11 @@ export function DocumentReader({
     setSelection(undefined);
     const code =
       typeof reason === 'object' && reason !== null ? Reflect.get(reason, 'code') : undefined;
-    if (code === 'contentChanged' || code === 'notFound')
-      setAttachment((value) => ({
-        ...value,
-        state: code === 'contentChanged' ? 'changed' : 'missing',
-      }));
-    if (code === 'permissionDenied') setGrants({ read: false, write: false });
+    if (code === 'contentChanged' || code === 'notFound' || code === 'permissionDenied') {
+      setGrants({ read: false });
+      setAuthorizedKey('');
+      activeRef.current = false;
+    }
   }, []);
   useEffect(() => {
     mounted.current = true;
@@ -248,56 +265,60 @@ export function DocumentReader({
   }, []);
   useEffect(
     () =>
-      client.subscribeChanges((change) => {
-        if (change.libraryChanged) {
-          searchEpoch.current++;
-          setSearching(false);
-          setTick((value) => value + 1);
-        }
+      port.subscribe(() => {
+        searchEpoch.current++;
+        setSearching(false);
+        setTick((value) => value + 1);
       }),
-    [client],
+    [port],
   );
-  // biome-ignore lint/correctness/useExhaustiveDependencies: library tick refreshes grants and the selected material only.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: resource notifications explicitly refresh describe authorization.
   useEffect(() => {
-    if (!enabled) return;
     let live = true;
-    void client
-      .call('library.status', {})
-      .then(async (status) => {
-        if (!live) return;
-        setGrants(status);
-        if (!status.read) {
-          activeRef.current = false;
-          searchEpoch.current++;
-          return;
-        }
-        const result = await client.call('library.readAttachment', {
-          attachmentId: material.id,
-          offset: 0,
-          limit: 1,
-        });
-        if (result.materialVersionId !== material.materialVersionId)
-          throw new Error('材料版本已变化。');
-        if (live) {
-          setAttachment({ ...material, state: 'available' });
-          setError('');
-        }
-      })
+    if (!enabled) {
+      setGrants({ read: false });
+      setAuthorizedKey('');
+      return () => {
+        live = false;
+      };
+    }
+    void port
+      .describe({ ...resource.ref })
+      .then(
+        (fresh) => {
+          if (!live) return;
+          if (fresh.basis !== resource.basis) throw new Error('材料依据已变化，请重新打开资源。');
+          setGrants({ read: fresh.capabilities.read });
+          setError(fresh.unavailableReason ?? '');
+          setAuthorizedKey(resourceKey);
+        },
+        (reason) => {
+          if (live) {
+            setGrants({ read: false });
+            setAuthorizedKey('');
+            activeRef.current = false;
+            setError(messageOf(reason));
+          }
+        },
+      )
       .catch((reason) => {
         if (live) {
+          setGrants({ read: false });
+          setAuthorizedKey('');
+          activeRef.current = false;
           setError(messageOf(reason));
-          setAttachment({ ...material, state: 'unavailable' });
         }
       });
     return () => {
       live = false;
     };
-  }, [client, enabled, material.id, material.materialVersionId, reference, tick]);
+  }, [port, enabled, resource, resourceKey, tick]);
   useEffect(() => {
     if (!active) return;
     let live = true;
-    void client
-      .call('library.documentInfo', { ...reference, offset: infoOffset, limit: 25 })
+    const input: ResourceDocumentInputs['documentInfo'] = { offset: infoOffset, limit: 25 };
+    void port
+      .document<'documentInfo'>(resource, 'documentInfo', input)
       .then((value) => {
         if (!live) return;
         setInfo(value);
@@ -313,7 +334,7 @@ export function DocumentReader({
     return () => {
       live = false;
     };
-  }, [client, reference, active, infoOffset, failRead]);
+  }, [port, resource, active, infoOffset, failRead]);
   useEffect(() => {
     if (!active || !target) return;
     let live = true;
@@ -321,13 +342,13 @@ export function DocumentReader({
     setSelection(undefined);
     setImagePage(0);
     setActionError('');
-    void client
-      .call('library.readDocumentSection', {
-        ...reference,
-        sectionId: target.sectionId,
-        offset: target.offset,
-        ...(target.anchor ? { anchor: target.anchor } : {}),
-      })
+    const input: ResourceDocumentInputs['readDocumentSection'] = {
+      sectionId: target.sectionId,
+      offset: target.offset,
+      ...(target.anchor ? { anchor: target.anchor } : {}),
+    };
+    void port
+      .document<'readDocumentSection'>(resource, 'readDocumentSection', input)
       .then((value) => {
         if (live) {
           setReceived({ key, value });
@@ -343,7 +364,7 @@ export function DocumentReader({
     return () => {
       live = false;
     };
-  }, [client, reference, active, target, key, failRead]);
+  }, [port, resource, active, target, key, failRead]);
   const imageIndexes = useMemo(() => {
     const indexes = new Map<number, number>();
     section?.nodes.forEach((node, index) => {
@@ -421,7 +442,8 @@ export function DocumentReader({
               },
             };
       if (!evidence) return;
-      prepareReadingRecord(client, attachment, { kind, ...evidence });
+      if (!recordAdapter) return;
+      prepareReadingRecord(recordAdapter, { kind, ...evidence });
       setRecordsOpen(true);
       setActionError('');
     } catch (reason) {
@@ -441,12 +463,12 @@ export function DocumentReader({
     setSearching(true);
     setActionError('');
     try {
-      const result = await client.call('library.searchDocument', {
-        ...reference,
+      const input: ResourceDocumentInputs['searchDocument'] = {
         query,
         limit: 25,
         ...(continuing && search?.nextCursor ? { cursor: search.nextCursor } : {}),
-      });
+      };
+      const result = await port.document<'searchDocument'>(resource, 'searchDocument', input);
       if (mounted.current && activeRef.current && epoch === searchEpoch.current) setSearch(result);
     } catch (reason) {
       if (mounted.current && epoch === searchEpoch.current) setActionError(messageOf(reason));
@@ -498,9 +520,9 @@ export function DocumentReader({
     if (node.tag === 'img')
       return (
         <DocumentImage
-          key={`${section?.sectionId}:${section?.offset}:${index}`}
-          client={client}
-          material={attachment}
+          key={`${resource.basis}:${section?.sectionId}:${section?.offset}:${index}`}
+          port={port}
+          resource={resource}
           sectionId={section?.sectionId ?? ''}
           resourceId={node.resourceId}
           alt={node.alt ?? '图片'}
@@ -524,7 +546,7 @@ export function DocumentReader({
     return createElement(node.tag, { key: index }, ...(descendants ?? []));
   };
   return (
-    <section className="document-reader" aria-label={`文档阅读 ${material.name}`}>
+    <section className="document-reader" aria-label={`文档阅读 ${resource.name}`}>
       <div className="document-reader-toolbar project-controls">
         <label>
           文档章节
@@ -596,22 +618,26 @@ export function DocumentReader({
         >
           重新读取文档
         </button>
-        <button
-          type="button"
-          className="btn"
-          disabled={!active || !grants.write || !selection}
-          onClick={() => prepare('highlight')}
-        >
-          保留选区
-        </button>
-        <button
-          type="button"
-          className="btn"
-          disabled={!active || !grants.write || !section || loading}
-          onClick={() => prepare('bookmark')}
-        >
-          添加书签
-        </button>
+        {recordAdapter && resource.capabilities.readingRecords ? (
+          <>
+            <button
+              type="button"
+              className="btn"
+              disabled={!active || !recordWrite || !selection}
+              onClick={() => prepare('highlight')}
+            >
+              保留选区
+            </button>
+            <button
+              type="button"
+              className="btn"
+              disabled={!active || !recordWrite || !section || loading}
+              onClick={() => prepare('bookmark')}
+            >
+              添加书签
+            </button>
+          </>
+        ) : null}
         <form
           onSubmit={(event) => {
             event.preventDefault();
@@ -638,7 +664,7 @@ export function DocumentReader({
           {actionError || error}
         </p>
       ) : null}
-      {!grants.read ? <p>文献库尚未授权读取。</p> : null}
+      {!grants.read ? <p>资源当前不可读取。</p> : null}
       {loading ? <p role="status">正在读取文档。</p> : null}
       {active && search ? (
         <section aria-label="文档搜索结果" className="document-search-results">
@@ -685,19 +711,18 @@ export function DocumentReader({
           {children.get(-1)?.map(renderNode)}
         </article>
       ) : null}
-      <details open={recordsOpen} onToggle={(event) => setRecordsOpen(event.currentTarget.open)}>
-        <summary>共同阅读记录</summary>
-        <ReadingRecordsPanel
-          client={client}
-          enabled={enabled}
-          readable={grants.read}
-          writable={grants.write}
-          attachment={attachment}
-          tick={tick}
-          onRecords={setRecords}
-          onLocate={locate}
-        />
-      </details>
+      {recordAdapter && resource.capabilities.readingRecords ? (
+        <details open={recordsOpen} onToggle={(event) => setRecordsOpen(event.currentTarget.open)}>
+          <summary>共同阅读记录</summary>
+          <ReadingRecordsPanel
+            adapter={recordAdapter}
+            enabled={enabled}
+            materialAvailable={active}
+            onRecords={setRecords}
+            onLocate={locate}
+          />
+        </details>
+      ) : null}
     </section>
   );
 }

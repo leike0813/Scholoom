@@ -6,24 +6,28 @@ import type {
   BusinessParams,
   CallArguments,
   Effort,
-  LibraryAttachment,
   Message,
   WorkbenchSnapshot,
 } from '@scholoom/protocol';
 import { validateBusiness } from '@scholoom/protocol';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ArtifactNotice } from './ArtifactNotice';
-import { DocumentReader } from './DocumentReader';
 import { draftKey, readDraft, writeDraft } from './drafts';
 import { fileDocument } from './file-document';
 import { FileExplorer } from './file-explorer/Explorer';
 import { LibraryTab } from './library/LibraryTab';
-import { PdfReader } from './PdfReader';
 import { ProjectOnboardingDialog } from './ProjectOnboarding';
 import { ProjectTrustDialog } from './ProjectTrustDialog';
-import { FileEditor, ProjectControls } from './project-ui';
+import { ProjectControls } from './project-ui';
 import { artifactStateLabel, toThreadMessages } from './projection';
-import { readerKindForName } from './reader-material';
+import { ResourceView } from './ResourceView';
+import {
+  attachmentResource,
+  fileResource,
+  projectTarget,
+  type ResourceTarget,
+  resourceKey,
+} from './resource-controller';
 import { SessionList } from './SessionList';
 import { SessionSearchDialog } from './SessionSearch';
 import type { FileTarget, KernelPhase, WorkbenchSession } from './session';
@@ -41,8 +45,12 @@ export function useBusinessSession(
   const [error, setError] = useState('');
   const [materials, setMaterials] = useState<string[]>([]);
   const [materialFileIds, setMaterialFileIds] = useState<Record<string, string>>({});
-  const [file, setFile] = useState<FileTarget>();
-  const [readerTarget, setReaderTarget] = useState<LibraryAttachment>();
+  const [resourceTarget, setResourceTarget] = useState<ResourceTarget>();
+  const setFile = useCallback(
+    (target: FileTarget | undefined) =>
+      setResourceTarget(target ? fileResource(target) : undefined),
+    [],
+  );
   const [earlier, setEarlier] = useState<Message[]>([]);
   const [earlierComplete, setEarlierComplete] = useState(false);
   const [configured, setConfigured] = useState(false);
@@ -545,8 +553,10 @@ export function useBusinessSession(
       onEffortChange: changeEffort,
     },
     draftKey: draftKey(directory, selection.projectId, selection.sessionId || 'unsent'),
-    ...(file ? { fileTarget: file } : {}),
-    isFileDirty: (target) => {
+    ...(resourceTarget ? { resourceTarget } : {}),
+    isResourceDirty: (resource) => {
+      const target = projectTarget(resource);
+      if (!target) return false;
       const document = fileDocument(
         draftKey(directory, target.projectId, target.fileId ?? target.path, 'file'),
         draftKey(directory, target.projectId, target.path, 'file'),
@@ -558,25 +568,33 @@ export function useBusinessSession(
         (value.loaded && value.content !== value.source?.content)
       );
     },
-    flushFile: async (target) =>
-      fileDocument(
+    flushResource: async (resource) => {
+      const target = projectTarget(resource);
+      if (!target) return;
+      await fileDocument(
         draftKey(directory, target.projectId, target.fileId ?? target.path, 'file'),
         draftKey(directory, target.projectId, target.path, 'file'),
-      ).flush(),
-    renderFile: (target, mode, onDirty, viewId) =>
+      ).flush();
+    },
+    renderResource: (target, mode, onDirty, viewId) =>
       client ? (
-        <FileEditor
-          key={`${target.projectId}:${target.fileId ?? target.path}`}
+        <ResourceView
+          key={resourceKey(target)}
           client={client}
           directory={directory}
           target={target}
-          editorViewId={viewId}
+          enabled={phase === 'connected'}
+          viewId={viewId}
           mode={mode ?? 'source'}
           onDirty={onDirty}
           revision={snapshot?.fileRevision ?? 0}
           onOpenFile={setFile}
           onChanged={(stored) => {
-            if (!target.fileId && selectedRef.current.projectId === target.projectId)
+            if (
+              target.locator.source === 'project' &&
+              !target.locator.fileId &&
+              selectedRef.current.projectId === target.locator.projectId
+            )
               setFile(stored);
             void refresh();
           }}
@@ -586,25 +604,9 @@ export function useBusinessSession(
       <LibraryTab
         client={client}
         enabled={phase === 'connected'}
-        onOpenReader={(material) => setReaderTarget({ ...material })}
+        onOpenResource={(material) => setResourceTarget(attachmentResource(material))}
       />
     ) : undefined,
-    readerTarget,
-    renderReader: (material) => {
-      if (!client) return null;
-      const kind = readerKindForName(material.name);
-      const key = `${material.id}:${material.materialVersionId}`;
-      return kind === 'pdf' ? (
-        <PdfReader key={key} client={client} material={material} enabled={phase === 'connected'} />
-      ) : kind ? (
-        <DocumentReader
-          key={key}
-          client={client}
-          material={material}
-          enabled={phase === 'connected'}
-        />
-      ) : null;
-    },
     controls: (
       <ProjectControls
         snapshot={snapshot}

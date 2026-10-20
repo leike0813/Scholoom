@@ -6,8 +6,10 @@ import {
   type ReadingRecord,
   validateBusiness,
 } from '@scholoom/protocol';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { draftKey, readDraft, subscribeDraft, writeDraft } from './drafts';
+import type { ReadingRecordAdapter } from './resource-controller';
+import { createReadingRecordAdapter } from './resource-controller';
 
 const PAGE = 25;
 /** 界面只展示协议枚举的中文；材料状态同时用于解释新建为何不可用。 */
@@ -84,24 +86,23 @@ function readNoteDraft(key: string): NoteDraft | undefined {
 }
 
 export function prepareReadingRecord(
-  client: KernelClient,
-  attachment: LibraryAttachment,
+  adapter: ReadingRecordAdapter,
   evidence: Pick<ReadingRecord, 'kind' | 'quote' | 'location'>,
 ): void {
   const key = draftKey(
-    client.getSnapshot().status?.dataDirectory ?? '',
+    adapter.directory,
     'library',
     'reading-record',
-    attachment.id,
-    attachment.materialVersionId,
+    adapter.attachment.id,
+    adapter.attachment.materialVersionId,
     'note',
   );
   const note = readNoteDraft(key) ?? { recordId: crypto.randomUUID(), body: '' };
   if (note.pending) throw new Error('请先核查待确认的保存结果。');
   const capture = {
     recordId: note.recordId,
-    attachmentId: attachment.id,
-    materialVersionId: attachment.materialVersionId,
+    attachmentId: adapter.attachment.id,
+    materialVersionId: adapter.attachment.materialVersionId,
     ...evidence,
     body: note.body,
   };
@@ -115,6 +116,8 @@ export function prepareReadingRecord(
  * 新建仅覆盖整份材料的笔记；摘录、定位与类别在更正时只读，草稿按配置、附件、材料版本和记录身份保存。
  */
 export function ReadingRecordsPanel({
+  materialAvailable: available,
+  adapter: suppliedAdapter,
   client,
   enabled,
   readable,
@@ -124,20 +127,61 @@ export function ReadingRecordsPanel({
   onRecords,
   onLocate,
 }: {
-  client: KernelClient;
+  materialAvailable?: boolean;
+  adapter?: ReadingRecordAdapter;
+  client?: KernelClient;
   enabled: boolean;
-  readable: boolean;
-  writable: boolean;
-  attachment: LibraryAttachment;
-  tick: number;
+  readable?: boolean;
+  writable?: boolean;
+  attachment?: LibraryAttachment;
+  tick?: number;
   onRecords?: ((records: ReadingRecord[]) => void) | undefined;
   onLocate?: ((record: ReadingRecord) => void) | undefined;
 }) {
-  const directory = client.getSnapshot().status?.dataDirectory ?? '';
-  const materialKey = `${attachment.id}:${attachment.materialVersionId}`;
-  const materialAvailable = attachment.state === 'available';
+  const legacyAdapter = useMemo(
+    () => (client && attachment ? createReadingRecordAdapter(client, attachment) : undefined),
+    [client, attachment],
+  );
+  const adapter = suppliedAdapter ?? legacyAdapter;
+  const material = adapter?.attachment;
+  const directory = adapter?.directory ?? '';
+  const attachmentId = material?.id ?? '';
+  const materialVersionId = material?.materialVersionId ?? '';
+  const recordPort = adapter?.port;
+  const [grant, setGrant] = useState({ read: false, write: false });
+  const [accessTick, setAccessTick] = useState(0);
+  useEffect(() => {
+    if (!adapter || !enabled) {
+      setGrant({ read: false, write: false });
+      return;
+    }
+    let live = true;
+    const refresh = () => {
+      setGrant({ read: false, write: false });
+      void adapter.status().then(
+        (value) => {
+          if (live) setGrant(value);
+        },
+        () => {
+          if (live) setGrant({ read: false, write: false });
+        },
+      );
+    };
+    refresh();
+    const unsubscribe = adapter.subscribe(() => {
+      setAccessTick((value) => value + 1);
+      refresh();
+    });
+    return () => {
+      live = false;
+      unsubscribe();
+    };
+  }, [adapter, enabled]);
+  const active = enabled && !!adapter && grant.read && (readable ?? true);
+  const writableAccess = grant.write && (writable ?? true);
+  const materialKey = `${attachmentId}:${materialVersionId}`;
+  const materialAvailable = available ?? material?.state === 'available';
   /** 只有可读且启用时才请求；tick 只触发重读同一材料，不重置编辑草稿。 */
-  const active = enabled && readable;
 
   const [reload, setReload] = useState(0);
   const [busy, setBusy] = useState('');
@@ -160,37 +204,45 @@ export function ReadingRecordsPanel({
   const identity = `${materialKey}:${offset}`;
   // biome-ignore lint/correctness/useExhaustiveDependencies: tick和reload显式刷新当前材料页，保留草稿。
   useEffect(() => {
-    if (!active) return;
+    if (!active || !recordPort) return;
     let live = true;
-    void client
-      .call('library.readingRecords', {
-        attachmentId: attachment.id,
-        materialVersionId: attachment.materialVersionId,
-        offset,
-        limit: PAGE,
-      })
-      .then(
-        (value) => {
-          if (!live) return;
-          setReceived({
-            identity,
-            records: value.records,
-            ...(value.nextOffset === undefined ? {} : { nextOffset: value.nextOffset }),
-          });
-        },
-        (reason: unknown) => {
-          if (live) setReceived({ identity, error: messageOf(reason) });
-        },
-      );
+    void recordPort['library.readingRecords']({
+      attachmentId,
+      materialVersionId,
+      offset,
+      limit: PAGE,
+    }).then(
+      (value) => {
+        if (!live) return;
+        setReceived({
+          identity,
+          records: value.records,
+          ...(value.nextOffset === undefined ? {} : { nextOffset: value.nextOffset }),
+        });
+      },
+      (reason: unknown) => {
+        if (live) setReceived({ identity, error: messageOf(reason) });
+      },
+    );
     return () => {
       live = false;
     };
-  }, [client, active, attachment.id, attachment.materialVersionId, offset, identity, tick, reload]);
+  }, [
+    recordPort,
+    active,
+    attachmentId,
+    materialVersionId,
+    offset,
+    identity,
+    tick,
+    accessTick,
+    reload,
+  ]);
 
-  const current = received?.identity === identity ? received : undefined;
+  const current = active && received?.identity === identity ? received : undefined;
   const records = current?.records ?? [];
   useEffect(() => {
-    if (current?.records) onRecords?.(current.records);
+    onRecords?.(current?.records ?? []);
   }, [current, onRecords]);
 
   const [editing, setEditing] = useState<Editing>();
@@ -199,14 +251,7 @@ export function ReadingRecordsPanel({
   const [note, setNote] = useState<NoteDraft>();
 
   const draftFor = (recordId: string) =>
-    draftKey(
-      directory,
-      'library',
-      'reading-record',
-      attachment.id,
-      attachment.materialVersionId,
-      recordId,
-    );
+    draftKey(directory, 'library', 'reading-record', attachmentId, materialVersionId, recordId);
   const noteDraftKey = draftFor('note');
   const mounted = useRef(true);
   useEffect(() => {
@@ -257,37 +302,35 @@ export function ReadingRecordsPanel({
 
   // 历史只在用户明确点击后读取当前记录，不随列表刷新扩大查询。
   useEffect(() => {
-    if (!active || !historyRecordId) return;
+    if (!active || !historyRecordId || !recordPort) return;
     let live = true;
-    void client
-      .call('library.readingHistory', {
-        recordId: historyRecordId,
-        offset: historyOffset,
-        limit: PAGE,
-      })
-      .then(
-        (value) => {
-          if (!live) return;
-          setHistoryReceived({
-            identity: historyIdentity,
-            records: value.records,
-            ...(value.nextOffset === undefined ? {} : { nextOffset: value.nextOffset }),
-          });
-        },
-        (reason: unknown) => {
-          if (live) setHistoryReceived({ identity: historyIdentity, error: messageOf(reason) });
-        },
-      );
+    void recordPort['library.readingHistory']({
+      recordId: historyRecordId,
+      offset: historyOffset,
+      limit: PAGE,
+    }).then(
+      (value) => {
+        if (!live) return;
+        setHistoryReceived({
+          identity: historyIdentity,
+          records: value.records,
+          ...(value.nextOffset === undefined ? {} : { nextOffset: value.nextOffset }),
+        });
+      },
+      (reason: unknown) => {
+        if (live) setHistoryReceived({ identity: historyIdentity, error: messageOf(reason) });
+      },
+    );
     return () => {
       live = false;
     };
-  }, [client, active, historyRecordId, historyOffset, historyIdentity]);
+  }, [recordPort, active, historyRecordId, historyOffset, historyIdentity]);
 
   const currentHistory =
-    historyReceived?.identity === historyIdentity ? historyReceived : undefined;
+    active && historyReceived?.identity === historyIdentity ? historyReceived : undefined;
 
   const runRecord = (token: string, action: () => Promise<void>) => {
-    if (busy || !active) return;
+    if (busy || !active || !recordPort) return;
     setBusy(token);
     setActionError('');
     void action()
@@ -316,10 +359,11 @@ export function ReadingRecordsPanel({
 
   const saveEdit = () => {
     const started = editing;
-    if (!started || busy) return;
+    const port = recordPort;
+    if (!started || busy || !port) return;
     const submitted = started.body;
     runRecord(started.id, async () => {
-      const updated = await client.call('library.saveReadingRecord', {
+      const updated = await port['library.saveReadingRecord']({
         recordId: started.record.id,
         attachmentId: started.record.attachmentId,
         materialVersionId: started.record.materialVersionId,
@@ -347,9 +391,10 @@ export function ReadingRecordsPanel({
 
   const reloadEdit = () => {
     const started = editing;
-    if (!started) return;
+    const port = recordPort;
+    if (!started || !port) return;
     runRecord(started.id, async () => {
-      const record = await client.call('library.readingRecord', { recordId: started.id });
+      const record = await port['library.readingRecord']({ recordId: started.id });
       const live = readEditDraft(draftFor(record.id));
       if (live) updateEdit({ id: record.id, body: live.body, revision: record.revision, record });
       if (mounted.current) setReload((value) => value + 1);
@@ -357,6 +402,8 @@ export function ReadingRecordsPanel({
   };
 
   const removeRecord = (record: ReadingRecord) => {
+    const port = recordPort;
+    if (!port) return;
     const draft = readEditDraft(draftFor(record.id));
     const expectedRevision =
       editing?.id === record.id
@@ -365,7 +412,7 @@ export function ReadingRecordsPanel({
           ? draft.revision
           : record.revision;
     runRecord(record.id, async () => {
-      await client.call('library.removeReadingRecord', {
+      await port['library.removeReadingRecord']({
         recordId: record.id,
         expectedRevision,
       });
@@ -377,15 +424,17 @@ export function ReadingRecordsPanel({
 
   const saveNote = (retry = false) => {
     const started = note;
-    if (!started || !active || !writable || busy || (!retry && started.pending)) return;
+    const port = recordPort;
+    if (!started || !active || !port || !writableAccess || busy || (!retry && started.pending))
+      return;
     const input = retry
       ? started.pending
       : started.capture
         ? { ...started.capture, body: started.body }
         : {
             recordId: started.recordId,
-            attachmentId: attachment.id,
-            materialVersionId: attachment.materialVersionId,
+            attachmentId,
+            materialVersionId,
             kind: 'note' as const,
             quote: '',
             body: started.body,
@@ -396,8 +445,7 @@ export function ReadingRecordsPanel({
     updateNote({ ...started, pending: input });
     setBusy('note');
     setActionError('');
-    void client
-      .call('library.saveReadingRecord', input)
+    void port['library.saveReadingRecord'](input)
       .then(
         () => {
           const live = readNoteDraft(noteDraftKey);
@@ -432,12 +480,12 @@ export function ReadingRecordsPanel({
 
   const checkNote = () => {
     const started = note;
-    if (!started || busy) return;
+    const port = recordPort;
+    if (!started || busy || !port) return;
     const recordId = started.recordId;
     setBusy('note');
     setActionError('');
-    void client
-      .call('library.readingRecord', { recordId })
+    void port['library.readingRecord']({ recordId })
       .then(
         (record) => {
           // 已创建：只同步已保存修订，保留后续输入。
@@ -475,7 +523,7 @@ export function ReadingRecordsPanel({
       ) : null}
 
       <div>
-        {note?.capture ? (
+        {active && note?.capture ? (
           <p role="status">
             待保存{KIND_LABEL[note.capture.kind]}
             {note.capture.location ? ` · ${locationLabel(note.capture.location)}` : ''}
@@ -489,7 +537,7 @@ export function ReadingRecordsPanel({
             aria-label="新文献笔记"
             rows={3}
             spellCheck={false}
-            disabled={!active || !writable}
+            disabled={!active || !writableAccess}
             value={note?.body ?? ''}
             onChange={(event) => note && updateNote({ ...note, body: event.target.value })}
           />
@@ -501,7 +549,7 @@ export function ReadingRecordsPanel({
             aria-busy={busy === 'note'}
             disabled={
               !active ||
-              !writable ||
+              !writableAccess ||
               !materialAvailable ||
               !!busy ||
               !!note?.pending ||
@@ -534,7 +582,7 @@ export function ReadingRecordsPanel({
               <button
                 type="button"
                 className="btn"
-                disabled={!active || !writable || !materialAvailable || !!busy}
+                disabled={!active || !writableAccess || !materialAvailable || !!busy}
                 onClick={() => saveNote(true)}
               >
                 按原输入重试保存笔记
@@ -542,9 +590,12 @@ export function ReadingRecordsPanel({
             </>
           ) : null}
         </div>
-        {materialAvailable ? null : (
+        {materialAvailable || !active ? null : (
           <p className="empty-hint">
-            材料当前{MATERIAL_LABEL[attachment.state]}
+            材料当前
+            {material?.state === 'available'
+              ? '暂不可读取'
+              : MATERIAL_LABEL[material?.state ?? 'unavailable']}
             ，暂不能新建文献笔记；已有记录仍可查看和更正说明。
           </p>
         )}
@@ -593,7 +644,7 @@ export function ReadingRecordsPanel({
                   type="button"
                   className="btn"
                   aria-label={`移除阅读记录 ${record.id}`}
-                  disabled={!active || !writable || !!busy}
+                  disabled={!active || !writableAccess || !!busy}
                   onClick={() => removeRecord(record)}
                 >
                   移除
@@ -624,7 +675,7 @@ export function ReadingRecordsPanel({
                       aria-label="阅读记录说明"
                       rows={3}
                       spellCheck={false}
-                      disabled={!active || !writable}
+                      disabled={!active || !writableAccess}
                       value={open.body}
                       onChange={(event) =>
                         editing && updateEdit({ ...editing, body: event.target.value })
@@ -638,7 +689,7 @@ export function ReadingRecordsPanel({
                       aria-busy={busy === record.id}
                       disabled={
                         !active ||
-                        !writable ||
+                        !writableAccess ||
                         !!busy ||
                         (record.kind === 'note' && !open.body.trim())
                       }

@@ -16,10 +16,10 @@ const PAGE_SIZE = 25; // comfortable
 interface LibraryTabProps {
   client: KernelClient;
   enabled: boolean;
-  onOpenReader?: ((material: LibraryAttachment) => void) | undefined;
+  onOpenResource?: ((material: LibraryAttachment) => void) | undefined;
 }
 
-export function LibraryTab({ client, enabled, onOpenReader }: LibraryTabProps) {
+export function LibraryTab({ client, enabled, onOpenResource }: LibraryTabProps) {
   const [entries, setEntries] = useState<LibrarySource[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
@@ -226,7 +226,7 @@ export function LibraryTab({ client, enabled, onOpenReader }: LibraryTabProps) {
             writable={grants.write}
             tick={tick}
             onBatch={handleBatch}
-            onOpenReader={onOpenReader}
+            onOpenResource={onOpenResource}
           />
         </div>
       </div>

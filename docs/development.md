@@ -22,7 +22,7 @@ Electron 工作台和 CLI 共用独立 Node 内核，浏览器开发入口经同
 
 协议 schema 是 DTO 的事实源，类型从 schema 推导；客户端和内核使用 Ajv 校验消息、认证、状态及引导结果。连接状态不代表研究指令已经可执行。
 
-客户端与内核 WebSocket 入口共用双向 RPC peer，业务请求经 KernelApplication 的类型化提供者映射与 broker。协议版本为 3；操作载荷、等待策略及副作用由分域 schema 提供。Agent 和 PDF 已接受管 Node 子进程及 IPC，兼容宿主仍为骨架。按角色发现、普通模块迁包和完整实例资格仍沿 [migrate-runtime-architecture](../openspec/changes/migrate-runtime-architecture/tasks.md) 继续验收，实际覆盖见其 delivery。
+客户端与内核 WebSocket 入口共用双向 RPC peer，业务请求经 KernelApplication 的类型化提供者映射与 broker。协议版本为 3；操作载荷、等待策略及副作用由分域 schema 提供。Agent 和 PDF 已接受管 Node 子进程及 IPC，兼容宿主仍为骨架。按角色发现、普通模块迁包和完整实例资格的实际覆盖见[运行架构迁移交付](../openspec/changes/archive/2026-10-19-migrate-runtime-architecture/delivery.md)。
 
 `pnpm check:architecture` 使用唯一 `architecture.json` 检查包依赖、循环、私有路径及普通模块系统访问，并在 CI 运行。精确迁移例外注明退出任务；当前检查通过不代表这些旧调用已迁完。`pnpm generate:contracts` 用 Node 24 装载 protocol 声明源，输出业务、执行及项目内部操作的类型映射更新 patch，映射继续引用原 schema；映射过期导致完整编译失败时仍可生成。`pnpm typecheck` 检查实际装配和编译期反例。
 
@@ -62,6 +62,16 @@ Agent、能力子执行与 PDF 共用宿主持有的进程容量，默认活动 
 
 `pnpm dev:desktop` 使用 electron-vite；`pnpm dev:browser` 使用同一 React renderer。浏览器入口没有 Electron bridge，界面业务功能经共同客户端实现。
 
+## 共同资源打开
+
+文件树、消息文件链接和文献附件均进入 `resource-controller.ts` 的资源引用及工作台 `renderResource`，由 `ResourceView` 选择同一文本、PDF 或 EPUB／HTML 组件。库 tab 和库附件跨项目保留，项目切换恢复各自文件组及草稿；资源导航不切换 Agent 会话或项目信任。
+
+公共 `resources.describe/read/document/save` 由 editor 的 `ResourceAccess` 经窄端口组合项目与库权威，`ManualApplication` 可在无模型、无 harness 时使用。项目引用使用稳定 fileId，库引用包含附件和材料版本；响应不含 nativePath。UTF-8 文字读取位置以 UTF-16 为单位，base64 以字节为单位，单片最多 256 KiB。项目字节读取绑定内容依据并在读取前后复查；正文保存复用原项目条件保存和文件身份保护。库正文只读，阅读记录仍保存到原库。
+
+解析复用宿主注入的 `MaterialReading`，项目与库采用同一受管进程机制。每个视图给文档请求生成独立 requestId，关闭时以 `resources.cancel` 中止自己未完成的请求；权限或材料变化在交付前再次核对。材料不可用时描述保留实际能力及 `unavailableReason`，库记录仍可独立核查。
+
+定向诊断入口为 `tests/kernel/resource-access.spec.ts`、`resource-identity.spec.ts` 和 `tab-state.spec.ts`，产品接线为双宿主 `tests/ui/resource-opening.spec.ts`、`resource-lifecycle.spec.ts` 及原 PDF、文档、文件工作台和写作编辑用例。各项实际执行结果见[本变更交付](../openspec/changes/archive/2026-10-20-unify-workbench-resource-opening/delivery.md)，不能以接口存在替代运行验证。
+
 ## 科研写作与排版
 
 写作能力由 `packages/editor` 提供，人工工作台经 `ManualApplication` 和共同 broker 调用；该组合不装配 harness、会话或模型。当前机器核对到 Quarto 1.9.37、配套 Pandoc 3.8.3、latexmk 4.87 和 MiKTeX；这些版本不代表其他机器或分发包已具备相同工具，产品可用性通过 `editor.tools` 查询。
@@ -70,7 +80,7 @@ Agent、能力子执行与 PDF 共用宿主持有的进程容量，默认活动 
 
 可视编辑尚未转换成源码时，刷新或卸载先记录当前编辑状态；重开经同一转换服务恢复到草稿，不隐式保存到磁盘。载入与恢复期间正文只读，转换失败仍保留恢复记录；多个视图共享恢复发布和转换占用。
 
-`editor.job` 返回排版状态、diagnostics、有限 `log` 及 `lastSuccess`。排版失败或取消时核对最后成功产物及其输入版本，不把旧产物说成当前稿件的结果。实施状态及实际验证范围见[科研写作编辑器 change](../openspec/changes/add-research-writing-editor/delivery.md)和 `tasks.md`；该 change 保留实施工件，尚未归档。
+`editor.job` 返回排版状态、diagnostics、有限 `log` 及 `lastSuccess`。排版失败或取消时核对最后成功产物及其输入版本，不把旧产物说成当前稿件的结果。实施及实际验证范围见[科研写作编辑器交付](../openspec/changes/archive/2026-10-20-add-research-writing-editor/delivery.md)和同目录的 `tasks.md`。
 
 产物缓存按项目限制为 256 MiB／64 份；单个产物最多 128 MiB、单文件最多 64 MiB、资源最多 1000 个。已有稿件按替换后的净占用准入，提交余量最多 128 MiB／1 份，切换成功后回收可淘汰旧版。缓存保护最后成功产物、最近 5 分钟读取的产物及导出；受保护的暂留产物仍计入后续准入，历史收据保留，过期产物查询返回 `notFound`。
 

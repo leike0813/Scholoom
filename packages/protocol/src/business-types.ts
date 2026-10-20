@@ -19,6 +19,7 @@ export type Inputs = {
   'files.mkdir': FromSchema<(typeof businessSchemas)['files.mkdir']['params']>;
   'files.operation': FromSchema<(typeof businessSchemas)['files.operation']['params']>;
   'files.read': FromSchema<(typeof businessSchemas)['files.read']['params']>;
+  'files.readBytes': FromSchema<(typeof businessSchemas)['files.readBytes']['params']>;
   'files.rename': FromSchema<(typeof businessSchemas)['files.rename']['params']>;
   'files.resolve': FromSchema<(typeof businessSchemas)['files.resolve']['params']>;
   'files.resource': FromSchema<(typeof businessSchemas)['files.resource']['params']>;
@@ -33,6 +34,7 @@ export type Inputs = {
   'files.undo': FromSchema<(typeof businessSchemas)['files.undo']['params']>;
   'files.unwatch': FromSchema<(typeof businessSchemas)['files.unwatch']['params']>;
   'files.watch': FromSchema<(typeof businessSchemas)['files.watch']['params']>;
+  'library.attachment': FromSchema<(typeof businessSchemas)['library.attachment']['params']>;
   'library.attachments': FromSchema<(typeof businessSchemas)['library.attachments']['params']>;
   'library.backup': FromSchema<(typeof businessSchemas)['library.backup']['params']>;
   'library.backups': FromSchema<(typeof businessSchemas)['library.backups']['params']>;
@@ -101,6 +103,11 @@ export type Inputs = {
   'research.attempts': FromSchema<(typeof businessSchemas)['research.attempts']['params']>;
   'research.method': FromSchema<(typeof businessSchemas)['research.method']['params']>;
   'research.methods': FromSchema<(typeof businessSchemas)['research.methods']['params']>;
+  'resources.cancel': FromSchema<(typeof businessSchemas)['resources.cancel']['params']>;
+  'resources.describe': FromSchema<(typeof businessSchemas)['resources.describe']['params']>;
+  'resources.document': FromSchema<(typeof businessSchemas)['resources.document']['params']>;
+  'resources.read': FromSchema<(typeof businessSchemas)['resources.read']['params']>;
+  'resources.save': FromSchema<(typeof businessSchemas)['resources.save']['params']>;
   'session.archive': FromSchema<(typeof businessSchemas)['session.archive']['params']>;
   'session.cancel': FromSchema<(typeof businessSchemas)['session.cancel']['params']>;
   'session.configure': FromSchema<(typeof businessSchemas)['session.configure']['params']>;
@@ -129,6 +136,7 @@ export type Outputs = {
   'files.mkdir': FromSchema<(typeof businessSchemas)['files.mkdir']['result']>;
   'files.operation': FromSchema<(typeof businessSchemas)['files.operation']['result']>;
   'files.read': FromSchema<(typeof businessSchemas)['files.read']['result']>;
+  'files.readBytes': FromSchema<(typeof businessSchemas)['files.readBytes']['result']>;
   'files.rename': FromSchema<(typeof businessSchemas)['files.rename']['result']>;
   'files.resolve': FromSchema<(typeof businessSchemas)['files.resolve']['result']>;
   'files.resource': FromSchema<(typeof businessSchemas)['files.resource']['result']>;
@@ -143,6 +151,7 @@ export type Outputs = {
   'files.undo': FromSchema<(typeof businessSchemas)['files.undo']['result']>;
   'files.unwatch': FromSchema<(typeof businessSchemas)['files.unwatch']['result']>;
   'files.watch': FromSchema<(typeof businessSchemas)['files.watch']['result']>;
+  'library.attachment': FromSchema<(typeof businessSchemas)['library.attachment']['result']>;
   'library.attachments': FromSchema<(typeof businessSchemas)['library.attachments']['result']>;
   'library.backup': FromSchema<(typeof businessSchemas)['library.backup']['result']>;
   'library.backups': FromSchema<(typeof businessSchemas)['library.backups']['result']>;
@@ -211,6 +220,11 @@ export type Outputs = {
   'research.attempts': FromSchema<(typeof businessSchemas)['research.attempts']['result']>;
   'research.method': FromSchema<(typeof businessSchemas)['research.method']['result']>;
   'research.methods': FromSchema<(typeof businessSchemas)['research.methods']['result']>;
+  'resources.cancel': FromSchema<(typeof businessSchemas)['resources.cancel']['result']>;
+  'resources.describe': FromSchema<(typeof businessSchemas)['resources.describe']['result']>;
+  'resources.document': FromSchema<(typeof businessSchemas)['resources.document']['result']>;
+  'resources.read': FromSchema<(typeof businessSchemas)['resources.read']['result']>;
+  'resources.save': FromSchema<(typeof businessSchemas)['resources.save']['result']>;
   'session.archive': FromSchema<(typeof businessSchemas)['session.archive']['result']>;
   'session.cancel': FromSchema<(typeof businessSchemas)['session.cancel']['result']>;
   'session.configure': FromSchema<(typeof businessSchemas)['session.configure']['result']>;

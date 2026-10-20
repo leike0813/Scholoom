@@ -1,10 +1,15 @@
 import { randomUUID } from 'node:crypto';
-import { constants } from 'node:fs';
+import { type BigIntStats, constants } from 'node:fs';
 import { link, lstat, mkdir, open, opendir, realpath, rename, unlink } from 'node:fs/promises';
 import { dirname, join, relative, sep } from 'node:path';
 import { failure, fileFingerprint, privateDirectory } from '@scholoom/platform/node';
 import { OperationError } from '@scholoom/protocol/core';
-import type { FileLocation, FileOperation, Project } from '@scholoom/protocol/projects';
+import {
+  type FileLocation,
+  type FileOperation,
+  type Project,
+  projectLimits,
+} from '@scholoom/protocol/projects';
 import { eq, sql } from 'drizzle-orm';
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 import * as tables from './schema.js';
@@ -29,6 +34,7 @@ const info = (path: string) =>
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') return undefined;
     throw error;
   });
+const byteBasis = (stat: BigIntStats) => [stat.dev, stat.ino, stat.size, stat.mtimeNs].join(':');
 
 export class ProjectFiles {
   private locks: { paths: string[]; done: Promise<void> }[] = [];
@@ -165,6 +171,93 @@ export class ProjectFiles {
         }
       }),
     );
+  }
+
+  async readBytes(
+    fileId: string,
+    options: { basis?: string; offset?: number; limit?: number } = {},
+  ): Promise<{
+    fileId: string;
+    path: string;
+    basis: string;
+    size: number;
+    offset: number;
+    data: string;
+    nextOffset?: number;
+  }> {
+    this.store.check('read');
+    const offset = options.offset ?? 0;
+    const limit = options.limit ?? projectLimits.binaryChunkBytes;
+    if (
+      !Number.isSafeInteger(offset) ||
+      offset < 0 ||
+      !Number.isSafeInteger(limit) ||
+      limit < 1 ||
+      limit > projectLimits.binaryChunkBytes
+    )
+      throw new OperationError('invalidRequest', '读取范围无效。');
+    const location = this.location(fileId);
+    if (location.state !== 'present' || location.kind !== 'file')
+      throw new OperationError('notFound', '文件身份不存在或已失效。');
+    const path = location.path;
+    const target = await this.store.path(path);
+    return this.coordinate([target], async () => {
+      this.store.check('read');
+      if (
+        this.location(fileId).state !== 'present' ||
+        this.location(fileId).path !== path ||
+        (await this.store.path(path)) !== target
+      )
+        throw new OperationError('contentChanged', '文件位置或身份已变化。');
+      const located = await lstat(target, { bigint: true });
+      if (located.isSymbolicLink() || !located.isFile())
+        throw new OperationError('targetAmbiguous', '目标不是普通文件。');
+      const handle = await open(
+        target,
+        constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0) | (constants.O_NONBLOCK ?? 0),
+      );
+      try {
+        const before = await handle.stat({ bigint: true });
+        if (!before.isFile() || before.dev !== located.dev || before.ino !== located.ino)
+          throw new OperationError('contentChanged', '文件身份已变化。');
+        const basis = byteBasis(before);
+        if (options.basis !== undefined && options.basis !== basis)
+          throw new OperationError('contentChanged', '文件内容已变化，请重新读取。');
+        const size = Number(before.size);
+        if (size > projectLimits.binaryFileBytes)
+          throw new OperationError('resourceLimit', '文件超过二进制读取上限。');
+        if (offset > size) throw new OperationError('invalidRequest', '读取位置超出文件范围。');
+        const buffer = Buffer.alloc(Math.min(limit, size - offset));
+        const { bytesRead } = await handle.read(buffer, 0, buffer.length, offset);
+        const after = await handle.stat({ bigint: true });
+        let current: BigIntStats;
+        try {
+          current = await lstat(target, { bigint: true });
+        } catch {
+          throw new OperationError('contentChanged', '读取期间文件已移除或替换。');
+        }
+        this.store.check('read');
+        if (
+          this.location(fileId).state !== 'present' ||
+          this.location(fileId).path !== path ||
+          (await this.store.path(path)) !== target ||
+          byteBasis(after) !== basis ||
+          byteBasis(current) !== basis
+        )
+          throw new OperationError('contentChanged', '读取期间文件或身份已变化。');
+        return {
+          fileId,
+          path,
+          basis,
+          size,
+          offset,
+          data: buffer.subarray(0, bytesRead).toString('base64'),
+          ...(offset + bytesRead < size ? { nextOffset: offset + bytesRead } : {}),
+        };
+      } finally {
+        await handle.close();
+      }
+    });
   }
   currentPath(id: string): string {
     const value = this.location(id);

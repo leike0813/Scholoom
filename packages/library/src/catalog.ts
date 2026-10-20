@@ -529,6 +529,12 @@ export class LiteratureCatalog {
       ? { ...record, path: join(this.materials.directory, record.value.id) }
       : record;
   }
+  async attachment(attachmentId: string): Promise<LibraryOutputs['library.attachment']> {
+    this.check('read');
+    const result = await this.materials.status(this.material(attachmentId));
+    this.check('read');
+    return result;
+  }
   async attachments(
     input: LibraryInputs['library.attachments'],
   ): Promise<LibraryOutputs['library.attachments']> {
@@ -661,14 +667,12 @@ export class LiteratureCatalog {
     const name = this.material(input.attachmentId).value.name;
     const format = /\.epub$/i.test(name) ? 'epub' : /\.html?$/i.test(name) ? 'html' : undefined;
     if (!format) throw new OperationError('invalidRequest', '材料不是支持的EPUB或HTML。');
-    const request = { kind: 'document', format, method, input } as DocumentRequest;
-    const result = await this.readMaterial<DocumentOutputs[M]>(
-      input.attachmentId,
-      input.materialVersionId,
-      request,
-      signal,
-      waitForCapacity,
-    );
+    const { attachmentId, materialVersionId, ...parameters } = input;
+    const request = { kind: 'document', format, method, input: parameters } as DocumentRequest;
+    const parsed = await this.readMaterial<
+      Omit<DocumentOutputs[M], 'attachmentId' | 'materialVersionId'>
+    >(input.attachmentId, input.materialVersionId, request, signal, waitForCapacity);
+    const result = { ...parsed, attachmentId, materialVersionId } as DocumentOutputs[M];
     if (
       !validateLibrary(method, 'result', result) ||
       result.attachmentId !== input.attachmentId ||
