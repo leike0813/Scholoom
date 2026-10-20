@@ -95,7 +95,6 @@ export type Inputs = {
   'project.forget': FromSchema<(typeof businessSchemas)['project.forget']['params']>;
   'project.grant': FromSchema<(typeof businessSchemas)['project.grant']['params']>;
   'project.open': FromSchema<(typeof businessSchemas)['project.open']['params']>;
-  'project.rename': FromSchema<(typeof businessSchemas)['project.rename']['params']>;
   'project.restore': FromSchema<(typeof businessSchemas)['project.restore']['params']>;
   'provider.configure': FromSchema<(typeof businessSchemas)['provider.configure']['params']>;
   'provider.setDefaults': FromSchema<(typeof businessSchemas)['provider.setDefaults']['params']>;
@@ -206,7 +205,6 @@ export type Outputs = {
   'project.forget': FromSchema<(typeof businessSchemas)['project.forget']['result']>;
   'project.grant': FromSchema<(typeof businessSchemas)['project.grant']['result']>;
   'project.open': FromSchema<(typeof businessSchemas)['project.open']['result']>;
-  'project.rename': FromSchema<(typeof businessSchemas)['project.rename']['result']>;
   'project.restore': FromSchema<(typeof businessSchemas)['project.restore']['result']>;
   'provider.configure': FromSchema<(typeof businessSchemas)['provider.configure']['result']>;
   'provider.setDefaults': FromSchema<(typeof businessSchemas)['provider.setDefaults']['result']>;

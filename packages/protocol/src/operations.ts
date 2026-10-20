@@ -12,6 +12,7 @@ const scope = {
   before: id,
   limit: page,
   includeSessions: flag,
+  navigationProjectIds: { type: 'array', items: id, maxItems: 101, uniqueItems: true },
 } as const;
 
 export const snapshotSchema = object(
@@ -32,6 +33,7 @@ export const changeSchema = object(
     sessionId: id,
     resync: flag,
     sessionsChanged: flag,
+    sessionProjectIds: { type: 'array', items: id, maxItems: 101, uniqueItems: true },
     libraryChanged: flag,
     filePaths: { type: 'array', items: { type: 'string' }, maxItems: 100 },
   },

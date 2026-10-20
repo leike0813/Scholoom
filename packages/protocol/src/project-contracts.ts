@@ -18,9 +18,11 @@ import {
   text,
 } from './schema.js';
 
+export const projectTrustSchema = { enum: ['pending', 'trusted', 'restricted'] } as const;
+const trustDecision = { enum: ['trusted', 'restricted'] } as const;
 export const projectSchema = object(
-  { id, path: id, name: text, read: flag, write: flag, send: flag, autoBackup: flag, recent: flag },
-  ['id', 'path', 'name', 'read', 'write', 'send', 'autoBackup'],
+  { id, path: id, name: text, trust: projectTrustSchema, autoBackup: flag, recent: flag },
+  ['id', 'path', 'name', 'trust', 'autoBackup'],
 );
 
 export const fileEntrySchema = object(
@@ -81,20 +83,12 @@ export const projectsOperations = {
   ...fileExplorerOperations,
   'project.open': {
     semantics: { effect: 'write', returns: 'result', waitMs: 5000 },
-    params: object({ path: id }, ['path']),
+    params: object({ path: id, trust: trustDecision }, ['path']),
     result: projectSchema,
   },
   'project.create': {
     semantics: { effect: 'write', returns: 'result', waitMs: 5000 },
-    params: object({ path: id, name: id }, ['path']),
-    result: projectSchema,
-  },
-  'project.rename': {
-    semantics: { effect: 'write', returns: 'result', waitMs: 5000 },
-    params: object({ ...project, name: { type: 'string', minLength: 1, maxLength: 200 } }, [
-      'projectId',
-      'name',
-    ]),
+    params: object({ path: id, trust: trustDecision }, ['path']),
     result: projectSchema,
   },
   'project.forget': {
@@ -179,11 +173,9 @@ export const projectsOperations = {
   },
   'project.grant': {
     semantics: { effect: 'write', returns: 'result', waitMs: 5000 },
-    params: object({ ...project, read: flag, write: flag, send: flag, autoBackup: flag }, [
+    params: object({ ...project, trust: trustDecision, autoBackup: flag }, [
       'projectId',
-      'read',
-      'write',
-      'send',
+      'trust',
       'autoBackup',
     ]),
     result: projectSchema,
@@ -250,12 +242,12 @@ export const projectLimits = { fileBytes: 262144, readBytes: 16384, history: 20 
 
 export const projectMaterialOperations = {
   'project.checkRead': {
-    params: object(project, ['projectId']),
+    params: object({ ...project, agent: flag }, ['projectId']),
     result: ok,
     semantics: { effect: 'read', returns: 'result', waitMs: 5000 },
   },
   'project.material': {
-    params: object({ ...project, path: id }, ['projectId', 'path']),
+    params: object({ ...project, path: id, agent: flag }, ['projectId', 'path']),
     result: object({ projectId: id, fileId: id, nativePath: text, basis: id }, [
       'projectId',
       'fileId',

@@ -14,6 +14,7 @@ export type LibraryBatchRequest =
   | { kind: 'metadata'; input: LibraryInputs['library.ingest'] }
   | {
       kind: 'files';
+      agent?: boolean;
       input: LibraryInputs['library.importFiles'] | LibraryInputs['library.importProjectFiles'];
     };
 

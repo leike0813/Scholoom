@@ -1,9 +1,10 @@
 import type { KernelClient } from '@scholoom/client';
 import type { BusinessParams, Project, Session } from '@scholoom/protocol';
-import { type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
+import { type ReactNode, type RefObject, useCallback, useEffect, useRef, useState } from 'react';
+import { draftKey, readDraft, writeDraft } from './drafts';
 import { relativeTime } from './relative-time';
-import { IconFolder, IconFolderOpen } from './shell/icons';
-import { ConfirmAction, ContextMenu, Menu, MenuFormItem, MenuItem } from './shell/menu';
+import { IconClose, IconFolder, IconFolderOpen, IconMore, IconPlus } from './shell/icons';
+import { ConfirmAction, ContextMenu, MenuItem } from './shell/menu';
 
 type Cursor = NonNullable<BusinessParams<'session.list'>['cursor']>;
 
@@ -173,36 +174,40 @@ function SessionRow({
   );
 }
 
-/** 当前项目行：整行折叠/展开会话列表，行尾菜单集中项目操作。 */
+/** 项目行保留明确的新建接收者，菜单只承载项目操作。 */
 function ProjectNode({
   project,
   projects,
   client,
   enabled,
   selectProject,
+  createSession,
   forgetProject,
   changed,
+  expanded,
+  onExpandedChange,
   children,
 }: {
-  project: Project | undefined;
+  project: Project;
   projects: readonly Project[];
   client: KernelClient;
   enabled: boolean;
   selectProject: (id: string) => void;
+  createSession: ((id: string) => void) | undefined;
   forgetProject: (removedId: string, nextId: string) => void;
   changed: () => Promise<void>;
+  expanded: boolean;
+  onExpandedChange: () => void;
   children: ReactNode;
 }) {
-  const [expanded, setExpanded] = useState(true);
-  const [displayName, setDisplayName] = useState('');
+  const menuButton = useRef<HTMLButtonElement>(null);
+  const [menu, setMenu] = useState<{ x: number; y: number }>();
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const id = project?.id ?? 'application';
-  const name = project?.name ?? '正在读取项目';
+  const { id, name } = project;
   const application = id === 'application';
-  const recent = projects.filter((item) => item.id !== id && item.recent !== false);
-  useEffect(() => setDisplayName(name), [name]);
+  const closeMenu = useCallback(() => setMenu(undefined), []);
   const run = async (action: () => Promise<unknown>): Promise<boolean> => {
     setBusy(true);
     setError('');
@@ -223,15 +228,16 @@ function ProjectNode({
         ?.id ?? 'application';
     const done = await run(() => client.call('project.forget', { projectId: id }));
     if (done) forgetProject(id, next);
+    return done;
   };
 
   return (
-    <div className="project-node">
+    <div className="project-node" data-project-id={id}>
       <div className="project-row">
         <button
           type="button"
           className="project-header"
-          onClick={() => setExpanded(!expanded)}
+          onClick={onExpandedChange}
           aria-expanded={expanded}
           aria-label={`${name}，${expanded ? '已展开' : '已折叠'}`}
         >
@@ -242,46 +248,51 @@ function ProjectNode({
             {name}
           </span>
         </button>
-        <Menu label={`管理项目 ${name}`} className="project-actions">
-          {recent.length ? (
-            <>
-              <p className="menu__hint">切换最近项目</p>
-              {recent.map((item) => (
-                <MenuItem key={item.id} disabled={!enabled} onSelect={() => selectProject(item.id)}>
-                  {item.name}
-                </MenuItem>
-              ))}
-            </>
-          ) : null}
+        <button
+          ref={menuButton}
+          type="button"
+          className="icon-btn icon-btn--sm"
+          aria-label={`管理项目 ${name}`}
+          aria-haspopup="menu"
+          aria-expanded={menu !== undefined}
+          onClick={(event) => {
+            const rect = event.currentTarget.getBoundingClientRect();
+            setMenu((current) => (current ? undefined : { x: rect.right, y: rect.bottom }));
+            setConfirming(false);
+            setError('');
+          }}
+        >
+          <IconMore />
+        </button>
+        <button
+          type="button"
+          className="project-header__new-session"
+          aria-label={`在${name}中新建会话`}
+          title="新建会话"
+          disabled={!enabled || !createSession}
+          onClick={() => createSession?.(id)}
+        >
+          <IconPlus />
+        </button>
+      </div>
+      {menu ? (
+        <ContextMenu
+          label={`管理项目 ${name}`}
+          position={menu}
+          onClose={closeMenu}
+          trigger={menuButton}
+        >
+          <div className="project-menu__heading">
+            <strong>{name}</strong>
+            {!application ? <span>{project.path}</span> : null}
+          </div>
+          <MenuItem disabled={!enabled || busy} onSelect={() => selectProject(id)}>
+            <IconFolderOpen />
+            {application ? '打开普通会话' : '打开项目'}
+          </MenuItem>
           {!application ? (
             <>
-              <MenuFormItem
-                legend="显示名"
-                onSubmit={() =>
-                  void run(async () => {
-                    const renamed = await client.call('project.rename', {
-                      projectId: id,
-                      name: displayName.trim(),
-                    });
-                    setDisplayName(renamed.name);
-                  })
-                }
-              >
-                <input
-                  aria-label="项目显示名"
-                  value={displayName}
-                  maxLength={200}
-                  onChange={(event) => setDisplayName(event.target.value)}
-                  disabled={!enabled || busy}
-                />
-                <button
-                  type="submit"
-                  className="btn"
-                  disabled={!enabled || busy || !displayName.trim()}
-                >
-                  保存显示名
-                </button>
-              </MenuFormItem>
+              <hr className="menu__separator" />
               {confirming ? (
                 <ConfirmAction
                   description="移出最近列表只改变列表记录，不删除目录内容，也不停止执行。"
@@ -298,20 +309,236 @@ function ProjectNode({
                     return false;
                   }}
                 >
-                  移出最近列表
+                  <IconClose />
+                  从侧栏移除
                 </MenuItem>
               )}
             </>
           ) : null}
           {error ? <p role="alert">{error}</p> : null}
-        </Menu>
-      </div>
+        </ContextMenu>
+      ) : null}
       {expanded ? children : null}
     </div>
   );
 }
 
-/** 项目区底部”添加项目”行：已移至 ProjectOnboarding.tsx 作为弹窗形式。 */
+function ProjectSessions({
+  project,
+  projects,
+  client,
+  enabled,
+  selectedProjectId,
+  activeSessionId,
+  select,
+  selectProject,
+  createSession,
+  forgetProject,
+  onChanged,
+  storageKey,
+  treeRef,
+}: {
+  project: Project;
+  projects: readonly Project[];
+  client: KernelClient;
+  enabled: boolean;
+  selectedProjectId: string;
+  activeSessionId: string;
+  select: (projectId: string, sessionId: string) => void;
+  selectProject: (id: string) => void;
+  createSession: ((id: string) => void) | undefined;
+  forgetProject: (removedId: string, nextId: string) => void;
+  onChanged: () => Promise<void>;
+  storageKey: string;
+  treeRef: RefObject<HTMLDivElement | null>;
+}) {
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [nextCursor, setNextCursor] = useState<Cursor>();
+  const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [error, setError] = useState('');
+  const expandedKey = draftKey(storageKey, project.id, 'session-list-expanded');
+  const [expanded, setExpanded] = useState(() => {
+    const saved = readDraft(expandedKey);
+    return saved ? saved !== 'false' : project.id === selectedProjectId;
+  });
+  const cursorRef = useRef<Cursor | undefined>(undefined);
+  const refreshingRef = useRef(false);
+  const loadedCount = useRef(0);
+  const requestVersion = useRef(0);
+  const loadingMoreRef = useRef(false);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  const selectedSession = project.id === selectedProjectId ? activeSessionId : undefined;
+
+  useEffect(() => {
+    if (selectedSession !== undefined) {
+      setExpanded(true);
+      writeDraft(expandedKey, 'true');
+    }
+  }, [selectedSession, expandedKey]);
+
+  const refresh = useCallback(async () => {
+    const version = ++requestVersion.current;
+    refreshingRef.current = true;
+    loadingMoreRef.current = false;
+    setLoadingMore(false);
+    const wantedCount = loadedCount.current;
+    let cursor: Cursor | undefined;
+    let next: Cursor | undefined;
+    let loaded: Session[] = [];
+    setLoading(true);
+    try {
+      do {
+        const result = await client.call('session.list', {
+          projectId: project.id,
+          archived: false,
+          ...(cursor ? { cursor } : {}),
+          limit: 50,
+        });
+        if (version !== requestVersion.current) return;
+        const ids = new Set(loaded.map((item) => item.id));
+        loaded = [...loaded, ...result.sessions.filter((item) => !ids.has(item.id))];
+        next = result.nextCursor;
+        cursor = result.nextCursor;
+      } while (next && loaded.length < wantedCount);
+      setSessions(loaded);
+      loadedCount.current = loaded.length;
+      cursorRef.current = next;
+      setNextCursor(next);
+      setError('');
+    } catch (reason) {
+      if (version === requestVersion.current) setError(messageOf(reason));
+    } finally {
+      if (version === requestVersion.current) {
+        refreshingRef.current = false;
+        setLoading(false);
+      }
+    }
+  }, [client, project.id]);
+
+  useEffect(() => {
+    if (enabled && expanded) void refresh();
+    else {
+      requestVersion.current++;
+      refreshingRef.current = false;
+      setLoading(false);
+    }
+    return () => {
+      requestVersion.current++;
+      refreshingRef.current = false;
+    };
+  }, [enabled, expanded, refresh]);
+
+  useEffect(() => {
+    if (!enabled) return;
+    return client.subscribeChanges((change) => {
+      const activeScopeChanged =
+        project.id === selectedProjectId &&
+        change.sessionsChanged &&
+        (!change.projectId || change.projectId === project.id);
+      if (expanded && (activeScopeChanged || change.sessionProjectIds?.includes(project.id)))
+        void refresh();
+    });
+  }, [client, enabled, expanded, project.id, refresh, selectedProjectId]);
+
+  const loadMore = useCallback(async () => {
+    const cursor = cursorRef.current;
+    if (!enabled || !expanded || !cursor || refreshingRef.current || loadingMoreRef.current) return;
+    loadingMoreRef.current = true;
+    setLoadingMore(true);
+    const version = requestVersion.current;
+    try {
+      const result = await client.call('session.list', {
+        projectId: project.id,
+        archived: false,
+        cursor,
+        limit: 50,
+      });
+      if (version !== requestVersion.current) return;
+      setSessions((current) => {
+        const ids = new Set(current.map((item) => item.id));
+        const additions = result.sessions.filter((item) => !ids.has(item.id));
+        loadedCount.current += additions.length;
+        return [...current, ...additions];
+      });
+      cursorRef.current = result.nextCursor;
+      setNextCursor(result.nextCursor);
+      setError('');
+    } catch (reason) {
+      if (version === requestVersion.current) setError(messageOf(reason));
+    } finally {
+      if (version === requestVersion.current) {
+        loadingMoreRef.current = false;
+        setLoadingMore(false);
+      }
+    }
+  }, [client, enabled, expanded, project.id]);
+
+  useEffect(() => {
+    const root = treeRef.current;
+    const target = sentinelRef.current;
+    if (!expanded || !nextCursor || !root || !target || typeof IntersectionObserver === 'undefined')
+      return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) void loadMore();
+      },
+      { root, rootMargin: '100px' },
+    );
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [expanded, loadMore, nextCursor, treeRef]);
+
+  const toggleExpanded = () => {
+    const next = !expanded;
+    setExpanded(next);
+    writeDraft(expandedKey, String(next));
+  };
+  const changed = async () => {
+    await onChanged();
+    await refresh();
+  };
+  return (
+    <ProjectNode
+      project={project}
+      projects={projects}
+      client={client}
+      enabled={enabled}
+      selectProject={selectProject}
+      createSession={createSession}
+      forgetProject={forgetProject}
+      changed={changed}
+      expanded={expanded}
+      onExpandedChange={toggleExpanded}
+    >
+      <ul className="session-list session-list--nested">
+        {sessions.map((item) => (
+          <SessionRow
+            key={item.id}
+            item={item}
+            selected={project.id === selectedProjectId && item.id === activeSessionId}
+            enabled={enabled}
+            client={client}
+            select={() => select(project.id, item.id)}
+            changed={changed}
+          />
+        ))}
+      </ul>
+      {error ? (
+        <p role="alert">
+          {error}
+          <button type="button" onClick={() => void refresh()}>
+            重试列表
+          </button>
+        </p>
+      ) : null}
+      {!sessions.length && !loading ? <p className="empty-hint">没有活动会话</p> : null}
+      {loading ? <p className="empty-hint">正在读取会话…</p> : null}
+      {loadingMore ? <p className="empty-hint">正在读取更多会话…</p> : null}
+      <div ref={sentinelRef} aria-hidden="true" />
+    </ProjectNode>
+  );
+}
 
 export function SessionList({
   client,
@@ -320,6 +547,8 @@ export function SessionList({
   activeSessionId,
   enabled,
   select,
+  createSession,
+  storageKey,
   selectProject,
   forgetProject,
   onChanged,
@@ -329,133 +558,38 @@ export function SessionList({
   projectId: string;
   activeSessionId: string;
   enabled: boolean;
-  select: (id: string) => void;
+  select: (projectId: string, id: string) => void;
+  createSession: ((projectId: string) => void) | undefined;
+  storageKey: string;
   selectProject: (id: string) => void;
   forgetProject: (removedId: string, nextId: string) => void;
   onChanged: () => Promise<void>;
 }) {
-  const [sessions, setSessions] = useState<Session[]>([]);
-  const [nextCursor, setNextCursor] = useState<Cursor>();
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [revision, setRevision] = useState(0);
   const treeRef = useRef<HTMLDivElement>(null);
-
-  // 加载会话列表（固定 archived: false）
-  // biome-ignore lint/correctness/useExhaustiveDependencies: 固定依赖，revision 只作为刷新信号
-  useEffect(() => {
-    if (!enabled) return;
-    let active = true;
-    const load = async () => {
-      setLoading(true);
-      try {
-        const result = await client.call('session.list', {
-          projectId,
-          archived: false,
-          limit: 50,
-        });
-        if (active) {
-          setSessions(result.sessions);
-          setNextCursor(result.nextCursor);
-          setError('');
-        }
-      } catch (reason) {
-        if (active) setError(messageOf(reason));
-      } finally {
-        if (active) setLoading(false);
-      }
-    };
-    void load();
-    const unsubscribe = client.subscribeChanges((change) => {
-      if (change.sessionsChanged && (!change.projectId || change.projectId === projectId)) {
-        void load();
-      }
-    });
-    return () => {
-      active = false;
-      unsubscribe();
-    };
-  }, [client, projectId, enabled, revision]);
-
-  // 滚动加载下一页
-  const loadMore = useCallback(async () => {
-    if (!nextCursor || !enabled || loading) return;
-    try {
-      const result = await client.call('session.list', {
-        projectId,
-        archived: false,
-        cursor: nextCursor,
-        limit: 50,
-      });
-      setSessions((prev) => {
-        // 按 id 去重
-        const idSet = new Set(prev.map((s) => s.id));
-        const newItems = result.sessions.filter((s) => !idSet.has(s.id));
-        return [...prev, ...newItems];
-      });
-      setNextCursor(result.nextCursor);
-    } catch (reason) {
-      setError(messageOf(reason));
-    }
-  }, [client, projectId, nextCursor, enabled, loading]);
-
-  // 监听滚动事件
-  useEffect(() => {
-    const tree = treeRef.current;
-    if (!tree) return;
-    const handleScroll = () => {
-      const { scrollTop, scrollHeight, clientHeight } = tree;
-      if (scrollHeight - scrollTop - clientHeight < 100) {
-        void loadMore();
-      }
-    };
-    tree.addEventListener('scroll', handleScroll);
-    return () => tree.removeEventListener('scroll', handleScroll);
-  }, [loadMore]);
-
-  const changed = async () => {
-    setRevision((value) => value + 1);
-    await onChanged();
-  };
-
-  const project = projects.find((item) => item.id === projectId);
-
+  const changed = async () => onChanged();
+  const visibleProjects = projects.filter((item) => item.recent !== false);
+  const projectItems = [...visibleProjects];
   return (
     <section className="session-navigation" aria-label="会话管理">
-      {error ? (
-        <p role="alert">
-          {error}
-          <button type="button" onClick={() => setRevision((value) => value + 1)}>
-            重试列表
-          </button>
-        </p>
-      ) : null}
       <div className="project-tree" role="tree" ref={treeRef}>
-        <ProjectNode
-          project={project}
-          projects={projects}
-          client={client}
-          enabled={enabled}
-          selectProject={selectProject}
-          forgetProject={forgetProject}
-          changed={changed}
-        >
-          <ul className="session-list session-list--nested">
-            {sessions.map((item) => (
-              <SessionRow
-                key={item.id}
-                item={item}
-                selected={item.id === activeSessionId}
-                enabled={enabled}
-                client={client}
-                select={() => select(item.id)}
-                changed={changed}
-              />
-            ))}
-          </ul>
-        </ProjectNode>
-        {!sessions.length && !loading ? <p className="empty-hint">没有活动会话</p> : null}
-        {loading ? <p className="empty-hint">正在读取会话…</p> : null}
+        {projectItems.map((project) => (
+          <ProjectSessions
+            key={project.id}
+            project={project}
+            projects={projects}
+            client={client}
+            enabled={enabled}
+            selectedProjectId={projectId}
+            activeSessionId={activeSessionId}
+            select={select}
+            selectProject={selectProject}
+            createSession={createSession}
+            forgetProject={forgetProject}
+            onChanged={changed}
+            storageKey={storageKey}
+            treeRef={treeRef}
+          />
+        ))}
       </div>
     </section>
   );

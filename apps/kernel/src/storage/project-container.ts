@@ -16,6 +16,53 @@ export async function initializeProjectContainer(
   internal: string,
 ): Promise<void> {
   const version = database.pragma('user_version', { simple: true }) as number;
+  if (version > 4) throw new Error('Newer database');
+  if (version === 4) return;
+  await initializeLegacyContainer(database, internal);
+  if (version > 0) {
+    const source = join(internal, 'before-migration-v4.sqlite');
+    try {
+      const info = await lstat(source);
+      if (!info.isFile() || info.isSymbolicLink()) throw new Error('Unsafe migration backup');
+      const saved = new Database(source, { readonly: true, fileMustExist: true });
+      try {
+        if (
+          saved.pragma('user_version', { simple: true }) !== 3 ||
+          saved.pragma('quick_check', { simple: true }) !== 'ok'
+        )
+          throw new Error('Invalid trust migration backup');
+      } finally {
+        saved.close();
+      }
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+      const temporary = join(internal, `.migration-${randomUUID()}.sqlite`);
+      try {
+        await database.backup(temporary);
+        await chmod(temporary, 0o600);
+        await link(temporary, source);
+      } finally {
+        await unlink(temporary).catch(() => {});
+      }
+    }
+  }
+  database.transaction(() => {
+    const old = database.prepare("SELECT value FROM meta WHERE key='grants'").get() as
+      | { value: string }
+      | undefined;
+    const autoBackup = old ? JSON.parse(old.value).autoBackup !== false : true;
+    database
+      .prepare("INSERT OR REPLACE INTO meta (key,value) VALUES ('grants',?)")
+      .run(JSON.stringify({ trust: 'pending', autoBackup }));
+    database.pragma('user_version = 4');
+  })();
+}
+
+async function initializeLegacyContainer(
+  database: Database.Database,
+  internal: string,
+): Promise<void> {
+  const version = database.pragma('user_version', { simple: true }) as number;
   if (version > 3) throw new Error('Newer database');
   if (version < 2) {
     if (database.prepare("SELECT name FROM sqlite_master WHERE type='table'").all().length)

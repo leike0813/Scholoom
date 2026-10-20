@@ -6,7 +6,7 @@ import type { Locator, Page } from '@playwright/test';
 import type { KernelClient } from '../../packages/client/dist/index.js';
 import { createKernelClient } from '../../packages/client/dist/index.js';
 import { runningKernel } from '../kernel-fixture.js';
-import { expect, test } from './fixture.js';
+import { createSession, expect, test } from './fixture.js';
 
 type Call = { method: string; params: Record<string, unknown> };
 
@@ -48,7 +48,7 @@ const formOf = (scope: Locator, summary: string): Locator =>
 async function openLibrary(page: Page, client: KernelClient): Promise<Locator> {
   await page.goto('http://127.0.0.1:5174/');
   await expect(page.getByRole('status', { name: '连接状态' })).toContainText('已连接');
-  await page.getByRole('button', { name: '新建会话', exact: true }).click();
+  await createSession(page);
   await page.getByRole('textbox', { name: '研究指令' }).fill(DRAFT);
   await page.getByRole('button', { name: '文献库', exact: true }).click();
   const panel = page.getByRole('region', { name: '文献库', exact: true });

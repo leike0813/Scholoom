@@ -37,9 +37,7 @@ test('real graph reads, writes and retains thinking across model tool turns', as
     const project = await client.call('project.open', { path: join(root, 'project') });
     await client.call('project.grant', {
       projectId: project.id,
-      read: true,
-      write: true,
-      send: true,
+      trust: 'trusted',
       autoBackup: false,
     });
     const session = await client.call('session.create', { projectId: project.id });
@@ -114,7 +112,7 @@ for (const parallel of [false, true]) {
       await writeFile(join(root, 'project', 'result.md'), 'protected existing result');
       await app.initialize();
       const project = await app.projects.open(join(root, 'project'));
-      project.grant({ read: true, write: true, send: true, autoBackup: false });
+      project.grant({ trust: 'trusted', autoBackup: false });
       const session = app.harness.create(project.project.id);
       const scope = { projectId: project.project.id, sessionId: session.id };
       const snapshot = () => app.snapshot(scope);
@@ -164,7 +162,7 @@ test('a malformed provider result after saving preserves unknown effects and nev
   try {
     await app.initialize();
     const project = await app.projects.create(join(root, 'project'));
-    project.grant({ read: true, write: true, send: true, autoBackup: false });
+    project.grant({ trust: 'trusted', autoBackup: false });
     await project.save('input.md', 'controlled evidence');
     const save = project.save.bind(project);
     let saves = 0;
@@ -220,7 +218,7 @@ test('large tool previews are bounded without truncating the saved artifact', as
     await writeFile(join(root, 'project', 'input.md'), '合成材料'.repeat(6000));
     await app.initialize();
     const project = await app.projects.open(join(root, 'project'));
-    project.grant({ read: true, write: true, send: true, autoBackup: false });
+    project.grant({ trust: 'trusted', autoBackup: false });
     const session = app.harness.create(project.project.id);
     const scope = { projectId: project.project.id, sessionId: session.id };
     await app.harness.send({
@@ -265,7 +263,7 @@ for (const confirmed of [false, true]) {
       await writeFile(join(root, 'project', 'input.md'), 'synthetic');
       await app.initialize();
       const project = await app.projects.open(join(root, 'project'));
-      project.grant({ read: true, write: true, send: true, autoBackup: false });
+      project.grant({ trust: 'trusted', autoBackup: false });
       const original = project.read.bind(project);
       const held = new Promise<void>((resolve) => {
         release = resolve;
@@ -448,7 +446,7 @@ test('accepted additions survive cancellation and checkpoint loss until explicit
   try {
     await app.initialize();
     const store = await app.projects.create(join(root, 'project'));
-    store.grant({ read: true, write: true, send: true, autoBackup: false });
+    store.grant({ trust: 'trusted', autoBackup: false });
     const projectId = store.project.id;
     const material = await store.save('attached.md', 'Original material');
     if (!material.fileId) throw new Error('Expected a registered material');
@@ -660,9 +658,7 @@ test('failed artifact registration keeps the saved file and reconcile links it o
     ).id;
     await app.call('project.grant', {
       projectId,
-      read: true,
-      write: true,
-      send: true,
+      trust: 'trusted',
       autoBackup: false,
     });
     sessionId = ((await app.call('session.create', { projectId })) as { id: string }).id;
@@ -729,7 +725,7 @@ test('Agent structure tools use shared storage and keep saved artifact identity 
   try {
     await app.initialize();
     const store = await app.projects.create(join(root, 'project'));
-    store.grant({ read: true, write: true, send: true, autoBackup: false });
+    store.grant({ trust: 'trusted', autoBackup: false });
     const session = app.harness.create(store.project.id);
     await app.harness.send({
       projectId: store.project.id,

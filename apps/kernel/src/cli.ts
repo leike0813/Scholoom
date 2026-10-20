@@ -27,9 +27,7 @@ async function main() {
       path: { type: 'string' },
       text: { type: 'string' },
       'instruction-id': { type: 'string' },
-      read: { type: 'boolean' },
-      write: { type: 'boolean' },
-      send: { type: 'boolean' },
+      trust: { type: 'boolean' },
       'backup-id': { type: 'string' },
     },
   });
@@ -45,7 +43,7 @@ async function main() {
   }
   if (values.help || positionals.length === 0) {
     console.log(
-      'Usage: scholoom-kernel [start | status | stop] [--data-dir PATH] [--json]\n       project-open --path PATH\n       project-grant --project ID [--read] [--write] [--send]\n       session-create --project ID\n       send --project ID --session ID --text TEXT [--instruction-id ID]\n       session | cancel --project ID --session ID\n       backup --project ID\n       restore --project ID --backup-id ID --path NEW_PATH\n       scholoom-kernel [--help | --info]',
+      'Usage: scholoom-kernel [start | status | stop] [--data-dir PATH] [--json]\n       project-open --path PATH\n       project-grant --project ID [--trust]\n       session-create --project ID\n       send --project ID --session ID --text TEXT [--instruction-id ID]\n       session | cancel --project ID --session ID\n       backup --project ID\n       restore --project ID --backup-id ID --path NEW_PATH\n       scholoom-kernel [--help | --info]',
     );
     return;
   }
@@ -86,15 +84,20 @@ async function main() {
         case 'project-open':
           result = await client.call('project.open', { path: values.path ?? '' });
           break;
-        case 'project-grant':
+        case 'project-grant': {
+          const snapshot = await client.call('workbench.snapshot', {
+            projectId,
+            includeSessions: false,
+          });
+          const project = snapshot.projects.find((item) => item.id === projectId);
+          if (!project) throw new OperationError('notFound', '项目未打开。');
           result = await client.call('project.grant', {
             projectId,
-            read: values.read ?? false,
-            write: values.write ?? false,
-            send: values.send ?? false,
-            autoBackup: true,
+            trust: values.trust ? 'trusted' : 'restricted',
+            autoBackup: project.autoBackup,
           });
           break;
+        }
         case 'session-create':
           result = await client.call('session.create', { projectId });
           break;

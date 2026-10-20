@@ -10,6 +10,64 @@ import type { BusinessParams, WorkbenchChange } from '../../packages/protocol/di
 import { protocolVersion } from '../../packages/protocol/dist/index.js';
 import { createModelServer } from '../model-server.js';
 
+test('background project session changes notify navigation without changing the active conversation scope', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'scholoom-project-navigation-'));
+  const app = new KernelApplication(join(root, 'profile'), { environment: {} });
+  await app.initialize();
+  const status = {
+    protocolVersion,
+    nodeVersion: process.versions.node,
+    processId: process.pid,
+    instanceId: randomUUID(),
+    dataDirectory: join(root, 'profile'),
+    startedAt: new Date().toISOString(),
+    state: 'running' as const,
+  };
+  const server = await startKernelServer(status, () => app.close(), app);
+  const client = createKernelClient({ ...status, url: server.url, token: server.token });
+  const observer = createKernelClient({ ...status, url: server.url, token: server.token });
+  try {
+    await client.connect();
+    await observer.connect();
+    const background = await client.call('project.create', {
+      path: join(root, 'background'),
+      trust: 'restricted',
+    });
+    const current = await client.call('session.create', { projectId: 'application' });
+    const other = await client.call('session.create', { projectId: background.id });
+    const snapshot = await observer.call('workbench.watch', {
+      projectId: 'application',
+      sessionId: current.id,
+      includeSessions: false,
+      navigationProjectIds: ['application', background.id],
+    });
+    expect(snapshot.session?.id).toBe(current.id);
+    const changes: WorkbenchChange[] = [];
+    observer.subscribeChanges((change) => changes.push(change));
+    await client.call('session.rename', {
+      projectId: background.id,
+      sessionId: other.id,
+      title: '后台会话',
+    });
+    await expect
+      .poll(() => changes.some((change) => change.sessionProjectIds?.includes(background.id)))
+      .toBe(true);
+    const navigation = changes.find((change) => change.sessionProjectIds?.includes(background.id));
+    expect(navigation?.projectId).toBeUndefined();
+    expect(navigation?.sessionId).toBeUndefined();
+    expect(navigation?.sessionsChanged).toBeUndefined();
+    expect(
+      (await client.call('session.list', { projectId: background.id })).sessions[0]?.title,
+    ).toBe('后台会话');
+  } finally {
+    client.dispose();
+    observer.dispose();
+    await server.stop();
+    await app.close();
+    await rm(root, { recursive: true });
+  }
+});
+
 test('session discovery, naming and reversible archiving use persisted facts and scoped notifications', async () => {
   const root = await mkdtemp(join(tmpdir(), 'scholoom-sessions-'));
   const model = await createModelServer();
@@ -279,7 +337,7 @@ test('archived session metadata and history survive restart and independent back
     await app.initialize();
     await mkdir(join(root, 'project'));
     const project = await app.projects.open(join(root, 'project'));
-    project.grant({ read: true, write: true, send: true, autoBackup: false });
+    project.grant({ trust: 'trusted', autoBackup: false });
     await writeFile(join(root, 'project', 'note.md'), '保留成果');
     const session = app.harness.create(project.project.id, '保留标题');
     app.harness.archive(project.project.id, session.id, true);
@@ -319,7 +377,7 @@ test('reading a replacement at the same path retains both actual material identi
   try {
     await app.initialize();
     const store = await app.projects.create(join(root, 'project'));
-    store.grant({ read: true, write: true, send: true, autoBackup: false });
+    store.grant({ trust: 'trusted', autoBackup: false });
     await writeFile(join(store.project.path, 'input.md'), '原始材料');
     const original = await store.files.reference('input.md');
     const session = app.harness.create(store.project.id);
@@ -360,7 +418,7 @@ test('a concurrent receipt survives material changes during credential preflight
   try {
     await app.initialize();
     const store = await app.projects.create(join(root, 'project'));
-    store.grant({ read: true, write: true, send: true, autoBackup: false });
+    store.grant({ trust: 'trusted', autoBackup: false });
     await writeFile(join(store.project.path, 'input.md'), '合成材料');
     const material = await store.files.reference('input.md');
     const session = app.harness.create(store.project.id);

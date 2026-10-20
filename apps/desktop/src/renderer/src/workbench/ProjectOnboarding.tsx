@@ -1,6 +1,7 @@
 import type { KernelClient } from '@scholoom/client';
 import type { BusinessResult, Project } from '@scholoom/protocol';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { ProjectTrustDialog } from './ProjectTrustDialog';
 import { Dialog } from './shell/dialog';
 
 const pickerDirectoryKey = 'scholoom.project-picker.directory';
@@ -136,6 +137,10 @@ export function ProjectOnboardingDialog({
   const [pickingNative, setPickingNative] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [trustRequest, setTrustRequest] = useState<{
+    path: string;
+    mode: 'open' | 'create';
+  } | null>(null);
   const createPath = parentPath && folderName.trim() ? joinPath(parentPath, folderName.trim()) : '';
   const targetPath = mode === 'open' ? openPath : createPath;
   const targetName = targetPath ? basename(targetPath) : '';
@@ -165,28 +170,43 @@ export function ProjectOnboardingDialog({
     }
   };
 
-  const submit = async () => {
-    if (!targetPath) return;
+  const submit = async (trust: 'trusted' | 'restricted') => {
+    if (!trustRequest) return;
     setBusy(true);
     setError('');
     try {
       const project =
-        mode === 'open'
-          ? await client.call('project.open', { path: targetPath })
-          : await client.call('project.create', { path: targetPath });
+        trustRequest.mode === 'open'
+          ? await client.call('project.open', { path: trustRequest.path, trust })
+          : await client.call('project.create', { path: trustRequest.path, trust });
       openProject(project);
       onClose();
+      setTrustRequest(null);
     } catch (reason) {
-      setError(messageOf(reason));
+      throw new Error(messageOf(reason));
     } finally {
       setBusy(false);
     }
   };
+  const closeTrustDialog = useCallback(() => {
+    if (!busy) setTrustRequest(null);
+  }, [busy]);
 
   const invalidFolderName =
     mode === 'create' &&
     folderName.trim() &&
     (/[\\/<>:"|?*\0]/.test(folderName) || ['.', '..'].includes(folderName.trim()));
+
+  if (trustRequest) {
+    return (
+      <ProjectTrustDialog
+        path={trustRequest.path}
+        enabled={enabled && !busy}
+        onChoose={submit}
+        onClose={closeTrustDialog}
+      />
+    );
+  }
 
   return (
     <Dialog title="添加项目" onClose={onClose} className="project-onboarding-dialog">
@@ -206,7 +226,7 @@ export function ProjectOnboardingDialog({
           className="project-onboarding"
           onSubmit={(event) => {
             event.preventDefault();
-            void submit();
+            setTrustRequest({ path: targetPath, mode });
           }}
         >
           <div className="project-onboarding__modes" role="tablist" aria-label="添加方式">
@@ -274,7 +294,6 @@ export function ProjectOnboardingDialog({
               type="submit"
               className="btn"
               disabled={!enabled || busy || !targetPath || !!invalidFolderName}
-              aria-busy={busy || undefined}
             >
               {mode === 'open' ? '打开项目' : '创建项目'}
             </button>

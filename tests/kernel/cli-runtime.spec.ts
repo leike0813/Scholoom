@@ -53,15 +53,7 @@ test('the actual CLI reads and saves through the broker and owned execution with
     await mkdir(projectPath);
     await writeFile(join(projectPath, 'input.md'), '# CLI evidence\n\ncontrolled result 42\n');
     const project = await command('project.open', 'project-open', '--path', projectPath);
-    await command(
-      'project.grant',
-      'project-grant',
-      '--project',
-      project.id,
-      '--read',
-      '--write',
-      '--send',
-    );
+    await command('project.grant', 'project-grant', '--project', project.id, '--trust');
     const session = await command('session.create', 'session-create', '--project', project.id);
     const instructionId = randomUUID();
     const args = [

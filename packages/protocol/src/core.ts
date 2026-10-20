@@ -1,7 +1,7 @@
 import { Ajv, type AnySchema } from 'ajv';
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
-export const protocolVersion = 2;
+export const protocolVersion = 3;
 
 export type EntryRole = 'product' | 'execution' | 'compute' | 'host';
 export type CallContext = {

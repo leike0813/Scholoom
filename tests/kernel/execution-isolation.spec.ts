@@ -90,7 +90,7 @@ test('a failed parent revokes and stops its actual capability process before ano
     await app.initialize();
     const project = await app.projects.create(join(root, 'project'));
     activeProjectId = project.project.id;
-    project.grant({ read: true, write: true, send: true, autoBackup: false });
+    project.grant({ trust: 'trusted', autoBackup: false });
     await project.save('input.md', 'controlled evidence 42');
     const session = app.harness.create(project.project.id);
     const scope = { projectId: project.project.id, sessionId: session.id };
@@ -265,7 +265,7 @@ test('health loss after an accepted file effect retains an unknown tool receipt'
   try {
     await app.initialize();
     const project = await app.projects.create(join(root, 'project'));
-    project.grant({ read: true, write: true, send: true, autoBackup: false });
+    project.grant({ trust: 'trusted', autoBackup: false });
     await project.save('input.md', 'controlled evidence');
     const save = project.save.bind(project);
     let runId: string | undefined;

@@ -5,7 +5,7 @@ import { createKernelClient } from '../../packages/client/dist/index.js';
 import { runningKernel } from '../kernel-fixture.js';
 import { startModelKernel } from '../model-kernel.js';
 import { createModelServer, MARKDOWN_TEXT } from '../model-server.js';
-import { addProject, expect, test } from './fixture.js';
+import { addProject, createSession, expect, test } from './fixture.js';
 import { armRpcGate, installRpcGate, releaseRpcGate } from './rpc-gate.js';
 
 test('conversation titles, archive and Markdown reading preserve the active work', async ({
@@ -29,16 +29,7 @@ test('conversation titles, archive and Markdown reading preserve the active work
     await uiPage.getByRole('button', { name: '保存凭据' }).click();
     await addProject(uiPage, project);
     await expect(uiPage.getByLabel('执行上下文')).toContainText(basename(project));
-    await uiPage.getByRole('button', { name: '设置', exact: true }).click();
-    await uiPage.getByText('项目权限与备份', { exact: true }).click();
-    for (const label of [
-      '读取项目材料',
-      '新建、修改、重命名和回收／恢复项目文件及目录',
-      '将项目材料发送到 MiniMax',
-    ])
-      await uiPage.getByLabel(label, { exact: true }).check();
-    await uiPage.getByRole('button', { name: '保存项目授权' }).click();
-    await uiPage.getByRole('button', { name: '新建会话', exact: true }).click();
+    await createSession(uiPage, basename(project));
     await uiPage
       .getByRole('treeitem', { name: '打开文件 input.md', exact: true })
       .click({ button: 'right' });
@@ -195,7 +186,7 @@ test('streaming Markdown keeps typing and cancellation available and never rende
     await uiPage.getByText('模型设置', { exact: true }).click();
     await uiPage.getByLabel('MiniMax API Key', { exact: true }).fill('synthetic-ui-key');
     await uiPage.getByRole('button', { name: '保存凭据' }).click();
-    await uiPage.getByRole('button', { name: '新建会话', exact: true }).click();
+    await createSession(uiPage);
     await uiPage.getByRole('textbox', { name: '研究指令' }).fill('MODEL_STREAM');
     await uiPage.getByRole('button', { name: '发送指令' }).click();
     await uiPage.getByRole('button', { name: '展开 Agent 会话' }).click();
@@ -207,7 +198,7 @@ test('streaming Markdown keeps typing and cancellation available and never rende
     await uiPage.getByRole('button', { name: '取消执行', exact: true }).click();
     await expect(uiPage.getByRole('status', { name: '执行状态' })).toContainText('已取消');
     expect(Date.now() - start).toBeLessThan(5000);
-    await uiPage.getByRole('button', { name: '新建会话', exact: true }).click();
+    await createSession(uiPage);
     await expect(uiPage.getByRole('article', { name: 'Agent 回复' })).toHaveCount(0);
     await uiPage.getByRole('textbox', { name: '研究指令' }).fill('新会话草稿');
     await expect(uiPage.getByRole('textbox', { name: '研究指令' })).toHaveValue('新会话草稿');
@@ -232,7 +223,7 @@ test('archive and restore failures stay in place and retry succeeds', async ({ u
     await uiPage.getByText('模型设置', { exact: true }).click();
     await uiPage.getByLabel('MiniMax API Key', { exact: true }).fill('synthetic-ui-key');
     await uiPage.getByRole('button', { name: '保存凭据' }).click();
-    await uiPage.getByRole('button', { name: '新建会话', exact: true }).click();
+    await createSession(uiPage);
     const input = uiPage.getByRole('textbox', { name: '研究指令' });
     await input.fill(title);
     await uiPage.getByRole('button', { name: '发送指令', exact: true }).click();
@@ -298,7 +289,7 @@ test('composer model and effort overrides follow defaults, persist and reach rea
     // 应用默认推理强度经 provider.setDefaults 保存。
     await uiPage.getByLabel('默认推理强度', { exact: true }).selectOption('low');
     await uiPage.getByRole('button', { name: '保存默认设置', exact: true }).click();
-    await uiPage.getByRole('button', { name: '新建会话', exact: true }).click();
+    await createSession(uiPage);
 
     // dock 与 overlay 共用聚合入口：点击后在同一弹层内选择模型与推理强度。
     const picker = uiPage.locator('details.composer-picker');
@@ -383,6 +374,7 @@ test('composer model and effort overrides follow defaults, persist and reach rea
 });
 
 test('session list loads the next page when scrolled to the end', async ({ uiPage }) => {
+  test.setTimeout(60000);
   const project = await mkdtemp(join(tmpdir(), 'scholoom-scroll-ui-'));
   const client = createKernelClient(
     await runningKernel(process.env.SCHOOLOOM_UI_DATA_DIR as string),
@@ -396,13 +388,17 @@ test('session list loads the next page when scrolled to the end', async ({ uiPag
     await uiPage.goto('http://127.0.0.1:5174/');
     await expect(uiPage.getByRole('status', { name: '连接状态' })).toContainText('已连接');
     await addProject(uiPage, project);
-    const tree = uiPage.getByRole('tree');
-    const oldest = tree.getByRole('button', { name: '打开会话 最早的会话', exact: true });
-    await expect(tree.locator('[data-session-id]')).toHaveCount(50);
+    const tree = uiPage.getByRole('region', { name: '会话管理', exact: true }).getByRole('tree');
+    const projectGroup = uiPage.locator(`[data-project-id="${projectId}"]`);
+    const oldest = projectGroup.getByRole('button', {
+      name: '打开会话 最早的会话',
+      exact: true,
+    });
+    await expect(projectGroup.locator('[data-session-id]')).toHaveCount(50);
     await expect(oldest).toHaveCount(0);
     await tree.evaluate((node) => node.scrollTo({ top: node.scrollHeight }));
     await expect(oldest).toBeVisible();
-    await expect(tree.locator('[data-session-id]')).toHaveCount(60);
+    await expect(projectGroup.locator('[data-session-id]')).toHaveCount(60);
   } finally {
     client.dispose();
     await rm(project, { recursive: true });

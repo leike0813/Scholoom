@@ -35,7 +35,7 @@ const fixture = async () => {
     const path = join(root, name);
     await mkdir(path);
     const store = await projects.open(path);
-    store.grant({ read: true, write: true, send: false, autoBackup: false });
+    store.grant({ trust: 'restricted', autoBackup: false });
     return store;
   };
   return {
@@ -282,7 +282,7 @@ test('backup restoration does not retain a task that can mutate the original pro
     const backup = await target.backup();
     const restoredPath = await target.restore(backup.id, join(f.root, 'restored'));
     const restored = await f.projects.open(restoredPath);
-    restored.grant({ read: true, write: true, send: false, autoBackup: false });
+    restored.grant({ trust: 'restricted', autoBackup: false });
     await expect(service.status(restored.project.id, operationId)).rejects.toMatchObject({
       code: 'notFound',
     });
@@ -825,7 +825,7 @@ test('large binary import accepts matching repeated chunks, rejects changed repe
   }
 });
 
-test('copy and move enforce separate grants, reject descendant destinations, and directory pages locate entries', async () => {
+test('manual transfers work between restricted projects, reject descendant destinations, and locate directory pages', async () => {
   const f = await fixture();
   const service = transfer(f.projects);
   try {
@@ -838,26 +838,7 @@ test('copy and move enforce separate grants, reject descendant destinations, and
         request(source.project.id, source.project.id, 'folder', ref.fileId, 'copy', 'folder/child'),
       ),
     ).rejects.toMatchObject({ code: 'invalidRequest' });
-    source.grant({ read: false, write: true, send: false, autoBackup: false });
-    await expect(
-      service.start(request(source.project.id, source.project.id, 'folder', ref.fileId, 'copy')),
-    ).rejects.toMatchObject({ code: 'permissionDenied' });
-    source.grant({ read: true, write: false, send: false, autoBackup: false });
-    await expect(
-      service.start(
-        request(source.project.id, source.project.id, 'folder', ref.fileId, 'move', 'elsewhere'),
-      ),
-    ).rejects.toMatchObject({ code: 'permissionDenied' });
-    source.grant({ read: true, write: true, send: false, autoBackup: false });
     const destination = await f.open('destination-project');
-    source.grant({ read: true, write: false, send: false, autoBackup: false });
-    destination.grant({ read: true, write: false, send: false, autoBackup: false });
-    await expect(
-      service.start(
-        request(destination.project.id, source.project.id, 'folder', ref.fileId, 'copy'),
-      ),
-    ).rejects.toMatchObject({ code: 'permissionDenied' });
-    destination.grant({ read: true, write: true, send: false, autoBackup: false });
     const copied = await service.start(
       request(destination.project.id, source.project.id, 'folder', ref.fileId, 'copy'),
     );
@@ -869,12 +850,6 @@ test('copy and move enforce separate grants, reject descendant destinations, and
         )
       ).state,
     ).toBe('complete');
-    await expect(
-      service.start(
-        request(destination.project.id, source.project.id, 'folder', ref.fileId, 'move'),
-      ),
-    ).rejects.toMatchObject({ code: 'permissionDenied' });
-    source.grant({ read: true, write: true, send: false, autoBackup: false });
     const names = Array.from(
       { length: 13 },
       (_, index) => `item-${String(index).padStart(2, '0')}.md`,

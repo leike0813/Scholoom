@@ -139,7 +139,7 @@ type ExplorerProps = {
   scope: string;
 };
 export function FileExplorer(props: ExplorerProps) {
-  if (!props.project.read) return <p>请先授权读取项目材料。</p>;
+  if (props.project.id === 'application') return <p>普通会话没有项目文件。</p>;
   return <ReadableExplorer {...props} />;
 }
 function ReadableExplorer({
@@ -152,6 +152,7 @@ function ReadableExplorer({
   activeFile,
   scope,
 }: ExplorerProps) {
+  const hasFiles = project.id !== 'application';
   const viewKey = `${scope}:${project.id}`;
   const [view, setView] = useState<View>(
     () =>
@@ -371,8 +372,8 @@ function ReadableExplorer({
   }, [load]);
   // biome-ignore lint/correctness/useExhaustiveDependencies: broad project revisions invalidate the loaded directory cache.
   useEffect(() => {
-    if (project.read) refresh();
-  }, [project.read, revision, refresh]);
+    if (hasFiles) refresh();
+  }, [hasFiles, revision, refresh]);
   const selectClipboard = (mode: Clipboard['mode']) => {
     const entries = chosen.length ? chosen : focused && !focused.special ? [focused] : [];
     clipboard = {
@@ -429,7 +430,7 @@ function ReadableExplorer({
         await transfer(clipboard.sources, clipboard.mode, destination);
     });
   const beginEdit = (kind: Editing['kind']) => {
-    if (!project.write || (kind === 'rename' && !focused)) return;
+    if (!hasFiles || (kind === 'rename' && !focused)) return;
     setEditing({
       kind,
       parent: kind === 'rename' ? parentOf(focused!.path) : destination,
@@ -620,9 +621,9 @@ function ReadableExplorer({
       if (index >= 0) scrollTo.current(index);
     },
     canReorder: false,
-    canDrag: (items) => project.read && items.every((item) => !!item.getItemData().fileId),
+    canDrag: (items) => hasFiles && items.every((item) => !!item.getItemData().fileId),
     canDrop: (items, target) =>
-      project.write &&
+      hasFiles &&
       target.item.isFolder() &&
       !items.some(
         (item) =>
@@ -643,9 +644,9 @@ function ReadableExplorer({
         ),
       ).then(() => {}),
     canDragForeignDragObjectOver: (data, target) =>
-      project.write && target.item.isFolder() && data.types.includes('Files'),
+      hasFiles && target.item.isFolder() && data.types.includes('Files'),
     canDropForeignDragObject: (data, target) =>
-      project.write && target.item.isFolder() && data.types.includes('Files'),
+      hasFiles && target.item.isFolder() && data.types.includes('Files'),
     onDropForeignDragObject: (data, target) => {
       const selection = selectDrop(data);
       return run(async () => importSelection(await selection, target.item.getItemData().path)).then(
@@ -866,12 +867,12 @@ function ReadableExplorer({
       else selectClipboard(key === 'c' ? 'copy' : 'move');
       return;
     }
-    if (event.key === 'F2' && project.write) {
+    if (event.key === 'F2' && hasFiles) {
       event.preventDefault();
       beginEdit('rename');
       return;
     }
-    if ((event.key === 'Delete' || (event.metaKey && event.key === 'Backspace')) && project.write) {
+    if ((event.key === 'Delete' || (event.metaKey && event.key === 'Backspace')) && hasFiles) {
       event.preventDefault();
       setConfirming(true);
       return;
@@ -1053,14 +1054,14 @@ function ReadableExplorer({
             setView((current) => ({ ...current, focused: null }));
           }}
           onDragOver={(event) => {
-            if (project.write) {
+            if (hasFiles) {
               event.preventDefault();
               copyDrag.current = event.ctrlKey || event.altKey;
             }
           }}
           onDrop={(event) => {
             event.preventDefault();
-            if (!project.write) return;
+            if (!hasFiles) return;
             if (event.dataTransfer.types.includes('Files')) {
               const input = selectDrop(event.dataTransfer);
               void run(async () => importSelection(await input, ''));
@@ -1089,7 +1090,7 @@ function ReadableExplorer({
           className="icon-btn icon-btn--sm"
           aria-label="新建文件"
           title="新建文件"
-          disabled={!project.write}
+          disabled={!hasFiles}
           onClick={() => beginEdit('file')}
         >
           <IconPlus />
@@ -1099,7 +1100,7 @@ function ReadableExplorer({
           className="icon-btn icon-btn--sm"
           aria-label="新建目录"
           title="新建目录"
-          disabled={!project.write}
+          disabled={!hasFiles}
           onClick={() => beginEdit('dir')}
         >
           <IconFolder />
@@ -1154,7 +1155,7 @@ function ReadableExplorer({
         }}
         onKeyDownCapture={onKey}
         onPaste={(event) => {
-          if (project.write && event.clipboardData.files.length) {
+          if (hasFiles && event.clipboardData.files.length) {
             event.preventDefault();
             const files = Array.from(event.clipboardData.files);
             void run(() => importSelection(selectFiles(files), destination));
@@ -1224,14 +1225,14 @@ function ReadableExplorer({
           >
             打开
           </MenuItem>
-          <MenuItem disabled={!project.write} onSelect={() => beginEdit('file')}>
+          <MenuItem disabled={!hasFiles} onSelect={() => beginEdit('file')}>
             新建文件
           </MenuItem>
-          <MenuItem disabled={!project.write} onSelect={() => beginEdit('dir')}>
+          <MenuItem disabled={!hasFiles} onSelect={() => beginEdit('dir')}>
             新建目录
           </MenuItem>
           <MenuItem
-            disabled={!project.write || menuEntries.length !== 1}
+            disabled={!hasFiles || menuEntries.length !== 1}
             onSelect={() => beginEdit('rename')}
           >
             重命名　F2
@@ -1240,12 +1241,12 @@ function ReadableExplorer({
             复制
           </MenuItem>
           <MenuItem
-            disabled={!project.write || !menuEntries.length}
+            disabled={!hasFiles || !menuEntries.length}
             onSelect={() => selectClipboard('move')}
           >
             剪切
           </MenuItem>
-          <MenuItem disabled={!project.write || clipboard?.scope !== scope} onSelect={paste}>
+          <MenuItem disabled={!hasFiles || clipboard?.scope !== scope} onSelect={paste}>
             粘贴
           </MenuItem>
           <MenuItem
@@ -1267,17 +1268,17 @@ function ReadableExplorer({
           >
             附加／移除会话材料
           </MenuItem>
-          <MenuItem disabled={!project.write || uploading} onSelect={() => picker.current?.click()}>
+          <MenuItem disabled={!hasFiles || uploading} onSelect={() => picker.current?.click()}>
             导入文件…
           </MenuItem>
           <MenuItem
-            disabled={!project.write || uploading}
+            disabled={!hasFiles || uploading}
             onSelect={() => directoryPicker.current?.click()}
           >
             导入目录…
           </MenuItem>
           <MenuItem
-            disabled={!project.write || !menuEntries.length}
+            disabled={!hasFiles || !menuEntries.length}
             onSelect={() => {
               setConfirming(true);
               return false;
@@ -1383,7 +1384,7 @@ function ReadableExplorer({
                       type="button"
                       className="btn"
                       key={decision}
-                      disabled={!project.write}
+                      disabled={!hasFiles}
                       onClick={() => {
                         if (decision === 'replace') {
                           setReplacing({
@@ -1503,7 +1504,7 @@ function ReadableExplorer({
           <RestoreRow
             key={entry.trashId ?? entry.fileId}
             entry={entry}
-            disabled={!project.write}
+            disabled={!hasFiles}
             restore={(destination) =>
               run(async () => {
                 const operationId = crypto.randomUUID();

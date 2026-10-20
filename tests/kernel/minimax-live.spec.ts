@@ -38,9 +38,7 @@ test('live MiniMax saves a checked synthetic research note through the product i
     const project = await client.call('project.open', { path: join(root, 'project') });
     await client.call('project.grant', {
       projectId: project.id,
-      read: true,
-      write: true,
-      send: true,
+      trust: 'trusted',
       autoBackup: false,
     });
     const session = await client.call('session.create', { projectId: project.id });

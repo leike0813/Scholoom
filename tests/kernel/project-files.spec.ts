@@ -23,6 +23,49 @@ class Projects extends ProjectModule {
   }
 }
 
+test('all legacy grant combinations require trust again without losing manual work or backup preference', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'scholoom-legacy-trust-'));
+  let projects = new Projects(join(root, 'profile'));
+  const ids: string[] = [];
+  try {
+    await projects.initialize();
+    for (let bits = 0; bits < 8; bits++) {
+      const store = await projects.create(join(root, `project-${bits}`));
+      await store.save('note.md', `retained ${bits}`);
+      store.database.prepare("INSERT OR REPLACE INTO meta (key,value) VALUES ('grants',?)").run(
+        JSON.stringify({
+          read: !!(bits & 1),
+          write: !!(bits & 2),
+          send: !!(bits & 4),
+          autoBackup: false,
+        }),
+      );
+      store.database.pragma('user_version = 3');
+      ids.push(store.project.id);
+    }
+    await projects.close();
+    projects = new Projects(join(root, 'profile'));
+    await projects.initialize();
+    for (const [bits, id] of ids.entries()) {
+      const store = projects.get(id);
+      expect(store.project).toMatchObject({ trust: 'pending', autoBackup: false });
+      expect((await store.read('note.md')).content).toBe(`retained ${bits}`);
+      expect(() => store.check('send')).toThrow();
+      expect(
+        (await readFile(join(store.internal, 'before-migration-v4.sqlite'))).length,
+      ).toBeGreaterThan(0);
+      store.grant({ trust: 'restricted', autoBackup: false });
+    }
+    await projects.close();
+    projects = new Projects(join(root, 'profile'));
+    await projects.initialize();
+    expect(ids.map((id) => projects.get(id).project.trust)).toEqual(ids.map(() => 'restricted'));
+  } finally {
+    await projects.close();
+    await rm(root, { recursive: true });
+  }
+});
+
 test('directory browsing lists real directories, hides private entries and bounds pages', async () => {
   const root = await mkdtemp(join(tmpdir(), 'scholoom-browse-'));
   const projects = new Projects(join(root, 'profile'));
@@ -103,7 +146,7 @@ test('shared file saving protects whole content, concurrent edits, new targets a
     await writeFile(join(root, 'project', 'note.md'), 'one\ntwo\n');
     await projects.initialize();
     const store = await projects.open(join(root, 'project'));
-    store.grant({ read: true, write: true, send: true, autoBackup: false });
+    store.grant({ trust: 'trusted', autoBackup: false });
     await writeFile(join(root, 'project', 'large.md'), '中'.repeat(100000));
     const large = await store.read('large.md');
     expect(large.truncated).toBe(true);
@@ -154,7 +197,7 @@ test('shared file saving protects whole content, concurrent edits, new targets a
     expect(await readFile(join(root, 'project', 'note.md'), 'utf8')).toBe('newer');
     const restored = await projects.open(copy);
     expect(restored.project.id).not.toBe(store.project.id);
-    expect(restored.project.send).toBe(false);
+    expect(restored.project.trust).toBe('pending');
     const created = await store.save('new.md', 'new');
     await store.undo(created.id);
     await expect(readFile(join(root, 'project', 'new.md'))).rejects.toMatchObject({
@@ -175,7 +218,7 @@ test('backups preserve user manifests and notice external edits', async () => {
     await writeFile(join(root, 'project', 'sub', 'manifest.json'), '{"nested":true}');
     await projects.initialize();
     const store = await projects.open(join(root, 'project'));
-    store.grant({ read: true, write: true, send: true, autoBackup: true });
+    store.grant({ trust: 'trusted', autoBackup: true });
     await store.backup();
     await writeFile(join(root, 'project', 'manifest.json'), '{"user":"changed"}');
     await store.autoBackup();
@@ -215,9 +258,9 @@ test('project management and structural operations preserve identity, history, t
   let projects = new Projects(join(root, 'profile'));
   try {
     await projects.initialize();
-    const store = await projects.create(join(root, 'project'), 'Research');
+    const store = await projects.create(join(root, 'project'));
     const id = store.project.id;
-    store.grant({ read: true, write: true, send: true, autoBackup: false });
+    store.grant({ trust: 'trusted', autoBackup: false });
     await store.files.mutate('mkdir', 'make-notes', { path: 'notes' });
     const original = await store.save('notes/a.md', '# Original');
     if (!original.fileId) throw new Error('Expected a registered file');
@@ -253,7 +296,7 @@ test('project management and structural operations preserve identity, history, t
     const backup = await store.backup();
     const copy = await store.restore(backup.id, join(root, 'copy'));
     const restored = await projects.open(copy);
-    restored.grant({ read: true, write: true, send: false, autoBackup: false });
+    restored.grant({ trust: 'restricted', autoBackup: false });
     await restored.files.mutate('restore', 'restore-copy', {
       trashId: trashed.id,
       destination: 'recovered',
@@ -265,7 +308,9 @@ test('project management and structural operations preserve identity, history, t
     });
     expect((await store.files.resolve([original.fileId]))[0]?.path).toBe('recovered/a.md');
     expect((await store.read('renamed/a.md')).content).toBe('Later file');
-    store.renameProject('Renamed Research');
+    store.database
+      .prepare("INSERT OR REPLACE INTO meta (key,value) VALUES ('name','Legacy title')")
+      .run();
     await projects.forget(id);
     expect(projects.list().find((item) => item.id === id)?.recent).toBe(false);
     expect(projects.get(id)).toBe(store);
@@ -273,8 +318,29 @@ test('project management and structural operations preserve identity, history, t
     await projects.close();
     projects = new Projects(join(root, 'profile'));
     await projects.initialize();
-    expect(projects.get(id).project.name).toBe('Renamed Research');
+    expect(projects.get(id).project.name).toBe('project');
     expect((await projects.get(id).files.operation('rename-notes')).state).toBe('complete');
+  } finally {
+    await projects.close();
+    await rm(root, { recursive: true });
+  }
+});
+
+test('legacy project name metadata never overrides the directory basename after reopening', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'scholoom-project-name-'));
+  let projects = new Projects(join(root, 'profile'));
+  try {
+    await projects.initialize();
+    const store = await projects.create(join(root, 'Directory Name'));
+    store.database
+      .prepare("INSERT OR REPLACE INTO meta (key,value) VALUES ('name','Legacy title')")
+      .run();
+    expect(store.project.name).toBe('Directory Name');
+    await projects.close();
+    projects = new Projects(join(root, 'profile'));
+    await projects.initialize();
+    expect(projects.get(store.project.id).project.name).toBe('Directory Name');
+    expect(projects.get('application').project.name).toBe('普通会话');
   } finally {
     await projects.close();
     await rm(root, { recursive: true });
@@ -288,7 +354,7 @@ test('structure receipts recover after a completed move but failed metadata comm
     await projects.initialize();
     const store = await projects.create(join(root, 'project'));
     const id = store.project.id;
-    store.grant({ read: true, write: true, send: true, autoBackup: false });
+    store.grant({ trust: 'trusted', autoBackup: false });
     const edit = await store.save('a.md', 'Original');
     if (!edit.fileId) throw new Error('Expected a registered file');
     store.database.exec(
@@ -314,14 +380,14 @@ test('structure receipts recover after a completed move but failed metadata comm
   }
 });
 
-test('migration protects old database and requires renewed write grant; images stay bounded and private', async () => {
+test('migration protects old database and requires renewed trust; images stay bounded and private', async () => {
   const root = await mkdtemp(join(tmpdir(), 'scholoom-file-migration-'));
   let projects = new Projects(join(root, 'profile'));
   try {
     await projects.initialize();
     const store = await projects.create(join(root, 'project'));
     const id = store.project.id;
-    store.grant({ read: true, write: true, send: true, autoBackup: false });
+    store.grant({ trust: 'trusted', autoBackup: false });
     store.database.exec(
       'DROP TABLE harness_meta; DROP TABLE research_attempts; DROP TABLE run_instances;',
     );
@@ -330,9 +396,12 @@ test('migration protects old database and requires renewed write grant; images s
     projects = new Projects(join(root, 'profile'));
     await projects.initialize();
     const migrated = projects.get(id);
-    expect(migrated.project).toMatchObject({ read: true, send: true, write: false });
+    expect(migrated.project).toMatchObject({ trust: 'pending', autoBackup: false });
     await expect(
-      migrated.files.mutate('mkdir', 'not-authorized', { path: 'blocked' }),
+      projects.withAccess(
+        { role: 'execution', principal: { kind: 'agent', id: 'session' }, projectId: id },
+        () => migrated.files.mutate('mkdir', 'not-authorized', { path: 'blocked' }),
+      ),
     ).rejects.toMatchObject({ code: 'permissionDenied' });
     expect(
       (await readFile(join(root, 'project', '.scholoom', 'before-migration.sqlite'))).length,
@@ -367,7 +436,7 @@ test('canonical paths and concurrent reads retain one identity, and unknown oper
   try {
     await projects.initialize();
     const store = await projects.create(join(root, 'project'));
-    store.grant({ read: true, write: true, send: false, autoBackup: false });
+    store.grant({ trust: 'restricted', autoBackup: false });
     await mkdir(join(root, 'project', 'notes'));
     await writeFile(join(root, 'project', 'notes', 'a.md'), 'Original');
     const reads = await Promise.all(Array.from({ length: 20 }, () => store.read('notes/a.md')));
@@ -404,7 +473,7 @@ test('trash root links are refused and incomplete backup payloads cannot claim f
   try {
     await projects.initialize();
     const store = await projects.create(join(root, 'project'));
-    store.grant({ read: true, write: true, send: false, autoBackup: false });
+    store.grant({ trust: 'restricted', autoBackup: false });
     await store.save('note.md', 'Protected');
     const external = join(root, 'outside');
     await mkdir(external);
@@ -428,7 +497,7 @@ test('trash root links are refused and incomplete backup payloads cannot claim f
       backup.omitted.some((path) => path.includes('group-trash') && path.includes('binary.dat')),
     ).toBe(true);
     const copied = await projects.open(await store.restore(backup.id, join(root, 'copy')));
-    copied.grant({ read: true, write: true, send: false, autoBackup: false });
+    copied.grant({ trust: 'restricted', autoBackup: false });
     await expect(
       copied.files.mutate('restore', 'incomplete', { trashId: 'group-trash' }),
     ).rejects.toMatchObject({ code: 'unavailable' });

@@ -41,12 +41,11 @@ test('manual foundation serves projects, library and project materials over real
     const capabilities = (await client.status()).capabilities;
     expect(capabilities).toContain('library.list');
     expect(capabilities).not.toContain('session.create');
-    const project = await client.call('project.create', { path: projectPath, name: '人工组合' });
+    const project = await client.call('project.create', { path: projectPath });
+    expect(project.name).toBe('project');
     await client.call('project.grant', {
       projectId: project.id,
-      read: true,
-      write: true,
-      send: false,
+      trust: 'restricted',
       autoBackup: false,
     });
     const created = await client.call('files.save', {

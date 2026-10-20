@@ -26,7 +26,7 @@ for (const { legacy, failRestore } of [
     try {
       await app.initialize();
       const project = await app.projects.create(join(root, 'project'));
-      project.grant({ read: true, write: true, send: true, autoBackup: false });
+      project.grant({ trust: 'trusted', autoBackup: false });
       const input = await project.save('input.md', 'original evidence 42');
       const report = await project.save('report.md', 'saved report 42');
       if (!input.fileId || !report.fileId) throw new Error('Expected persisted file identities');
@@ -125,7 +125,7 @@ for (const { legacy, failRestore } of [
       } else {
         const copy = await operation;
         expect(copy.id).not.toBe(project.project.id);
-        expect(copy).toMatchObject({ read: false, write: false, send: false });
+        expect(copy).toMatchObject({ trust: 'pending' });
         expect(app.harness.getSession(copy.id, archived.id)).toMatchObject({
           projectId: copy.id,
           archived: true,
@@ -145,7 +145,7 @@ for (const { legacy, failRestore } of [
         );
         const restored = app.projects.get(copy.id);
         if (legacy) {
-          expect(restored.database.pragma('user_version', { simple: true })).toBe(3);
+          expect(restored.database.pragma('user_version', { simple: true })).toBe(4);
           const protectedSource = new Database(
             join(destination, '.scholoom', 'before-migration-v3.sqlite'),
             { readonly: true },
@@ -181,8 +181,8 @@ for (const { legacy, failRestore } of [
         });
         await expect(
           app.call('files.read', { projectId: copy.id, path: 'report.md' }),
-        ).rejects.toMatchObject({ code: 'permissionDenied' });
-        restored.grant({ read: true, write: true, send: false, autoBackup: false });
+        ).resolves.toMatchObject({ content: 'saved report 42' });
+        restored.grant({ trust: 'restricted', autoBackup: false });
         await restored.files.mutate('restore', 'restore-trash-in-copy', {
           trashId: 'old-trash',
           destination: 'recovered.md',

@@ -41,7 +41,7 @@ async function setup() {
     '# 合成材料\n\n观察结果为42，只有一个样本。\n',
   );
   const project = await app.projects.open(join(root, 'project'));
-  project.grant({ read: true, write: true, send: true, autoBackup: false });
+  project.grant({ trust: 'trusted', autoBackup: false });
   const session = app.harness.create(project.project.id);
   const controller = new AbortController();
   const files = app.projectFiles({
@@ -171,11 +171,11 @@ test('input and permissions are checked before executing; old output does not pr
     const research = f.research(async () => {
       executed++;
     });
-    f.project.grant({ read: true, write: false, send: true, autoBackup: false });
+    f.project.grant({ trust: 'restricted', autoBackup: false });
     await expect(research.invoke(request, f.context)).rejects.toMatchObject({
       code: 'permissionDenied',
     });
-    f.project.grant({ read: true, write: true, send: true, autoBackup: false });
+    f.project.grant({ trust: 'trusted', autoBackup: false });
     await expect(
       research.invoke({ ...request, version: 'missing' }, f.context),
     ).rejects.toMatchObject({ code: 'notFound' });
@@ -511,7 +511,7 @@ test('process interruption leaves queryable attempts and files without restartin
     const app = new KernelApplication(process.argv[1], {environment:{}});
     await app.initialize();
     const project = await app.projects.open(process.argv[2]);
-    project.grant({read:true,write:true,send:true,autoBackup:false});
+    project.grant({trust: 'trusted',autoBackup:false});
     const session = app.harness.create(project.project.id);
     const runtime = new ResearchRuntime(()=>{}, {
       records:projectId=>new ResearchRecords(app.projects.get(projectId).internal),
@@ -605,9 +605,8 @@ test('real model graph invokes the common capability and shared client observes 
     const project = await client.call('project.open', { path: join(root, 'project') });
     await client.call('project.grant', {
       projectId: project.id,
-      read: true,
-      write: true,
-      send: true,
+      trust: 'trusted',
+
       autoBackup: false,
     });
     const session = await client.call('session.create', { projectId: project.id });

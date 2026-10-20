@@ -100,13 +100,10 @@ for (const ownerExit of ['dispose', 'SIGKILL'] as const) {
       const activeClient = client;
       const project = await activeClient.call('project.create', {
         path: projectPath,
-        name: 'development persistence',
       });
       await activeClient.call('project.grant', {
         projectId: project.id,
-        read: true,
-        write: true,
-        send: true,
+        trust: 'trusted',
         autoBackup: false,
       });
       await activeClient.call('files.save', {

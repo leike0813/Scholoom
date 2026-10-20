@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createKernelClient } from '../../packages/client/dist/index.js';
 import { runningKernel } from '../kernel-fixture.js';
-import { expect, test } from './fixture.js';
+import { createSession, expect, test } from './fixture.js';
 import { armRpcGate, installRpcGate, releaseRpcGate } from './rpc-gate.js';
 
 test('user imports, edits and groups real library metadata without losing the conversation draft', async ({
@@ -22,7 +22,7 @@ test('user imports, edits and groups real library metadata without losing the co
     await installRpcGate(uiPage);
     await uiPage.goto('http://127.0.0.1:5174/');
     await expect(uiPage.getByRole('status', { name: '连接状态' })).toContainText('已连接');
-    await uiPage.getByRole('button', { name: '新建会话', exact: true }).click();
+    await createSession(uiPage);
     const composer = uiPage.getByRole('textbox', { name: '研究指令' });
     await composer.fill('浏览题录时保留的指令草稿');
     await uiPage.getByRole('button', { name: '文献库', exact: true }).click();

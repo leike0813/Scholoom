@@ -21,7 +21,7 @@ const waitFor = async (predicate: () => boolean) => {
   expect(predicate()).toBe(true);
 };
 
-test('file watches report scoped external changes, release resources and stop on revoked read access', async () => {
+test('manual file watches report scoped changes and remain usable in restricted projects', async () => {
   const root = await mkdtemp(join(tmpdir(), 'scholoom-file-watch-'));
   const projects = new Projects(join(root, 'profile'));
   let watches: ProjectFileWatches | undefined;
@@ -31,7 +31,7 @@ test('file watches report scoped external changes, release resources and stop on
     await writeFile(join(projectPath, 'note.md'), 'before');
     await projects.initialize();
     const store = await projects.open(projectPath);
-    store.grant({ read: true, write: true, send: false, autoBackup: false });
+    store.grant({ trust: 'restricted', autoBackup: false });
     const changes: string[][] = [];
     watches = new ProjectFileWatches(
       () => store,
@@ -61,8 +61,10 @@ test('file watches report scoped external changes, release resources and stop on
     expect(changes).toEqual([]);
 
     const active = await watches.watch(store.project.id, ['note.md']);
-    store.grant({ read: false, write: true, send: false, autoBackup: false });
-    await new Promise((resolve) => setTimeout(resolve, 180));
+    store.grant({ trust: 'restricted', autoBackup: false });
+    changes.length = 0;
+    await writeFile(join(projectPath, 'note.md'), 'restricted manual update');
+    await waitFor(() => changes.flat().includes('note.md'));
     watches.unwatch(store.project.id, active.watchId);
     changes.length = 0;
     await writeFile(join(projectPath, 'note.md'), 'after revocation');
@@ -87,7 +89,7 @@ test('file watches reject private, escaping and symbolic-link paths', async () =
     await symlink(join(root, 'outside.md'), join(projectPath, 'linked.md'));
     await projects.initialize();
     const store = await projects.open(projectPath);
-    store.grant({ read: true, write: false, send: false, autoBackup: false });
+    store.grant({ trust: 'restricted', autoBackup: false });
     watches = new ProjectFileWatches(
       () => store,
       () => {},
@@ -102,7 +104,7 @@ test('file watches reject private, escaping and symbolic-link paths', async () =
     await expect(watches.watch(store.project.id, ['linked.md'])).rejects.toMatchObject({
       code: 'permissionDenied',
     });
-    store.grant({ read: false, write: false, send: false, autoBackup: false });
+    store.grant({ trust: 'restricted', autoBackup: false });
     await expect(watches.watch(store.project.id, ['.env'])).rejects.toMatchObject({
       code: 'permissionDenied',
     });
@@ -122,7 +124,7 @@ test('directory watches filter private root entries but report public entries', 
     await mkdir(projectPath);
     await projects.initialize();
     const store = await projects.open(projectPath);
-    store.grant({ read: true, write: false, send: false, autoBackup: false });
+    store.grant({ trust: 'restricted', autoBackup: false });
     const changes: string[][] = [];
     watches = new ProjectFileWatches(
       () => store,
@@ -154,7 +156,7 @@ test('filename-less nested directory events notify the subscribed directory', as
     await mkdir(nested, { recursive: true });
     await projects.initialize();
     const store = await projects.open(projectPath);
-    store.grant({ read: true, write: false, send: false, autoBackup: false });
+    store.grant({ trust: 'restricted', autoBackup: false });
     const changes: string[][] = [];
     watches = new ProjectFileWatches(
       () => store,
@@ -185,7 +187,7 @@ test('overflow collapses more than 100 pending paths to one subscribed directory
     await Promise.all(paths.map((path) => writeFile(join(projectPath, path), 'x')));
     await projects.initialize();
     const store = await projects.open(projectPath);
-    store.grant({ read: true, write: false, send: false, autoBackup: false });
+    store.grant({ trust: 'restricted', autoBackup: false });
     const changes: string[][] = [];
     watches = new ProjectFileWatches(
       () => store,

@@ -14,7 +14,7 @@ test('a fresh session carries work from persisted material without old messages 
   try {
     await app.initialize();
     const project = await app.projects.create(join(root, 'project'));
-    project.grant({ read: true, write: true, send: true, autoBackup: false });
+    project.grant({ trust: 'trusted', autoBackup: false });
     await project.save('input.md', '合成观测42。');
     const old = app.harness.create(project.project.id);
     const scope = { projectId: project.project.id, sessionId: old.id };
@@ -63,7 +63,7 @@ test('failure to save the required tool receipt prevents its file effect while m
   try {
     await app.initialize();
     const project = await app.projects.create(join(root, 'project'));
-    project.grant({ read: true, write: true, send: true, autoBackup: false });
+    project.grant({ trust: 'trusted', autoBackup: false });
     await project.save('input.md', '合成观测42。');
     project.database.exec(
       "CREATE TRIGGER fail_required_receipt BEFORE INSERT ON harness_meta WHEN (CASE WHEN NEW.key LIKE 'tool:%' THEN json_extract(NEW.value, '$.name') END) = 'write_file' BEGIN SELECT RAISE(ABORT, 'synthetic required record failure'); END",

@@ -52,8 +52,10 @@ test('container upgrade preserves identities, full payloads and a readable v2 so
       .prepare('INSERT INTO messages(id,sessionId,value) VALUES (?,?,?)')
       .run('message', 'session', message);
     await initializeProjectContainer(f.db, f.root);
-    expect(f.db.pragma('user_version', { simple: true })).toBe(3);
-    expect(f.db.prepare('SELECT key FROM meta ORDER BY key').all()).toEqual([{ key: 'name' }]);
+    expect(f.db.pragma('user_version', { simple: true })).toBe(4);
+    expect(f.db.prepare("SELECT key FROM meta WHERE key <> 'grants' ORDER BY key").all()).toEqual([
+      { key: 'name' },
+    ]);
     expect(f.db.prepare('SELECT key,value FROM harness_meta ORDER BY key').all()).toEqual([
       { key: 'delivered:session', value: '102' },
       { key: 'library-context:session', value: '1' },
@@ -101,7 +103,7 @@ test('invalid legacy identity rolls back all migration writes and preserves sour
       .prepare("UPDATE meta SET value=? WHERE key='research-attempt:expected'")
       .run('{"id":"expected"}');
     await initializeProjectContainer(f.db, f.root);
-    expect(f.db.pragma('user_version', { simple: true })).toBe(3);
+    expect(f.db.pragma('user_version', { simple: true })).toBe(4);
   } finally {
     await f.close();
   }
@@ -146,7 +148,7 @@ test('process termination inside the upgrade transaction reopens only v2 and ret
         source.close();
       }
       await initializeProjectContainer(reopened, f.root);
-      expect(reopened.pragma('user_version', { simple: true })).toBe(3);
+      expect(reopened.pragma('user_version', { simple: true })).toBe(4);
       expect(
         reopened.prepare("SELECT value FROM research_attempts WHERE id='attempt'").get(),
       ).toEqual({

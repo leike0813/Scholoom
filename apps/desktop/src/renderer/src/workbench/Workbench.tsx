@@ -23,6 +23,8 @@ import { openFileTab } from './tab-state';
 import './library/library.css';
 
 const THEME_ORDER: readonly ThemeMode[] = ['system', 'light', 'dark'];
+const isGlobalTab = (tab: TabItem) =>
+  !!tab.material || tab.kind === 'library' || tab.kind === 'settings';
 
 function ComposerDraft({
   storageKey,
@@ -88,7 +90,7 @@ export function Workbench({ session }: { session: WorkbenchSession }) {
     projectGroups.current.set(
       currentProject.current,
       groups.flatMap((group) => {
-        const tabs = group.tabs.filter((tab) => !tab.material);
+        const tabs = group.tabs.filter((tab) => !isGlobalTab(tab));
         return tabs.length
           ? [
               {
@@ -106,13 +108,13 @@ export function Workbench({ session }: { session: WorkbenchSession }) {
     currentProject.current = next;
     const restored = [...(projectGroups.current.get(next) ?? [])];
     for (const group of groups) {
-      const tabs = group.tabs.filter((tab) => tab.material);
+      const tabs = group.tabs.filter(isGlobalTab);
       if (!tabs.length) continue;
       const index = restored.findIndex((target) => target.id === group.id);
       const target = restored[index];
-      const activeId = tabs.some((tab) => tab.id === group.activeId)
-        ? group.activeId
-        : (target?.activeId ?? tabs[0]?.id ?? null);
+      const activeId =
+        target?.activeId ??
+        (tabs.some((tab) => tab.id === group.activeId) ? group.activeId : (tabs[0]?.id ?? null));
       const combined = { ...group, tabs: [...(target?.tabs ?? []), ...tabs], activeId };
       if (index >= 0) restored[index] = combined;
       else restored.push(combined);
@@ -487,7 +489,6 @@ export function Workbench({ session }: { session: WorkbenchSession }) {
         {leftCollapsed ? (
           <ActivityRail
             onExpand={() => setLeftCollapsed(false)}
-            createSession={session.createSession}
             openLibrary={openLibrary}
             openSessionSearch={session.openSessionSearch}
             openProjectOnboarding={session.openProjectOnboarding}
@@ -560,7 +561,6 @@ export function Workbench({ session }: { session: WorkbenchSession }) {
               );
             }}
             contextName={session.executionContext?.project}
-            onCreateSession={session.createSession}
             onOpenSettings={session.controls ? settings : undefined}
           />
           {agentExpanded ? (
@@ -636,6 +636,7 @@ export function Workbench({ session }: { session: WorkbenchSession }) {
         )}
         {session.sessionSearchDialog}
         {session.projectOnboardingDialog}
+        {session.projectTrustDialog}
       </main>
     </AssistantRuntimeProvider>
   );

@@ -120,7 +120,7 @@ test('normal next attempt imports the effective graph after restart instead of t
   try {
     await app.initialize();
     const project = await app.projects.create(join(root, 'project'));
-    project.grant({ read: true, write: true, send: true, autoBackup: false });
+    project.grant({ trust: 'trusted', autoBackup: false });
     await project.save('input.md', 'independent_tool_evidence_73');
     const session = app.harness.create(project.project.id);
     const scope = { projectId: project.project.id, sessionId: session.id };
@@ -429,7 +429,7 @@ test('real framework compression shares model admission and preserves its summar
     observe();
     await app.initialize();
     const project = await app.projects.create(join(root, 'project'));
-    project.grant({ read: true, write: true, send: true, autoBackup: false });
+    project.grant({ trust: 'trusted', autoBackup: false });
     await project.save('input.md', 'reading_evidence_73');
     const session = app.harness.create(project.project.id);
     const scope = { projectId: project.project.id, sessionId: session.id };

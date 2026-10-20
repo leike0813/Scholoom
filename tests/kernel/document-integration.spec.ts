@@ -35,9 +35,7 @@ test('real client, broker and Agent read shared EPUB text and user records witho
     await client.connect();
     await client.call('project.grant', {
       projectId: 'application',
-      read: true,
-      write: true,
-      send: true,
+      trust: 'trusted',
       autoBackup: false,
     });
     await client.call('library.grant', { read: true, write: true, send: true, autoBackup: false });

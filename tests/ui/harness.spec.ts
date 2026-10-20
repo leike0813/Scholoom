@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { basename, join } from 'node:path';
 import { startModelKernel } from '../model-kernel.js';
 import { createModelServer } from '../model-server.js';
-import { addProject, expect, test } from './fixture.js';
+import { addProject, createSession, expect, test } from './fixture.js';
 import { armRpcGate, installRpcGate, releaseRpcGate } from './rpc-gate.js';
 
 test('user invokes a declared research capability and opens its checked report', async ({
@@ -26,14 +26,9 @@ test('user invokes a declared research capability and opens its checked report',
     await expect(uiPage.getByLabel('执行上下文')).toContainText(basename(project));
     await uiPage.getByRole('button', { name: '设置', exact: true }).click();
     await uiPage.getByText('项目权限与备份', { exact: true }).click();
-    for (const label of [
-      '读取项目材料',
-      '新建、修改、重命名和回收／恢复项目文件及目录',
-      '将项目材料发送到 MiniMax',
-    ])
-      await uiPage.getByLabel(label, { exact: true }).check();
+    await uiPage.getByRole('checkbox', { name: /^信任项目/ }).check();
     await uiPage.getByRole('button', { name: '保存项目授权' }).click();
-    await uiPage.getByRole('button', { name: '新建会话', exact: true }).click();
+    await createSession(uiPage, basename(project));
     await uiPage
       .getByRole('textbox', { name: '研究指令' })
       .fill('MODEL_RESEARCH 用材料分析方法处理 input.md 并保存 analysis.md');
@@ -89,14 +84,9 @@ test('user configures, edits safely and receives a real persisted Agent result',
     await expect(uiPage.getByLabel('执行上下文')).toContainText(basename(project));
     await uiPage.getByRole('button', { name: '设置', exact: true }).click();
     await uiPage.getByText('项目权限与备份', { exact: true }).click();
-    for (const label of [
-      '读取项目材料',
-      '新建、修改、重命名和回收／恢复项目文件及目录',
-      '将项目材料发送到 MiniMax',
-    ])
-      await uiPage.getByLabel(label, { exact: true }).check();
+    await uiPage.getByRole('checkbox', { name: /^信任项目/ }).check();
     await uiPage.getByRole('button', { name: '保存项目授权' }).click();
-    await uiPage.getByRole('button', { name: '新建会话', exact: true }).click();
+    await createSession(uiPage, basename(project));
     await uiPage.getByRole('treeitem', { name: '打开文件 input.md', exact: true }).click();
     const editor = uiPage.getByRole('textbox', { name: '文件内容 input.md', exact: true });
     await expect(editor).toContainText('合成材料');
@@ -140,7 +130,7 @@ test('user configures, edits safely and receives a real persisted Agent result',
         .filter({ hasText: '分析已保存到 result.md' }),
     ).toBeVisible();
     await expect(uiPage.getByLabel('执行上下文')).toContainText('MiniMax-M3.1-Flash-Preview');
-    await expect(uiPage.getByLabel('执行上下文')).toContainText('写入已授权');
+    await expect(uiPage.getByLabel('执行上下文')).toContainText('已信任项目');
     const readTool = uiPage.locator('details.tool-call').filter({ hasText: 'read_file' });
     await readTool.locator('summary').click();
     await expect(readTool).toContainText('/input.md');
@@ -163,7 +153,7 @@ test('user configures, edits safely and receives a real persisted Agent result',
     await uiPage.reload();
     await expect(uiPage.getByText(/分析已保存到 result.md/)).toBeVisible();
     await armRpcGate(uiPage, 'session.create');
-    await uiPage.getByRole('button', { name: '新建会话', exact: true }).click();
+    await createSession(uiPage, basename(project));
     await expect(uiPage.getByRole('textbox', { name: '研究指令' })).toBeDisabled();
     await releaseRpcGate(uiPage);
     await uiPage
@@ -219,14 +209,14 @@ test('late send failure restores its original conversation and storage failures 
     await expect(
       uiPage.getByRole('button', { name: '普通会话，已展开', exact: true }),
     ).toBeVisible();
-    await uiPage.getByRole('button', { name: '新建会话', exact: true }).click();
+    await createSession(uiPage);
     const input = uiPage.getByRole('textbox', { name: '研究指令' });
     await input.fill('会话 A 的未受理指令');
     await armRpcGate(uiPage, 'session.send');
     await uiPage.getByRole('button', { name: '发送指令' }).click();
     const sessions = uiPage.locator('.session-list button[aria-pressed]');
     const count = await sessions.count();
-    await uiPage.getByRole('button', { name: '新建会话', exact: true }).click();
+    await createSession(uiPage);
     await expect(sessions).toHaveCount(count + 1);
     await expect(sessions.first()).toHaveAttribute('aria-pressed', 'true');
     await expect(input).toHaveValue('');
@@ -279,7 +269,7 @@ test('busy conversation accepts additions, cancellation survives reload and cont
     await expect(
       uiPage.getByRole('button', { name: '普通会话，已展开', exact: true }),
     ).toBeVisible();
-    await uiPage.getByRole('button', { name: '新建会话', exact: true }).click();
+    await createSession(uiPage);
     await expect(uiPage.getByRole('status', { name: '执行状态' })).toBeVisible();
     model.hold = true;
     const input = uiPage.getByRole('textbox', { name: '研究指令' });

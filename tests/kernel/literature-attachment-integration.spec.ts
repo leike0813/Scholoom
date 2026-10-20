@@ -37,9 +37,8 @@ test('real RPC and Agent share material bytes while project paths and model send
     const project = await client.call('project.open', { path: projectRoot });
     await client.call('project.grant', {
       projectId: project.id,
-      read: true,
-      write: false,
-      send: true,
+      trust: 'trusted',
+
       autoBackup: false,
     });
     await client.call('library.grant', { read: true, write: true, send: true, autoBackup: false });

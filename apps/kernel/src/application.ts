@@ -158,6 +158,7 @@ export class KernelApplication extends ManualApplication {
     this.research.releaseProject(projectId);
   }
   async snapshot(input: BusinessParams<'workbench.snapshot'>): Promise<WorkbenchSnapshot> {
+    const { navigationProjectIds: _navigationProjectIds, ...scope } = input;
     const port = this.modulePort(
       { moduleId: 'kernel', role: 'host', principal: { kind: 'system', id: 'projection' } },
       'kernel',
@@ -169,7 +170,7 @@ export class KernelApplication extends ManualApplication {
       ...(input.projectId
         ? { fileRevision: await port.call('project.fileRevision', { projectId: input.projectId }) }
         : {}),
-      ...(await port.call('harness.snapshot', input)),
+      ...(await port.call('harness.snapshot', scope)),
     };
   }
 

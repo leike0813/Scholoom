@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import { createKernelClient } from '../../packages/client/dist/index.js';
 import { runningKernel } from '../kernel-fixture.js';
 import { syntheticPdf } from '../pdf-fixture.js';
-import { expect, test } from './fixture.js';
+import { createSession, expect, test } from './fixture.js';
 
 test('local PDF reader shares selected highlights, bookmarks and notes through the kernel', async ({
   uiPage,
@@ -54,7 +54,7 @@ test('local PDF reader shares selected highlights, bookmarks and notes through t
     await expect(
       uiPage.getByRole('button', { name: '普通会话，已展开', exact: true }),
     ).toBeVisible();
-    await uiPage.getByRole('button', { name: '新建会话', exact: true }).click();
+    await createSession(uiPage);
     const instruction = uiPage.getByRole('textbox', { name: '研究指令', exact: true });
     await instruction.fill('PDF 阅读期间保留的研究指令');
     await uiPage.getByRole('button', { name: '文献库', exact: true }).click();

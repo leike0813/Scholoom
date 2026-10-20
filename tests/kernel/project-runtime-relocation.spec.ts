@@ -21,9 +21,7 @@ test('reopening a moved project rebinds sessions, research records and execution
     const project = await app.call('project.create', { path: original });
     await app.call('project.grant', {
       projectId: project.id,
-      read: true,
-      write: true,
-      send: true,
+      trust: 'trusted',
       autoBackup: false,
     });
     await writeFile(join(original, 'input.md'), '合成实验：结果42，样本数1。');
@@ -47,6 +45,7 @@ test('reopening a moved project rebinds sessions, research records and execution
     const reopened = await app.call('project.open', { path: moved });
     expect(reopened.id).toBe(project.id);
     expect(reopened.path).toBe(moved);
+    expect(reopened.name).toBe('moved');
     expect((await app.call('workbench.snapshot', scope)).session?.id).toBe(session.id);
     expect(await app.call('research.attempts', scope)).toEqual(attempts);
     const next = await app.call('session.create', { projectId: project.id });

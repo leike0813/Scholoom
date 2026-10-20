@@ -1,3 +1,4 @@
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { randomUUID } from 'node:crypto';
 import { constants } from 'node:fs';
 import {
@@ -18,7 +19,7 @@ import {
 } from 'node:fs/promises';
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { atomicPrivateFile, fileFingerprint, privateDirectory } from '@scholoom/platform/node';
-import { OperationError } from '@scholoom/protocol/core';
+import { type CallContext, OperationError } from '@scholoom/protocol/core';
 import {
   type Artifact,
   type FileContent,
@@ -38,6 +39,7 @@ import * as tables from './schema.js';
 export type ContainerInitializer = (database: Database.Database, internal: string) => Promise<void>;
 
 const hidden = new Set(['.scholoom', '.git', 'node_modules', 'dist', 'build', 'target', '.venv']);
+const accessScope = new AsyncLocalStorage<{ agent: boolean; projectId?: string | undefined }>();
 export const isPrivate = (name: string) =>
   hidden.has(name) ||
   name === '.env' ||
@@ -137,17 +139,18 @@ export class ProjectStore {
         id: identity.id,
         path: root,
         name: application ? '普通会话' : basename(root),
-        read: application,
-        write: false,
-        send: application,
+        trust: application ? 'trusted' : 'pending',
         autoBackup: !application,
       };
       const store = new ProjectStore(project, database, applicationDirectory, initializeContainer);
       const grants = store.db.select().from(tables.meta).where(eq(tables.meta.key, 'grants')).get();
-      if (grants) Object.assign(project, JSON.parse(grants.value));
-      project.name =
-        store.db.select().from(tables.meta).where(eq(tables.meta.key, 'name')).get()?.value ??
-        project.name;
+      if (grants) {
+        const saved = JSON.parse(grants.value) as Pick<Project, 'trust' | 'autoBackup'>;
+        if (!['pending', 'trusted', 'restricted'].includes(saved.trust))
+          throw new Error('Invalid project trust');
+        project.trust = application ? 'trusted' : saved.trust;
+        project.autoBackup = application ? false : saved.autoBackup;
+      }
       return store;
     } catch {
       database.close();
@@ -155,7 +158,9 @@ export class ProjectStore {
     }
   }
 
-  grant(values: Pick<Project, 'read' | 'write' | 'send' | 'autoBackup'>): Project {
+  grant(values: Pick<Project, 'trust' | 'autoBackup'>): Project {
+    if (accessScope.getStore()?.agent)
+      throw new OperationError('permissionDenied', 'Agent 不能修改项目信任。');
     this.db
       .insert(tables.meta)
       .values({ key: 'grants', value: JSON.stringify(values) })
@@ -169,21 +174,11 @@ export class ProjectStore {
   check(operation: 'read' | 'write' | 'send'): void {
     if (this.project.id === 'application' && operation !== 'send')
       throw new OperationError('permissionDenied', '普通会话没有项目文件权限。');
-    if (!this.project[operation])
-      throw new OperationError('permissionDenied', `项目尚未授权 ${operation}。`);
-  }
-
-  renameProject(name: string): Project {
-    if (this.project.id === 'application' || !name.trim() || name.length > 200)
-      throw new OperationError('invalidRequest', '项目名称无效。');
-    this.db
-      .insert(tables.meta)
-      .values({ key: 'name', value: name.trim() })
-      .onConflictDoUpdate({ target: tables.meta.key, set: { value: name.trim() } })
-      .run();
-    this.project.name = name.trim();
-    this.touch();
-    return this.project;
+    const caller = accessScope.getStore();
+    if (caller?.agent && caller.projectId !== this.project.id)
+      throw new OperationError('permissionDenied', '项目不属于当前执行范围。');
+    if ((operation === 'send' || caller?.agent) && this.project.trust !== 'trusted')
+      throw new OperationError('permissionDenied', '项目尚未信任，Agent 无法访问项目材料。');
   }
 
   invalidateBases(paths: string[]): void {
@@ -763,7 +758,7 @@ export class ProjectStore {
           .where(eq(tables.fileOperations.id, operation.id))
           .run();
       }
-      copy.grant({ read: false, write: false, send: false, autoBackup: true });
+      copy.grant({ trust: 'pending', autoBackup: true });
     } finally {
       await copy.close();
     }
@@ -778,6 +773,21 @@ export class ProjectStore {
 }
 
 export class Projects {
+  /** Host-bound identity follows asynchronous file operations and their final checks. */
+  withAccess<T>(
+    context: Pick<CallContext, 'role' | 'principal' | 'projectId'>,
+    action: () => T,
+  ): T {
+    const parent = accessScope.getStore();
+    const agent = context.role === 'execution' || context.principal.kind === 'agent';
+    return accessScope.run(
+      {
+        agent: agent || parent?.agent === true,
+        projectId: parent?.agent ? parent.projectId : agent ? context.projectId : undefined,
+      },
+      action,
+    );
+  }
   private stores = new Map<string, ProjectStore>();
   private recent = new Set<string>();
   private registryWrite: Promise<unknown> = Promise.resolve();
@@ -877,15 +887,13 @@ export class Projects {
     return run;
   }
 
-  async create(path: string, name?: string): Promise<ProjectStore> {
+  async create(path: string): Promise<ProjectStore> {
     const target = resolve(path);
     const parent = await realpath(dirname(target));
     if (within(this.directory, join(parent, basename(target))))
       throw new OperationError('permissionDenied', '不能在应用配置目录创建项目。');
     await mkdir(join(parent, basename(target)));
-    const store = await this.open(target);
-    if (name) store.renameProject(name);
-    return store;
+    return this.open(target);
   }
   async forget(id: string): Promise<void> {
     if (id === 'application') throw new OperationError('invalidRequest', '普通会话不能移出。');

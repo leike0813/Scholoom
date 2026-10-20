@@ -1,4 +1,4 @@
-import { expect, test } from './fixture.js';
+import { createSession, expect, test } from './fixture.js';
 
 const rendererUrl = 'http://127.0.0.1:5174/';
 const sampleUrl = `${rendererUrl}?scenario=ui-foundation`;
@@ -46,7 +46,7 @@ test('polish visual states', async ({ uiPage }, info) => {
   await uiPage.emulateMedia({ colorScheme: 'light' });
   await uiPage.getByRole('status', { name: '连接状态' }).hover();
   await uiPage.screenshot({ path: info.outputPath('polish-08-kernel-detail.png') });
-  await uiPage.getByRole('button', { name: '新建会话', exact: true }).click();
+  await createSession(uiPage);
   const row = uiPage
     .getByRole('tree')
     .getByRole('button', { name: /^打开会话 / })

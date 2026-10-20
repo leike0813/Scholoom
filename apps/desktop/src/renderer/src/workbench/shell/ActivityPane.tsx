@@ -35,8 +35,7 @@ interface ProjectGroup {
 }
 
 function groupSessionsByProject(sessions: readonly SessionSummary[]): ProjectGroup[] {
-  // 临时方案：所有会话归为 'default' 项目
-  // TODO: 当协议支持项目分组时，替换为真实项目分组逻辑
+  // 样例注入单一项目；真实项目树由 sessionNavigation 提供。
   return sessions.length > 0 ? [{ id: 'default', sessions: [...sessions] }] : [];
 }
 
@@ -82,6 +81,7 @@ function ProjectNode({
           }}
           title="新建会话"
           aria-label={`在${projectName}中新建会话`}
+          disabled={!onNewSession}
         >
           <IconPlus />
         </button>
@@ -197,15 +197,6 @@ export function ActivityPane({
         <button
           type="button"
           className="side-nav__item"
-          onClick={createSession}
-          disabled={!createSession}
-        >
-          <IconPlus />
-          新建会话
-        </button>
-        <button
-          type="button"
-          className="side-nav__item"
           onClick={openSessionSearch}
           disabled={!openSessionSearch}
         >
@@ -300,13 +291,11 @@ export function ActivityPane({
 
 export function ActivityRail({
   onExpand,
-  createSession,
   openLibrary,
   openSessionSearch,
   openProjectOnboarding,
 }: {
   onExpand: () => void;
-  createSession?: (() => void) | undefined;
   openLibrary?: (() => void) | undefined;
   openSessionSearch?: (() => void) | undefined;
   openProjectOnboarding?: (() => void) | undefined;
@@ -321,16 +310,6 @@ export function ActivityRail({
         aria-label="展开左区"
       >
         <IconSidebarLeft />
-      </button>
-      <button
-        type="button"
-        className="icon-btn"
-        title="新建会话"
-        aria-label="新建会话"
-        onClick={createSession}
-        disabled={!createSession}
-      >
-        <IconPlus />
       </button>
       <button
         type="button"

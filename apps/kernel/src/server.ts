@@ -143,6 +143,8 @@ export async function startKernelServer(
     let latestRevision = 0;
     let sessionsChanged = false;
     let libraryChanged = false;
+    let activeChanged = false;
+    const sessionProjectIds = new Set<string>();
     const watches = new Map<string, string>();
     const filePaths = new Set<string>();
     let broadChange = false;
@@ -214,10 +216,16 @@ export async function startKernelServer(
               clearTimeout(changeTimer);
               changeTimer = undefined;
               sessionsChanged = false;
+              activeChanged = false;
               filePaths.clear();
               broadChange = false;
             }
             scope = next;
+            for (const projectId of sessionProjectIds) {
+              if (!next.navigationProjectIds?.includes(projectId))
+                sessionProjectIds.delete(projectId);
+            }
+            if (sessionProjectIds.size) changeTimer ??= setTimeout(flushChange, 50);
           }
           const result = await application.call(...args);
           if (args[0] === 'files.watch') {
@@ -250,19 +258,31 @@ export async function startKernelServer(
             resync: true,
             ...(sessionsChanged ? { sessionsChanged: true } : {}),
             ...(libraryChanged ? { libraryChanged: true } : {}),
+            ...(sessionProjectIds.size ? { sessionProjectIds: [...sessionProjectIds] } : {}),
             ...(!broadChange && filePaths.size ? { filePaths: [...filePaths] } : {}),
-            ...(scope.projectId ? { projectId: scope.projectId } : {}),
-            ...(scope.sessionId ? { sessionId: scope.sessionId } : {}),
+            ...(activeChanged && scope.projectId ? { projectId: scope.projectId } : {}),
+            ...(activeChanged && scope.sessionId ? { sessionId: scope.sessionId } : {}),
           },
         }),
       );
       sessionsChanged = false;
       libraryChanged = false;
+      activeChanged = false;
+      sessionProjectIds.clear();
       filePaths.clear();
       broadChange = false;
     };
     const unsubscribe = application?.subscribe((change) => {
       if (!scope || !authenticated.has(socket)) return;
+      if (
+        change.sessionsChanged &&
+        change.projectId &&
+        scope.navigationProjectIds?.includes(change.projectId)
+      ) {
+        sessionProjectIds.add(change.projectId);
+        latestRevision = change.revision;
+        changeTimer ??= setTimeout(flushChange, 50);
+      }
       if (scope.projectId && change.projectId && scope.projectId !== change.projectId) return;
       if (
         scope.sessionId &&
@@ -272,6 +292,7 @@ export async function startKernelServer(
       )
         return;
       latestRevision = change.revision;
+      activeChanged = true;
       sessionsChanged ||= change.sessionsChanged === true;
       libraryChanged ||= change.libraryChanged === true;
       if (change.filePaths && !broadChange) {

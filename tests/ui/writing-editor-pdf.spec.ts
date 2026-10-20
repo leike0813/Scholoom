@@ -15,10 +15,7 @@ test('manual PDF previews and exports use saved Quarto and native multi-file TeX
     await addProject(uiPage, project, { mode: 'create' });
     await uiPage.getByRole('button', { name: '设置', exact: true }).click();
     await uiPage.getByText('项目权限与备份', { exact: true }).click();
-    await uiPage.getByLabel('读取项目材料', { exact: true }).check();
-    await uiPage
-      .getByLabel('新建、修改、重命名和回收／恢复项目文件及目录', { exact: true })
-      .check();
+    await uiPage.getByRole('checkbox', { name: /^信任项目/ }).check();
     await uiPage.getByRole('button', { name: '保存项目授权', exact: true }).click();
     await mkdir(join(project, 'chapters'));
     await writeFile(

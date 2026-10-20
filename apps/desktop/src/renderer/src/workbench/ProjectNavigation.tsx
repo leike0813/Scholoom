@@ -1,7 +1,6 @@
 import type { KernelClient } from '@scholoom/client';
 import type { Effort, Project, ProjectBackup, WorkbenchSnapshot } from '@scholoom/protocol';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { ConfirmAction } from './shell/menu';
+import { useCallback, useEffect, useState } from 'react';
 
 type Call = KernelClient['call'];
 
@@ -27,9 +26,7 @@ export function ProjectControls({
   const [defaultEffort, setDefaultEffort] = useState<Effort | ''>('');
   const [error, setError] = useState('');
   const [grants, setGrants] = useState({
-    read: false,
-    write: false,
-    send: false,
+    trust: 'restricted' as 'trusted' | 'restricted',
     autoBackup: true,
   });
   const [backups, setBackups] = useState<ProjectBackup[]>([]);
@@ -44,15 +41,15 @@ export function ProjectControls({
   const [archivedError, setArchivedError] = useState('');
   const provider = snapshot?.provider;
   const project = snapshot?.projects.find((item) => item.id === selectedProject);
-  const { id, read = false, write = false, send = false, autoBackup = true } = project ?? {};
+  const { id, trust = 'pending', autoBackup = true } = project ?? {};
   useEffect(() => {
     if (!id) return;
-    setGrants({ read, write, send, autoBackup });
+    setGrants({ trust: trust === 'trusted' ? 'trusted' : 'restricted', autoBackup });
     setBackups([]);
     setArchivedSessions([]);
     setArchivedCursor(undefined);
     setArchivedError('');
-  }, [id, read, write, send, autoBackup]);
+  }, [id, trust, autoBackup]);
   const providerModel = provider?.model;
   const providerDefaultEffort = provider?.defaultEffort;
   useEffect(() => {
@@ -238,25 +235,29 @@ export function ProjectControls({
       <details>
         <summary>项目权限与备份</summary>
         <p>授权对象：{project.path}；外部接收方：MiniMax M Plan 中国区。</p>
-        {(['read', 'write', 'send', 'autoBackup'] as const).map((grant) => (
-          <label key={grant}>
-            <input
-              type="checkbox"
-              checked={grants[grant]}
-              onChange={(event) =>
-                setGrants((value) => ({ ...value, [grant]: event.target.checked }))
-              }
-            />
-            {
-              {
-                read: '读取项目材料',
-                write: '新建、修改、重命名和回收／恢复项目文件及目录',
-                send: '将项目材料发送到 MiniMax',
-                autoBackup: '自动备份',
-              }[grant]
+        <label>
+          <input
+            type="checkbox"
+            checked={grants.trust === 'trusted'}
+            onChange={(event) =>
+              setGrants((value) => ({
+                ...value,
+                trust: event.target.checked ? 'trusted' : 'restricted',
+              }))
             }
-          </label>
-        ))}
+          />
+          信任项目（允许 Agent 读取、修改及外发项目材料）
+        </label>
+        <label>
+          <input
+            type="checkbox"
+            checked={grants.autoBackup}
+            onChange={(event) =>
+              setGrants((value) => ({ ...value, autoBackup: event.target.checked }))
+            }
+          />
+          自动备份
+        </label>
         <button
           type="button"
           className="btn"

@@ -150,7 +150,7 @@ export class ManualApplication {
         importFinish: (input) => port.call('files.importFinish', input),
       };
     });
-    this.broker.register('editor-platform', {
+    this.registerProjectHandlers('editor-platform', {
       'platform.editorCommand': async (input, context) => {
         if (context.moduleId !== 'editor')
           throw new OperationError('permissionDenied', '编译命令只允许编辑器能力消费。');
@@ -188,17 +188,21 @@ export class ManualApplication {
       },
     );
     this.directories = new DirectoryBrowser(directory);
-    this.broker.register('project-materials', {
-      'project.checkRead': ({ projectId }) => {
-        this.projects.get(projectId).check('read');
-        return { ok: true };
+    this.registerProjectHandlers('project-materials', {
+      'project.checkRead': ({ projectId, agent }, context) => {
+        return this.projectMaterialAccess(projectId, agent, context, () => {
+          this.projects.get(projectId).check('read');
+          return { ok: true };
+        });
       },
-      'project.material': ({ projectId, path }, context) => {
+      'project.material': ({ projectId, path, agent }, context) => {
         this.checkProjectScope(projectId, context);
-        return this.projects.get(projectId).material(path);
+        return this.projectMaterialAccess(projectId, agent, context, () =>
+          this.projects.get(projectId).material(path),
+        );
       },
     });
-    this.broker.register('project-execution', {
+    this.registerProjectHandlers('project-execution', {
       'project.fileRevision': ({ projectId }, context) => {
         this.checkProjectScope(projectId, context);
         return this.projects.get(projectId).files.revision;
@@ -240,7 +244,7 @@ export class ManualApplication {
       },
       new MaterialReading(undefined, this.processes),
     );
-    this.broker.register('manual', this.foundationHandlers);
+    this.registerProjectHandlers('manual', this.foundationHandlers);
     this.broker.register('library-internal', {
       'library.check': ({ access }) => {
         this.library.check(access);
@@ -251,6 +255,36 @@ export class ManualApplication {
   async initialize(): Promise<void> {
     await this.library.initialize();
     await this.projects.initialize();
+  }
+  private registerProjectHandlers<K extends keyof ApplicationInputs>(
+    owner: string,
+    handlers: Pick<Handlers<ApplicationInputs, ApplicationOutputs>, K>,
+  ): void {
+    const guarded = Object.fromEntries(
+      Object.entries(handlers).map(([method, handler]) => [
+        method,
+        (input: unknown, context: CallContext) =>
+          this.projects.withAccess(context, () =>
+            (handler as (input: unknown, context: CallContext) => unknown)(input, context),
+          ),
+      ]),
+    ) as Pick<Handlers<ApplicationInputs, ApplicationOutputs>, K>;
+    this.broker.register(owner, guarded);
+  }
+  private projectMaterialAccess<T>(
+    projectId: string,
+    agent: boolean | undefined,
+    context: CallContext,
+    action: () => T,
+  ): T {
+    if (agent !== undefined && context.moduleId !== 'library')
+      throw new OperationError('permissionDenied', '材料来源只能由文献模块提供。');
+    return this.projects.withAccess(
+      agent
+        ? { role: 'execution', principal: { kind: 'agent', id: 'library-batch' }, projectId }
+        : context,
+      action,
+    );
   }
   protected async projectOpened(): Promise<void> {}
   protected async projectReplacing(_projectId: string): Promise<void> {}
@@ -306,6 +340,7 @@ export class ManualApplication {
   private checkProjectScope(projectId: string, context: CallContext): void {
     if (context.role === 'execution' && context.projectId !== projectId)
       throw new OperationError('permissionDenied', '项目不属于当前执行范围。');
+    if (context.role === 'execution') this.projects.get(projectId).check('send');
   }
   projectFiles(context: CallContext): ProjectFilePort {
     const methods = [
@@ -445,7 +480,10 @@ export class ManualApplication {
     },
     'library.importProjectFiles': async (input, context) => {
       this.checkProjectScope(input.projectId, context);
-      return this.library.importProjectFiles(input);
+      return this.library.importProjectFiles(
+        input,
+        context.role === 'execution' || context.principal.kind === 'agent',
+      );
     },
     'library.attachments': async (input) => {
       return this.library.attachments(input);
@@ -504,22 +542,18 @@ export class ManualApplication {
     },
     'project.open': async (input) => {
       const store = await this.projects.open(input.path);
+      if (input.trust) store.grant({ trust: input.trust, autoBackup: store.project.autoBackup });
       await this.projectOpened();
       this.changed();
       return store.project;
     },
     'project.create': async (input) => {
       const p = input;
-      const store = await this.projects.create(p.path, p.name);
+      const store = await this.projects.create(p.path);
+      if (p.trust) store.grant({ trust: p.trust, autoBackup: store.project.autoBackup });
       await this.projectOpened();
       this.changed();
       return store.project;
-    },
-    'project.rename': async (input) => {
-      const p = input;
-      const result = this.projects.get(p.projectId).renameProject(p.name);
-      this.changed();
-      return result;
     },
     'project.forget': async (input) => {
       await this.projects.forget(input.projectId);
@@ -588,9 +622,7 @@ export class ManualApplication {
       const p = input;
       const project = this.projects.get(p.projectId);
       const result = project.grant({
-        read: p.read,
-        write: p.write,
-        send: p.send,
+        trust: p.trust,
         autoBackup: p.autoBackup,
       });
       this.changed(p.projectId);

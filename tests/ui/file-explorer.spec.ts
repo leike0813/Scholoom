@@ -1,24 +1,16 @@
-import { mkdir, mkdtemp, readFile, rename, rm, writeFile } from 'node:fs/promises';
+import { access, mkdir, mkdtemp, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { arch, cpus, platform, tmpdir, totalmem } from 'node:os';
 import { basename, join } from 'node:path';
 import { startModelKernel } from '../model-kernel.js';
 import { createModelServer } from '../model-server.js';
-import { addProject, expect, test } from './fixture.js';
+import { addProject, cancelProjectOnboarding, createSession, expect, test } from './fixture.js';
 
-async function authorizeProject(page: Parameters<typeof addProject>[0]) {
-  await page.getByRole('button', { name: '设置', exact: true }).click();
-  await page.getByText('项目权限与备份', { exact: true }).click();
-  await page.getByLabel('读取项目材料', { exact: true }).check();
-  await page.getByLabel('新建、修改、重命名和回收／恢复项目文件及目录', { exact: true }).check();
-  await page.getByRole('button', { name: '保存项目授权', exact: true }).click();
-}
 async function openProject(page: Parameters<typeof addProject>[0], project: string) {
   const model = await createModelServer();
   const stop = await startModelKernel(process.env.SCHOOLOOM_UI_DATA_DIR as string, model.url);
   await page.goto('http://127.0.0.1:5174/');
   await expect(page.getByRole('status', { name: '连接状态' })).toContainText('已连接');
   await addProject(page, project);
-  await authorizeProject(page);
   return { model, stop };
 }
 
@@ -211,7 +203,6 @@ test('keyboard cut crosses projects and replacement keeps the prior target recov
     await expect(row).toBeFocused();
     await row.press('ControlOrMeta+x');
     await addProject(uiPage, target);
-    await authorizeProject(uiPage);
     await row.focus();
     await row.press('ControlOrMeta+v');
     const progress = uiPage.getByRole('region', { name: '文件传输', exact: true });
@@ -291,12 +282,7 @@ test('ten thousand loaded rows stay windowed and respond while binary import is 
     await uiPage.getByText('模型设置', { exact: true }).click();
     await uiPage.getByLabel('MiniMax API Key', { exact: true }).fill('synthetic-performance-key');
     await uiPage.getByRole('button', { name: '保存凭据', exact: true }).click();
-    const sendPermission = uiPage.getByLabel('将项目材料发送到 MiniMax', { exact: true });
-    if (!(await sendPermission.isVisible()))
-      await uiPage.getByText('项目权限与备份', { exact: true }).click();
-    await sendPermission.check();
-    await uiPage.getByRole('button', { name: '保存项目授权', exact: true }).click();
-    await uiPage.getByRole('button', { name: '新建会话', exact: true }).click();
+    await createSession(uiPage, basename(project));
     await uiPage.getByRole('textbox', { name: '研究指令' }).fill('MODEL_STREAM');
     await uiPage.getByRole('button', { name: '发送指令', exact: true }).click();
     await expect.poll(() => model.requests.length).toBe(1);
@@ -393,5 +379,28 @@ test('ten thousand loaded rows stay windowed and respond while binary import is 
     await model.close();
     await rm(project, { recursive: true });
     await rm(importSource, { recursive: true });
+  }
+});
+
+test('cancelling project trust does not create or register a project', async ({ uiPage }) => {
+  const root = await mkdtemp(join(tmpdir(), 'scholoom-cancel-project-ui-'));
+  const project = join(root, 'not-created');
+  try {
+    await uiPage.goto('http://127.0.0.1:5174/');
+    await expect(uiPage.getByRole('status', { name: '连接状态' })).toContainText('已连接');
+    await cancelProjectOnboarding(uiPage, project, { mode: 'create' });
+    await expect
+      .poll(() =>
+        access(project).then(
+          () => true,
+          () => false,
+        ),
+      )
+      .toBe(false);
+    await expect(
+      uiPage.getByRole('button', { name: 'not-created，已展开', exact: true }),
+    ).toHaveCount(0);
+  } finally {
+    await rm(root, { recursive: true, force: true });
   }
 });

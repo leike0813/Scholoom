@@ -86,7 +86,6 @@ export interface TabGroupsProps {
   onPin?: ((groupIndex: number, tabId: string) => void) | undefined;
   /** 空态带入的当前工作区名；缺省时不显示。 */
   contextName?: string | undefined;
-  onCreateSession?: (() => void) | undefined;
   onOpenSettings?: (() => void) | undefined;
 }
 
@@ -102,7 +101,6 @@ export function TabGroups({
   renderLibrary,
   renderReader,
   contextName,
-  onCreateSession,
   onOpenSettings,
 }: TabGroupsProps) {
   if (groups.length === 0) {
@@ -113,18 +111,11 @@ export function TabGroups({
           {contextName ? `当前工作区：${contextName}。` : ''}
           从文件树或 Agent 会话打开材料后，会在这里以 tab 呈现。
         </p>
-        {onCreateSession || onOpenSettings ? (
+        {onOpenSettings ? (
           <div className="center-empty__actions">
-            {onCreateSession ? (
-              <button type="button" className="btn" onClick={onCreateSession}>
-                开始新会话
-              </button>
-            ) : null}
-            {onOpenSettings ? (
-              <button type="button" className="btn" onClick={onOpenSettings}>
-                打开设置
-              </button>
-            ) : null}
+            <button type="button" className="btn" onClick={onOpenSettings}>
+              打开设置
+            </button>
           </div>
         ) : null}
       </div>

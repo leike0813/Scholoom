@@ -76,6 +76,7 @@ export interface WorkbenchSession {
   sessionSearchDialog?: ReactNode;
   openProjectOnboarding?: () => void;
   projectOnboardingDialog?: ReactNode;
+  projectTrustDialog?: ReactNode;
   activeSessionTitle?: string;
   openMessageFile?: (path: string, fileId?: string) => Promise<void>;
   projectId?: string;

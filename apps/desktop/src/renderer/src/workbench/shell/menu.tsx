@@ -104,12 +104,14 @@ export function ContextMenu({
   position,
   onClose,
   returnFocus,
+  trigger,
   children,
 }: {
   label: string;
   position: { x: number; y: number };
   onClose: () => void;
   returnFocus?: RefObject<HTMLElement | null> | undefined;
+  trigger?: RefObject<HTMLElement | null> | undefined;
   children: ReactNode;
 }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -121,13 +123,26 @@ export function ContextMenu({
     if (!node) return;
     previousFocus.current =
       document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    const rect = node.getBoundingClientRect();
-    const margin = 8;
-    setFrame({
-      left: Math.max(margin, Math.min(position.x, window.innerWidth - rect.width - margin)),
-      top: Math.max(margin, Math.min(position.y, window.innerHeight - rect.height - margin)),
-      ready: true,
-    });
+    const place = () => {
+      const rect = node.getBoundingClientRect();
+      const margin = 8;
+      const next = {
+        left: Math.max(margin, Math.min(position.x, window.innerWidth - rect.width - margin)),
+        top: Math.max(margin, Math.min(position.y, window.innerHeight - rect.height - margin)),
+        ready: true,
+      };
+      setFrame((current) =>
+        current.ready && current.left === next.left && current.top === next.top ? current : next,
+      );
+    };
+    place();
+    const observer = new ResizeObserver(place);
+    observer.observe(node);
+    window.addEventListener('resize', place);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', place);
+    };
   }, [position.x, position.y]);
 
   useEffect(() => {
@@ -135,7 +150,8 @@ export function ContextMenu({
     if (!node) return;
     const focusTimer = requestAnimationFrame(() => focusable(node)[0]?.focus());
     const onPointer = (event: PointerEvent) => {
-      if (!node.contains(event.target as Node)) onClose();
+      if (!node.contains(event.target as Node) && !trigger?.current?.contains(event.target as Node))
+        onClose();
     };
     const onKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
@@ -159,10 +175,10 @@ export function ContextMenu({
       document.removeEventListener('pointerdown', onPointer, true);
       document.removeEventListener('contextmenu', onPointer, true);
       document.removeEventListener('keydown', onKey, true);
-      const target = returnFocus?.current ?? previousFocus.current;
+      const target = trigger?.current ?? returnFocus?.current ?? previousFocus.current;
       if (target && document.contains(target)) target.focus();
     };
-  }, [onClose, returnFocus]);
+  }, [onClose, returnFocus, trigger]);
 
   return (
     <MenuClose.Provider value={onClose}>
@@ -274,8 +290,8 @@ export function ConfirmAction({
           onClick={() => {
             void (async () => {
               try {
-                await onConfirm();
-                close();
+                const result = await onConfirm();
+                if (result !== false) close();
               } catch {
                 // 调用方在原地显示错误，菜单保持打开。
               }

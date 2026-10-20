@@ -17,13 +17,6 @@ test('visual editor protects external loads and recovers drafts after conversion
     await uiPage.goto('http://127.0.0.1:5174/');
     await expect(uiPage.getByRole('status', { name: '连接状态' })).toContainText('已连接');
     await addProject(uiPage, project, { mode: 'create' });
-    await uiPage.getByRole('button', { name: '设置', exact: true }).click();
-    await uiPage.getByText('项目权限与备份', { exact: true }).click();
-    await uiPage.getByLabel('读取项目材料', { exact: true }).check();
-    await uiPage
-      .getByLabel('新建、修改、重命名和回收／恢复项目文件及目录', { exact: true })
-      .check();
-    await uiPage.getByRole('button', { name: '保存项目授权', exact: true }).click();
     await writeFile(join(project, 'draft.md'), original);
     const openDraft = () =>
       uiPage.getByRole('treeitem', { name: '打开文件 draft.md', exact: true }).dblclick();

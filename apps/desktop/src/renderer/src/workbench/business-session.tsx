@@ -19,6 +19,7 @@ import { FileExplorer } from './file-explorer/Explorer';
 import { LibraryTab } from './library/LibraryTab';
 import { PdfReader } from './PdfReader';
 import { ProjectOnboardingDialog } from './ProjectOnboarding';
+import { ProjectTrustDialog } from './ProjectTrustDialog';
 import { FileEditor, ProjectControls } from './project-ui';
 import { toThreadMessage } from './projection';
 import { readerKindForName } from './reader-material';
@@ -45,7 +46,8 @@ export function useBusinessSession(
   const [earlierComplete, setEarlierComplete] = useState(false);
   const [configured, setConfigured] = useState(false);
   const [creating, setCreating] = useState(false);
-  const [listEpoch, setListEpoch] = useState(0);
+  const [dismissedTrust, setDismissedTrust] = useState('');
+  const [requestedTrust, setRequestedTrust] = useState('');
   const [sessionSearchOpen, setSessionSearchOpen] = useState(false);
   const [projectOnboardingOpen, setProjectOnboardingOpen] = useState(false);
   const [recovered, setRecovered] = useState<BusinessParams<'session.send'>>();
@@ -61,6 +63,11 @@ export function useBusinessSession(
   const selectedRef = useRef(selection);
   selectedRef.current = selection;
   const lifecycle = useRef(0);
+  const knownProjects = useRef<WorkbenchSnapshot['projects']>([]);
+  if (received) knownProjects.current = received.value.projects;
+  const navigationKey = JSON.stringify(
+    knownProjects.current.filter((item) => item.recent !== false).map((item) => item.id),
+  );
 
   const refresh = useCallback(async () => {
     if (!client || phase !== 'connected') return;
@@ -70,6 +77,9 @@ export function useBusinessSession(
       result = await client.call('workbench.watch', {
         projectId: selected.projectId,
         includeSessions: false,
+        navigationProjectIds: [
+          ...new Set([selected.projectId, ...(JSON.parse(navigationKey) as string[])]),
+        ].slice(0, 101),
         ...(selected.sessionId ? { sessionId: selected.sessionId } : {}),
       });
     } catch (reason) {
@@ -85,7 +95,7 @@ export function useBusinessSession(
     }
     if (selected !== selectedRef.current) return;
     setReceived({ selection: selected, value: result });
-  }, [client, phase]);
+  }, [client, phase, navigationKey]);
 
   useEffect(() => {
     if (!client || phase !== 'connected') return;
@@ -131,6 +141,7 @@ export function useBusinessSession(
     void update();
     const unsubscribe = client.subscribeChanges((change) => {
       if (change.filePaths) return;
+      if (change.sessionProjectIds && !change.projectId && !change.libraryChanged) return;
       void update();
     });
     return () => {
@@ -253,6 +264,7 @@ export function useBusinessSession(
     setEarlier([]);
     setEarlierComplete(false);
     setRecovered(undefined);
+    setFile(undefined);
     setSelection(next);
   };
   const safe = (action: () => Promise<unknown>) => {
@@ -328,7 +340,7 @@ export function useBusinessSession(
       phase !== 'connected' ||
       !snapshot?.provider.configured ||
       !session ||
-      !project?.send ||
+      project?.trust !== 'trusted' ||
       (recovered?.projectId === selection.projectId && recovered.sessionId === selection.sessionId),
     onNew: async (message) => {
       const rawText = message.content
@@ -384,16 +396,15 @@ export function useBusinessSession(
         await call('session.cancel', { projectId: selection.projectId, sessionId: session.id });
     },
   };
-  const createSession = () => {
+  const createSession = (projectId = selectedRef.current.projectId) => {
     if (creating) return;
     setCreating(true);
     const selected = selectedRef.current;
     safe(async () => {
       try {
-        const result = await call('session.create', { projectId: selected.projectId });
+        const result = await call('session.create', { projectId });
         if (selected === selectedRef.current) {
-          setListEpoch((value) => value + 1);
-          select(selected.projectId, result.id);
+          select(projectId, result.id);
         }
       } finally {
         setCreating(false);
@@ -407,17 +418,19 @@ export function useBusinessSession(
       ? {
           sessionNavigation: (
             <SessionList
-              key={`${selection.projectId}:${listEpoch}`}
+              key={directory}
               client={client}
-              projects={snapshot?.projects ?? []}
+              projects={knownProjects.current}
               projectId={selection.projectId}
               activeSessionId={selection.sessionId}
               enabled={phase === 'connected' && configured}
-              select={(id) => select(selection.projectId, id)}
+              select={select}
+              createSession={creating ? undefined : createSession}
+              storageKey={directory}
               selectProject={(id) => select(id, readDraft(draftKey(directory, id, 'session')))}
               forgetProject={(removedId, nextId) => {
                 writeDraft(draftKey(directory, removedId, 'session'), '');
-                select(nextId, '');
+                if (selectedRef.current.projectId === removedId) select(nextId, '');
               }}
               onChanged={refresh}
             />
@@ -436,6 +449,33 @@ export function useBusinessSession(
               }
             : {}),
           openProjectOnboarding,
+          ...(project &&
+          project.id !== 'application' &&
+          !projectOnboardingOpen &&
+          ((project.trust === 'pending' && dismissedTrust !== `${directory}:${project.id}`) ||
+            requestedTrust === project.id)
+            ? {
+                projectTrustDialog: (
+                  <ProjectTrustDialog
+                    key={project.id}
+                    path={project.path}
+                    enabled={phase === 'connected'}
+                    onChoose={async (trust) => {
+                      await call('project.grant', {
+                        projectId: project.id,
+                        trust,
+                        autoBackup: project.autoBackup,
+                      });
+                      setRequestedTrust('');
+                    }}
+                    onClose={() => {
+                      setDismissedTrust(`${directory}:${project.id}`);
+                      setRequestedTrust('');
+                    }}
+                  />
+                ),
+              }
+            : {}),
           ...(projectOnboardingOpen
             ? {
                 projectOnboardingDialog: (
@@ -476,7 +516,7 @@ export function useBusinessSession(
           ? '内核未连接'
           : !project
             ? '正在核对权限'
-            : `读取${project.read ? '已授权' : '未授权'} · 写入${project.write ? '已授权' : '未授权'} · 外发${project.send ? '已授权' : '未授权'}${provider?.configured ? '' : ' · 凭据未配置'}`,
+            : `${project.id === 'application' ? '普通会话' : project.trust === 'trusted' ? '已信任项目' : project.trust === 'pending' ? '项目信任待确认' : '受限项目'}${provider?.configured ? '' : ' · 凭据未配置'}`,
       effort: modelOverride?.effort ?? retainedEffort.current[effortKey] ?? provider?.defaultEffort,
       supportsEffort: modelOption?.supportsEffort ?? true,
       defaultModel: provider?.model,
@@ -523,7 +563,8 @@ export function useBusinessSession(
           revision={snapshot?.fileRevision ?? 0}
           onOpenFile={setFile}
           onChanged={(stored) => {
-            if (!target.fileId) setFile(stored);
+            if (!target.fileId && selectedRef.current.projectId === target.projectId)
+              setFile(stored);
             void refresh();
           }}
         />
@@ -562,6 +603,18 @@ export function useBusinessSession(
     ),
     notices: (
       <>
+        {project && project.id !== 'application' && project.trust !== 'trusted' ? (
+          <div className="execution-status" role="status">
+            受限项目可人工浏览和编辑，信任后可使用 Agent。
+            <button
+              type="button"
+              disabled={phase !== 'connected'}
+              onClick={() => setRequestedTrust(project.id)}
+            >
+              信任项目…
+            </button>
+          </div>
+        ) : null}
         {session?.archived ? (
           <div className="execution-status" role="status">
             会话已归档，历史和草稿保留。
@@ -773,7 +826,9 @@ export function useBusinessSession(
     })),
     activeSessionId: selection.sessionId,
     selectSession: (id) => select(selection.projectId, id),
-    ...(phase === 'connected' && snapshot && !creating ? { createSession } : {}),
+    ...(phase === 'connected' && snapshot && !creating
+      ? { createSession: () => createSession() }
+      : {}),
     cancel:
       running && session
         ? () =>

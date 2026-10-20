@@ -148,7 +148,7 @@
       "sourceRoot": "src",
       "allows": ["@scholoom/platform", "@scholoom/protocol"],
       "systemAdapters": [
-        { "path": "src/store.ts", "apis": ["fs", "fs/promises"] },
+        { "path": "src/store.ts", "apis": ["async_hooks", "fs", "fs/promises"] },
         { "path": "src/files.ts", "apis": ["fs", "fs/promises"] },
         { "path": "src/transfers.ts", "apis": ["fs", "fs/promises", "stream/promises"] },
         { "path": "src/file-watch.ts", "apis": ["fs", "fs/promises"] },

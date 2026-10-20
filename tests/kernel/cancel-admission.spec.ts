@@ -24,7 +24,7 @@ test('cancelling during an asynchronous project check prevents a new structure e
   try {
     await app.initialize();
     const project = await app.projects.create(join(root, 'project'));
-    project.grant({ read: true, write: true, send: true, autoBackup: false });
+    project.grant({ trust: 'trusted', autoBackup: false });
     const session = app.harness.create(project.project.id);
     const scope = { projectId: project.project.id, sessionId: session.id };
     const createPort = app.harnessProject.bind(app);

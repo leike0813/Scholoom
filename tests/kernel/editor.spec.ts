@@ -17,9 +17,7 @@ async function fixture() {
   const project = await app.call('project.open', { path });
   await app.call('project.grant', {
     projectId: project.id,
-    read: true,
-    write: true,
-    send: false,
+    trust: 'restricted',
     autoBackup: false,
   });
   return { root, path, app, projectId: project.id };

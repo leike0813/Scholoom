@@ -101,7 +101,7 @@ test('a capability cannot wait for its parent process slot and is refused before
     await app.initialize();
     const project = await app.projects.create(join(root, 'project'));
     await writeFile(join(root, 'project', 'input.md'), 'capacity sample');
-    project.grant({ read: true, write: true, send: true, autoBackup: false });
+    project.grant({ trust: 'trusted', autoBackup: false });
     await harness.initialize();
     const session = harness.create(project.project.id);
     await harness.send({

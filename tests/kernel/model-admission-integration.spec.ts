@@ -90,7 +90,7 @@ test('parent and capability keep a single 32-request budget after the capability
   try {
     await app.initialize();
     const project = await app.projects.create(join(root, 'project'));
-    project.grant({ read: true, write: true, send: true, autoBackup: false });
+    project.grant({ trust: 'trusted', autoBackup: false });
     await project.save('input.md', 'bounded evidence 42');
     const session = app.harness.create(project.project.id);
     const scope = { projectId: project.project.id, sessionId: session.id };
@@ -142,7 +142,7 @@ for (const revocation of ['send', 'instance'] as const) {
     try {
       await app.initialize();
       const project = await app.projects.create(join(root, 'project'));
-      project.grant({ read: true, write: true, send: true, autoBackup: false });
+      project.grant({ trust: 'trusted', autoBackup: false });
       const first = app.harness.create(project.project.id),
         second = app.harness.create(project.project.id);
       const send = (sessionId: string) =>
@@ -158,8 +158,7 @@ for (const revocation of ['send', 'instance'] as const) {
       await expect.poll(() => model.requests.length).toBe(1);
       await send(second.id);
       await expect.poll(() => requests).toBe(2);
-      if (revocation === 'send')
-        project.grant({ read: true, write: true, send: false, autoBackup: false });
+      if (revocation === 'send') project.grant({ trust: 'restricted', autoBackup: false });
       else {
         const runId = (await app.snapshot({ projectId: project.project.id, sessionId: second.id }))
           .run?.id;

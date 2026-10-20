@@ -70,9 +70,7 @@ test('harness owns its sessions through native storage and narrow replaceable po
     id: projectId,
     path: join(root, 'project'),
     name: 'Owned project',
-    read: true,
-    write: true,
-    send: true,
+    trust: 'trusted' as const,
     autoBackup: false,
     recent: true,
   };

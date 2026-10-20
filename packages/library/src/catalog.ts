@@ -443,21 +443,23 @@ export class LiteratureCatalog {
   }
   async importProjectFiles(
     input: LibraryInputs['library.importProjectFiles'],
+    agent = true,
   ): Promise<LibraryBatch> {
     if (!validateLibrary('library.importProjectFiles', 'params', input))
       throw new OperationError('invalidRequest', '项目文件批次输入无效。');
-    await this.checkProject(input.projectId);
-    return this.acceptFiles(input, input.projectPaths);
+    await this.checkProject(input.projectId, agent);
+    return this.acceptFiles(input, input.projectPaths, agent);
   }
   private acceptFiles(
     input: LibraryInputs['library.importFiles'] | LibraryInputs['library.importProjectFiles'],
     paths: string[],
+    agent?: boolean,
   ): LibraryBatch {
     this.check('write');
     if (!input.purpose.trim()) throw new OperationError('invalidRequest', '附件用途不能为空。');
     if (input.sourceId) this.source(input.sourceId);
     return this.accept(
-      { kind: 'files', input },
+      { kind: 'files', input, ...(agent !== undefined ? { agent } : {}) },
       paths.map(
         (path): FileItem => ({
           path,
@@ -1057,13 +1059,19 @@ export class LiteratureCatalog {
       let prepared: StoredMaterial | undefined;
       let preparationError: unknown;
       if (request.kind === 'files') {
-        if ('projectId' in request.input) await this.checkProject(request.input.projectId);
+        if ('projectId' in request.input)
+          await this.checkProject(request.input.projectId, request.agent ?? true);
         try {
-          prepared = await this.prepareMaterial(row.input as FileItem, request.input);
+          prepared = await this.prepareMaterial(
+            row.input as FileItem,
+            request.input,
+            request.agent ?? true,
+          );
           if ('projectId' in request.input) {
             const current = await this.resolveProjectMaterial(
               request.input.projectId,
               (row.input as FileItem).path,
+              request.agent ?? true,
             );
             if (
               prepared.source &&
@@ -1075,7 +1083,8 @@ export class LiteratureCatalog {
           preparationError = error;
         }
         this.check('write');
-        if ('projectId' in request.input) await this.checkProject(request.input.projectId);
+        if ('projectId' in request.input)
+          await this.checkProject(request.input.projectId, request.agent ?? true);
       }
       this.db.transaction(() => {
         let result: LibraryEntry;
@@ -1121,24 +1130,29 @@ export class LiteratureCatalog {
     }
     this.setBatch({ ...this.batchValue(id), state: 'completed' });
   }
-  private async resolveProjectMaterial(projectId: string, path: string): Promise<ProjectMaterial> {
-    const files = await this.checkProject(projectId);
-    const result = await files['project.material']({ projectId, path });
-    await this.checkProject(projectId);
+  private async resolveProjectMaterial(
+    projectId: string,
+    path: string,
+    agent: boolean,
+  ): Promise<ProjectMaterial> {
+    const files = await this.checkProject(projectId, agent);
+    const result = await files['project.material']({ projectId, path, agent });
+    await this.checkProject(projectId, agent);
     return result;
   }
-  private async checkProject(projectId: string) {
+  private async checkProject(projectId: string, agent: boolean) {
     if (!this.projectFiles) throw new OperationError('permissionDenied', '项目文件访问未配置。');
-    await this.projectFiles['project.checkRead']({ projectId });
+    await this.projectFiles['project.checkRead']({ projectId, agent });
     return this.projectFiles;
   }
   private async prepareMaterial(
     item: FileItem,
     input: LibraryInputs['library.importFiles'] | LibraryInputs['library.importProjectFiles'],
+    agent: boolean,
   ): Promise<StoredMaterial> {
     const source =
       'projectId' in input
-        ? await this.resolveProjectMaterial(input.projectId, item.path)
+        ? await this.resolveProjectMaterial(input.projectId, item.path, agent)
         : undefined;
     const path = source?.nativePath ?? item.path;
     const storage = input.storage ?? 'managed';

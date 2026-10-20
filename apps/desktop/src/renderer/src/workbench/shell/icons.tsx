@@ -183,6 +183,20 @@ export function IconMore() {
   );
 }
 
+export function IconClose() {
+  return (
+    <Svg>
+      <path
+        d="m4 4 8 8M12 4l-8 8"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+    </Svg>
+  );
+}
+
 export function IconTheme() {
   return (
     <Svg>

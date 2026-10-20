@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { type Browser, chromium, expect, type Page, test } from '@playwright/test';
 import type { BootstrapResult } from '../../packages/protocol/dist/index.js';
 import { runKernel } from '../kernel-fixture.js';
-import { addProject } from '../ui/fixture.js';
+import { addProject, createSession } from '../ui/fixture.js';
 
 const projectRoot = fileURLToPath(new URL('../../', import.meta.url));
 const commandTimeoutMs = 60_000;
@@ -230,20 +230,15 @@ async function openProject(page: Page, directory: string): Promise<void> {
 
 /** 经 CDP 连接的 Electron 页无法替换主进程目录选择器，改从“管理项目”菜单切换到已登记的最近项目。 */
 async function switchToRecentProject(page: Page, directory: string): Promise<void> {
-  await page.getByLabel(/^管理项目 /).click();
-  await page.getByRole('button', { name: basename(directory), exact: true }).click();
+  await page.getByRole('button', { name: `管理项目 ${basename(directory)}`, exact: true }).click();
+  await page.getByRole('button', { name: '进入项目', exact: true }).click();
   await expect(page.getByLabel('执行上下文')).toContainText(basename(directory));
 }
 
 async function grantProject(page: Page): Promise<void> {
   await page.getByRole('button', { name: '设置', exact: true }).click();
   await page.getByText('项目权限与备份', { exact: true }).click();
-  for (const label of [
-    '读取项目材料',
-    '新建、修改、重命名和回收／恢复项目文件及目录',
-    '将项目材料发送到 MiniMax',
-  ])
-    await page.getByLabel(label, { exact: true }).check();
+  await page.getByRole('checkbox', { name: /^信任项目/ }).check();
   await page.getByRole('button', { name: '保存项目授权' }).click();
 }
 
@@ -422,7 +417,7 @@ test.describe('live development harness', () => {
       await waitConnected(page);
       await openProject(page, project);
       await grantProject(page);
-      await page.getByRole('button', { name: '新建会话', exact: true }).click();
+      await createSession(page, basename(project));
       await page.getByLabel('附加 input.md', { exact: true }).check();
       await page
         .getByRole('textbox', { name: '研究指令' })
