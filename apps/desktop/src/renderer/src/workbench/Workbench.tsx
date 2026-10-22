@@ -11,6 +11,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import { ContextContributionProvider } from './context-contributions';
 import { readDraft, subscribeDraft, writeDraft } from './drafts';
 import { projectTarget, resourceKey } from './resource-controller';
 import { StatusBarProvider } from './StatusBarContext';
@@ -493,7 +494,7 @@ function WorkbenchContent({ session }: { session: WorkbenchSession }) {
     };
   }, [session.resourceTarget, flushGroup]);
 
-  return (
+  const content = (
     <AssistantRuntimeProvider runtime={runtime}>
       <ComposerDraft storageKey={session.draftKey} runtime={runtime} />
       <main
@@ -659,5 +660,23 @@ function WorkbenchContent({ session }: { session: WorkbenchSession }) {
         {session.projectTrustDialog}
       </main>
     </AssistantRuntimeProvider>
+  );
+  return (
+    <ContextContributionProvider
+      items={session.contextItems}
+      appendContextItem={session.appendContextItem}
+      removeContextItem={session.removeContextItem}
+      updateContextComment={session.updateContextComment}
+      contextError={session.contextError}
+      publishContext={session.publishContext}
+      activeViewId={activeResource ? activeGroupId : null}
+      receiver={
+        session.projectId && session.activeSessionId
+          ? { projectId: session.projectId, sessionId: session.activeSessionId }
+          : null
+      }
+    >
+      {content}
+    </ContextContributionProvider>
   );
 }

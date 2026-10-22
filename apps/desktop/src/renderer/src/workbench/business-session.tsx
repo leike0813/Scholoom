@@ -1,18 +1,28 @@
 import type { ExternalStoreAdapter, ThreadMessageLike } from '@assistant-ui/react';
-import type { KernelClient } from '@scholoom/client';
+import { type KernelClient, KernelClientError } from '@scholoom/client';
 import type {
   BusinessInputs,
   BusinessOutputs,
   BusinessParams,
   CallArguments,
+  ContextItem,
   Effort,
   Message,
+  WorkbenchContextSnapshot,
   WorkbenchSnapshot,
 } from '@scholoom/protocol';
-import { validateBusiness } from '@scholoom/protocol';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { isContextItems, validateBusiness } from '@scholoom/protocol';
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { ArtifactNotice } from './ArtifactNotice';
-import { draftKey, readDraft, writeDraft } from './drafts';
+import {
+  confirmContextDraft,
+  emptyConversationField,
+  legacyConversationDraft,
+  readContextDraft,
+  workbenchInstanceId,
+  writeContextDraft,
+} from './context-drafts';
+import { readDraft, draftKey as storedDraftKey, subscribeDraft, writeDraft } from './drafts';
 import { fileDocument } from './file-document';
 import { FileExplorer } from './file-explorer/Explorer';
 import { LibraryTab } from './library/LibraryTab';
@@ -36,6 +46,11 @@ export function useBusinessSession(
   client: KernelClient | null,
   phase: KernelPhase,
 ): Partial<WorkbenchSession> {
+  const [instanceId] = useState(workbenchInstanceId);
+  const draftKey = useCallback(
+    (...parts: (string | undefined)[]) => storedDraftKey(instanceId, ...parts),
+    [instanceId],
+  );
   const [received, setReceived] = useState<{
     selection: { projectId: string; sessionId: string };
     value: WorkbenchSnapshot;
@@ -69,6 +84,41 @@ export function useBusinessSession(
   const currentDirectory = client?.getSnapshot().status?.dataDirectory;
   if (currentDirectory) directoryRef.current = currentDirectory;
   const directory = directoryRef.current;
+  const contextKey = draftKey(directory, selection.projectId, selection.sessionId, 'context-items');
+  const contextSerialized = useSyncExternalStore(
+    useCallback((notify) => subscribeDraft(contextKey, notify), [contextKey]),
+    () => readDraft(contextKey),
+  );
+  const [contextError, setContextError] = useState('');
+  let contextItems: ContextItem[] = [];
+  let contextReadError = '';
+  try {
+    contextItems = readContextDraft(contextKey);
+  } catch (reason) {
+    contextReadError = reason instanceof Error ? reason.message : '附加上下文无法恢复。';
+  }
+  const updateContext = (change: (items: ContextItem[]) => ContextItem[]) => {
+    try {
+      writeContextDraft(contextKey, change(readContextDraft(contextKey)));
+      setContextError('');
+    } catch (reason) {
+      setContextError(reason instanceof Error ? reason.message : '附加上下文无法保存。');
+    }
+  };
+  const contextRevision = useRef(0);
+  const publishContext = useCallback(
+    (snapshot: WorkbenchContextSnapshot | null) => {
+      if (!client || phase !== 'connected') return;
+      void client
+        .call('workbench.context.publish', {
+          snapshot: snapshot ? { ...snapshot, revision: ++contextRevision.current } : null,
+        })
+        .catch((reason: unknown) => {
+          setContextError(reason instanceof Error ? reason.message : '当前选择发布失败。');
+        });
+    },
+    [client, phase],
+  );
   const selectedRef = useRef(selection);
   selectedRef.current = selection;
   const lifecycle = useRef(0);
@@ -104,7 +154,7 @@ export function useBusinessSession(
     }
     if (selected !== selectedRef.current) return;
     setReceived({ selection: selected, value: result });
-  }, [client, phase, navigationKey]);
+  }, [client, phase, navigationKey, draftKey]);
 
   useEffect(() => {
     if (!client || phase !== 'connected') return;
@@ -120,7 +170,7 @@ export function useBusinessSession(
     return () => {
       if (lifecycle.current === generation) lifecycle.current++;
     };
-  }, [client, phase, directory]);
+  }, [client, phase, directory, draftKey]);
 
   useEffect(() => {
     if (!client || phase !== 'connected' || !configured || selection !== selectedRef.current)
@@ -187,14 +237,17 @@ export function useBusinessSession(
         readDraft(draftKey(directory, selection.projectId, selection.sessionId, 'pending')),
       );
       setRecovered(
-        validateBusiness('session.send', 'params', pending)
+        validateBusiness('session.send', 'params', pending) &&
+          isContextItems((pending as BusinessParams<'session.send'>).contextItems ?? []) &&
+          (pending as BusinessParams<'session.send'>).projectId === selection.projectId &&
+          (pending as BusinessParams<'session.send'>).sessionId === selection.sessionId
           ? (pending as BusinessParams<'session.send'>)
           : undefined,
       );
     } catch {
       setRecovered(undefined);
     }
-  }, [directory, selection]);
+  }, [directory, selection, draftKey]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: 文件修订变化时重新解析已附加引用。
   useEffect(() => {
@@ -236,18 +289,37 @@ export function useBusinessSession(
     return () => {
       active = false;
     };
-  }, [client, phase, selection, directory, snapshot?.fileRevision, materialFileIds, materials]);
+  }, [
+    client,
+    phase,
+    selection,
+    directory,
+    snapshot?.fileRevision,
+    materialFileIds,
+    materials,
+    draftKey,
+  ]);
 
   useEffect(() => {
     if (recovered && snapshot?.messages.some((message) => message.id === recovered.instructionId)) {
+      try {
+        confirmContextDraft(
+          draftKey(directory, recovered.projectId, recovered.sessionId, 'context-items'),
+          recovered.contextItems ?? [],
+        );
+      } catch (reason) {
+        setContextError(reason instanceof Error ? reason.message : '附加上下文无法恢复。');
+      }
       const key = draftKey(directory, recovered.projectId, recovered.sessionId, 'pending');
       try {
         if (JSON.parse(readDraft(key)).instructionId === recovered.instructionId)
           writeDraft(key, '');
       } catch {}
-      setRecovered(undefined);
+      setRecovered((current) =>
+        current?.instructionId === recovered.instructionId ? undefined : current,
+      );
     }
-  }, [directory, recovered, snapshot]);
+  }, [directory, recovered, snapshot, draftKey]);
 
   const call = useCallback(
     async <A extends CallArguments<BusinessInputs>>(...args: A): Promise<BusinessOutputs[A[0]]> => {
@@ -356,6 +428,7 @@ export function useBusinessSession(
     isDisabled: creating || !!session?.archived,
     isSendDisabled:
       phase !== 'connected' ||
+      !!contextReadError ||
       !snapshot?.provider.configured ||
       !session ||
       project?.trust !== 'trusted' ||
@@ -366,44 +439,63 @@ export function useBusinessSession(
         .map((part) => (part.type === 'text' ? part.text : ''))
         .join('\n');
       const text = rawText.trim();
-      if (!text || !session) return;
+      if (!text || !session || !client || phase !== 'connected') return;
       const pendingKey = draftKey(directory, selection.projectId, session.id, 'pending');
-      let instructionId = crypto.randomUUID();
+      const input: BusinessParams<'session.send'> = {
+        projectId: selection.projectId,
+        sessionId: session.id,
+        instructionId: crypto.randomUUID(),
+        text,
+        materials,
+        ...(contextItems.length ? { contextItems } : {}),
+        ...(materials.length && materials.every((path) => !!materialFileIds[path])
+          ? { materialFileIds: materials.map((path) => materialFileIds[path] as string) }
+          : {}),
+      };
       try {
         const previous = JSON.parse(readDraft(pendingKey));
         if (
-          typeof previous?.instructionId === 'string' &&
-          previous.text === text &&
-          JSON.stringify(previous.materials) === JSON.stringify(materials)
+          validateBusiness('session.send', 'params', previous) &&
+          JSON.stringify({ ...previous, instructionId: '' }) ===
+            JSON.stringify({ ...input, instructionId: '' })
         )
-          instructionId = previous.instructionId;
+          input.instructionId = previous.instructionId;
       } catch {
         /* First send in this conversation. */
       }
-      const input = {
-        projectId: selection.projectId,
-        sessionId: session.id,
-        instructionId,
-        text,
-        materials,
-        ...(materials.length && materials.every((path) => !!materialFileIds[path])
-          ? {
-              materialFileIds: materials.flatMap((path) =>
-                materialFileIds[path] ? [materialFileIds[path]] : [],
-              ),
-            }
-          : {}),
-      };
+      const instructionId = input.instructionId;
       const serialized = JSON.stringify(input);
       if (validateBusiness('session.send', 'params', input)) {
         writeDraft(pendingKey, serialized);
         setRecovered(input);
       }
       try {
-        await call('session.send', input);
+        await client.call('session.send', input);
+        confirmContextDraft(contextKey, input.contextItems ?? []);
         if (readDraft(pendingKey) === serialized) writeDraft(pendingKey, '');
         setRecovered((current) => (current?.instructionId === instructionId ? undefined : current));
+        void refresh().catch(() => {});
       } catch (reason) {
+        if (
+          reason instanceof KernelClientError &&
+          [
+            'invalidRequest',
+            'permissionDenied',
+            'credentialUnavailable',
+            'tooLarge',
+            'resourceLimit',
+            'contentChanged',
+            'notFound',
+            'unavailable',
+          ].includes(reason.code)
+        ) {
+          if (readDraft(pendingKey) === serialized) writeDraft(pendingKey, '');
+          setRecovered((current) =>
+            current?.instructionId === instructionId ? undefined : current,
+          );
+        }
+        if (selectedRef.current === selection)
+          setError(reason instanceof Error ? reason.message : '发送失败，请核查指令状态。');
         const key = draftKey(directory, selection.projectId, session.id);
         writeDraft(key, [readDraft(key), rawText].filter(Boolean).join('\n'));
         throw reason;
@@ -430,6 +522,16 @@ export function useBusinessSession(
     });
   };
   return {
+    contextItems,
+    publishContext,
+    contextError: contextReadError || contextError,
+    appendContextItem: (item) => updateContext((items) => [...items, item]),
+    removeContextItem: (itemId) =>
+      updateContext((items) => items.filter((item) => item.itemId !== itemId)),
+    updateContextComment: (itemId, comment) =>
+      updateContext((items) =>
+        items.map((item) => (item.itemId === itemId ? { ...item, comment } : item)),
+      ),
     projectId: selection.projectId,
     ...(session ? { activeSessionTitle: session.title } : {}),
     ...(client
@@ -444,7 +546,7 @@ export function useBusinessSession(
               enabled={phase === 'connected' && configured}
               select={select}
               createSession={creating ? undefined : createSession}
-              storageKey={directory}
+              storageKey={storedDraftKey(instanceId, directory)}
               selectProject={(id) => select(id, readDraft(draftKey(directory, id, 'session')))}
               forgetProject={(removedId, nextId) => {
                 writeDraft(draftKey(directory, removedId, 'session'), '');
@@ -558,8 +660,8 @@ export function useBusinessSession(
       const target = projectTarget(resource);
       if (!target) return false;
       const document = fileDocument(
-        draftKey(directory, target.projectId, target.fileId ?? target.path, 'file'),
-        draftKey(directory, target.projectId, target.path, 'file'),
+        storedDraftKey(directory, target.projectId, target.fileId ?? target.path, 'file'),
+        storedDraftKey(directory, target.projectId, target.path, 'file'),
       );
       const value = document.get();
       return (
@@ -572,8 +674,8 @@ export function useBusinessSession(
       const target = projectTarget(resource);
       if (!target) return;
       await fileDocument(
-        draftKey(directory, target.projectId, target.fileId ?? target.path, 'file'),
-        draftKey(directory, target.projectId, target.path, 'file'),
+        storedDraftKey(directory, target.projectId, target.fileId ?? target.path, 'file'),
+        storedDraftKey(directory, target.projectId, target.path, 'file'),
       ).flush();
     },
     renderResource: (target, mode, onDirty, viewId) =>
@@ -642,6 +744,59 @@ export function useBusinessSession(
         }
       : {}),
     notices: [
+      ...(legacyConversationDraft(directory, selection.projectId, selection.sessionId).some(
+        (entry) => entry.value,
+      )
+        ? [
+            {
+              id: 'legacy-draft',
+              severity: 'info' as const,
+              summary: '有旧窗口草稿可恢复',
+              content: (
+                <button
+                  type="button"
+                  disabled={
+                    !!contextSerialized ||
+                    !!readDraft(draftKey(directory, selection.projectId, selection.sessionId)) ||
+                    !!recovered ||
+                    !!materials.length
+                  }
+                  onClick={() => {
+                    const entries = legacyConversationDraft(
+                      directory,
+                      selection.projectId,
+                      selection.sessionId,
+                    );
+                    for (const entry of entries) {
+                      const target = draftKey(
+                        directory,
+                        selection.projectId,
+                        selection.sessionId,
+                        ...(entry.suffix ? [entry.suffix] : []),
+                      );
+                      if (!emptyConversationField(entry.suffix, readDraft(target))) return;
+                    }
+                    for (const entry of entries) {
+                      if (entry.value)
+                        writeDraft(
+                          draftKey(
+                            directory,
+                            selection.projectId,
+                            selection.sessionId,
+                            ...(entry.suffix ? [entry.suffix] : []),
+                          ),
+                          entry.value,
+                        );
+                    }
+                    setSelection({ ...selection });
+                  }}
+                >
+                  恢复旧草稿
+                </button>
+              ),
+            },
+          ]
+        : []),
       ...(session?.archived
         ? [
             {
@@ -699,6 +854,15 @@ export function useBusinessSession(
                     onClick={() =>
                       safe(async () => {
                         const receipt = await call('session.send', recovered);
+                        confirmContextDraft(
+                          draftKey(
+                            directory,
+                            recovered.projectId,
+                            recovered.sessionId,
+                            'context-items',
+                          ),
+                          recovered.contextItems ?? [],
+                        );
                         const draft = draftKey(directory, recovered.projectId, recovered.sessionId);
                         if (readDraft(draft).trim() === recovered.text) writeDraft(draft, '');
                         const key = draftKey(

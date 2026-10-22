@@ -2,7 +2,12 @@ import type { ThreadMessageLike } from '@assistant-ui/react';
 import { ComposerPrimitive } from '@assistant-ui/react';
 import { type ToolCallView, toolCallView, toolStateDot, toolStateLabel } from '../projection';
 import type { WorkbenchSession } from '../session';
-import { ExecutionContext, InstructionInput, InstructionSend } from './InstructionComposer';
+import {
+  ExecutionContext,
+  InstructionContextItems,
+  InstructionInput,
+  InstructionSend,
+} from './InstructionComposer';
 
 interface DockPreview {
   tool: ToolCallView | undefined;
@@ -87,6 +92,7 @@ export function AgentDock({ messages, context, reset, onExpand, cancel }: AgentD
         ) : null}
       </button>
       <ComposerPrimitive.Root className="dock-composer">
+        <InstructionContextItems />
         <InstructionInput
           className="composer-input"
           placeholder="输入研究指令…"

@@ -164,6 +164,16 @@ EPUB 2／3 重排版与单文件 HTML 快照复用 reader tab 和共同记录。
 
 ## 基本单 Agent harness
 
+### 工作台上下文接入
+
+认证 WebSocket 连接各自拥有当前快照，`workbench.context.publish` 只更新本连接；旧 revision 忽略，清空和断线释放快照。普通 `application.call` 和 CLI 不带窗口来源，不能通过业务参数指定来源连接。`session.send` 已将可信来源保存为消息的可选 `source`；重试保留原来源，重启后的旧关联不可重新激活。
+
+资源视图通过 `workbench/context-contributions.tsx` 的 `useContextContribution()` 贡献纯数据，生命周期沿视图释放。例如已有合法资源 `ref/basis` 的领域组件可调用 `contributeSelection(viewId, { selections: [item] })`，卸载时调用 `contributeSelection(viewId)`；`item` 使用 protocol 的 `ContextItem`，资源、文字、归一化区域和有结构对象共用 `isContextItems`／`isWorkbenchContextSnapshot` 容量校验。只贡献自己已加载的对象，不扫描其他视图或全库。普通选择只发布实时线索，明确按钮才调用 `appendContextItem(item)` 加入共同草稿，不自行发送指令。文本源码视图已接入，固定区域／对象提供者由组件测试验证；PDF／EPUB 精细选择仍沿后续阅读交互工作接入。
+
+`WorkbenchSession` 的 `contextItems`、`appendContextItem`、`removeContextItem`、`updateContextComment` 供会话来源接入；dock／overlay 共用同一检查和批注入口。输入、材料、显式项和 pending 按工作台实例、配置、项目、会话保存；刷新沿窗口身份恢复，新窗口独立。旧草稿可明确复制到空目标，原值保留；迟到回执只移除原指令中未被继续修改的项。
+
+资源／授权适配与 Graph driver 前置增量尚未交付，当前不注册 Agent 上下文读取工具，也不接受非空 `contextItems` 进入执行。此类发送明确拒绝后保留可编辑草稿；结果未知仍保留原 pending 身份供核查。不得据当前快照或已保存摘录绕过资源读取与模型外发授权。完整端到端及双宿主组合验收仍在 `establish-workbench-context-bridge` 的后续任务中。
+
 内核代码不会热替换。独立驻留实例在实现更新后需重启；调试内核需结束全部调试宿主，下一轮调试才加载新构建。工作台重连接回原实例。
 
 在“模型设置”填写 MiniMax M Plan 中国区订阅 Key 即可；连接固定使用 `https://api.minimax.cn/anthropic`，不回退到其他接收方。当前模型目录由内核下发：`MiniMax-M3.1-Flash-Preview`、`MiniMax-M3`、`MiniMax-M2.7`、`MiniMax-M2.7-highspeed`；出厂默认仍为 `MiniMax-M3.1-Flash-Preview` 与 `medium` 推理强度。设置页保存应用默认，composer 保存会话覆盖或“跟随默认”；只有 `MiniMax-M3.1-Flash-Preview` 发送 `output_config.effort`，可选 `low/medium/high/xhigh/max`。目录外选择直接拒绝，不静默回退；每次新执行钉入并记录实际模型配置。也可在启动独立内核前注入 `MINIMAX_CN_API_KEY`；保存的凭据优先。环境变化需要重启内核才会继承，当前请求保留原凭据。不要将 Key 写入项目或命令参数。

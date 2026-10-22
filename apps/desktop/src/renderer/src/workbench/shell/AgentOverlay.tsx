@@ -8,7 +8,12 @@ import type { Message } from '@scholoom/protocol';
 import { forwardRef } from 'react';
 import { MessageArtifacts, MessageContent, MessageFacts, MessageFiles } from '../MessageContent';
 import type { WorkbenchSession } from '../session';
-import { ExecutionContext, InstructionInput, InstructionSend } from './InstructionComposer';
+import {
+  ExecutionContext,
+  InstructionContextItems,
+  InstructionInput,
+  InstructionSend,
+} from './InstructionComposer';
 import { IconChevronDown } from './icons';
 import { ToolCall } from './ToolCall';
 
@@ -114,6 +119,7 @@ export const AgentOverlay = forwardRef<HTMLDivElement, AgentOverlayProps>(functi
 
       <div className="overlay-composer">
         <ComposerPrimitive.Root className="composer-box">
+          <InstructionContextItems />
           <InstructionInput
             className="composer-input"
             placeholder="继续这个研究任务…"

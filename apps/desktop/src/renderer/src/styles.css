@@ -2036,6 +2036,15 @@ button.composer-picker:disabled {
   border-radius: var(--radius);
   padding: 8px 10px;
 }
+.composer-context-items .menu__body {
+  max-height: min(50dvh, calc(var(--space-unit) * 80));
+  overflow-y: auto;
+  overflow-wrap: anywhere;
+}
+.composer-context-items textarea {
+  width: 100%;
+  font: inherit;
+}
 .composer-input:focus {
   outline: 2px solid var(--accent);
   outline-offset: 0;

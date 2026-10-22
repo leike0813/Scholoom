@@ -508,6 +508,7 @@ export class Harness {
 
   async send(
     input: HarnessInputs['session.send'],
+    source?: CallContext['workbenchSource'],
   ): Promise<{ instructionId: string; runId: string }> {
     if (input.contextItems?.length)
       throw new OperationError('unavailable', '显式上下文项尚未接线。');
@@ -560,6 +561,7 @@ export class Harness {
       throw new OperationError('instanceMismatch', '项目位置已变化，请重新发送。');
     const reservation = busy ? undefined : this.processes.reserve(true);
     let scheduled = false;
+    let persisted = false;
     try {
       let replay: HarnessOutputs['session.send'] | undefined;
       this.records(project).transaction((tx) => {
@@ -599,6 +601,7 @@ export class Harness {
               text: input.text,
               materials: input.materials,
               ...(input.materialFileIds ? { materialFileIds: input.materialFileIds } : {}),
+              ...(source ? { source: { ...source } } : {}),
               state: 'accepted',
               createdAt: now(),
             },
@@ -606,6 +609,7 @@ export class Harness {
           .run();
       });
       if (replay) return replay;
+      persisted = true;
       this.setRun(project, accepted);
       this.notify(project.id, session.id, true);
       if (!busy) {
@@ -613,6 +617,13 @@ export class Harness {
         scheduled = true;
       }
       return { instructionId: input.instructionId, runId: accepted.id };
+    } catch (error) {
+      if (persisted)
+        throw new OperationError(
+          'outcomeUnknown',
+          '指令已保存，后续受理状态待核查；请沿原身份核对。',
+        );
+      throw error;
     } finally {
       if (!scheduled) reservation?.release();
     }

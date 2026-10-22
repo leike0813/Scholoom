@@ -1,5 +1,12 @@
 import type { ExternalStoreAdapter, ThreadMessageLike } from '@assistant-ui/react';
-import type { Effort, ErrorInfo, FileLocation, ModelOption } from '@scholoom/protocol';
+import type {
+  ContextItem,
+  Effort,
+  ErrorInfo,
+  FileLocation,
+  ModelOption,
+  WorkbenchContextSnapshot,
+} from '@scholoom/protocol';
 import type { ReactNode } from 'react';
 import type { ResourceTarget } from './resource-controller.js';
 
@@ -67,6 +74,14 @@ export interface WorkbenchNotice {
 export interface WorkbenchSession {
   status: KernelPhase | 'sample';
   connection?: WorkbenchConnection;
+  /** 用户显式附加、随下一条指令发送的上下文；与实时选择快照分别表达。 */
+  contextItems?: readonly ContextItem[] | undefined;
+  appendContextItem?: ((item: ContextItem) => void) | undefined;
+  removeContextItem?: ((itemId: string) => void) | undefined;
+  updateContextComment?: ((itemId: string, comment: string) => void) | undefined;
+  contextError?: string | undefined;
+  /** 发布当前活动视图的有界选择快照；null 清空。 */
+  publishContext?: ((snapshot: WorkbenchContextSnapshot | null) => void) | undefined;
   materials: readonly string[];
   selectedMaterials: readonly string[];
   toggleMaterial: (name: string) => void;

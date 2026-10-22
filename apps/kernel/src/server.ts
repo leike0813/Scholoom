@@ -25,7 +25,7 @@ export async function startKernelServer(
   initialStatus: KernelStatus,
   onStopping: () => Promise<void>,
   application?: Pick<KernelApplication, 'call' | 'subscribe'> &
-    Partial<Pick<KernelApplication, 'available'>>,
+    Partial<Pick<KernelApplication, 'available' | 'connectProduct'>>,
   development = false,
 ) {
   let status: KernelStatus = { ...initialStatus, capabilities: application?.available?.() ?? [] };
@@ -139,6 +139,7 @@ export async function startKernelServer(
     };
     socket.on('error', () => {});
     let scope: BusinessParams<'workbench.watch'> | undefined;
+    let product: ReturnType<KernelApplication['connectProduct']> | undefined;
     let changeTimer: ReturnType<typeof setTimeout> | undefined;
     let latestRevision = 0;
     let sessionsChanged = false;
@@ -150,6 +151,7 @@ export async function startKernelServer(
     let broadChange = false;
     const peer = new RpcPeer(
       {
+        close: () => socket.close(1011, 'RPC connection closed'),
         send: (frame) =>
           new Promise<void>((resolve, reject) => {
             if (socket.readyState !== 1 || socket.bufferedAmount > limits.frameBytes) {
@@ -227,7 +229,7 @@ export async function startKernelServer(
             }
             if (sessionProjectIds.size) changeTimer ??= setTimeout(flushChange, 50);
           }
-          const result = await application.call(...args);
+          const result = await (product ?? application).call(...args);
           if (args[0] === 'files.watch') {
             const watch = result as { watchId: string };
             if (socket.readyState === 1) watches.set(watch.watchId, args[1].projectId);
@@ -305,6 +307,7 @@ export async function startKernelServer(
       changeTimer ??= setTimeout(flushChange, 50);
     });
     socket.on('close', () => {
+      product?.close();
       peer.close();
       clearTimeout(timeout);
       clearTimeout(changeTimer);
@@ -357,6 +360,7 @@ export async function startKernelServer(
           return;
         }
         clearTimeout(timeout);
+        product = application?.connectProduct?.();
         authenticated.add(socket);
         reply(message, status);
       } else {

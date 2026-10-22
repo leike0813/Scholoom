@@ -248,7 +248,6 @@ test('unwired capabilities reject before accepting work or losing explicit conte
           content: 'text',
         }),
       () => app.call('resources.creation', { projectId: 'application', operationId: 'op' }),
-      () => app.call('workbench.context.publish', { snapshot: null }),
       () =>
         app.call('session.send', {
           projectId: 'application',
@@ -266,6 +265,9 @@ test('unwired capabilities reject before accepting work or losing explicit conte
     ]) {
       await expect(request()).rejects.toMatchObject({ code: 'unavailable' });
     }
+    await expect(app.call('workbench.context.publish', { snapshot: null })).rejects.toMatchObject({
+      code: 'permissionDenied',
+    });
     expect(app.harness.list({ projectId: 'application' }).sessions).toEqual([]);
   } finally {
     await app.close();

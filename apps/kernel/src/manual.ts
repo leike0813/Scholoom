@@ -66,6 +66,7 @@ import {
   researchModuleOperations,
 } from '@scholoom/protocol/research';
 import { initializeProjectContainer } from './storage/project-container.js';
+import { WorkbenchContextStore } from './workbench-context.js';
 
 const applicationSchemas = {
   ...editorPlatformOperations,
@@ -111,6 +112,7 @@ export type FoundationMethod =
   | keyof LibraryInputs;
 
 export class ManualApplication {
+  readonly workbenchContexts = new WorkbenchContextStore();
   readonly resources: ResourceAccess;
   readonly editor: EditorRuntime;
   readonly projects: Projects;
@@ -132,6 +134,12 @@ export class ManualApplication {
     Object.keys(businessSchemas) as BusinessMethod[],
   );
   constructor(directory: string) {
+    this.broker.register('workbench-context', {
+      'workbench.context.publish': ({ snapshot }, context) => {
+        this.workbenchContexts.publish(context.workbenchSource, snapshot);
+        return { ok: true };
+      },
+    });
     this.projects = new Projects(directory, initializeProjectContainer, (id) =>
       this.projectReplacing(id),
     );
@@ -725,6 +733,31 @@ export class ManualApplication {
   };
   async call<A extends CallArguments<BusinessInputs>>(...args: A): Promise<BusinessOutputs[A[0]]> {
     return this.product.call<A>(...args);
+  }
+  connectProduct() {
+    const source = this.workbenchContexts.connect();
+    let connected = true;
+    const port = this.broker.consumer(
+      {
+        moduleId: 'product',
+        principal: { kind: 'human', id: 'local' },
+        role: 'product',
+        workbenchSource: source,
+      },
+      Object.keys(businessSchemas) as BusinessMethod[],
+    );
+    return {
+      call: async <A extends CallArguments<BusinessInputs>>(
+        ...args: A
+      ): Promise<BusinessOutputs[A[0]]> => {
+        if (!connected) throw new OperationError('unavailable', '工作台连接已关闭。');
+        return port.call<A>(...args);
+      },
+      close: () => {
+        connected = false;
+        this.workbenchContexts.disconnect(source);
+      },
+    };
   }
   available(): BusinessMethod[] {
     return this.broker.available(Object.keys(businessSchemas) as BusinessMethod[]);
