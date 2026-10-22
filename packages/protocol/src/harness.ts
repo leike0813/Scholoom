@@ -8,6 +8,7 @@ import {
   type runSchema,
   sessionSchema,
 } from './harness-record-contracts.js';
+import { contextItemsSchema } from './workbench-context.js';
 
 export { harnessModuleOperations } from './harness-module-contracts.js';
 export {
@@ -98,6 +99,7 @@ export const harnessOperations = {
         text: { type: 'string', minLength: 1, maxLength: 32768 },
         materials: array(text),
         materialFileIds: array(text),
+        contextItems: contextItemsSchema,
       },
       ['projectId', 'sessionId', 'instructionId', 'text', 'materials'],
     ),

@@ -55,6 +55,18 @@ export type Inputs = {
   >;
   'model.acquire': FromSchema<(typeof executionControlOperations)['model.acquire']['params']>;
   'model.release': FromSchema<(typeof executionControlOperations)['model.release']['params']>;
+  'resources.create': FromSchema<(typeof executionControlOperations)['resources.create']['params']>;
+  'resources.creation': FromSchema<
+    (typeof executionControlOperations)['resources.creation']['params']
+  >;
+  'resources.describe': FromSchema<
+    (typeof executionControlOperations)['resources.describe']['params']
+  >;
+  'resources.document': FromSchema<
+    (typeof executionControlOperations)['resources.document']['params']
+  >;
+  'resources.read': FromSchema<(typeof executionControlOperations)['resources.read']['params']>;
+  'resources.save': FromSchema<(typeof executionControlOperations)['resources.save']['params']>;
 };
 export type Outputs = {
   'execution.beforeModel': FromSchema<
@@ -109,4 +121,16 @@ export type Outputs = {
   >;
   'model.acquire': FromSchema<(typeof executionControlOperations)['model.acquire']['result']>;
   'model.release': FromSchema<(typeof executionControlOperations)['model.release']['result']>;
+  'resources.create': FromSchema<(typeof executionControlOperations)['resources.create']['result']>;
+  'resources.creation': FromSchema<
+    (typeof executionControlOperations)['resources.creation']['result']
+  >;
+  'resources.describe': FromSchema<
+    (typeof executionControlOperations)['resources.describe']['result']
+  >;
+  'resources.document': FromSchema<
+    (typeof executionControlOperations)['resources.document']['result']
+  >;
+  'resources.read': FromSchema<(typeof executionControlOperations)['resources.read']['result']>;
+  'resources.save': FromSchema<(typeof executionControlOperations)['resources.save']['result']>;
 };

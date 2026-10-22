@@ -46,9 +46,23 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     const { executionControlOperations } = await import('../src/execution-contracts.ts');
     const { projectExecutionOperations } = await import('../src/project-file-contracts.ts');
     const { projectHarnessOperations } = await import('../src/project-contracts.ts');
+    const { projectTargetReadOperations } = await import('../src/work-domains.ts');
+    const { workbenchContextContracts } = await import('../src/workbench-context-contracts.ts');
     const { harnessModuleOperations } = await import('../src/harness-module-contracts.ts');
     const { researchModuleOperations } = await import('../src/research-module-contracts.ts');
     const declarations = [
+      [
+        'workbench-context-types.ts',
+        workbenchContextContracts,
+        'workbenchContextContracts',
+        './workbench-context-contracts.js',
+      ],
+      [
+        'project-target-read-types.ts',
+        projectTargetReadOperations,
+        'projectTargetReadOperations',
+        './work-domains.js',
+      ],
       [
         'project-harness-types.ts',
         projectHarnessOperations,

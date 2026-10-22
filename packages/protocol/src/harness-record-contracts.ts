@@ -1,6 +1,8 @@
+import { graphBindingSchema } from './graph-contracts.js';
 import { modelPreferenceSchema, runModelConfigSchema } from './models.js';
 import { artifactSchema } from './project-contracts.js';
 import { array, content, count, flag, id, object, text } from './schema.js';
+import { contextItemsSchema, workbenchSourceSchema } from './workbench-context.js';
 export const runStateSchema = {
   enum: ['queued', 'running', 'cancelling', 'cancelled', 'completed', 'failed', 'interrupted'],
 } as const;
@@ -39,6 +41,8 @@ export const messageSchema = object(
     ),
     materials: array(text),
     materialFileIds: array(text),
+    contextItems: contextItemsSchema,
+    source: workbenchSourceSchema,
     createdAt: text,
   },
   ['id', 'sessionId', 'role', 'text', 'state', 'materials', 'createdAt'],
@@ -54,6 +58,7 @@ export const runSchema = object(
     inputTokens: count,
     outputTokens: count,
     remoteOutcome: { enum: ['unknown', 'completed'] },
+    graph: graphBindingSchema,
     modelConfig: runModelConfigSchema,
   },
   ['id', 'sessionId', 'attempt', 'state'],

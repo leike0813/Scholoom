@@ -104,6 +104,8 @@ export type Inputs = {
   'research.method': FromSchema<(typeof businessSchemas)['research.method']['params']>;
   'research.methods': FromSchema<(typeof businessSchemas)['research.methods']['params']>;
   'resources.cancel': FromSchema<(typeof businessSchemas)['resources.cancel']['params']>;
+  'resources.create': FromSchema<(typeof businessSchemas)['resources.create']['params']>;
+  'resources.creation': FromSchema<(typeof businessSchemas)['resources.creation']['params']>;
   'resources.describe': FromSchema<(typeof businessSchemas)['resources.describe']['params']>;
   'resources.document': FromSchema<(typeof businessSchemas)['resources.document']['params']>;
   'resources.read': FromSchema<(typeof businessSchemas)['resources.read']['params']>;
@@ -116,6 +118,9 @@ export type Inputs = {
   'session.rename': FromSchema<(typeof businessSchemas)['session.rename']['params']>;
   'session.search': FromSchema<(typeof businessSchemas)['session.search']['params']>;
   'session.send': FromSchema<(typeof businessSchemas)['session.send']['params']>;
+  'workbench.context.publish': FromSchema<
+    (typeof businessSchemas)['workbench.context.publish']['params']
+  >;
   'workbench.snapshot': FromSchema<(typeof businessSchemas)['workbench.snapshot']['params']>;
   'workbench.watch': FromSchema<(typeof businessSchemas)['workbench.watch']['params']>;
 };
@@ -221,6 +226,8 @@ export type Outputs = {
   'research.method': FromSchema<(typeof businessSchemas)['research.method']['result']>;
   'research.methods': FromSchema<(typeof businessSchemas)['research.methods']['result']>;
   'resources.cancel': FromSchema<(typeof businessSchemas)['resources.cancel']['result']>;
+  'resources.create': FromSchema<(typeof businessSchemas)['resources.create']['result']>;
+  'resources.creation': FromSchema<(typeof businessSchemas)['resources.creation']['result']>;
   'resources.describe': FromSchema<(typeof businessSchemas)['resources.describe']['result']>;
   'resources.document': FromSchema<(typeof businessSchemas)['resources.document']['result']>;
   'resources.read': FromSchema<(typeof businessSchemas)['resources.read']['result']>;
@@ -233,6 +240,9 @@ export type Outputs = {
   'session.rename': FromSchema<(typeof businessSchemas)['session.rename']['result']>;
   'session.search': FromSchema<(typeof businessSchemas)['session.search']['result']>;
   'session.send': FromSchema<(typeof businessSchemas)['session.send']['result']>;
+  'workbench.context.publish': FromSchema<
+    (typeof businessSchemas)['workbench.context.publish']['result']
+  >;
   'workbench.snapshot': FromSchema<(typeof businessSchemas)['workbench.snapshot']['result']>;
   'workbench.watch': FromSchema<(typeof businessSchemas)['workbench.watch']['result']>;
 };

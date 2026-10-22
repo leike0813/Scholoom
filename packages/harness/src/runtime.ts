@@ -170,6 +170,8 @@ export class Harness {
     }
   >();
   async executeCapability(input: CapabilityExecution, context: CallContext): Promise<void> {
+    if (input.execution?.kind === 'registered' || input.resume)
+      throw new OperationError('unavailable', '已登记图及等待恢复尚未接线。');
     const executor = context.runId ? this.capabilityExecutors.get(context.runId) : undefined;
     const reservation = this.capabilityReservations.getStore();
     if (
@@ -507,6 +509,8 @@ export class Harness {
   async send(
     input: HarnessInputs['session.send'],
   ): Promise<{ instructionId: string; runId: string }> {
+    if (input.contextItems?.length)
+      throw new OperationError('unavailable', '显式上下文项尚未接线。');
     if (this.stopped) throw new OperationError('shuttingDown', '内核正在停止。');
     const project = this.projects.get(input.projectId);
     const session = this.session(project, input.sessionId);

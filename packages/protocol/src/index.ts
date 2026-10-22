@@ -7,3 +7,4 @@ export * from './models.js';
 export * from './projects.js';
 export * from './research.js';
 export * from './resources.js';
+export * from './workbench-context.js';

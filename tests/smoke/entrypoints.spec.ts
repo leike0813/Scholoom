@@ -21,7 +21,7 @@ test('kernel CLI runs under independent Node', () => {
     nodeVersion: string;
     processId: number;
   };
-  expect(info.protocolVersion).toBe(3);
+  expect(info.protocolVersion).toBe(4);
   expect(info.nodeVersion).toBe(process.versions.node);
   expect(info.processId).toBeGreaterThan(0);
 });

@@ -9,9 +9,24 @@ import type {
   ContractParams,
   ContractResult,
 } from '../../packages/protocol/dist/core.js';
-import type { ExecutionControlProviders } from '../../packages/protocol/dist/execution.js';
+import type {
+  ExecutionControlProviders,
+  GraphResumeInput,
+} from '../../packages/protocol/dist/execution.js';
+import type { HarnessInputs } from '../../packages/protocol/dist/harness.js';
 import type { ModelDescriptor } from '../../packages/protocol/dist/models.js';
-import type { ProjectFilePort } from '../../packages/protocol/dist/projects.js';
+import {
+  type ProjectFilePort,
+  type ProjectTargetReadInputs,
+  type ProjectTargetReadOutputs,
+  projectTargetReadOperations,
+  type WorkDomain,
+} from '../../packages/protocol/dist/projects.js';
+import type {
+  ExecutionResourcePort,
+  ResourceEvidence,
+} from '../../packages/protocol/dist/resources.js';
+import type { ContextItem } from '../../packages/protocol/dist/workbench-context.js';
 
 const contracts = {
   read: {
@@ -197,3 +212,137 @@ function projectFilePortTypeChecks(port: ProjectFilePort) {
   });
 }
 void projectFilePortTypeChecks;
+
+function targetReadTypeChecks(client: KernelClient, files: ProjectFilePort) {
+  const domain: WorkDomain = {
+    kind: 'application',
+    projectId: 'application',
+    sessionId: 'session',
+  };
+  const scoped: CallContext = {
+    ...context,
+    workDomain: domain,
+    targetRead: { targetProjectId: 'target', access: 'read' },
+  };
+  const broker = new Broker<
+    typeof projectTargetReadOperations,
+    ProjectTargetReadInputs,
+    ProjectTargetReadOutputs
+  >(projectTargetReadOperations);
+  const reader = broker.consumer(scoped, ['project.readTarget']);
+  broker.register('projects', {
+    'project.readTarget': () => ({ kind: 'list', entries: [] }),
+  });
+  const result: Promise<ProjectTargetReadOutputs['project.readTarget']> = reader.call(
+    'project.readTarget',
+    { targetProjectId: 'target', request: { kind: 'list', limit: 10 } },
+  );
+  reader.call('project.readTarget', {
+    targetProjectId: 'target',
+    request: { kind: 'readBytes', fileId: 'file', basis: 'basis', limit: 1024 },
+  });
+  // @ts-expect-error A target restriction cannot carry write access.
+  const writable: CallContext['targetRead'] = { targetProjectId: 'target', access: 'write' };
+  // @ts-expect-error An application work domain has the existing fixed identity.
+  const falseGlobal: WorkDomain = { kind: 'application', projectId: 'target', sessionId: 's' };
+  // @ts-expect-error The target read consumer cannot call saving operations.
+  reader.call('project.saveFile', { projectId: 'target', path: 'f', content: 'text' });
+  reader.call('project.readTarget', {
+    targetProjectId: 'target',
+    // @ts-expect-error Reading requires an existing identity and content basis.
+    request: { kind: 'readText', fileId: 'f' },
+  });
+  const invalidPath: ProjectTargetReadInputs['project.readTarget'] = {
+    targetProjectId: 'target',
+    request: {
+      kind: 'readBytes',
+      fileId: 'f',
+      basis: 'b',
+      // @ts-expect-error Arbitrary file paths are outside the read request contract.
+      nativePath: '/tmp/f',
+    },
+  };
+  const invalidSource: ProjectTargetReadInputs['project.readTarget'] = {
+    targetProjectId: 'target',
+    request: { kind: 'list' },
+    // @ts-expect-error Callers cannot supply trusted source metadata as request parameters.
+    workDomain: domain,
+  };
+  broker.register('invalid', {
+    // @ts-expect-error A provider result must keep its declared discriminated payload.
+    'project.readTarget': () => ({ kind: 'readBytes', content: 'text' }),
+  });
+  // @ts-expect-error Target reading is an internal port, outside the product client.
+  client.call('project.readTarget', { targetProjectId: 'target', request: { kind: 'list' } });
+  // @ts-expect-error Existing project file ports do not acquire cross-project access.
+  files['project.readTarget']({ targetProjectId: 'target', request: { kind: 'list' } });
+  void [result, writable, falseGlobal, invalidPath, invalidSource];
+}
+void targetReadTypeChecks;
+
+function publicBaselineTypeChecks(resources: ExecutionResourcePort) {
+  const evidence: ResourceEvidence = {
+    ref: { source: 'library', attachmentId: 'attachment', materialVersionId: 'version' },
+    basis: 'basis',
+  };
+  const selection: ContextItem = {
+    ...evidence,
+    kind: 'text',
+    itemId: 'item',
+    quote: 'selected text',
+    contentState: 'draft',
+  };
+  const instruction: HarnessInputs['session.send'] = {
+    projectId: 'project',
+    sessionId: 'session',
+    instructionId: 'instruction',
+    text: 'question',
+    materials: [],
+    contextItems: [selection],
+  };
+  const forged: HarnessInputs['session.send'] = {
+    ...instruction,
+    // @ts-expect-error A client cannot establish the trusted source connection.
+    source: { connectionId: 'forged' },
+  };
+  const resume: GraphResumeInput = {
+    attemptId: 'attempt',
+    waitId: 'wait',
+    instructionIds: ['instruction'],
+    value: { answer: true },
+  };
+  // @ts-expect-error Resume inputs must identify their exact wait.
+  const missingWait: GraphResumeInput = {
+    attemptId: 'attempt',
+    instructionIds: ['instruction'],
+    value: null,
+  };
+  resources.create({
+    projectId: 'project',
+    path: 'report.md',
+    operationId: 'create',
+    content: 'text',
+  });
+  resources.save({ ref: evidence.ref, basis: evidence.basis, content: 'text' });
+  // @ts-expect-error First creation requires an operation identity for outcome queries.
+  resources.create({ projectId: 'project', path: 'report.md', content: 'text' });
+  resources.create({
+    projectId: 'project',
+    path: 'report.md',
+    operationId: 'create',
+    content: 'text',
+    // @ts-expect-error The project create port cannot create library attachments.
+    attachmentId: 'attachment',
+  });
+  // @ts-expect-error Updating an existing file must retain the original content basis.
+  resources.save({ ref: evidence.ref, content: 'text' });
+  const invalidRegion: ContextItem = {
+    kind: 'region',
+    itemId: 'item',
+    ...evidence,
+    // @ts-expect-error Region coordinates are structured data, not a native path.
+    region: '/tmp/image.png',
+  };
+  void [forged, resume, missingWait, invalidRegion];
+}
+void publicBaselineTypeChecks;

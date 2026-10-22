@@ -1,7 +1,11 @@
 import { Ajv, type AnySchema } from 'ajv';
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
+import type { TargetReadScope, WorkDomain } from './work-domains.js';
+import type { WorkbenchSource } from './workbench-source.js';
 
-export const protocolVersion = 3;
+export type { TargetReadScope, WorkDomain } from './work-domains.js';
+
+export const protocolVersion = 4;
 
 export type EntryRole = 'product' | 'execution' | 'compute' | 'host';
 export type CallContext = {
@@ -12,6 +16,10 @@ export type CallContext = {
   readonly sessionId?: string;
   readonly runId?: string;
   readonly instanceId?: string;
+  /** Host-bound metadata; request parameters cannot establish this scope. */
+  readonly workDomain?: Readonly<WorkDomain>;
+  readonly targetRead?: Readonly<TargetReadScope>;
+  readonly workbenchSource?: Readonly<WorkbenchSource>;
   readonly signal?: AbortSignal;
 };
 export type OperationSemantics = {

@@ -36,6 +36,26 @@ test('owned execution controls validate real IPC payloads and return the actual 
         { waitMs: 1000 },
       ),
     ).rejects.toMatchObject({ code: 'invalidRequest' });
+    for (const model of [
+      undefined,
+      { model: 'synthetic', apiKey: 'synthetic', endpoint: 'loopback' },
+    ]) {
+      await expect(
+        callExecutionControl(peer, 'execution.initialize', {
+          graph: {
+            kind: 'registered',
+            graphId: 'fixed',
+            version: '1',
+            config: {},
+            materials: [],
+            workDomain: { kind: 'project', projectId: 'p', sessionId: 's' },
+          },
+          attemptId: 'a',
+          input: null,
+          ...(model ? { model } : {}),
+        }),
+      ).rejects.toMatchObject({ code: 'unavailable' });
+    }
     expect((await callExecutionControl(peer, 'execution.health', {})).processId).toBe(
       health.processId,
     );

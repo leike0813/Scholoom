@@ -52,6 +52,9 @@ const graphProviders: Pick<
     return context.run(token, handler);
   },
   'execution.initialize': async (input) => {
+    if (input.instructions?.length)
+      throw new OperationError('unavailable', '结构化指令上下文尚未接线。');
+    if ('graph' in input) throw new OperationError('unavailable', '已登记图执行尚未接线。');
     if (initialized) throw new OperationError('invalidRequest', '执行已经初始化。');
     initialized = true;
     const model = createExecutionModel(input.model, signal.signal, {

@@ -1,6 +1,6 @@
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
-import type { CallContext } from './core.js';
-import type { LibraryInputs, LibraryOutputs, ReadingRecord } from './library.js';
+import { type CallContext, errorInfoSchema } from './core.js';
+import type { LibraryInputs, LibraryOutputs } from './library.js';
 import { documentSchemas, readingSchemas } from './library.js';
 import type {
   ProjectExecutionInputs,
@@ -21,6 +21,11 @@ const libraryRef = object(
   ['source', 'attachmentId', 'materialVersionId'],
 );
 export const resourceRefSchema = { anyOf: [projectRef, libraryRef] } as const;
+export const resourceEvidenceSchema = object({ ref: resourceRefSchema, basis: id, role: id }, [
+  'ref',
+  'basis',
+]);
+export type ResourceEvidence = FromSchema<typeof resourceEvidenceSchema>;
 export const resourceLocatorSchema = {
   anyOf: [
     object({ ...projectRef.properties, path: id }, ['source', 'projectId', 'fileId']),
@@ -45,6 +50,73 @@ export const resourceDescriptorSchema = object(
   },
   ['ref', 'name', 'basis', 'format', 'capabilities'],
 );
+
+export const resourceAssociationSchema = object(
+  { operationId: id, state: { enum: ['confirmed', 'pending', 'unknown'] } },
+  ['operationId', 'state'],
+);
+export const resourceSaveResultSchema = object(
+  { resource: resourceDescriptorSchema, association: resourceAssociationSchema },
+  ['resource'],
+);
+export type ResourceSaveResult = FromSchema<typeof resourceSaveResultSchema>;
+const createdResource = {
+  ...resourceDescriptorSchema,
+  properties: { ...resourceDescriptorSchema.properties, ref: projectRef },
+} as const;
+export const resourceCreationResultSchema = {
+  anyOf: [
+    object(
+      {
+        operationId: id,
+        state: { const: 'complete' },
+        resource: createdResource,
+        association: resourceAssociationSchema,
+      },
+      ['operationId', 'state', 'resource'],
+    ),
+    object(
+      {
+        operationId: id,
+        state: { enum: ['prepared', 'unknown'] },
+        resource: createdResource,
+        association: resourceAssociationSchema,
+        error: errorInfoSchema,
+      },
+      ['operationId', 'state'],
+    ),
+    object({ operationId: id, state: { const: 'failed' }, error: errorInfoSchema }, [
+      'operationId',
+      'state',
+      'error',
+    ]),
+  ],
+} as const;
+export const resourceCreationOperations = {
+  'resources.create': {
+    params: object(
+      { projectId: id, path: id, operationId: id, content: { type: 'string', maxLength: 262144 } },
+      ['projectId', 'path', 'operationId', 'content'],
+    ),
+    result: resourceCreationResultSchema,
+    semantics: { effect: 'write', returns: 'result', waitMs: 5000 },
+  },
+  'resources.creation': {
+    params: object({ projectId: id, operationId: id }, ['projectId', 'operationId']),
+    result: resourceCreationResultSchema,
+    semantics: { effect: 'read', returns: 'result', waitMs: 5000 },
+  },
+} as const;
+export type ResourceCreationInputs = {
+  [M in keyof typeof resourceCreationOperations]: FromSchema<
+    (typeof resourceCreationOperations)[M]['params']
+  >;
+};
+export type ResourceCreationOutputs = {
+  [M in keyof typeof resourceCreationOperations]: FromSchema<
+    (typeof resourceCreationOperations)[M]['result']
+  >;
+};
 
 /** Reuse parser payloads without assigning library ownership to project documents. */
 function payload<
@@ -214,6 +286,15 @@ export interface ResourcePort {
     input: ResourceDocumentInputs[M],
   ): Promise<ResourceDocumentOutputs[M]>;
 }
+export interface ExecutionResourcePort extends Omit<ResourcePort, 'save'> {
+  create(
+    input: ResourceCreationInputs['resources.create'],
+  ): Promise<ResourceCreationOutputs['resources.create']>;
+  creation(
+    input: ResourceCreationInputs['resources.creation'],
+  ): Promise<ResourceCreationOutputs['resources.creation']>;
+  save(input: ResourceInputs['resources.save']): Promise<ResourceSaveResult>;
+}
 type ProjectMethods = 'files.resolve' | 'files.read' | 'files.readBytes';
 export type ResourceProjectPort = {
   [M in ProjectMethods]: (input: ProjectsInputs[M]) => Promise<ProjectsOutputs[M]>;
@@ -240,4 +321,3 @@ export type ReadingRecordPort = {
     | 'library.saveReadingRecord'
     | 'library.removeReadingRecord']: (input: LibraryInputs[M]) => Promise<LibraryOutputs[M]>;
 };
-export type ResourceEvidence = Pick<ReadingRecord, 'kind' | 'quote' | 'location'>;

@@ -13,6 +13,7 @@ import type {
 
 export * from './file-explorer-contracts.js';
 export * from './project-contracts.js';
+export * from './work-domains.js';
 
 import type { FromSchema } from 'json-schema-to-ts';
 import type {
@@ -36,6 +37,11 @@ import type {
   Inputs as HarnessProjectInputs,
   Outputs as HarnessProjectOutputs,
 } from './project-harness-types.js';
+import type {
+  Inputs as TargetReadInputs,
+  Outputs as TargetReadOutputs,
+} from './project-target-read-types.js';
+import type { projectTargetReadOperations } from './work-domains.js';
 
 export { editSchema, projectExecutionOperations } from './project-file-contracts.js';
 
@@ -98,4 +104,13 @@ export type HarnessProjectPort = {
   [M in Exclude<keyof ProjectHarnessInputs, 'project.fileRevision'>]: (
     input: ProjectHarnessInputs[M],
   ) => Promise<ProjectHarnessOutputs[M]>;
+};
+
+type CompleteTargetRead<T extends Record<keyof typeof projectTargetReadOperations, unknown>> = T;
+export type ProjectTargetReadInputs = CompleteTargetRead<TargetReadInputs>;
+export type ProjectTargetReadOutputs = CompleteTargetRead<TargetReadOutputs>;
+export type ProjectTargetReadPort = {
+  [M in keyof ProjectTargetReadInputs]: (
+    input: ProjectTargetReadInputs[M],
+  ) => Promise<ProjectTargetReadOutputs[M]>;
 };

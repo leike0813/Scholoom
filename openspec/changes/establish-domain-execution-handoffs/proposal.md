@@ -1,0 +1,34 @@
+# 补齐领域资源与执行交接端口
+
+## Why
+
+现有共同资源接口已经覆盖项目文件和库附件，但科研输入仍是项目路径，harness.execute 只接收 prompt，执行子进程固定创建通用 Agent 图，程序端口又只允许 editor 编译。各域若独立扩展这些位置，会重复定义材料、图执行及进程接线。本变更先形成真实可验证的窄端口，使各域在同一基础上实现自己的业务。
+
+## What Changes
+
+- 依赖 `establish-scoped-execution-foundation` 的契约先行及实际授权增量；共同契约落入 dev 后可并行实现。复用 ResourceRef／basis 和所属领域资源端口，提供材料交接与实际保存结果的同源数据契约。
+- 补齐项目成果首次新建及按原操作核查的路径，复用项目安全保存与所属操作记录；已有文件更新继续按原 basis 保存。
+- 增加由宿主源码装配的图执行入口，传递图身份、版本、已校验配置和可信调用上下文；保留普通 Agent 执行路径。固定测试 Graph 验证实际子进程接线，不实现具体科研业务流程。
+- 提取 editor 已使用的受管命令机制为宿主内部窄端口，保持 editor 对工具、输入快照及最后成功预览的业务保护；计算环境、持久运行记录及通用运行 UI 仍由计算域交付。
+- 复用现有内核／双宿主夹具，补齐可独立组合的测试提供者及运行隔离参数。
+
+## 完成判据
+
+固定图通过共同资源端口读取项目及库材料，经真实执行子进程保存结果并返回实际身份与内容依据；缺失、撤权、取消及关联部分失败可核查。editor 复用受管命令后仍能独立人工排版；固定程序验证共同进程端口的准入和收尾。两个隔离开发实例可分别运行，测试不接管另一实例。
+
+## Capabilities
+
+### New Capabilities
+
+- `domain-execution-handoffs`: 资源证据、源码装配的图执行交接及宿主内部命令能力。
+
+### Modified Capabilities
+
+- `development-foundation`: 增加面向并行开发的隔离配置及独立模块验证要求。
+- `workbench-resources`: 增加项目成果首次新建、返回身份及未知结果核查，保留库附件只读范围。
+
+## 决策与授权依据
+
+依据[Graph 运行基础](../../../.scratch/domain-development/issues/04-research-methods-scope.md#answer)、[程序运行分工](../../../.scratch/domain-development/issues/06-managed-computation-scope.md#answer)、[七域安排](../../../.scratch/domain-development/issues/10-parallel-design-and-delivery.md#answer)。本轮只获“形成OpenSpec实施规划”授权，不实施程序运行或业务 Graph。库身份、引用键、修订、删除恢复及插件 SQL 适配不在本变更中修改；受生态调查影响的领域契约仍在所属变更定案前闭合。
+
+用户随后确认按资源契约、执行及工作台共同契约、dev 基线的顺序继续，推进至三个 change 可以并行。本轮据此实施 1.1 与 0.1，并验证旧路径和未接线能力的明确失败；具体图驱动、成果创建提供者及受管命令实现仍由后续任务承接。

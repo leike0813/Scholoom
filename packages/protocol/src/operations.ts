@@ -4,8 +4,9 @@ import { libraryOperations } from './library.js';
 import { modelsOperations, providerSchema } from './models.js';
 import { projectSchema, projectsOperations } from './projects.js';
 import { researchOperations } from './research.js';
-import { resourceOperations } from './resources.js';
+import { resourceCreationOperations, resourceOperations } from './resources.js';
 import { array, count, flag, id, object, page } from './schema.js';
+import { workbenchContextOperations } from './workbench-context.js';
 
 const scope = {
   projectId: id,
@@ -42,6 +43,8 @@ export const changeSchema = object(
 );
 
 export const businessSchemas = {
+  ...workbenchContextOperations,
+  ...resourceCreationOperations,
   ...resourceOperations,
   ...editorOperations,
   ...modelsOperations,

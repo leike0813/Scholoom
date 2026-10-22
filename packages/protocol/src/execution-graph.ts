@@ -1,6 +1,12 @@
 import type { FromSchema } from 'json-schema-to-ts';
+import {
+  graphProgressSchema,
+  graphResumeInputSchema,
+  registeredGraphSchema,
+} from './graph-contracts.js';
 import { modelDescriptorSchema } from './models.js';
 import { array, count, flag, id, object, ok, text } from './schema.js';
+import { instructionContextsSchema } from './workbench-context.js';
 
 // Framework payloads preserve content blocks and provider metadata as JSON objects.
 export const frameworkMessageSchema = object(
@@ -39,44 +45,59 @@ export const frameworkToolResultSchema = {
     ]),
   ],
 } as const;
+export const agentInitializationSchema = object(
+  {
+    model: modelDescriptorSchema,
+    tools: array(
+      object(
+        { name: id, description: text, schema: { type: 'object', additionalProperties: true } },
+        ['name', 'description', 'schema'],
+      ),
+    ),
+    systemPrompt: text,
+    checkpointPath: text,
+    instructions: instructionContextsSchema,
+    middleware: array(
+      object({ name: id, before: flag, tool: flag, model: flag }, [
+        'name',
+        'before',
+        'tool',
+        'model',
+      ]),
+    ),
+    input: {
+      anyOf: [object({ messages: array(frameworkMessageSchema) }, ['messages']), { const: null }],
+    },
+    config: object(
+      {
+        configurable: object({ thread_id: id }, ['thread_id']),
+        recursionLimit: count,
+        durability: { const: 'sync' },
+      },
+      ['recursionLimit', 'durability'],
+    ),
+  },
+  ['model', 'tools', 'middleware', 'input', 'config'],
+);
 export const executionGraphOperations = {
   'execution.initialize': {
-    params: object(
-      {
-        model: modelDescriptorSchema,
-        tools: array(
-          object(
-            { name: id, description: text, schema: { type: 'object', additionalProperties: true } },
-            ['name', 'description', 'schema'],
-          ),
-        ),
-        systemPrompt: text,
-        checkpointPath: text,
-        middleware: array(
-          object({ name: id, before: flag, tool: flag, model: flag }, [
-            'name',
-            'before',
-            'tool',
-            'model',
-          ]),
-        ),
-        input: {
-          anyOf: [
-            object({ messages: array(frameworkMessageSchema) }, ['messages']),
-            { const: null },
-          ],
-        },
-        config: object(
+    params: {
+      anyOf: [
+        agentInitializationSchema,
+        object(
           {
-            configurable: object({ thread_id: id }, ['thread_id']),
-            recursionLimit: count,
-            durability: { const: 'sync' },
+            graph: registeredGraphSchema,
+            model: modelDescriptorSchema,
+            attemptId: id,
+            checkpointRef: id,
+            checkpointPath: text,
+            input: { anyOf: [graphResumeInputSchema, { const: null }] },
+            instructions: instructionContextsSchema,
           },
-          ['recursionLimit', 'durability'],
+          ['graph', 'attemptId', 'input'],
         ),
-      },
-      ['model', 'tools', 'middleware', 'input', 'config'],
-    ),
+      ],
+    },
     result: ok,
     semantics: { effect: 'write', returns: 'result', waitMs: 10000 },
   },
@@ -84,6 +105,7 @@ export const executionGraphOperations = {
     params: object({}, []),
     result: {
       anyOf: [
+        object({ done: { const: true }, graph: graphProgressSchema }, ['done', 'graph']),
         object({ done: { const: true } }, ['done']),
         object(
           {

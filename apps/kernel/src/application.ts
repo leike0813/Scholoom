@@ -13,6 +13,8 @@ import type {
   BusinessInputs,
   BusinessOutputs,
   BusinessParams,
+  ResourceCreationInputs,
+  WorkbenchContextInputs,
   WorkbenchSnapshot,
 } from '@scholoom/protocol';
 import type { CallContext } from '@scholoom/protocol/core';
@@ -21,7 +23,10 @@ import type { ResearchProgressPort, ResearchToolsPort } from '@scholoom/protocol
 import { ResearchRecords, ResearchRuntime } from '@scholoom/research/node';
 import { type FoundationMethod, ManualApplication } from './manual.js';
 
-type RuntimeMethod = Exclude<keyof BusinessInputs, FoundationMethod>;
+type RuntimeMethod = Exclude<
+  keyof BusinessInputs,
+  FoundationMethod | keyof ResourceCreationInputs | keyof WorkbenchContextInputs
+>;
 export class KernelApplication extends ManualApplication {
   readonly credentials: CredentialStore;
   readonly models: ModelAccess;

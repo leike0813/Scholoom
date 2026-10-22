@@ -1,4 +1,5 @@
 import type { FromSchema } from 'json-schema-to-ts';
+import { editorPlatformOperations } from './editor.js';
 import { array, count, flag, id, object, ok, text } from './schema.js';
 
 export const resourceReferenceSchema = object(
@@ -39,3 +40,29 @@ export const platformOperations = {
     semantics: { effect: 'write', returns: 'result', waitMs: 10000 },
   },
 } as const;
+
+export const platformCommandOperations = {
+  'platform.command': {
+    params: object(
+      {
+        workspaceId: id,
+        executableId: id,
+        args: editorPlatformOperations['platform.editorCommand'].params.properties.args,
+        input: editorPlatformOperations['platform.editorCommand'].params.properties.input,
+        timeoutMs: editorPlatformOperations['platform.editorCommand'].params.properties.timeoutMs,
+      },
+      ['workspaceId', 'executableId', 'args', 'timeoutMs'],
+    ),
+    result: editorPlatformOperations['platform.editorCommand'].result,
+    semantics: editorPlatformOperations['platform.editorCommand'].semantics,
+  },
+} as const;
+export type PlatformCommandInput = FromSchema<
+  (typeof platformCommandOperations)['platform.command']['params']
+>;
+export type PlatformCommandResult = FromSchema<
+  (typeof platformCommandOperations)['platform.command']['result']
+>;
+export type PlatformCommandPort = {
+  'platform.command': (input: PlatformCommandInput) => Promise<PlatformCommandResult>;
+};

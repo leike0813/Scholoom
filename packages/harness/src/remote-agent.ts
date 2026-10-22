@@ -363,7 +363,11 @@ export class RemoteAgent {
         options.authorize?.();
         const next = await callExecutionControl(peer, 'execution.next', {});
         options.authorize?.();
-        if (next.done) break;
+        if (next.done) {
+          if ('graph' in next)
+            throw new OperationError('unavailable', '当前 Agent 驱动尚未接入图执行结果。');
+          break;
+        }
         if (next.event) {
           const event = next.event;
           yield {

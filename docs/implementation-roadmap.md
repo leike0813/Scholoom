@@ -2,19 +2,25 @@
 
 状态：建议稿，供选择后续 OpenSpec 变更。起草日期：2026-10-14。
 
+2026-10-20，用户确认以七个功能域组织后续设计；文献域首先细化完整的类 Zotero 个人桌面文献管理工具，功能与界面共同推进，“文献到研究综合”保留为后续跨域整合路径。全局职责、共同契约、依赖与并行启动条件见[功能域细化与并行开发地图](../.scratch/domain-development/map.md)；本路线图的阶段表继续用于核对能力依赖，具体实施范围以相应 OpenSpec 为准。
+
+当前实施组织以 2026-10-22 确认的[七域并行设计及交付安排](../.scratch/domain-development/issues/10-parallel-design-and-delivery.md#answer)为准：先规划七域近期工作，调查并补齐四组公共基础，完成验证后，七域各自一条开发线按依赖推进首个独立结果。公共补充在自身工作树实现，经 dev 接入验证后同步；各工作树、dev 接入与具体整合任务分别验收，详见[共同工程分工](../.scratch/domain-development/issues/09-shared-engineering-responsibility.md#answer)。具体公共基础缺口与域内实施任务由后续 OpenSpec 调查及规划确定。
+
+公共基础已按实际缺口拆为三个实施规划入口：共同契约先落入 dev，三个工作树并行实现，真实整合按依赖验收；文件归属及领域交接见[公共基础实施规划](../.scratch/domain-development/public-foundation-plan.md)。七域开发仍等待全部公共基础验收；工件与实际交付分别核对，不以规划 ready 宣称基础已经完成。
+
 本路线图安排初设规格的实施顺序、依赖和验收节点。当前 Figma 设计尚未就绪，开发可先使用已有工作台与真实模块夹具推进；视觉设计按功能分批接入。顺序可根据实施证据调整，本文不表示业务已经实现，也不一次性授权全部开发、安装依赖或发布。
 
 行为依据见[初设规格书](initial-spec/README.md)、[PRD](prd/README.md)及相关决议；实际能力以代码、测试与[当前正式规格](../openspec/specs)为准。路线图只维护阶段、依赖和调整理由，任务勾选与交付证据集中在各 OpenSpec 变更，不再复制一份进度账本。
 
 ## 1. 推进方式：开发与界面设计并行
 
-建议先贯通“连接真实内核 → 打开项目并安全保存笔记 → Agent 读取材料并保存成果”这条短路径，再接入文献、综合、研究执行和稿件。每一步都能在同一工作台操作，并且可以单独检查其实际结果。
+共同内核、项目文件及单 Agent 的既有短路径作为后续基础复用。当前从公共基础缺口调查继续，随后各开发线在同一工作台上交付独立结果，并按实际依赖安排跨域整合。
 
 这延续了 [#14](../.scratch/scholoom-foundations/issues/14-agent-development-discipline.md#按实际使用路径开发与交付) 和 [#20](../.scratch/scholoom-foundations/issues/20-ui-debugging-and-e2e-harness.md#answer) 的做法：模块按自身契约独立交付，界面尽早承接真实能力，完整路径再做整合验收。Figma 提供视觉与交互设计输入，不承担领域接口、数据权威或执行状态的定义。
 
 ### Figma 前可开展的工作
 
-大部分核心能力可以先于 Figma 实施。近期优先沿 P1 → P2 → P3 推进，使用现有工作台持续提供可操作反馈；后续能力在各自前置就绪后接入，不必等待完整设计稿。
+大部分核心能力可以先于 Figma 实施。近期按已确认公共基础与七域安排推进，使用现有工作台持续提供可操作反馈；下表保留 P1–P9 的能力分类及视觉交接，后续能力在各自前置就绪后接入。
 
 | 路线图部分 | 可先于 Figma 开展 | 后续结合设计收敛 |
 | --- | --- | --- |
@@ -40,7 +46,7 @@
 ### 节奏与范围
 
 - 一个阶段可以包含多个 OpenSpec 变更，每个变更交付一个可观察结果。不要把整章初设或整个宏观模块一次性展开成实施任务。
-- 优先保持一条主路径推进；共享契约明确后，才并行做互不写同一范围的工作。生态兼容和分发风险可提前调查，不要求开多条长期实现分支。
+- 先完成七域所需公共基础，再按已确认开发线并行推进；每次真实跨域路径另设有明确负责人的整合任务。生态兼容调查在受影响契约定案前闭合，分发风险随相关依赖引入核对。
 - 近两步写到可以实施，远期保留明确成果和依赖；每次交付后据新事实调整后续顺序，不预填缺乏依据的工期、完成百分比或性能数值。
 - 早期用隔离样本。允许某类真实用户数据写入前，先验证该类数据的保存、备份与恢复路径；批量迁入、合并和删除还要验证自身的中断与撤回。
 
@@ -51,16 +57,21 @@
 | 已有基础 | 可以复用 | 尚不能据此认定可用 |
 | --- | --- | --- |
 | 三应用入口和 pnpm workspace | 独立驻留内核、CLI、认证与生命周期、桌面及兼容宿主结构 | 插件兼容、独立 Node 产品分发 |
-| 共享 React／assistant-ui 工作台 | 同一组件承接真实会话、项目文件、MiniMax 与执行控制 | 科研方法、文献阅读与完整科研业务 |
+| 共享 React／assistant-ui 工作台 | 同一组件承接真实会话、项目文件、MiniMax 与执行控制，复用共同资源及阅读编辑视图 | 完整类 Zotero 工具、对象到 Agent 的批注链路及完整科研业务 |
 | `packages/protocol` 与 `packages/client` | Schema／类型事实源、真实 WebSocket、业务 RPC、范围订阅与重连 | 后续领域接口 |
+| 模块运行、共同资源与写作编辑交付 | broker 与模块装配、项目及库资源的共同打开、源码／可视编辑和排版 | 通用程序运行、子 Agent 委派、交互报告及全部领域业务 |
 | smoke、内核与双宿主 UI 测试 | 生命周期、文件保护与 Agent 用户路径的实际入口 | 完整科研质量和三平台成品验收 |
 | 宿主及预览调查原型 | 已验证输入、兼容问题、来源代码和行为参照 | 可以直接搬入生产的完整子系统 |
 
-正式规格包含工程基础、共同内核生命周期、工作台基础／外壳、项目文件、模型与单 Agent；契约见 [当前正式规格](../openspec/specs)，基础 harness 实际结果见 [establish-basic-agent-harness 交付](../openspec/changes/archive/2026-10-15-establish-basic-agent-harness/delivery.md)。样例“只显示最新一轮”的范围仍限于样例，真实会话采用持久分页历史。
+正式规格入口见[当前规格](../openspec/specs)，涵盖模块运行、共同资源、文献题录附件与阅读、编辑排版等已交付范围。基础 harness 结果见 [establish-basic-agent-harness 交付](../openspec/changes/archive/2026-10-15-establish-basic-agent-harness/delivery.md)，模块运行、共同资源与写作编辑的实际证据见[决策地图的现状入口](../.scratch/domain-development/map.md#现状依据)。样例“只显示最新一轮”的范围仍限于样例，真实会话采用持久分页历史；历史 Linux 结果不等于本轮重验或三平台成品验收。
 
 共同内核入口沿已确认的 [#23](../.scratch/scholoom-foundations/issues/23-kernel-entry-and-lifecycle.md#answer) 已交付。按用户确认，P2 的必需文件保护与 P3a–P3c 已合为一个单 Agent 闭环，先接 MiniMax M Plan 中国区；P3d 的共同方法／能力调用由后续独立变更接入。未接入的库管理、受管计算和生态功能不因基本 harness 可用而视为已完成。
 
-基础 Agent harness 及相应界面沿实际缺口验收。P3a–P3c 的执行反馈由 [complete-agent-execution-workbench](../openspec/changes/archive/2026-10-15-complete-agent-execution-workbench/proposal.md) 补齐；[complete-project-file-workbench](../openspec/changes/archive/2026-10-15-complete-project-file-workbench/proposal.md) 覆盖项目管理、目录与文件回收恢复、源码编辑和 Markdown 图片／公式预览；[complete-agent-conversation-workbench](../openspec/changes/archive/2026-10-15-complete-agent-conversation-workbench/proposal.md) 补齐通用会话管理与消息阅读。P3d 由 [establish-research-capability-runtime](../openspec/changes/archive/2026-10-16-establish-research-capability-runtime/proposal.md) 交付内置材料分析方法、共同调用、持久尝试及实际交付检查；完成证据集中在该 change 的 delivery。随后按 P4a 推进本地文献库，完整 Digest 沿 P4c 使用共同入口，方法管理沿 P5a 扩展。
+基础 Agent harness 及相应界面沿实际缺口验收。P3a–P3c 的执行反馈由 [complete-agent-execution-workbench](../openspec/changes/archive/2026-10-15-complete-agent-execution-workbench/proposal.md) 补齐；[complete-project-file-workbench](../openspec/changes/archive/2026-10-15-complete-project-file-workbench/proposal.md) 覆盖项目管理、目录与文件回收恢复、源码编辑和 Markdown 图片／公式预览；[complete-agent-conversation-workbench](../openspec/changes/archive/2026-10-15-complete-agent-conversation-workbench/proposal.md) 补齐通用会话管理与消息阅读。P3d 由 [establish-research-capability-runtime](../openspec/changes/archive/2026-10-16-establish-research-capability-runtime/proposal.md) 交付内置材料分析方法、共同调用、持久尝试及实际交付检查；完成证据集中在该 change 的 delivery。随后按 P4a 推进本地文献库，完整 Digest 沿 P4c 使用共同入口，后续科研业务 Graph 及研究记录沿 P5a 细化。
+
+2026-10-21 的[业务 Graph 决定](../.scratch/domain-development/issues/04-research-methods-scope.md#graph-承载科研业务流程)修正后续流程承载方向：P3d 的既有材料分析与记录交付保留实际范围，后续业务需将流程推进落实为 Graph／子图，不能以通用 Agent 图加载完整 Skill 视为已经接通。P5a 的后续范围据此调整，具体迁移通过 OpenSpec 规划，不改写已交付结果。
+
+同轮用户已后置具体业务流程的节点、顺序与回路；首批 Graph 由 Scholoom 源码定义并注册，用户／项目使用已开放配置，暂不提供自定义 Graph。后续先形成[共同科研 Graph 运行基础设计包](../.scratch/domain-development/issues/04-research-methods-scope.md#answer)，覆盖内建注册配置、可信执行与生命周期、材料成果交接、记录检查与诊断，以接入真实模块的固定夹具 Graph 独立验证并标明替身边界。具体业务图在用户恢复流程设计后再展开，夹具通过不代替产品入口科研验收。
 
 ## 3. 总体顺序与依赖
 
@@ -163,7 +174,7 @@ P4b 的 PDF 路径见[共享阅读变更](../openspec/changes/archive/2026-10-16
 
 | 候选变更 | 依赖与范围 | 可验收结果 |
 | --- | --- | --- |
-| P5a 方法管理与研究记录 | P3d 共同调用；扩展方法发现、派生和启用检查，任务按用户明确要求建立，问题、计划与能力交付关系持久保存 | 普通会话仍无需任务；方法同名可辨；新会话能发现并继续已有研究 |
+| P5a 科研业务 Graph 与研究记录 | P3d 共同调用及领域读取／保存；先明确共用 Graph 运行、能力发现、交付检查及研究记录，具体业务流程另行设计；首批图随源码注册，自定义 Graph 后置 | 共用执行与领域交接可独立诊断验证；能力来源及版本可辨；普通会话仍无需任务，新会话可依研究事实继续；实际科研业务图仍需后续实现验收 |
 | P5b 在线发现与补充 | P4 摄取接口；逐个接入已确认来源、标识符和网页补充，核查真实限制 | 查询覆盖、题录、全文地址及实际下载分别表达，失败保留来源和原因 |
 | P5c 分层检索与综合 | P4 可读材料与分析；先调查代表样本上的解析、切分和索引，再接统一混合检索与综合方法 | 同来源跨层命中归组，可按引用读原文、核验图表；召回覆盖与缺项真实 |
 | P5d 交互报告 | P3 执行／授权与 P2 产物；原生呈现、输入回传和持久报告，无需先有研究任务或正式决定 | 比较材料 → 用户选择 → 继续分析 → 保存并再次打开；普通筛选与报告交互不强制建立任务 |
@@ -172,7 +183,7 @@ P4b 的 PDF 路径见[共享阅读变更](../openspec/changes/archive/2026-10-16
 
 P5d 可在 P3 与必要材料读取就绪后提前实施，不等待 P5a 或混合检索完成；先用已有材料及真实 Agent 构成比较路径，再用审阅修订复核接口是否适用。P5e 可直接使用用户提供的材料，也不强制经过在线检索。报告脚本与资源访问边界在首次可执行交互前确定，避免为了快速展示赋予任意内核权限。
 
-六组科研方法随 P4–P8 的实际业务路径逐组接入，三类稿件工作流随 P7／P8 落实；P5a 交付发现与调用机制不能代替方法内容的迁入及效果检查。旧项目方法和程序按当前契约抽取，核对许可与有价值的既有测试，不把整个旧应用作为运行依赖。
+六组科研业务随 P4–P8 的实际路径逐组以 Graph／子图接入，三类稿件 Graph 随 P7／P8 落实；P5a 的发现与调用机制不能代替实际流程与科研效果检查。旧 Skill／capability 包按流程、节点指导、程序及校验素材拆解，核对许可与有价值的既有测试，不把旧应用或完整 Skill 流程作为新的执行权威。
 
 后台维护在手动路径、取消、资源限制和恢复可靠后开启。在线供应商、检索参数等影响当前路径的未知项在对应 investigation 中解决，不要求先统一研究所有检索方案。
 
@@ -296,7 +307,7 @@ Figma 比开发晚时，优先继续明确且稳定的模块和小交互，不�
 4. **tasks：** 按依赖安排实现、UI 接入和必要验证，明确整合责任。独立模块可以先交付，所依赖路径的整合验收仍须有人负责。
 5. **执行后 delivery：** 记录实际接线、替身、测试结果、人工反馈、限制与接续信息。完成验证再同步／归档；对应初设正文转为正式规格链接，本文不复制任务状态。
 
-规划到 apply 所需工件及其依赖齐备为止，不能为了 CLI 显示完整而提前填写交付结果。本轮路线图不创建整套远期变更；接下来先为 P1 建立实际变更，后续在临近实施时规划。
+规划到 apply 所需工件及其依赖齐备为止，不能为了 CLI 显示完整而提前填写交付结果。接下来先调查四组公共基础的实际缺口，按可独立验证结果形成实施规划；各域首期按已确认入口细化，远期保留交付目标及依赖。
 
 ### 验证贯穿每一步
 
@@ -313,7 +324,7 @@ Agent 任务的总耗时、用量、调用次数和失败原因只用于诊断�
 
 ## 8. 近期建议与范围覆盖
 
-近期建议依次交付 P1、P2a／P2b、P2c 与 P3。先让工作台连接真实内核，再让真实材料安全地流过同一条路径，然后让 Agent 使用它；每步都可以操作和反馈。P2c 覆盖已有数据的恢复应在扩大真实数据写入前完成，不等文献库全套功能就绪。
+近期入口沿[公共基础四组范围](../.scratch/domain-development/issues/10-parallel-design-and-delivery.md#q3公共基础优先补齐四组共同部分)及[七域首个独立结果](../.scratch/domain-development/issues/10-parallel-design-and-delivery.md#q4七条开发线的首个独立交付)组织。先复用已交付能力、补齐共同接线及独立验证入口，再按各域真实前置推进；每次扩大真实数据写入前核对所属保存、备份及恢复路径，不等待无关领域全部完成。
 
 这段时间 Figma 从 F1 开始即可。若设计暂未推进，仍可继续 P4 的文献权威、摄取和阅读接线，以及 P6 的模块调查；涉及尚未明确的复杂交互先讨论具体动作，不把整个开发暂停。
 
@@ -330,4 +341,4 @@ Agent 任务的总耗时、用量、调用次数和失败原因只用于诊断�
 | 生态 Z-01–Z-07 | E1–E4，P7 引用，P9 支持矩阵验收 |
 | 验证 V-01–V-08 | 每步适用检查，平台风险提前核对，P9 完整科研与分发；不是最后才开始测试 |
 
-云同步、多人实时协作、移动端、对外 MCP／A2A、任意插件兼容、强安全沙箱、持续精确原文定位及金额预算均不因本路线图新增承诺。SSH 工作区的[部署目标](../.scratch/runtime-architecture/issues/05-local-and-remote-deployment.md#answer)已确认，远端实施由后续 OpenSpec 承接，本轮不调整路线图阶段排期。具体边界仍以初设及原决议为准。
+云同步、多人实时协作、移动端、任意插件兼容、强安全沙箱、持续精确原文定位及金额预算均不因本路线图新增承诺。SSH 工作区的[部署目标](../.scratch/runtime-architecture/issues/05-local-and-remote-deployment.md#answer)及[对外 MCP 范围](../.scratch/runtime-architecture/issues/07-external-interfaces-and-extensions.md#answer)已确认，具体实施及真实验收由所属 OpenSpec 承接，A2A 沿该外部接口决定后置。具体边界仍以初设及原决议为准。

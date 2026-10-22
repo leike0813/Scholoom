@@ -1,3 +1,4 @@
+import { graphExecutionSchema, graphResumeInputSchema } from './graph-contracts.js';
 import { harnessSnapshotSchema, sessionSchema } from './harness-record-contracts.js';
 import { fileReferenceSchema } from './project-file-contracts.js';
 import { content, flag, id, object, ok, page, session } from './schema.js';
@@ -16,10 +17,16 @@ export const harnessModuleOperations = {
     semantics: { effect: 'read', returns: 'result', waitMs: 5000 },
   },
   'harness.execute': {
-    params: object({ attemptId: id, prompt: content, expectedOutput: fileReferenceSchema }, [
-      'attemptId',
-      'prompt',
-    ]),
+    params: object(
+      {
+        attemptId: id,
+        prompt: content,
+        expectedOutput: fileReferenceSchema,
+        execution: graphExecutionSchema,
+        resume: graphResumeInputSchema,
+      },
+      ['attemptId', 'prompt'],
+    ),
     result: ok,
     semantics: { effect: 'write', returns: 'result', waitMs: 3600000 },
   },
