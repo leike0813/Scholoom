@@ -2,7 +2,9 @@
 
 ## 当前状态与成果
 
-2026-10-22，本工作树的运行时实现、独立审查及相关验证已完成。用户要求实施整个 establish-scoped-execution-foundation，随后要求“向 dev 分支发 pr”，授权当前分支 scoped-execution-foundation 的提交、推送及目标为 dev 的 PR 创建。本记录随 PR 交付，实际合并及 dev 接入验收尚未进行。tasks 当前为 8/11：1.2、2.2 的本地实现与验证已完成，因其还要求实际接入 dev，保持未勾选；最终交付记录任务 3.5 随接入后收尾。已有 delivery 文件不表示可归档。
+2026-10-23，用户要求在当前 dev 收回三个工作树的 PR 并准备下一阶段交接。PR #1（b210eec）已以 a2cd773 接入 dev；随后接入 PR #2、#3，组合源码基线为 efc9429。本变更实际授权、独立审查、接入回归及交付记录完成，tasks 为 11/11，尚未同步正式规格或归档。其他两项公共基础变更仍在实施，不能据此启动七域或宣称公共基础整体验收完成。
+
+以下保留 2026-10-22 工作树内的实现与验证证据；本轮 dev 接收证据及边界见下文。原用户已授权实施本变更并向 dev 提交 PR，本轮授权覆盖接收、冲突修复、验证及更新 dev；另外三个工作树由用户手动同步，未操作其 Agent。
 
 原 1.1 共同契约保持不变，本轮没有新增数据库迁移、产品协议或依赖声明。设计中的 broker → 目标只读提供者 → 文件链路现已真实接通，未替换内部项目、broker、仓储或受管执行。实际改动如下：
 
@@ -45,6 +47,8 @@ pnpm test:kernel tests/kernel/work-domains.spec.ts tests/kernel/target-races.spe
 
 ## 审查与问题处理
 
+2026-10-23 接收时，两个原生独立审查分别核对目标只读授权，以及 driver／命令／连接与草稿。两者均复核合并后的 efc9429，未发现阻塞问题；审查为源码及既有测试定义复核，运行结果由本轮主 Agent 验收。PR #2 在 Harness 构造器及宿主装配处与本变更冲突，合并后末尾参数统一为 processes、workerEntry、graphs、targetFiles，保留真实目标读取及静态 worker 接线；全部构造调用、类型检查和实际 worker 回归通过。
+
 独立审查发现并修复三项实际问题：
 
 1. 多个目标逐个异步检查时，较早核对的目标可能在后续等待中撤权。模型租约发放前增加同步最终确认，失败释放名额。
@@ -55,8 +59,25 @@ pnpm test:kernel tests/kernel/work-domains.spec.ts tests/kernel/target-races.spe
 
 首轮 48 项相关测试通过后补充四项竞态及真实工具会话。补测发现测试曾把普通文本读取的保存 basis 当作材料 fingerprint；改为在夹具准备阶段取所属领域 material 的依据。SDK 普通文件工具返回文本而非自定义 JSON，相关断言改为状态及语义片段。最终 57 项和额外接续用例均通过。
 
+## dev 接收验证
+
+2026-10-23，在主工作树 dev 将三个 PR 整合后运行；环境仍为 Linux、Node v24.12.0、pnpm 11.10.0。使用已有依赖，没有安装、升级或启动开发服务器。真实内部 broker、仓储、文件、worker 和进程控制，外部模型使用受控 HTTP，组件用例的显式替身沿原记录。以下是本批 PR 的接收回归，不是工作台 4.5 的最终公共基础组合验收。
+
+| 命令／入口 | 结果 |
+| --- | --- |
+| pnpm typecheck；pnpm build | 全仓通过，包含三个 PR 的实际装配及双宿主构建。 |
+| pnpm check:architecture | 13 模块、195 源文件，0 findings、0 exceptions。 |
+| pnpm --config.optimisticRepeatInstall=false generate:contracts；生成器 --self-test | 通过；生成 patch 涉及的五份映射按 Biome 格式化后与现有文件逐字一致，未改声明或派生文件。 |
+| node node_modules/@playwright/test/cli.js test --config playwright.kernel.config.ts 加下列 32 个文件，--output test-results/pr-integration-kernel | 137/137 通过，6.2 分钟；同时覆盖本变更授权、其他两线 worker／命令／连接和既有会话恢复。 |
+| node node_modules/@playwright/test/cli.js test tests/smoke/entrypoints.spec.ts --output test-results/pr-integration-smoke | 4/4 通过，35.3 秒；独立 Node、真实 Electron/preload、关窗重连及兼容宿主。 |
+| UI 配置 --list，默认端口及 SCHOOLOOM_UI_PORT=5275 | 各加载 104 项；仅验证配置，未运行服务器、双实例或 UI 交互。 |
+| 76 个改动源码／配置／测试文件 Biome 检查；git diff --check；三个 OpenSpec strict | 通过；定向 Biome 有 11 项 warning、3 项 info，无 error。 |
+| pnpm lint --diagnostic-level=error | 仍失败于 21 项既有文献库 UI 错误；该目录与 fe2f0bc 一致，不是本批 PR 引入。GitHub CI 失败也停在同一 lint 阶段，不能据此推断远端构建或测试已跑过。 |
+
+32 个内核文件均在 tests/kernel/，后缀为 .spec.ts：broker、cancel-admission、capability-isolation、capability-stop-unknown、checkpoint-files、client、context-contributions、context-drafts、context-session、editor-runtime、editor、execution-capacity、execution-isolation、graph-registration、harness-module、harness-recovery、managed-commands、manual-application、model-access、platform-processes、process-admission、project-backend、public-contract-baseline、research-module、resource-access、rpc、sessions、target-races、target-reader、work-domain-contracts、work-domains、workbench-context。测试产物位于上表 output 目录；相关用例清理自己持有的应用、执行及临时数据。
+
 ## 未完成事项与下一步
 
-- 任务 1.2、2.2 剩余的是 PR 实际合入 dev 后，核对接入结果并向另外两线交接；PR 创建不视为 dev 已集成。
-- PR 合并后，按公共基础实施规划核对 dev 的真实组合，更新相同 tasks／delivery，完成最终任务 3.5；不替其他两线宣称资源、图流程或工作台整合已验收。
-- 全仓 lint 的既有前端问题未处理；未运行全仓测试、UI／Electron 交互、真实模型、分发包和跨平台验收。Mermaid 图文已核对，未渲染。
+- 本变更没有剩余实施任务；下一步在同步后的工作树核对正式验收并按 OpenSpec 流程处理规格同步／归档，不能顺带归档另外两项变更。
+- 另外两线现可消费真实 project.readTarget、工作域／模型前授权检查及 store/files 保护；统一 ExecutionResourcePort 适配、图持久恢复和显式项执行仍由各自任务交付。
+- 全仓 lint 的既有前端问题尚未处理；未运行全仓测试、完整双宿主 UI／双实例、真实模型、分发包或跨平台验收。现有 UI harness 会启动开发服务器，受当前操作规则限制本轮未运行；Mermaid 未渲染。
