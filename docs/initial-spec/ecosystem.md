@@ -30,6 +30,8 @@ Scholoom SHALL 提供独立命名、发布及维护的 Connector，支持选择�
 
 系统 SHALL 支持 BBT 引用键生成、BibTeX／BibLaTeX 导出、自动导出、pull export 和对外 JSON-RPC。迁入、用户指定和已生成的键默认稳定；题录更正不自动改键，明确重生成时处理冲突及已知项目引用。项目与库键差异通过映射关联，手工维护的引用文件 SHALL 受到文件编辑保护。
 
+引用键与插件状态的职责归属采用[生态职责决定](../../.scratch/domain-development/issues/08-zotero-ecosystem-constraints.md#q1引用键与插件状态归属)，正式键只有一处事实源；项目影响核对遵守该决定引用的范围约束。
+
 #### Scenario: 更正已引用文献的标题
 - **WHEN** 元数据标题被更正且用户未要求重生成引用键
 - **THEN** 已有键保持稳定，已知稿件引用不因题录变化失效
@@ -69,6 +71,8 @@ Scholoom SHALL 提供独立命名、发布及维护的 Connector，支持选择�
 ### Requirement: Z-07 中断续做与安全撤回
 
 迁入 SHALL 预检范围与差异，逐项提供完成结果，核对关系并实际打开样本附件、笔记及批注，验证引用键导出与重启读回。中断保留已确认完成部分，重试核对身份映射且保护迁入后编辑；撤回只处理仍可安全撤销的部分，保护后续修改与项目使用关系。
+
+安全判断采用[生态职责决定的保留原则](../../.scratch/domain-development/issues/08-zotero-ecosystem-constraints.md#q3迁入撤回采用保留原则)；无法证明安全的已入库对象 SHALL 保留并报告，未查到引用不能作为安全删除的依据。
 
 #### Scenario: 中断后用户编辑已迁入条目
 - **WHEN** 迁入重试遇到已完成且又被用户修改的条目

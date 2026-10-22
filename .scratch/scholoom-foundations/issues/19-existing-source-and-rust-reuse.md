@@ -56,13 +56,13 @@ Blocked by: 08
 
 | 实现资产 | 采用方向 | 需要对齐的职责 |
 | --- | --- | --- |
-| zotero-agents 文献精读、综合、标签方法及结构化结果判据 | 吸纳方法、模板、纯规则与校验素材，按原生 Skill/能力约定组织 | 必要方法与材料信息、直接交付与按需审查；生成校验器随新 schema 生成，不成为第二份手工规则 |
+| zotero-agents 文献精读、综合、标签方法及结构化结果判据 | 按[业务 Graph 决定](../../domain-development/issues/04-research-methods-scope.md#graph-承载科研业务流程)拆为流程、节点指导、模板、纯规则与校验素材 | 保留必要来源、材料及交付依据；生成校验器随新 schema 生成，不成为第二份手工规则 |
 | Synthesis 引用匹配、规范引用去重、引用图构建与指标 | 优先抽取 TS 计算；main、历史和 dev 作为不同来源比较，保留必要修复与行为样本 | 新 Source/材料版本与身份映射、批量数据、独立计算、进度和取消；旧 Zotero item key 不作为稳定学术身份 |
 | Synthesis TS 图布局 | main 的 TS force/radial/components 是直接可研究的源码候选，无需据 dev 缺失状态从零重建 | 计算脱离关键事件循环，效果和规模验证；具体图库与版本由技术栈选择 |
 | 概念、标签和主题知识 | 抽取科研规则、查询与索引算法；应用代码按原生状态和交付重组 | 别名与关系、来源条件、可重建索引及已确认绑定/合并/决定分别承载，重建不能覆盖正式事实 |
 | 旧 Synthesis repository/application/service | 参考查询、事务片段、冲突处理与行为用例，逐项吸纳适用实现 | main 服务的 Zotero/note/插件任务/UI 耦合及 dev 的旧 protocol/存储形态不整体搬入；物理模式和写入权威由存储票决定 |
 | ResearchSpec 批注摄取、定位、稿件修订与保护区 | 抽取反馈来源验证、当次编辑定位、候选解释、修订检查及适合的实现 | 主编辑格式、关键来源和当前内容核对，按 #13 保护写入；定位范围沿 [#44](44-defer-continuous-precise-source-location.md)，不迁入跨版本重定位或位置重绑 |
-| ResearchSpec 检索与校验 | 吸纳词汇资产、检索算法、可执行校验的有效实现 | 接入共同方法/能力目录，按新输入与交付约定检验；不自动迁入旧 semantic 环境或目录权重 |
+| ResearchSpec 检索与校验 | 吸纳词汇资产、检索算法、可执行校验的有效实现 | 接入业务 Graph 节点及能力输入／交付契约，不继承旧 Skill 包流程、semantic 环境或目录权重 |
 | ResearchSpec graph-run、CLI 控制与写计划 | 研究控制语义和有效实现片段作为素材，按原生 LangGraph/harness 实现 | 旧 run 文件树、目录控制与 CLI 不作为第二权威；预检、备份和进程内回滚不是已完成的崩溃安全事务 |
 | 旧会话与进程管理 | 按具体职责借鉴生命周期和故障处理实现，服务内置 LangGraph harness | 沿 [#07](07-agent-runtime-boundaries.md#answer)不迁入 ACP 或外部 harness 接入；旧 Gecko transport、runtimePersistence 与 WebSocket 桥不整体携带 |
 | Zotero broker、Host Bridge 与 Rust bridge | 为已选兼容宿主评估适用的读写和通信实现 | 价值依赖[原包兼容宿主原型](16-zotero-host-prototype.md)；不能直接作为原生 Node 领域实现，也不因宿主耦合排除其兼容适配价值 |

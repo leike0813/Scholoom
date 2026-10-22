@@ -45,7 +45,7 @@
 | 永久删除或清空回收站 | 明确范围与已知影响，沿破坏性操作授权执行 |
 | 移除外部链接附件 | 删除库内关联，删除外部原文件作为独立操作 |
 
-库内删除保留项目已经保存的研究事实与必要历史材料，来源当前是否可用如实显示。人、Agent 和插件管理操作提供共同的成功、失败或部分完成结果。
+库内删除保留项目自身的研究记录与成果，库知识仍由库提供，项目只持引用指针。材料身份、删除操作者及语义信息、恢复与重新入库的区别，以及引用异常处理，沿[研究项目与研究资产共同契约](../../.scratch/domain-development/issues/03-project-research-assets-scope.md#answer)及其行为矩阵执行。人、Agent 和插件管理操作提供共同的成功、失败或部分完成结果。
 
 来源：[文献管理行为](../../.scratch/scholoom-foundations/issues/32-literature-management-behavior.md#answer)。
 
@@ -142,7 +142,7 @@ Agent 经内核材料服务读取原文、位置和批注，无需打开阅读�
 
 通用兼容层覆盖共享 Zotero 宿主契约，支持范围按版本与功能实际验收逐步扩大。加载成功、界面展示、Agent 调用和具体业务各自验证，内部桥接 RPC 不替代对外接口验收。
 
-来源：[首批兼容目标](../../.scratch/scholoom-foundations/issues/05-zotero-compatibility-policy.md)、[宿主路线](../../.scratch/scholoom-foundations/issues/16-zotero-host-prototype.md#answer)、[生态行为](../../.scratch/scholoom-foundations/issues/41-zotero-ecosystem-integration.md#answer)。
+来源：[首批兼容目标](../../.scratch/scholoom-foundations/issues/05-zotero-compatibility-policy.md)、[宿主路线](../../.scratch/scholoom-foundations/issues/16-zotero-host-prototype.md#answer)、[生态行为](../../.scratch/scholoom-foundations/issues/41-zotero-ecosystem-integration.md#answer)、[引用键权威与资源维护分工](../../.scratch/domain-development/issues/08-zotero-ecosystem-constraints.md#answer)。
 
 ## 单向迁入与安全续做
 
@@ -156,4 +156,4 @@ Agent 经内核材料服务读取原文、位置和批注，无需打开阅读�
 
 失败或中断保留确认完成部分，重试核对身份映射和实际对象，保护迁入后编辑。撤回仅处理仍可安全撤销的变更，保护后续修改和项目使用关系，不能安全撤回部分明确说明。真实迁入前在副本或样本中验证中断、重试、撤回和备份恢复。
 
-来源：[迁入范围与恢复](../../.scratch/scholoom-foundations/issues/41-zotero-ecosystem-integration.md#answer)、[高影响变更保护](../../.scratch/scholoom-foundations/issues/15-validation-and-release-discipline.md#answer)。
+来源：[迁入范围与恢复](../../.scratch/scholoom-foundations/issues/41-zotero-ecosystem-integration.md#answer)、[撤回保留原则](../../.scratch/domain-development/issues/08-zotero-ecosystem-constraints.md#q3迁入撤回采用保留原则)、[高影响变更保护](../../.scratch/scholoom-foundations/issues/15-validation-and-release-discipline.md#answer)。

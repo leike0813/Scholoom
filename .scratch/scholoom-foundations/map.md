@@ -10,6 +10,14 @@ Labels: wayfinder:map
 
 ### 当前讨论入口
 
+- 2026-10-21，用户明确[科研业务流程由 LangGraph Graph／子图承载](../domain-development/issues/04-research-methods-scope.md#graph-承载科研业务流程)，旧 Skill／capability 包拆为流程、节点指导及资源素材。核心模型、内容执行与 harness 接线等旧决议的相关承载约定采用该方向；能力入口及领域权威保留，实际业务 Graph 接线与迁移由后续 OpenSpec 承接。
+
+  [本轮科研业务域决定](../domain-development/issues/04-research-methods-scope.md#answer)已收束：确认固定全局会话工作域、内建 Graph 配置和整体版本追溯，先设计共同运行基础及固定夹具独立验证；具体业务流程和用户／项目自定义 Graph 后置，夹具通过不代表科研质量验收。
+
+- 2026-10-21，[研究项目与研究资产决定](../domain-development/issues/03-project-research-assets-scope.md#answer)已明确研究主题随文献库维护、动态研究任务归项目并以文件承载，以及库知识仅存指针、材料身份和删除恢复、引用异常暂停询问的行为矩阵。相关旧票用于追溯原决定，后续领域设计采用该票的新定义与约束；业务实现及验证由 OpenSpec 承接。
+
+- 2026-10-20，用户开启[功能域细化与并行开发讨论](../domain-development/map.md)，确认七域组织与共同工程主线；文献域先细化完整的类 Zotero 基础工具，功能与界面共同推进，项目定向综合作为后续整合路径。新地图记录职责、共同契约和启动条件；具体实施仍由后续 OpenSpec 承接。
+
 - 2026-10-17，用户开启[模块依赖、运行时进程与接口架构讨论](../runtime-architecture/map.md)，目标是形成可指导重构的决策，本轮不实施。讨论覆盖模块独立性、统一平台访问、Agent 执行故障隔离、进程与恢复、内部通信、SSH 远程工作区及 MCP／A2A 开放接口；已确认前提、进程拓扑与后续票以新地图为入口。
 
 - 2026-10-14，设计复审讨论已收束并获用户确认：保留 [#09](issues/09-electron-architecture.md)单内核与有界局部重同步；[#13](issues/13-storage-and-change-model.md)采用文件内容变化即重读、独立副本恢复与选择性取回；[#25](issues/25-harness-business-integration.md)明确 checkpoint 失效后新执行接续及产物关联部分成功；[#44](issues/44-defer-continuous-precise-source-location.md)补齐旧记录降级呈现。数据库/UI 能力沿 [#12](issues/12-technology-stack.md)作为开发中与交付前复验的假设，性能门槛沿 [#15](issues/15-validation-and-release-discipline.md)仅用于确定性动作，测试工具策略沿 [#20](issues/20-ui-debugging-and-e2e-harness.md)。本轮同步设计、PRD 与决议，未启动业务实施或宣称运行验收通过。
@@ -124,8 +132,8 @@ Labels: wayfinder:map
 - [确定科研 Agent harness 的职责与执行引擎路线](issues/07-agent-runtime-boundaries.md)：统一 LangGraph、LangChain 与 Deep Agents 基础，workflow 和 capability 原生融合，明确生命周期与插件 MCP；对外 MCP 已采纳，公共范围及 A2A 后置见运行时架构地图的外部接口决议。
 - [确定 zotero-agents 与 ResearchSpec 的复用和演进边界](issues/08-existing-project-integration.md)：三个项目保持平行，Scholoom 初期吸纳能力、后期独立演进；同步由用户掌握，核心模型、内容迁入和源码取舍独立成票。
 - [确定领域模块、Electron 进程与扩展宿主的架构](issues/09-electron-architecture.md)：同一数据配置共用单一后台宿主与共同领域权威；客户端采用双向 JSON-RPC＋本地 WebSocket，兼容环境使用独立 Electron 宿主。执行部署与故障范围沿[会话执行进程决议](../runtime-architecture/issues/03-session-execution-processes.md#answer)。
-- [确定原生科研能力、Skill、工作流与科研 Agent 的核心模型](issues/17-native-research-capability-model.md)：明确方法、能力与工作流的关系，以及持续任务、调用、计划、交付和科研判断的边界；四类科研情境的语义核对通过。
-- [确定科研能力的运行时契约、内容编写与旧内容迁入](issues/18-native-capability-runtime-and-content.md)：确定标准 Skill、YAML 声明、原生执行与交付接口及工作包，方法留存与恢复按任务需要处理，不承诺兼容旧项目。
+- [确定原生科研能力、Skill、工作流与科研 Agent 的核心模型](issues/17-native-research-capability-model.md)：明确能力入口、业务 Graph 与节点资源的关系，以及任务、调用、计划、交付和科研判断的边界；流程承载与按需任务关联沿后续领域决定更新。
+- [确定科研能力的运行时契约、内容编写与旧内容迁入](issues/18-native-capability-runtime-and-content.md)：明确业务 Graph、能力元信息与节点资源、执行交付及工作包；旧 Skill／capability 包按职责拆解，不承诺兼容旧项目。
 - [确定既有源码、Synthesis 与 Rust 实现的复用取舍](issues/19-existing-source-and-rust-reuse.md)：按原生契约吸纳源码，Synthesis 先用 TypeScript 并独立执行重计算，main 和历史有完整实现候选；Python 按价值接入，受限第三方内容不默认内置。
 - [用粗原型确定对象、Agent 任务与变更审查的工作台组织](issues/10-workbench-interaction.md)：默认 Agent 工作优先，提供四种布局、持续工作导航和按研究目的组织的审查；两轮人工选择及示例交互检查已完成。
 - [选择阅读与写作的主格式、引用和编辑能力](issues/11-reading-writing-format.md)：确定 QMD 默认、MD／LaTeX 原生、源码与可视共稿及标准学术语法；阅读组件独立选型，预览、科研执行与外部改稿沿共同内核追溯。

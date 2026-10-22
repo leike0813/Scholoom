@@ -199,6 +199,8 @@ type Page<T> = { items: T[]; nextCursor?: string };
 
 ### 6.1 内容与科研运行
 
+科研业务采用后续[Graph 承载决定](../.scratch/domain-development/issues/04-research-methods-scope.md#graph-承载科研业务流程)：能力入口关联实际业务 Graph，Graph 组织节点、分支、检查与等待，节点取得必要指导和资源。首批 Graph 由 Scholoom 源码定义并注册，用户／项目通过已开放参数配置，暂不提供自定义 Graph。下表仅为待落实的共同接口职责草案；具体业务流程另行设计，注册字段和接线由正式规格核对，不构成旧 Skill／capability 包格式的兼容承诺。
+
 本节是任务相关工作的候选接口。[统一会话决议 #43](../.scratch/scholoom-foundations/issues/43-free-agent-conversation-and-research-tasks.md)确认研究任务为工具可操作的业务对象，会话不设类型或显式任务绑定。因此下表必填 task、按 task 查询执行和运行记录归属不能直接作为通用运行入口；通用执行上下文、对象操作及能力调用关系仍待细化。追加消息默认在下一可处理边界调整工作，并区分已受理与已处理。
 
 通用会话／执行入口与科研能力调用分别建模，复用同一 LangGraph 控制机制，不引入第三方执行后端接口。模块独立测试通过已定义接口替换模型、工具或领域依赖；插件 MCP 的调用结果、取消和恢复按工具实际支持范围核对，不以协议响应替代科研交付检查。
@@ -209,18 +211,18 @@ type Page<T> = { items: T[]; nextCursor?: string };
 
 | 提供方／初步操作 | 输入 → 输出 | 约束 |
 | --- | --- | --- |
-| `ResearchContent.discover` | 方法／能力／角色用途、内容来源筛选、分页 → 候选描述 | 同名候选并存，不以目录顺序覆盖 |
-| `ResearchContent.resolve` | 显式内容身份与版本／来源 → 声明、方法资源、执行绑定、输入及交付 Schema | 校验内容结构；资源声明不授予权限；普通 Skill 可直接加载 |
-| `ResearchRuns.start` | task、指令与材料引用、可选能力及模型配置 → execution、可选 invocation／session | 无能力的普通 Agent 工作不强制建立能力调用；启动前校验材料发送及任务授权 |
+| `ResearchContent.discover` | 能力／业务用途、来源筛选、分页 → 已注册能力与对应 Graph 的描述 | 同名候选并存，不以目录顺序覆盖 |
+| `ResearchContent.resolve` | 显式能力身份与版本／来源 → 对应业务 Graph、必要资源引用、输入及交付 Schema | 资源不定义第二份流程控制，也不授予权限；精确注册形状待正式规格 |
+| `ResearchRuns.start` | 工作域、指令与材料引用、按需业务对象／能力及模型配置 → execution、可选 invocation／session | 普通 Agent 工作不强制建立能力调用或任务；启动前核对实际目标、材料发送及授权 |
 | `ResearchRuns.get` | execution → 实际执行、产物、检查及障碍 | 执行结果与交付成立分别返回，内容有界 |
 | `ResearchRuns.pause / resume` | execution、理由／恢复意图 → 实际状态 | 暂停等到可恢复边界；恢复重读当前材料与决定，不等于重放旧调用 |
 | `ResearchRuns.cancel` | execution、理由 → cancelling 或已确认停止 | 沿依赖取消未完成单元，保留成果；不能确认时不报已取消 |
 | `ResearchRuns.delegate` | 工作包、角色与模型、当前授权 → 子执行引用 | 独立子 Agent 执行独占进程；业务任务关联可选，委派方负责收尾，后台继续需显式移交 |
-| `CapabilityExecutor.execute`（执行绑定） | request、受限 context → submission | 业务内容定义检查，harness 管生命周期；内部图步骤不自动注册子调用 |
+| 业务 Graph 推进边界（操作形状待定） | 能力输入、可信上下文 → 流程执行与实际交付 | 科研模块定义图及检查，harness 管共同执行设施；内部节点及子图不自动注册子调用 |
 
 `submission` 建议包含实际产物引用、检查结果、未完成事项和必要方法／输入依据。harness 校验必要产物及正式要求后记录交付结果，不能仅凭 TypeScript 类型、Schema 合法或程序退出成功判定任务完成。
 
-每个能力调用只直接负责一个 task；同一次科研使用在重试、换 Agent 或恢复时沿用 invocation，可以增加 execution 或关联不同 session。`resume` 返回实际继续的执行引用；独立的新使用才创建新 invocation。内部运行记录按任务 owner 持久化，当前连接只决定如何呈现它们。
+能力调用按实际用途关联文献、主题或项目研究任务，研究任务关联可选；同一次科研使用在重试、换 Agent 或恢复时沿用 invocation，可以增加 execution 或关联不同 session。`resume` 返回实际继续的执行引用；独立的新使用才创建新 invocation。调用与执行记录由科研运行模块及 harness 掌握，保留发起工作域和实际成果引用，研究事实继续由所属领域维护。
 
 checkpoint 不可用时可返回新的执行尝试，保留旧记录，依持久材料接续原工作；效果未知的副作用先核查，暂停／取消不自动恢复。通用会话恢复沿已保存指令、材料、正式决定和必要执行记录，不要求 task 存在，也不要求重建原图节点或完整 transcript。未处理指令及协作消息保留可查询处理状态，详见 [#25](../.scratch/scholoom-foundations/issues/25-harness-business-integration.md#持续保存分批交付与恢复)。
 
@@ -230,9 +232,7 @@ checkpoint 不可用时可返回新的执行尝试，保留旧记录，依持久
 
 `start` 返回结果未知时，先按 task 查询已有执行，不能直接重复启动昂贵计算或外部操作；需要自动恢复受理结果的切片可保存独立启动操作键并关联已有执行，不复用网络请求 ID。
 
-![能力执行和持续工件](diagrams/research-invocation.svg)
-
-[PlantUML 图源](diagrams/research-invocation.puml)。图以明确调用能力为例；普通 Agent 工作省略能力解析／调用记录，仍走相同授权和成果保存路径。
+[旧候选接线图](diagrams/research-invocation.svg)及其 [PlantUML 图源](diagrams/research-invocation.puml)保留早期能力入口与持续工件的讨论背景；当前科研流程承载以本节 Graph 决定及后续正式规格为准，旧图不表示业务 Graph 已接通。
 
 ### 6.2 程序与模型调用
 

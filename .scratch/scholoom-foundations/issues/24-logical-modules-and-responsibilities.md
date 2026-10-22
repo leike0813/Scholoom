@@ -23,7 +23,7 @@ Scholoom 后续按哪些逻辑模块继续讨论，各模块分别承担哪些�
 | 文献管理 | 题录、集合、附件、批注、导入、检索、去重与文献身份，承担 Zotero 的位置 |
 | 内置 Agent harness | Agent、会话、通用执行、上下文、委派、工具调用、工具与委派范围限制、人类介入及恢复；领域最终授权沿[模块依赖决议](../../runtime-architecture/issues/01-module-dependencies-and-authority.md#answer) |
 | 工作台界面 | 编辑器、阅读器、Agent interface、资源导航、任务观察与产物审查 |
-| 科研业务与内容 | 内置 Skill、科研能力声明、workflow，以及具体科研方法与交付要求 |
+| 科研业务与内容 | 业务 Graph／子图、能力入口、节点实现与资源，以及科研交付要求 |
 | 执行环境与沙箱 | 程序与工具的受管执行、环境供给、资源限制、取消及隔离；公共基础与 Agent 监督的关系沿[模块依赖决议](../../runtime-architecture/issues/01-module-dependencies-and-authority.md#answer) |
 | Zotero 插件兼容层 | 插件装载、宿主契约、DOM／Workers、插件状态及向原生文献服务的适配 |
 | 研究项目与研究资产 | 项目、研究材料、证据与主张关系、稿件、审稿问题及正式研究决定的管理 |
@@ -38,7 +38,7 @@ Scholoom 后续按哪些逻辑模块继续讨论，各模块分别承担哪些�
 
 ### 科研业务与 harness
 
-科研业务与内容包含 Skill、科研能力和 workflow，定义科研方法、工作输入、交付与检查要求。harness 负责运行这些定义；workflow 的调度、暂停与恢复进入共同运行时。具体方法内容与通用运行机制分别管理，沿[原生科研能力核心模型](17-native-research-capability-model.md)及[原生内容与执行契约](18-native-capability-runtime-and-content.md)继续细化协作接口。
+科研业务与内容定义业务 Graph、能力入口、节点实现及指导资源，并明确输入、交付与检查要求。流程步骤、依赖、分支和人工等待由 Graph 表达，harness 提供共同模型调用、工具执行、调度、暂停与恢复设施。流程承载采用后续[Graph 决定](../../domain-development/issues/04-research-methods-scope.md#graph-承载科研业务流程)，旧 Skill／capability 包按流程与节点素材拆解，不作为新的科研流程权威；领域及通用运行职责保持原分工。
 
 ### 执行环境与沙箱
 

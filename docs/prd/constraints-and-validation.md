@@ -46,7 +46,7 @@ Electron 工作台、CLI 和浏览器开发入口采用共同客户端，经本�
 
 源码入口为 `apps/kernel`、`apps/desktop`、`apps/zotero-host`，共享协议和客户端在 `packages/protocol` 与 `packages/client`。具体领域包按真实复用需要形成，不预先按全部概念拆包。
 
-科研方法采用标准 `SKILL.md` 及配套资源；需要能力入口时增加独立 YAML 声明，参数和结构化交付使用 JSON Schema。程序、Agent 与 LangGraph 图接入共同执行和交付约定，不另建完整图语言。能力声明覆盖身份、版本、用途、输入、方法及执行绑定、资源需求、交付与检查；复杂检查可引用程序检查器。声明资源需求本身不授予权限。
+科研业务流程由 LangGraph Graph／子图承载，步骤、依赖、分支、必要检查与人工等待进入图。节点复用 Agent、领域工具、程序及必要指导资源；旧 Skill／capability 包按这些职责拆解迁入。能力声明继续表达身份、版本、用途、输入、Graph 引用、资源及交付检查，参数和结构化交付采用 JSON Schema，复杂检查可引用程序检查器；声明不另建流程定义或授予权限。具体依据见[Graph 承载科研业务流程](../../.scratch/domain-development/issues/04-research-methods-scope.md#graph-承载科研业务流程)，不以通用 Agent 图加载完整 Skill 视为业务流程已经接通。
 
 Synthesis 初期采用 TypeScript，吸纳 zotero-agents main 或历史成熟实现，重计算独立执行。旧 Rust 布局与 TS 算法不能据此认定结果坐标相同；当前不整套迁入旧 Rust 应用或维护双语言生产实现。值得保留的 Python 科研工具沿共同受管执行接入。
 
