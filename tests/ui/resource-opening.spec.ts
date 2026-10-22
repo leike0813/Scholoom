@@ -8,6 +8,7 @@ import { epubFixture, htmlFixture } from '../document-fixture.js';
 import { runningKernel } from '../kernel-fixture.js';
 import { syntheticPdf } from '../pdf-fixture.js';
 import { addProject, expect, test } from './fixture.js';
+import { rendererUrl } from './renderer-url.js';
 import { armRpcGate, installRpcGate, releaseRpcGate } from './rpc-gate.js';
 
 test('project documents and library text share opening while project sessions and drafts stay independent', async ({
@@ -55,7 +56,7 @@ test('project documents and library text share opening while project sessions an
     const entry = (await client.call('library.batch', { batchId: batch.id })).entries[0];
     assert(entry?.attachmentId);
     await installRpcGate(uiPage);
-    await uiPage.goto('http://127.0.0.1:5174/');
+    await uiPage.goto(rendererUrl);
     await expect(uiPage.getByRole('status', { name: '连接状态' })).toContainText('已连接');
     await addProject(uiPage, alpha, { trust: 'restricted' });
     await addProject(uiPage, beta, { trust: 'restricted' });

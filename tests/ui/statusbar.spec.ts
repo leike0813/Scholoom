@@ -1,6 +1,6 @@
 import { expect, test } from './fixture.js';
+import { rendererUrl } from './renderer-url.js';
 
-const rendererUrl = 'http://127.0.0.1:5174/';
 const sampleUrl = `${rendererUrl}?scenario=ui-foundation`;
 
 test('status bar notifications close with Escape without collapsing the Agent overlay', async ({

@@ -1,6 +1,6 @@
 import { createSession, expect, test } from './fixture.js';
+import { rendererUrl } from './renderer-url.js';
 
-const rendererUrl = 'http://127.0.0.1:5174/';
 const sampleUrl = `${rendererUrl}?scenario=ui-foundation`;
 
 test.use({ viewport: { height: 900, width: 1440 } });

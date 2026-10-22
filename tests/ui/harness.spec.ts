@@ -5,6 +5,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { startModelKernel } from '../model-kernel.js';
 import { createModelServer } from '../model-server.js';
 import { addProject, createSession, expect, test } from './fixture.js';
+import { rendererUrl } from './renderer-url.js';
 import { armRpcGate, installRpcGate, releaseRpcGate } from './rpc-gate.js';
 
 test('user invokes a declared research capability and opens its checked report', async ({
@@ -16,7 +17,7 @@ test('user invokes a declared research capability and opens its checked report',
   const project = await mkdtemp(join(tmpdir(), 'scholoom-ui-research-'));
   try {
     await writeFile(join(project, 'input.md'), '# 合成实验\n\n观察结果42，样本数1。\n');
-    await uiPage.goto('http://127.0.0.1:5174/');
+    await uiPage.goto(rendererUrl);
     await expect(uiPage.getByRole('status', { name: '连接状态' })).toContainText('已连接');
     await uiPage.getByRole('button', { name: '设置', exact: true }).click();
     await uiPage.getByText('模型设置', { exact: true }).click();
@@ -88,7 +89,7 @@ test('user configures, edits safely and receives a real persisted Agent result',
   try {
     await writeFile(join(project, 'input.md'), '# 输入\n\n合成材料。\n');
     await installRpcGate(uiPage);
-    await uiPage.goto('http://127.0.0.1:5174/');
+    await uiPage.goto(rendererUrl);
     await expect(uiPage.getByRole('status', { name: '连接状态' })).toContainText('已连接');
     await uiPage.getByRole('button', { name: '设置', exact: true }).click();
     await uiPage.getByText('模型设置', { exact: true }).click();
@@ -257,7 +258,7 @@ test('late send failure restores its original conversation and storage failures 
   const stop = await startModelKernel(process.env.SCHOOLOOM_UI_DATA_DIR as string, model.url);
   try {
     await installRpcGate(uiPage);
-    await uiPage.goto('http://127.0.0.1:5174/');
+    await uiPage.goto(rendererUrl);
     await expect(uiPage.getByRole('status', { name: '连接状态' })).toContainText('已连接');
     await uiPage.getByRole('button', { name: '设置', exact: true }).click();
     await uiPage.getByText('模型设置', { exact: true }).click();
@@ -318,7 +319,7 @@ test('busy conversation accepts additions, cancellation survives reload and cont
   const stop = await startModelKernel(process.env.SCHOOLOOM_UI_DATA_DIR as string, model.url);
   try {
     await installRpcGate(uiPage);
-    await uiPage.goto('http://127.0.0.1:5174/');
+    await uiPage.goto(rendererUrl);
     await expect(uiPage.getByRole('status', { name: '连接状态' })).toContainText('已连接');
     await uiPage.getByRole('button', { name: '设置', exact: true }).click();
     await uiPage.getByText('模型设置', { exact: true }).click();

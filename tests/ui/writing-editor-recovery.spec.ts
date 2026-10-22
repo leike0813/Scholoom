@@ -2,6 +2,7 @@ import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { addProject, expect, test } from './fixture.js';
+import { rendererUrl } from './renderer-url.js';
 import { armRpcGate, installRpcGate, releaseRpcGate } from './rpc-gate.js';
 
 test('visual editor protects external loads and recovers drafts after conversion failure', async ({
@@ -14,7 +15,7 @@ test('visual editor protects external loads and recovers drafts after conversion
     const original = '# Recovery source\n\nOriginal saved paragraph.\n';
 
     await installRpcGate(uiPage);
-    await uiPage.goto('http://127.0.0.1:5174/');
+    await uiPage.goto(rendererUrl);
     await expect(uiPage.getByRole('status', { name: '连接状态' })).toContainText('已连接');
     await addProject(uiPage, project, { mode: 'create' });
     await writeFile(join(project, 'draft.md'), original);

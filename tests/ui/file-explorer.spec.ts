@@ -4,11 +4,12 @@ import { basename, join } from 'node:path';
 import { startModelKernel } from '../model-kernel.js';
 import { createModelServer } from '../model-server.js';
 import { addProject, cancelProjectOnboarding, createSession, expect, test } from './fixture.js';
+import { rendererOrigin, rendererUrl } from './renderer-url.js';
 
 async function openProject(page: Parameters<typeof addProject>[0], project: string) {
   const model = await createModelServer();
   const stop = await startModelKernel(process.env.SCHOOLOOM_UI_DATA_DIR as string, model.url);
-  await page.goto('http://127.0.0.1:5174/');
+  await page.goto(rendererUrl);
   await expect(page.getByRole('status', { name: '连接状态' })).toContainText('已连接');
   await addProject(page, project);
   return { model, stop };
@@ -33,7 +34,7 @@ test('file tabs replace previews, pin edited files, and tree copy preserves disk
   try {
     if (info.project.name === 'ui-browser')
       await uiPage.context().grantPermissions(['clipboard-read', 'clipboard-write'], {
-        origin: 'http://127.0.0.1:5174',
+        origin: rendererOrigin,
       });
     await file('A.md').click();
     await file('B.md').click();
@@ -386,7 +387,7 @@ test('cancelling project trust does not create or register a project', async ({ 
   const root = await mkdtemp(join(tmpdir(), 'scholoom-cancel-project-ui-'));
   const project = join(root, 'not-created');
   try {
-    await uiPage.goto('http://127.0.0.1:5174/');
+    await uiPage.goto(rendererUrl);
     await expect(uiPage.getByRole('status', { name: '连接状态' })).toContainText('已连接');
     await cancelProjectOnboarding(uiPage, project, { mode: 'create' });
     await expect

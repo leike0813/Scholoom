@@ -7,6 +7,7 @@ import { createKernelClient } from '../../packages/client/dist/index.js';
 import { runningKernel } from '../kernel-fixture.js';
 import { syntheticPdf } from '../pdf-fixture.js';
 import { createSession, expect, test } from './fixture.js';
+import { rendererUrl } from './renderer-url.js';
 
 test('local PDF reader shares selected highlights, bookmarks and notes through the kernel', async ({
   uiPage,
@@ -49,7 +50,7 @@ test('local PDF reader shares selected highlights, bookmarks and notes through t
       .attachments[0];
     assert(material);
     const reference = { attachmentId: material.id, materialVersionId: material.materialVersionId };
-    await uiPage.goto('http://127.0.0.1:5174/');
+    await uiPage.goto(rendererUrl);
     await expect(uiPage.getByRole('status', { name: '连接状态' })).toContainText('已连接');
     await expect(
       uiPage.getByRole('button', { name: '普通会话，已展开', exact: true }),

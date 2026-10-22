@@ -2,6 +2,7 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { addProject, expect, test } from './fixture.js';
+import { rendererUrl } from './renderer-url.js';
 
 test('manual PDF previews and exports use saved Quarto and native multi-file TeX', async ({
   uiPage,
@@ -10,7 +11,7 @@ test('manual PDF previews and exports use saved Quarto and native multi-file TeX
   const root = await mkdtemp(join(tmpdir(), 'scholoom-writing-pdf-ui-'));
   try {
     const project = join(root, 'project');
-    await uiPage.goto('http://127.0.0.1:5174/');
+    await uiPage.goto(rendererUrl);
     await expect(uiPage.getByRole('status', { name: '连接状态' })).toContainText('已连接');
     await addProject(uiPage, project, { mode: 'create' });
     await uiPage.getByRole('button', { name: '设置', exact: true }).click();
