@@ -406,7 +406,7 @@ test('real framework compression shares model admission and preserves its summar
     start({
       ...config,
       ...(config.entry.href ===
-      new URL('../../packages/harness/dist/execution.js', import.meta.url).href
+      new URL('../../apps/kernel/dist/execution-worker.js', import.meta.url).href
         ? { entry: new URL('../fixtures/processes/compressing-agent.mjs', import.meta.url) }
         : {}),
     });

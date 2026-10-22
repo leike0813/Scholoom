@@ -43,6 +43,7 @@ type RemoteOptions = {
   authorize?: () => void;
   processes?: ProcessAdmission;
   reservation?: ProcessReservation;
+  workerEntry?: URL;
 };
 type Event = Omit<
   Extract<ExecutionControlOutputs['execution.next'], { done: false }>['event'],
@@ -252,7 +253,7 @@ export class RemoteAgent {
     };
     const files = fileProviders(options.backend);
     const owned = await ManagedNode.start({
-      entry: new URL('./execution.js', import.meta.url),
+      entry: options.workerEntry ?? new URL('./execution.js', import.meta.url),
       instanceId: options.instanceId,
       ...(reservation ? { reservation } : {}),
     });

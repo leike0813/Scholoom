@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { Broker, type Handlers } from '@scholoom/broker';
 import { EditorRuntime, ResourceAccess } from '@scholoom/editor/node';
 import { LiteratureCatalog, MaterialReading } from '@scholoom/library/node';
-import { ProcessAdmission, runCommand } from '@scholoom/platform/node';
+import { ProcessAdmission } from '@scholoom/platform/node';
 import {
   DirectoryBrowser,
   FileTransfers,
@@ -47,6 +47,11 @@ import {
   modelsModuleOperations,
 } from '@scholoom/protocol/models';
 import {
+  type PlatformCommandInput,
+  type PlatformCommandResult,
+  platformCommandOperations,
+} from '@scholoom/protocol/platform';
+import {
   type HarnessProjectPort,
   type ProjectExecutionInputs,
   type ProjectExecutionOutputs,
@@ -70,10 +75,12 @@ import {
   type ResearchModuleOutputs,
   researchModuleOperations,
 } from '@scholoom/protocol/research';
+import { ManagedCommands } from './commands.js';
 import { initializeProjectContainer } from './storage/project-container.js';
 
 const applicationSchemas = {
   ...editorPlatformOperations,
+  ...platformCommandOperations,
   ...businessSchemas,
   ...projectMaterialOperations,
   ...projectExecutionOperations,
@@ -86,6 +93,7 @@ const applicationSchemas = {
 } as const;
 type ApplicationInputs = BusinessInputs & {
   'platform.editorCommand': EditorCommandInput;
+  'platform.command': PlatformCommandInput;
 } & ProjectMaterialInputs &
   ProjectExecutionInputs &
   HarnessModuleInputs &
@@ -96,6 +104,7 @@ type ApplicationInputs = BusinessInputs & {
   ProjectTargetReadInputs;
 type ApplicationOutputs = BusinessOutputs & {
   'platform.editorCommand': EditorCommandResult;
+  'platform.command': PlatformCommandResult;
 } & ProjectMaterialOutputs &
   ProjectExecutionOutputs &
   HarnessModuleOutputs &
@@ -163,34 +172,24 @@ export class ManualApplication {
         importFinish: (input) => port.call('files.importFinish', input),
       };
     });
-    this.registerProjectHandlers('editor-platform', {
-      'platform.editorCommand': async (input, context) => {
-        if (context.moduleId !== 'editor')
-          throw new OperationError('permissionDenied', '编译命令只允许编辑器能力消费。');
-        const workspace = this.editor.commandWorkspace(input.workspaceId);
+    const commands = new ManagedCommands(
+      this.processes,
+      (workspaceId) => ({
+        ...this.editor.commandWorkspace(workspaceId),
+        ownerModuleId: 'editor',
+        executables: new Map([
+          ['quarto', 'quarto'],
+          ['latexmk', 'latexmk'],
+        ]),
+      }),
+      (workspace) => {
         if (workspace.projectId) this.projects.get(workspace.projectId).check('read');
-        const reservation = this.processes.reserve(true);
-        const abort = () => reservation.release();
-        context.signal?.addEventListener('abort', abort, { once: true });
-        if (context.signal?.aborted) abort();
-        try {
-          await reservation.ready;
-          if (workspace.projectId) this.projects.get(workspace.projectId).check('read');
-          return await runCommand(
-            {
-              executable: input.tool,
-              args: input.args,
-              cwd: workspace.directory,
-              timeoutMs: input.timeoutMs,
-              ...(input.input !== undefined ? { input: input.input } : {}),
-            },
-            { signal: context.signal, reservation },
-          );
-        } finally {
-          context.signal?.removeEventListener('abort', abort);
-          reservation.release();
-        }
       },
+    );
+    this.registerProjectHandlers('command-platform', {
+      'platform.command': (input, context) => commands.execute(input, context),
+      'platform.editorCommand': ({ tool, ...input }, context) =>
+        commands.execute({ ...input, executableId: tool }, context),
     });
     this.transfers = new FileTransfers(this.projects, (projectId) => this.changed(projectId));
     this.fileWatches = new ProjectFileWatches(

@@ -41,7 +41,7 @@ for (const [registered, rootStart] of [
     ManagedNode.start = async (options) => {
       const capability =
         options.entry.href ===
-        new URL('../../packages/harness/dist/execution.js', import.meta.url).href;
+        new URL('../../apps/kernel/dist/execution-worker.js', import.meta.url).href;
       const child = await start({
         ...options,
         ...(capability && ++executions === (rootStart ? 1 : 2)

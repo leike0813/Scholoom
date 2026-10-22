@@ -22,11 +22,13 @@ Electron 工作台和 CLI 共用独立 Node 内核，浏览器开发入口经同
 
 协议 schema 是 DTO 的事实源，类型从 schema 推导；客户端和内核使用 Ajv 校验消息、认证、状态及引导结果。连接状态不代表研究指令已经可执行。
 
-客户端与内核 WebSocket 入口共用双向 RPC peer，业务请求经 KernelApplication 的类型化提供者映射与 broker。协议版本为 3；操作载荷、等待策略及副作用由分域 schema 提供。Agent 和 PDF 已接受管 Node 子进程及 IPC，兼容宿主仍为骨架。按角色发现、普通模块迁包和完整实例资格的实际覆盖见[运行架构迁移交付](../openspec/changes/archive/2026-10-19-migrate-runtime-architecture/delivery.md)。
+客户端与内核 WebSocket 入口共用双向 RPC peer，业务请求经 KernelApplication 的类型化提供者映射与 broker。协议版本为 4；操作载荷、等待策略及副作用由分域 schema 提供。Agent 和 PDF 已接受管 Node 子进程及 IPC，兼容宿主仍为骨架。按角色发现、普通模块迁包和完整实例资格的实际覆盖见[运行架构迁移交付](../openspec/changes/archive/2026-10-19-migrate-runtime-architecture/delivery.md)。
 
 `pnpm check:architecture` 使用唯一 `architecture.json` 检查包依赖、循环、私有路径及普通模块系统访问，并在 CI 运行。精确迁移例外注明退出任务；当前检查通过不代表这些旧调用已迁完。`pnpm generate:contracts` 用 Node 24 装载 protocol 声明源，输出业务、执行及项目内部操作的类型映射更新 patch，映射继续引用原 schema；映射过期导致完整编译失败时仍可生成。`pnpm typecheck` 检查实际装配和编译期反例。
 
 执行控制映射也由 `generate:contracts` 产生 schema 引用。名额申请／释放、健康、停止、checkpoint 消费确认、图初始化、模型事件及工具接续共用声明派生的参数、提供者签名、结果和等待语义，并在 IPC 两侧校验。动态工具的输入仍从原注册 schema 解析，Zod 默认值在宿主执行前应用；模型描述复用 models schema。SDK 消息与 Command 的原生类型适配留在 harness 内。
+
+`startExecutionWorker` 将共同 IPC、健康和停止机制留在 harness；`KernelApplication` 为根执行及能力子执行注入静态 `apps/kernel/src/execution-worker.ts` 入口，客户端载荷不能指定入口。宿主与 worker 共用 `execution-graphs.ts` 的源码注册集合，`ExecutionGraphs` 在构造图前核对身份、版本和配置 schema。生产集合当前为空；两节点 StateGraph 只在 `tests/fixtures/domain-execution-worker` 装配，定向测试为 `tests/kernel/graph-registration.spec.ts`。这证明工厂与无模型推进的实际子进程接线；harness 的 registered 尝试持久化、资源适配与等待恢复仍未接通，继续明确拒绝，不能据夹具推断完整业务图可用。
 
 框架文件上传／下载已加入同一内部契约映射，以 base64 传输 SDK 字节并保留帧上限；连续压缩的历史追加经过实际 IPC 验证。会话临时资源位于 `.scholoom/harness/sessions/<sessionId>/scratch`；旧共享资源复制后保留原件，清单无法核对时持续提示 `context_incomplete`，新会话失败重试不继承旧共享目录。恢复核查最多 1000 个已保存引用，超限明确未完整核查，临时资源缺失不抹去摘要和领域成果。
 
@@ -58,6 +60,22 @@ Agent、能力子执行与 PDF 共用宿主持有的进程容量，默认活动 
 
 ## 本地工作
 
+### 领域独立接入
+
+公共基础及七域的启动条件、共享文件归属和 dev 接入责任以[公共实施规划](../.scratch/domain-development/public-foundation-plan.md)为准。模块测试沿现有窄端口替换未完成依赖，替身须符合所属同源 schema；实际 broker、进程、文件和仓储接线分别核对。各域可从以下已有入口构造自己的小样例：
+
+| 开发线 | 接入口及独立检查 |
+| --- | --- |
+| 文献 | 沿共同 `ResourceRef`／材料版本提供所属读取；参考 `resource-access.spec.ts` 的真实项目、库及解析组合，替换外部摄取来源 |
+| 项目 | 沿 `HarnessProjectPort`／`ProjectFilePort` 取用项目能力；参考 `project-backend.spec.ts`，成果首次创建与操作核查等待资源创建提供者 |
+| 科研方法 | 源码定义注册元信息及工厂，由宿主与 worker 共用 `ExecutionGraphs`；参考 `graph-registration.spec.ts` 和固定两节点夹具，方法仓储参考 `research-module.spec.ts` |
+| Agent | 沿 `HarnessStorage`、领域端口及私有 worker 入口组合；参考 `harness-module.spec.ts`、`execution-isolation.spec.ts`，模型可用受控 HTTP 响应替换 |
+| 科研计算 | 宿主为消费模块解析私有工作空间、程序登记及授权回调；参考 `managed-commands.spec.ts` 的固定 Node 程序，环境选择和业务运行记录仍由计算域实现 |
+| 阅读交互 | 沿共同资源和 editor 端口接入，参考 `resource-access.spec.ts`、`editor-runtime.spec.ts` 及 `tests/ui/resource-opening.spec.ts`；UI 使用共同 renderer URL 配置 |
+| Zotero 生态 | 沿兼容宿主入口及共同 broker 接入；`tests/smoke/entrypoints.spec.ts` 验证真实宿主外壳，插件身份、SQL 和 BBT 生产接线另按所属契约验收 |
+
+上述内核测试路径均在 `tests/kernel/`。固定计数图实际运行 LangGraph 和 IPC，节点回报由测试宿主接收，未取用业务材料或保存科研成果；固定命令实际运行 Node 与受管进程树，工作空间和授权回调是测试提供者。资源授权、成果首次创建、持久等待和新消息接续的真实组合仍需完成领域交接及工作域前置。定位失败时，先区分协议拒绝、注册校验、准入等待、实际执行及结果交付，再沿对应测试和所属记录核查。
+
 依赖和工具版本以 `package.json`、`pnpm-lock.yaml`、`.nvmrc` 为准。pnpm 的依赖安装脚本授权集中在 `pnpm-workspace.yaml`。Electron 42 起取消依赖的自动运行时下载，项目使用官方 `install-electron` 命令显式准备二进制，见 [上游安装说明](https://github.com/electron/electron/blob/main/docs/tutorial/installation.md)。
 
 `pnpm dev:desktop` 使用 electron-vite；`pnpm dev:browser` 使用同一 React renderer。浏览器入口没有 Electron bridge，界面业务功能经共同客户端实现。
@@ -75,6 +93,8 @@ Agent、能力子执行与 PDF 共用宿主持有的进程容量，默认活动 
 ## 科研写作与排版
 
 写作能力由 `packages/editor` 提供，人工工作台经 `ManualApplication` 和共同 broker 调用；该组合不装配 harness、会话或模型。当前机器核对到 Quarto 1.9.37、配套 Pandoc 3.8.3、latexmk 4.87 和 MiKTeX；这些版本不代表其他机器或分发包已具备相同工具，产品可用性通过 `editor.tools` 查询。
+
+`apps/kernel/src/commands.ts` 的 `ManagedCommands` 统一解析宿主私有工作空间和程序登记，管理进程准入、排队后再次授权及实际停止；内部 `platform.command` 与 editor 的 `platform.editorCommand` 共用这一实现。当前生产工作空间仅由 editor 提供，限 Quarto／latexmk，不开放客户端指定本机目录或程序。全局工作域及目标只读范围不获命令权限；Agent 的真实工作域、实例授权接线仍待[领域交接变更](../openspec/changes/establish-domain-execution-handoffs/delivery.md)的前置增量。命令失败和停止未知继续由 editor 保留原工作空间、诊断及最后成功预览。独立机制测试为 `tests/kernel/managed-commands.spec.ts`，使用固定 Node 程序与真实进程控制，授权回调为明确替身。
 
 源码与 QMD／Markdown 可视编辑共用同一草稿。Markdown／QMD 轻量预览读取未保存草稿；完整排版读取已保存稿件，打开预览或保存时更新当前选择格式。QMD 默认 HTML，切换 PDF 后更新 PDF；LaTeX 保留原生多文件工程并编译 PDF。HTML、PDF、DOCX 均可通过显式导出生成到工作区，沿用既有文件冲突与传输保护。
 
@@ -239,7 +259,7 @@ Agent 使用 Orca browser skill，先列出当前项目的标签，核对 URL �
 
 `pnpm test:smoke` 启动构建后的应用，核对独立 Node CLI、真实工作台连接、生产样例隔离、sandbox preload、关窗续留和重开，以及宿主隐藏窗口；开发 smoke 运行实际 `dev:browser`／`dev:desktop` 命令，核对共享实例、退出顺序与最后退出后的回收。真实模型 UI 验收显式设置 `SCHOOLOOM_LIVE_MODEL_TEST=1`，只使用合成样本与环境中的模型凭据；默认回归不使用真实模型凭据，只在外部模型边界注入受控响应。Electron fixture 经原生窗口关闭与应用退出核对所拥有进程的退出，再明确停止测试内核。
 
-`pnpm test:ui` 使用 `playwright.ui.config.ts`，同一场景分别驱动 Chromium 和真实 Electron。它覆盖真实连接、内核连接重连、草稿保护、停机与重试、崩溃后用户重试及既有样例行为；浏览器引导和静态凭据访问检查执行一次。测试独占 `127.0.0.1:5174`，使用 `test-results` 下的独立配置；各套件的 trace 分目录保存。结束时关闭本轮应用与服务并确认内核退出，无法确认退出时保留配置供诊断。
+`pnpm test:ui` 使用 `playwright.ui.config.ts`，同一场景分别驱动 Chromium 和真实 Electron。它覆盖真实连接、内核连接重连、草稿保护、停机与重试、崩溃后用户重试及既有样例行为；浏览器引导和静态凭据访问检查执行一次。`tests/ui/renderer-url.ts` 统一读取 `SCHOOLOOM_UI_PORT`（缺省 5174），供 webServer、baseURL、Electron renderer 和所有导航使用；端口占用即失败，不复用其他实例。并行运行分别指定不同端口，例如 5174 与 5175；输出位于各自的 `test-results/ui-<port>`，配置默认逐轮新建于 `test-results/ui-profile-*`。显式指定 `SCHOOLOOM_UI_DATA_DIR` 时，每轮须使用不同目录；项目、文献库和输出夹具也须按测试实例隔离。结束时关闭本轮应用与服务并确认内核退出，无法确认退出时保留配置供诊断。
 
 UI 测试期间保持源码和共享包构建产物稳定；改动或重新构建会触发 Vite 热刷新，重置正在验收的组件状态。完成构建后再运行交互测试。
 

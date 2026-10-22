@@ -9,6 +9,7 @@ import {
 } from '@playwright/test';
 import { createDevelopmentKernel } from '../../apps/kernel/dist/bootstrap.js';
 import { closeDesktop } from '../desktop-fixture.js';
+import { rendererUrl } from './renderer-url.js';
 
 type UiHost = 'browser' | 'electron';
 
@@ -20,7 +21,6 @@ type UiFixtures = {
 const desktops = new WeakMap<Page, ElectronApplication>();
 
 const desktopPath = fileURLToPath(new URL('../../apps/desktop', import.meta.url));
-const rendererUrl = 'http://127.0.0.1:5174/';
 
 export const test = base.extend<UiFixtures>({
   uiHost: ['browser', { option: true }],

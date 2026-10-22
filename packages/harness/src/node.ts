@@ -6,6 +6,8 @@ export {
   sessionScratch,
 } from './checkpoint-files.js';
 export { callExecutionControl } from './control.js';
+export { startExecutionWorker } from './execution-driver.js';
+export { ExecutionGraphs, type GraphDriver, type GraphFactory } from './graph-registry.js';
 export { ProjectBackend } from './project-backend.js';
 export { HarnessRecords } from './records.js';
 export { RemoteAgent } from './remote-agent.js';

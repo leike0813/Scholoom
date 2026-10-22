@@ -13,9 +13,15 @@ import type { ProcessAdmission } from '../../packages/platform/dist/node.js';
 import { ManagedNode } from '../../packages/platform/dist/node.js';
 import { createModelServer } from '../model-server.js';
 
+const harnessExecutionWorker = new URL('../../packages/harness/dist/execution.js', import.meta.url);
+const kernelExecutionWorker = new URL(
+  '../../apps/kernel/dist/execution-worker.js',
+  import.meta.url,
+);
+
 test('owned execution controls validate real IPC payloads and return the actual process identity', async () => {
   const child = await ManagedNode.start({
-    entry: new URL('../../packages/harness/dist/execution.js', import.meta.url),
+    entry: harnessExecutionWorker,
     instanceId: randomUUID(),
   });
   const peer = new RpcPeer({ send: (frame) => child.send(JSON.parse(frame)) });
@@ -56,6 +62,39 @@ test('owned execution controls validate real IPC payloads and return the actual 
         }),
       ).rejects.toMatchObject({ code: 'unavailable' });
     }
+    expect((await callExecutionControl(peer, 'execution.health', {})).processId).toBe(
+      health.processId,
+    );
+  } finally {
+    await child.stop();
+    peer.close();
+  }
+});
+
+test('the kernel worker uses the shared driver and excludes fixture registrations', async () => {
+  const child = await ManagedNode.start({
+    entry: kernelExecutionWorker,
+    instanceId: randomUUID(),
+  });
+  const peer = new RpcPeer({ send: (frame) => child.send(JSON.parse(frame)) });
+  child.on('message', (message) => peer.receive(JSON.stringify(message)));
+  try {
+    const health = await callExecutionControl(peer, 'execution.health', {});
+    expect(health.processId).toBe(child.identity?.pid);
+    await expect(
+      callExecutionControl(peer, 'execution.initialize', {
+        graph: {
+          kind: 'registered',
+          graphId: 'fixed',
+          version: '1',
+          config: {},
+          materials: [],
+          workDomain: { kind: 'project', projectId: 'p', sessionId: 's' },
+        },
+        attemptId: 'a',
+        input: null,
+      }),
+    ).rejects.toMatchObject({ code: 'unavailable' });
     expect((await callExecutionControl(peer, 'execution.health', {})).processId).toBe(
       health.processId,
     );
@@ -332,10 +371,12 @@ test('an unconfirmed Agent stop retains interrupted state and occupied capacity 
   const app = new KernelApplication(root, { environment: { MINIMAX_CN_API_KEY: 'synthetic' } });
   const start = ManagedNode.start;
   let owned: ManagedNode | undefined;
+  let requestedEntry: URL | undefined;
   ManagedNode.start = async (options) => {
-    const fault =
-      options.entry.href ===
-      new URL('../../packages/harness/dist/execution.js', import.meta.url).href;
+    requestedEntry ??= options.entry;
+    const fault = [harnessExecutionWorker, kernelExecutionWorker].some(
+      (entry) => options.entry.href === entry.href,
+    );
     const child = await start({
       ...options,
       ...(fault
@@ -360,6 +401,7 @@ test('an unconfirmed Agent stop retains interrupted state and occupied capacity 
         (await app.snapshot(scope)).messages.some((message) => message.state === 'streaming'),
       )
       .toBe(true);
+    expect(requestedEntry?.href).toBe(kernelExecutionWorker.href);
     assert(owned?.identity);
     const processId = owned.identity.pid;
     const controller = Reflect.get(owned, 'controller') as ChildProcess;

@@ -7,6 +7,7 @@ import { createKernelClient } from '../../packages/client/dist/index.js';
 import { runningKernel } from '../kernel-fixture.js';
 import { syntheticPdf } from '../pdf-fixture.js';
 import { createSession, expect, test } from './fixture.js';
+import { rendererUrl } from './renderer-url.js';
 import { armRpcGate, installRpcGate, releaseRpcGate } from './rpc-gate.js';
 
 test('shared reading notes preserve drafts, detect stale edits and retain missing-source excerpts', async ({
@@ -47,7 +48,7 @@ test('shared reading notes preserve drafts, detect stale edits and retain missin
     };
 
     await installRpcGate(uiPage);
-    await uiPage.goto('http://127.0.0.1:5174/');
+    await uiPage.goto(rendererUrl);
     await expect(uiPage.getByRole('status', { name: '连接状态' })).toContainText('已连接');
     await createSession(uiPage);
     await uiPage.getByRole('textbox', { name: '研究指令' }).fill(instruction);

@@ -8,6 +8,7 @@ import { createKernelClient } from '../../packages/client/dist/index.js';
 import { epubFixture } from '../document-fixture.js';
 import { runningKernel } from '../kernel-fixture.js';
 import { createSession, expect, test } from './fixture.js';
+import { rendererUrl } from './renderer-url.js';
 
 test('closing a resource cancels its in-flight request without disrupting another reader', async ({
   uiPage,
@@ -124,7 +125,7 @@ test('closing a resource cancels its in-flight request without disrupting anothe
         else listener.handleEvent.call(listener, event);
       }
     });
-    await uiPage.goto('http://127.0.0.1:5174/');
+    await uiPage.goto(rendererUrl);
     await expect(uiPage.getByRole('status', { name: '连接状态' })).toContainText('已连接');
     await createSession(uiPage);
     const open = async (name: string) => {

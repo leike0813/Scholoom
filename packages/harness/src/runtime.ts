@@ -67,6 +67,7 @@ import {
   prepareScratch,
   sessionScratch,
 } from './checkpoint-files.js';
+import { ExecutionGraphs } from './graph-registry.js';
 import { ProjectBackend } from './project-backend.js';
 import type { HarnessRecords } from './records.js';
 import { RemoteAgent } from './remote-agent.js';
@@ -217,6 +218,7 @@ export class Harness {
     }
   >();
   async executeCapability(input: CapabilityExecution, context: CallContext): Promise<void> {
+    if (input.execution?.kind === 'registered') this.graphs.resolve(input.execution);
     if (input.execution?.kind === 'registered' || input.resume)
       throw new OperationError('unavailable', '已登记图及等待恢复尚未接线。');
     const executor = context.runId ? this.capabilityExecutors.get(context.runId) : undefined;
@@ -250,6 +252,8 @@ export class Harness {
     private readonly projectFiles: (context: CallContext) => ProjectFilePort,
     private readonly researchProgress: (context: CallContext) => ResearchProgressPort,
     private readonly processes = new ProcessAdmission(),
+    private readonly workerEntry?: URL,
+    private readonly graphs = new ExecutionGraphs(),
     private readonly targetFiles?: (context: CallContext) => ProjectTargetReadPort & {
       check: (targetIds: Iterable<string>) => void;
     },
@@ -1367,6 +1371,7 @@ export class Harness {
           );
           const capability = new RemoteAgent({
             ...(childReservation ? { reservation: childReservation } : {}),
+            ...(this.workerEntry ? { workerEntry: this.workerEntry } : {}),
             model,
             signal: childSignal,
             instanceId: childInstanceId,
@@ -1402,6 +1407,7 @@ export class Harness {
       });
       const buildAgent = () =>
         new RemoteAgent({
+          ...(this.workerEntry ? { workerEntry: this.workerEntry } : {}),
           model,
           backend,
           checkpointPath,

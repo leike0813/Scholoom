@@ -6,6 +6,7 @@ import { runningKernel } from '../kernel-fixture.js';
 import { startModelKernel } from '../model-kernel.js';
 import { createModelServer, MARKDOWN_TEXT } from '../model-server.js';
 import { addProject, createSession, expect, test } from './fixture.js';
+import { rendererOrigin, rendererUrl } from './renderer-url.js';
 import { armRpcGate, installRpcGate, releaseRpcGate } from './rpc-gate.js';
 
 test('conversation titles, archive and Markdown reading preserve the active work', async ({
@@ -21,7 +22,7 @@ test('conversation titles, archive and Markdown reading preserve the active work
     await writeFile(join(project, 'input.md'), '# 可定位材料\n\n42\n');
     await writeFile(join(project, '材料 笔记.md'), '# 中文材料\n\n结论\n');
     await installRpcGate(uiPage);
-    await uiPage.goto('http://127.0.0.1:5174/');
+    await uiPage.goto(rendererUrl);
     await expect(uiPage.getByRole('status', { name: '连接状态' })).toContainText('已连接');
     await uiPage.getByRole('button', { name: '设置', exact: true }).click();
     await uiPage.getByText('模型设置', { exact: true }).click();
@@ -59,7 +60,7 @@ test('conversation titles, archive and Markdown reading preserve the active work
     // 原生剪贴板：Chromium 授权仅针对本轮本地测试源，Electron 使用其宿主剪贴板。
     if (info.project.name === 'ui-browser')
       await uiPage.context().grantPermissions(['clipboard-read', 'clipboard-write'], {
-        origin: 'http://127.0.0.1:5174',
+        origin: rendererOrigin,
       });
     await reply.getByRole('button', { name: '复制 Agent 正文', exact: true }).click();
     await expect
@@ -190,7 +191,7 @@ test('streaming Markdown keeps typing and cancellation available and never rende
   const model = await createModelServer();
   const stop = await startModelKernel(process.env.SCHOOLOOM_UI_DATA_DIR as string, model.url);
   try {
-    await uiPage.goto('http://127.0.0.1:5174/');
+    await uiPage.goto(rendererUrl);
     await expect(uiPage.getByRole('status', { name: '连接状态' })).toContainText('已连接');
     await uiPage.getByRole('button', { name: '设置', exact: true }).click();
     await uiPage.getByText('模型设置', { exact: true }).click();
@@ -227,7 +228,7 @@ test('archive and restore failures stay in place and retry succeeds', async ({ u
   const title = `MODEL_CHAT 归档样本 ${info.project.name}`;
   try {
     await installRpcGate(uiPage);
-    await uiPage.goto('http://127.0.0.1:5174/');
+    await uiPage.goto(rendererUrl);
     await expect(uiPage.getByRole('status', { name: '连接状态' })).toContainText('已连接');
     await uiPage.getByRole('button', { name: '设置', exact: true }).click();
     await uiPage.getByText('模型设置', { exact: true }).click();
@@ -296,7 +297,7 @@ test('composer model and effort overrides follow defaults, persist and reach rea
     (body().output_config as Record<string, unknown> | undefined)?.effort ?? null;
   try {
     await installRpcGate(uiPage);
-    await uiPage.goto('http://127.0.0.1:5174/');
+    await uiPage.goto(rendererUrl);
     await expect(uiPage.getByRole('status', { name: '连接状态' })).toContainText('已连接');
     await uiPage.getByRole('button', { name: '设置', exact: true }).click();
     await uiPage.getByText('模型设置', { exact: true }).click();
@@ -401,7 +402,7 @@ test('session list loads the next page when scrolled to the end', async ({ uiPag
     await client.call('session.create', { projectId, title: '最早的会话' });
     for (let index = 1; index < 60; index++)
       await client.call('session.create', { projectId, title: `会话 ${index}` });
-    await uiPage.goto('http://127.0.0.1:5174/');
+    await uiPage.goto(rendererUrl);
     await expect(uiPage.getByRole('status', { name: '连接状态' })).toContainText('已连接');
     await addProject(uiPage, project);
     const tree = uiPage.getByRole('region', { name: '会话管理', exact: true }).getByRole('tree');

@@ -6,6 +6,7 @@ import { runningKernel } from '../kernel-fixture.js';
 import { startModelKernel } from '../model-kernel.js';
 import { createModelServer } from '../model-server.js';
 import { addProject, createSession, expect, test } from './fixture.js';
+import { rendererUrl } from './renderer-url.js';
 import { armRpcGate, installRpcGate, releaseRpcGate } from './rpc-gate.js';
 
 test('project files share draft preview and survive directory rename, trash and recovery', async ({
@@ -24,7 +25,7 @@ test('project files share draft preview and survive directory rename, trash and 
   });
   try {
     await installRpcGate(uiPage);
-    await uiPage.goto('http://127.0.0.1:5174/');
+    await uiPage.goto(rendererUrl);
     await expect(uiPage.getByRole('status', { name: '连接状态' })).toContainText('已连接');
     await addProject(uiPage, project, { mode: 'create' });
     await mkdir(join(project, 'recovered'));
@@ -254,7 +255,7 @@ test('resident project sessions switch files and preserve each project draft', a
     await client.call('session.create', { projectId: second.id, title: 'Beta session' });
 
     await installRpcGate(uiPage);
-    await uiPage.goto('http://127.0.0.1:5174/');
+    await uiPage.goto(rendererUrl);
     await expect(uiPage.getByRole('status', { name: '连接状态' })).toContainText('已连接');
     await addProject(uiPage, alpha);
     await addProject(uiPage, beta);
@@ -426,7 +427,7 @@ test('pending project asks on entry and keeps an explicit restricted decision af
     const project = await client.call('project.create', { path: join(root, 'pending-project') });
     expect(project.trust).toBe('pending');
     await installRpcGate(uiPage);
-    await uiPage.goto('http://127.0.0.1:5174/');
+    await uiPage.goto(rendererUrl);
     await expect(uiPage.getByRole('status', { name: '连接状态' })).toContainText('已连接');
     await uiPage.getByLabel('管理项目 pending-project', { exact: true }).click();
     await uiPage.getByRole('button', { name: '打开项目', exact: true }).click();
@@ -480,7 +481,7 @@ test('restricted project allows manual file editing and disables instruction sen
   await mkdir(project);
   await writeFile(join(project, 'notes.md'), 'Manual content');
   try {
-    await uiPage.goto('http://127.0.0.1:5174/');
+    await uiPage.goto(rendererUrl);
     await expect(uiPage.getByRole('status', { name: '连接状态' })).toContainText('已连接');
     await addProject(uiPage, project, { trust: 'restricted' });
     await uiPage.getByRole('treeitem', { name: '打开文件 notes.md', exact: true }).dblclick();

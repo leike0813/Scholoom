@@ -5,8 +5,8 @@ import { fileURLToPath } from 'node:url';
 import { createKernelClient } from '../../packages/client/dist/index.js';
 import { runKernel, runningKernel } from '../kernel-fixture.js';
 import { createSession, expect, test } from './fixture.js';
+import { rendererUrl } from './renderer-url.js';
 
-const rendererUrl = 'http://127.0.0.1:5174/';
 const sampleUrl = `${rendererUrl}?scenario=ui-foundation`;
 
 function dataDirectory(): string {

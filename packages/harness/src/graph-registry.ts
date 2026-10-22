@@ -1,0 +1,63 @@
+import type { RpcPeer } from '@scholoom/broker/rpc';
+import { compileContract, OperationError } from '@scholoom/protocol/core';
+import {
+  type ExecutionControlInputs,
+  type ExecutionControlProviders,
+  type GraphDefinition,
+  type GraphExecution,
+  graphDefinitionSchema,
+  registeredGraphSchema,
+} from '@scholoom/protocol/execution';
+
+const definitionContract = compileContract({ params: graphDefinitionSchema, result: true });
+const selectionContract = compileContract({ params: registeredGraphSchema, result: true });
+
+export type RegisteredGraphInput = Extract<
+  ExecutionControlInputs['execution.initialize'],
+  { graph: unknown }
+>;
+export type GraphDriver = Pick<ExecutionControlProviders, 'execution.next'> & { close?(): void };
+export type GraphFactory = {
+  definition: GraphDefinition;
+  create(
+    input: RegisteredGraphInput,
+    context: { peer: RpcPeer; signal: AbortSignal },
+  ): GraphDriver | Promise<GraphDriver>;
+};
+
+/** Host discovery and worker construction share the same source registrations. */
+export class ExecutionGraphs {
+  private readonly graphs = new Map<
+    string,
+    Map<string, { factory: GraphFactory; valid: ReturnType<typeof compileContract>['params'] }>
+  >();
+
+  constructor(factories: readonly GraphFactory[] = []) {
+    for (const factory of factories) {
+      if (!definitionContract.params(factory.definition))
+        throw new OperationError('invalidRequest', '图登记描述不符合契约。');
+      const { graphId, version, configSchema } = factory.definition;
+      const versions = this.graphs.get(graphId) ?? new Map();
+      if (versions.has(version))
+        throw new OperationError('invalidRequest', '图身份及版本重复登记。');
+      versions.set(version, {
+        factory,
+        valid: compileContract({ params: configSchema, result: true }).params,
+      });
+      this.graphs.set(graphId, versions);
+    }
+  }
+
+  resolve(selection: Extract<GraphExecution, { kind: 'registered' }>): GraphFactory {
+    if (!selectionContract.params(selection))
+      throw new OperationError('invalidRequest', '图选择不符合契约。');
+    const versions = this.graphs.get(selection.graphId);
+    if (!versions) throw new OperationError('unavailable', '所选图未装配。');
+    const registration = versions.get(selection.version);
+    if (!registration)
+      throw new OperationError('protocolIncompatible', '所选图版本与当前装配不符。');
+    if (!registration.valid(selection.config))
+      throw new OperationError('invalidRequest', '图配置不符合登记的 schema。');
+    return registration.factory;
+  }
+}
