@@ -19,7 +19,7 @@ test('a capability crash stays local and an explicit retry keeps its invocation 
   ManagedNode.start = (options) => {
     const execution =
       options.entry.href ===
-      new URL('../../packages/harness/dist/execution.js', import.meta.url).href;
+      new URL('../../apps/kernel/dist/execution-worker.js', import.meta.url).href;
     return start({
       ...options,
       ...(execution && ++executions === 2

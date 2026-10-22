@@ -194,7 +194,7 @@
       ],
       "systemAdapters": [
         { "path": "src/checkpoint-files.ts", "apis": ["fs", "fs/promises"] },
-        { "path": "src/execution.ts", "apis": ["async_hooks"] },
+        { "path": "src/execution-driver.ts", "apis": ["async_hooks"] },
         { "path": "src/remote-agent.ts", "apis": ["async_hooks"] },
         { "path": "src/runtime.ts", "apis": ["async_hooks", "fs/promises"] }
       ],

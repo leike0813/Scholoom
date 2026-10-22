@@ -21,6 +21,7 @@ import type { CallContext } from '@scholoom/protocol/core';
 import { OperationError } from '@scholoom/protocol/core';
 import type { ResearchProgressPort, ResearchToolsPort } from '@scholoom/protocol/research';
 import { ResearchRecords, ResearchRuntime } from '@scholoom/research/node';
+import { executionGraphs } from './execution-graphs.js';
 import { type FoundationMethod, ManualApplication } from './manual.js';
 
 type RuntimeMethod = Exclude<
@@ -75,6 +76,8 @@ export class KernelApplication extends ManualApplication {
       (context) => this.projectFiles(context),
       (context) => this.researchProgress(context),
       this.processes,
+      new URL('./execution-worker.js', import.meta.url),
+      executionGraphs,
     );
     this.broker.register('runtime', this.handlers);
     this.broker.register('runtime-internal', {
