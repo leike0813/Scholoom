@@ -44,6 +44,8 @@ flowchart LR
 
 宿主从当前有效执行构造来源归属；目标信息是待核对资源而非授权。项目侧显式建立只读访问上下文，保留来源身份及父访问范围；嵌套调用只能收紧。ProjectStore.check 在获宿主认可的目标只读上下文中仅允许 read，write/send 仍要求原来源项目，不通过把 caller.projectId 改成目标来绕过检查。
 
+模型准入在异步授权和排队结束后，通过宿主绑定的同步 `check(targetIds)` 复核来源、全部已使用目标的信任及当前对象、执行实例，再发放模型租约。该检查属于进程内注入端口，不增加产品或跨进程操作。`ModelAccess.execution` 接受可选的同步最终确认函数，拒绝时释放模型名额；即使目标集合为空，仍核对来源。会话使用过的目标身份在自身 harness 记录中保存，后续消息和重启接续继续检查，目标项目不增加记录。这样可防止逐个异步检查多个目标时，前一个目标在后一个检查的等待期间被撤权。
+
 项目只读实现使用已存在的身份映射和受范围约束的文件适配，不复用会隐式登记 fileId、更新目标索引或生成缓存的路径。无法取得现有身份时返回 `unavailable`，附可核查的身份缺项；文件确实缺失用 `notFound`，版本变化用 `contentChanged`，授权失败用 `permissionDenied`。不增加字符串型方法白名单作为权限权威。
 
 ### 临时资料及安全边界
@@ -73,6 +75,7 @@ sequenceDiagram
 | 新增 `packages/projects/src/readonly-access.ts`，修改 `store.ts`、`files.ts`、`node.ts` | 在领域内部集中实现目标只读，区分来源和目标，复用范围及内容核对；文件读取不产生登记副作用 |
 | 修改 `apps/kernel/src/manual.ts`、`application.ts`、根 `architecture.json` | 注册内部提供者、真实实例核对、限定模块消费范围；人工宿主继续可用 |
 | 修改 `packages/harness/src/runtime.ts`、`project-backend.ts` 的窄端口接入及 `checkpoint-files.ts` 必要调用方 | 提供工作域和目标读取工具，保留原本项目写入及 scratch 隔离 |
+| 修改 `packages/models/src/model-access.ts`，扩展现有模型准入测试 | 在排队与异步授权之后同步确认来源及全部目标，失败释放额度；既有调用方不必提供新增的可选确认函数 |
 | 修改 `tests/types/contracts.ts` 与既有项目／harness／scratch 测试；必要时新增 `tests/kernel/work-domains.spec.ts` | 覆盖类型、实际读取、拒写、目标零修改、撤权和异步范围继承 |
 | 修改 `docs/development.md`，核对初设执行与科研章节 | 说明实际能力和只读限制，纠正 application 仅 send 的旧现状描述 |
 

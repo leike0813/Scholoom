@@ -23,6 +23,15 @@ export interface ModelServer {
   close: () => Promise<void>;
 }
 
+export interface ModelServerOptions {
+  respond?: (input: {
+    user: string;
+    calls: readonly string[];
+    toolId: string;
+  }) => ModelPlan | undefined;
+}
+type ModelPlan = { tool: { name: string; input: Record<string, unknown> } } | { text: string };
+
 interface Turn {
   stopReason: 'tool_use' | 'end_turn';
   blocks: Block[];
@@ -62,12 +71,14 @@ async function readJsonBody(req: IncomingMessage): Promise<Record<string, unknow
 function inspect(body: Record<string, unknown>): {
   user: string;
   tools: Set<string>;
+  calls: string[];
   reads: number;
   researchCalls: number;
 } {
   const messages = Array.isArray(body.messages) ? (body.messages as Array<Message>) : [];
   const user: Array<string> = [];
   const tools = new Set<string>();
+  const calls: string[] = [];
   let reads = 0;
   let researchCalls = 0;
   for (const message of messages) {
@@ -78,12 +89,26 @@ function inspect(body: Record<string, unknown>): {
       if (message.role === 'user' && block.type === 'text') user.push(String(block.text ?? ''));
       if (message.role !== 'user' && block.type === 'tool_use') {
         tools.add(String(block.name ?? ''));
+        calls.push(String(block.name ?? ''));
         if (block.name === 'read_file') reads++;
         if (block.name === 'invoke_research_capability') researchCalls++;
       }
     }
   }
-  return { user: user.join('\n'), tools, reads, researchCalls };
+  return { user: user.join('\n'), tools, calls, reads, researchCalls };
+}
+
+function plannedTurn(plan: ModelPlan, toolId: string): Turn {
+  const thinking: Block = { type: 'thinking', thinking: THINKING, signature: SIGNATURE };
+  return 'tool' in plan
+    ? {
+        stopReason: 'tool_use',
+        blocks: [
+          thinking,
+          { type: 'tool_use', id: toolId, name: plan.tool.name, input: plan.tool.input },
+        ],
+      }
+    : { stopReason: 'end_turn', blocks: [thinking, { type: 'text', text: plan.text }] };
 }
 
 function planTurn(
@@ -471,7 +496,7 @@ function streamBody(messageId: string, turn: Turn): string {
     .join('');
 }
 
-export async function createModelServer(): Promise<ModelServer> {
+export async function createModelServer(options: ModelServerOptions = {}): Promise<ModelServer> {
   const requests: Array<Record<string, unknown>> = [];
   const waiters = new Set<{ settle: () => void }>();
   let hold = false;
@@ -516,15 +541,19 @@ export async function createModelServer(): Promise<ModelServer> {
     if (res.destroyed || res.writableEnded) return;
     sequence += 1;
     const suffix = String(sequence).padStart(4, '0');
-    const { user, tools, reads, researchCalls } = inspect(body);
-    const turn = planTurn(
-      user,
-      tools,
-      `toolu_fixture_${suffix}`,
-      reads,
-      !Array.isArray(body.tools) || body.tools.length === 0,
-      researchCalls,
-    );
+    const { user, tools, calls, reads, researchCalls } = inspect(body);
+    const toolId = `toolu_fixture_${suffix}`;
+    const planned = options.respond?.({ user, calls, toolId });
+    const turn = planned
+      ? plannedTurn(planned, toolId)
+      : planTurn(
+          user,
+          tools,
+          toolId,
+          reads,
+          !Array.isArray(body.tools) || body.tools.length === 0,
+          researchCalls,
+        );
     if (body.stream === true) {
       res.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-cache' });
       const body = streamBody(`msg_fixture_${suffix}`, turn);

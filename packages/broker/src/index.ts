@@ -79,6 +79,8 @@ export class Broker<
     const trusted = Object.freeze({
       ...context,
       principal: Object.freeze({ ...context.principal }),
+      ...(context.workDomain ? { workDomain: Object.freeze({ ...context.workDomain }) } : {}),
+      ...(context.targetRead ? { targetRead: Object.freeze({ ...context.targetRead }) } : {}),
     });
     return {
       call: async <A extends CallArguments<P, K>>(...args: A): Promise<R[A[0]]> => {

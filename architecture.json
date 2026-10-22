@@ -167,11 +167,12 @@
       "systemAdapters": [
         { "path": "src/store.ts", "apis": ["async_hooks", "fs", "fs/promises"] },
         { "path": "src/files.ts", "apis": ["fs", "fs/promises"] },
+        { "path": "src/readonly-access.ts", "apis": ["fs", "fs/promises"] },
         { "path": "src/transfers.ts", "apis": ["fs", "fs/promises", "stream/promises"] },
         { "path": "src/file-watch.ts", "apis": ["fs", "fs/promises"] },
         { "path": "src/directory-browser.ts", "apis": ["fs/promises", "os"] }
       ],
-      "provides": ["project.checkRead", "project.material"],
+      "provides": ["project.checkRead", "project.material", "project.readTarget"],
       "consumes": []
     },
     {
@@ -201,6 +202,7 @@
       "provides": [],
       "consumes": [
         "files.list",
+        "project.readTarget",
         "files.read",
         "project.material",
         "project.check",

@@ -39,7 +39,12 @@ import * as tables from './schema.js';
 export type ContainerInitializer = (database: Database.Database, internal: string) => Promise<void>;
 
 const hidden = new Set(['.scholoom', '.git', 'node_modules', 'dist', 'build', 'target', '.venv']);
-const accessScope = new AsyncLocalStorage<{ agent: boolean; projectId?: string | undefined }>();
+const accessScope = new AsyncLocalStorage<{
+  agent: boolean;
+  projectId?: string | undefined;
+  targetProjectId?: string | undefined;
+  authorize?: (() => void) | undefined;
+}>();
 export const isPrivate = (name: string) =>
   hidden.has(name) ||
   name === '.env' ||
@@ -175,7 +180,17 @@ export class ProjectStore {
     if (this.project.id === 'application' && operation !== 'send')
       throw new OperationError('permissionDenied', '普通会话没有项目文件权限。');
     const caller = accessScope.getStore();
-    if (caller?.agent && caller.projectId !== this.project.id)
+    caller?.authorize?.();
+    if (
+      caller?.targetProjectId &&
+      (operation !== 'read' || caller.targetProjectId !== this.project.id)
+    )
+      throw new OperationError('permissionDenied', '目标访问范围只允许读取指定项目。');
+    if (
+      caller?.agent &&
+      caller.projectId !== this.project.id &&
+      caller.targetProjectId !== this.project.id
+    )
       throw new OperationError('permissionDenied', '项目不属于当前执行范围。');
     if ((operation === 'send' || caller?.agent) && this.project.trust !== 'trusted')
       throw new OperationError('permissionDenied', '项目尚未信任，Agent 无法访问项目材料。');
@@ -784,9 +799,43 @@ export class Projects {
       {
         agent: agent || parent?.agent === true,
         projectId: parent?.agent ? parent.projectId : agent ? context.projectId : undefined,
+        ...(parent?.targetProjectId ? { targetProjectId: parent.targetProjectId } : {}),
+        ...(parent?.authorize ? { authorize: parent.authorize } : {}),
       },
       action,
     );
+  }
+
+  /** Host supplies live execution checks; a nested scope can only keep its original target. */
+  withTargetRead<T>(
+    context: Pick<CallContext, 'role' | 'principal' | 'projectId'>,
+    targetProjectId: string,
+    authorize: () => void,
+    action: () => T,
+  ): T {
+    return this.withAccess(context, () => {
+      const parent = accessScope.getStore();
+      if (
+        !parent?.projectId ||
+        parent.projectId !== context.projectId ||
+        targetProjectId === 'application' ||
+        (parent.targetProjectId && parent.targetProjectId !== targetProjectId)
+      )
+        throw new OperationError('permissionDenied', '不能扩大目标只读访问范围。');
+      parent.authorize?.();
+      authorize();
+      return accessScope.run(
+        {
+          ...parent,
+          targetProjectId,
+          authorize: () => {
+            parent.authorize?.();
+            authorize();
+          },
+        },
+        action,
+      );
+    });
   }
   private stores = new Map<string, ProjectStore>();
   private recent = new Set<string>();
