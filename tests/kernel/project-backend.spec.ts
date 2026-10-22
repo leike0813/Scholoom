@@ -129,6 +129,78 @@ test('the production file port binds project scope and keeps final authorization
   }
 });
 
+test('a target read keeps its Agent source and cannot widen through nested host access', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'scholoom-target-scope-'));
+  const app = new ManualApplication(join(root, 'profile'));
+  try {
+    await app.initialize();
+    const target = await app.projects.create(join(root, 'target'));
+    const other = await app.projects.create(join(root, 'other'));
+    for (const store of [target, other]) store.grant({ trust: 'trusted', autoBackup: false });
+    const original = await target.save('input.md', 'retained evidence');
+    const source = {
+      role: 'execution' as const,
+      principal: { kind: 'agent' as const, id: 'session' },
+      projectId: 'application',
+    };
+    let valid = true;
+    const authorize = () => {
+      if (!valid) throw new OperationError('instanceMismatch', 'expired');
+    };
+    await app.projects.withTargetRead(source, target.project.id, authorize, async () => {
+      await Promise.resolve();
+      target.check('read');
+      await expect(target.save('new.md', 'forbidden')).rejects.toMatchObject({
+        code: 'permissionDenied',
+      });
+      await expect(target.files.reference('input.md', true)).rejects.toMatchObject({
+        code: 'permissionDenied',
+      });
+      expect(target.files.location(original.fileId ?? '')).toMatchObject({ state: 'present' });
+      for (const operation of ['write', 'send'] as const)
+        expect(() => target.check(operation)).toThrow(
+          expect.objectContaining({ code: 'permissionDenied' }),
+        );
+      app.projects.withAccess(
+        { role: 'host', principal: { kind: 'system', id: 'host' }, projectId: target.project.id },
+        () => {
+          expect(() => target.check('write')).toThrow(
+            expect.objectContaining({ code: 'permissionDenied' }),
+          );
+          expect(() => other.check('read')).toThrow(
+            expect.objectContaining({ code: 'permissionDenied' }),
+          );
+        },
+      );
+      expect(() =>
+        app.projects.withTargetRead(source, other.project.id, authorize, () => {}),
+      ).toThrow(expect.objectContaining({ code: 'permissionDenied' }));
+      valid = false;
+      expect(() => target.check('read')).toThrow(
+        expect.objectContaining({ code: 'instanceMismatch' }),
+      );
+    });
+    await expect(
+      app
+        .projectTargetRead({
+          moduleId: 'harness',
+          ...source,
+          sessionId: 'session',
+          runId: 'stale',
+          instanceId: 'stale',
+          workDomain: { kind: 'application', projectId: 'application', sessionId: 'session' },
+        })
+        ['project.readTarget']({ targetProjectId: target.project.id, request: { kind: 'list' } }),
+    ).rejects.toMatchObject({ code: 'unavailable' });
+    await expect(
+      app.call('files.read', { projectId: 'application', path: '.scholoom/identity.json' }),
+    ).rejects.toMatchObject({ code: 'permissionDenied' });
+  } finally {
+    await app.close();
+    await rm(root, { recursive: true });
+  }
+});
+
 test('revoking trust while an Agent save waits prevents its final write and keeps manual access', async () => {
   const root = await mkdtemp(join(tmpdir(), 'scholoom-trust-save-'));
   const app = new ManualApplication(join(root, 'profile'));

@@ -75,6 +75,7 @@ export class KernelApplication extends ManualApplication {
       (context) => this.projectFiles(context),
       (context) => this.researchProgress(context),
       this.processes,
+      (context) => this.projectTargetRead(context),
     );
     this.broker.register('runtime', this.handlers);
     this.broker.register('runtime-internal', {
@@ -114,6 +115,9 @@ export class KernelApplication extends ManualApplication {
       },
       'research.progress': (input, context) => this.research.progress(input, context),
     });
+  }
+  protected override checkExecutionContext(context: CallContext): void {
+    this.harness.checkExecutionContext(context);
   }
   harnessStorage(): HarnessStorage {
     const resources = new Map<string, HarnessProject>();

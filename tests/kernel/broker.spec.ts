@@ -104,15 +104,25 @@ test('request payload and later host configuration mutation cannot replace bound
     moduleId: 'module',
     role: 'execution',
     principal: { kind: 'agent', id: 'original' },
+    workDomain: { kind: 'application', projectId: 'application', sessionId: 'original' },
+    targetRead: { targetProjectId: 'target', access: 'read' },
   };
   const port = broker.consumer(configured, ['write']);
   broker.register('domain', {
     write: (_input, trusted) => {
       expect(trusted.role).toBe('execution');
       expect(trusted.principal.id).toBe('original');
+      expect(trusted.workDomain).toEqual({
+        kind: 'application',
+        projectId: 'application',
+        sessionId: 'original',
+      });
+      expect(trusted.targetRead).toEqual({ targetProjectId: 'target', access: 'read' });
       return 42;
     },
   });
   Object.assign(configured.principal, { id: 'changed' });
+  Object.assign(configured.workDomain ?? {}, { projectId: 'forged', sessionId: 'forged' });
+  Object.assign(configured.targetRead ?? {}, { targetProjectId: 'forged' });
   expect(await port.call('write', { role: 'host', principal: { id: 'forged' } })).toBe(42);
 });

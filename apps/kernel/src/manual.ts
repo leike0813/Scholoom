@@ -9,6 +9,7 @@ import {
   FileTransfers,
   ProjectFileWatches,
   Projects,
+  ProjectTargetReader,
 } from '@scholoom/projects/node';
 import {
   type BusinessInputs,
@@ -55,9 +56,13 @@ import {
   type ProjectMaterialInputs,
   type ProjectMaterialOutputs,
   type ProjectsInputs,
+  type ProjectTargetReadInputs,
+  type ProjectTargetReadOutputs,
+  type ProjectTargetReadPort,
   projectExecutionOperations,
   projectHarnessOperations,
   projectMaterialOperations,
+  projectTargetReadOperations,
   type ResearchProjectPort,
 } from '@scholoom/protocol/projects';
 import {
@@ -77,6 +82,7 @@ const applicationSchemas = {
   ...libraryModuleOperations,
   ...projectHarnessOperations,
   ...modelsModuleOperations,
+  ...projectTargetReadOperations,
 } as const;
 type ApplicationInputs = BusinessInputs & {
   'platform.editorCommand': EditorCommandInput;
@@ -86,7 +92,8 @@ type ApplicationInputs = BusinessInputs & {
   ResearchModuleInputs &
   LibraryModuleInputs &
   ProjectHarnessInputs &
-  ModelsModuleInputs;
+  ModelsModuleInputs &
+  ProjectTargetReadInputs;
 type ApplicationOutputs = BusinessOutputs & {
   'platform.editorCommand': EditorCommandResult;
 } & ProjectMaterialOutputs &
@@ -95,7 +102,8 @@ type ApplicationOutputs = BusinessOutputs & {
   ResearchModuleOutputs &
   LibraryModuleOutputs &
   ProjectHarnessOutputs &
-  ModelsModuleOutputs;
+  ModelsModuleOutputs &
+  ProjectTargetReadOutputs;
 const architecture: { modules: { name: string; consumes?: string[] }[] } = JSON.parse(
   readFileSync(new URL('./architecture.json', import.meta.url), 'utf8'),
 );
@@ -278,6 +286,39 @@ export class ManualApplication {
         return this.projects.get(projectId).save(path, content, basis, undefined, expectedFileId);
       },
     });
+    this.registerProjectHandlers('project-target-read', {
+      'project.readTarget': async ({ targetProjectId, request }, context) => {
+        const source = context.projectId && this.projects.get(context.projectId);
+        const target = this.projects.get(targetProjectId);
+        const authorize = () => {
+          this.checkExecutionContext(context);
+          if (
+            context.moduleId !== 'harness' ||
+            context.role !== 'execution' ||
+            context.principal.kind !== 'agent' ||
+            !source ||
+            !context.sessionId ||
+            context.principal.id !== context.sessionId ||
+            context.workDomain?.projectId !== source.project.id ||
+            context.workDomain.sessionId !== context.sessionId ||
+            context.workDomain.kind !==
+              (source.project.id === 'application' ? 'application' : 'project') ||
+            context.targetRead?.targetProjectId !== targetProjectId ||
+            context.targetRead.access !== 'read' ||
+            source.project.trust !== 'trusted' ||
+            target.project.trust !== 'trusted' ||
+            this.projects.get(source.project.id) !== source ||
+            this.projects.get(targetProjectId) !== target
+          )
+            throw new OperationError('permissionDenied', '目标读取不属于获授权的执行范围。');
+        };
+        return this.projects.withTargetRead(context, targetProjectId, authorize, async () => {
+          const result = await new ProjectTargetReader(target).read(request);
+          authorize();
+          return result;
+        });
+      },
+    });
     const libraryMaterials = this.broker.consumer(
       { moduleId: 'library', principal: { kind: 'system', id: 'host' }, role: 'host' },
       materialMethods,
@@ -335,6 +376,9 @@ export class ManualApplication {
   }
   protected async projectOpened(): Promise<void> {}
   protected async projectReplacing(_projectId: string): Promise<void> {}
+  protected checkExecutionContext(_context: CallContext): void {
+    throw new OperationError('unavailable', '当前组合没有执行实例提供者。');
+  }
   protected modulePort(
     context: CallContext,
     moduleId: string,
@@ -353,6 +397,54 @@ export class ManualApplication {
   libraryTools(context: CallContext): LibraryToolPort {
     const port = this.modulePort(context, 'harness');
     return { call: port.call };
+  }
+  projectTargetRead(
+    context: CallContext,
+  ): ProjectTargetReadPort & { check: (targetIds: Iterable<string>) => void } {
+    const source = Object.freeze({
+      ...context,
+      principal: Object.freeze({ ...context.principal }),
+      ...(context.workDomain ? { workDomain: Object.freeze({ ...context.workDomain }) } : {}),
+      ...(context.targetRead ? { targetRead: Object.freeze({ ...context.targetRead }) } : {}),
+    });
+    const origin = source.projectId ? this.projects.get(source.projectId) : undefined;
+    const targets = new Map<string, ReturnType<Projects['get']>>();
+    return {
+      check: (targetIds) => {
+        this.checkExecutionContext(source);
+        if (origin?.project.trust !== 'trusted' || this.projects.get(origin.project.id) !== origin)
+          throw new OperationError('permissionDenied', '来源项目信任或身份已变化。');
+        for (const id of targetIds) {
+          const target = this.projects.get(id);
+          if (
+            id === 'application' ||
+            target.project.trust !== 'trusted' ||
+            (targets.has(id) && targets.get(id) !== target)
+          )
+            throw new OperationError('permissionDenied', '目标项目信任或身份已变化。');
+          targets.set(id, target);
+        }
+      },
+      'project.readTarget': async (input) => {
+        this.checkExecutionContext(source);
+        if (source.targetRead && source.targetRead.targetProjectId !== input.targetProjectId)
+          throw new OperationError('permissionDenied', '不能扩大目标只读访问范围。');
+        const target = this.projects.get(input.targetProjectId);
+        if (targets.has(input.targetProjectId) && targets.get(input.targetProjectId) !== target)
+          throw new OperationError('instanceMismatch', '目标项目实例已变化。');
+        const result = await this.modulePort(
+          {
+            ...source,
+            targetRead: { targetProjectId: input.targetProjectId, access: 'read' },
+          },
+          'harness',
+        ).call('project.readTarget', input);
+        if (targets.has(input.targetProjectId) && targets.get(input.targetProjectId) !== target)
+          throw new OperationError('instanceMismatch', '目标项目实例已变化。');
+        targets.set(input.targetProjectId, target);
+        return result;
+      },
+    };
   }
   harnessProject(context: CallContext): HarnessProjectPort {
     const port = this.modulePort(context, 'harness');

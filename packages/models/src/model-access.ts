@@ -69,6 +69,7 @@ export class ModelAccess {
     authorize: () => void | Promise<void> = () => {},
     signal: AbortSignal = new AbortController().signal,
     config?: RunModelConfig,
+    confirm: () => void = () => {},
   ): Promise<ModelExecution> {
     const resolved = config ?? (await this.configs.load());
     const option = minimaxModels.find((item) => item.id === resolved.model);
@@ -91,6 +92,7 @@ export class ModelAccess {
           signal.throwIfAborted();
           await authorize();
           signal.throwIfAborted();
+          confirm();
         } catch (error) {
           this.releaseSlot();
           throw error;

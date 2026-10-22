@@ -40,7 +40,14 @@ import {
   libraryToolMethods,
 } from '@scholoom/protocol/library';
 import type { ModelDefaults, ModelPreference } from '@scholoom/protocol/models';
-import type { Artifact, HarnessProjectPort, ProjectFilePort } from '@scholoom/protocol/projects';
+import {
+  type Artifact,
+  type HarnessProjectPort,
+  type ProjectFilePort,
+  type ProjectTargetReadInputs,
+  type ProjectTargetReadPort,
+  projectTargetReadOperations,
+} from '@scholoom/protocol/projects';
 import type {
   ResearchProgressPort,
   ResearchRequest,
@@ -161,6 +168,46 @@ export class Harness {
   get isStopping(): boolean {
     return this.stopped;
   }
+  checkExecutionContext(context: CallContext): void {
+    const { projectId, sessionId, runId, instanceId } = context;
+    if (
+      !projectId ||
+      !sessionId ||
+      !runId ||
+      !instanceId ||
+      this.stopped ||
+      context.signal?.aborted
+    )
+      throw new OperationError('instanceMismatch', '缺少有效执行身份。');
+    const project = this.projects.get(projectId);
+    const active = this.active.get(activeKey(project, sessionId));
+    if (
+      !active ||
+      active.controller.signal.aborted ||
+      this.latestRun(project, sessionId)?.id !== runId
+    )
+      throw new OperationError('instanceMismatch', '执行尝试已失效。');
+    this.session(project, sessionId);
+    let currentId: string | undefined = instanceId;
+    const visited = new Set<string>();
+    while (currentId) {
+      if (visited.has(currentId))
+        throw new OperationError('instanceMismatch', '执行实例归属无效。');
+      visited.add(currentId);
+      const current: tables.RunInstance | undefined = this.records(project)
+        .select()
+        .from(tables.instances)
+        .where(eq(tables.instances.id, currentId))
+        .get()?.value;
+      if (
+        current?.hostInstanceId !== this.hostInstanceId ||
+        current.runId !== runId ||
+        current.state !== 'running'
+      )
+        throw new OperationError('instanceMismatch', '执行实例资格已撤销。');
+      currentId = current.parentInstanceId;
+    }
+  }
   private readonly capabilityReservations = new AsyncLocalStorage<ProcessReservation>();
   private readonly capabilityExecutors = new Map<
     string,
@@ -203,6 +250,9 @@ export class Harness {
     private readonly projectFiles: (context: CallContext) => ProjectFilePort,
     private readonly researchProgress: (context: CallContext) => ResearchProgressPort,
     private readonly processes = new ProcessAdmission(),
+    private readonly targetFiles?: (context: CallContext) => ProjectTargetReadPort & {
+      check: (targetIds: Iterable<string>) => void;
+    },
   ) {}
 
   async initialize(): Promise<void> {
@@ -752,6 +802,16 @@ export class Harness {
       signal.throwIfAborted();
       await this.port(project)['project.check']({ projectId: project.id, access: 'send' });
       const libraryContextKey = `library-context:${run.sessionId}`;
+      const targetContextKey = `target-read-context:${run.sessionId}`;
+      const targetChecks = new Set<string>();
+      const previousTargets: string[] = JSON.parse(
+        this.records(project)
+          .select()
+          .from(tables.meta)
+          .where(eq(tables.meta.key, targetContextKey))
+          .get()?.value ?? '[]',
+      );
+      for (const targetProjectId of previousTargets) targetChecks.add(targetProjectId);
       const library = this.libraryTools({
         moduleId: 'harness',
         role: 'execution',
@@ -773,7 +833,10 @@ export class Harness {
           await library.call('library.check', { access: 'send' });
         }
       };
-      const model = await this.model.execution(authorizeModel, signal, run.modelConfig);
+      const model = await this.model.execution(authorizeModel, signal, run.modelConfig, () => {
+        if (targets) targets.check(targetChecks);
+        else if (targetChecks.size) throw new OperationError('unavailable', '目标只读端口不可用。');
+      });
       const scratch = sessionScratch(project.internal, run.sessionId);
       const used = new Map<string, string>();
       const toolContext = new AsyncLocalStorage<{ error?: ErrorInfo }>();
@@ -950,6 +1013,11 @@ export class Harness {
         sessionId: run.sessionId,
         runId: run.id,
         instanceId,
+        workDomain: Object.freeze(
+          project.id === 'application'
+            ? { kind: 'application', projectId: 'application', sessionId: run.sessionId }
+            : { kind: 'project', projectId: project.id, sessionId: run.sessionId },
+        ),
         signal,
       };
       const backend = new CompositeBackend(
@@ -975,6 +1043,7 @@ export class Harness {
         },
       );
       const research = this.researchTools(fileContext);
+      const targets = this.targetFiles?.(fileContext);
       const checkpointPath = opened.path;
       checkpointDb = opened.database;
       const scratchScope = this.records(project)
@@ -1218,23 +1287,7 @@ export class Harness {
               .run();
         };
         return {
-          authorize: () => {
-            if (this.latestRun(project, run.sessionId)?.id !== run.id)
-              throw new OperationError('instanceMismatch', '执行尝试已被替代。');
-            for (const instance of [id, ...(parentInstanceId ? [parentInstanceId] : [])]) {
-              const current = this.records(project)
-                .select()
-                .from(tables.instances)
-                .where(eq(tables.instances.id, instance))
-                .get()?.value;
-              if (
-                current?.hostInstanceId !== this.hostInstanceId ||
-                current.runId !== run.id ||
-                current.state !== 'running'
-              )
-                throw new OperationError('instanceMismatch', '执行实例资格已撤销。');
-            }
-          },
+          authorize: () => this.checkExecutionContext({ ...fileContext, instanceId: id }),
           onStart: (owned: import('@scholoom/platform/node').ManagedNode) => {
             if (!owned.identity)
               throw new OperationError('unavailable', '执行未提供实际进程身份。');
@@ -1361,6 +1414,46 @@ export class Harness {
           systemPrompt:
             '你是 Scholoom 科研助手。使用中文与用户工作。项目正文以实际文件为准，附加材料只是引用，先读取。形成可承接的分析、理由、成果及下一步时保存为普通 Markdown 文件；在没有项目文件权限时只对话。仅使用授权工具。修改已有文件先读取，遇到冲突重读再修改。write_file 仅用于新建，edit_file 修改已有内容。不得声称未保存成果已交付。不要依赖旧 transcript 才能续做，可发现并读取项目已有成果。用户取消后不继续。',
           tools: [
+            {
+              name: 'read_work_domain',
+              description:
+                '读取宿主绑定的当前工作域。全局会话临时文件使用 /large_tool_results/，仅本会话可见；长期成果由所属项目或文献库保存。',
+              schema: z.object({}),
+              func: async () => {
+                this.checkExecutionContext(fileContext);
+                return JSON.stringify(fileContext.workDomain);
+              },
+            },
+            {
+              name: 'read_target_project',
+              description:
+                '只读其他已登记且可信项目。先以 list 分页取得 fileId、basis，再 describe/readText/readBytes；每片必须带原 basis。不能创建身份、修改目标或访问私有资料；临时内容保存到本会话 /large_tool_results/。',
+              schema: projectTargetReadOperations['project.readTarget'].params,
+              func: async (input: ProjectTargetReadInputs['project.readTarget']) => {
+                try {
+                  if (!targets) throw new OperationError('unavailable', '目标只读端口不可用。');
+                  const result = await targets['project.readTarget'](input);
+                  targetChecks.add(input.targetProjectId);
+                  this.records(project)
+                    .insert(tables.meta)
+                    .values({
+                      key: targetContextKey,
+                      value: JSON.stringify([...targetChecks]),
+                    })
+                    .onConflictDoUpdate({
+                      target: tables.meta.key,
+                      set: { value: JSON.stringify([...targetChecks]) },
+                    })
+                    .run();
+                  return JSON.stringify(result);
+                } catch (error) {
+                  const info = failure(error);
+                  const context = toolContext.getStore();
+                  if (context) context.error = info;
+                  return JSON.stringify({ error: info });
+                }
+              },
+            },
             ...libraryToolMethods.map((method) => ({
               name: method.replace('.', '_'),
               description: `共同文献库 ${method}。importProjectFiles只接受当前授权项目内相对路径，返回批次引用，用batch核查逐项结果。附件登记不等于可读；readAttachment按引用返回有界原字节base64，不表示已解析正文。EPUB/HTML用documentInfo分页章节、readDocumentSection分段正文（textOnly省略渲染节点）、searchDocument按nextCursor继续，complete才表示覆盖结束；文本位置沿normalizationVersion/sectionId/start/end，摘录须与该UTF-16区间一致。阅读记录绑定材料版本；quote是摘录，body是你的解释；更正/移除先读修订号，未知创建按原recordId核查。库读取/写入/外发均需授权；未知批次先按原batchId核查。`,

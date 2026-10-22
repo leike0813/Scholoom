@@ -2,42 +2,61 @@
 
 ## 当前状态与成果
 
-2026-10-22，共同契约基线交接。用户先要求只实施本变更 1.1，随后确认继续补齐另外两线共同契约并接入 dev，推进至三个 change 可以并行。1.1 的声明、生成、兼容检查及共同基线现已齐备；真实只读能力尚未接线，本 change 不能归档。当前只有主工作树，后续开发树从包含本记录的共同基线提交创建，不需要对不存在的开发树执行同步。
+2026-10-22，本工作树的运行时实现、独立审查及相关验证已完成。用户要求实施整个 establish-scoped-execution-foundation，随后要求“向 dev 分支发 pr”，授权当前分支 scoped-execution-foundation 的提交、推送及目标为 dev 的 PR 创建。本记录随 PR 交付，实际合并及 dev 接入验收尚未进行。tasks 当前为 8/11：1.2、2.2 的本地实现与验证已完成，因其还要求实际接入 dev，保持未勾选；最终交付记录任务 3.5 随接入后收尾。已有 delivery 文件不表示可归档。
 
-- [work-domains.ts](../../../packages/protocol/src/work-domains.ts) 声明固定 application／project 工作域、只读目标范围和 `project.readTarget` 四类请求／结果；复用现有文件身份、内容依据、分页和二进制读取上限。
-- [core.ts](../../../packages/protocol/src/core.ts) 为宿主上下文增加可选 workDomain／targetRead；[projects.ts](../../../packages/protocol/src/projects.ts) 导出 schema、派生输入输出和独立窄端口。[生成脚本](../../../packages/protocol/scripts/contract-types.mjs) 接入 [project-target-read-types.ts](../../../packages/protocol/src/project-target-read-types.ts)，不增加另一份手写载荷类型。
-- [类型反例](../../../tests/types/contracts.ts) 检查判别载荷、提供者结果、禁止写权限及产品／原文件端口之外的调用；[契约测试](../../../tests/kernel/work-domain-contracts.spec.ts) 实跑 schema 和真实 broker，覆盖固定身份、边界容量、缺少 basis、任意路径／伪造来源载荷及未注册提供者不可用。
+原 1.1 共同契约保持不变，本轮没有新增数据库迁移、产品协议或依赖声明。设计中的 broker → 目标只读提供者 → 文件链路现已真实接通，未替换内部项目、broker、仓储或受管执行。实际改动如下：
 
-设计中的模块总览图仍为目标接线图；当前只有契约和测试完成，宿主、项目只读实现及 harness 工具均沿原代码。project.readTarget 未加入产品 businessSchemas，也未修改 architecture 的 provides／consumes 或数据库。产品协议已由工作台共同契约统一升至 4，后续基线验证见[领域交接记录](../establish-domain-execution-handoffs/delivery.md#实际验证)。
+| 位置 | 成果 |
+| --- | --- |
+| packages/projects/src/readonly-access.ts、store.ts、files.ts、node.ts | 独立目标读取、只读异步范围、原来源保留和嵌套收紧。只使用既有登记身份，列表分页、描述、文本及字节分片均核对路径、内容依据、信任与交付资格；不登记身份、不写目标缓存或保存依据。身份登记写入增加领域写权限核对。 |
+| apps/kernel/src/manual.ts、application.ts、architecture.json | 经同源内部契约注册真实提供者及 harness 消费范围。宿主绑定工作域、目标范围与当前执行，提供同步最终授权检查；人工组合不加载 harness，实例能力缺失明确不可用。 |
+| packages/harness/src/runtime.ts、packages/broker/src/index.ts | 暴露 read_work_domain／read_target_project，冻结可信字段，复用既有 scratch。统一核验当前尝试、宿主及父子实例，取消和旧实例不能交付。会话已用目标身份保存在来源 harness 中，接续时再次授权。 |
+| packages/models/src/model-access.ts | 异步授权及模型排队结束后，同步复核来源与全部目标，再发放租约；拒绝释放名额。可选最终确认函数不要求原调用方修改。 |
+| tests/kernel/target-reader.spec.ts、target-races.spec.ts、work-domains.spec.ts；既有 broker／项目后端／模型测试；tests/model-server.ts | 新测试使用真实文件、仓储、broker 和运行会话，仅在外部模型 HTTP 边界注入受控工具计划。复用现有模型夹具，默认计划保持原行为。 |
+| docs/development.md、design.md、proposal.md | 更新实际工作域、独立端口、错误诊断及模型准入竞态修复；记录当前授权。初设 execution／research 已核对，尚未交付的领域流程与成果保存不在此变更中宣称完成。 |
+
+完成判据在本工作树均有运行证据：全局会话读取可信目标而不迁移归属；受限目标、未知身份和普通文件写入被拒绝；目标文件及领域记录读取前后保持一致；双会话同名 scratch 各自保留自己的字节；取消、撤权、内容变化及旧实例迟到均拒绝交付；原项目条件保存、人工组合、application 创建与 scratch 缺失接续通过。
 
 ## 实际验证
 
-环境为 Linux，Node v24.12.0、pnpm 11.10.0；使用已有依赖，未安装或升级。结果来自本轮命令输出，Playwright 使用既有内核配置和隔离夹具。
+环境：Linux、Node v24.12.0、pnpm 11.10.0。隔离配置、库、目标项目及会话位于本轮临时目录；模型仅使用回环 HTTP 受控响应与合成凭据，无真实模型、真实密钥或用户材料。测试退出关闭本轮 app、模型夹具及所属执行，清理自己的临时数据。
 
-| 命令或核对 | 结果与证据边界 |
+| 命令／核对 | 实际结果 |
 | --- | --- |
-| `pnpm generate:contracts` | 成功产生 patch；通过 apply_patch 只接入本次目标读取类型映射。原有生成文件的格式差异未扩散修改 |
-| 生成结果格式化后与新映射逐字比较；`node packages/protocol/scripts/contract-types.mjs --self-test` | 通过，核对生成入口与目标文件一致；未增加新的生成算法 |
-| `pnpm --filter @scholoom/protocol build` | 通过 |
-| `pnpm check:architecture` | 13 模块、181 源文件，0 findings、0 exceptions |
-| `pnpm typecheck` | 最终全仓通过；命令包含共享包构建、各包类型检查和 tools／测试类型检查 |
-| `pnpm test:kernel tests/kernel/work-domain-contracts.spec.ts tests/kernel/broker.spec.ts tests/kernel/sessions.spec.ts` | 15/15 通过，25.0 秒；使用真实 schema／broker，既有会话测试沿受控模型和隔离数据路径，不是跨项目只读实际交付验收 |
-| `pnpm exec biome check`，范围为本轮 7 个源码／测试文件 | 通过，无自动写入 |
-| `git diff --check` | 通过 |
+| pnpm generate:contracts；生成器 --self-test；目标映射经 Biome 格式化后与 schema 生成结果比较 | 通过。命令输出只有既有生成文件的格式差异，没有协议声明变化，未扩散修改。 |
+| pnpm check:architecture | 13 模块、187 源文件，0 findings、0 exceptions。 |
+| pnpm typecheck | 全仓通过，包含共享包构建、各包及工具／测试类型检查；最终新增测试另经 tsc --noEmit -p tsconfig.tools.json 通过。 |
+| pnpm build | 全仓通过，包含 kernel、harness、共享包及 Electron 双宿主构建；后续受影响共享包重新构建通过。构建不表示运行双宿主 UI。 |
+| 下列相关内核测试命令 | 57/57 通过，约 1.2 分钟。 |
+| pnpm test:kernel tests/kernel/harness-recovery.spec.ts --grep 'scratch content remains usable across attempts and restart' --output test-results/scoped-recovery | 1/1 通过，24.4 秒，覆盖 scratch 跨尝试、重启、隔离及缺失接续。 |
+| pnpm test:kernel tests/kernel/target-reader.spec.ts tests/kernel/target-races.spec.ts --output test-results/scoped-final | 最后补齐文件句柄关闭后的领域授权检查后，受影响 7/7 再次通过，21.9 秒。 |
+| 本轮修改的 TypeScript／JSON 文件 Biome 检查；git diff --check；openspec validate establish-scoped-execution-foundation --strict | 通过。 |
+| pnpm lint | 未通过：21 个既有前端错误，集中在 library 组件的可访问性及格式等；本轮未修改这些文件，已抽查 HEAD 原文件确认问题已存在。本轮文件检查通过。 |
 
-首次类型检查发现新增反例的 `@ts-expect-error` 行号与实际字段诊断不对应，且泛型调用不保证拒绝所有额外字段；已将字段反例放在明确 DTO 赋值中、调整注释位置，并保留运行时 schema 对额外字段的拒绝测试。修正后 tools 类型检查及整条 `pnpm typecheck` 均通过。
+相关内核测试命令：
 
-首轮声明验证未运行 UI；后续共同基线补跑完整构建与 4 项真实入口冒烟，包含 Electron，见领域交接记录。真实模型、目标项目零修改验收、撤权竞态和三平台验证仍未运行。Mermaid 图未渲染。
+```sh
+pnpm test:kernel tests/kernel/work-domains.spec.ts tests/kernel/target-races.spec.ts tests/kernel/target-reader.spec.ts tests/kernel/work-domain-contracts.spec.ts tests/kernel/project-backend.spec.ts tests/kernel/checkpoint-files.spec.ts tests/kernel/harness-module.spec.ts tests/kernel/sessions.spec.ts tests/kernel/model-access.spec.ts tests/kernel/broker.spec.ts tests/kernel/manual-application.spec.ts
+```
+
+目标只读独立测试比较目标目录条目、普通文件字节及 SQLite 序列化记录；实际 Agent 会话测试比较可信／受限两个目标的文件和全部逻辑表，证明没有此次读取造成的登记或持久修改。四项竞态用真实运行中的 application 会话，在文件协调等待／路径读取处设置确定性闸门，分别撤权、变更内容或取消；不是替换授权提供者。模型排队测试验证最终授权拒绝后名额可继续使用。成功读取后的新消息在目标撤权时没有新增模型 HTTP 请求。
+
+首次 pnpm exec 在缺少 node_modules 的新工作树中自动准备了锁定依赖，未事先取得安装授权；发现后已说明，未再安装或升级。package.json、pnpm-lock.yaml 和工作区依赖配置均未改变。其余操作沿已有依赖执行。没有启动开发服务器。
 
 ## 审查与问题处理
 
-scout 只读核对声明、生成入口、现有测试及宿主装配，未发现遗漏的声明侧映射。真实 `applicationSchemas` 汇总、提供者及消费范围注册属于 1.3，当前不接入。首轮独立审查核对 7 个源码／测试文件及 specs／design，未发现阻塞问题。其后共同基线核对与跨变更审查见领域交接记录；声明不构成运行时授权保证。
+独立审查发现并修复三项实际问题：
 
-类型中的普通 projectId 仍是 string；排除固定 application 身份由同源 JSON Schema 的 `not` 检查和运行时测试保证。后续宿主必须实际执行 schema 校验、核对可信身份，不得将 TypeScript 形状或 optional 上下文字段当作授权证明。
+1. 多个目标逐个异步检查时，较早核对的目标可能在后续等待中撤权。模型租约发放前增加同步最终确认，失败释放名额。
+2. 空目标集合不能跳过来源最终确认；现在同样检查来源信任、对象及有效执行实例。
+3. 首次定位已缺失的文件返回 notFound；首次 stat 后或读完复查期间消失返回 contentChanged。
+
+审查者源码复核确认上述修复，在限定权限／异步范围内未发现新的问题；最终接受由本轮主 Agent 根据代码和实跑测试核对。文件初稿的编译、分页默认值、额外字节结果字段和按路径替换身份问题也已在集成前修正，始终使用原 fileId／basis。
+
+首轮 48 项相关测试通过后补充四项竞态及真实工具会话。补测发现测试曾把普通文本读取的保存 basis 当作材料 fingerprint；改为在夹具准备阶段取所属领域 material 的依据。SDK 普通文件工具返回文本而非自定义 JSON，相关断言改为状态及语义片段。最终 57 项和额外接续用例均通过。
 
 ## 未完成事项与下一步
 
-1. 共同契约入口齐备，后续从共同基线 dev 创建工作树，按[公共基础实施规划](../../../.scratch/domain-development/public-foundation-plan.md)开始独立实现；已有开发树才需同步。
-2. 本变更下一步为 1.2 的只读范围和已登记身份读取，随后 1.3 宿主接线。向领域交接线提供 store/files 增量前运行对应权限与目标零修改测试。
-3. 真实接线时沿现有 `RuntimeIdentity` 验证有效实例；为 workDomain／targetRead 绑定和快照可信字段、检查与原 projectId／sessionId 一致，保持异步父范围只能收紧。只读实现不得复用会产生身份登记、缓存或内存保存依据的原读取路径。
-4. 续做先读本记录和当前 tasks，再取 `openspec instructions apply --change establish-scoped-execution-foundation --json`。最终交付记录任务 3.5 仍待完整 change 验收。
+- 任务 1.2、2.2 剩余的是 PR 实际合入 dev 后，核对接入结果并向另外两线交接；PR 创建不视为 dev 已集成。
+- PR 合并后，按公共基础实施规划核对 dev 的真实组合，更新相同 tasks／delivery，完成最终任务 3.5；不替其他两线宣称资源、图流程或工作台整合已验收。
+- 全仓 lint 的既有前端问题未处理；未运行全仓测试、UI／Electron 交互、真实模型、分发包和跨平台验收。Mermaid 图文已核对，未渲染。

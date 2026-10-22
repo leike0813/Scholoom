@@ -9,6 +9,7 @@ import { join } from 'node:path';
 import { expect, test } from '@playwright/test';
 import { ModelAccess } from '../../packages/models/dist/execution.js';
 import { CredentialStore, ModelConfigStore } from '../../packages/models/dist/node.js';
+import { OperationError } from '../../packages/protocol/dist/core.js';
 
 const SYNTHETIC_KEY = 'synthetic-key-not-a-secret';
 const ANSWER = '合成答复。';
@@ -113,6 +114,39 @@ async function access(url: string) {
     cleanup: () => rm(root, { recursive: true }),
   };
 }
+
+test('final synchronous authorization rejects revocation during a queued request and releases its slot', async () => {
+  const server = await boundary([200]);
+  const { access: model, cleanup } = await access(server.url);
+  try {
+    const first = await model.execution();
+    const lease = await first.acquire();
+    let authorized = true;
+    let checked = false;
+    const queued = await model.execution(
+      () => {
+        checked = true;
+      },
+      undefined,
+      undefined,
+      () => {
+        if (!authorized) throw new OperationError('permissionDenied', 'revoked');
+      },
+    );
+    const pending = queued.acquire();
+    const rejected = expect(pending).rejects.toMatchObject({ code: 'permissionDenied' });
+    await expect.poll(() => checked).toBe(true);
+    authorized = false;
+    first.release(lease);
+    await rejected;
+    const next = await model.execution();
+    next.release(await next.acquire());
+    expect(server.requests).toEqual([]);
+  } finally {
+    await server.close();
+    await cleanup();
+  }
+});
 
 for (const status of [500, 502, 503, 529]) {
   test(`temporary failure ${status} stops after three attempts in total`, async () => {

@@ -82,6 +82,7 @@ export class ProjectFiles {
   }
 
   private put(location: FileLocation): FileLocation {
+    this.store.check('write');
     this.store.db
       .insert(tables.fileReferences)
       .values({ id: location.fileId, path: location.path, value: location })
