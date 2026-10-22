@@ -13,8 +13,8 @@
 | 2.1，harness/graph-registry.ts、kernel/execution-graphs.ts | `ExecutionGraphs` 将源码定义、版本、配置 schema 与工厂放在同一登记中；宿主与 worker 引用同一集合。未知图、错误版本和非法配置在构造前失败，非法入口字段由同源 IPC schema 拒绝。生产集合为空，固定样例仅在测试宿主装配。 |
 | 2.2，harness/execution-driver.ts、execution.ts、remote-agent.ts、runtime.ts、kernel/execution-worker.ts | 提取可静态装配工厂的 `startExecutionWorker`；旧入口保持薄调用，完整宿主为根和能力子执行注入受控 worker URL。默认模型、工具、checkpoint、健康、停止、准入与退出回执继续沿原机制。图结果校验同源结构及 attemptId，停止后拒绝继续推进。2026-10-23 已接入 dev，并通过合并后普通会话、子执行、恢复及 IPC 回归。 |
 | 2.5 | 原普通会话、材料分析、工具效果、实例失效、容量不足、压缩和恢复通过实际 worker 回归。同步修正旧故障夹具对执行入口的匹配。 |
-| 3.1／3.2／3.3，kernel/commands.ts、manual.ts | `ManagedCommands` 统一私有工作空间、程序登记、消费模块校验、排队重验、取消及进程释放；editorCommand 为薄适配，人工排版继续独立于 harness。范围检查拒绝全局／目标只读及不一致执行身份；真实工作域和实例授权路径仍依赖前序增量。3.2 完成，3.1／3.3 保留真实接线验收。 |
-| 4.1，playwright.ui.config.ts、tests/ui/renderer-url.ts、fixture.ts 及 17 个 spec | `SCHOOLOOM_UI_PORT` 统一 renderer URL，缺省 5174；所有导航与权限 origin、baseURL、webServer、Electron 共用。端口占用失败，不复用其他实例；输出按端口隔离，profile 仍逐轮新建。尚未实跑双实例及接入 dev。 |
+| 3.1／3.2／3.3，kernel/commands.ts、manual.ts | `ManagedCommands` 统一私有工作空间、程序登记、消费模块校验、排队重验、取消及进程释放；editorCommand 为薄适配，人工排版继续独立于 harness。范围检查拒绝全局／目标只读及不一致执行身份；前序真实工作域增量已进入 dev，本线仍须接入并验证命令的有效实例授权。3.2 完成，3.1／3.3 保留真实接线验收。 |
+| 4.1，playwright.ui.config.ts、tests/ui/renderer-url.ts、fixture.ts 及 17 个 spec | `SCHOOLOOM_UI_PORT` 统一 renderer URL，缺省 5174；所有导航与权限 origin、baseURL、webServer、Electron 共用。端口占用失败，不复用其他实例；输出按端口隔离，profile 仍逐轮新建。2026-10-23 源码已接入 dev，仍未实跑双实例。 |
 | 4.2，tests/fixtures/domain-execution-worker、docs/development.md | 固定两节点 StateGraph 验证真实 SDK／IPC、无模型完成和注册拒绝；固定 Node 程序验证实际输出和进程树收尾。新增七域独立接入说明，复用现有测试组合。材料读取、首次创建和等待夹具仍未完成。 |
 
 `GraphDriver` 是源码装配 seam，SDK 对象留在 worker。当前固定计数图的宿主只接收节点回报，没有取用业务材料或保存科研成果；固定命令的工作空间和授权回调为明确测试提供者。harness 仍拒绝未接通的 registered 持久尝试、resume 和结构化上下文，不将其静默转成默认 Agent。
@@ -69,5 +69,5 @@
 2. 本轮随后推进 1.3、1.4 的保存与关联分别结果、首次创建 operationId 及候选／发布核查；保护已接入的 store/files 只读及条件保存临界区。覆盖已保存但关联失败、同路径替换、回执丢失和重启后仅补关联，不能预建输出避开新建路径。
 3. 后续沿 GraphDriver seam 实施 2.3 的持久图绑定、真实 interrupt／waitId、输入 schema 与新指令消费、版本不兼容及 checkpoint 后确认，再接通 2.4、3.1／3.3 的真实资源和执行资格。当前计数图仍不替代真实材料及成果交付。
 4. 2.2 已完成 dev 接入；4.1 的 URL／fixture 源码也已接入，消费者可同步后使用，实际双实例隔离验收仍未完成。下一批优先资源提供者，不与工作台线重复修改来源、显式项和共同 composer。
-5. 双宿主共同资源／写作 UI 和双实例并发尚未运行。现有 UI webServer 执行 dev:browser，受当前 AGENTS 的“禁止启动开发服务器”限制；实际运行前须取得该项授权。真实模型、科研充分性、目标只读零写入和三平台分发未验；Mermaid 未渲染。
+5. 双宿主共同资源／写作 UI 和双实例并发尚未运行。现有 UI webServer 执行 dev:browser，受当前 AGENTS 的“禁止启动开发服务器”限制；实际运行前须取得该项授权。目标只读零写入已在本轮 dev 组合回归核对；本线资源适配、真实模型、科研充分性和三平台分发仍未验，Mermaid 未渲染。
 6. 续做读取本记录和 tasks，再运行 `openspec instructions apply --change establish-domain-execution-handoffs --json`。CLI ready 仍只是依赖工件就绪；4.3／4.4／4.5／4.6 等整体验收和最终交付项保持未完成，按实际结果继续更新同一记录。
