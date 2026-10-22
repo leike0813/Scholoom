@@ -1,11 +1,71 @@
 import { ComposerPrimitive, useAui, useAuiState } from '@assistant-ui/react';
 import type { Effort } from '@scholoom/protocol';
 import type { ComponentProps, ReactNode } from 'react';
+import { useContextContribution } from '../context-contributions';
 import type { WorkbenchSession } from '../session';
 import { IconChevronDown, IconSend, IconTune } from './icons';
 import { Menu } from './menu';
 
 type Context = NonNullable<WorkbenchSession['executionContext']>;
+
+export function InstructionContextItems() {
+  const context = useContextContribution();
+  if (!context.items.length && !context.contextError) return null;
+  return (
+    <section aria-label="附加上下文" className="execution-status composer-context-items">
+      <Menu
+        label="查看附加上下文"
+        summary={`${context.items.length} 个附加项`}
+        className="menu--up"
+      >
+        {context.items.map((item, index) => (
+          <details key={item.itemId}>
+            <summary>
+              {index + 1}.{' '}
+              {item.kind === 'text'
+                ? item.contentState === 'draft'
+                  ? '草稿摘录'
+                  : '文字摘录'
+                : item.kind === 'object'
+                  ? item.name
+                  : item.kind === 'region'
+                    ? '图片区域'
+                    : '资源'}
+            </summary>
+            <p>
+              {item.ref.source === 'project' ? '项目材料' : '库材料'} · {item.basis}
+            </p>
+            {item.kind === 'text' ? <blockquote>{item.quote}</blockquote> : null}
+            {item.kind === 'object' ? <p>{item.semantics}</p> : null}
+            {item.kind === 'region' ? (
+              <p>
+                区域：{Math.round(item.region.x * 100)}%，{Math.round(item.region.y * 100)}%；
+                {Math.round(item.region.width * 100)}% × {Math.round(item.region.height * 100)}%
+              </p>
+            ) : null}
+            <label>
+              批注
+              <textarea
+                aria-label={`上下文批注 ${index + 1}`}
+                value={item.comment ?? ''}
+                onChange={(event) => context.updateContextComment(item.itemId, event.target.value)}
+              />
+            </label>
+            <button
+              type="button"
+              className="text-btn"
+              aria-label={`移除上下文 ${index + 1}`}
+              onClick={() => context.removeContextItem(item.itemId)}
+            >
+              移除
+            </button>
+          </details>
+        ))}
+      </Menu>
+      {context.contextError ? <p role="alert">{context.contextError}</p> : null}
+    </section>
+  );
+}
 
 function PickerOption({
   name,

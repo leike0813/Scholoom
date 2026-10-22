@@ -30,6 +30,38 @@ test('duplex RPC permits reverse calls while the initiating request waits', asyn
   }
 });
 
+test('failed successful receipt delivery preserves write uncertainty without reporting a rejection', async () => {
+  let client: RpcPeer;
+  let commits = 0;
+  let sends = 0;
+  const server = new RpcPeer(
+    {
+      send: () => {
+        sends++;
+        if (sends === 1) throw new Error('synthetic delivery failure');
+      },
+      close: () => client.close(),
+    },
+    {
+      request: () => {
+        commits++;
+        return { accepted: true };
+      },
+    },
+  );
+  client = new RpcPeer({ send: (frame) => server.receive(frame) });
+  try {
+    await expect(
+      client.request('write', {}, { waitMs: 1000, lossCode: 'outcomeUnknown' }),
+    ).rejects.toMatchObject({ code: 'outcomeUnknown' });
+    expect(commits).toBe(1);
+    expect(sends).toBe(1);
+  } finally {
+    client.close();
+    server.close();
+  }
+});
+
 test('capacity reserves control and connection loss retains unknown write outcomes', async () => {
   const peer = new RpcPeer({ send: () => {} }, { limits: { inFlight: 1, control: 1 } });
   const first = peer

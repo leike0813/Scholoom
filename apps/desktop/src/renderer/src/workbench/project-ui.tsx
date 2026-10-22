@@ -1,6 +1,13 @@
 import type { KernelClient } from '@scholoom/client';
-import type { FileContent, FileEdit, ResourceDescriptor, ResourceRef } from '@scholoom/protocol';
+import type {
+  ContextItem,
+  FileContent,
+  FileEdit,
+  ResourceDescriptor,
+  ResourceRef,
+} from '@scholoom/protocol';
 import { lazy, Suspense, useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
+import { useContextContribution } from './context-contributions';
 import { draftKey } from './drafts';
 import { RenderPane } from './editor/RenderPane';
 import { SourceEditor } from './editor/SourceEditor';
@@ -108,6 +115,46 @@ export function FileEditor({
   const projectWritable = !!project && descriptorMatches && !!descriptor?.capabilities.write;
   const instanceId = useId();
   const viewId = editorViewId ?? instanceId;
+  const context = useContextContribution();
+  const [sourceSelection, setSourceSelection] = useState<
+    { quote: string } | { error: 'tooLarge' } | null
+  >(null);
+  const contextItem = useMemo<ContextItem | undefined>(() => {
+    if (
+      !enabled ||
+      !descriptorMatches ||
+      !descriptor?.capabilities.read ||
+      accessRevoked ||
+      (sourceSelection && 'error' in sourceSelection) ||
+      mode !== 'source' ||
+      value.visualRecovery
+    )
+      return undefined;
+    const base = { itemId: crypto.randomUUID(), ref: descriptor.ref, basis: descriptor.basis };
+    return sourceSelection && 'quote' in sourceSelection
+      ? {
+          ...base,
+          kind: 'text',
+          quote: sourceSelection.quote,
+          contentState: value.content === value.source?.content ? 'saved' : 'draft',
+        }
+      : { ...base, kind: 'resource' };
+  }, [
+    enabled,
+    descriptorMatches,
+    descriptor,
+    accessRevoked,
+    sourceSelection,
+    mode,
+    value.visualRecovery,
+    value.content,
+    value.source?.content,
+  ]);
+  const contribute = context.contributeSelection;
+  useEffect(() => {
+    contribute(viewId, contextItem ? { selections: [contextItem] } : undefined);
+    return () => contribute(viewId);
+  }, [contribute, viewId, contextItem]);
   const unregisterFlush = useRef<(() => void) | undefined>(undefined);
   const registerFlush = useCallback(
     (next: (() => Promise<void>) | undefined) => {
@@ -373,6 +420,43 @@ export function FileEditor({
         <p role="status">磁盘内容已变化。草稿已保留，请重新读取并核对差异。</p>
       ) : null}
       {value.error ? <p role="alert">{value.error} 草稿已保留。</p> : null}
+      {context.available ? (
+        <div className="source-editor-tools">
+          <button
+            type="button"
+            className="btn"
+            disabled={contextItem?.kind !== 'text'}
+            onClick={() => {
+              if (contextItem?.kind === 'text')
+                context.appendContextItem({ ...contextItem, itemId: crypto.randomUUID() });
+            }}
+          >
+            附加选区
+          </button>
+          <button
+            type="button"
+            className="btn"
+            disabled={!contextItem}
+            onClick={() => {
+              if (contextItem)
+                context.appendContextItem({
+                  kind: 'resource',
+                  itemId: crypto.randomUUID(),
+                  ref: contextItem.ref,
+                  basis: contextItem.basis,
+                });
+            }}
+          >
+            附加资源
+          </button>
+          {contextItem?.kind === 'text' && contextItem.contentState === 'draft' ? (
+            <span>草稿摘录</span>
+          ) : null}
+          {sourceSelection && 'error' in sourceSelection ? (
+            <p role="alert">选区超出附加容量，请缩小选择。</p>
+          ) : null}
+        </div>
+      ) : null}
       {project && watchError ? <p role="status">自动更新暂不可用：{watchError}</p> : null}
       {!project && !enabled ? (
         <p role="status">需连接内核以读取此资源。</p>
@@ -456,6 +540,7 @@ export function FileEditor({
             readOnly={readOnly}
             autoFocus={resourceTarget.openMode !== 'preview'}
             onSave={save}
+            onSelection={setSourceSelection}
             onChange={(content) => {
               if (readOnly) return;
               document.update({ content }, true);

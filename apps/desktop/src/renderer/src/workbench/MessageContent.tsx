@@ -143,6 +143,34 @@ export function MessageFacts() {
           ))}
         </div>
       ) : null}
+      {source.contextItems?.length ? (
+        <details className="message-materials">
+          <summary>明确附加上下文（{source.contextItems.length}）</summary>
+          {source.contextItems.map((item) => (
+            <div key={item.itemId}>
+              <span>
+                {item.kind === 'text' && item.contentState === 'draft' ? '草稿摘录' : item.kind}
+              </span>
+              <span>
+                {item.ref.source === 'project' ? '项目材料' : '库材料'} · {item.basis}
+              </span>
+              {item.kind === 'text' ? <blockquote>{item.quote}</blockquote> : null}
+              {item.kind === 'object' ? (
+                <p>
+                  {item.name}：{item.semantics}
+                </p>
+              ) : null}
+              {item.kind === 'region' ? (
+                <p>
+                  区域：{Math.round(item.region.x * 100)}%，{Math.round(item.region.y * 100)}%；
+                  {Math.round(item.region.width * 100)}% × {Math.round(item.region.height * 100)}%
+                </p>
+              ) : null}
+              {item.comment ? <p>{item.comment}</p> : null}
+            </div>
+          ))}
+        </details>
+      ) : null}
       {feedback?.key === documentKey ? (
         <span role={feedback.error ? 'alert' : 'status'}>{feedback.message}</span>
       ) : null}

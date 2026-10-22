@@ -181,11 +181,15 @@ export class RpcPeer {
     else this.incoming++;
     void (async () => {
       try {
-        if (!this.options.request) throw new OperationError('invalidRequest', '操作不可用。');
-        const result = await this.options.request(request.method, request.params);
+        let result: unknown;
+        try {
+          if (!this.options.request) throw new OperationError('invalidRequest', '操作不可用。');
+          result = await this.options.request(request.method, request.params);
+        } catch (error) {
+          await this.answerError(request.id, error);
+          return;
+        }
         await this.send({ jsonrpc: '2.0', id: request.id, result: result ?? null }, true);
-      } catch (error) {
-        await this.answerError(request.id, error);
       } finally {
         if (control) this.controlIncoming--;
         else this.incoming--;

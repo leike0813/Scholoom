@@ -25,6 +25,7 @@ import {
   lineNumbers,
 } from '@codemirror/view';
 import { tags } from '@lezer/highlight';
+import { contextLimits } from '@scholoom/protocol';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { languageForPath } from './language';
 import { sourceDocument } from './source-document';
@@ -51,6 +52,7 @@ export interface SourceEditorProps {
   autoFocus?: boolean;
   onChange: (content: string) => void;
   onSave: () => void | Promise<void>;
+  onSelection?: ((selection: { quote: string } | { error: 'tooLarge' } | null) => void) | undefined;
 }
 
 export function SourceEditor({
@@ -62,14 +64,15 @@ export function SourceEditor({
   autoFocus = true,
   onChange,
   onSave,
+  onSelection,
 }: SourceEditorProps) {
   const host = useRef<HTMLDivElement>(null);
   const editor = useRef<EditorView | null>(null);
   const readonlyCompartment = useRef(new Compartment());
   const languageCompartment = useRef(new Compartment());
   const labelCompartment = useRef(new Compartment());
-  const callbacks = useRef({ onChange, onSave });
-  callbacks.current = { onChange, onSave };
+  const callbacks = useRef({ onChange, onSave, onSelection });
+  callbacks.current = { onChange, onSave, onSelection };
   const readonlyRef = useRef(readOnly);
   readonlyRef.current = readOnly;
   const [cursor, setCursor] = useState({ line: 1, column: 1 });
@@ -138,6 +141,14 @@ export function SourceEditor({
               setCursor({ line: line.number, column: head - line.from + 1 });
               const unit = update.state.facet(indentUnit);
               setIndent(unit.includes('\t') ? 'Tab' : `空格 ${unit.length}`);
+              const selection = update.state.selection.main;
+              callbacks.current.onSelection?.(
+                selection.empty
+                  ? null
+                  : selection.to - selection.from > contextLimits.excerptUnits
+                    ? { error: 'tooLarge' }
+                    : { quote: update.state.sliceDoc(selection.from, selection.to) },
+              );
             }
           }),
         ],
@@ -154,6 +165,7 @@ export function SourceEditor({
       detach();
       view.destroy();
       editor.current = null;
+      callbacks.current.onSelection?.(null);
     };
   }, [documentId]);
 

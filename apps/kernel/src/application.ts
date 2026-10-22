@@ -262,8 +262,8 @@ export class KernelApplication extends ManualApplication {
       const p = input;
       return this.harness.configure(p.projectId, p.sessionId, p.modelConfig);
     },
-    'session.send': async (input) => {
-      return this.harness.send(input);
+    'session.send': async (input, context) => {
+      return this.harness.send(input, context.workbenchSource);
     },
     'session.cancel': async (input) => {
       const p = input;

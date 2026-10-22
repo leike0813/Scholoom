@@ -18,7 +18,7 @@ export function useMenuClose(): () => void {
 
 const focusable = (node: HTMLElement) => [
   ...node.querySelectorAll<HTMLElement>(
-    '.menu__body button:not(:disabled), .menu__body input:not(:disabled), .menu__body select:not(:disabled)',
+    '.menu__body button:not(:disabled), .menu__body input:not(:disabled), .menu__body select:not(:disabled), .menu__body textarea:not(:disabled)',
   ),
 ];
 
@@ -49,6 +49,7 @@ function useMenuBehavior(ref: RefObject<HTMLDetailsElement | null>) {
       }
       if (!node.open || (event.key !== 'ArrowDown' && event.key !== 'ArrowUp')) return;
       const target = event.target;
+      if (target instanceof HTMLTextAreaElement) return;
       if (!(target instanceof Node) || !node.contains(target)) return;
       const items = focusable(node);
       if (!items.length) return;
