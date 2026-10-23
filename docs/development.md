@@ -30,7 +30,7 @@ Electron 工作台和 CLI 共用独立 Node 内核，浏览器开发入口经同
 
 `startExecutionWorker` 将共同 IPC、健康和停止机制留在 harness；`KernelApplication` 为根执行及能力子执行注入静态 `apps/kernel/src/execution-worker.ts` 入口，客户端载荷不能指定入口。宿主与 worker 共用 `execution-graphs.ts` 的源码注册集合，`ExecutionGraphs` 在构造图前核对身份、版本和配置 schema。生产集合当前为空；固定 StateGraph 仅在 `tests/fixtures/domain-execution-worker` 的宿主与 worker 同源装配，定向测试为 `graph-registration.spec.ts`、`registered-graph.spec.ts`。
 
-宿主经内部 broker `harness.startGraph` 选择 registered 图，后续沿普通 `session.send` 发送新指令。尝试保存图身份、版本、配置、材料依据、状态格式及 checkpoint 绑定；`session.get` 返回 `graphProgress` 和 waiting／waitId。工厂的 `resume` 将新消息映射为已声明等待 schema 的输入与指令身份；不匹配时保留等待和未消费消息，不转为默认 Agent。图使用宿主提供的 `InstructionSaver`，先保存 `instructionIds`／`graphResume` 再确认消费；等待须对应实际 checkpoint 的 interrupt。重启只读取记录，不自动推进；旧版本不可用或 checkpoint 缺失时保留原尝试与成果，显式新版本另建尝试。registered 执行共用当前实例授权、进程准入、模型额度、取消和真实资源端口，无模型图不要求模型凭据。
+宿主经内部 broker `harness.startGraph` 选择 registered 图，后续沿普通 `session.send` 发送新指令。尝试保存图身份、版本、配置、材料依据、状态格式及 checkpoint 绑定；公共 `workbench.watch/snapshot` 返回 `graphProgress` 和 waiting／waitId。工厂的 `resume` 将新消息映射为已声明等待 schema 的输入与指令身份；不匹配时保留等待和未消费消息，不转为默认 Agent。图使用宿主提供的 `InstructionSaver`，先保存 `instructionIds`／`graphResume` 再确认消费；等待须对应实际 checkpoint 的 interrupt。重启只读取记录，不自动推进；旧版本不可用或 checkpoint 缺失时保留原尝试与成果，显式新版本另建尝试。registered 执行共用当前实例授权、进程准入、模型额度、取消和真实资源端口，无模型图不要求模型凭据。
 
 registered 图的消息接续复用 `InstructionContext`，保留文字、原项目材料路径／身份、显式项和服务端持久来源。工厂 `resume` 收到完整上下文及原 `id/text`，已匹配指令经原 IPC 交给 worker 的 `create(input, context)`；源码启动材料继续使用独立的 `execution.materials`。worker 的 `InstructionSaver` 将完整上下文及 run 归属写入 checkpoint，宿主按服务端原消息核对后才确认消费；只保存身份不能确认。实际取材仍使用共同资源端口，受理、恢复、消费确认及模型排队前后／最终同步准入均复查授权。
 
@@ -104,6 +104,8 @@ SCHOOLOOM_UI_PORT=5343 node node_modules/@playwright/test/cli.js test --config p
 
 公共 `resources.describe/read/document/save` 由 editor 的 `ResourceAccess` 经窄端口组合项目与库权威，`ManualApplication` 可在无模型、无 harness 时使用。项目引用使用稳定 fileId，库引用包含附件和材料版本；响应不含 nativePath。UTF-8 文字读取位置以 UTF-16 为单位，base64 以字节为单位，单片最多 256 KiB。项目字节读取绑定内容依据并在读取前后复查；正文保存复用原项目条件保存和文件身份保护。库正文只读，阅读记录仍保存到原库。
 
+资源正文保存将原 strong basis 作为内部 `project.saveFile.resourceBasis` 传入所属项目，串行保存内核对原读取句柄与发布前的实际版本，不能仅在资源层核验后降为文本相等判断。同路径同内容的替换也拒绝旧版本保存；原文本读取令牌、fileId 及创建收据仍各自核验。`resource-identity.spec.ts` 的 queued／publishing 用例控制真实替换时序并核对文件未被覆盖；这不表示锁住外部编辑器。
+
 宿主通过 `executionResources(context)` 为活动执行装配同源 `ExecutionResourcePort`，无需打开资源视图。本项目沿原条件保存，其他项目只经 `project.readTarget` 读取已登记 fileId，按路径描述不能登记目标身份。资源交付前后复核工作域、实例与外发授权；读过的库和目标沿会话已有上下文记录，在后续模型请求前再次核查。相同执行信号共享目标实例绑定，项目重开不能悄悄替换原来源；嵌套项目操作和排队后的保存也保留当前执行检查。
 
 `resources.create` 使用稳定 operationId，在项目原有 `file_operations` 中保存创建主体、输入、editId／fileId、候选及发布身份，原子发布到不存在的路径。`resources.creation` 核对原收据，不重新写文件；同身份不同输入拒绝。发布后登记失败保留候选，只有目标物理身份和内容依据均符合原候选时才能确认，同路径同内容的替换文件保持 unknown。JSON 收据字段为可选扩展，沿原项目数据库和备份；恢复副本不重放未确认创建，缺失候选在备份清单中说明。
@@ -121,6 +123,8 @@ SCHOOLOOM_UI_PORT=5343 node node_modules/@playwright/test/cli.js test --config p
 `apps/kernel/src/commands.ts` 的 `ManagedCommands` 统一解析宿主私有工作空间和程序登记，管理进程准入、排队后再次授权及实际停止。editor 实际消费内部 `platform.command`，`platform.editorCommand` 保留为同一实现的薄适配。生产工作空间仅由 editor 提供，限 Quarto／latexmk，不开放客户端指定本机目录或程序。全局工作域及目标只读范围不获命令权限；Agent 必须具有相符 principal／session／项目工作域，宿主在排队前后核对 harness 当前运行实例和项目授权。人工排版可独立于 harness。命令失败和停止未知继续由 editor 保留原工作空间、诊断及最后成功预览。
 
 `tests/kernel/managed-commands.spec.ts` 的机制用例使用固定工作空间及授权替身；broker 用例在隔离真实 KernelApplication／活动执行中使用宿主源码登记的固定 Node 程序，核对排队撤权、取消、失效实例及全局范围拒绝。进程树、输出边界和控制丢失沿原真实进程用例，`process-admission.spec.ts` 另核对未确认停止保留占用。实际结果见[领域交接交付](../openspec/changes/establish-domain-execution-handoffs/delivery.md)。
+
+独立模块审查复现了 POSIX 进程组的已知缺口：程序自行派生 detached 后代后，原组停止仍可能误报全树停止并释放容量。当前尚未提供覆盖此情形的 OS 级进程归属；不能将既有普通后代回归当作该情形通过。平台增量范围待确认，领域交接 4.5 保持未完成，复现与决议依据见同一交付记录。
 
 源码与 QMD／Markdown 可视编辑共用同一草稿。Markdown／QMD 轻量预览读取未保存草稿；完整排版读取已保存稿件，打开预览或保存时更新当前选择格式。QMD 默认 HTML，切换 PDF 后更新 PDF；LaTeX 保留原生多文件工程并编译 PDF。HTML、PDF、DOCX 均可通过显式导出生成到工作区，沿用既有文件冲突与传输保护。
 
