@@ -194,7 +194,7 @@ test('server persists all context item kinds and keeps their original source acr
       contextItems,
     };
     try {
-      await product.call('session.send', input);
+      const receipt = await product.call('session.send', input);
       await expect.poll(async () => (await app.snapshot(scope)).run?.state).toBe('completed');
       const persisted = (await app.snapshot(scope)).messages.find(
         (message) => message.id === instructionId,
@@ -210,6 +210,7 @@ test('server persists all context item kinds and keeps their original source acr
       const reopened = (await app.snapshot(scope)).messages.find(
         (message) => message.id === instructionId,
       );
+      expect(await app.call('session.send', structuredClone(input))).toEqual(receipt);
       expect(reopened?.contextItems).toEqual(contextItems);
       expect(reopened?.source).toEqual(source);
       expect(app.workbenchContexts.read(source, scope)).toEqual({
