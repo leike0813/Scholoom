@@ -37,8 +37,8 @@ jobs:
       - uses: r-lib/actions/setup-tinytex@v2
       - name: Update TeX Live manager
         run: tlmgr update --self
-      - name: Install latexmk
-        run: tlmgr install latexmk
+      - name: Install writing TeX packages
+        run: tlmgr install latexmk caption
       - name: Report writing toolchain
         run: |
           quarto --version
@@ -46,6 +46,7 @@ jobs:
           latexmk -v
           pdflatex --version
           xelatex --version
+          kpsewhich caption.sty
       - run: pnpm test:kernel
       - run: xvfb-run -a pnpm test:smoke
         if: runner.os == 'Linux'
