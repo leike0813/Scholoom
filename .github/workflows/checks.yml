@@ -35,11 +35,12 @@ jobs:
         with:
           version: '1.9.37'
       - uses: r-lib/actions/setup-tinytex@v2
-      - name: Prepare writing toolchain
-        shell: bash
+      - name: Update TeX Live manager
+        run: tlmgr update --self
+      - name: Install latexmk
+        run: tlmgr install latexmk
+      - name: Report writing toolchain
         run: |
-          tlmgr update --self
-          tlmgr install latexmk
           quarto --version
           quarto pandoc --version
           latexmk -v
