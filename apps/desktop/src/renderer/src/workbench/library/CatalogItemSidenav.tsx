@@ -1,6 +1,6 @@
 /**
  * 条目详情面板 Sidenav
- * 参考 Zotero itemPaneSidenav：竖排 tab，role="tablist"
+ * 导航到条目详情的对应分区。
  */
 import { useCallback } from 'react';
 
@@ -34,15 +34,15 @@ export function CatalogItemSidenav({ activeSection, onSectionChange }: CatalogIt
   );
 
   return (
-    <nav className="catalog-item-sidenav" role="tablist" aria-orientation="vertical">
+    <nav className="catalog-item-sidenav" aria-label="题录详情分区">
       {SIDENAV_ITEMS.map((item) => {
         const isActive = item.id === activeSection;
         return (
           <button
+            type="button"
             key={item.id}
             className={`sidenav-button ${isActive ? 'active' : ''}`}
-            role="tab"
-            aria-selected={isActive}
+            aria-current={isActive ? 'location' : undefined}
             aria-controls={`section-${item.id}`}
             aria-label={item.label}
             title={item.label}

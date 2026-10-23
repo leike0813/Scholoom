@@ -3,7 +3,7 @@
  */
 import type { KernelClient } from '@scholoom/client';
 import { CollectionFilter } from './CollectionFilter';
-import { VersionFilterDropdown, type VersionFilter } from './VersionFilter';
+import { type VersionFilter, VersionFilterDropdown } from './VersionFilter';
 
 interface LibraryToolbarProps {
   client: KernelClient;
@@ -53,6 +53,7 @@ export function LibraryToolbar({
       <VersionFilterDropdown value={versionFilter} onChange={onVersionFilterChange} />
       <div className="library-pagination">
         <button
+          type="button"
           className="btn btn-sm"
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage <= 1}
@@ -64,6 +65,7 @@ export function LibraryToolbar({
           {currentPage} / {totalPages || 1}
         </span>
         <button
+          type="button"
           className="btn btn-sm"
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage >= totalPages}
@@ -72,7 +74,7 @@ export function LibraryToolbar({
           ▶
         </button>
       </div>
-      <button className="btn btn-sm" onClick={onNewEntry} aria-label="新建题录">
+      <button type="button" className="btn btn-sm" onClick={onNewEntry} aria-label="新建题录">
         + 新建题录
       </button>
     </div>

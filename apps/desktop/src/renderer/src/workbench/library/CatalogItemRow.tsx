@@ -42,11 +42,15 @@ export function CatalogItemRow({
   const issued = entry.metadata?.issued;
   const date =
     issued && typeof issued === 'object' && 'date-parts' in issued
-      ? (issued['date-parts'] as any)?.[0]?.[0] ?? ''
+      ? ((issued['date-parts'] as any)?.[0]?.[0] ?? '')
       : '';
 
   const attachmentStatus =
-    entry.attachmentState === 'recorded' ? '已有附件' : entry.attachmentState === 'unavailable' ? '附件未取得' : '';
+    entry.attachmentState === 'recorded'
+      ? '已有附件'
+      : entry.attachmentState === 'unavailable'
+        ? '附件未取得'
+        : '';
 
   const candidateNote = entry.metadataOrigin === 'filename' ? ' · 待核对（文件名）' : '';
 
@@ -56,7 +60,14 @@ export function CatalogItemRow({
       style={style}
       onClick={handleClick}
       onDoubleClick={handleDoubleClick}
-      role="row"
+      onKeyDown={(event) => {
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        event.preventDefault();
+        onSelect(index, { shift: event.shiftKey, ctrl: event.ctrlKey || event.metaKey });
+        if (event.key === 'Enter') onDoubleClick(entry);
+      }}
+      role="option"
+      tabIndex={0}
       aria-selected={isSelected}
       aria-label={`${entry.metadata?.title || '(无标题)'} by ${creators || '(无作者)'}`}
     >

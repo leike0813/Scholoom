@@ -1,8 +1,9 @@
 /**
  * 集合筛选下拉组件
  */
-import { useCallback, useEffect, useState } from 'react';
+
 import type { KernelClient } from '@scholoom/client';
+import { useCallback, useEffect, useState } from 'react';
 
 interface Collection {
   id: string;
@@ -61,6 +62,7 @@ export function CollectionFilter({
   return (
     <div className="collection-filter">
       <button
+        type="button"
         className="btn btn-sm collection-filter-toggle"
         onClick={() => setIsOpen(!isOpen)}
         aria-label="筛选集合"
@@ -83,7 +85,7 @@ export function CollectionFilter({
               <div className="collection-filter-header">
                 <span>选择集合</span>
                 {selectedCollections.length > 0 && (
-                  <button className="btn-link" onClick={clearSelection}>
+                  <button type="button" className="btn-link" onClick={clearSelection}>
                     清除
                   </button>
                 )}
