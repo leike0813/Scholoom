@@ -6,6 +6,7 @@ import { join } from 'node:path';
 import { expect, test } from '@playwright/test';
 import { KernelApplication } from '../../apps/kernel/dist/application.js';
 import type { GraphExecution } from '../../packages/protocol/dist/execution.js';
+import { createModelServer } from '../model-server.js';
 
 for (const boundary of [
   'normal',
@@ -14,6 +15,10 @@ for (const boundary of [
   'lost-wait',
   'missing-checkpoint',
   'materials',
+  'explicit-items',
+  'message-overflow',
+  'switch-agent',
+  'model-revoked',
   'model',
   'budget',
   'cancel',
@@ -24,12 +29,15 @@ for (const boundary of [
     const { graphs } = await import('../fixtures/domain-execution-worker/graphs.mjs');
     const root = await mkdtemp(join(tmpdir(), 'scholoom-registered-'));
     const profile = join(root, 'profile');
+    const model = boundary === 'switch-agent' ? await createModelServer() : undefined;
+    if (model) model.hold = true;
     const options = {
       environment: {} as NodeJS.ProcessEnv,
+      ...(model ? { modelEndpoint: model.url } : {}),
       executionGraphs: graphs,
       workerEntry: new URL('../fixtures/domain-execution-worker/worker.mjs', import.meta.url),
     };
-    if (boundary === 'model' || boundary === 'budget') {
+    if (boundary === 'model' || boundary === 'budget' || boundary === 'model-revoked') {
       // @ts-expect-error Source-only worker fixture.
       const { modelGraphs } = await import('../fixtures/domain-execution-worker/worker-model.mjs');
       options.executionGraphs = modelGraphs;
@@ -54,6 +62,49 @@ for (const boundary of [
         locator: { source: 'project', projectId: project.id, fileId: saved.fileId },
       });
       const session = await app.call('session.create', { projectId: project.id });
+      let previousRunId: string | undefined;
+      if (model) {
+        options.environment.MINIMAX_CN_API_KEY = 'synthetic';
+        previousRunId = (
+          await app.harness.send({
+            projectId: project.id,
+            sessionId: session.id,
+            instructionId: randomUUID(),
+            text: 'Hold the ordinary Agent.',
+            materials: [],
+          })
+        ).runId;
+        await expect.poll(() => model.requests.length).toBe(1);
+        await app.close();
+        options.environment = {};
+        app = new KernelApplication(profile, options);
+        await app.initialize();
+      }
+      let grants = 0;
+      let modelChecks = 0;
+      if (boundary === 'model-revoked') {
+        const execution = app.models.execution.bind(app.models);
+        app.models.execution = async (authorize, signal, config, confirm) => {
+          const access = await execution(
+            async () => {
+              await authorize?.();
+              if (++modelChecks === 2)
+                app.projects.get(project.id).grant({ trust: 'restricted', autoBackup: false });
+            },
+            signal,
+            config,
+            confirm,
+          );
+          return {
+            ...access,
+            acquire: async () => {
+              const lease = await access.acquire();
+              grants++;
+              return lease;
+            },
+          };
+        };
+      }
       const selection: Extract<GraphExecution, { kind: 'registered' }> = {
         kind: 'registered',
         graphId: 'durable-resource',
@@ -98,6 +149,7 @@ for (const boundary of [
         text: first.text,
         execution: selection,
       });
+      if (previousRunId) expect(accepted.runId).not.toBe(previousRunId);
       if (boundary === 'cancel' || boundary === 'revoke') {
         await expect.poll(async () => (await app.snapshot(scope)).run?.state).toBe('running');
         if (boundary === 'cancel') await app.call('session.cancel', scope);
@@ -114,7 +166,7 @@ for (const boundary of [
         );
         return;
       }
-      if (boundary === 'budget') {
+      if (boundary === 'budget' || boundary === 'model-revoked') {
         await expect
           .poll(async () => (await app.snapshot(scope)).run?.state, { timeout: 20000 })
           .toBe('failed');
@@ -125,12 +177,16 @@ for (const boundary of [
           (await app.snapshot(scope)).messages.find((message) => message.id === first.instructionId)
             ?.state,
         ).toBe('accepted');
+        if (boundary === 'model-revoked') {
+          expect(modelChecks).toBe(2);
+          expect(grants).toBe(0);
+        }
         return;
       }
       await expect
         .poll(async () => (await app.snapshot(scope)).run?.state, { timeout: 20000 })
         .toBe('waiting');
-      const waiting = (await app.snapshot(scope)).run;
+      let waiting = (await app.snapshot(scope)).run;
       expect(waiting?.graph).toMatchObject({
         graphId: 'durable-resource',
         version: '1',
@@ -138,10 +194,50 @@ for (const boundary of [
         wait: { nodeKey: 'approve' },
       });
       expect(waiting?.graphProgress?.kind).toBe('graph.waiting');
+      if (boundary === 'explicit-items') {
+        for (const attachment of [
+          {
+            contextItems: [
+              {
+                kind: 'resource' as const,
+                itemId: randomUUID(),
+                ref: material.ref,
+                basis: material.basis,
+              },
+            ],
+          },
+          { materials: ['input.md'], materialFileIds: [saved.fileId] },
+        ]) {
+          const instructionId = randomUUID();
+          await expect(
+            app.harness.send({
+              ...scope,
+              instructionId,
+              text: '{"approve":true}',
+              materials: [],
+              ...attachment,
+            }),
+          ).rejects.toMatchObject({ code: 'unavailable' });
+          const snapshot = await app.snapshot(scope);
+          expect(snapshot.run?.state).toBe('waiting');
+          expect(snapshot.messages.some((message) => message.id === instructionId)).toBe(false);
+        }
+      }
       expect(
         (await app.snapshot(scope)).messages.find((message) => message.id === first.instructionId)
           ?.state,
       ).toBe('consumed');
+      if (boundary === 'message-overflow') {
+        for (let index = 0; index < 100; index++)
+          await app.harness.send({
+            ...scope,
+            instructionId: randomUUID(),
+            text: `unmatched-${index}`,
+            materials: [],
+          });
+        await expect.poll(async () => (await app.snapshot(scope)).run?.state).toBe('waiting');
+        waiting = (await app.snapshot(scope)).run;
+      }
       const identity = await stat(join(project.path, 'result.md'), { bigint: true });
       expect(await readFile(join(project.path, 'result.md'), 'utf8')).toBe(
         '# Durable result\n\nreal registered evidence',
@@ -326,6 +422,8 @@ for (const boundary of [
       releaseRead();
       await blocked;
       await app.close();
+      model?.release();
+      await model?.close();
     }
   });
 }

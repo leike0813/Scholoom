@@ -21,7 +21,7 @@ export type ContextBridge = {
   /** The owner checks current read/send grants, including after model admission waits. */
   resources?: (context: CallContext) => {
     port: Pick<ExecutionResourcePort, 'describe'> & Partial<Pick<ExecutionResourcePort, 'read'>>;
-    check: (evidence: readonly ResourceEvidence[]) => void;
+    check: (evidence: readonly ResourceEvidence[], libraryUsed?: boolean) => void;
   };
 };
 

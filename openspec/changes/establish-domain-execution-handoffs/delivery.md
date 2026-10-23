@@ -2,6 +2,31 @@
 
 ## 当前状态与成果
 
+### 第三轮 dev 接收
+
+2026-10-23，用户要求接收三个工作树的新 PR。dev 保留原提交，依次以 `6db64cc`、`d5e0240`、`1dd5e00` 合入 #7、#8、#9；application／manual 的冲突同时保留 Graph 启动、命令工作空间和可信指令受理检查。已接入持久 Graph 等待／恢复、共同命令资格和生产工作台资源授权。本变更 **13/19**，工作台 **13/16**；最终整合、双实例和交付项继续未完成，未归档或启动七域。用户仍手动同步其他工作树，本轮未控制它们的 Agent。
+
+接收时独立审查发现两项 P2，并用真实内部接线复现：资源强版本含 ctime，移动后旧待关联收据不能恢复；registered 图接受显式材料却只向工厂传递文字，可能消费未交付附件。前者在原关联收据中先保留强版本，核验当前 fileId／强版本后原子保存发布 basis，再按核验返回的身份和位置关联；实际资源读取继续用强版本，不放宽内容检查。旧证据无法核验时保留 unknown。后者在受理前拒绝非空 contextItems／旧材料附件，原文字等待和源码入口的 execution.materials 保持可用；完整 Graph 指令上下文仍需在最终组合前接线，不据这项保护宣称完成。
+
+Graph／命令的后续独立审查另确认两项 P1、两项 P2：启动等待期间撤权仍派发命令；registered 模型额度交付前缺同步授权；普通 Agent 切图复用旧尝试；前 100 条未匹配消息挡住后续有效输入。唯一命令提供者现在在 worker 启动后、派发前同步复查授权和工作空间／程序绑定，拒绝后仍确认实际停止。Graph 和普通 Agent 的最终模型检查复用宿主资源检查，核对来源外发、库 read/send 与目标实例；库使用标记来自原会话记录，不由 worker 自报。图选择把普通 Agent 旧尝试视为不兼容，另建 run；等待输入按 seq 游标每页最多 100 条匹配，未匹配项不消费。原六项发现均经只读窄复核确认封堵，无新增必修项，真实运行由主线完成。
+
+| 实际入口 | 本轮接收证据 |
+| --- | --- |
+| `pnpm --config.optimisticRepeatInstall=false typecheck`、同选项 `build` | 全仓通过；最后 runtime 修复另编译 harness 并检查 tools 类型。未安装升级本机依赖。 |
+| Biome、check-architecture.ts、contract-types.mjs --self-test／--patch | lint 无错误，74 warnings、35 infos；13 模块／198 源文件零 findings／例外；生成器自检通过，六份 patch 格式化后与源码一致。 |
+| OpenSpec 正式 specs、两个 active change strict validate | 17/17 正式规格及两个变更通过；工件有效不代表最终交付。 |
+| 内核 context、registered-graph、harness／恢复、资源／创建、目标只读、命令／进程、editor 等 19 个文件 | 合并后首轮 **114/114**，8 分钟；实际 worker、IPC、SQLite、文件、准入及已有 Quarto／LaTeX 接线，模型为 loopback 受控响应。 |
+| 新增资源移动／registered 附件保护边界及原资源／harness／创建回归 | 旧实现 **2 项均失败**，分别复现无法关联与错误受理。移动测试的历史查询改用实际路径后，四文件 **38/38**，3.3 分钟，包含 101 收据及原未知效果保护。 |
+| 启动取消／撤权／重绑、普通 Agent 切图、模型最终撤权、100 条等待消息 | 旧实现取消用例通过，另五项失败；等待消息首轮误查有界 snapshot 中已翻页的旧消息，调整检查时机后独立复现实际无法恢复。修复后 **6/6**，34.9 秒；模型额度未交付、程序 marker 未创建、不同 runId 和后续输入完成均核对。 |
+| 最终 runtime／宿主／命令修复后的 11 文件组合 | **89/89**，5.6 分钟：registered-graph、managed-commands、context-resources、context-instructions、harness-module、model-access、process-admission、platform-processes、editor、resource-access、harness。全仓 typecheck／build 再次通过；各组存在重复复验，不相加当作独立用例数。 |
+| 双宿主 context-bridge、resource-opening、resource-lifecycle | **8/8**，3.8 分钟；浏览器和真实 Electron 的附加／发送／模型取材／刷新／迟到回执及资源生命周期。隔离端口 5299，沿既有 fixture 收尾。 |
+| 同步授权最终修复后双宿主 context-bridge | **4/4**，2.1 分钟；使用新隔离端口 5300，重新验证实际附加、发送、取材、刷新与迟到回执，结束后 5299／5300 均无监听。 |
+| `tests/smoke/entrypoints.spec.ts` | **4/4**，36.8 秒；独立 Node、真实 Electron/preload、重连及兼容宿主。 |
+
+CI #7 的实跑日志另确认准备工具失败：Linux／Windows 在 Quarto action 的 TinyTeX 步骤后找不到 tlmgr，macOS 要求更新管理器。接收修复改用 [r-lib setup-tinytex](https://github.com/r-lib/actions/tree/v2/setup-tinytex) 添加实际工具目录，在安装 latexmk 前更新 tlmgr，Quarto 仍固定 1.9.37。YAML 用已有 parser 解析并核对矩阵、顺序及原测试步骤；没有在本机安装 TinyTeX。依据为 [#7 CI](https://github.com/leike0813/Scholoom/actions/runs/39922558883) 和上游 action README，尚不据静态核对宣称三平台 CI 全绿。
+
+本机 Linux、Node 24.12.0、pnpm 11.10.0，使用现有 Electron 44.5.1 和工具链。命令日志在本机 `/tmp/scholoom-integrate-r3-*.log`，对应测试工件在 `test-results/integrate-r3-*` 和 `test-results/ui-5299`、`ui-5300`；格式化／生成比对 payload 留在系统临时目录，不进入产品或依赖。未跑完整内核／完整 UI、双实例、Windows／macOS 分发、真实外部模型、科研质量或最终三线组合。旧 library／attachments 用例涉及正式规格要求但当前 renderer 缺失的授权、摄取、编辑及库备份入口，未通过删除断言或改走内核调用伪装 UI 通过；后续须按产品／规格缺口处理。前序 CI 记录的 macOS 产物路径／file-watch 失败也未在本轮跨平台复验。
+
 ### 第三轮 Graph 增量（待 dev 接收）
 
 2026-10-23，开始前确认当前工作树 HEAD 为 `9c8212f`、无未提交改动。用户授权本树实施、独立提交、推送并向 dev 发 PR；不自行合入、不操作其他工作树。2.3、2.4 先独立实现及实跑，以 `b279803`、`6def640`、`641ceb7` 推送并发出 [PR #8](https://github.com/leike0813/Scholoom/pull/8)，供 dev 独立审查；工作台等待状态映射另以 `40aa011` 补齐。随后完成 3.1、3.3，当前 tasks 为 **13/19**。PR 尚未合入，最终组合及双实例验收仍待后续，不宣称已接入 dev。

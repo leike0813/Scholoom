@@ -430,7 +430,7 @@ export class ManualApplication {
     CallContext,
     {
       port: Pick<ExecutionResourcePort, 'describe'> & Partial<Pick<ExecutionResourcePort, 'read'>>;
-      check: (items: readonly ResourceEvidence[]) => void;
+      check: (items: readonly ResourceEvidence[], libraryUsed?: boolean) => void;
     }
   >();
   private isInstructionAdmission(context: CallContext): boolean {
@@ -483,9 +483,15 @@ export class ManualApplication {
         ? { ...source, targetRead: { targetProjectId: locator.projectId, access: 'read' } }
         : source;
     };
-    const check = (items: readonly ResourceEvidence[]) => {
+    const check = (items: readonly ResourceEvidence[], libraryUsed = false) => {
       if (!origin || this.projects.get(origin.project.id) !== origin)
         throw new OperationError('instanceMismatch', '来源项目实例已变化。');
+      this.checkResourceContext(source);
+      origin.check('send');
+      if (libraryUsed) {
+        this.library.check('read');
+        this.library.check('send');
+      }
       for (const item of items) {
         const ref = item.ref;
         this.resourceAuthorization(scope(ref), ref, false)();

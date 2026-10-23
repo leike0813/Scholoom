@@ -52,19 +52,23 @@ export class ManagedCommands {
       return { directory: workspace.directory, projectId: workspace.projectId, executable };
     };
     const initial = check();
-    const reservation = this.processes.reserve(true);
-    const abort = () => reservation.release();
-    context.signal?.addEventListener('abort', abort, { once: true });
-    if (context.signal?.aborted) abort();
-    try {
-      await reservation.ready;
+    const confirm = () => {
       const current = check();
       if (
         current.directory !== initial.directory ||
         current.projectId !== initial.projectId ||
         current.executable !== initial.executable
       )
-        throw new OperationError('permissionDenied', '等待期间命令工作空间已变化。');
+        throw new OperationError('permissionDenied', '命令工作空间已变化。');
+      return current;
+    };
+    const reservation = this.processes.reserve(true);
+    const abort = () => reservation.release();
+    context.signal?.addEventListener('abort', abort, { once: true });
+    if (context.signal?.aborted) abort();
+    try {
+      await reservation.ready;
+      const current = confirm();
       return await runCommand(
         {
           executable: current.executable,
@@ -73,7 +77,7 @@ export class ManagedCommands {
           timeoutMs: input.timeoutMs,
           ...(input.input !== undefined ? { input: input.input } : {}),
         },
-        { signal: context.signal, reservation },
+        { signal: context.signal, reservation, authorize: confirm },
       );
     } finally {
       context.signal?.removeEventListener('abort', abort);

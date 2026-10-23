@@ -34,10 +34,11 @@ jobs:
       - uses: quarto-dev/quarto-actions/setup@v2
         with:
           version: '1.9.37'
-          tinytex: true
+      - uses: r-lib/actions/setup-tinytex@v2
       - name: Prepare writing toolchain
         shell: bash
         run: |
+          tlmgr update --self
           tlmgr install latexmk
           quarto --version
           quarto pandoc --version

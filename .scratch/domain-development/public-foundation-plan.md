@@ -84,8 +84,8 @@ flowchart LR
 
 每个变更包含 proposal、investigation、delta specs、design 和 tasks；delivery 在实际执行后形成。源码与现状依据在各 investigation，已执行的共同契约及回归验证见所属 delivery，不把契约交付视为真实授权、图运行或工作台功能已经完成。
 
-共同契约基线使用协议版本 4。三条实现工作树现为 scoped-execution-foundation、domain-execution-handoffs、workbench-context-bridge，均归 Orca 的 Scholoom 项目。2026-10-23 dev 已接收两轮 PR，第二轮为 #4、#5、#6；工作域变更完成归档，资源保存／关联、首次创建与指令来源等增量接入。接收验证及剩余范围见各自 delivery；用户手动将更新后的 dev 同步到工作树，再发送下一阶段指令，不由接入者控制工作树内 Agent。两个 active 变更继续按局部前置开展，七域等待全部公共基础验收。
+共同契约基线使用协议版本 4。三条实现工作树现为 scoped-execution-foundation、domain-execution-handoffs、workbench-context-bridge，均归 Orca 的 Scholoom 项目。2026-10-23 dev 已接收三轮 PR，第三轮为 #7、#8、#9；工作域已归档，持久 Graph、命令资格和工作台真实资源授权已接入。接收验证及剩余范围见各自 delivery；用户手动将更新后的 dev 同步到工作树，再发送下一阶段指令，不由接入者控制工作树内 Agent。两个 active 变更继续按局部前置开展，七域等待全部公共基础验收。
 
-下一批交付按实际缺口安排：工作域线的归档及库 UI lint 清理已完成，本轮没有新的必需业务任务；领域交接线推进 2.3／2.4 持久 Graph 等待、恢复和生产资源接线，以及 3.1／3.3 的共同命令资格；工作台线同步现有执行资源适配后完成 2.2／3.2 的真实显式材料授权与模型外发，并继续必要双宿主验收。领域交接与工作台可并行，公共 driver／runtime 修改按原归属交付与同步。各线进度、证据及待办仍只在原 tasks／delivery 维护。
+下一批交付按实际缺口安排：工作域线核对三平台 CI 工具准备结果，并调查旧库 UI 用例反映的产品入口缺口，形成实施方案后再开展功能补齐；领域交接线完成 4.1／4.2 的双实例隔离、夹具和独立接入说明，并补 4.3 所需验证；工作台线在 4.5 前协调接通 registered 图的完整指令上下文、checkpoint 和授权复查，再推进最终三线组合。目前图接续的显式附件仍明确不可用，不忽略后消费。公共 runtime／driver 的交叉修改仍由所属线交付独立增量并经 dev 同步。各线进度、证据及待办仍只在原 tasks／delivery 维护。
 
 实施前先读所选变更、上表对应依赖增量的实际 delivery 及 dev 接入结果，取得 apply instructions；不要求其他 change 全部完成才开始独立任务。规划就绪不构成新增操作授权。公共补充仍按自己的工作树实现、dev 接入检查后同步；真实整合任务当次明确负责人。各变更的验证必须区分真实模块、外部受控响应、平台及尚未验证范围。

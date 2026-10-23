@@ -678,6 +678,11 @@ export class Harness {
         : undefined);
     let factory: ReturnType<ExecutionGraphs['resolve']> | undefined;
     if (registered) {
+      if (input.contextItems?.length || input.materials.length)
+        throw new OperationError(
+          'unavailable',
+          '已登记图的指令附件尚未接线，请按当前等待要求发送文字输入。',
+        );
       if (
         registered.workDomain.projectId !== project.id ||
         registered.workDomain.sessionId !== session.id
@@ -719,8 +724,9 @@ export class Harness {
     let resuming = !busy && !!run && run.state !== 'completed';
     const incompatible =
       !!registered &&
-      !!run?.graph &&
-      (registered.graphId !== run.graph.graphId ||
+      !!run &&
+      (!run.graph ||
+        registered.graphId !== run.graph.graphId ||
         registered.version !== run.graph.version ||
         factory?.definition.stateFormatVersion !== run.graph.stateFormatVersion ||
         !isDeepStrictEqual(registered.materials, run.graph.materials ?? []) ||
@@ -1012,28 +1018,22 @@ export class Harness {
       database = opened.database;
       if (opened.issue)
         throw new OperationError('protocolIncompatible', '图 checkpoint 不完整，停止原尝试接续。');
-      const pending = this.records(project)
-        .select()
-        .from(tables.instructions)
-        .where(
-          and(
-            eq(tables.instructions.sessionId, run.sessionId),
-            eq(tables.instructions.consumed, false),
-          ),
-        )
-        .orderBy(tables.instructions.seq)
-        .limit(100)
-        .all();
-      const ids = pending.map((item) => item.id);
-      const messages = pending.map((item) => {
-        const message = this.records(project)
+      const readPending = (after: number) =>
+        this.records(project)
           .select()
-          .from(tables.messages)
-          .where(eq(tables.messages.id, item.id))
-          .get()?.value;
-        if (!message) throw new OperationError('unavailable', '图指令消息缺失。');
-        return message;
-      });
+          .from(tables.instructions)
+          .where(
+            and(
+              eq(tables.instructions.sessionId, run.sessionId),
+              eq(tables.instructions.consumed, false),
+              gt(tables.instructions.seq, after),
+            ),
+          )
+          .orderBy(tables.instructions.seq)
+          .limit(100)
+          .all();
+      let pending = readPending(0);
+      let ids = pending.map((item) => item.id);
       let input: GraphResumeInput | null = null;
       const saver = new InstructionSaver(database, async () => {});
       const latest = await saver.getTuple({ configurable: { thread_id: run.id } });
@@ -1045,19 +1045,41 @@ export class Harness {
       if (binding.wait && previousResume?.waitId === binding.wait.waitId) input = previousResume;
       else if (binding.wait) {
         if (!ids.length) throw new OperationError('invalidRequest', '等待接续缺少新指令。');
-        const mapped = factory.resume?.(
-          binding.wait,
-          messages.map((message) => ({ id: message.id, text: message.text })),
-        );
-        const value = mapped?.value;
         const schema = factory.definition.waitSchemas?.[binding.wait.inputSchemaRef];
-        if (
-          !mapped?.instructionIds.length ||
-          mapped.instructionIds.some((id) => !ids.includes(id)) ||
-          value === undefined ||
-          !schema ||
-          !compileContract({ params: schema, result: true }).params(value)
-        ) {
+        while (pending.length) {
+          const mapped = factory.resume?.(
+            binding.wait,
+            pending.map((item) => {
+              const message = this.records(project)
+                .select()
+                .from(tables.messages)
+                .where(eq(tables.messages.id, item.id))
+                .get()?.value;
+              if (!message) throw new OperationError('unavailable', '图指令消息缺失。');
+              return { id: message.id, text: message.text };
+            }),
+          );
+          if (
+            mapped?.instructionIds.length &&
+            mapped.instructionIds.every((id) => ids.includes(id)) &&
+            mapped.value !== undefined &&
+            schema &&
+            compileContract({ params: schema, result: true }).params(mapped.value)
+          ) {
+            input = {
+              attemptId: run.id,
+              waitId: binding.wait.waitId,
+              instructionIds: mapped.instructionIds,
+              value: mapped.value as GraphResumeInput['value'],
+            };
+            break;
+          }
+          const last = pending.at(-1);
+          if (!last) break;
+          pending = readPending(last.seq);
+          ids = pending.map((item) => item.id);
+        }
+        if (!input) {
           signal.throwIfAborted();
           this.setRun(project, {
             ...run,
@@ -1066,12 +1088,6 @@ export class Harness {
           });
           return;
         }
-        input = {
-          attemptId: run.id,
-          waitId: binding.wait.waitId,
-          instructionIds: mapped.instructionIds,
-          value: value as GraphResumeInput['value'],
-        };
       }
       const allowed = new Set(ids);
       const checkpointIds = latest?.checkpoint.channel_values.instructionIds;
@@ -1166,6 +1182,30 @@ export class Harness {
             },
             signal,
             run.modelConfig,
+            () => {
+              this.checkExecutionContext(context);
+              const resources = this.contextBridge?.resources?.(context);
+              if (!resources)
+                throw new OperationError('unavailable', '图资源同步授权提供者不可用。');
+              const libraryUsed = !!this.records(project)
+                .select()
+                .from(tables.meta)
+                .where(eq(tables.meta.key, `library-context:${run.sessionId}`))
+                .get();
+              resources.check(graph.materials, libraryUsed);
+              const targets = JSON.parse(
+                this.records(project)
+                  .select()
+                  .from(tables.meta)
+                  .where(eq(tables.meta.key, `target-read-context:${run.sessionId}`))
+                  .get()?.value ?? '[]',
+              ) as string[];
+              if (targets.length) {
+                if (!this.targetFiles)
+                  throw new OperationError('unavailable', '目标只读端口不可用。');
+                this.targetFiles(context).check(targets);
+              }
+            },
           )
         : undefined;
       const executionResources = this.executionResources;
@@ -1417,11 +1457,15 @@ export class Harness {
             .get()?.value ?? '[]',
         );
         for (const targetId of currentTargets) targetChecks.add(targetId);
-        if (contextEvidence.size) {
-          const resources = this.contextBridge?.resources?.(executionContext);
-          if (!resources) throw new OperationError('unavailable', '执行资源授权适配尚未接线。');
-          resources.check([...contextEvidence.values()]);
-        }
+        const libraryUsed = !!this.records(project)
+          .select()
+          .from(tables.meta)
+          .where(eq(tables.meta.key, libraryContextKey))
+          .get();
+        const resources = this.contextBridge?.resources?.(executionContext);
+        if (resources) resources.check([...contextEvidence.values()], libraryUsed);
+        else if (contextEvidence.size || libraryUsed)
+          throw new OperationError('unavailable', '执行资源授权适配尚未接线。');
         if (targets) targets.check(targetChecks);
         else if (targetChecks.size) throw new OperationError('unavailable', '目标只读端口不可用。');
       });
@@ -2833,30 +2877,34 @@ export class Harness {
         operationId,
         JSON.stringify({ sessionId, artifact, ...evidence }),
       );
-      this.pendingArtifacts.set(key, {
+      const pending = {
         projectId,
         sessionId,
-        artifact: { ...artifact, state: 'unknown' },
+        artifact: { ...artifact, state: 'unknown' as const },
         receipt: join(directory, operationId),
         ...evidence,
+      };
+      this.pendingArtifacts.set(key, pending);
+      const file = await this.port(project)['files.readBytes']({
+        projectId,
+        fileId,
+        limit: 1,
+        ...evidence,
       });
-      const location = (
-        await this.port(project)['files.resolve']({ projectId, fileIds: [fileId] })
-      )[0];
-      if (location?.state !== 'present')
-        throw new OperationError('notFound', '保存的文件身份已失效。');
-      if (evidence.basis || evidence.resourceBasis) {
-        await this.port(project)['files.readBytes']({
-          projectId,
-          fileId,
-          limit: 1,
-          ...evidence,
-        });
+      if (evidence.resourceBasis) {
+        // Preserve verified publication evidence across moves without weakening resource reads.
+        await atomicPrivateFile(
+          directory,
+          operationId,
+          JSON.stringify({ sessionId, artifact, basis: file.basis }),
+        );
+        pending.basis = file.basis;
+        delete pending.resourceBasis;
       }
       await this.port(project, sessionId)['project.linkArtifact']({
         projectId,
         sessionId,
-        artifact: { ...artifact, path: location.path },
+        artifact: { ...artifact, path: file.path },
       });
       await unlink(join(directory, operationId));
       this.pendingArtifacts.delete(key);

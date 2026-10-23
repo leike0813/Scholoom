@@ -14,7 +14,11 @@ export type CommandResult = { code: number; stdout: string; stderr: string };
 /** Runs one command beneath the existing independent process-tree controller. */
 export async function runCommand(
   request: CommandRequest,
-  options: { signal?: AbortSignal | undefined; reservation?: ProcessReservation | undefined } = {},
+  options: {
+    signal?: AbortSignal | undefined;
+    reservation?: ProcessReservation | undefined;
+    authorize?: () => void;
+  } = {},
 ): Promise<CommandResult> {
   options.signal?.throwIfAborted();
   const env: Record<string, string> = {};
@@ -44,6 +48,7 @@ export async function runCommand(
     rejectResult(options.signal?.reason ?? new OperationError('shuttingDown', '命令已取消。'));
   try {
     options.signal?.throwIfAborted();
+    options.authorize?.();
     const result = new Promise<CommandResult>((resolve, reject) => {
       rejectResult = reject;
       worker.on('message', (value: unknown) => {

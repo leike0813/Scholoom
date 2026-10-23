@@ -325,33 +325,40 @@ test('fixed program keeps output bounded and cancellation stops its actual proce
   }
 });
 
-test('cancellation during process startup never dispatches the registered program', async () => {
-  const f = await fixture();
-  const controller = new AbortController();
-  const start = ManagedNode.start;
-  const marker = join(f.root, 'unexpected.txt');
-  ManagedNode.start = async (options) => {
-    const owned = await start(options);
-    controller.abort(new OperationError('shuttingDown', 'cancel during startup'));
-    return owned;
-  };
-  try {
-    await expect(
-      f.commands.execute(
-        {
-          ...request,
-          args: ['-e', "require('node:fs').writeFileSync(process.argv[1], 'unexpected')", marker],
-        },
-        { ...context, signal: controller.signal },
-      ),
-    ).rejects.toMatchObject({ code: 'shuttingDown' });
-    expect(await readFile(marker, 'utf8').catch(() => undefined)).toBeUndefined();
-    expect(f.processes.status.active).toBe(0);
-  } finally {
-    ManagedNode.start = start;
-    await rm(f.root, { recursive: true });
-  }
-});
+for (const boundary of ['cancel', 'revoke', 'rebind'] as const) {
+  test(`${boundary} during process startup never dispatches the registered program`, async () => {
+    const f = await fixture();
+    const controller = new AbortController();
+    const start = ManagedNode.start;
+    const marker = join(f.root, 'unexpected.txt');
+    ManagedNode.start = async (options) => {
+      const owned = await start(options);
+      if (boundary === 'cancel')
+        controller.abort(new OperationError('shuttingDown', 'cancel during startup'));
+      else if (boundary === 'revoke') f.revoke();
+      else f.workspace.directory = join(f.root, 'rebound');
+      return owned;
+    };
+    try {
+      await expect(
+        f.commands.execute(
+          {
+            ...request,
+            args: ['-e', "require('node:fs').writeFileSync(process.argv[1], 'unexpected')", marker],
+          },
+          { ...context, signal: controller.signal },
+        ),
+      ).rejects.toMatchObject({
+        code: boundary === 'cancel' ? 'shuttingDown' : 'permissionDenied',
+      });
+      expect(await readFile(marker, 'utf8').catch(() => undefined)).toBeUndefined();
+      expect(f.processes.status.active).toBe(0);
+    } finally {
+      ManagedNode.start = start;
+      await rm(f.root, { recursive: true });
+    }
+  });
+}
 
 test('queued command refuses a workspace rebound while waiting for capacity', async () => {
   const f = await fixture();

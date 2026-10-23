@@ -32,6 +32,8 @@ Electron 工作台和 CLI 共用独立 Node 内核，浏览器开发入口经同
 
 宿主经内部 broker `harness.startGraph` 选择 registered 图，后续沿普通 `session.send` 发送新指令。尝试保存图身份、版本、配置、材料依据、状态格式及 checkpoint 绑定；`session.get` 返回 `graphProgress` 和 waiting／waitId。工厂的 `resume` 将新消息映射为已声明等待 schema 的输入与指令身份；不匹配时保留等待和未消费消息，不转为默认 Agent。图使用宿主提供的 `InstructionSaver`，先保存 `instructionIds`／`graphResume` 再确认消费；等待须对应实际 checkpoint 的 interrupt。重启只读取记录，不自动推进；旧版本不可用或 checkpoint 缺失时保留原尝试与成果，显式新版本另建尝试。registered 执行共用当前实例授权、进程准入、模型额度、取消和真实资源端口，无模型图不要求模型凭据。
 
+registered 图的消息接续当前只接文字；`session.send` 的非空 `contextItems` 或旧材料附件在受理前报 `unavailable`，不丢弃附件后消费指令。图的启动材料继续由源码领域入口通过 `execution.materials` 提供。等待映射按游标每批最多 100 条核对，未匹配项保留，后续有效输入仍可进入匹配；普通 Agent 显式切图另建尝试并保留旧 checkpoint。将工作台附件用于图恢复前，仍须接通完整指令上下文、checkpoint 与授权复查，并纳入最终组合验收。
+
 框架文件上传／下载已加入同一内部契约映射，以 base64 传输 SDK 字节并保留帧上限；连续压缩的历史追加经过实际 IPC 验证。会话临时资源位于 `.scholoom/harness/sessions/<sessionId>/scratch`；旧共享资源复制后保留原件，清单无法核对时持续提示 `context_incomplete`，新会话失败重试不继承旧共享目录。恢复核查最多 1000 个已保存引用，超限明确未完整核查，临时资源缺失不抹去摘要和领域成果。
 
 框架文件桥其余操作也逐项使用同源声明；SDK 适配同时接受 `BackendProtocolV2` 类型检查。`ProjectBackend` 已迁入 harness，只消费项目契约派生的六个方法，生产端口由宿主经 broker 绑定项目范围；独立测试可替换端口。预期文件身份传到 projects 的原有保存临界区，领域权限不转移到 broker。harness 宿主 facade 中其余领域引用仍沿 4.2 迁入。

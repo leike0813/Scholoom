@@ -260,7 +260,7 @@ for (const revocation of ['library-send', 'target-instance'] as const) {
   });
 }
 
-for (const replacement of [false, true]) {
+for (const replacement of [false, true, 'rename'] as const) {
   test(`saved resources return association failure and restart only reconciles original evidence (replacement=${replacement})`, async () => {
     const root = await mkdtemp(join(tmpdir(), 'scholoom-resource-association-'));
     const profile = join(root, 'profile');
@@ -316,11 +316,20 @@ for (const replacement of [false, true]) {
       expect(created).toMatchObject({ state: 'complete', association: { state: 'unknown' } });
       assert(created.state === 'complete');
       const creationIdentity = await stat(join(project.path, 'created.md'), { bigint: true });
+      if (replacement === 'rename') {
+        for (const path of ['input.md', 'created.md'])
+          await app.call('files.rename', {
+            projectId: project.id,
+            path,
+            name: `moved-${path}`,
+            operationId: randomUUID(),
+          });
+      }
       await app.close();
       app = new ExecutionApplication(profile, options);
       await app.initialize();
       app.projects.get(project.id).database.exec('DROP TRIGGER reject_association');
-      if (replacement) {
+      if (replacement === true) {
         await rename(join(project.path, 'input.md'), join(root, 'original-input'));
         await writeFile(join(project.path, 'input.md'), 'saved actual result');
       }
@@ -328,9 +337,17 @@ for (const replacement of [false, true]) {
         projectId: project.id,
         sessionId: session.id,
         runId,
-        paths: ['input.md'],
+        paths: ['input.md', 'created.md'],
       });
-      expect(linked[0]?.state).toBe(replacement ? 'unknown' : 'linked');
+      expect(linked[0]?.state).toBe(replacement === true ? 'unknown' : 'linked');
+      expect(linked[1]?.state).toBe('linked');
+      if (replacement === 'rename') {
+        expect(linked[0]).toMatchObject({ path: 'moved-input.md', fileId: saved.fileId });
+        expect(linked[1]).toMatchObject({
+          path: 'moved-created.md',
+          fileId: created.resource.ref.fileId,
+        });
+      }
       const checked = await app.call('resources.creation', {
         projectId: project.id,
         operationId: 'first-created-result',
@@ -340,15 +357,17 @@ for (const replacement of [false, true]) {
         resource: { ref: created.resource.ref },
         association: { state: 'confirmed' },
       });
-      expect((await stat(join(project.path, 'created.md'), { bigint: true })).ino).toBe(
+      const createdPath = replacement === 'rename' ? 'moved-created.md' : 'created.md';
+      expect((await stat(join(project.path, createdPath), { bigint: true })).ino).toBe(
         creationIdentity.ino,
       );
-      expect(app.projects.get(project.id).history('created.md')).toHaveLength(1);
-      if (!replacement)
-        expect((await stat(join(project.path, 'input.md'), { bigint: true })).ino).toBe(
+      expect(app.projects.get(project.id).history(createdPath)).toHaveLength(1);
+      const inputPath = replacement === 'rename' ? 'moved-input.md' : 'input.md';
+      if (replacement !== true)
+        expect((await stat(join(project.path, inputPath), { bigint: true })).ino).toBe(
           identity.ino,
         );
-      expect(app.projects.get(project.id).history('input.md')).toHaveLength(2);
+      expect(app.projects.get(project.id).history(inputPath)).toHaveLength(2);
     } finally {
       model.release();
       await app.close();
