@@ -47,6 +47,8 @@ flowchart LR
 
 ### 可装配图驱动
 
+持久等待使用原 run 的 `waiting` 状态及 `graphProgress` 查询投影；图绑定保留原材料依据，源码登记可声明具名等待 schema。宿主内部选择图，后续消息由对应工厂的等待适配器转换并按该 schema 校验；消息有歧义时保留未消费。registered 初始化携带本次有界 instructionIds，复用 InstructionSaver 确认持久消费，人工／普通 Agent 接口不添加第二种继续动作。
+
 在 protocol/execution 声明判别式执行描述：默认 `agent` 路径保留现有输入；`registered` 路径含 graphId、version、已校验 config、材料引用、工作域和尝试引用。业务方法到图的映射属于科研域，公共基础不修改旧材料分析方法含义，也不把当前 Skill 执行改名为新图。
 
 提取 `packages/harness/src/execution.ts` 的通用进程入口为可注入图工厂的 driver；新增宿主 worker 入口静态组合默认 Agent 与科研图工厂。harness 不依赖 research 实现，宿主可知两者。图身份、版本与配置 schema 的声明及实现注册来自同一源码定义，宿主发现与 worker 校验引用同一导出，不维护两个手写注册表。

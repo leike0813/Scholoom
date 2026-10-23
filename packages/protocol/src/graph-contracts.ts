@@ -11,7 +11,8 @@ import { workDomainSchema } from './work-domains.js';
 const jsonObject = { type: 'object', additionalProperties: true } as const;
 const evidenceList = { type: 'array', items: resourceEvidenceSchema, maxItems: 1000 } as const;
 export const graphDefinitionSchema = object(
-  { graphId: id, version: id, stateFormatVersion: id, configSchema: jsonObject },
+  { graphId: id, version: id, stateFormatVersion: id, configSchema: jsonObject,
+    waitSchemas: { type: 'object', additionalProperties: jsonObject } },
   ['graphId', 'version', 'stateFormatVersion', 'configSchema'],
 );
 export const registeredGraphSchema = object(
@@ -47,6 +48,7 @@ export const graphBindingSchema = object(
     stateFormatVersion: id,
     checkpointRef: id,
     wait: graphWaitSchema,
+    materials: evidenceList,
   },
   ['graphId', 'version', 'config', 'stateFormatVersion', 'checkpointRef'],
 );
@@ -100,6 +102,7 @@ export const graphProgressSchema = {
   ],
 } as const;
 export type GraphDefinition = FromSchema<typeof graphDefinitionSchema>;
+export type GraphWait = FromSchema<typeof graphWaitSchema>;
 export type GraphExecution = FromSchema<typeof graphExecutionSchema>;
 export type GraphBinding = FromSchema<typeof graphBindingSchema>;
 export type GraphResumeInput = FromSchema<typeof graphResumeInputSchema>;
