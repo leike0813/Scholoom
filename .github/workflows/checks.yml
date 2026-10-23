@@ -31,6 +31,19 @@ jobs:
       - run: pnpm check:architecture
       - run: pnpm typecheck
       - run: pnpm build
+      - uses: quarto-dev/quarto-actions/setup@v2
+        with:
+          version: '1.9.37'
+          tinytex: true
+      - name: Prepare writing toolchain
+        shell: bash
+        run: |
+          tlmgr install latexmk
+          quarto --version
+          quarto pandoc --version
+          latexmk -v
+          pdflatex --version
+          xelatex --version
       - run: pnpm test:kernel
       - run: xvfb-run -a pnpm test:smoke
         if: runner.os == 'Linux'
