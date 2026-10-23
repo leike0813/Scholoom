@@ -234,6 +234,7 @@ for (const revocation of ['library-send', 'target-instance'] as const) {
           port.read({ ref, basis: library.basis, encoding: 'utf8' }),
         ).rejects.toMatchObject({ code: 'permissionDenied' });
       } else {
+        await target.close();
         await rename(target.project.path, join(root, 'moved'));
         const replacement = await app.projects.open(join(root, 'moved'));
         replacement.grant({ trust: 'trusted', autoBackup: false });

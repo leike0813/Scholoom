@@ -6,7 +6,6 @@ import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { expect, test } from '@playwright/test';
 import { createKernelClient, type KernelClient } from '../../packages/client/dist/index.js';
 import type { RunInstance } from '../../packages/harness/dist/node.js';
@@ -28,7 +27,7 @@ function isAlive(processId: number): boolean {
 }
 
 async function startKernel(profile: string, modelEndpoint: string): Promise<ChildProcess> {
-  const module = fileURLToPath(new URL('../../apps/kernel/dist/lifecycle.js', import.meta.url));
+  const module = new URL('../../apps/kernel/dist/lifecycle.js', import.meta.url).href;
   const source = `import { serveKernel } from ${JSON.stringify(module)}; try { await serveKernel(process.argv[1], {modelEndpoint:process.argv[2],environment:{MINIMAX_CN_API_KEY:'synthetic'},development:true}); } catch { process.send?.({state:'failed'}); process.exitCode=1; } finally { process.disconnect?.(); }`;
   const child = spawn(
     process.execPath,
@@ -46,7 +45,7 @@ async function startKernel(profile: string, modelEndpoint: string): Promise<Chil
 }
 
 async function startOwner(profile: string): Promise<ChildProcess> {
-  const module = fileURLToPath(new URL('../../apps/kernel/dist/bootstrap.js', import.meta.url));
+  const module = new URL('../../apps/kernel/dist/bootstrap.js', import.meta.url).href;
   const source = `import {createDevelopmentKernel} from ${JSON.stringify(module)}; const host=createDevelopmentKernel({dataDirectory:process.argv[1]}); process.on('message',async message=>{if(message==='dispose'){await host.dispose();process.disconnect?.();}}); const result=await host.bootstrap('inspect'); process.send?.({state:result.state});`;
   const child = spawn(process.execPath, ['--input-type=module', '-e', source, profile], {
     stdio: ['ignore', 'ignore', 'ignore', 'ipc'],

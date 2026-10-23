@@ -5,7 +5,6 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
-import { fileURLToPath } from 'node:url';
 import { expect, test } from '@playwright/test';
 import { KernelApplication } from '../../apps/kernel/dist/application.js';
 import { startKernelServer } from '../../apps/kernel/dist/server.js';
@@ -502,12 +501,8 @@ test('process interruption leaves queryable attempts and files without restartin
   const root = await mkdtemp(join(tmpdir(), 'scholoom-research-crash-'));
   await mkdir(join(root, 'project'));
   await writeFile(join(root, 'project', 'input.md'), '结果42，样本数1。');
-  const applicationModule = fileURLToPath(
-    new URL('../../apps/kernel/dist/application.js', import.meta.url),
-  );
-  const researchModule = fileURLToPath(
-    new URL('../../packages/research/dist/node.js', import.meta.url),
-  );
+  const applicationModule = new URL('../../apps/kernel/dist/application.js', import.meta.url).href;
+  const researchModule = new URL('../../packages/research/dist/node.js', import.meta.url).href;
   const source = `import {KernelApplication} from ${JSON.stringify(applicationModule)};
     import {ResearchRecords, ResearchRuntime} from ${JSON.stringify(researchModule)};
     const app = new KernelApplication(process.argv[1], {environment:{}});

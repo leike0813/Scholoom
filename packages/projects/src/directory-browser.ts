@@ -20,6 +20,9 @@ export class DirectoryBrowser {
         throw new OperationError('notFound', '目录不存在。');
       throw error;
     }
+    const applicationDirectory = await realpath(this.applicationDirectory);
+    if (within(applicationDirectory, path))
+      throw new OperationError('permissionDenied', '不能浏览应用私有配置目录。');
     if (!(await stat(path)).isDirectory())
       throw new OperationError('invalidRequest', '目标不是目录。');
     const directories: { name: string; path: string }[] = [];
@@ -27,7 +30,7 @@ export class DirectoryBrowser {
     for await (const entry of handle) {
       if (entry.name.startsWith('.') || entry.isSymbolicLink() || !entry.isDirectory()) continue;
       const child = join(path, entry.name);
-      if (within(this.applicationDirectory, child)) continue;
+      if (within(applicationDirectory, child)) continue;
       directories.push({ name: entry.name, path: child });
     }
     directories.sort((a, b) => a.name.localeCompare(b.name));

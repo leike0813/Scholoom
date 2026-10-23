@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { access, mkdtemp, readFile, rename, rm, writeFile } from 'node:fs/promises';
+import { access, mkdtemp, readFile, realpath, rename, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { expect, test } from '@playwright/test';
@@ -44,7 +44,7 @@ test('reopening a moved project rebinds sessions, research records and execution
     await rename(original, moved);
     const reopened = await app.call('project.open', { path: moved });
     expect(reopened.id).toBe(project.id);
-    expect(reopened.path).toBe(moved);
+    expect(reopened.path).toBe(await realpath(moved));
     expect(reopened.name).toBe('moved');
     expect((await app.call('workbench.snapshot', scope)).session?.id).toBe(session.id);
     expect(await app.call('research.attempts', scope)).toEqual(attempts);

@@ -107,6 +107,7 @@ export class ProjectStore {
     application = false,
   ): Promise<ProjectStore> {
     const root = await realpath(path);
+    applicationDirectory = await realpath(applicationDirectory);
     if (!(await stat(root)).isDirectory())
       throw new OperationError('invalidRequest', '请选择项目目录。');
     const internal = join(root, '.scholoom');
@@ -404,7 +405,7 @@ export class ProjectStore {
       await writeFile(candidate, content, { mode: 0o600, flag: 'wx' });
       const temporary = operation ? candidate : join(dirname(target), `.scholoom-${edit.id}.tmp`);
       try {
-        const handle = await open(temporary, operation ? 'r' : 'wx', mode);
+        const handle = await open(temporary, operation ? 'r+' : 'wx', mode);
         try {
           if (!operation) {
             await handle.chmod(mode);
@@ -990,7 +991,8 @@ export class Projects {
   async create(path: string): Promise<ProjectStore> {
     const target = resolve(path);
     const parent = await realpath(dirname(target));
-    if (within(this.directory, join(parent, basename(target))))
+    const applicationDirectory = await realpath(this.directory);
+    if (within(applicationDirectory, join(parent, basename(target))))
       throw new OperationError('permissionDenied', '不能在应用配置目录创建项目。');
     await mkdir(join(parent, basename(target)));
     return this.open(target);

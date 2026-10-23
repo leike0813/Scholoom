@@ -52,6 +52,9 @@ test('owned execution process excludes the injected key and unrelated host secre
     expect(observed).not.toContain(HOST_SECRET);
     // The allowlisted environment is still present, so the exclusion is deliberate.
     expect(report.env.PATH).toBeTruthy();
+    for (const name of ['PATHEXT', 'COMSPEC']) {
+      if (process.env[name] !== undefined) expect(report.env[name]).toBe(process.env[name]);
+    }
   } finally {
     restoreEnvironment('MINIMAX_CN_API_KEY', priorKey);
     restoreEnvironment('SCHOLOOM_HOST_SECRET', priorHostSecret);

@@ -154,8 +154,9 @@ export async function readRecord<T>(path: string): Promise<T | undefined> {
   }
 }
 export async function readOutput(root: string, path: string, offset: number, limit: number) {
-  const target = await realpath(resolve(root, path));
-  if (!target.startsWith(`${resolve(root)}${sep}`))
+  const canonicalRoot = await realpath(root);
+  const target = await realpath(resolve(canonicalRoot, path));
+  if (!target.startsWith(`${canonicalRoot}${sep}`))
     throw new OperationError('permissionDenied', '产物资源越界。');
   const handle = await open(target, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
   try {

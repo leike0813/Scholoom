@@ -1,8 +1,9 @@
-import { access, mkdir, mkdtemp, readFile, stat, writeFile } from 'node:fs/promises';
+import { access, mkdir, mkdtemp, readFile, rm, stat, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { expect, test } from '@playwright/test';
 import { type EditorPorts, EditorRuntime } from '../../packages/editor/dist/node.js';
+import { readOutput } from '../../packages/editor/dist/resources.js';
 import { fileFingerprint } from '../../packages/platform/dist/node.js';
 import { type CallContext, OperationError } from '../../packages/protocol/dist/core.js';
 import type { EditorCommandInput } from '../../packages/protocol/dist/editor.js';
@@ -12,6 +13,29 @@ const context: CallContext = {
   role: 'product',
   principal: { kind: 'human', id: 'test' },
 };
+
+test('output roots accept directory aliases while rejecting links outside the owned output', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'scholoom-output-alias-'));
+  const actual = join(root, 'actual');
+  const alias = join(root, 'alias');
+  const outside = join(root, 'outside');
+  const linkType = process.platform === 'win32' ? 'junction' : 'dir';
+  try {
+    await mkdir(actual);
+    await mkdir(outside);
+    await writeFile(join(actual, 'output.txt'), 'owned output');
+    await writeFile(join(outside, 'outside.txt'), 'private outside');
+    await symlink(actual, alias, linkType);
+    await symlink(outside, join(actual, 'escape'), linkType);
+    const result = await readOutput(alias, 'output.txt', 0, 100);
+    expect(Buffer.from(result.base64, 'base64').toString()).toBe('owned output');
+    await expect(readOutput(alias, 'escape/outside.txt', 0, 100)).rejects.toMatchObject({
+      code: 'permissionDenied',
+    });
+  } finally {
+    await rm(root, { recursive: true });
+  }
+});
 function gate() {
   let release = () => {};
   const promise = new Promise<void>((resolve) => {

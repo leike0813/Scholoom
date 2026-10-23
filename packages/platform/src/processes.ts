@@ -42,7 +42,17 @@ export function nodeEnvironment(
   extra: Readonly<Record<string, string>> = {},
 ): Record<string, string> {
   const env: Record<string, string> = {};
-  for (const name of ['PATH', 'SystemRoot', 'WINDIR', 'TEMP', 'TMP', 'LANG', 'LC_ALL']) {
+  for (const name of [
+    'PATH',
+    'PATHEXT',
+    'COMSPEC',
+    'SystemRoot',
+    'WINDIR',
+    'TEMP',
+    'TMP',
+    'LANG',
+    'LC_ALL',
+  ]) {
     const value = process.env[name];
     if (value !== undefined) env[name] = value;
   }
