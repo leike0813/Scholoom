@@ -15,7 +15,7 @@ flowchart LR
   R --> F[项目或库权威及实际结果]
 ```
 
-依赖[工作域变更](../establish-scoped-execution-foundation/design.md)的同源契约及真实授权增量，分别作为独立实现与真实接线的前置；不要求它整项交付才开始。本变更提供共同端口和实际夹具，不替代七域业务实现。
+依赖[工作域变更](../archive/2026-10-23-establish-scoped-execution-foundation/design.md)的同源契约及真实授权增量，分别作为独立实现与真实接线的前置；不要求它整项交付才开始。本变更提供共同端口和实际夹具，不替代七域业务实现。
 
 ## 并行边界
 

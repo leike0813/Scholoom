@@ -13,7 +13,7 @@ flowchart LR
   F --> E[材料身份及内容依据]
 ```
 
-依据 [investigation](investigation.md)。本变更的工作域契约先落入 dev，与另外两个 change 的契约组成并行实施基线；三线随后独立实现，真实授权接线等待本变更对应增量验证，不等待整项 change 完成。全部公共基础验收后才启动七域开发，安排及共享文件归属见[公共基础实施规划](../../../.scratch/domain-development/public-foundation-plan.md)。
+依据 [investigation](investigation.md)。本变更的工作域契约先落入 dev，与另外两个 change 的契约组成并行实施基线；三线随后独立实现，真实授权接线等待本变更对应增量验证，不等待整项 change 完成。全部公共基础验收后才启动七域开发，安排及共享文件归属见[公共基础实施规划](../../../../.scratch/domain-development/public-foundation-plan.md)。
 
 ## 并行边界
 
