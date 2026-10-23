@@ -9,7 +9,6 @@ import {
   projectLimits,
 } from '@scholoom/protocol/projects';
 import { asc, eq, sql } from 'drizzle-orm';
-import { byteBasis } from './files.js';
 import * as tables from './schema.js';
 import type { ProjectStore } from './store.js';
 
@@ -150,7 +149,8 @@ export class ProjectTargetReader {
   }
 
   private verify(stats: BigIntStats, basis: string): void {
-    if (!stats.isFile() || stats.isSymbolicLink() || byteBasis(stats) !== basis) throw changed();
+    if (!stats.isFile() || stats.isSymbolicLink() || fileFingerprint(stats) !== basis)
+      throw changed();
   }
 
   private async inspect(
@@ -182,7 +182,7 @@ export class ProjectTargetReader {
         throw new OperationError('permissionDenied', '目标不是无链接的普通文件。');
       if (before.size > BigInt(projectLimits.binaryFileBytes))
         throw new OperationError('resourceLimit', '目标文件超过128MiB读取上限。');
-      const actual = basis ?? byteBasis(before);
+      const actual = basis ?? fileFingerprint(before);
       this.verify(before, actual);
       if ((await this.store.path(path)) !== absolute || this.location(fileId) !== path)
         throw changed();

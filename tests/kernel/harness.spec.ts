@@ -694,18 +694,12 @@ test('failed artifact registration preserves identity beyond 100 receipts and li
     for (let index = 0; index < 100; index++) {
       const path = `pending-${index}.md`;
       const edit = await project.save(path, 'Synthetic saved evidence');
-      assert(edit.fileId);
-      const { basis } = await project.files.readBytes(edit.fileId, { limit: 1 });
+      assert(edit.fileId && edit.basis);
       expect(
         (
-          await app.harness.recordSavedResource(
-            projectId,
-            sessionId,
-            runId,
-            path,
-            edit.fileId,
-            basis,
-          )
+          await app.harness.recordSavedResource(projectId, sessionId, runId, path, edit.fileId, {
+            basis: edit.basis,
+          })
         ).state,
       ).toBe('unknown');
     }

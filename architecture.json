@@ -169,7 +169,7 @@
       "systemAdapters": [
         { "path": "src/store.ts", "apis": ["async_hooks", "fs", "fs/promises"] },
         { "path": "src/files.ts", "apis": ["fs", "fs/promises"] },
-        { "path": "src/creations.ts", "apis": ["fs/promises"] },
+        { "path": "src/creations.ts", "apis": ["fs", "fs/promises"] },
         { "path": "src/readonly-access.ts", "apis": ["fs", "fs/promises"] },
         { "path": "src/transfers.ts", "apis": ["fs", "fs/promises", "stream/promises"] },
         { "path": "src/file-watch.ts", "apis": ["fs", "fs/promises"] },

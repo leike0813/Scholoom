@@ -278,7 +278,14 @@ export class Harness {
   }
   private pendingArtifacts = new Map<
     string,
-    { projectId: string; sessionId: string; artifact: Artifact; receipt: string; basis?: string }
+    {
+      projectId: string;
+      sessionId: string;
+      artifact: Artifact;
+      receipt: string;
+      basis?: string;
+      resourceBasis?: string;
+    }
   >();
   constructor(
     private readonly projects: HarnessStorage,
@@ -333,6 +340,7 @@ export class Harness {
       sessionId: string;
       artifact: Artifact;
       basis?: string;
+      resourceBasis?: string;
     };
     return {
       projectId: project.id,
@@ -340,6 +348,7 @@ export class Harness {
       artifact: { ...item.artifact, state: 'unknown' as const },
       receipt,
       ...(item.basis ? { basis: item.basis } : {}),
+      ...(item.resourceBasis ? { resourceBasis: item.resourceBasis } : {}),
     };
   }
 
@@ -1051,7 +1060,7 @@ export class Harness {
           run.id,
           path,
           identity,
-          basis,
+          { ...(basis ? { basis } : {}) },
         );
         if (result.state !== 'confirmed')
           throw new OperationError('outcomeUnknown', `文件 ${path} 已保存，产物登记待核查。`);
@@ -2313,7 +2322,7 @@ export class Harness {
     runId: string,
     path: string,
     fileId: string,
-    basis?: string,
+    evidence: { basis?: string; resourceBasis?: string } = {},
     operationId: string = randomUUID(),
   ): Promise<NonNullable<ResourceSaveResult['association']>> {
     const project = this.projects.get(projectId);
@@ -2337,22 +2346,27 @@ export class Harness {
       await atomicPrivateFile(
         directory,
         operationId,
-        JSON.stringify({ sessionId, artifact, ...(basis ? { basis } : {}) }),
+        JSON.stringify({ sessionId, artifact, ...evidence }),
       );
       this.pendingArtifacts.set(key, {
         projectId,
         sessionId,
         artifact: { ...artifact, state: 'unknown' },
         receipt: join(directory, operationId),
-        ...(basis ? { basis } : {}),
+        ...evidence,
       });
       const location = (
         await this.port(project)['files.resolve']({ projectId, fileIds: [fileId] })
       )[0];
       if (location?.state !== 'present')
         throw new OperationError('notFound', '保存的文件身份已失效。');
-      if (basis) {
-        await this.port(project)['files.readBytes']({ projectId, fileId, basis, limit: 1 });
+      if (evidence.basis || evidence.resourceBasis) {
+        await this.port(project)['files.readBytes']({
+          projectId,
+          fileId,
+          limit: 1,
+          ...evidence,
+        });
       }
       await this.port(project, sessionId)['project.linkArtifact']({
         projectId,
@@ -2415,12 +2429,13 @@ export class Harness {
             continue;
           }
         }
-        if (!pending?.artifact.fileId || !pending.basis)
+        if (!pending?.artifact.fileId || (!pending.basis && !pending.resourceBasis))
           throw new OperationError('outcomeUnknown', '原关联回执缺少可核查内容依据。');
         const file = await this.port(project)['files.readBytes']({
           projectId,
           fileId: pending.artifact.fileId,
-          basis: pending.basis,
+          ...(pending.resourceBasis ? { resourceBasis: pending.resourceBasis } : {}),
+          ...(pending.basis ? { basis: pending.basis } : {}),
           limit: 1,
         });
         const artifact: Artifact = {

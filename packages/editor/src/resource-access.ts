@@ -140,7 +140,14 @@ export class ResourceAccess {
     ports: ResourcePorts,
     input: Parameters<ResourcePorts['project']['files.readBytes']>[0],
   ) {
-    if (!ports.target) return ports.project['files.readBytes'](input);
+    if (!ports.target) {
+      const { basis, ...request } = input;
+      const result = await ports.project['files.readBytes']({
+        ...request,
+        ...(basis === undefined ? {} : { resourceBasis: basis }),
+      });
+      return { ...result, basis: result.resourceBasis };
+    }
     const { projectId, fileId, basis, offset, limit } = input;
     let currentBasis = basis;
     if (!currentBasis) {
@@ -289,7 +296,13 @@ export class ResourceAccess {
     });
     if (saved.fileId !== ref.fileId || !saved.basis)
       throw new OperationError('outcomeUnknown', '保存已执行，但实际身份或依据未确认。');
-    return { ...descriptor, path: saved.path, basis: saved.basis };
+    const published = await ports.project['files.readBytes']({
+      projectId: ref.projectId,
+      fileId: ref.fileId,
+      basis: saved.basis,
+      limit: 1,
+    });
+    return { ...descriptor, path: published.path, basis: published.resourceBasis };
   }
   cancel(requestId: string, context: CallContext): { ok: true } {
     const pending = this.pending.get(requestId);

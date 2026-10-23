@@ -492,6 +492,13 @@ test('common resources preserve ownership, text offsets, conditional saves and l
       content: '已保存\n',
     });
     expect(await readFile(join(project.path, 'note.md'), 'utf8')).toBe('已保存\n');
+    expect(
+      await app.call('resources.read', {
+        ref: updated.ref,
+        basis: updated.basis,
+        encoding: 'utf8',
+      }),
+    ).toMatchObject({ data: '已保存\n' });
     await expect(
       app.call('resources.save', {
         ref: descriptor.ref,

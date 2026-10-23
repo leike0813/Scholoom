@@ -159,7 +159,7 @@ export class KernelApplication extends ManualApplication {
       context.runId,
       resource.path,
       resource.ref.fileId,
-      resource.basis,
+      { resourceBasis: resource.basis },
     );
     this.checkExecutionContext(context);
     return { resource, association };
@@ -179,7 +179,7 @@ export class KernelApplication extends ManualApplication {
       scope.runId,
       resource.path,
       resource.ref.fileId,
-      resource.basis,
+      { resourceBasis: resource.basis },
       operationId,
     );
     if (context.role === 'execution') this.checkExecutionContext(context);

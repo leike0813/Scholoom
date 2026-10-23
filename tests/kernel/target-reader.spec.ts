@@ -1,4 +1,14 @@
-import { mkdir, mkdtemp, readdir, readFile, rm, symlink, writeFile } from 'node:fs/promises';
+import {
+  mkdir,
+  mkdtemp,
+  readdir,
+  readFile,
+  rm,
+  stat,
+  symlink,
+  utimes,
+  writeFile,
+} from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { expect, test } from '@playwright/test';
@@ -118,6 +128,37 @@ test('target reads reject missing registration, changed basis, unsafe paths and 
     f.target.grant({ trust: 'trusted', autoBackup: false });
     await rm(join(f.target.project.path, 'input.md'));
     await expect(f.read({ kind: 'describe', ...ref })).rejects.toMatchObject({ code: 'notFound' });
+  } finally {
+    await f.close();
+  }
+});
+
+test('shared resource basis rejects equal-length rewrites even when mtime is restored', async () => {
+  const f = await fixture();
+  try {
+    const saved = await f.target.save('timestamp.txt', 'original');
+    const path = join(f.target.project.path, 'timestamp.txt');
+    // An exact timestamp makes this assertion independent of filesystem mtime precision.
+    await utimes(path, 1700000000, 1700000000);
+    const before = await stat(path, { bigint: true });
+    const manual = await f.target.files.readBytes(saved.fileId ?? '', { limit: 1 });
+    const descriptor = await f.read({ kind: 'describe', fileId: saved.fileId ?? '' });
+    if (descriptor.kind !== 'describe') throw new Error('Expected descriptor');
+    expect(descriptor.basis).toBe(manual.resourceBasis);
+    await writeFile(path, 'modified');
+    await utimes(path, 1700000000, 1700000000);
+    const after = await stat(path, { bigint: true });
+    expect(after.mtimeNs).toBe(before.mtimeNs);
+    expect(after.size).toBe(before.size);
+    expect(after.ino).toBe(before.ino);
+    expect(after.ctimeNs).not.toBe(before.ctimeNs);
+    for (const kind of ['readText', 'readBytes'] as const)
+      await expect(
+        f.read({ kind, fileId: saved.fileId ?? '', basis: manual.resourceBasis }),
+      ).rejects.toMatchObject({ code: 'contentChanged' });
+    await expect(
+      f.target.files.readBytes(saved.fileId ?? '', { resourceBasis: descriptor.basis }),
+    ).rejects.toMatchObject({ code: 'contentChanged' });
   } finally {
     await f.close();
   }

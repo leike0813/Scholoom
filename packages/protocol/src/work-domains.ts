@@ -27,7 +27,14 @@ export const targetReadScopeSchema = object({ targetProjectId, access: { const: 
 export type TargetReadScope = FromSchema<typeof targetReadScopeSchema>;
 
 const reference = { fileId: id, basis: id } as const;
-const byteResult = projectsOperations['files.readBytes'].result;
+const { resourceBasis: _resourceBasis, ...byteProperties } =
+  projectsOperations['files.readBytes'].result.properties;
+const byteResult = {
+  properties: byteProperties,
+  required: projectsOperations['files.readBytes'].result.required.filter(
+    (key) => key !== 'resourceBasis',
+  ),
+};
 const descriptor = object(
   { ...reference, path: byteResult.properties.path, size: byteResult.properties.size },
   ['fileId', 'basis', 'path', 'size'],

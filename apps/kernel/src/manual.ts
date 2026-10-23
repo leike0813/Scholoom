@@ -443,13 +443,14 @@ export class ManualApplication {
     const creation = row.details.creation;
     if (row.value.state !== 'complete' || !creation?.edit.fileId)
       return { operationId: input.operationId, state: 'unknown' };
-    const { edit, basis } = creation;
+    const { edit, resourceBasis } = creation;
+    if (!resourceBasis) throw new OperationError('outcomeUnknown', '创建结果缺少资源读取版本。');
     const format = resourceFormatForName(edit.path);
     const resource: ResourceDescriptor = {
       ref: { source: 'project', projectId: input.projectId, fileId: creation.edit.fileId },
       name: edit.path.split('/').at(-1) ?? edit.path,
       path: edit.path,
-      basis,
+      basis: resourceBasis,
       format,
       capabilities: {
         read: true,
