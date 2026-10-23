@@ -214,6 +214,32 @@ export class Harness {
       .onConflictDoUpdate({ target: tables.meta.key, set: { value } })
       .run();
   }
+  private instructionEvidence(
+    project: HarnessProject,
+    sessionId: string,
+    items: readonly ResourceEvidence[] = [],
+  ): ResourceEvidence[] {
+    const key = `instruction-resource-context:${sessionId}`;
+    const evidence = new Map<string, ResourceEvidence>(
+      (
+        JSON.parse(
+          this.records(project).select().from(tables.meta).where(eq(tables.meta.key, key)).get()
+            ?.value ?? '[]',
+        ) as ResourceEvidence[]
+      ).map((item) => [JSON.stringify(item.ref), item]),
+    );
+    if (items.length) {
+      for (const item of items)
+        evidence.set(JSON.stringify(item.ref), { ref: item.ref, basis: item.basis });
+      const value = JSON.stringify([...evidence.values()]);
+      this.records(project)
+        .insert(tables.meta)
+        .values({ key, value })
+        .onConflictDoUpdate({ target: tables.meta.key, set: { value } })
+        .run();
+    }
+    return [...evidence.values()];
+  }
   checkExecutionContext(context: CallContext): void {
     const { projectId, sessionId, runId, instanceId } = context;
     if (
@@ -678,11 +704,6 @@ export class Harness {
         : undefined);
     let factory: ReturnType<ExecutionGraphs['resolve']> | undefined;
     if (registered) {
-      if (input.contextItems?.length || input.materials.length)
-        throw new OperationError(
-          'unavailable',
-          '已登记图的指令附件尚未接线，请按当前等待要求发送文字输入。',
-        );
       if (
         registered.workDomain.projectId !== project.id ||
         registered.workDomain.sessionId !== session.id
@@ -1018,6 +1039,40 @@ export class Harness {
       database = opened.database;
       if (opened.issue)
         throw new OperationError('protocolIncompatible', '图 checkpoint 不完整，停止原尝试接续。');
+      const instruction = (id: string) => {
+        const owned = this.records(project)
+          .select()
+          .from(tables.instructions)
+          .where(eq(tables.instructions.id, id))
+          .get();
+        const message = this.records(project)
+          .select()
+          .from(tables.messages)
+          .where(eq(tables.messages.id, id))
+          .get()?.value;
+        if (
+          owned?.sessionId !== run.sessionId ||
+          message?.sessionId !== run.sessionId ||
+          message.role !== 'user'
+        )
+          throw new OperationError('invalidRequest', '图指令不属于当前会话。');
+        return {
+          instructionId: id,
+          text: message.text,
+          materials: message.materials,
+          ...(message.materialFileIds ? { materialFileIds: message.materialFileIds } : {}),
+          ...(message.source ? { source: message.source } : {}),
+          ...(message.contextItems ? { contextItems: message.contextItems } : {}),
+        };
+      };
+      const admissionContext: CallContext = {
+        moduleId: 'harness',
+        role: 'host',
+        principal: { kind: 'agent', id: run.sessionId },
+        projectId: project.id,
+        sessionId: run.sessionId,
+        signal,
+      };
       const readPending = (after: number) =>
         this.records(project)
           .select()
@@ -1047,18 +1102,14 @@ export class Harness {
         if (!ids.length) throw new OperationError('invalidRequest', '等待接续缺少新指令。');
         const schema = factory.definition.waitSchemas?.[binding.wait.inputSchemaRef];
         while (pending.length) {
-          const mapped = factory.resume?.(
-            binding.wait,
-            pending.map((item) => {
-              const message = this.records(project)
-                .select()
-                .from(tables.messages)
-                .where(eq(tables.messages.id, item.id))
-                .get()?.value;
-              if (!message) throw new OperationError('unavailable', '图指令消息缺失。');
-              return { id: message.id, text: message.text };
-            }),
-          );
+          const messages = pending.map((item) => ({ id: item.id, ...instruction(item.id) }));
+          for (const message of messages)
+            await authorizeContextItems(
+              this.contextBridge,
+              admissionContext,
+              message.contextItems ?? [],
+            );
+          const mapped = factory.resume?.(binding.wait, messages);
           if (
             mapped?.instructionIds.length &&
             mapped.instructionIds.every((id) => ids.includes(id)) &&
@@ -1106,13 +1157,39 @@ export class Harness {
             .where(eq(tables.instructions.id, id))
             .get();
           if (
-            owned?.sessionId === run.sessionId &&
-            owned.consumed &&
-            confirmed.instructionIds.includes(id)
+            owned?.sessionId !== run.sessionId ||
+            (owned.consumed && !confirmed.instructionIds.includes(id))
           )
-            allowed.add(id);
+            throw new OperationError('invalidRequest', '图 checkpoint 指令归属无效。');
+          if (owned.consumed) allowed.add(id);
         }
       if (previousResume) for (const id of previousResume.instructionIds) allowed.add(id);
+      const storedContexts = latest?.checkpoint.channel_values.instructions as
+        | InstructionContext[]
+        | undefined;
+      const restored = [
+        ...new Set([
+          ...(Array.isArray(checkpointIds) ? (checkpointIds as string[]) : []),
+          ...(storedContexts ?? []).map((item) => item.instructionId),
+        ]),
+      ].map(instruction);
+      const submitted =
+        input?.instructionIds ?? (resume ? restored.map((item) => item.instructionId) : ids);
+      const instructions = submitted.map(instruction);
+      for (const item of instructions)
+        await authorizeContextItems(this.contextBridge, admissionContext, item.contextItems ?? []);
+      for (const item of storedContexts ?? []) {
+        const original = instruction(item.instructionId);
+        if (!isDeepStrictEqual(item, original))
+          throw new OperationError('invalidRequest', '图 checkpoint 指令与持久消息不符。');
+      }
+      for (const item of restored) allowed.add(item.instructionId);
+      for (const id of submitted) allowed.add(id);
+      this.instructionEvidence(
+        project,
+        run.sessionId,
+        [...(restored ?? []), ...instructions].flatMap((item) => item.contextItems ?? []),
+      );
       const confirm = async ({ checkpointId, instructionIds }: Consumption) => {
         signal.throwIfAborted();
         this.checkExecutionContext(context);
@@ -1125,6 +1202,24 @@ export class Harness {
           instructionIds.some((id) => !allowed.has(id) || !recorded.includes(id))
         )
           throw new OperationError('invalidRequest', '图输入缺少已保存的 checkpoint 依据。');
+        const durable = saved?.checkpoint.channel_values.instructions;
+        if (
+          !Array.isArray(durable) ||
+          saved?.checkpoint.channel_values.instructionRunId !== run.id ||
+          instructionIds.some(
+            (id) =>
+              !isDeepStrictEqual(
+                durable.find((item) => item?.instructionId === id),
+                instruction(id),
+              ),
+          )
+        )
+          throw new OperationError('invalidRequest', '完整图指令上下文尚未保存到 checkpoint。');
+        await authorizeContextItems(
+          this.contextBridge,
+          context,
+          this.instructionEvidence(project, run.sessionId),
+        );
         const resumed = saved?.checkpoint.channel_values.graphResume as
           | GraphResumeInput
           | undefined;
@@ -1154,6 +1249,11 @@ export class Harness {
             async () => {
               this.checkExecutionContext(context);
               await this.port(project)['project.check']({ projectId: project.id, access: 'send' });
+              await authorizeContextItems(
+                this.contextBridge,
+                context,
+                this.instructionEvidence(project, run.sessionId),
+              );
               if (!this.executionResources)
                 throw new OperationError('unavailable', '图资源提供者不可用。');
               for (const evidence of graph.materials) {
@@ -1192,7 +1292,10 @@ export class Harness {
                 .from(tables.meta)
                 .where(eq(tables.meta.key, `library-context:${run.sessionId}`))
                 .get();
-              resources.check(graph.materials, libraryUsed);
+              resources.check(
+                [...graph.materials, ...this.instructionEvidence(project, run.sessionId)],
+                libraryUsed,
+              );
               const targets = JSON.parse(
                 this.records(project)
                   .select()
@@ -1230,12 +1333,14 @@ export class Harness {
           checkpointPath: opened.path,
           ...(model ? { model: model.descriptor } : {}),
           input,
-          instructionIds: input ? input.instructionIds : resume ? [] : ids,
+          instructionIds: submitted,
+          instructions,
+          checkpointInstructions: restored,
         },
         ...(executionResources ? { resources: () => executionResources(context) } : {}),
         confirm,
         authorize: () => this.checkExecutionContext(context),
-        onStart: (owned) => {
+        onStart: async (owned) => {
           if (!owned.identity) throw new OperationError('unavailable', '图进程身份不可用。');
           this.records(project)
             .insert(tables.instances)
@@ -1254,6 +1359,11 @@ export class Harness {
             })
             .run();
           this.setRun(project, { ...run, state: 'running' });
+          await authorizeContextItems(
+            this.contextBridge,
+            context,
+            this.instructionEvidence(project, run.sessionId),
+          );
         },
         onStopping: () => updateInstance('stopping'),
         onStop: () => updateInstance('exited'),
@@ -1284,7 +1394,6 @@ export class Harness {
             if (!interrupted)
               throw new OperationError('outcomeUnknown', '等待缺少真实 interrupt 依据。');
           }
-          const submitted = input?.instructionIds ?? (resume ? [] : ids);
           if (
             result.kind !== 'graph.failed' &&
             submitted.some(
@@ -1391,28 +1500,9 @@ export class Harness {
       const libraryContextKey = `library-context:${run.sessionId}`;
       const targetContextKey = `target-read-context:${run.sessionId}`;
       const targetChecks = new Set<string>();
-      const contextKey = `instruction-resource-context:${run.sessionId}`;
-      const contextEvidence = new Map<string, ResourceEvidence>(
-        (
-          JSON.parse(
-            this.records(project)
-              .select()
-              .from(tables.meta)
-              .where(eq(tables.meta.key, contextKey))
-              .get()?.value ?? '[]',
-          ) as ResourceEvidence[]
-        ).map((item) => [JSON.stringify(item.ref), item]),
-      );
+      const contextEvidence = () => this.instructionEvidence(project, run.sessionId);
       const rememberContext = (items: readonly ResourceEvidence[]) => {
-        if (!items.length) return;
-        for (const item of items)
-          contextEvidence.set(JSON.stringify(item.ref), { ref: item.ref, basis: item.basis });
-        const value = JSON.stringify([...contextEvidence.values()]);
-        this.records(project)
-          .insert(tables.meta)
-          .values({ key: contextKey, value })
-          .onConflictDoUpdate({ target: tables.meta.key, set: { value } })
-          .run();
+        this.instructionEvidence(project, run.sessionId, items);
       };
       const effectiveInstructions = new Map<string, InstructionContext>();
       let executionContext: CallContext;
@@ -1434,9 +1524,7 @@ export class Harness {
       });
       const authorizeModel = async () => {
         await this.port(project)['project.check']({ projectId: project.id, access: 'send' });
-        await authorizeContextItems(this.contextBridge, executionContext, [
-          ...contextEvidence.values(),
-        ]);
+        await authorizeContextItems(this.contextBridge, executionContext, contextEvidence());
         if (
           this.records(project)
             .select()
@@ -1463,8 +1551,9 @@ export class Harness {
           .where(eq(tables.meta.key, libraryContextKey))
           .get();
         const resources = this.contextBridge?.resources?.(executionContext);
-        if (resources) resources.check([...contextEvidence.values()], libraryUsed);
-        else if (contextEvidence.size || libraryUsed)
+        const evidence = contextEvidence();
+        if (resources) resources.check(evidence, libraryUsed);
+        else if (evidence.length || libraryUsed)
           throw new OperationError('unavailable', '执行资源授权适配尚未接线。');
         if (targets) targets.check(targetChecks);
         else if (targetChecks.size) throw new OperationError('unavailable', '目标只读端口不可用。');

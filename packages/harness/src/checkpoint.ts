@@ -2,7 +2,7 @@ import type { RunnableConfig } from '@langchain/core/runnables';
 import type { Checkpoint, CheckpointMetadata } from '@langchain/langgraph-checkpoint';
 import { SqliteSaver } from '@langchain/langgraph-checkpoint-sqlite';
 import type { ContractParams } from '@scholoom/protocol/core';
-import type { GraphResumeInput, GraphWait } from '@scholoom/protocol/execution';
+import type { GraphResumeInput, GraphWait, InstructionContext } from '@scholoom/protocol/execution';
 import type { executionOperations } from '@scholoom/protocol/harness';
 import type Database from 'better-sqlite3';
 
@@ -16,6 +16,10 @@ export class InstructionSaver extends SqliteSaver {
   constructor(
     db: Database.Database,
     private readonly confirm: (value: Consumption) => Promise<void>,
+    private readonly instructions?: {
+      instructionRunId: string;
+      instructions: InstructionContext[];
+    },
   ) {
     super(db);
   }
@@ -32,13 +36,39 @@ export class InstructionSaver extends SqliteSaver {
     checkpoint: Checkpoint,
     metadata: CheckpointMetadata,
   ): Promise<RunnableConfig> {
+    if (this.instructions) {
+      const previous = await this.getTuple(config);
+      const known = new Map(
+        [
+          ...((previous?.checkpoint.channel_values.instructions ?? []) as InstructionContext[]),
+          ...this.instructions.instructions,
+        ].map((item) => [item.instructionId, item]),
+      );
+      const ids = checkpoint.channel_values.instructionIds as string[] | undefined;
+      checkpoint = {
+        ...checkpoint,
+        channel_values: {
+          ...checkpoint.channel_values,
+          instructionRunId: this.instructions.instructionRunId,
+          instructions: (
+            ids ?? this.instructions.instructions.map((item) => item.instructionId)
+          ).map((id) => {
+            const item = known.get(id);
+            if (!item) throw new Error('Graph checkpoint has no complete instruction context');
+            return item;
+          }),
+        },
+      };
+    }
     const saved = await super.put(config, checkpoint, metadata);
     await this.acknowledge(checkpoint);
     return saved;
   }
   async confirmLatest(config: RunnableConfig): Promise<void> {
     const saved = await this.getTuple(config);
-    if (saved) await this.acknowledge(saved.checkpoint);
+    if (saved && this.instructions && saved.metadata)
+      await this.put(saved.config, saved.checkpoint, saved.metadata);
+    else if (saved) await this.acknowledge(saved.checkpoint);
   }
   /** Keep pending interrupt tasks intact when durably binding host control input. */
   async bindGraph(

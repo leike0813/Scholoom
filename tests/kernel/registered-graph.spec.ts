@@ -194,35 +194,6 @@ for (const boundary of [
         wait: { nodeKey: 'approve' },
       });
       expect(waiting?.graphProgress?.kind).toBe('graph.waiting');
-      if (boundary === 'explicit-items') {
-        for (const attachment of [
-          {
-            contextItems: [
-              {
-                kind: 'resource' as const,
-                itemId: randomUUID(),
-                ref: material.ref,
-                basis: material.basis,
-              },
-            ],
-          },
-          { materials: ['input.md'], materialFileIds: [saved.fileId] },
-        ]) {
-          const instructionId = randomUUID();
-          await expect(
-            app.harness.send({
-              ...scope,
-              instructionId,
-              text: '{"approve":true}',
-              materials: [],
-              ...attachment,
-            }),
-          ).rejects.toMatchObject({ code: 'unavailable' });
-          const snapshot = await app.snapshot(scope);
-          expect(snapshot.run?.state).toBe('waiting');
-          expect(snapshot.messages.some((message) => message.id === instructionId)).toBe(false);
-        }
-      }
       expect(
         (await app.snapshot(scope)).messages.find((message) => message.id === first.instructionId)
           ?.state,
@@ -376,7 +347,25 @@ for (const boundary of [
         expect((await app.snapshot(scope)).run?.state).toBe('cancelled');
         return;
       }
-      const resume = { ...first, instructionId: randomUUID(), text: '{"approve":true}' };
+      const resume = {
+        ...first,
+        instructionId: randomUUID(),
+        text: '{"approve":true}',
+        ...(boundary === 'explicit-items'
+          ? {
+              materials: ['input.md'],
+              materialFileIds: [saved.fileId],
+              contextItems: [
+                {
+                  kind: 'resource' as const,
+                  itemId: randomUUID(),
+                  ref: material.ref,
+                  basis: material.basis,
+                },
+              ],
+            }
+          : {}),
+      };
       if (boundary === 'ack')
         app.projects
           .get(project.id)
@@ -418,6 +407,15 @@ for (const boundary of [
         identity.ino,
       );
       expect(app.projects.get(project.id).history('result.md')).toHaveLength(1);
+      if (boundary === 'explicit-items') {
+        const used = JSON.parse(await readFile(join(project.path, 'result.md.context.md'), 'utf8'));
+        const { projectId: _project, sessionId: _session, ...expected } = resume;
+        expect(used.instructions).toEqual([expected]);
+        expect(used.reads).toHaveLength(2);
+        expect(
+          used.reads.every((item: { data: string }) => item.data === 'real registered evidence'),
+        ).toBe(true);
+      }
     } finally {
       releaseRead();
       await blocked;
