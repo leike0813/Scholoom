@@ -733,6 +733,7 @@ export function useBusinessSession(
               ? {
                   queued: '排队中',
                   running: '执行中',
+                  waiting: '等待输入',
                   cancelling: '取消中',
                   cancelled: '已取消',
                   completed: '执行完成',
