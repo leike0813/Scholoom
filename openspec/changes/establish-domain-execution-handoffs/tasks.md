@@ -23,7 +23,7 @@ flowchart LR
 ## 1. 材料与成果证据
 
 - [x] 1.1 在 protocol/resources 定义 ResourceEvidence、ExecutionResourcePort、新建及创建结果查询、保存／关联的分别结果，生成映射及类型反例；作为共同契约增量先接入 dev，供图与工作台契约引用。原库身份、引用键、修订及删除恢复 schema 不在此改动。
-- [ ] 1.2 工作域对应授权能力验证并接入 dev 后，宿主通过 broker 绑定 ResourceAccess、本项目保存及目标只读能力，真实取用不依赖资源视图；扩展 resource-access.spec.ts，覆盖项目与库版本、撤权及禁止副本绕过。独立接入资源适配供工作台 2.2、3.2 验证真实授权路径，不等待完整 Graph／命令交付。
+- [x] 1.2 工作域对应授权能力验证并接入 dev 后，宿主通过 broker 绑定 ResourceAccess、本项目保存及目标只读能力，真实取用不依赖资源视图；扩展 resource-access.spec.ts，覆盖项目与库版本、撤权及禁止副本绕过。独立接入资源适配供工作台 2.2、3.2 验证真实授权路径，不等待完整 Graph／命令交付。
 - [x] 1.3 复用既有文件保存和成果关联回执，测试已保存而关联失败、同路径替换及旧依据冲突；返回实际引用，不新建交付权威或自动重生成文件。
 - [x] 1.4 同步工作域 1.2 的 store/files 增量后，在项目新建分支补稳定 operationId、候选及发布身份收据，复用所属操作记录和迁移保护；固定图从不存在的路径创建成果，验证回执丢失、登记未知、同身份不同输入和重启后仅补关联，不预建输出规避创建路径。
 
@@ -52,6 +52,6 @@ flowchart LR
 
 ## 续做入口
 
-2026-10-23 资源适配已独立提交 `a09c3a0`，向 dev 发出 [PR #5](https://github.com/leike0813/Scholoom/pull/5)；实际接入前 1.2 保持未勾选。1.3、1.4 已在本树实现并验证，进度 8/19；实际结果与后续增量见 delivery。持久 Graph 等待／恢复仍留在 2.3、2.4。
+2026-10-23 dev 已接收 [PR #5](https://github.com/leike0813/Scholoom/pull/5)，合并提交 `fa77d2e`；资源授权、保存／关联及首次创建回归通过，1.2 完成，进度 9/19。接收验证及剩余边界见 [delivery](delivery.md#第二轮-dev-接收)。下一批推进 2.3、2.4 的持久 Graph 等待／恢复与生产资源接线，以及 3.1、3.3 的共同命令真实资格核对；不重复实现已交付的资源适配。
 
 先核对共同契约及当前任务所需工作域增量的实际 delivery／dev 接入结果，再运行 `openspec instructions apply --change establish-domain-execution-handoffs --json`；无需等待工作域 change 整项完成。待办进度只在本文件维护；实际接线和验证结果进入本变更 delivery。

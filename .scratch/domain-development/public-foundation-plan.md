@@ -18,7 +18,7 @@ flowchart LR
 
 | OpenSpec | 实际缺口与完成依据 |
 | --- | --- |
-| [establish-scoped-execution-foundation](../../openspec/changes/archive/2026-10-23-establish-scoped-execution-foundation/proposal.md) | application 归属及 scratch 已存在；补可信目标只读访问和领域再次授权，保留目标零持久修改及本项目保存保护。 |
+| [establish-scoped-execution-foundation](../../openspec/changes/archive/2026-10-23-establish-scoped-execution-foundation/proposal.md) | 已完成并归档：application／scratch、可信目标只读、领域再次授权及零持久修改保护已接入 dev；后续按正式规格消费。 |
 | [establish-domain-execution-handoffs](../../openspec/changes/establish-domain-execution-handoffs/proposal.md) | 复用 ResourceRef，补实际材料／成果、新建及未知核查、源码装配图及等待恢复、宿主受管命令窄端口和独立夹具。 |
 | [establish-workbench-context-bridge](../../openspec/changes/establish-workbench-context-bridge/proposal.md) | 补认证连接所属快照、工具当次查询、显式选择项、共同 composer 可靠发送与多窗口草稿保护。 |
 
@@ -84,8 +84,8 @@ flowchart LR
 
 每个变更包含 proposal、investigation、delta specs、design 和 tasks；delivery 在实际执行后形成。源码与现状依据在各 investigation，已执行的共同契约及回归验证见所属 delivery，不把契约交付视为真实授权、图运行或工作台功能已经完成。
 
-共同契约基线使用协议版本 4。三条实现工作树现为 scoped-execution-foundation、domain-execution-handoffs、workbench-context-bridge，均归 Orca 的 Scholoom 项目。2026-10-23 在 dev 接收三线首批 PR，接收验证及剩余范围见各自 delivery；用户手动将更新后的 dev 同步到工作树，再发送下一阶段指令，不由接入者控制工作树内 Agent。三个变更继续按局部前置开展，七域等待全部公共基础验收。
+共同契约基线使用协议版本 4。三条实现工作树现为 scoped-execution-foundation、domain-execution-handoffs、workbench-context-bridge，均归 Orca 的 Scholoom 项目。2026-10-23 dev 已接收两轮 PR，第二轮为 #4、#5、#6；工作域变更完成归档，资源保存／关联、首次创建与指令来源等增量接入。接收验证及剩余范围见各自 delivery；用户手动将更新后的 dev 同步到工作树，再发送下一阶段指令，不由接入者控制工作树内 Agent。两个 active 变更继续按局部前置开展，七域等待全部公共基础验收。
 
-下一批交付按实际缺口安排：工作域线做本变更的最终核对、规格同步／归档，并可独立处理阻断三线 CI 的文献库 UI 既有 lint 清理；领域交接线优先交付 1.2 资源适配的独立增量，再做 1.3／1.4 保存、关联及首次创建；工作台线推进来源进入执行、多来源选择和可靠指令，资源／外发真实验证等待资源适配接入。工作域收尾不扩大为七域业务开发；各线进度、证据及待办仍只在原 tasks／delivery 维护。
+下一批交付按实际缺口安排：工作域线的归档及库 UI lint 清理已完成，本轮没有新的必需业务任务；领域交接线推进 2.3／2.4 持久 Graph 等待、恢复和生产资源接线，以及 3.1／3.3 的共同命令资格；工作台线同步现有执行资源适配后完成 2.2／3.2 的真实显式材料授权与模型外发，并继续必要双宿主验收。领域交接与工作台可并行，公共 driver／runtime 修改按原归属交付与同步。各线进度、证据及待办仍只在原 tasks／delivery 维护。
 
 实施前先读所选变更、上表对应依赖增量的实际 delivery 及 dev 接入结果，取得 apply instructions；不要求其他 change 全部完成才开始独立任务。规划就绪不构成新增操作授权。公共补充仍按自己的工作树实现、dev 接入检查后同步；真实整合任务当次明确负责人。各变更的验证必须区分真实模块、外部受控响应、平台及尚未验证范围。

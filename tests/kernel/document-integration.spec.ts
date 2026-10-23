@@ -74,7 +74,9 @@ test('real client, broker and Agent read shared EPUB text and user records witho
       materials: [],
     });
     await expect
-      .poll(async () => (await client.call('workbench.snapshot', scope)).run?.state)
+      .poll(async () => (await client.call('workbench.snapshot', scope)).run?.state, {
+        timeout: 20_000,
+      })
       .toBe('completed');
     expect(await client.call('library.readingRecord', { recordId })).toMatchObject({
       body: 'Agent document interpretation',

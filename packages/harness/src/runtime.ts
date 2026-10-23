@@ -1,6 +1,6 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { randomUUID } from 'node:crypto';
-import { readdir, readFile, unlink } from 'node:fs/promises';
+import { opendir, readdir, readFile, unlink } from 'node:fs/promises';
 import { join } from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
 import {
@@ -310,18 +310,11 @@ export class Harness {
       for (const entry of (await readdir(directory)).slice(0, 100)) {
         const receipt = join(directory, entry);
         try {
-          const item = JSON.parse(await readFile(receipt, 'utf8')) as {
-            sessionId: string;
-            artifact: Artifact;
-            basis?: string;
-          };
-          this.pendingArtifacts.set(`${project.id}:${item.artifact.runId}:${item.artifact.path}`, {
-            projectId: project.id,
-            sessionId: item.sessionId,
-            artifact: { ...item.artifact, state: 'unknown' },
-            receipt,
-            ...(item.basis ? { basis: item.basis } : {}),
-          });
+          const pending = await this.readArtifactReceipt(project, receipt);
+          this.pendingArtifacts.set(
+            `${project.id}:${pending.artifact.runId}:${pending.artifact.path}`,
+            pending,
+          );
         } catch {
           /* Preserve unreadable receipts for diagnosis. */
         }
@@ -333,6 +326,21 @@ export class Harness {
         }
       }
     }
+  }
+
+  private async readArtifactReceipt(project: HarnessProject, receipt: string) {
+    const item = JSON.parse(await readFile(receipt, 'utf8')) as {
+      sessionId: string;
+      artifact: Artifact;
+      basis?: string;
+    };
+    return {
+      projectId: project.id,
+      sessionId: item.sessionId,
+      artifact: { ...item.artifact, state: 'unknown' as const },
+      receipt,
+      ...(item.basis ? { basis: item.basis } : {}),
+    };
   }
 
   create(projectId: string, title?: string): Session {
@@ -1229,6 +1237,8 @@ export class Harness {
               incoming.push(new HumanMessage({ id: previous.id, content }));
           }
           for (const item of pending) {
+            // Leave overflow pending for the next run without changing its acceptance receipt.
+            if (!effectiveInstructions.has(item.id) && effectiveInstructions.size >= 100) break;
             const message = this.records(project)
               .select()
               .from(tables.messages)
@@ -1246,11 +1256,6 @@ export class Harness {
               ...(message.source ? { source: message.source } : {}),
               ...(message.contextItems ? { contextItems: message.contextItems } : {}),
             });
-            if (effectiveInstructions.size > 100)
-              throw new OperationError(
-                'resourceLimit',
-                '本次推进的上下文指令超过 100 条，请核查后继续。',
-              );
             if (!present.has(item.id))
               incoming.push(
                 new HumanMessage({
@@ -1261,7 +1266,9 @@ export class Harness {
           }
           return {
             ...(incoming.length ? { messages: incoming } : {}),
-            instructionIds: pending.map((item) => item.id),
+            instructionIds: pending
+              .filter((item) => effectiveInstructions.has(item.id))
+              .map((item) => item.id),
             instructionRunId: run.id,
             instructions: [...effectiveInstructions.values()],
           };
@@ -2377,28 +2384,48 @@ export class Harness {
       .get();
     if (!run || run.sessionId !== sessionId) throw new OperationError('notFound', '执行不存在。');
     const results: Artifact[] = [];
-    for (const path of paths.slice(0, 100)) {
+    const requested = paths.slice(0, 100);
+    if (requested.some((path) => !this.pendingArtifacts.has(`${projectId}:${runId}:${path}`))) {
+      for await (const entry of await opendir(join(project.internal, 'pending-artifacts'))) {
+        try {
+          const pending = await this.readArtifactReceipt(
+            project,
+            join(project.internal, 'pending-artifacts', entry.name),
+          );
+          if (
+            pending.sessionId === sessionId &&
+            pending.artifact.runId === runId &&
+            requested.includes(pending.artifact.path)
+          )
+            this.pendingArtifacts.set(`${projectId}:${runId}:${pending.artifact.path}`, pending);
+        } catch {
+          /* Preserve unreadable receipts; they cannot authorize a new association. */
+        }
+      }
+    }
+    for (const path of requested) {
       try {
         const pending = this.pendingArtifacts.get(`${projectId}:${runId}:${path}`);
-        if (pending && (!pending.artifact.fileId || !pending.basis))
-          throw new OperationError('outcomeUnknown', '原关联回执缺少可核查内容依据。');
-        const file = await this.port(project)['files.read']({
-          projectId: project.id,
-          path: pending?.artifact.fileId
-            ? await this.currentPath(project, pending.artifact.fileId)
-            : path,
-        });
-        if (pending?.basis) {
-          await this.port(project)['files.readBytes']({
-            projectId,
-            fileId: pending.artifact.fileId ?? '',
-            basis: pending.basis,
-            limit: 1,
-          });
+        if (!pending) {
+          const linked = (
+            await this.port(project, sessionId)['project.artifacts']({ projectId, sessionId })
+          ).find((item) => item.runId === runId && item.path === path && item.state === 'linked');
+          if (linked) {
+            results.push(linked);
+            continue;
+          }
         }
+        if (!pending?.artifact.fileId || !pending.basis)
+          throw new OperationError('outcomeUnknown', '原关联回执缺少可核查内容依据。');
+        const file = await this.port(project)['files.readBytes']({
+          projectId,
+          fileId: pending.artifact.fileId,
+          basis: pending.basis,
+          limit: 1,
+        });
         const artifact: Artifact = {
-          path,
-          ...(file.fileId ? { fileId: file.fileId } : {}),
+          path: file.path,
+          fileId: file.fileId,
           runId,
           state: 'linked',
         };
@@ -2408,7 +2435,7 @@ export class Harness {
           artifact,
         });
         const key = `${projectId}:${runId}:${path}`;
-        if (pending) await unlink(pending.receipt).catch(() => {});
+        await unlink(pending.receipt).catch(() => {});
         this.pendingArtifacts.delete(key);
         results.push(artifact);
       } catch {

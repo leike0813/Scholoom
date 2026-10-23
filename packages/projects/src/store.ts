@@ -759,12 +759,14 @@ export class ProjectStore {
       await readFile(join(source, '.scholoom', 'backup-manifest.json'), 'utf8'),
     ) as ProjectBackup;
     const { cp } = await import('node:fs/promises');
-    await cp(source, target, {
-      recursive: true,
-      force: false,
-      errorOnExist: true,
-      filter: (path) => path !== join(source, '.scholoom', 'backup-manifest.json'),
-    });
+    // The destination root is exclusively reserved above; copy only its missing children.
+    for (const name of await readdir(source))
+      await cp(join(source, name), join(target, name), {
+        recursive: true,
+        force: false,
+        errorOnExist: true,
+        filter: (path) => path !== join(source, '.scholoom', 'backup-manifest.json'),
+      });
     // A restored copy has independent identity so its facts cannot shadow the original.
     const restoredId = randomUUID();
     await atomicPrivateFile(

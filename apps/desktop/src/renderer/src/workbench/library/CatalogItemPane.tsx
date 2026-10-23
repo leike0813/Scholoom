@@ -59,7 +59,7 @@ export function CatalogItemPane({
   return (
     <section className="catalog-item-pane" aria-label="题录详情">
       <CatalogItemSidenav activeSection={activeSection} onSectionChange={handleSectionChange} />
-      <div className="catalog-item-pane-content" ref={contentRef} role="tabpanel">
+      <div className="catalog-item-pane-content" ref={contentRef}>
         <MetadataSection entry={entry} />
         <AttachmentsSection
           client={client}

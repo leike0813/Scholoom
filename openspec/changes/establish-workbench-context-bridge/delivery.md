@@ -2,9 +2,11 @@
 
 ## 当前状态与成果
 
+2026-10-23 第二轮 dev 接收：本线 PR #6 以 `a9d8afe` 合入，来源／checkpoint、多来源查询及幂等持久化进入 dev。工作域已归档，领域交接 1.2、1.3、1.4 也已接入；下一步可绑定真实 `contextResources` 并完成 2.2、3.2，当前生产保护仍保留。接收时另修复单次推进 100 条后新增指令导致重复失败的问题，独立复核和真实 100／1 条 checkpoint 回归通过。进度仍为 **10/16**；组合验证、首轮失败与复验及平台边界统一见[领域交接第二轮 dev 接收](../establish-domain-execution-handoffs/delivery.md#第二轮-dev-接收)。以下为工作树提交时的交付依据。
+
 2026-10-23，沿用户确认的 dev `ed35c59` 续做，当前 **10/16**：本轮完成 2.1、2.3、3.1、3.3，保留既有 1.1–1.3、4.1–4.3。本 change 尚不能归档或启动七域。用户已授权提交、推送及向 dev 发 PR，未授权合入 dev；本轮没有控制其他工作树。
 
-依赖按实际增量核对：工作域授权及目标只读已接入，见[工作域交付](../establish-scoped-execution-foundation/delivery.md)；领域交接 2.2 driver 提取、共同 UI URL 源码已接入，统一执行资源适配 1.2 仍未交付，见[领域交接交付](../establish-domain-execution-handoffs/delivery.md)。本轮使用现有 driver、端口与 fixture，没有另建资源提供者、创建收据、图持久等待或共同命令。
+依赖按实际增量核对：工作域授权及目标只读已接入，见[工作域交付](../archive/2026-10-23-establish-scoped-execution-foundation/delivery.md)；领域交接 2.2 driver 提取、共同 UI URL 源码已接入，工作树提交时统一执行资源适配 1.2 尚待接收，当前状态见[领域交接交付](../establish-domain-execution-handoffs/delivery.md)。本轮使用现有 driver、端口与 fixture，没有另建资源提供者、创建收据、图持久等待或共同命令。
 
 - 可信指令来源随消息保存，经 `execution.beforeModel.instructions` 进入实际 worker 的结构化状态与 checkpoint。宿主只允许本推进已注入的指令选择来源；来源从持久消息取得，不信任工具自报连接。指令最初受理 run 与实际消费 run 可以不同，checkpoint 的 `instructionRunId` 标记实际注入范围；前序导入不恢复旧来源，中断恢复保留本推进来源，原回执不变。
 - `read_workbench_context` 在工具调用时查关联连接当前快照。同源指令共用当前快照，不同窗口或窗口与 CLI 混合则返回 `ambiguous` 及当前指令引用。显式 ID 必须属于本推进；无来源、断线、无快照和接收会话不匹配分别诊断，不选择最近窗口，不重绑已失效连接。
@@ -50,7 +52,7 @@ Linux、Node v24.12.0、pnpm 11.10.0；真实内核、WebSocket、IPC、worker�
 
 剩余 **6 项**见 [tasks.md](tasks.md)：2.2、3.2、4.4–4.7。
 
-1. 等领域交接 1.2 的统一执行资源适配接入 dev，核对实际提供者的读取／外发及同步最终检查，再绑定本线注入缝。不得拿人工资源端口替代；裸 selectedItems 的资源身份／权限没有对应依据前继续明确不可用。
+1. 同步已接入 dev 的领域交接 1.2 统一执行资源适配，核对实际提供者的读取／外发及同步最终检查，再绑定本线注入缝。不得拿人工资源端口替代；裸 selectedItems 的资源身份／权限没有对应依据前继续明确不可用。
 2. 同步后验收实际项目／库取材、排队期间撤销库外发与目标信任、恢复后重新授权及真实资源重新读取。仅完整链路成立才开放对应生产路径并勾选 2.2／3.2；当前替身结果不能代替这些证据。
 3. 完成必要本线双宿主新显式项验收后，三线实际能力与图／成果路径就绪时再由 4.5 指定当次整合负责人及隔离配置，开展真实公共基础组合，随后完成 4.6／4.7。不要启动七域或提前归档。
-4. 本轮提交／推送后向 dev 创建 PR，不自行合入 dev。续做先读本记录及依赖 delivery，再取 `openspec instructions apply --change establish-workbench-context-bridge --json`。
+4. PR #6 已由 dev 接收；用户手动同步后继续，不控制其他工作树。续做先读本记录及依赖 delivery，再取 `openspec instructions apply --change establish-workbench-context-bridge --json`。

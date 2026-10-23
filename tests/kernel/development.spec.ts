@@ -146,6 +146,7 @@ test('Vite internal restart transfers development ownership before closing the o
     const server = await createServer({
       configFile: false,
       root: fileURLToPath(new URL('../../apps/desktop/src/renderer', import.meta.url)),
+      optimizeDeps: { noDiscovery: true, include: [] },
       plugins: [kernelBootstrap(), pdfAssets()],
       server: { host: '127.0.0.1', port: 0 },
     });

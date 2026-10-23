@@ -56,7 +56,7 @@ test('shared reading notes preserve drafts, detect stale edits and retain missin
     const library = uiPage.getByRole('region', { name: '文献库', exact: true });
     const openNotes = async () => {
       await library.getByLabel('查找题录', { exact: true }).fill(name);
-      await library.getByRole('row').filter({ hasText: name }).click();
+      await library.getByRole('option').filter({ hasText: name }).click();
       await uiPage.getByRole('button', { name: `阅读记录 ${name}`, exact: true }).click();
     };
     await openNotes();

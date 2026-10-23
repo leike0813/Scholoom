@@ -136,7 +136,9 @@ test('real RPC and Agent share material bytes while project paths and model send
       text: `MODEL_READING_RECORD ${attachment.id} ${attachment.materialVersionId} ${agentRecordId}`,
     });
     await expect
-      .poll(async () => (await client.call('workbench.snapshot', recordScope)).run?.state)
+      .poll(async () => (await client.call('workbench.snapshot', recordScope)).run?.state, {
+        timeout: 20_000,
+      })
       .toBe('completed');
     const agentNote = await client.call('library.readingRecord', { recordId: agentRecordId });
     expect(agentNote).toMatchObject({

@@ -18,8 +18,8 @@ for (const name of packages) {
 }
 await mkdir(new URL('./dist/', import.meta.url), { recursive: true });
 await build({
-  entryPoints: [new URL('./vendor/quarto/editor/src/index.ts', import.meta.url).pathname],
-  outfile: new URL('./dist/quarto.js', import.meta.url).pathname,
+  entryPoints: [fileURLToPath(new URL('./vendor/quarto/editor/src/index.ts', import.meta.url))],
+  outfile: fileURLToPath(new URL('./dist/quarto.js', import.meta.url)),
   bundle: true,
   format: 'esm',
   platform: 'browser',

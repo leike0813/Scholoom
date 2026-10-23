@@ -125,7 +125,7 @@ test('project documents and library text share opening while project sessions an
     );
     await uiPage.getByRole('button', { name: '文献库', exact: true }).click();
     await uiPage.getByLabel('查找题录', { exact: true }).fill(libraryName);
-    await uiPage.getByRole('row').filter({ hasText: libraryName }).click();
+    await uiPage.getByRole('option').filter({ hasText: libraryName }).click();
     await uiPage.getByRole('button', { name: `打开 文本 ${libraryName}`, exact: true }).click();
     const librarySource = uiPage.getByRole('textbox', {
       name: `文件内容 ${libraryName}`,

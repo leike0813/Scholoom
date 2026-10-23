@@ -174,6 +174,76 @@ test('explicit context items require a resource adapter before acceptance', asyn
   }
 });
 
+test('instructions beyond the current advancement capacity keep their receipt and run next', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'scholoom-context-capacity-'));
+  const model = await createModelServer({
+    respond: ({ calls }) =>
+      calls.includes('read_work_domain')
+        ? { text: 'Current advancement complete.' }
+        : { tool: { name: 'read_work_domain', input: {} } },
+  });
+  model.hold = true;
+  const app = new (class extends KernelApplication {
+    occupy() {
+      return this.processes.reserve();
+    }
+  })(root, { modelEndpoint: model.url, environment: { MINIMAX_CN_API_KEY: 'synthetic' } });
+  const holds = Array.from({ length: 4 }, () => app.occupy());
+  try {
+    await Promise.all(holds.map((hold) => hold.ready));
+    await app.initialize();
+    const session = await app.call('session.create', { projectId: 'application' });
+    const scope = { projectId: 'application', sessionId: session.id };
+    const ids = Array.from({ length: 100 }, () => randomUUID());
+    let originalRunId = '';
+    for (const instructionId of ids) {
+      const receipt = await app.call('session.send', {
+        ...scope,
+        instructionId,
+        text: 'MODEL_CHAT synthetic queued instruction',
+        materials: [],
+      });
+      originalRunId ||= receipt.runId;
+      expect(receipt.runId).toBe(originalRunId);
+    }
+    for (const hold of holds) hold.release();
+    await expect.poll(() => model.requests.length).toBe(1);
+    const overflow = {
+      ...scope,
+      instructionId: randomUUID(),
+      text: 'MODEL_CHAT next advancement instruction',
+      materials: [],
+    };
+    const receipt = await app.call('session.send', overflow);
+    expect(receipt.runId).toBe(originalRunId);
+    model.release();
+    await expect
+      .poll(
+        async () => {
+          const { run } = await app.snapshot(scope);
+          return run?.state === 'completed' && run.id !== originalRunId;
+        },
+        { timeout: 20000 },
+      )
+      .toBe(true);
+    const current = (await app.snapshot(scope)).run;
+    const internal = app.projects.get('application').internal;
+    expect(await checkpointInstructions(internal, originalRunId)).toEqual(
+      ids.map((instructionId) => ({ instructionId })),
+    );
+    expect(await checkpointInstructions(internal, current?.id ?? '')).toEqual([
+      { instructionId: overflow.instructionId },
+    ]);
+    expect(await app.call('session.send', overflow)).toEqual(receipt);
+  } finally {
+    for (const hold of holds) hold.release();
+    model.release();
+    await app.close();
+    await model.close();
+    await rm(root, { recursive: true });
+  }
+});
+
 test('server persists all context item kinds and keeps their original source across restart', async () => {
   const root = await mkdtemp(join(tmpdir(), 'scholoom-context-persist-'));
   const model = await createModelServer();

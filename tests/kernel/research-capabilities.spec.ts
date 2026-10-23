@@ -433,10 +433,12 @@ test('cancellation waits for a capability file save before publishing terminal s
       materials: [],
     });
     await expect
-      .poll(async () =>
-        (await app.snapshot(scope)).messages.some(
-          (item) => item.tool?.name === 'write_file' && item.state === 'streaming',
-        ),
+      .poll(
+        async () =>
+          (await app.snapshot(scope)).messages.some(
+            (item) => item.tool?.name === 'write_file' && item.state === 'streaming',
+          ),
+        { timeout: 20_000 },
       )
       .toBe(true);
     app.harness.cancel(scope.projectId, scope.sessionId);

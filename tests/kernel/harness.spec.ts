@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
-import { mkdir, mkdtemp, readFile, rename, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { expect, test } from '@playwright/test';
@@ -199,7 +199,8 @@ test('a malformed provider result after saving preserves unknown effects and nev
     const requests = model.requests.length;
     expect(
       await app.call('artifacts.reconcile', { ...scope, runId, paths: ['result.md'] }),
-    ).toContainEqual(expect.objectContaining({ path: 'result.md', state: 'linked' }));
+    ).toContainEqual(expect.objectContaining({ path: 'result.md', state: 'unknown' }));
+    expect((await app.snapshot(scope)).artifacts).toHaveLength(0);
     expect(saves).toBe(1);
     expect(model.requests).toHaveLength(requests);
   } finally {
@@ -643,7 +644,7 @@ test('checkpoint fallback retains every unfinished instruction beyond the histor
   }
 });
 
-test('failed artifact registration keeps the saved file and reconcile links it once', async () => {
+test('failed artifact registration preserves identity beyond 100 receipts and links it once', async () => {
   const root = await mkdtemp(join(tmpdir(), 'scholoom-artifacts-'));
   const model = await createModelServer();
   const profile = join(root, 'profile');
@@ -689,14 +690,36 @@ test('failed artifact registration keeps the saved file and reconcile links it o
       .toBe('completed');
     expect(await readFile(join(root, 'project', 'result.md'), 'utf8')).toContain('合成样本');
 
+    const project = app.projects.get(projectId);
+    for (let index = 0; index < 100; index++) {
+      const path = `pending-${index}.md`;
+      const edit = await project.save(path, 'Synthetic saved evidence');
+      assert(edit.fileId);
+      const { basis } = await project.files.readBytes(edit.fileId, { limit: 1 });
+      expect(
+        (
+          await app.harness.recordSavedResource(
+            projectId,
+            sessionId,
+            runId,
+            path,
+            edit.fileId,
+            basis,
+          )
+        ).state,
+      ).toBe('unknown');
+    }
+    const directory = join(project.internal, 'pending-artifacts');
+    const receipts = await readdir(directory);
+    expect(receipts).toHaveLength(101);
+    const pending = JSON.parse(await readFile(join(directory, receipts[100] ?? ''), 'utf8'));
+    const path: string = pending.artifact.path;
+    const pendingUnknown = { path, runId, state: 'unknown' };
     await app.close();
     app = new KernelApplication(profile, options);
     await app.initialize();
-    expect((await app.snapshot({ projectId, sessionId })).artifacts).toContainEqual(
-      expect.objectContaining(unknown),
-    );
     app.projects.get(projectId).database.exec(`DROP TRIGGER ${trigger}`);
-    const report = join(root, 'project', 'result.md');
+    const report = join(root, 'project', path);
     const original = join(root, 'original-result.md');
     const content = await readFile(report, 'utf8');
     await rename(report, original);
@@ -706,24 +729,57 @@ test('failed artifact registration keeps the saved file and reconcile links it o
         projectId,
         sessionId,
         runId,
-        paths: ['result.md'],
+        paths: [path],
       }),
-    ).toEqual([expect.objectContaining(unknown)]);
+    ).toEqual([expect.objectContaining(pendingUnknown)]);
     await rename(original, report);
-    const linked = { path: 'result.md', runId, state: 'linked' };
-    for (let attempt = 0; attempt < 2; attempt++)
+    const store = app.projects.get(projectId);
+    const read = store.read.bind(store);
+    const readBytes = store.files.readBytes.bind(store.files);
+    const movedPath = 'moved-result.md';
+    let moved = false;
+    const moveBeforeRead = async () => {
+      if (moved) return;
+      moved = true;
+      await app.call('files.rename', {
+        projectId,
+        path,
+        name: movedPath,
+        operationId: randomUUID(),
+      });
+      await store.save(path, content);
+    };
+    store.read = async (...args) => {
+      if (args[0] === path) await moveBeforeRead();
+      return read(...args);
+    };
+    store.files.readBytes = async (...args) => {
+      if (args[0] === pending.artifact.fileId) await moveBeforeRead();
+      return readBytes(...args);
+    };
+    const linked = { path: movedPath, fileId: pending.artifact.fileId, runId, state: 'linked' };
+    try {
       expect(
         await app.call('artifacts.reconcile', {
           projectId,
           sessionId,
           runId,
-          paths: ['result.md'],
+          paths: [path],
         }),
       ).toEqual([expect.objectContaining(linked)]);
+      expect(moved).toBe(true);
+    } finally {
+      store.read = read;
+      store.files.readBytes = readBytes;
+    }
     expect(
-      (await app.snapshot({ projectId, sessionId })).artifacts.filter(
-        (artifact) => artifact.path === 'result.md',
-      ),
+      await app.call('artifacts.reconcile', { projectId, sessionId, runId, paths: [movedPath] }),
+    ).toEqual([expect.objectContaining(linked)]);
+    expect(
+      app.projects
+        .get(projectId)
+        .artifacts(sessionId)
+        .filter((artifact) => artifact.path === movedPath),
     ).toEqual([expect.objectContaining(linked)]);
   } finally {
     await app.close();

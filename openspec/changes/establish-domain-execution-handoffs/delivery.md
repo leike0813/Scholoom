@@ -2,6 +2,32 @@
 
 ## 当前状态与成果
 
+### 第二轮 dev 接收
+
+2026-10-23，用户要求接收三工作树新一轮 PR。dev 保留原提交依次合并 #4、#5、#6，合并提交为 `b39292a`、`fa77d2e`、`a9d8afe`。工作域 change 已同步正式规格并归档；本变更的真实执行资源适配、保存／关联及首次创建已接入 dev，1.2 完成，tasks 为 **9/19**。工作台的指令来源、显式项持久化及多来源查询也已接入，但生产显式材料资源提供者仍待工作台线绑定。未同步其他工作树或控制其 Agent。
+
+接收修复包括：合并后的模型外发同步检查同时保留目标实例核对和显式项授权；同一 run 已注入 100 条指令时把剩余指令留给下一 run，只确认实际注入项，原受理回执保持稳定；恢复项目仍独占预留目的目录，再复制缺失子项，避免新版 Node 对已存在根目录报 EEXIST；编辑器构建路径使用 `fileURLToPath`；库列表 option 语义同步六处 UI 定位，移除未与 tab 关联的 tabpanel 声明并更新 UI 设计文档。
+
+| 实际验证入口 | 接收结果及边界 |
+| --- | --- |
+| 全仓 typecheck、build、Biome lint、架构守卫 | 通过；原 21 项库 UI lint 错误已由 #4 清除。架构为 13 模块、198 源文件、零问题和例外。未安装升级依赖。 |
+| 契约生成 patch 与源码格式化比对、生成器 self-test；全部正式 specs 及两个 active change strict validate | 同源映射无漂移；正式规格 17/17，变更结构验证通过。 |
+| 完整 `playwright.kernel.config.ts`，341 项 | 首轮 335 通过、2 跳过、4 失败；脱离其他验证负载单独复验仍失败，随后按下述证据修正测试。资源授权、首次创建、未知核查、保存／关联、备份恢复及 101 条指令回归均已通过。 |
+| development、document-integration、literature-attachment-integration、research-capabilities 的上述 4 项定向诊断与最终复验 | 诊断 4/4；移除日志后的最终复验 4/4，56.1 秒。Vite 生命周期测试禁用与其目标无关的 renderer 依赖扫描后用时 12 秒；另三项观察到正常 worker 启动、全部预期工具请求及最终成果，原 5 秒等待不足。仅将这三处集成等待设为 20 秒，不改产品期限和原行为断言。 |
+| 内核 context-instructions、graph-registration、harness-recovery、harness、resource-access、resource-creation | 46/46，4.4 分钟。包含收据缓存遗漏修复；其后重命名竞态的最终修复经 malformed-provider／101 收据用例复验 2/2，16.9 秒，再复验真实图取材／首次创建和关联后重启核查 3/3，23.4 秒。最后改动重新编译 harness 并通过 tools 类型检查。 |
+| `tests/smoke/entrypoints.spec.ts` | 4/4，36.5 秒；真实 Node、Electron/preload 及兼容宿主入口。 |
+| 双宿主 resource-opening、resource-lifecycle、reading-records、pdf-reading、document-reading | 首轮 10 通过、2 浏览器初始连接／导航超时；Electron 全通过。浏览器 document-reading 单独复验 2/2，54.8 秒，无需放宽 UI 超时。共 12 项各有通过证据，不宣称完整 UI 套件通过。 |
+
+本机为 Linux、Node 24.12.0；外部模型使用 loopback 受控响应，资源／文件／仓储、worker 及 IPC 为真实内部接线。UI 使用隔离端口 5296、5297 与所属临时配置；结束后均无监听。日志位于 `/tmp/scholoom-r2-{kernel,kernel-recheck,kernel-probe,kernel-final,smoke,ui,ui-browser-recheck}.log` 和 `test-results/pr-round2-*`／`test-results/ui-5296`、`ui-5297`。完整内核首轮与各项复验分开记录，不把定向复验称为整套重跑。
+
+独立审查发现并复核关闭 100 条后指令溢出造成接续循环的 P2，真实 worker 回归核对两个 run 的 checkpoint 分别保留 100／1 条，重试第 101 条仍返回原回执。资源审查另发现并关闭两项 P1：启动只缓存前 100 份待关联收据，未缓存时的旧路径分支可能把替换文件认领为旧成果；定位原路径后遇到并发重命名，又可能混用替换文件身份与原文件 basis。现保留启动缓存上限，核查时按需流式查找磁盘原收据，只缓存本次至多 100 个请求路径；缺失／损坏／缺 basis 均保持 unknown，仅可复用原有已关联记录。补关联直接使用按原 fileId／basis 核验后的路径与身份，删除多余路径读取。真实文件和 SQLite 故障用例扩展到 101 份收据，旧实现两次分别复现遗漏及重命名竞态，最终回归通过；原 malformed-provider 无原依据时也应保持 unknown，文件不删除、不重写。独立只读复核确认两项均封堵，无新增必修问题；实际运行由主线完成，审查本身不替代实跑。
+
+收据诊断与复验日志另见本机 `/tmp/scholoom-r2-receipt-{red,green,final,race-red,race-green}.log`、`/tmp/scholoom-r2-resource-final.log`。第一次绿色尝试的 101 收据用例因读取有界 snapshot 而未看到已关联项，随后改为核对所属项目的持久关联，未放宽身份断言；最终 46 项及竞态复验通过。
+
+未运行真实 Windows／macOS、Node 24.21 或三平台分发包；Windows 路径修复另用 Node 标准 URL 转换自检。已知 CI 还缺 Quarto／LaTeX 工具，旧 library／attachments UI 用例仍依赖已移除入口，未在本轮恢复产品功能或调整依赖。真实模型、科研充分性、双实例隔离、持久 Graph／共同命令完整接线和公共基础最终组合仍待验收；不据本轮局部接收勾选最终交付项或启动七域。
+
+### 工作树提交时的交付依据
+
 2026-10-23，续做基线 `ed35c59`：1.2 资源适配已作为独立提交 `a09c3a0` 推送并向 dev 发出 [PR #5](https://github.com/leike0813/Scholoom/pull/5)。实际合入前 1.2 保持未勾选；随后实施的 1.3、1.4 已在本树验证，tasks 为 8/19。本轮未合入 dev、未操作其他工作树。宿主 `executionResources(context)` 经 broker 复用 ResourceAccess、本项目条件保存和目标只读提供者，无资源视图前置。库材料仍为只读，必须同时具有 read/send；目标必须以已登记 fileId 读取，不能用路径登记或写入。交付前后检查来源／目标信任及当前执行实例，后续模型请求沿既有会话上下文重新授权。同一执行信号共享目标实例绑定，重开项目不能替换已读来源。
 
 资源适配独立提交前的 15 项组合回归通过，含库 send 撤权和目标实例替换后阻止第二次模型请求。1.3 使保存返回发布时实际 fileId／basis，执行保存与关联分别返回；普通 Agent、能力子执行和资源端口共用原产物回执，关联失败不重写文件。1.4 在原 `file_operations` 的可选 JSON 收据中保存创建主体、输入、editId／fileId、候选物理身份及依据，目标路径和操作身份共同串行。候选同步后硬链原子发布，文件身份、历史及完成状态在同一事务登记；重启仅核查原发布，不按相同路径或内容认领替换文件。物理表结构未变，无新增数据库迁移。备份清单说明候选缺失，恢复副本保持未知且不重放。
@@ -88,9 +114,9 @@
 
 ## 未完成事项与下一步
 
-1. 资源适配 `a09c3a0` 已先行发布到 PR #5，保存／关联及首次创建为后续独立提交；等待实际合入 dev 后再勾选 1.2，供工作台 2.2、3.2 接入。不得将本树验证当作已接入 dev。
+1. PR #5 已接入 dev，1.2、1.3、1.4 完成；工作台 2.2、3.2 可同步后绑定实际资源与所有者授权。生产显式项仍保持未接线保护，需工作台线完成真实授权与外发回归后开放。
 2. 1.3、1.4 已完成本树实现和资源路径验收；维持原只读、条件保存及未知效果保护。生产 registered Graph 的资源调度仍属于后续 2.4，测试宿主的实际两节点图不替代该任务。
 3. 后续沿 GraphDriver seam 实施 2.3 的持久图绑定、真实 interrupt／waitId、输入 schema 与新指令消费、版本不兼容及 checkpoint 后确认，再接通 2.4、3.1／3.3 的真实资源和执行资格。当前计数图仍不替代真实材料及成果交付。
-4. 2.2 已完成 dev 接入；4.1 的 URL／fixture 源码也已接入，消费者可同步后使用，实际双实例隔离验收仍未完成。下一批优先资源提供者，不与工作台线重复修改来源、显式项和共同 composer。
-5. 双宿主共同资源／写作 UI 和双实例并发尚未运行。用户本轮已授权为既有 UI 验证启动隔离临时服务，结束只清理本轮归属。目标只读零写入已在 dev 组合及本树资源回归核对；真实模型、科研充分性和三平台分发仍未验，Mermaid 未渲染。
+4. 2.2 已完成 dev 接入；4.1 的 URL／fixture 源码也已接入，消费者可同步后使用，实际双实例隔离验收仍未完成。下一批优先 Graph 等待与命令资格，不与工作台线重复修改来源、显式项和共同 composer。
+5. 本轮已取得双宿主共同资源的 12 项通过证据；写作 UI、双实例并发仍未运行。目标只读零写入已在 dev 组合及本树资源回归核对；真实模型、科研充分性和三平台分发仍未验，Mermaid 未渲染。
 6. 续做读取本记录和 tasks，再运行 `openspec instructions apply --change establish-domain-execution-handoffs --json`。CLI ready 仍只是依赖工件就绪；4.3／4.4／4.5／4.6 等整体验收和最终交付项保持未完成，按实际结果继续更新同一记录。
