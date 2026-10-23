@@ -23,7 +23,7 @@ export default defineConfig<UiOptions>({
     { name: 'ui-electron', use: { uiHost: 'electron' } },
   ],
   webServer: {
-    command: `pnpm --filter @scholoom/desktop dev:browser --port ${uiPort} --strictPort`,
+    command: `pnpm --config.optimisticRepeatInstall=false --filter @scholoom/desktop dev:browser --port ${uiPort} --strictPort`,
     url: rendererOrigin,
     reuseExistingServer: false,
     env: {

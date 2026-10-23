@@ -70,15 +70,27 @@ Agent、能力子执行与 PDF 共用宿主持有的进程容量，默认活动 
 
 | 开发线 | 接入口及独立检查 |
 | --- | --- |
-| 文献 | 沿共同 `ResourceRef`／材料版本提供所属读取；参考 `resource-access.spec.ts` 的真实项目、库及解析组合，替换外部摄取来源 |
-| 项目 | 沿 `HarnessProjectPort`／`ProjectFilePort` 取用项目能力；参考 `project-backend.spec.ts`，成果首次创建与操作核查等待资源创建提供者 |
-| 科研方法 | 源码定义注册元信息及工厂，由宿主与 worker 共用 `ExecutionGraphs`；参考 `graph-registration.spec.ts`、`registered-graph.spec.ts` 的固定图及等待适配，方法仓储参考 `research-module.spec.ts` |
-| Agent | 沿 `HarnessStorage`、领域端口及私有 worker 入口组合；参考 `harness-module.spec.ts`、`execution-isolation.spec.ts`，模型可用受控 HTTP 响应替换 |
-| 科研计算 | 宿主为消费模块解析私有工作空间、程序登记及授权回调；参考 `managed-commands.spec.ts` 的固定 Node 程序，环境选择和业务运行记录仍由计算域实现 |
+| 文献 | 沿共同 `ResourceRef`／材料版本提供所属读取；参考 `resource-access.spec.ts` 的真实项目、库及解析组合，以及 `literature-integration.spec.ts` 的摄取路径，仅替换外部摄取来源 |
+| 项目 | 沿 `HarnessProjectPort`／`ProjectFilePort` 取用项目能力；`project-backend.spec.ts` 提供窄端口替身，`resource-creation.spec.ts` 验证真实 `resources.create/creation` 的首次创建与原操作核查 |
+| 科研方法 | 宿主与 worker 共用 `ExecutionGraphs` 的定义及工厂；照 `registered-graph.spec.ts` 向测试 `KernelApplication` 注入 `executionGraphs/workerEntry`，引用同一 `graphs.mjs`，等待输入按声明 schema 适配；`research-module.spec.ts` 独立检查方法仓储 |
+| Agent | 沿 `HarnessStorage`、领域端口及私有 worker 入口组合；参考 `harness-module.spec.ts`、`execution-isolation.spec.ts`，外部模型复用 `tests/model-server.ts` 的 loopback 受控响应 |
+| 科研计算 | 参考 `managed-commands.spec.ts` 的 `ManagedCommands(processes, resolveWorkspace, authorize)`；私有工作空间声明 ownerModuleId、directory、projectId、executables，真实宿主用例覆写 `commandWorkspace` 登记固定 Node。环境选择和业务运行记录由计算域实现 |
 | 阅读交互 | 沿共同资源和 editor 端口接入，参考 `resource-access.spec.ts`、`editor-runtime.spec.ts` 及 `tests/ui/resource-opening.spec.ts`；UI 使用共同 renderer URL 配置 |
 | Zotero 生态 | 沿兼容宿主入口及共同 broker 接入；`tests/smoke/entrypoints.spec.ts` 验证真实宿主外壳，插件身份、SQL 和 BBT 生产接线另按所属契约验收 |
 
-上述内核测试路径均在 `tests/kernel/`。固定资源图实际运行 LangGraph、IPC、SQLite checkpoint 和所属资源提供者，从真实材料创建新成果并等待新消息接续；测试宿主装配源码集合，未注册产品科研方法。固定命令实际运行 Node 与受管进程树，机制用例的工作空间和授权回调是测试提供者。各组合的实跑范围见[领域交接交付](../openspec/changes/establish-domain-execution-handoffs/delivery.md)。定位失败时，先区分协议拒绝、注册校验、准入等待、实际执行及结果交付，再沿对应测试和所属记录核查。
+表中内核用例位于 `tests/kernel/`，UI 与宿主外壳用例分别在 `tests/ui/`、`tests/smoke/`。窄端口内存替身受 TypeScript 检查，跨 broker／IPC 的输入输出继续经过原同源 schema；资源、文件及仓储的真实组合使用所属提供者，不用成功替身代替。
+
+固定样例位于 `tests/fixtures/domain-execution-worker/`：`fixed-counter` 只检查实际两节点图及 IPC，其 `execution.custom` 回报由内联测试提供者接收；`fixed-resource` 检查真实材料与首次创建；`durable-resource` 沿完整 KernelApplication 跑真实 SQLite checkpoint、interrupt 和新消息恢复。`worker-v2.mjs`／`worker-model.mjs` 分别提供升级及模型额度边界，额度用例只调用真实 acquire/release，不据此宣称模型生成通过。生产 `apps/kernel/src/execution-graphs.ts` 当前为空，固定图不注册为科研方法。
+
+同目录 `command.mjs` 的 echo／overflow／tree 模式实际运行 Node、输出边界和后代进程。机制用例的工作空间和授权回调是明确替身，broker 用例使用活动会话和真实实例授权。各组合的实跑范围见[领域交接交付](../openspec/changes/establish-domain-execution-handoffs/delivery.md)。定位失败时，先区分协议拒绝、注册校验、准入等待、实际执行及结果交付，再沿对应测试和所属记录核查。
+
+先按根命令完成构建，再选择表中相应 spec；已有运行时无需重新执行安装脚本。例如：
+
+```bash
+node node_modules/@playwright/test/cli.js test --config playwright.kernel.config.ts tests/kernel/graph-registration.spec.ts tests/kernel/registered-graph.spec.ts tests/kernel/managed-commands.spec.ts
+SCHOOLOOM_UI_PORT=5341 node node_modules/@playwright/test/cli.js test tests/smoke/development.spec.ts --grep 'two renderer instances'
+SCHOOLOOM_UI_PORT=5343 node node_modules/@playwright/test/cli.js test --config playwright.ui.config.ts tests/ui/resource-opening.spec.ts tests/ui/resource-lifecycle.spec.ts tests/ui/writing-editor.spec.ts
+```
 
 依赖和工具版本以 `package.json`、`pnpm-lock.yaml`、`.nvmrc` 为准。pnpm 的依赖安装脚本授权集中在 `pnpm-workspace.yaml`。Electron 42 起取消依赖的自动运行时下载，项目使用官方 `install-electron` 命令显式准备二进制，见 [上游安装说明](https://github.com/electron/electron/blob/main/docs/tutorial/installation.md)。
 
@@ -290,6 +302,8 @@ Agent 使用 Orca browser skill，先列出当前项目的标签，核对 URL �
 `pnpm test:smoke` 启动构建后的应用，核对独立 Node CLI、真实工作台连接、生产样例隔离、sandbox preload、关窗续留和重开，以及宿主隐藏窗口；开发 smoke 运行实际 `dev:browser`／`dev:desktop` 命令，核对共享实例、退出顺序与最后退出后的回收。真实模型 UI 验收显式设置 `SCHOOLOOM_LIVE_MODEL_TEST=1`，只使用合成样本与环境中的模型凭据；默认回归不使用真实模型凭据，只在外部模型边界注入受控响应。Electron fixture 经原生窗口关闭与应用退出核对所拥有进程的退出，再明确停止测试内核。
 
 `pnpm test:ui` 使用 `playwright.ui.config.ts`，同一场景分别驱动 Chromium 和真实 Electron。它覆盖真实连接、内核连接重连、草稿保护、停机与重试、崩溃后用户重试及既有样例行为；浏览器引导和静态凭据访问检查执行一次。`tests/ui/renderer-url.ts` 统一读取 `SCHOOLOOM_UI_PORT`（缺省 5174），供 webServer、baseURL、Electron renderer 和所有导航使用；端口占用即失败，不复用其他实例。并行运行分别指定不同端口，例如 5174 与 5175；输出位于各自的 `test-results/ui-<port>`，配置默认逐轮新建于 `test-results/ui-profile-*`。显式指定 `SCHOOLOOM_UI_DATA_DIR` 时，每轮须使用不同目录；项目、文献库和输出夹具也须按测试实例隔离。结束时关闭本轮应用与服务并确认内核退出，无法确认退出时保留配置供诊断。
+
+`tests/smoke/development.spec.ts` 的 `two renderer instances` 场景复用上述端口来源，从指定端口及下一端口启动两个真实 Vite／内核实例；分别经 UI 创建项目和保存成果，以真实库 API 准备独立材料。它核对不同内核身份和地址、项目及库内容不串用，关闭一个实例后另一个仍可刷新并再次保存。该场景用两个独立浏览器上下文模拟并行开发实例；Electron／preload 的验证仍沿 UI 双宿主及入口 smoke，不操作另一个工作树。
 
 UI 测试期间保持源码和共享包构建产物稳定；改动或重新构建会触发 Vite 热刷新，重置正在验收的组件状态。完成构建后再运行交互测试。
 
