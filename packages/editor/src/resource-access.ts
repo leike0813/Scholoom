@@ -280,14 +280,16 @@ export class ResourceAccess {
     });
     if (source.fileId !== ref.fileId) throw changed();
     await this.verify(ports, ref, basis);
-    await ports.project['project.saveFile']({
+    const saved = await ports.project['project.saveFile']({
       projectId: ref.projectId,
       path: location.path,
       content,
       basis: source.basis,
       expectedFileId: ref.fileId,
     });
-    return this.describe(ref, context);
+    if (saved.fileId !== ref.fileId || !saved.basis)
+      throw new OperationError('outcomeUnknown', '保存已执行，但实际身份或依据未确认。');
+    return { ...descriptor, path: saved.path, basis: saved.basis };
   }
   cancel(requestId: string, context: CallContext): { ok: true } {
     const pending = this.pending.get(requestId);

@@ -2,7 +2,16 @@ import { content, flag, id, object, ok, project, text } from './schema.js';
 export const fileReferenceSchema = object({ path: id, fileId: id }, ['path', 'fileId']);
 
 export const editSchema = object(
-  { id, fileId: id, path: text, before: content, after: content, createdAt: text, created: flag },
+  {
+    id,
+    fileId: id,
+    basis: id,
+    path: text,
+    before: content,
+    after: content,
+    createdAt: text,
+    created: flag,
+  },
   ['id', 'path', 'before', 'after', 'createdAt'],
 );
 export const fileSaveOperation = {

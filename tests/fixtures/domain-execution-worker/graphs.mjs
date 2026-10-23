@@ -54,4 +54,85 @@ export const graphs = new ExecutionGraphs([
       };
     },
   },
+  {
+    definition: {
+      graphId: 'fixed-resource',
+      version: '1',
+      stateFormatVersion: '1',
+      configSchema: {
+        type: 'object',
+        properties: {
+          outputPath: { type: 'string', minLength: 1 },
+          operationId: { type: 'string', minLength: 1 },
+        },
+        required: ['outputPath', 'operationId'],
+        additionalProperties: false,
+      },
+    },
+    create(input, { peer, signal }) {
+      if (input.input)
+        throw new OperationError('unavailable', 'Resource fixture has no resume input.');
+      const material = input.graph.materials[0];
+      if (!material)
+        throw new OperationError('invalidRequest', 'Resource fixture needs one material.');
+      const { outputPath, operationId } = input.graph.config;
+      const projectId = input.graph.workDomain.projectId;
+      const state = Annotation.Root({ data: Annotation(), creation: Annotation() });
+      const graph = new StateGraph(state)
+        .addNode('read', async () => {
+          const read = await callExecutionControl(peer, 'resources.read', {
+            ref: material.ref,
+            basis: material.basis,
+            encoding: 'utf8',
+          });
+          return { data: read.data };
+        })
+        .addNode('create', async ({ data }) => {
+          const creation = await callExecutionControl(peer, 'resources.create', {
+            projectId,
+            path: outputPath,
+            operationId,
+            content: `# Graph result\n\n${data}`,
+          });
+          if (creation.state !== 'complete')
+            throw new OperationError('outcomeUnknown', 'Resource creation did not complete.');
+          return { creation };
+        })
+        .addEdge(START, 'read')
+        .addEdge('read', 'create')
+        .addEdge('create', END)
+        .compile();
+      let evidence;
+      return {
+        'execution.next': async () => {
+          if (!evidence) {
+            const final = await graph.invoke(
+              { data: '', creation: undefined },
+              { signal, callbacks: [] },
+            );
+            const creation = final.creation;
+            evidence = {
+              inputs: input.graph.materials,
+              reads: input.graph.materials,
+              results: [
+                {
+                  resource: creation.resource,
+                  ...(creation.association ? { association: creation.association } : {}),
+                },
+              ],
+              creations: [creation],
+            };
+          }
+          return {
+            done: true,
+            graph: {
+              kind: 'graph.completed',
+              attemptId: input.attemptId,
+              evidence,
+            },
+          };
+        },
+      };
+    },
+  },
 ]);

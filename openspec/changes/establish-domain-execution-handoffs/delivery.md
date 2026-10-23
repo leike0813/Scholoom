@@ -2,11 +2,15 @@
 
 ## 当前状态与成果
 
-2026-10-23，续做基线 `ed35c59`：1.2 资源适配已在本树实现并定向验证，准备作为独立提交发往 dev；实际合入前 1.2 保持未勾选，进度仍为 6/19。宿主 `executionResources(context)` 经 broker 复用 ResourceAccess、本项目条件保存和目标只读提供者，无资源视图前置。库材料仍为只读，必须同时具有 read/send；目标必须以已登记 fileId 读取，不能用路径登记或写入。交付前后检查来源／目标信任及当前执行实例，后续模型请求沿既有会话上下文重新授权。同一执行信号共享目标实例绑定，重开项目不能替换已读来源。
+2026-10-23，续做基线 `ed35c59`：1.2 资源适配已作为独立提交 `a09c3a0` 推送并向 dev 发出 [PR #5](https://github.com/leike0813/Scholoom/pull/5)。实际合入前 1.2 保持未勾选；随后实施的 1.3、1.4 已在本树验证，tasks 为 8/19。本轮未合入 dev、未操作其他工作树。宿主 `executionResources(context)` 经 broker 复用 ResourceAccess、本项目条件保存和目标只读提供者，无资源视图前置。库材料仍为只读，必须同时具有 read/send；目标必须以已登记 fileId 读取，不能用路径登记或写入。交付前后检查来源／目标信任及当前执行实例，后续模型请求沿既有会话上下文重新授权。同一执行信号共享目标实例绑定，重开项目不能替换已读来源。
 
-本增量直接使用现有工具链，未安装升级依赖。共享包按拓扑构建、tools 类型检查与架构守卫通过；资源、目标竞态、工作域、执行文件等 15 项组合回归通过，含库 send 撤权和目标实例替换后阻止第二次模型请求。真实项目文件、库附件、仓储及解析器均未使用成功替身，外部模型为受控 HTTP 响应。独立审查发现资源读取与模型外发的实例绑定分离，已共享原目标绑定并补回归，审查复核关闭；尚未覆盖持久 Graph／等待恢复和双宿主 UI。首次创建、保存后关联的实际结果继续按 1.3、1.4 推进。
+资源适配独立提交前的 15 项组合回归通过，含库 send 撤权和目标实例替换后阻止第二次模型请求。1.3 使保存返回发布时实际 fileId／basis，执行保存与关联分别返回；普通 Agent、能力子执行和资源端口共用原产物回执，关联失败不重写文件。1.4 在原 `file_operations` 的可选 JSON 收据中保存创建主体、输入、editId／fileId、候选物理身份及依据，目标路径和操作身份共同串行。候选同步后硬链原子发布，文件身份、历史及完成状态在同一事务登记；重启仅核查原发布，不按相同路径或内容认领替换文件。物理表结构未变，无新增数据库迁移。备份清单说明候选缺失，恢复副本保持未知且不重放。
 
-2026-10-23，用户要求当前 dev 收回三个工作树的 PR。PR #2 的四个提交（2f15047、2d6c721、c994fe7、f27a16a）以 0e5e167 合入；三个 PR 的组合源码基线为 efc9429。通用 driver 的真实接线和回归已接入 dev，2.2 完成，tasks 为 6/19。资源、持久等待和完整整合仍未完成，不能归档。
+固定 `fixed-resource` StateGraph 仅在测试宿主登记，真实子进程通过已绑定端口读实际材料，并从不存在的路径创建成果；重复推进不重复创建。测试宿主将 IPC 请求绑定到已活动的可信会话，实际文件、库、仓储和解析器均为真实提供者，外部模型为受控 HTTP 响应。该证据覆盖首次创建资源路径，不代表 2.3 的持久 Graph 等待、2.4 的生产 registered 尝试接线或真实科研验收。
+
+本轮直接使用现有工具链，没有安装升级依赖。64 项组合内核回归通过，覆盖资源、首次创建、同操作并发、目标竞态、工作域、普通 Agent、能力隔离、项目保存／备份及历史契约。另对最终 worker 保存结果契约做定向复验；同源执行保存使用 `ResourceSaveResult`，人工保存保持 descriptor。构建、类型、架构与审查证据见下。
+
+以下保留 dev 接收时的历史结果，资源部分的后续状态以上述续做记录为准。2026-10-23，用户要求当前 dev 收回三个工作树的 PR。PR #2 的四个提交（2f15047、2d6c721、c994fe7、f27a16a）以 0e5e167 合入；三个 PR 的组合源码基线为 efc9429。通用 driver 的真实接线和回归已接入 dev，2.2 完成，当时 tasks 为 6/19。持久等待和完整整合仍未完成，不能归档。
 
 工作域真实授权也已随 PR #1 接入同一 dev，本变更 1.2、1.4、2.4、3.3 的工作域前置现已满足；统一执行资源适配和业务图接线仍需本线实现。工作台线已交付连接／草稿增量，但未接通显式项执行。依赖和共享文件归属继续沿[公共规划](../../../.scratch/domain-development/public-foundation-plan.md)。本轮未同步其他工作树或操作其 Agent，用户将手动同步。
 
@@ -26,6 +30,19 @@
 [design 总览图](design.md#变更总览)仍是完整目标：本轮接通 driver／工厂装配和共同命令机制，资源、首次创建及等待恢复边仍待实现。项目／库事实、创建收据、材料读取和科研交付没有新增第二份权威。
 
 ## 实际验证
+
+本次 `ed35c59` 后增量的验证入口：
+
+| 实际入口 | 结果与范围 |
+| --- | --- |
+| 按依赖顺序直接执行 13 个 workspace 包原 `build` scripts，再执行各包 `typecheck`；`node node_modules/typescript/bin/tsc --noEmit -p tsconfig.tools.json` | 通过，包含桌面及兼容宿主生产构建；全程不用 pnpm 安装入口。最终共享代码调整后复验通过，构建日志位于本机 `/tmp/scholoom-build-imvQHp/`。 |
+| `node scripts/check-architecture.ts` | 13 模块、197 源文件、0 findings、0 exceptions。候选文件访问在 projects 受控适配中声明；harness 经同源只读字节端口核查回执。 |
+| `node node_modules/@playwright/test/cli.js test --config playwright.kernel.config.ts` 加 resource-access、resource-creation、resource-identity、graph-registration、project-files、project-backend、public-contract-baseline、harness-module、harness、capability-isolation、target-races、work-domains | 64/64，2.9 分钟。实际硬链／文件身份、SQLite trigger 登记失败、回执丢失后的重复提交、重启仅补关联、同路径同内容替换、恢复副本、取消和撤权均覆盖。 |
+| 同入口定向 public-contract-baseline、execution-files、graph-registration | 8/8，20.3 秒；最终 worker 保存结果同源契约与实际 worker 回归。随后资源端口身份／排队取消和撤权的 2 项定向复验通过。 |
+| `node packages/protocol/scripts/contract-types.mjs --patch`、`--self-test` | 已重新生成并按 Biome 格式核对，仅接入 project-harness 的只读字节端口映射；自检通过。 |
+| 改动文件 Biome、`git diff --check`、`openspec validate establish-domain-execution-handoffs --strict` | 通过；全仓 UI lint 的既有问题不在此声称修复。apply instructions 确认 8/19、ready，1.2 仍等待实际 dev 接入。 |
+
+本轮未启动 UI 服务，未运行双实例／双宿主 UI、真实模型、科研充分性或三平台分发验收。
 
 环境为 Linux、Node v24.12.0、pnpm 11.10.0，模型响应为受控 HTTP 夹具，无真实模型调用。测试使用隔离配置、项目、库与输出，收尾仅处理本轮拥有的进程。未启动开发服务器。
 
@@ -59,6 +76,8 @@
 
 ## 审查与问题处理
 
+本次资源授权及创建／关联增量经独立 Agent 只读审查。发现并关闭两项 P1：资源读取与后续模型外发未共享目标实例绑定；普通 Agent／能力子执行丢失保存 basis。前者由同执行信号共享目标绑定及实例替换回归修复；后者贯穿 write/edit／根／能力保存回调，并扩展原 harness 失败关联用例，验证同内容替换被拒绝、恢复原文件后才补关联。旧 pending 缺 basis 时保持 unknown。审查复核已关闭问题，真实定向测试也通过；审查不覆盖后置的持久 Graph 等待／命令完整接线。
+
 2026-10-23 dev 接收时，保留工作域真实端口并处理 Harness 构造参数冲突；合并后的构造参数、根／子执行及连接路径经独立源码复核，无新增阻塞发现。全仓类型、构建、架构、137 项组合内核和 4 项真实入口冒烟通过，具体命令及证据统一见[工作域交付记录的 dev 接收验证](../establish-scoped-execution-foundation/delivery.md#dev-接收验证)。UI 端口配置在默认及 5275 各加载 104 项，仍未实跑双实例；4.1 保持未勾选。21 项既有文献库 UI lint 错误仍在，不以本地定向通过宣称全仓 CI 通过。
 
 独立 Agent 只读核对命令权限、等待重验、停止确认与 URL 隔离，未发现阻塞问题；随后审查 driver／registry 和默认入口，报告三处旧 worker 路径导致故障注入失效。主线已同步 capability-isolation、capability-stop-unknown 和 harness-recovery，24 项相关回归通过，独立复核关闭该 finding。本轮没有未关闭 finding；审查不覆盖尚未实施的资源授权和持久恢复。
@@ -69,8 +88,8 @@
 
 ## 未完成事项与下一步
 
-1. 同步本轮 dev 后优先完成 1.2 的真实 ExecutionResourcePort：复用目标只读及领域授权，不依赖资源视图。将该资源增量独立提交并向 dev 发 PR，供工作台 2.2、3.2 的真实路径验证；无需等待全部图／命令完成。
-2. 本轮随后推进 1.3、1.4 的保存与关联分别结果、首次创建 operationId 及候选／发布核查；保护已接入的 store/files 只读及条件保存临界区。覆盖已保存但关联失败、同路径替换、回执丢失和重启后仅补关联，不能预建输出避开新建路径。
+1. 资源适配 `a09c3a0` 已先行发布到 PR #5，保存／关联及首次创建为后续独立提交；等待实际合入 dev 后再勾选 1.2，供工作台 2.2、3.2 接入。不得将本树验证当作已接入 dev。
+2. 1.3、1.4 已完成本树实现和资源路径验收；维持原只读、条件保存及未知效果保护。生产 registered Graph 的资源调度仍属于后续 2.4，测试宿主的实际两节点图不替代该任务。
 3. 后续沿 GraphDriver seam 实施 2.3 的持久图绑定、真实 interrupt／waitId、输入 schema 与新指令消费、版本不兼容及 checkpoint 后确认，再接通 2.4、3.1／3.3 的真实资源和执行资格。当前计数图仍不替代真实材料及成果交付。
 4. 2.2 已完成 dev 接入；4.1 的 URL／fixture 源码也已接入，消费者可同步后使用，实际双实例隔离验收仍未完成。下一批优先资源提供者，不与工作台线重复修改来源、显式项和共同 composer。
 5. 双宿主共同资源／写作 UI 和双实例并发尚未运行。用户本轮已授权为既有 UI 验证启动隔离临时服务，结束只清理本轮归属。目标只读零写入已在 dev 组合及本树资源回归核对；真实模型、科研充分性和三平台分发仍未验，Mermaid 未渲染。

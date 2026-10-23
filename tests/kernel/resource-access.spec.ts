@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
-import { mkdtemp, readFile, rename, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, rename, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { expect, test } from '@playwright/test';
@@ -22,6 +22,80 @@ class ExecutionApplication extends KernelApplication {
     this.context = context;
     return super.projectTargetRead(context);
   }
+}
+
+for (const invalidation of ['cancel', 'revoke'] as const) {
+  test(`queued resource creation rechecks ${invalidation} before publishing`, async () => {
+    const root = await mkdtemp(join(tmpdir(), 'scholoom-resource-create-race-'));
+    const model = await createModelServer();
+    model.hold = true;
+    const app = new ExecutionApplication(join(root, 'profile'), {
+      modelEndpoint: model.url,
+      environment: { MINIMAX_CN_API_KEY: 'synthetic' },
+    });
+    let release!: () => void;
+    let entered!: () => void;
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const waiting = new Promise<void>((resolve) => {
+      entered = resolve;
+    });
+    let blocker: Promise<unknown> | undefined;
+    try {
+      await app.initialize();
+      const project = await app.call('project.create', {
+        path: join(root, 'project'),
+        trust: 'trusted',
+      });
+      const session = await app.call('session.create', { projectId: project.id });
+      await app.call('session.send', {
+        projectId: project.id,
+        sessionId: session.id,
+        instructionId: randomUUID(),
+        text: 'Hold this turn.',
+        materials: [],
+      });
+      await expect.poll(() => model.requests.length).toBe(1);
+      const context = app.context;
+      assert(context);
+      expect(() =>
+        app.executionResources({
+          ...context,
+          role: 'product',
+          principal: { kind: 'human', id: 'local' },
+        }),
+      ).toThrow(expect.objectContaining({ code: 'permissionDenied' }));
+      const port = app.executionResources(context);
+      const target = join(project.path, 'queued.md');
+      blocker = app.projects.get(project.id).files.coordinate([target], async () => {
+        entered();
+        await held;
+      });
+      await waiting;
+      const creating = port.create({
+        projectId: project.id,
+        path: 'queued.md',
+        content: 'must not publish',
+        operationId: 'queued-create',
+      });
+      const rejected = expect(creating).rejects.toMatchObject({
+        code: invalidation === 'cancel' ? 'instanceMismatch' : 'permissionDenied',
+      });
+      if (invalidation === 'cancel')
+        await app.call('session.cancel', { projectId: project.id, sessionId: session.id });
+      else app.projects.get(project.id).grant({ trust: 'restricted', autoBackup: false });
+      release();
+      await rejected;
+      await expect(stat(target)).rejects.toMatchObject({ code: 'ENOENT' });
+    } finally {
+      release();
+      await blocker;
+      model.release();
+      await app.close();
+      await model.close();
+    }
+  });
 }
 
 for (const revocation of ['library-send', 'target-instance'] as const) {
@@ -86,6 +160,14 @@ for (const revocation of ['library-send', 'target-instance'] as const) {
         fileId: other.fileId,
       });
       expect(foreign.capabilities.write).toBe(false);
+      await expect(
+        port.create({
+          projectId: target.project.id,
+          path: 'forbidden.md',
+          operationId: 'target-copy',
+          content: 'bypass',
+        }),
+      ).rejects.toMatchObject({ code: 'permissionDenied' });
       await expect(
         port.save({ ref: foreign.ref, basis: foreign.basis, content: 'forbidden' }),
       ).rejects.toMatchObject({ code: 'permissionDenied' });
@@ -163,6 +245,103 @@ for (const revocation of ['library-send', 'target-instance'] as const) {
           'utf8',
         ),
       ).toBe('target evidence');
+    } finally {
+      model.release();
+      await app.close();
+      await model.close();
+    }
+  });
+}
+
+for (const replacement of [false, true]) {
+  test(`saved resources return association failure and restart only reconciles original evidence (replacement=${replacement})`, async () => {
+    const root = await mkdtemp(join(tmpdir(), 'scholoom-resource-association-'));
+    const profile = join(root, 'profile');
+    const model = await createModelServer();
+    model.hold = true;
+    const options = { modelEndpoint: model.url, environment: { MINIMAX_CN_API_KEY: 'synthetic' } };
+    let app = new ExecutionApplication(profile, options);
+    try {
+      await app.initialize();
+      const project = await app.call('project.create', {
+        path: join(root, 'project'),
+        trust: 'trusted',
+      });
+      const store = app.projects.get(project.id);
+      const saved = await store.save('input.md', 'initial evidence');
+      assert(saved.fileId);
+      const session = await app.call('session.create', { projectId: project.id });
+      const { runId } = await app.call('session.send', {
+        projectId: project.id,
+        sessionId: session.id,
+        instructionId: randomUUID(),
+        text: 'Hold this turn.',
+        materials: [],
+      });
+      await expect.poll(() => model.requests.length).toBe(1);
+      assert(app.context);
+      const port = app.executionResources(app.context);
+      const resource = await port.describe({
+        source: 'project',
+        projectId: project.id,
+        fileId: saved.fileId,
+      });
+      store.database.exec(
+        "CREATE TRIGGER reject_association BEFORE INSERT ON artifacts BEGIN SELECT RAISE(ABORT, 'synthetic association failure'); END",
+      );
+      const result = await port.save({
+        ref: resource.ref,
+        basis: resource.basis,
+        content: 'saved actual result',
+      });
+      expect(result).toMatchObject({
+        resource: { ref: resource.ref },
+        association: { state: 'unknown' },
+      });
+      const identity = await stat(join(project.path, 'input.md'), { bigint: true });
+      expect(await readFile(join(project.path, 'input.md'), 'utf8')).toBe('saved actual result');
+      const created = await port.create({
+        projectId: project.id,
+        path: 'created.md',
+        operationId: 'first-created-result',
+        content: 'created actual result',
+      });
+      expect(created).toMatchObject({ state: 'complete', association: { state: 'unknown' } });
+      assert(created.state === 'complete');
+      const creationIdentity = await stat(join(project.path, 'created.md'), { bigint: true });
+      await app.close();
+      app = new ExecutionApplication(profile, options);
+      await app.initialize();
+      app.projects.get(project.id).database.exec('DROP TRIGGER reject_association');
+      if (replacement) {
+        await rename(join(project.path, 'input.md'), join(root, 'original-input'));
+        await writeFile(join(project.path, 'input.md'), 'saved actual result');
+      }
+      const linked = await app.call('artifacts.reconcile', {
+        projectId: project.id,
+        sessionId: session.id,
+        runId,
+        paths: ['input.md'],
+      });
+      expect(linked[0]?.state).toBe(replacement ? 'unknown' : 'linked');
+      const checked = await app.call('resources.creation', {
+        projectId: project.id,
+        operationId: 'first-created-result',
+      });
+      expect(checked).toMatchObject({
+        state: 'complete',
+        resource: { ref: created.resource.ref },
+        association: { state: 'confirmed' },
+      });
+      expect((await stat(join(project.path, 'created.md'), { bigint: true })).ino).toBe(
+        creationIdentity.ino,
+      );
+      expect(app.projects.get(project.id).history('created.md')).toHaveLength(1);
+      if (!replacement)
+        expect((await stat(join(project.path, 'input.md'), { bigint: true })).ino).toBe(
+          identity.ino,
+        );
+      expect(app.projects.get(project.id).history('input.md')).toHaveLength(2);
     } finally {
       model.release();
       await app.close();

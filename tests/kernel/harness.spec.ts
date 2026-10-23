@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { expect, test } from '@playwright/test';
@@ -696,6 +696,20 @@ test('failed artifact registration keeps the saved file and reconcile links it o
       expect.objectContaining(unknown),
     );
     app.projects.get(projectId).database.exec(`DROP TRIGGER ${trigger}`);
+    const report = join(root, 'project', 'result.md');
+    const original = join(root, 'original-result.md');
+    const content = await readFile(report, 'utf8');
+    await rename(report, original);
+    await writeFile(report, content);
+    expect(
+      await app.call('artifacts.reconcile', {
+        projectId,
+        sessionId,
+        runId,
+        paths: ['result.md'],
+      }),
+    ).toEqual([expect.objectContaining(unknown)]);
+    await rename(original, report);
     const linked = { path: 'result.md', runId, state: 'linked' };
     for (let attempt = 0; attempt < 2; attempt++)
       expect(

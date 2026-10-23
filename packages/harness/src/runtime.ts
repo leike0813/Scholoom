@@ -54,7 +54,7 @@ import type {
   ResearchToolsPort,
 } from '@scholoom/protocol/research';
 import { researchRequestSchema } from '@scholoom/protocol/research';
-import type { ResourceRef } from '@scholoom/protocol/resources';
+import type { ResourceRef, ResourceSaveResult } from '@scholoom/protocol/resources';
 import type Database from 'better-sqlite3';
 import { CompositeBackend, FilesystemBackend, registerHarnessProfile } from 'deepagents';
 import { and, desc, eq, gt, lt, or, sql } from 'drizzle-orm';
@@ -265,7 +265,7 @@ export class Harness {
   }
   private pendingArtifacts = new Map<
     string,
-    { projectId: string; sessionId: string; artifact: Artifact; receipt: string }
+    { projectId: string; sessionId: string; artifact: Artifact; receipt: string; basis?: string }
   >();
   constructor(
     private readonly projects: HarnessStorage,
@@ -299,18 +299,14 @@ export class Harness {
           const item = JSON.parse(await readFile(receipt, 'utf8')) as {
             sessionId: string;
             artifact: Artifact;
+            basis?: string;
           };
-          await this.port(project)['project.path']({
-            projectId: project.id,
-            path: item.artifact.fileId
-              ? await this.currentPath(project, item.artifact.fileId)
-              : item.artifact.path,
-          });
           this.pendingArtifacts.set(`${project.id}:${item.artifact.runId}:${item.artifact.path}`, {
             projectId: project.id,
             sessionId: item.sessionId,
             artifact: { ...item.artifact, state: 'unknown' },
             receipt,
+            ...(item.basis ? { basis: item.basis } : {}),
           });
         } catch {
           /* Preserve unreadable receipts for diagnosis. */
@@ -974,36 +970,20 @@ export class Harness {
             if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
           });
       }
-      const saved = async (path: string, fileId?: string) => {
+      const saved = async (path: string, fileId?: string, basis?: string) => {
         const identity =
           fileId ??
           (await this.port(project)['project.material']({ projectId: project.id, path })).fileId;
-        const artifact: Artifact = { path, fileId: identity, runId: run.id, state: 'linked' };
-        const pendingId = randomUUID();
-        await atomicPrivateFile(
-          pendingDirectory,
-          pendingId,
-          JSON.stringify({ sessionId: run.sessionId, artifact }),
+        const result = await this.recordSavedResource(
+          project.id,
+          run.sessionId,
+          run.id,
+          path,
+          identity,
+          basis,
         );
-        const pendingKey = `${project.id}:${run.id}:${path}`;
-        this.pendingArtifacts.set(pendingKey, {
-          projectId: project.id,
-          sessionId: run.sessionId,
-          artifact: { ...artifact, state: 'unknown' },
-          receipt: join(pendingDirectory, pendingId),
-        });
-        try {
-          await this.port(project, run.sessionId)['project.linkArtifact']({
-            projectId: project.id,
-            sessionId: run.sessionId,
-            artifact,
-          });
-        } catch {
+        if (result.state !== 'confirmed')
           throw new OperationError('outcomeUnknown', `文件 ${path} 已保存，产物登记待核查。`);
-        }
-        await unlink(join(pendingDirectory, pendingId));
-        this.pendingArtifacts.delete(pendingKey);
-        this.notify(project.id, run.sessionId);
       };
       const predecessor = this.records(project)
         .select()
@@ -1389,7 +1369,7 @@ export class Harness {
                   event: { kind: 'read', file: { path, fileId } },
                 });
               },
-              async (path, fileId) => {
+              async (path, fileId, basis) => {
                 const identity =
                   fileId ??
                   (
@@ -1402,7 +1382,7 @@ export class Harness {
                   attemptId: execution.attemptId,
                   event: { kind: 'saved', file: { path, fileId: identity } },
                 });
-                await saved(path, identity);
+                await saved(path, identity, basis);
               },
               async (error) => {
                 await progress({
@@ -2155,6 +2135,68 @@ export class Harness {
     return results;
   }
 
+  async recordSavedResource(
+    projectId: string,
+    sessionId: string,
+    runId: string,
+    path: string,
+    fileId: string,
+    basis?: string,
+    operationId: string = randomUUID(),
+  ): Promise<NonNullable<ResourceSaveResult['association']>> {
+    const project = this.projects.get(projectId);
+    this.session(project, sessionId);
+    const run = this.records(project)
+      .select()
+      .from(tables.runs)
+      .where(eq(tables.runs.id, runId))
+      .get();
+    if (!run || run.sessionId !== sessionId) throw new OperationError('notFound', '执行不存在。');
+    const artifact: Artifact = { path, fileId, runId, state: 'linked' };
+    const linked = await this.port(project, sessionId)['project.artifacts']({
+      projectId,
+      sessionId,
+    });
+    if (linked.some((item) => item.runId === runId && item.fileId === fileId))
+      return { operationId, state: 'confirmed' };
+    const directory = join(project.internal, 'pending-artifacts');
+    const key = `${projectId}:${runId}:${path}`;
+    try {
+      await atomicPrivateFile(
+        directory,
+        operationId,
+        JSON.stringify({ sessionId, artifact, ...(basis ? { basis } : {}) }),
+      );
+      this.pendingArtifacts.set(key, {
+        projectId,
+        sessionId,
+        artifact: { ...artifact, state: 'unknown' },
+        receipt: join(directory, operationId),
+        ...(basis ? { basis } : {}),
+      });
+      const location = (
+        await this.port(project)['files.resolve']({ projectId, fileIds: [fileId] })
+      )[0];
+      if (location?.state !== 'present')
+        throw new OperationError('notFound', '保存的文件身份已失效。');
+      if (basis) {
+        await this.port(project)['files.readBytes']({ projectId, fileId, basis, limit: 1 });
+      }
+      await this.port(project, sessionId)['project.linkArtifact']({
+        projectId,
+        sessionId,
+        artifact: { ...artifact, path: location.path },
+      });
+      await unlink(join(directory, operationId));
+      this.pendingArtifacts.delete(key);
+      this.notify(projectId, sessionId);
+      return { operationId, state: 'confirmed' };
+    } catch {
+      this.notify(projectId, sessionId);
+      return { operationId, state: 'unknown' };
+    }
+  }
+
   async reconcile(
     projectId: string,
     sessionId: string,
@@ -2173,12 +2215,22 @@ export class Harness {
     for (const path of paths.slice(0, 100)) {
       try {
         const pending = this.pendingArtifacts.get(`${projectId}:${runId}:${path}`);
+        if (pending && (!pending.artifact.fileId || !pending.basis))
+          throw new OperationError('outcomeUnknown', '原关联回执缺少可核查内容依据。');
         const file = await this.port(project)['files.read']({
           projectId: project.id,
           path: pending?.artifact.fileId
             ? await this.currentPath(project, pending.artifact.fileId)
             : path,
         });
+        if (pending?.basis) {
+          await this.port(project)['files.readBytes']({
+            projectId,
+            fileId: pending.artifact.fileId ?? '',
+            basis: pending.basis,
+            limit: 1,
+          });
+        }
         const artifact: Artifact = {
           path,
           ...(file.fileId ? { fileId: file.fileId } : {}),

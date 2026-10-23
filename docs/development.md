@@ -86,7 +86,11 @@ Agent、能力子执行与 PDF 共用宿主持有的进程容量，默认活动 
 
 公共 `resources.describe/read/document/save` 由 editor 的 `ResourceAccess` 经窄端口组合项目与库权威，`ManualApplication` 可在无模型、无 harness 时使用。项目引用使用稳定 fileId，库引用包含附件和材料版本；响应不含 nativePath。UTF-8 文字读取位置以 UTF-16 为单位，base64 以字节为单位，单片最多 256 KiB。项目字节读取绑定内容依据并在读取前后复查；正文保存复用原项目条件保存和文件身份保护。库正文只读，阅读记录仍保存到原库。
 
-宿主通过 `executionResources(context)` 为活动执行装配同源 `ExecutionResourcePort`，无需打开资源视图。本项目沿原条件保存，其他项目只经 `project.readTarget` 读取已登记 fileId，按路径描述不能登记目标身份。资源交付前后复核工作域、实例与外发授权；读过的库和目标沿会话已有上下文记录，在后续模型请求前再次核查。相同执行信号共享目标实例绑定，项目重开不能悄悄替换原来源。未接线的首次创建仍明确不可用。
+宿主通过 `executionResources(context)` 为活动执行装配同源 `ExecutionResourcePort`，无需打开资源视图。本项目沿原条件保存，其他项目只经 `project.readTarget` 读取已登记 fileId，按路径描述不能登记目标身份。资源交付前后复核工作域、实例与外发授权；读过的库和目标沿会话已有上下文记录，在后续模型请求前再次核查。相同执行信号共享目标实例绑定，项目重开不能悄悄替换原来源；嵌套项目操作和排队后的保存也保留当前执行检查。
+
+`resources.create` 使用稳定 operationId，在项目原有 `file_operations` 中保存创建主体、输入、editId／fileId、候选及发布身份，原子发布到不存在的路径。`resources.creation` 核对原收据，不重新写文件；同身份不同输入拒绝。发布后登记失败保留候选，只有目标物理身份和内容依据均符合原候选时才能确认，同路径同内容的替换文件保持 unknown。JSON 收据字段为可选扩展，沿原项目数据库和备份；恢复副本不重放未确认创建，缺失候选在备份清单中说明。
+
+执行保存及 worker 的 `resources.save` 返回实际 resource 与独立 association；人工资源保存继续返回原 descriptor。文件保存回执包含实际 basis，普通 Agent 和能力子执行一并传给原 `pending-artifacts` 回执。关联失败保留文件和回执，`artifacts.reconcile` 只补关联，必须核对原 fileId／basis；旧回执缺少依据时保持 unknown。创建核查也可补原执行的关联，不能用当前路径替代原成果。
 
 解析复用宿主注入的 `MaterialReading`，项目与库采用同一受管进程机制。每个视图给文档请求生成独立 requestId，关闭时以 `resources.cancel` 中止自己未完成的请求；权限或材料变化在交付前再次核对。材料不可用时描述保留实际能力及 `unavailableReason`，库记录仍可独立核查。
 

@@ -3,9 +3,11 @@ import type {
   ExecutionResourcePort,
   ResourceCreationInputs,
   ResourceCreationOutputs,
+  ResourceDescriptor,
   ResourceInputs,
   ResourceLocator,
   ResourceOutputs,
+  ResourceSaveResult,
 } from '@scholoom/protocol/resources';
 
 export type ExecutionResourceInputs = Omit<ResourceInputs, 'resources.cancel'> &
@@ -21,6 +23,7 @@ export type ResourceCalls = {
 export function executionResources(
   context: CallContext,
   connect: (context: CallContext) => ResourceCalls,
+  saved: (context: CallContext, resource: ResourceDescriptor) => Promise<ResourceSaveResult>,
 ): ExecutionResourcePort {
   const source = Object.freeze({
     ...context,
@@ -51,7 +54,7 @@ export function executionResources(
         basis: resource.basis,
         request: { method, input } as ResourceInputs['resources.document']['request'],
       }) as Promise<import('@scholoom/protocol/resources').ResourceDocumentOutputs[typeof method]>,
-    save: async (input) => ({ resource: await port(input.ref)['resources.save'](input) }),
+    save: async (input) => saved(source, await port(input.ref)['resources.save'](input)),
     create: (input) => connect(source)['resources.create'](input),
     creation: (input) => connect(source)['resources.creation'](input),
   };

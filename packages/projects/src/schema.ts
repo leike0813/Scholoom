@@ -41,6 +41,14 @@ export const fileOperations = sqliteTable('file_operations', {
       inode: string;
       birthtime: number;
       references?: { fileId: string; path: string }[];
+      creation?: {
+        owner: string;
+        edit: FileEdit;
+        basis: string;
+        birthtimeNs: string;
+        sessionId?: string;
+        runId?: string;
+      };
     }>()
     .notNull(),
 });
