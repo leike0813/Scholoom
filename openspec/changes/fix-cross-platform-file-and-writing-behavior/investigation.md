@@ -2,7 +2,7 @@
 
 ## 当前事实与复用选择
 
-基线为远端 dev 23e68c8。最新 CI [39976414916](https://github.com/leike0813/Scholoom/actions/runs/39976414916) 的 Linux job 120492067017 为 380 通过、1 失败，仍是书目大小写；macOS job 120492067069 为 369 通过、12 失败，分别涉及产物别名根、书目大小写、监听注入路径、私有目录与重定位路径。PR #10 运行 39959929016 三平台日志保存在 `/tmp/scoped-r5-pr10-*.log`，最新 Linux／macOS 在 `/tmp/scoped-r5-latest-{linux,mac}.log`。Windows 最新任务尚在运行，最终结果由 delivery 记录，不用旧日志冒充最新结果。
+基线为远端 dev 23e68c8。最新 CI [39976414916](https://github.com/leike0813/Scholoom/actions/runs/39976414916) 的 Linux job 120492067017 为 380 通过、1 失败，仍是书目大小写；macOS job 120492067069 为 369 通过、12 失败，分别涉及产物别名根、书目大小写、监听注入路径、私有目录与重定位路径；Windows job 120492066674 为 320 通过、51 失败、12 既有跳过，耗时 41.6 分钟。Windows 除已定位的 ESM、别名、CMD、fsync 与移动问题外，包含执行状态等待超时，修复后须按实际结果逐项核对，不先归因于平台速度。PR #10 运行 39959929016 三平台日志保存在 `/tmp/scoped-r5-pr10-*.log`，最新日志在 `/tmp/scoped-r5-latest-{linux,mac,win}.log`。
 
 - `editor/conversion.ts` 使用 Pandoc 的 bibtex reader。未保护的 `title={Independent Evidence}` 按 BibTeX 语义可调整大小写；实际命令在英文语言环境返回 Independent evidence，`title={{Independent Evidence}}` 返回原大小写。改夹具表达原有精确保留意图，原断言不变。
 - `editor/resources.ts:readOutput` 把 realpath 后的目标与 resolve(root) 比较。真实合成目录经别名根读取得到 permissionDenied，直接根可读。应只规范化根，不放宽越界拒绝。

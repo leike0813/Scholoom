@@ -2,7 +2,7 @@
 
 ## 当前状态与成果
 
-本变更基于 dev `23e68c8`，实施 PR #10 暴露的跨平台公共缺陷清理。按用户当前授权直接执行并向 dev 发 PR；不合入，不实施库 UI，不重开已归档变更，不修改另外两个活动 change。
+本变更基于 dev `23e68c8`，实施 PR #10 暴露的跨平台公共缺陷清理。实现已提交推送为 `b894d01`，审查入口为 [PR #13 → dev](https://github.com/leike0813/Scholoom/pull/13)。按用户当前授权直接执行并向 dev 发 PR；不合入，不实施库 UI，不重开已归档变更，不修改另外两个活动 change。
 
 - 写作产物根、目录浏览及项目准入使用相同真实路径表示；保留根外链接及私有目录拒绝。创建前拒绝私有根，不留下新目录。
 - 创建候选通过 `r+` 句柄执行原有 fsync；原子发布、依据核验、收据和效果未知处理保留。
@@ -25,8 +25,20 @@
 | `openspec validate fix-cross-platform-file-and-writing-behavior --strict` | 通过 |
 | `pnpm test:kernel` 指定 editor、editor-runtime、project-files、file-watch、resource-creation、resource-access、project-runtime-relocation、literature-attachments、literature-integration、research-capabilities、development-execution、execution-secrets 共 12 文件 | 70/70 通过，3.2 分钟；命令及逐项结果见 `/tmp/scoped-r5-regression.log`，产物 `test-results/cross-platform-regression` |
 | `pnpm typecheck`、`pnpm build` | 均通过，包含共享模块、内核及 Electron 前端构建；日志 `/tmp/scoped-r5-typecheck.log`、`/tmp/scoped-r5-full-build.log` |
+| smoke 隔离路径后续修正：`pnpm exec playwright test tests/smoke/development.spec.ts --grep 'two renderer instances' --output test-results/cross-platform-isolation` | Linux 1/1 通过，37.6 秒；真实启动两个隔离 renderer／内核，命令日志 `/tmp/scoped-r5-isolation.log`；仅收尾本轮进程 |
+| smoke 后续修改的 `biome check`、`tsc --noEmit -p tsconfig.tools.json` | 均通过；只修改路径期望，无源码变化，未重复全仓构建 |
 
-远端基线为 [dev CI 39976414916](https://github.com/leike0813/Scholoom/actions/runs/39976414916)：Linux 380 通过、1 失败；macOS 369 通过、12 失败；Windows 尚未结束。根因与源日志见 [investigation.md](investigation.md)。本分支修复后的三平台结果待推送核对；不能用 Linux 结果代替 Windows fsync、命令查找或 macOS 系统别名验证。
+远端基线为 [dev CI 39976414916](https://github.com/leike0813/Scholoom/actions/runs/39976414916)：Linux 380 通过、1 失败；macOS 369 通过、12 失败；Windows 320 通过、51 失败、12 既有跳过。根因与源日志见 [investigation.md](investigation.md)。不能用 Linux 结果代替 Windows fsync、命令查找或 macOS 系统别名验证。
+
+修复后实际 PR CI 为 [39981909728](https://github.com/leike0813/Scholoom/actions/runs/39981909728)，代码 SHA `b894d01`。三平台均已通过 lint、架构、typecheck、build 和写作工具链准备：
+
+| 平台／job | kernel | smoke／后续步骤 |
+| --- | --- | --- |
+| Linux / 120511081728 | 382 通过、2 既有跳过，16.4 分钟 | 5 通过、1 失败、1 既有 live 跳过；失败为等待旧库授权入口；UI／打包未到达 |
+| macOS / 120511081838 | 382 通过、2 既有跳过，15.6 分钟 | 4 通过、2 失败、1 既有 live 跳过；隔离测试路径断言已按真实路径后续修正，另一个仍为旧库授权入口；UI／打包未到达 |
+| Windows / 120511081448 | 仍在运行 | 未结束步骤不记为通过 |
+
+两平台 smoke 的 `development.spec.ts:408` 等待测试 helper 中的“文献库授权与备份”，失败页面快照已是当前库列表且没有该入口；保留 180 秒上限及原断言。Linux 诊断产物在 `/tmp/scoped-r5-fixed-linux-artifacts`，真实日志为 `/tmp/scoped-r5-fixed-{linux,mac}.log`，远端由上述 CI 保留。该 UI 入口属于用户暂缓的库 UI 方案，本轮不补功能、不改为跳过或绕过授权。macOS 隔离测试正、负项目期望同时 realpath，修复误拒绝并让排除断言实际核对另一项目；后续修正只在 Linux 实跑，macOS 重跑结果不得冒记。
 
 ## 审查与问题处理
 
@@ -34,4 +46,4 @@
 
 ## 未完成事项与下一步
 
-本机验证与审查已完成。下一步提交推送，创建面向 dev 的 PR，核对本次实际三平台结果并更新本记录。平台未运行、失败及流水线未到达的步骤应分别保留；库 UI 入口方案及其他领域功能不属于本变更。
+本机验证与审查已完成，代码已推送并创建 PR。下一步核对本次实际三平台结果并更新本记录。平台未运行、失败及流水线未到达的步骤应分别保留；库 UI 入口方案及其他领域功能不属于本变更。

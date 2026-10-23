@@ -39,6 +39,7 @@ sequenceDiagram
 - 修改 packages/platform/src/processes.ts：Windows 系统程序查找必要环境。
 - 扩展 tests/kernel/editor-runtime.spec.ts、project-files.spec.ts 的别名回归；调整 editor.spec.ts 的 BibTeX 语义输入、file-watch.spec.ts 与 project-runtime-relocation.spec.ts 的真实路径期望。
 - 调整 resource-access.spec.ts 的目标实例替换准备，以及 literature-attachments.spec.ts、literature-integration.spec.ts、research-capabilities.spec.ts、development-execution.spec.ts 等已定位的 ESM 子进程入口；只改夹具，不改原行为断言。
+- 调整 tests/smoke/development.spec.ts 隔离测试的自身／其他项目期望为真实路径，保留完整的包含／排除断言；已移除的库授权入口缺口仅记录，不在此补齐。
 - docs/development.md 记录真实路径及 Windows 已打开存储的移动限制和验证边界。
 
 ## 验证与风险
