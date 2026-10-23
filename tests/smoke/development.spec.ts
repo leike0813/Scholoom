@@ -5,9 +5,11 @@ import { tmpdir } from 'node:os';
 import { basename, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { type Browser, chromium, expect, type Page, test } from '@playwright/test';
+import { createKernelClient } from '../../packages/client/dist/index.js';
 import type { BootstrapResult } from '../../packages/protocol/dist/index.js';
 import { runKernel } from '../kernel-fixture.js';
 import { addProject, createSession } from '../ui/fixture.js';
+import { uiPort } from '../ui/renderer-url.js';
 
 const projectRoot = fileURLToPath(new URL('../../', import.meta.url));
 const commandTimeoutMs = 60_000;
@@ -57,7 +59,7 @@ function startDevelopmentCommand(
   environment: NodeJS.ProcessEnv,
 ): DevelopmentCommand {
   const windows = process.platform === 'win32';
-  const child = spawn('pnpm', [script, ...args], {
+  const child = spawn('pnpm', ['--config.optimisticRepeatInstall=false', script, ...args], {
     cwd: projectRoot,
     // Linux 自动化环境沿用 Playwright Electron 的宿主 sandbox 设置。
     env: {
@@ -254,6 +256,154 @@ async function leaveKernelStopped(directory: string): Promise<boolean> {
     return (await kernelState(directory)) === 'stopped';
   }
 }
+
+test('two renderer instances isolate business data and closing one leaves the other usable', async ({
+  browser,
+}, info) => {
+  test.setTimeout(180_000);
+  if (uiPort === 65535) throw new Error('Two-instance validation needs two consecutive UI ports');
+  const root = await mkdtemp(join(tmpdir(), 'scholoom-two-instances-'));
+  const instances = [0, 1].map((index) => ({
+    directory: join(root, `profile-${index}`),
+    project: join(root, `project-${index}`),
+    libraryName: `library-${index}-${randomUUID()}.md`,
+    port: uiPort + index,
+  }));
+  const commands: DevelopmentCommand[] = [];
+  const clients: ReturnType<typeof createKernelClient>[] = [];
+  const contexts = await Promise.all(instances.map(() => browser.newContext()));
+  try {
+    for (const instance of instances) {
+      const command = startDevelopmentCommand(
+        '--filter',
+        ['@scholoom/desktop', 'dev:browser', '--port', String(instance.port), '--strictPort'],
+        {
+          ...process.env,
+          SCHOOLOOM_DATA_DIR: instance.directory,
+          SCHOOLOOM_NODE_EXECUTABLE: process.execPath,
+        },
+      );
+      commands.push(command);
+      await waitForServer(command, 'Isolated renderer unavailable', () =>
+        reachable(`http://127.0.0.1:${instance.port}/`),
+      );
+    }
+    const endpoints = await Promise.all(instances.map(({ directory }) => runningKernel(directory)));
+    expect(endpoints[0]?.endpoint.instanceId).not.toBe(endpoints[1]?.endpoint.instanceId);
+    expect(endpoints[0]?.endpoint.url).not.toBe(endpoints[1]?.endpoint.url);
+    const pages: Page[] = [];
+    for (const [index, instance] of instances.entries()) {
+      const endpoint = endpoints[index];
+      const context = contexts[index];
+      if (!endpoint || !context) throw new Error('Missing isolated instance');
+      const client = createKernelClient(endpoint.endpoint);
+      clients.push(client);
+      await client.connect();
+      // Seed owned library data through its real API; this test exercises isolation, not ingestion UI.
+      await client.call('library.grant', {
+        read: true,
+        write: true,
+        send: false,
+        autoBackup: false,
+      });
+      const input = join(root, instance.libraryName);
+      await writeFile(input, `# Library evidence ${index}\n`);
+      const batch = await client.call('library.importFiles', {
+        batchId: randomUUID(),
+        paths: [input],
+        storage: 'managed',
+        purpose: '正文',
+        version: 'unspecified',
+        origin: 'two-instance-validation',
+      });
+      await expect
+        .poll(async () => (await client.call('library.batch', { batchId: batch.id })).batch.state)
+        .toBe('completed');
+      const page = await context.newPage();
+      pages.push(page);
+      await page.goto(`http://127.0.0.1:${instance.port}/`);
+      await waitConnected(page);
+      await page.getByRole('status', { name: '连接状态' }).hover();
+      await expect(
+        page.getByText(`实例 ${endpoint.endpoint.instanceId}`, { exact: true }),
+      ).toBeVisible();
+      await addProject(page, instance.project, { mode: 'create' });
+      await page.getByRole('button', { name: '新建文件', exact: true }).click();
+      await page.getByLabel('新文件名', { exact: true }).fill('result.md');
+      await page.getByLabel('新文件名', { exact: true }).press('Enter');
+      const editor = page.getByRole('textbox', { name: '文件内容 result.md', exact: true });
+      await editor.fill(`# Output ${index}\n`);
+      await page.getByRole('button', { name: '保存文件', exact: true }).first().click();
+      await expect
+        .poll(() => readFile(join(instance.project, 'result.md'), 'utf8'))
+        .toBe(`# Output ${index}\n`);
+      await page.getByRole('button', { name: '文献库', exact: true }).click();
+      await page.getByLabel('查找题录', { exact: true }).fill(instance.libraryName);
+      await expect(page.getByRole('option').filter({ hasText: instance.libraryName })).toHaveCount(
+        1,
+      );
+    }
+    for (const [index, client] of clients.entries()) {
+      const own = instances[index];
+      const other = instances[1 - index];
+      if (!own || !other) throw new Error('Missing instance identity');
+      expect(
+        (await client.call('workbench.watch', {})).projects.map((project) => project.path),
+      ).toContain(own.project);
+      expect(
+        (await client.call('workbench.watch', {})).projects.map((project) => project.path),
+      ).not.toContain(other.project);
+      expect(
+        (await client.call('library.list', { query: other.libraryName })).sources,
+      ).toHaveLength(0);
+    }
+    await contexts[0]?.close();
+    clients[0]?.dispose();
+    await commands[0]?.stop();
+    const first = instances[0],
+      second = instances[1],
+      survivor = pages[1];
+    if (!first || !second || !survivor) throw new Error('Missing survivor');
+    await expect.poll(() => kernelState(first.directory), { timeout: 30000 }).toBe('stopped');
+    expect((await runningKernel(second.directory)).endpoint.instanceId).toBe(
+      endpoints[1]?.endpoint.instanceId,
+    );
+    await survivor.reload();
+    await waitConnected(survivor);
+    await survivor.getByRole('treeitem', { name: '打开文件 result.md', exact: true }).dblclick();
+    await survivor
+      .getByRole('textbox', { name: '文件内容 result.md', exact: true })
+      .fill('# Still independent\n');
+    await survivor.getByRole('button', { name: '保存文件', exact: true }).first().click();
+    await expect
+      .poll(() => readFile(join(second.project, 'result.md'), 'utf8'))
+      .toBe('# Still independent\n');
+    expect(await readFile(join(first.project, 'result.md'), 'utf8')).toBe('# Output 0\n');
+    expect(
+      (await clients[1]?.call('library.list', { query: second.libraryName }))?.sources,
+    ).toHaveLength(1);
+    await info.attach('isolated-instances', {
+      body: JSON.stringify(
+        instances.map((instance, index) => ({
+          ...instance,
+          instanceId: endpoints[index]?.endpoint.instanceId,
+        })),
+        null,
+        2,
+      ),
+      contentType: 'application/json',
+    });
+  } finally {
+    for (const context of contexts) await context.close();
+    for (const client of clients) client.dispose();
+    for (const command of commands) await command.stop();
+    const stopped = await Promise.all(
+      instances.map(({ directory }) => leaveKernelStopped(directory)),
+    );
+    if (stopped.every(Boolean)) await rm(root, { recursive: true });
+    expect(stopped.every(Boolean), `Unconfirmed test-owned instance; retained ${root}`).toBe(true);
+  }
+});
 
 test('real dev commands share one development kernel and the last owner recycles it', async ({
   page,

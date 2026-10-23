@@ -2,6 +2,32 @@
 
 ## 当前状态与成果
 
+### 第四轮隔离夹具与双宿主验证
+
+2026-10-23，开始前确认 HEAD 为 `e324367`、工作树干净；已读取 AGENTS、开发说明、scholoom-dev 阶段约定、最新 tasks／delivery 及 apply instructions（ready、13/19）。用户授权直接完成 4.1–4.3、提交推送并向 dev 发新 PR，不自行合入或操作其他工作树。本轮完成本树验收，进度 **16/19**；4.4–4.6 继续未完成。此前的 Graph 恢复与实例／资源授权修复保持原样，registered 完整指令上下文仍由工作台线交付。
+
+4.1 的可配置 URL／fixture 已在前序 dev 增量接入，本轮沿 `renderer-url.ts` 和原 smoke 进程助手补实际双实例回归。两个真实 Vite／内核使用 5341／5342、独立 profile、文献库、项目与成果路径，以及不同内核身份和 WebSocket 地址。分别经 UI 创建项目与保存 `result.md`；库材料通过所属真实 API 准备，UI 只显示自己的材料，公共查询也读不到另一配置的项目／库记录。关闭 A 后核对其内核已停止，B 保持原实例身份，刷新后再次保存且 A 原成果不变。结束只收尾本轮进程；5341–5344 最终均无监听。该用例在同一源码树内模拟并行开发实例，不使用另一个工作树；双宿主另由既有 UI suite 验证。
+
+4.2 复用现有 `graphs.mjs`／`worker*.mjs`／`command.mjs`，没有新增通用测试框架。固定 counter 的 custom 回报为内联测试提供者；resource／durable-resource 使用真实内部资源、项目文件及子进程，持久图使用真实 SQLite、interrupt 与消息恢复；模型变体检查实际额度租约，不伪装外部模型生成。命令机制的 workspace／authorize 可为明确替身，broker 组合核对真实活动会话及实例。独立只读调查核对七域入口后，开发说明补齐这些构造形状、运行命令与边界，并改正“项目创建提供者待接入”的过时描述。内存窄端口替身受类型检查，broker／IPC 保留同源运行校验。生产注册仍为空，不把固定图作为科研方法。
+
+核对 [design 总览](design.md#变更总览)：本轮实际覆盖固定 worker／资源及共同命令路径、独立配置与宿主接入；没有据这些样例宣称显式上下文最终组合或科研质量通过。没有改 runtime、driver、beforeModel、工作台来源或 composer。
+
+| 实际命令／组合 | 结果、失败及证据边界 |
+| --- | --- |
+| `pnpm --config.optimisticRepeatInstall=false typecheck`、同选项 `build` | 全仓构建及最终类型检查通过。首次 tools 检查发现新用例误用内部 `projects.list`，改用公共 `workbench.watch` 投影后重跑通过；日志 `/tmp/scholoom-r4-{typecheck,typecheck-final,build}.log` |
+| 同选项 `generate:contracts`、`check:architecture`、`lint`；生成器 `--self-test` | 六份生成 patch 格式化后与源码一致；架构 13 模块／198 源文件零 findings／例外；lint 无错误，保留基线 74 warnings／35 infos。相关文件 Biome 与 `git diff --check` 通过 |
+| `node node_modules/@playwright/test/cli.js test --config playwright.kernel.config.ts` 加下述 18 文件 | **120/120，8.1 分钟**。真实内部图／文件／SQLite／资源／程序，外部模型为 loopback 受控响应。日志 `/tmp/scholoom-r4-kernel.log` |
+| `SCHOOLOOM_UI_PORT=5341`，同 CLI `tests/smoke/development.spec.ts --grep 'two renderer instances'` | 首次通过；独立审查后增加写入前实例身份断言，最终复验 **1/1，37.5 秒**。工件 `test-results/r4-isolation-final` 的 `isolated-instances` 附件记录非凭据身份与路径，日志 `/tmp/scholoom-r4-isolation-final.log` |
+| `SCHOOLOOM_UI_PORT=5343`，UI config：resource-opening、resource-lifecycle、writing-editor | 首轮 **5 通过、1 失败，3.4 分钟**。三 renderer 并发期间浏览器首个 lifecycle 在 goto 的 15 秒页面加载期限超时，未进入业务断言；其余 Chromium／真实 Electron 的资源与写作场景均通过。原 trace 保留于 `test-results/ui-5343` |
+| `SCHOOLOOM_UI_PORT=5344`，同 UI config 仅 browser resource-lifecycle | 未改测试断言，独立配置复验 **1/1，30.6 秒**；日志 `/tmp/scholoom-r4-ui-recheck.log`、工件 `test-results/ui-5344`。两轮合计 6 个不同双宿主场景均取得通过结果，不宣称首次 suite 全绿或冷启动性能已解决 |
+| `tests/smoke/entrypoints.spec.ts --output test-results/r4-entrypoints` | **4/4，38.4 秒**；独立 Node、实际 Electron/preload、关窗重连及兼容宿主。日志 `/tmp/scholoom-r4-entrypoints.log` |
+
+120 项内核文件为 resource-access、resource-creation、resource-identity、harness、harness-recovery、harness-module、context-instructions、context-resources、registered-graph、graph-registration、research-module、research-capabilities、project-backend、managed-commands、process-admission、platform-processes、editor、editor-runtime，均位于 `tests/kernel/`。包含 dev 的 101 条指令接续、收据缓存／重命名竞态、发布依据、等待分页、普通 Agent 切图、最终模型授权和启动后派发前撤权等保护，不另改实现。
+
+独立审查发现隔离用例只看 HTTP 可达可能在端口占用时误用已有 renderer 的 P2，现复用原连接状态实例身份检查，在 UI 业务写入前匹配所属 profile 的真实 endpoint；新增检查后的实际回归通过，独立窄复核确认关闭 P2。真实内部提供者未用成功替身代替。全程使用已有依赖、Electron 44.5.1、Chromium、Quarto／LaTeX，Linux／Node 24.12.0／pnpm 11.10.0；没有安装升级依赖。webServer 与 smoke 启动命令显式关闭 pnpm optimistic repeat install，测试服务均按归属结束。
+
+本轮未跑完整 UI／完整内核、Windows／macOS 分发或真实外部模型／科研质量。UI 首次冷加载期限失败如实保留；这批通过不替代 registered 完整指令上下文与三线最终组合。后续由工作台线先交付该上下文增量并经 dev 接收，再按 4.4–4.6 安排整合与独立验收。
+
 ### 第三轮 dev 接收
 
 2026-10-23，用户要求接收三个工作树的新 PR。dev 保留原提交，依次以 `6db64cc`、`d5e0240`、`1dd5e00` 合入 #7、#8、#9；application／manual 的冲突同时保留 Graph 启动、命令工作空间和可信指令受理检查。已接入持久 Graph 等待／恢复、共同命令资格和生产工作台资源授权。本变更 **13/19**，工作台 **13/16**；最终整合、双实例和交付项继续未完成，未归档或启动七域。用户仍手动同步其他工作树，本轮未控制它们的 Agent。
@@ -171,8 +197,8 @@ registered 路径复用 RemoteAgent、静态 driver、当前实例、ProcessAdmi
 
 ## 未完成事项与下一步
 
-1. [PR #8](https://github.com/leike0813/Scholoom/pull/8) 已向 dev 发出，Graph／命令独立提交；2.3、2.4、3.1、3.3 已完成本树验收，尚未实际合入 dev。本轮止于可审查 PR，不自行合并或同步其他工作树。
-2. 接收者先核对同源契约、当前实例及资源提供者，再验证与工作台线的显式项／beforeModel 上下文授权组合；本轮不改来源与 composer，不将固定图加入生产默认集合。
-3. 4.1 的 URL／fixture 源码已在 dev，实际双实例隔离未完成。4.2 的固定图／程序已有真实接线证据，七域最终独立接入及公共基础组合仍待明确接入执行者核验。
-4. 本轮未跑双宿主 UI；既有共同资源 12 项双宿主证据属于前轮。双实例、写作 UI、真实外部模型／科研充分性、三平台分发及 Mermaid 渲染均未在本轮验收。
-5. 续做先读取 tasks 与本记录，再运行 `openspec instructions apply --change establish-domain-execution-handoffs --json`。CLI ready 只表示依赖工件就绪；4.x 全组保持未勾选，不以本树通过替代 dev 接入和最终交付。
+1. PR #8／#9 及后续恢复／授权修复已由 dev 接收，本树基线为 `e324367`。本轮 4.1–4.3 的回归及说明向 dev 送审，实际合入前不宣称该增量已接收；不自行合入或同步其他工作树。
+2. 工作台线继续交付 registered 图的完整指令上下文、checkpoint 与授权复查。该增量经 dev 接收后，4.4 再核对显式输入、实际资源／成果及失败路径；本轮保持附件未接线保护，不改变源码默认注册。
+3. 4.5／4.6 的最终组合审查与交付保持待验，按原公共基础规划明确当次整合负责人。本轮独立审查只覆盖新增隔离用例和接入说明，不能代替最终三线复核。
+4. 仍未验真实外部模型／科研充分性、完整 UI／内核及三平台分发。UI 首次加载超时及独立复验记录见本轮证据；不据复验通过声称并发冷启动性能或全仓 CI 已达标。
+5. 续做读取 tasks 与本记录，再取得 apply instructions。当前 16/19；最终 4.4–4.6 保持未勾选，不以本树通过替代 dev 接入和最终交付。
