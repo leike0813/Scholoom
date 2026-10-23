@@ -35,6 +35,17 @@ export class ResourceAccess {
     ports: ResourcePorts,
     locator: Extract<ResourceLocator, { source: 'project' }>,
   ) {
+    if (ports.target) {
+      if (!locator.fileId)
+        throw new OperationError('permissionDenied', '目标读取必须使用已登记的文件身份。');
+      const result = await ports.target['project.readTarget']({
+        targetProjectId: locator.projectId,
+        request: { kind: 'describe', fileId: locator.fileId },
+      });
+      if (result.kind !== 'describe')
+        throw new OperationError('unavailable', '目标描述不符合请求。');
+      return result;
+    }
     if (!locator.fileId) {
       if (!locator.path) throw new OperationError('invalidRequest', '缺少项目文件定位。');
       const source = await ports.project['project.material']({
@@ -55,7 +66,7 @@ export class ResourceAccess {
     const ports = this.ports(context);
     if (locator.source === 'project') {
       const location = await this.projectLocation(ports, locator);
-      const bytes = await ports.project['files.readBytes']({
+      const bytes = await this.projectBytes(ports, {
         projectId: locator.projectId,
         fileId: location.fileId,
         limit: 1,
@@ -69,7 +80,7 @@ export class ResourceAccess {
         format: kind,
         capabilities: {
           read: true,
-          write: kind === 'text' && bytes.size <= 262144,
+          write: !ports.target && kind === 'text' && bytes.size <= 262144,
           readingRecords: false,
           render: /\.(md|markdown|qmd|tex)$/i.test(bytes.path),
         },
@@ -110,7 +121,7 @@ export class ResourceAccess {
   }
   private async verify(ports: ResourcePorts, ref: ResourceRef, basis: string) {
     if (ref.source === 'project') {
-      await ports.project['files.readBytes']({
+      await this.projectBytes(ports, {
         projectId: ref.projectId,
         fileId: ref.fileId,
         basis,
@@ -125,6 +136,36 @@ export class ResourceAccess {
         throw changed();
     }
   }
+  private async projectBytes(
+    ports: ResourcePorts,
+    input: Parameters<ResourcePorts['project']['files.readBytes']>[0],
+  ) {
+    if (!ports.target) return ports.project['files.readBytes'](input);
+    const { projectId, fileId, basis, offset, limit } = input;
+    let currentBasis = basis;
+    if (!currentBasis) {
+      const descriptor = await ports.target['project.readTarget']({
+        targetProjectId: projectId,
+        request: { kind: 'describe', fileId },
+      });
+      if (descriptor.kind !== 'describe')
+        throw new OperationError('unavailable', '目标描述不符合请求。');
+      currentBasis = descriptor.basis;
+    }
+    const result = await ports.target['project.readTarget']({
+      targetProjectId: projectId,
+      request: {
+        kind: 'readBytes',
+        fileId,
+        basis: currentBasis,
+        ...(offset === undefined ? {} : { offset }),
+        ...(limit === undefined ? {} : { limit }),
+      },
+    });
+    if (result.kind !== 'readBytes')
+      throw new OperationError('unavailable', '目标字节不符合请求。');
+    return result;
+  }
   async read(
     input: ResourceInputs['resources.read'],
     context: CallContext,
@@ -134,7 +175,7 @@ export class ResourceAccess {
     await this.verify(ports, ref, basis);
     if (encoding === 'base64') {
       if (ref.source === 'project') {
-        const value = await ports.project['files.readBytes']({
+        const value = await this.projectBytes(ports, {
           projectId: ref.projectId,
           fileId: ref.fileId,
           basis,
@@ -171,7 +212,7 @@ export class ResourceAccess {
     }
     let content: string;
     let truncated = false;
-    if (ref.source === 'project') {
+    if (ref.source === 'project' && !ports.target) {
       const location = await this.projectLocation(ports, ref);
       const source = await ports.project['files.read']({
         projectId: ref.projectId,
@@ -181,14 +222,22 @@ export class ResourceAccess {
       content = source.content;
       truncated = source.truncated;
     } else {
-      const value = await ports.library['library.readAttachment']({
-        attachmentId: ref.attachmentId,
-        limit: 262144,
-      });
+      const value =
+        ref.source === 'project'
+          ? await this.projectBytes(ports, {
+              projectId: ref.projectId,
+              fileId: ref.fileId,
+              basis,
+              limit: 262144,
+            })
+          : await ports.library['library.readAttachment']({
+              attachmentId: ref.attachmentId,
+              limit: 262144,
+            });
       truncated = value.nextOffset !== undefined;
       try {
         content = new TextDecoder('utf8', { fatal: true }).decode(
-          Buffer.from(value.base64, 'base64'),
+          Buffer.from('base64' in value ? value.base64 : value.data, 'base64'),
           { stream: truncated },
         );
       } catch {
@@ -310,7 +359,7 @@ export class ResourceAccess {
       let offset = 0;
       for (;;) {
         signal.throwIfAborted();
-        const value = await ports.project['files.readBytes']({
+        const value = await this.projectBytes(ports, {
           projectId: ref.projectId,
           fileId: ref.fileId,
           basis,

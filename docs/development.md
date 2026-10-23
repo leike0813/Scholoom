@@ -86,6 +86,8 @@ Agent、能力子执行与 PDF 共用宿主持有的进程容量，默认活动 
 
 公共 `resources.describe/read/document/save` 由 editor 的 `ResourceAccess` 经窄端口组合项目与库权威，`ManualApplication` 可在无模型、无 harness 时使用。项目引用使用稳定 fileId，库引用包含附件和材料版本；响应不含 nativePath。UTF-8 文字读取位置以 UTF-16 为单位，base64 以字节为单位，单片最多 256 KiB。项目字节读取绑定内容依据并在读取前后复查；正文保存复用原项目条件保存和文件身份保护。库正文只读，阅读记录仍保存到原库。
 
+宿主通过 `executionResources(context)` 为活动执行装配同源 `ExecutionResourcePort`，无需打开资源视图。本项目沿原条件保存，其他项目只经 `project.readTarget` 读取已登记 fileId，按路径描述不能登记目标身份。资源交付前后复核工作域、实例与外发授权；读过的库和目标沿会话已有上下文记录，在后续模型请求前再次核查。相同执行信号共享目标实例绑定，项目重开不能悄悄替换原来源。未接线的首次创建仍明确不可用。
+
 解析复用宿主注入的 `MaterialReading`，项目与库采用同一受管进程机制。每个视图给文档请求生成独立 requestId，关闭时以 `resources.cancel` 中止自己未完成的请求；权限或材料变化在交付前再次核对。材料不可用时描述保留实际能力及 `unavailableReason`，库记录仍可独立核查。
 
 定向诊断入口为 `tests/kernel/resource-access.spec.ts`、`resource-identity.spec.ts` 和 `tab-state.spec.ts`，产品接线为双宿主 `tests/ui/resource-opening.spec.ts`、`resource-lifecycle.spec.ts` 及原 PDF、文档、文件工作台和写作编辑用例。各项实际执行结果见[本变更交付](../openspec/changes/archive/2026-10-20-unify-workbench-resource-opening/delivery.md)，不能以接口存在替代运行验证。

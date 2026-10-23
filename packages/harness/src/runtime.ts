@@ -54,6 +54,7 @@ import type {
   ResearchToolsPort,
 } from '@scholoom/protocol/research';
 import { researchRequestSchema } from '@scholoom/protocol/research';
+import type { ResourceRef } from '@scholoom/protocol/resources';
 import type Database from 'better-sqlite3';
 import { CompositeBackend, FilesystemBackend, registerHarnessProfile } from 'deepagents';
 import { and, desc, eq, gt, lt, or, sql } from 'drizzle-orm';
@@ -168,6 +169,33 @@ export class Harness {
   private stopped = false;
   get isStopping(): boolean {
     return this.stopped;
+  }
+  recordResourceUse(
+    context: CallContext,
+    ref: ResourceRef | { source: 'project'; projectId: string },
+  ): void {
+    this.checkExecutionContext(context);
+    if (!context.projectId) throw new OperationError('instanceMismatch', '缺少工作项目。');
+    const project = this.projects.get(context.projectId);
+    const key =
+      ref.source === 'library'
+        ? `library-context:${context.sessionId}`
+        : `target-read-context:${context.sessionId}`;
+    if (ref.source === 'project' && ref.projectId === context.projectId) return;
+    const records = this.records(project);
+    const previous: string[] =
+      ref.source === 'library'
+        ? []
+        : JSON.parse(
+            records.select().from(tables.meta).where(eq(tables.meta.key, key)).get()?.value ?? '[]',
+          );
+    const value =
+      ref.source === 'library' ? '1' : JSON.stringify([...new Set([...previous, ref.projectId])]);
+    records
+      .insert(tables.meta)
+      .values({ key, value })
+      .onConflictDoUpdate({ target: tables.meta.key, set: { value } })
+      .run();
   }
   checkExecutionContext(context: CallContext): void {
     const { projectId, sessionId, runId, instanceId } = context;
@@ -849,6 +877,14 @@ export class Harness {
         }
       };
       const model = await this.model.execution(authorizeModel, signal, run.modelConfig, () => {
+        const currentTargets: string[] = JSON.parse(
+          this.records(project)
+            .select()
+            .from(tables.meta)
+            .where(eq(tables.meta.key, targetContextKey))
+            .get()?.value ?? '[]',
+        );
+        for (const targetId of currentTargets) targetChecks.add(targetId);
         if (targets) targets.check(targetChecks);
         else if (targetChecks.size) throw new OperationError('unavailable', '目标只读端口不可用。');
       });

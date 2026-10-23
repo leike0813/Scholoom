@@ -14,6 +14,7 @@ import type {
   BusinessOutputs,
   BusinessParams,
   ResourceCreationInputs,
+  ResourceRef,
   WorkbenchContextInputs,
   WorkbenchSnapshot,
 } from '@scholoom/protocol';
@@ -121,6 +122,12 @@ export class KernelApplication extends ManualApplication {
   }
   protected override checkExecutionContext(context: CallContext): void {
     this.harness.checkExecutionContext(context);
+  }
+  protected override resourceUsed(
+    context: CallContext,
+    ref: ResourceRef | { source: 'project'; projectId: string },
+  ): void {
+    this.harness.recordResourceUse(context, ref);
   }
   harnessStorage(): HarnessStorage {
     const resources = new Map<string, HarnessProject>();

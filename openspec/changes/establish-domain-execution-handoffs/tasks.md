@@ -52,4 +52,6 @@ flowchart LR
 
 ## 续做入口
 
+2026-10-23 资源适配增量在本树验证中，1.2 独立提交并发往 dev；实际接入前保持未勾选。保存／关联及首次创建继续按 1.3、1.4 推进，记录见 delivery。
+
 先核对共同契约及当前任务所需工作域增量的实际 delivery／dev 接入结果，再运行 `openspec instructions apply --change establish-domain-execution-handoffs --json`；无需等待工作域 change 整项完成。待办进度只在本文件维护；实际接线和验证结果进入本变更 delivery。
