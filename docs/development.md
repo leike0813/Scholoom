@@ -102,7 +102,9 @@ Agent、能力子执行与 PDF 共用宿主持有的进程容量，默认活动 
 
 写作能力由 `packages/editor` 提供，人工工作台经 `ManualApplication` 和共同 broker 调用；该组合不装配 harness、会话或模型。当前机器核对到 Quarto 1.9.37、配套 Pandoc 3.8.3、latexmk 4.87 和 MiKTeX；这些版本不代表其他机器或分发包已具备相同工具，产品可用性通过 `editor.tools` 查询。
 
-`apps/kernel/src/commands.ts` 的 `ManagedCommands` 统一解析宿主私有工作空间和程序登记，管理进程准入、排队后再次授权及实际停止；内部 `platform.command` 与 editor 的 `platform.editorCommand` 共用这一实现。当前生产工作空间仅由 editor 提供，限 Quarto／latexmk，不开放客户端指定本机目录或程序。全局工作域及目标只读范围不获命令权限；Agent 的真实工作域、实例授权接线仍待[领域交接变更](../openspec/changes/establish-domain-execution-handoffs/delivery.md)的前置增量。命令失败和停止未知继续由 editor 保留原工作空间、诊断及最后成功预览。独立机制测试为 `tests/kernel/managed-commands.spec.ts`，使用固定 Node 程序与真实进程控制，授权回调为明确替身。
+`apps/kernel/src/commands.ts` 的 `ManagedCommands` 统一解析宿主私有工作空间和程序登记，管理进程准入、排队后再次授权及实际停止。editor 实际消费内部 `platform.command`，`platform.editorCommand` 保留为同一实现的薄适配。生产工作空间仅由 editor 提供，限 Quarto／latexmk，不开放客户端指定本机目录或程序。全局工作域及目标只读范围不获命令权限；Agent 必须具有相符 principal／session／项目工作域，宿主在排队前后核对 harness 当前运行实例和项目授权。人工排版可独立于 harness。命令失败和停止未知继续由 editor 保留原工作空间、诊断及最后成功预览。
+
+`tests/kernel/managed-commands.spec.ts` 的机制用例使用固定工作空间及授权替身；broker 用例在隔离真实 KernelApplication／活动执行中使用宿主源码登记的固定 Node 程序，核对排队撤权、取消、失效实例及全局范围拒绝。进程树、输出边界和控制丢失沿原真实进程用例，`process-admission.spec.ts` 另核对未确认停止保留占用。实际结果见[领域交接交付](../openspec/changes/establish-domain-execution-handoffs/delivery.md)。
 
 源码与 QMD／Markdown 可视编辑共用同一草稿。Markdown／QMD 轻量预览读取未保存草稿；完整排版读取已保存稿件，打开预览或保存时更新当前选择格式。QMD 默认 HTML，切换 PDF 后更新 PDF；LaTeX 保留原生多文件工程并编译 PDF。HTML、PDF、DOCX 均可通过显式导出生成到工作区，沿用既有文件冲突与传输保护。
 

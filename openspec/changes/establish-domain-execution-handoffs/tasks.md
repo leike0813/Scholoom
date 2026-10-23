@@ -37,9 +37,9 @@ flowchart LR
 
 ## 3. 宿主共同受管命令
 
-- [ ] 3.1 消费 0.1 的内部 platform.command 契约，接入宿主私有 workspace／executable 解析，绑定真实消费模块及工作域；测试伪造工作空间、未登记程序、跨域越权及全局会话借已登记程序突破只读限制均被拒绝。
+- [x] 3.1 消费 0.1 的内部 platform.command 契约，接入宿主私有 workspace／executable 解析，绑定真实消费模块及工作域；测试伪造工作空间、未登记程序、跨域越权及全局会话借已登记程序突破只读限制均被拒绝。
 - [x] 3.2 提取唯一准入与 runCommand 提供者，editorCommand 通过薄适配复用；保持排版快照、缓存、取消及最后成功预览。扩展 editor-runtime.spec.ts，不增加通用计算运行记录。
-- [ ] 3.3 固定 Node 程序经过真实进程和准入，验证输出边界、等待撤权、取消、后代收尾及停止未知；扩展 process-admission.spec.ts 和 platform-processes.spec.ts。
+- [x] 3.3 固定 Node 程序经过真实进程和准入，验证输出边界、等待撤权、取消、后代收尾及停止未知；扩展 process-admission.spec.ts、managed-commands.spec.ts，复用 platform-processes.spec.ts 的真实进程覆盖。
 
 ## 4. 隔离夹具、整合与交付
 
@@ -52,7 +52,7 @@ flowchart LR
 
 ## 续做入口
 
-2026-10-23，本轮先核对 `9c8212f` 已包含于当前树；2.3、2.4 的本树实现与真实 Graph 验证完成，进度 **11/19**。Graph 契约及接线独立提交，等待 PR 接收；本条不代表已合入 dev。下一步为 3.1／3.3 的共同命令实际消费与当前实例核验。最终组合验收 4.x 保持未勾选；结果及边界见 [delivery](delivery.md#第三轮-graph-增量待-dev-接收)。
+2026-10-23，本轮先核对 `9c8212f` 已包含于当前树；2.3、2.4、3.1、3.3 的本树实现与验证完成，进度 **13/19**。Graph 与命令分别提交，向 dev 发出 [PR #8](https://github.com/leike0813/Scholoom/pull/8)，尚未合入。最终组合验收 4.x 保持未勾选；本轮真实接线、失败修复及续做边界见 [delivery](delivery.md#第三轮-graph-增量待-dev-接收)。后续先由 dev 接收并核对与工作台线上下文授权组合，再完成双实例、双宿主及最终公共基础验收。
 
 2026-10-23 dev 已接收 [PR #5](https://github.com/leike0813/Scholoom/pull/5)，合并提交 `fa77d2e`；资源授权、保存／关联及首次创建回归通过，1.2 完成，进度 9/19。接收验证及剩余边界见 [delivery](delivery.md#第二轮-dev-接收)。下一批推进 2.3、2.4 的持久 Graph 等待／恢复与生产资源接线，以及 3.1、3.3 的共同命令真实资格核对；不重复实现已交付的资源适配。
 

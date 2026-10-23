@@ -43,3 +43,25 @@ test('capacity waiting has a deadline and does not consume a later freed process
   await next.ready;
   next.release();
 });
+
+for (const confirmed of [true, false]) {
+  test(`release waits for owned process stop confirmation (confirmed=${confirmed})`, async () => {
+    const admission = new ProcessAdmission(1, 1);
+    const active = admission.reserve();
+    let stopped = () => {};
+    let uncertain = (_error: Error) => {};
+    active.retainUntil(
+      new Promise<void>((resolve, reject) => {
+        stopped = resolve;
+        uncertain = reject;
+      }),
+    );
+    active.release();
+    expect(admission.status.active).toBe(1);
+    if (confirmed) stopped();
+    else uncertain(new Error('lost controller'));
+    await expect.poll(() => admission.status.active).toBe(confirmed ? 0 : 1);
+    if (!confirmed)
+      expect(() => admission.reserve()).toThrow(expect.objectContaining({ code: 'resourceLimit' }));
+  });
+}

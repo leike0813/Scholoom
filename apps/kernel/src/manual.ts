@@ -82,7 +82,7 @@ import {
   type ResearchModuleOutputs,
   researchModuleOperations,
 } from '@scholoom/protocol/research';
-import { ManagedCommands } from './commands.js';
+import { type CommandWorkspace, ManagedCommands } from './commands.js';
 import { executionResources } from './execution-resources.js';
 import { initializeProjectContainer } from './storage/project-container.js';
 import { WorkbenchContextStore } from './workbench-context.js';
@@ -195,7 +195,8 @@ export class ManualApplication {
             throw new OperationError('notFound', '原稿已移动或缺失。');
           return location.path;
         },
-        command: (input) => port.call('platform.editorCommand', input),
+        command: ({ tool, ...input }) =>
+          port.call('platform.command', { ...input, executableId: tool }),
         importBegin: (input) => port.call('files.importBegin', input),
         importChunk: (input) => port.call('files.importChunk', input),
         importFinish: (input) => port.call('files.importFinish', input),
@@ -203,15 +204,15 @@ export class ManualApplication {
     });
     const commands = new ManagedCommands(
       this.processes,
-      (workspaceId) => ({
-        ...this.editor.commandWorkspace(workspaceId),
-        ownerModuleId: 'editor',
-        executables: new Map([
-          ['quarto', 'quarto'],
-          ['latexmk', 'latexmk'],
-        ]),
-      }),
-      (workspace) => {
+      (workspaceId) => this.commandWorkspace(workspaceId),
+      (workspace, context) => {
+        if (
+          context.principal.kind === 'agent' ||
+          context.workDomain ||
+          context.role === 'execution' ||
+          context.role === 'compute'
+        )
+          this.checkExecutionContext(context);
         if (workspace.projectId) this.projects.get(workspace.projectId).check('read');
       },
     );
@@ -407,6 +408,16 @@ export class ManualApplication {
   protected async projectReplacing(_projectId: string): Promise<void> {}
   protected checkExecutionContext(_context: CallContext): void {
     throw new OperationError('unavailable', '当前组合没有执行实例提供者。');
+  }
+  protected commandWorkspace(workspaceId: string): CommandWorkspace {
+    return {
+      ...this.editor.commandWorkspace(workspaceId),
+      ownerModuleId: 'editor',
+      executables: new Map([
+        ['quarto', 'quarto'],
+        ['latexmk', 'latexmk'],
+      ]),
+    };
   }
   executionResources(context: CallContext): ExecutionResourcePort {
     if (context.role !== 'execution' || context.principal.kind !== 'agent')

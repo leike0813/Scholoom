@@ -43,6 +43,7 @@ export async function runCommand(
   const abort = () =>
     rejectResult(options.signal?.reason ?? new OperationError('shuttingDown', '命令已取消。'));
   try {
+    options.signal?.throwIfAborted();
     const result = new Promise<CommandResult>((resolve, reject) => {
       rejectResult = reject;
       worker.on('message', (value: unknown) => {
