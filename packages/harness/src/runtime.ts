@@ -61,9 +61,11 @@ import { researchRequestSchema } from '@scholoom/protocol/research';
 import type {
   ExecutionResourcePort,
   ResourceEvidence,
+  ResourceInputs,
   ResourceRef,
   ResourceSaveResult,
 } from '@scholoom/protocol/resources';
+import { resourceOperations } from '@scholoom/protocol/resources';
 import type Database from 'better-sqlite3';
 import { CompositeBackend, FilesystemBackend, registerHarnessProfile } from 'deepagents';
 import { and, desc, eq, gt, lt, or, sql } from 'drizzle-orm';
@@ -280,7 +282,14 @@ export class Harness {
   }
   private pendingArtifacts = new Map<
     string,
-    { projectId: string; sessionId: string; artifact: Artifact; receipt: string; basis?: string }
+    {
+      projectId: string;
+      sessionId: string;
+      artifact: Artifact;
+      receipt: string;
+      basis?: string;
+      resourceBasis?: string;
+    }
   >();
   constructor(
     private readonly projects: HarnessStorage,
@@ -336,6 +345,7 @@ export class Harness {
       sessionId: string;
       artifact: Artifact;
       basis?: string;
+      resourceBasis?: string;
     };
     return {
       projectId: project.id,
@@ -343,6 +353,7 @@ export class Harness {
       artifact: { ...item.artifact, state: 'unknown' as const },
       receipt,
       ...(item.basis ? { basis: item.basis } : {}),
+      ...(item.resourceBasis ? { resourceBasis: item.resourceBasis } : {}),
     };
   }
 
@@ -1510,7 +1521,7 @@ export class Harness {
           run.id,
           path,
           identity,
-          basis,
+          { ...(basis ? { basis } : {}) },
         );
         if (result.state !== 'confirmed')
           throw new OperationError('outcomeUnknown', `文件 ${path} 已保存，产物登记待核查。`);
@@ -2000,6 +2011,30 @@ export class Harness {
           systemPrompt:
             '你是 Scholoom 科研助手。使用中文与用户工作。项目正文以实际文件为准，附加材料只是引用，先读取。形成可承接的分析、理由、成果及下一步时保存为普通 Markdown 文件；在没有项目文件权限时只对话。仅使用授权工具。修改已有文件先读取，遇到冲突重读再修改。write_file 仅用于新建，edit_file 修改已有内容。不得声称未保存成果已交付。不要依赖旧 transcript 才能续做，可发现并读取项目已有成果。用户取消后不继续。',
           tools: [
+            {
+              name: 'read_context_resource',
+              description:
+                '按明确资源引用及原 basis 重新读取项目或库材料；每片有界。附加摘录和工作台选择不代表已读取。材料已变化时核查当前版本并询问用户，不猜测或替换引用。',
+              schema: resourceOperations['resources.read'].params,
+              func: async (input: ResourceInputs['resources.read']) => {
+                try {
+                  this.checkExecutionContext(fileContext);
+                  const resources = this.contextBridge?.resources?.(fileContext);
+                  if (!resources?.port.read)
+                    throw new OperationError('unavailable', '执行资源读取端口不可用。');
+                  resources.check([{ ref: input.ref, basis: input.basis }]);
+                  const result = await resources.port.read(input);
+                  resources.check([{ ref: input.ref, basis: input.basis }]);
+                  rememberContext([{ ref: input.ref, basis: input.basis }]);
+                  return JSON.stringify(result);
+                } catch (error) {
+                  const info = failure(error);
+                  const current = toolContext.getStore();
+                  if (current) current.error = info;
+                  return JSON.stringify({ error: info });
+                }
+              },
+            },
             {
               name: 'read_workbench_context',
               description:
@@ -2772,7 +2807,7 @@ export class Harness {
     runId: string,
     path: string,
     fileId: string,
-    basis?: string,
+    evidence: { basis?: string; resourceBasis?: string } = {},
     operationId: string = randomUUID(),
   ): Promise<NonNullable<ResourceSaveResult['association']>> {
     const project = this.projects.get(projectId);
@@ -2796,22 +2831,27 @@ export class Harness {
       await atomicPrivateFile(
         directory,
         operationId,
-        JSON.stringify({ sessionId, artifact, ...(basis ? { basis } : {}) }),
+        JSON.stringify({ sessionId, artifact, ...evidence }),
       );
       this.pendingArtifacts.set(key, {
         projectId,
         sessionId,
         artifact: { ...artifact, state: 'unknown' },
         receipt: join(directory, operationId),
-        ...(basis ? { basis } : {}),
+        ...evidence,
       });
       const location = (
         await this.port(project)['files.resolve']({ projectId, fileIds: [fileId] })
       )[0];
       if (location?.state !== 'present')
         throw new OperationError('notFound', '保存的文件身份已失效。');
-      if (basis) {
-        await this.port(project)['files.readBytes']({ projectId, fileId, basis, limit: 1 });
+      if (evidence.basis || evidence.resourceBasis) {
+        await this.port(project)['files.readBytes']({
+          projectId,
+          fileId,
+          limit: 1,
+          ...evidence,
+        });
       }
       await this.port(project, sessionId)['project.linkArtifact']({
         projectId,
@@ -2874,12 +2914,13 @@ export class Harness {
             continue;
           }
         }
-        if (!pending?.artifact.fileId || !pending.basis)
+        if (!pending?.artifact.fileId || (!pending.basis && !pending.resourceBasis))
           throw new OperationError('outcomeUnknown', '原关联回执缺少可核查内容依据。');
         const file = await this.port(project)['files.readBytes']({
           projectId,
           fileId: pending.artifact.fileId,
-          basis: pending.basis,
+          ...(pending.resourceBasis ? { resourceBasis: pending.resourceBasis } : {}),
+          ...(pending.basis ? { basis: pending.basis } : {}),
           limit: 1,
         });
         const artifact: Artifact = {

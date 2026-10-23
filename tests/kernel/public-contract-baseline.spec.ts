@@ -258,23 +258,29 @@ test('unwired capabilities reject before accepting work or losing explicit conte
     await expect(
       app.call('resources.creation', { projectId: 'application', operationId: 'op' }),
     ).rejects.toMatchObject({ code: 'permissionDenied' });
-    for (const request of [
-      () =>
-        app.call('session.send', {
-          projectId: 'application',
-          sessionId: session.id,
-          instructionId: 'i',
-          text: 'read selection',
-          materials: [],
-          contextItems: [contextItem],
-        }),
-      () =>
-        app.harness.executeCapability(
-          { attemptId: 'a', prompt: '', execution: graph },
-          { moduleId: 'research', role: 'execution', principal: { kind: 'agent', id: 's' } },
-        ),
-    ]) {
-      await expect(request()).rejects.toMatchObject({ code: 'unavailable' });
+    for (const [request, code] of [
+      [
+        () =>
+          app.call('session.send', {
+            projectId: 'application',
+            sessionId: session.id,
+            instructionId: 'i',
+            text: 'read selection',
+            materials: [],
+            contextItems: [contextItem],
+          }),
+        'notFound',
+      ],
+      [
+        () =>
+          app.harness.executeCapability(
+            { attemptId: 'a', prompt: '', execution: graph },
+            { moduleId: 'research', role: 'execution', principal: { kind: 'agent', id: 's' } },
+          ),
+        'unavailable',
+      ],
+    ] as const) {
+      await expect(request()).rejects.toMatchObject({ code });
     }
     await expect(app.call('workbench.context.publish', { snapshot: null })).rejects.toMatchObject({
       code: 'permissionDenied',

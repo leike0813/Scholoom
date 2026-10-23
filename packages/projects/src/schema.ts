@@ -45,6 +45,7 @@ export const fileOperations = sqliteTable('file_operations', {
         owner: string;
         edit: FileEdit;
         basis: string;
+        resourceBasis?: string;
         birthtimeNs: string;
         sessionId?: string;
         runId?: string;

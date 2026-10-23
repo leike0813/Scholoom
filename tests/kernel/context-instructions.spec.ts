@@ -149,7 +149,7 @@ async function checkpointInstructions(internal: string, runId: string): Promise<
   }
 }
 
-test('explicit context items require a resource adapter before acceptance', async () => {
+test('explicit context items require a real resource identity before acceptance', async () => {
   const root = await mkdtemp(join(tmpdir(), 'scholoom-context-unavailable-'));
   const app = new KernelApplication(root, { environment: {} });
   try {
@@ -165,7 +165,7 @@ test('explicit context items require a resource adapter before acceptance', asyn
         materials: [],
         contextItems: textContextItems(),
       }),
-    ).rejects.toMatchObject({ code: 'unavailable' });
+    ).rejects.toMatchObject({ code: 'permissionDenied' });
     const snapshot = await app.snapshot({ projectId: 'application', sessionId: session.id });
     expect(snapshot.messages.filter((message) => message.id === instructionId)).toHaveLength(0);
   } finally {

@@ -1,5 +1,6 @@
-import type { BigIntStats } from 'node:fs';
-import { lstat, unlink } from 'node:fs/promises';
+import { type BigIntStats, lstatSync, unlinkSync } from 'node:fs';
+import { lstat } from 'node:fs/promises';
+import { fileFingerprint } from '@scholoom/platform/node';
 import { OperationError } from '@scholoom/protocol/core';
 import type { FileEdit } from '@scholoom/protocol/projects';
 import { eq } from 'drizzle-orm';
@@ -133,6 +134,28 @@ export class ProjectCreations {
         .insert(tables.edits)
         .values({ id: edit.id, path: edit.path, value: edit })
         .run();
+      // Capture the post-unlink version in the same commit as the completed receipt.
+      try {
+        unlinkSync(row.details.source);
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+      }
+      const published = lstatSync(row.details.destination, { bigint: true });
+      if (
+        !published.isFile() ||
+        String(published.birthtimeNs) !== creation.birthtimeNs ||
+        byteBasis(published) !== creation.basis
+      )
+        throw new OperationError('contentChanged', '原发布结果已变化。');
+      this.store.check('write');
+      complete.details = {
+        ...complete.details,
+        creation: {
+          ...creation,
+          edit,
+          resourceBasis: fileFingerprint(published),
+        },
+      };
       this.store.db
         .update(tables.fileOperations)
         .set({ value: complete.value, details: complete.details })
@@ -140,7 +163,6 @@ export class ProjectCreations {
         .run();
     });
     this.store.files.changed();
-    await unlink(row.details.source).catch(() => {});
     return complete;
   }
 
@@ -151,7 +173,33 @@ export class ProjectCreations {
     return this.store.files.coordinate([row.details.destination], async () => {
       const current = this.find(operationId, owner);
       if (!current) throw new OperationError('notFound', '创建收据不存在。');
-      return this.inspect(current);
+      const inspected = await this.inspect(current);
+      const creation = inspected.details.creation;
+      if (inspected.value.state !== 'complete' || !creation || creation.resourceBasis)
+        return inspected;
+      const target = await this.store.path(creation.edit.path);
+      const stats = await lstat(target, { bigint: true });
+      if (
+        !stats.isFile() ||
+        String(stats.birthtimeNs) !== creation.birthtimeNs ||
+        byteBasis(stats) !== creation.basis
+      )
+        throw new OperationError('contentChanged', '原发布结果已变化，不能建立资源读取版本。');
+      this.store.check('read');
+      // Preserve the first resource version so completed receipts survive later edits/deletion.
+      const details = {
+        ...inspected.details,
+        creation: {
+          ...creation,
+          resourceBasis: fileFingerprint(stats),
+        },
+      };
+      this.store.db
+        .update(tables.fileOperations)
+        .set({ details })
+        .where(eq(tables.fileOperations.id, inspected.id))
+        .run();
+      return { ...inspected, details };
     });
   }
 }

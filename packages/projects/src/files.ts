@@ -177,11 +177,12 @@ export class ProjectFiles {
 
   async readBytes(
     fileId: string,
-    options: { basis?: string; offset?: number; limit?: number } = {},
+    options: { basis?: string; resourceBasis?: string; offset?: number; limit?: number } = {},
   ): Promise<{
     fileId: string;
     path: string;
     basis: string;
+    resourceBasis: string;
     size: number;
     offset: number;
     data: string;
@@ -223,8 +224,12 @@ export class ProjectFiles {
         if (!before.isFile() || before.dev !== located.dev || before.ino !== located.ino)
           throw new OperationError('contentChanged', '文件身份已变化。');
         const basis = byteBasis(before);
+        const resourceBasis = fileFingerprint(before);
         if (options.basis !== undefined && options.basis !== basis)
           throw new OperationError('contentChanged', '文件内容已变化，请重新读取。');
+        // Resource versions include ctime; publication evidence survives link/rename.
+        if (options.resourceBasis !== undefined && options.resourceBasis !== resourceBasis)
+          throw new OperationError('contentChanged', '资源版本已变化，请重新读取。');
         const size = Number(before.size);
         if (size > projectLimits.binaryFileBytes)
           throw new OperationError('resourceLimit', '文件超过二进制读取上限。');
@@ -243,14 +248,15 @@ export class ProjectFiles {
           this.location(fileId).state !== 'present' ||
           this.location(fileId).path !== path ||
           (await this.store.path(path)) !== target ||
-          byteBasis(after) !== basis ||
-          byteBasis(current) !== basis
+          fileFingerprint(after) !== resourceBasis ||
+          fileFingerprint(current) !== resourceBasis
         )
           throw new OperationError('contentChanged', '读取期间文件或身份已变化。');
         return {
           fileId,
           path,
           basis,
+          resourceBasis,
           size,
           offset,
           data: buffer.subarray(0, bytesRead).toString('base64'),

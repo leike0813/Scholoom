@@ -94,7 +94,7 @@ export class KernelApplication extends ManualApplication {
       (context) => this.projectTargetRead(context),
       {
         read: (source, receiver) => this.workbenchContexts.read(source, receiver),
-        ...(options.contextResources ? { resources: options.contextResources } : {}),
+        resources: options.contextResources ?? ((context) => this.instructionResources(context)),
       },
       (context) => this.executionResources(context),
     );
@@ -163,6 +163,20 @@ export class KernelApplication extends ManualApplication {
       'research',
     ).call('harness.startGraph', input);
   }
+  protected override checkInstructionContext(context: CallContext): void {
+    if (
+      context.moduleId !== 'harness' ||
+      context.role !== 'host' ||
+      context.principal.kind !== 'agent' ||
+      context.principal.id !== context.sessionId ||
+      !context.projectId ||
+      !context.sessionId ||
+      context.runId ||
+      context.instanceId
+    )
+      throw new OperationError('permissionDenied', '缺少可信指令接收者。');
+    this.harness.getSession(context.projectId, context.sessionId);
+  }
   protected override resourceUsed(
     context: CallContext,
     ref: ResourceRef | { source: 'project'; projectId: string },
@@ -188,7 +202,7 @@ export class KernelApplication extends ManualApplication {
       context.runId,
       resource.path,
       resource.ref.fileId,
-      resource.basis,
+      { resourceBasis: resource.basis },
     );
     this.checkExecutionContext(context);
     return { resource, association };
@@ -208,7 +222,7 @@ export class KernelApplication extends ManualApplication {
       scope.runId,
       resource.path,
       resource.ref.fileId,
-      resource.basis,
+      { resourceBasis: resource.basis },
       operationId,
     );
     if (context.role === 'execution') this.checkExecutionContext(context);

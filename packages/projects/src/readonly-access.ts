@@ -87,6 +87,7 @@ export class ProjectTargetReader {
         const { bytesRead } = await handle.read(buffer, 0, buffer.length, offset);
         const after = await handle.stat({ bigint: true });
         this.verify(after, request.basis);
+        if (fileFingerprint(opened) !== fileFingerprint(after)) throw changed();
         await this.inspect(request.fileId, path, request.basis, true);
         const { kind: _kind, ...file } = descriptor;
         let bytes = buffer.subarray(0, bytesRead);
@@ -187,6 +188,7 @@ export class ProjectTargetReader {
         throw changed();
       const after = await lstat(absolute, { bigint: true });
       this.verify(after, actual);
+      if (fileFingerprint(before) !== fileFingerprint(after)) throw changed();
       this.store.check('read');
       return { kind: 'describe', fileId, path, basis: actual, size: Number(after.size) };
     } catch (error) {
