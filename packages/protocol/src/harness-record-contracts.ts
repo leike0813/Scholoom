@@ -4,7 +4,16 @@ import { artifactSchema } from './project-contracts.js';
 import { array, content, count, flag, id, object, text } from './schema.js';
 import { contextItemsSchema, workbenchSourceSchema } from './workbench-context.js';
 export const runStateSchema = {
-  enum: ['queued', 'running', 'waiting', 'cancelling', 'cancelled', 'completed', 'failed', 'interrupted'],
+  enum: [
+    'queued',
+    'running',
+    'waiting',
+    'cancelling',
+    'cancelled',
+    'completed',
+    'failed',
+    'interrupted',
+  ],
 } as const;
 export const sessionSchema = object(
   {

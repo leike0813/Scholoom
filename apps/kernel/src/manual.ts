@@ -87,7 +87,17 @@ import { executionResources } from './execution-resources.js';
 import { initializeProjectContainer } from './storage/project-container.js';
 import { WorkbenchContextStore } from './workbench-context.js';
 
-const applicationSchemas = {
+const applicationSchemas: typeof editorPlatformOperations &
+  typeof platformCommandOperations &
+  typeof businessSchemas &
+  typeof projectMaterialOperations &
+  typeof projectExecutionOperations &
+  typeof harnessModuleOperations &
+  typeof researchModuleOperations &
+  typeof libraryModuleOperations &
+  typeof projectHarnessOperations &
+  typeof modelsModuleOperations &
+  typeof projectTargetReadOperations = {
   ...editorPlatformOperations,
   ...platformCommandOperations,
   ...businessSchemas,
@@ -150,11 +160,13 @@ export class ManualApplication {
   private readonly resourceReading = new MaterialReading(undefined, this.processes);
   protected revision = 0;
   private listeners = new Set<(change: WorkbenchChange) => void>();
-  protected readonly broker = new Broker<
+  protected readonly broker: Broker<
     typeof applicationSchemas,
     ApplicationInputs,
     ApplicationOutputs
-  >(applicationSchemas);
+  > = new Broker<typeof applicationSchemas, ApplicationInputs, ApplicationOutputs>(
+    applicationSchemas,
+  );
   private readonly product = this.broker.consumer(
     { moduleId: 'product', principal: { kind: 'human', id: 'local' }, role: 'product' },
     Object.keys(businessSchemas) as BusinessMethod[],

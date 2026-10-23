@@ -283,7 +283,8 @@
         "files.read",
         "files.resolve",
         "session.check",
-        "harness.execute"
+        "harness.execute",
+        "harness.startGraph"
       ]
     },
     {

@@ -5,14 +5,20 @@ import {
   resourceEvidenceSchema,
   resourceSaveResultSchema,
 } from './resources.js';
-import { id, object } from './schema.js';
+import { flag, id, object } from './schema.js';
 import { workDomainSchema } from './work-domains.js';
 
 const jsonObject = { type: 'object', additionalProperties: true } as const;
 const evidenceList = { type: 'array', items: resourceEvidenceSchema, maxItems: 1000 } as const;
 export const graphDefinitionSchema = object(
-  { graphId: id, version: id, stateFormatVersion: id, configSchema: jsonObject,
-    waitSchemas: { type: 'object', additionalProperties: jsonObject } },
+  {
+    graphId: id,
+    version: id,
+    stateFormatVersion: id,
+    configSchema: jsonObject,
+    waitSchemas: { type: 'object', additionalProperties: jsonObject },
+    requiresModel: flag,
+  },
   ['graphId', 'version', 'stateFormatVersion', 'configSchema'],
 );
 export const registeredGraphSchema = object(

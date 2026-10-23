@@ -5,9 +5,11 @@ import {
   type ExecutionControlProviders,
   type GraphDefinition,
   type GraphExecution,
+  type GraphWait,
   graphDefinitionSchema,
   registeredGraphSchema,
 } from '@scholoom/protocol/execution';
+import type { InstructionSaver } from './checkpoint.js';
 
 const definitionContract = compileContract({ params: graphDefinitionSchema, result: true });
 const selectionContract = compileContract({ params: registeredGraphSchema, result: true });
@@ -19,9 +21,13 @@ export type RegisteredGraphInput = Extract<
 export type GraphDriver = Pick<ExecutionControlProviders, 'execution.next'> & { close?(): void };
 export type GraphFactory = {
   definition: GraphDefinition;
+  resume?(
+    wait: GraphWait,
+    messages: readonly { id: string; text: string }[],
+  ): { value: unknown; instructionIds: string[] } | undefined;
   create(
     input: RegisteredGraphInput,
-    context: { peer: RpcPeer; signal: AbortSignal },
+    context: { peer: RpcPeer; signal: AbortSignal; checkpointer?: InstructionSaver },
   ): GraphDriver | Promise<GraphDriver>;
 };
 

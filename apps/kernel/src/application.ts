@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import type { Handlers } from '@scholoom/broker';
 import {
   type ContextBridge,
+  type ExecutionGraphs,
   Harness,
   type HarnessProject,
   HarnessRecords,
@@ -14,6 +15,8 @@ import type {
   BusinessInputs,
   BusinessOutputs,
   BusinessParams,
+  HarnessModuleInputs,
+  HarnessModuleOutputs,
   ResourceCreationInputs,
   ResourceDescriptor,
   ResourceRef,
@@ -43,6 +46,8 @@ export class KernelApplication extends ManualApplication {
       modelEndpoint?: string;
       environment?: NodeJS.ProcessEnv;
       contextResources?: ContextBridge['resources'];
+      executionGraphs?: ExecutionGraphs;
+      workerEntry?: URL;
     } = {},
   ) {
     super(directory);
@@ -84,16 +89,32 @@ export class KernelApplication extends ManualApplication {
       (context) => this.projectFiles(context),
       (context) => this.researchProgress(context),
       this.processes,
-      new URL('./execution-worker.js', import.meta.url),
-      executionGraphs,
+      options.workerEntry ?? new URL('./execution-worker.js', import.meta.url),
+      options.executionGraphs ?? executionGraphs,
       (context) => this.projectTargetRead(context),
       {
         read: (source, receiver) => this.workbenchContexts.read(source, receiver),
         ...(options.contextResources ? { resources: options.contextResources } : {}),
       },
+      (context) => this.executionResources(context),
     );
     this.broker.register('runtime', this.handlers);
     this.broker.register('runtime-internal', {
+      'harness.startGraph': (input, context) => {
+        if (context.role !== 'host' || context.principal.kind !== 'system')
+          throw new OperationError('permissionDenied', '图选择需要所属领域的宿主入口。');
+        return this.harness.send(
+          {
+            projectId: input.projectId,
+            sessionId: input.sessionId,
+            instructionId: input.instructionId,
+            text: input.text,
+            materials: [],
+          },
+          undefined,
+          input.execution,
+        );
+      },
       'models.status': () => this.models.status(),
       'harness.snapshot': (input) =>
         this.harness.snapshot(
@@ -133,6 +154,14 @@ export class KernelApplication extends ManualApplication {
   }
   protected override checkExecutionContext(context: CallContext): void {
     this.harness.checkExecutionContext(context);
+  }
+  startGraph(
+    input: HarnessModuleInputs['harness.startGraph'],
+  ): Promise<HarnessModuleOutputs['harness.startGraph']> {
+    return this.modulePort(
+      { moduleId: 'research', role: 'host', principal: { kind: 'system', id: 'source-graph' } },
+      'research',
+    ).call('harness.startGraph', input);
   }
   protected override resourceUsed(
     context: CallContext,

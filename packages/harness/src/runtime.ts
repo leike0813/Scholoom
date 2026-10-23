@@ -24,7 +24,8 @@ import {
   ResourceAccess,
 } from '@scholoom/platform/node';
 import type { CallContext, ErrorInfo } from '@scholoom/protocol/core';
-import { OperationError } from '@scholoom/protocol/core';
+import { compileContract, OperationError } from '@scholoom/protocol/core';
+import type { GraphExecution, GraphProgress, GraphResumeInput } from '@scholoom/protocol/execution';
 import type {
   CapabilityExecution,
   HarnessInputs,
@@ -58,6 +59,7 @@ import type {
 } from '@scholoom/protocol/research';
 import { researchRequestSchema } from '@scholoom/protocol/research';
 import type {
+  ExecutionResourcePort,
   ResourceEvidence,
   ResourceRef,
   ResourceSaveResult,
@@ -299,6 +301,7 @@ export class Harness {
       check: (targetIds: Iterable<string>) => void;
     },
     private readonly contextBridge?: ContextBridge,
+    private readonly executionResources?: (context: CallContext) => ExecutionResourcePort,
   ) {}
 
   async initialize(): Promise<void> {
@@ -610,15 +613,67 @@ export class Harness {
   async send(
     input: HarnessInputs['session.send'],
     source?: CallContext['workbenchSource'],
+    selection?: Extract<GraphExecution, { kind: 'registered' }>,
   ): Promise<{ instructionId: string; runId: string }> {
     if (input.contextItems && !isContextItems(input.contextItems))
       throw new OperationError('invalidRequest', '显式上下文项不符合容量及结构约定。');
     input = structuredClone(input);
+    if (selection) selection = structuredClone(selection);
     if (this.stopped) throw new OperationError('shuttingDown', '内核正在停止。');
     const project = this.projects.get(input.projectId);
     const session = this.session(project, input.sessionId);
     const previous = this.acceptedInstruction(project, input);
-    if (previous) return previous;
+    if (previous) {
+      if (selection) {
+        const accepted = this.records(project)
+          .select()
+          .from(tables.runs)
+          .where(eq(tables.runs.id, previous.runId))
+          .get()?.value.graph;
+        if (
+          !accepted ||
+          accepted.graphId !== selection.graphId ||
+          accepted.version !== selection.version ||
+          !isDeepStrictEqual(accepted.config, selection.config) ||
+          !isDeepStrictEqual(accepted.materials ?? [], selection.materials)
+        )
+          throw new OperationError('invalidRequest', '原指令已绑定另一图。');
+      }
+      return previous;
+    }
+    const prior = this.latestRun(project, input.sessionId);
+    if (prior?.graph && prior.state === 'waiting')
+      await this.active.get(activeKey(project, session.id))?.done;
+    if (selection && this.active.has(activeKey(project, session.id)))
+      throw new OperationError('invalidRequest', '请先等待当前执行停止后选择新图。');
+    const registered =
+      selection ??
+      (prior?.graph
+        ? {
+            kind: 'registered' as const,
+            graphId: prior.graph.graphId,
+            version: prior.graph.version,
+            config: prior.graph.config,
+            materials: prior.graph.materials ?? [],
+            workDomain:
+              project.id === 'application'
+                ? {
+                    kind: 'application' as const,
+                    projectId: 'application' as const,
+                    sessionId: session.id,
+                  }
+                : { kind: 'project' as const, projectId: project.id, sessionId: session.id },
+          }
+        : undefined);
+    let factory: ReturnType<ExecutionGraphs['resolve']> | undefined;
+    if (registered) {
+      if (
+        registered.workDomain.projectId !== project.id ||
+        registered.workDomain.sessionId !== session.id
+      )
+        throw new OperationError('permissionDenied', '图工作域不属于当前会话。');
+      factory = this.graphs.resolve(registered);
+    }
     const admissionContext: CallContext = {
       moduleId: 'harness',
       role: 'host',
@@ -629,7 +684,10 @@ export class Harness {
     try {
       await this.port(project)['project.check']({ projectId: project.id, access: 'send' });
       await authorizeContextItems(this.contextBridge, admissionContext, input.contextItems ?? []);
-      if (!(await this.model.credentials.status()).configured)
+      if (
+        (!registered || factory?.definition.requiresModel) &&
+        !(await this.model.credentials.status()).configured
+      )
         throw new OperationError('credentialUnavailable', '请先配置 MiniMax API Key。');
       if (input.materialFileIds && input.materialFileIds.length !== input.materials.length)
         throw new OperationError('invalidRequest', '材料身份数量不一致。');
@@ -648,23 +706,55 @@ export class Harness {
     let run = this.latestRun(project, input.sessionId);
     let busy = this.active.has(activeKey(project, input.sessionId));
     let resuming = !busy && !!run && run.state !== 'completed';
+    const incompatible =
+      !!registered &&
+      !!run?.graph &&
+      (registered.graphId !== run.graph.graphId ||
+        registered.version !== run.graph.version ||
+        factory?.definition.stateFormatVersion !== run.graph.stateFormatVersion ||
+        !isDeepStrictEqual(registered.materials, run.graph.materials ?? []) ||
+        !isDeepStrictEqual(registered.config, run.graph.config));
+    if (registered && (incompatible || run?.state === 'cancelled')) resuming = false;
     if (resuming && run) {
       const { error: _error, ...continuing } = run;
       run = { ...continuing, state: 'queued' };
     }
     if (!busy && !resuming) {
-      const modelConfig = await this.runConfig(session);
+      const modelConfig =
+        registered && !factory?.definition.requiresModel
+          ? undefined
+          : await this.runConfig(session);
       busy = this.active.has(activeKey(project, input.sessionId));
       run = this.latestRun(project, input.sessionId);
-      resuming = !busy && !!run && run.state !== 'completed';
+      resuming =
+        !busy &&
+        !!run &&
+        run.state !== 'completed' &&
+        !incompatible &&
+        !(registered && run.state === 'cancelled');
       if (!busy && !resuming)
         run = {
           id: randomUUID(),
           sessionId: session.id,
           attempt: (run?.attempt ?? 0) + 1,
           state: 'queued',
-          modelConfig,
+          ...(modelConfig ? { modelConfig } : {}),
         };
+    }
+    if (registered && factory && run && !busy) {
+      const checkpointRef = resuming && run.graph ? run.graph.checkpointRef : run.id;
+      run = {
+        ...run,
+        graph: {
+          graphId: registered.graphId,
+          version: registered.version,
+          config: registered.config,
+          materials: registered.materials,
+          stateFormatVersion: factory.definition.stateFormatVersion,
+          checkpointRef,
+          ...(resuming && run.graph?.wait ? { wait: run.graph.wait } : {}),
+        },
+      };
     }
     const accepted = run as Run;
     if (this.released.has(project) || this.projects.get(project.id) !== project)
@@ -753,7 +843,8 @@ export class Harness {
     if (run && active) {
       this.setRun(project, { ...run, state: 'cancelling', remoteOutcome: 'unknown' });
       active.controller.abort(new Error('User cancelled'));
-    } else if (run && run.state === 'queued') this.setRun(project, { ...run, state: 'cancelled' });
+    } else if (run && ['queued', 'waiting'].includes(run.state))
+      this.setRun(project, { ...run, state: 'cancelled' });
   }
 
   private schedule(
@@ -777,7 +868,9 @@ export class Harness {
         await reservation.ready;
         controller.signal.throwIfAborted();
         entered = true;
-        await this.execute(project, run, controller.signal, resume, reservation);
+        if (run.graph)
+          await this.executeRegistered(project, run, controller.signal, resume, reservation);
+        else await this.execute(project, run, controller.signal, resume, reservation);
       })
       .catch((error) => {
         if (!entered)
@@ -808,7 +901,7 @@ export class Harness {
           )
           .limit(1)
           .get();
-        if (!this.stopped && actual?.state === 'completed' && pending)
+        if (!this.stopped && !actual?.graph && actual?.state === 'completed' && pending)
           void this.scheduleNext(project, run.sessionId, actual.attempt + 1);
       });
     this.active.set(activeKey(project, run.sessionId), { controller, done });
@@ -831,6 +924,372 @@ export class Harness {
       });
     } catch {
       // 默认配置不可用时无法创建后续执行；未消费指令保留，可显式继续。
+    }
+  }
+
+  private async executeRegistered(
+    project: HarnessProject,
+    initial: Run,
+    signal: AbortSignal,
+    resume: boolean,
+    reservation: ProcessReservation,
+  ): Promise<void> {
+    let run = initial;
+    let database: Database.Database | undefined;
+    let release: (() => void) | undefined;
+    const instanceId = randomUUID();
+    const context: CallContext = {
+      moduleId: 'harness',
+      role: 'execution',
+      principal: { kind: 'agent', id: run.sessionId },
+      projectId: project.id,
+      sessionId: run.sessionId,
+      runId: run.id,
+      instanceId,
+      signal,
+      workDomain:
+        project.id === 'application'
+          ? { kind: 'application', projectId: 'application', sessionId: run.sessionId }
+          : { kind: 'project', projectId: project.id, sessionId: run.sessionId },
+    };
+    const updateInstance = (state: tables.RunInstance['state']) => {
+      const row = this.records(project)
+        .select()
+        .from(tables.instances)
+        .where(eq(tables.instances.id, instanceId))
+        .get();
+      if (row)
+        this.records(project)
+          .update(tables.instances)
+          .set({ value: { ...row.value, state } })
+          .where(eq(tables.instances.id, instanceId))
+          .run();
+    };
+    try {
+      signal.throwIfAborted();
+      await this.port(project)['project.check']({ projectId: project.id, access: 'send' });
+      const binding = run.graph;
+      if (!binding || !context.workDomain)
+        throw new OperationError('invalidRequest', '缺少持久图绑定或工作域。');
+      const graph = {
+        kind: 'registered' as const,
+        graphId: binding.graphId,
+        version: binding.version,
+        config: binding.config,
+        materials: binding.materials ?? [],
+        workDomain: context.workDomain,
+      };
+      const factory = this.graphs.resolve(graph);
+      if (factory.definition.stateFormatVersion !== binding.stateFormatVersion)
+        throw new OperationError('protocolIncompatible', '图状态格式不兼容，旧记录及成果已保留。');
+      const unsettled = this.records(project)
+        .select()
+        .from(tables.instances)
+        .all()
+        .filter((row) => row.runId === run.id && row.value.state !== 'exited');
+      for (const row of unsettled) {
+        if (!row.value.processId || processMayBeAlive(row.value.processId))
+          throw new OperationError('outcomeUnknown', '旧图执行停止尚未确认。');
+        this.records(project)
+          .update(tables.instances)
+          .set({ value: { ...row.value, state: 'exited' } })
+          .where(eq(tables.instances.id, row.id))
+          .run();
+      }
+      release = await claimCheckpoints(project.internal, [binding.checkpointRef]);
+      const opened = await openCheckpoint(project.internal, binding.checkpointRef);
+      database = opened.database;
+      if (opened.issue)
+        throw new OperationError('protocolIncompatible', '图 checkpoint 不完整，停止原尝试接续。');
+      const pending = this.records(project)
+        .select()
+        .from(tables.instructions)
+        .where(
+          and(
+            eq(tables.instructions.sessionId, run.sessionId),
+            eq(tables.instructions.consumed, false),
+          ),
+        )
+        .orderBy(tables.instructions.seq)
+        .limit(100)
+        .all();
+      const ids = pending.map((item) => item.id);
+      const messages = pending.map((item) => {
+        const message = this.records(project)
+          .select()
+          .from(tables.messages)
+          .where(eq(tables.messages.id, item.id))
+          .get()?.value;
+        if (!message) throw new OperationError('unavailable', '图指令消息缺失。');
+        return message;
+      });
+      let input: GraphResumeInput | null = null;
+      const saver = new InstructionSaver(database, async () => {});
+      const latest = await saver.getTuple({ configurable: { thread_id: run.id } });
+      if (resume && !latest)
+        throw new OperationError('unavailable', '原图 checkpoint 缺失；保留原尝试并停止接续。');
+      const previousResume = latest?.checkpoint.channel_values.graphResume as
+        | GraphResumeInput
+        | undefined;
+      if (binding.wait && previousResume?.waitId === binding.wait.waitId) input = previousResume;
+      else if (binding.wait) {
+        if (!ids.length) throw new OperationError('invalidRequest', '等待接续缺少新指令。');
+        const mapped = factory.resume?.(
+          binding.wait,
+          messages.map((message) => ({ id: message.id, text: message.text })),
+        );
+        const value = mapped?.value;
+        const schema = factory.definition.waitSchemas?.[binding.wait.inputSchemaRef];
+        if (
+          !mapped?.instructionIds.length ||
+          mapped.instructionIds.some((id) => !ids.includes(id)) ||
+          value === undefined ||
+          !schema ||
+          !compileContract({ params: schema, result: true }).params(value)
+        ) {
+          signal.throwIfAborted();
+          this.setRun(project, {
+            ...run,
+            state: 'waiting',
+            error: '输入未明确满足当前等待；请核对等待要求后重新发送。',
+          });
+          return;
+        }
+        input = {
+          attemptId: run.id,
+          waitId: binding.wait.waitId,
+          instructionIds: mapped.instructionIds,
+          value: value as GraphResumeInput['value'],
+        };
+      }
+      const allowed = new Set(ids);
+      const checkpointIds = latest?.checkpoint.channel_values.instructionIds;
+      const confirmed = JSON.parse(
+        this.records(project)
+          .select()
+          .from(tables.meta)
+          .where(eq(tables.meta.key, `consumption:${run.id}`))
+          .get()?.value ?? '{"instructionIds":[]}',
+      ) as Consumption;
+      if (Array.isArray(checkpointIds))
+        for (const id of checkpointIds) {
+          const owned = this.records(project)
+            .select()
+            .from(tables.instructions)
+            .where(eq(tables.instructions.id, id))
+            .get();
+          if (
+            owned?.sessionId === run.sessionId &&
+            owned.consumed &&
+            confirmed.instructionIds.includes(id)
+          )
+            allowed.add(id);
+        }
+      if (previousResume) for (const id of previousResume.instructionIds) allowed.add(id);
+      const confirm = async ({ checkpointId, instructionIds }: Consumption) => {
+        signal.throwIfAborted();
+        this.checkExecutionContext(context);
+        const saved = await saver.getTuple({
+          configurable: { thread_id: run.id, checkpoint_id: checkpointId },
+        });
+        const recorded = saved?.checkpoint.channel_values.instructionIds;
+        if (
+          !Array.isArray(recorded) ||
+          instructionIds.some((id) => !allowed.has(id) || !recorded.includes(id))
+        )
+          throw new OperationError('invalidRequest', '图输入缺少已保存的 checkpoint 依据。');
+        const resumed = saved?.checkpoint.channel_values.graphResume as
+          | GraphResumeInput
+          | undefined;
+        if (
+          input &&
+          instructionIds.some((id) => input.instructionIds.includes(id)) &&
+          (!resumed || !isDeepStrictEqual(resumed, input))
+        )
+          throw new OperationError('invalidRequest', '等待输入尚未保存到 checkpoint。');
+        let changed: boolean;
+        try {
+          changed = this.repository(project).confirmConsumption(run.sessionId, run.id, {
+            checkpointId,
+            instructionIds,
+          });
+        } catch {
+          throw new OperationError('outcomeUnknown', '图 checkpoint 已保存，但消费确认尚待核查。');
+        }
+        if (changed) {
+          this.projects.touch(project.id);
+          this.notify(project.id, run.sessionId);
+        }
+      };
+      let progress: GraphProgress | undefined;
+      const model = run.modelConfig
+        ? await this.model.execution(
+            async () => {
+              this.checkExecutionContext(context);
+              await this.port(project)['project.check']({ projectId: project.id, access: 'send' });
+              if (!this.executionResources)
+                throw new OperationError('unavailable', '图资源提供者不可用。');
+              for (const evidence of graph.materials) {
+                const descriptor = await this.executionResources(context).describe(evidence.ref);
+                if (descriptor.basis !== evidence.basis)
+                  throw new OperationError('contentChanged', '图材料已变化。');
+              }
+              const libraryUsed = this.records(project)
+                .select()
+                .from(tables.meta)
+                .where(eq(tables.meta.key, `library-context:${run.sessionId}`))
+                .get();
+              if (libraryUsed) {
+                const library = this.libraryTools(context);
+                await library.call('library.check', { access: 'read' });
+                await library.call('library.check', { access: 'send' });
+              }
+              const targets = JSON.parse(
+                this.records(project)
+                  .select()
+                  .from(tables.meta)
+                  .where(eq(tables.meta.key, `target-read-context:${run.sessionId}`))
+                  .get()?.value ?? '[]',
+              ) as string[];
+              this.targetFiles?.(context).check(targets);
+            },
+            signal,
+            run.modelConfig,
+          )
+        : undefined;
+      const executionResources = this.executionResources;
+      const remote = new RemoteAgent({
+        ...(model ? { model } : {}),
+        backend: new ProjectBackend(
+          this.projectFiles(context),
+          project.id,
+          signal,
+          () => {},
+          () => {},
+        ),
+        signal,
+        instanceId,
+        reservation,
+        ...(this.workerEntry ? { workerEntry: this.workerEntry } : {}),
+        registered: {
+          graph,
+          attemptId: run.id,
+          stateFormatVersion: binding.stateFormatVersion,
+          checkpointRef: binding.checkpointRef,
+          checkpointPath: opened.path,
+          ...(model ? { model: model.descriptor } : {}),
+          input,
+          instructionIds: input ? input.instructionIds : resume ? [] : ids,
+        },
+        ...(executionResources ? { resources: () => executionResources(context) } : {}),
+        confirm,
+        authorize: () => this.checkExecutionContext(context),
+        onStart: (owned) => {
+          if (!owned.identity) throw new OperationError('unavailable', '图进程身份不可用。');
+          this.records(project)
+            .insert(tables.instances)
+            .values({
+              id: instanceId,
+              runId: run.id,
+              hostInstanceId: this.hostInstanceId,
+              value: {
+                instanceId,
+                runId: run.id,
+                hostInstanceId: this.hostInstanceId,
+                processId: owned.identity.pid,
+                checkpointPath: opened.path,
+                state: 'running',
+              },
+            })
+            .run();
+          this.setRun(project, { ...run, state: 'running' });
+        },
+        onStopping: () => updateInstance('stopping'),
+        onStop: () => updateInstance('exited'),
+        onGraph: async (result) => {
+          this.checkExecutionContext(context);
+          if (result.kind === 'graph.waiting') {
+            if (
+              result.wait.attemptId !== run.id ||
+              result.wait.checkpointRef !== binding.checkpointRef ||
+              !factory.definition.waitSchemas?.[result.wait.inputSchemaRef]
+            )
+              throw new OperationError('invalidRequest', '图等待不属于当前持久绑定。');
+            const saved = await saver.getTuple({ configurable: { thread_id: run.id } });
+            const durableWait = saved?.checkpoint.channel_values.graphWait;
+            if (!isDeepStrictEqual(durableWait, result.wait))
+              throw new OperationError('outcomeUnknown', '等待尚未保存到 checkpoint。');
+            const interrupted = saved?.pendingWrites?.some(
+              ([, channel, values]) =>
+                channel === '__interrupt__' &&
+                (Array.isArray(values) ? values : [values]).some(
+                  (value) =>
+                    value &&
+                    typeof value === 'object' &&
+                    'id' in value &&
+                    value.id === result.wait.waitId,
+                ),
+            );
+            if (!interrupted)
+              throw new OperationError('outcomeUnknown', '等待缺少真实 interrupt 依据。');
+          }
+          const submitted = input?.instructionIds ?? (resume ? [] : ids);
+          if (
+            result.kind !== 'graph.failed' &&
+            submitted.some(
+              (id) =>
+                !this.records(project)
+                  .select()
+                  .from(tables.instructions)
+                  .where(eq(tables.instructions.id, id))
+                  .get()?.consumed,
+            )
+          )
+            throw new OperationError('outcomeUnknown', '图返回结果前尚未确认指令消费。');
+          progress = result;
+        },
+      });
+      for await (const _event of remote.streamEvents(null, {})) {
+        /* Registered graphs project their own result. */
+      }
+      signal.throwIfAborted();
+      if (!progress) throw new OperationError('outcomeUnknown', '图未返回可核查结果。');
+      const result: GraphProgress = progress;
+      if (result.kind === 'graph.waiting')
+        run = { ...run, graph: { ...binding, wait: result.wait } };
+      else {
+        const { wait: _wait, ...completed } = binding;
+        run = { ...run, graph: completed };
+      }
+      this.setRun(project, {
+        ...run,
+        graphProgress: result,
+        state:
+          result.kind === 'graph.waiting'
+            ? 'waiting'
+            : result.kind === 'graph.completed'
+              ? 'completed'
+              : 'failed',
+        remoteOutcome: 'completed',
+        ...(result.kind === 'graph.failed' ? { error: result.error.message } : {}),
+      });
+    } catch (error) {
+      this.setRun(project, {
+        ...run,
+        state:
+          error instanceof OperationError && error.code === 'outcomeUnknown'
+            ? 'interrupted'
+            : signal.aborted
+              ? this.stopped
+                ? 'interrupted'
+                : 'cancelled'
+              : 'failed',
+        error: modelFailure(error),
+        remoteOutcome: 'unknown',
+      });
+    } finally {
+      database?.close();
+      release?.();
     }
   }
 

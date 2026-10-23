@@ -2,6 +2,18 @@
 
 ## 当前状态与成果
 
+### 第三轮 Graph 增量（待 dev 接收）
+
+2026-10-23，开始前确认当前工作树 HEAD 为 `9c8212f`、无未提交改动。用户授权本树实施、独立提交、推送并向 dev 发 PR；不自行合入、不操作其他工作树。已完成 2.3、2.4 的本树实现与实跑，tasks 为 11/19；最终组合及双实例验收仍待后续，不宣称已接入 dev。
+
+宿主通过内部 `harness.startGraph` broker 接纳源码登记图，公共 `session.send` 继续当前图的等待。原 runs 保存身份／版本／配置／材料依据／状态格式／checkpoint 绑定，查询返回 graphProgress 及 waitId；工厂只将明确匹配的新消息转为已声明 schema 的 resume，未匹配消息保留未消费。真实 InstructionSaver 在 checkpoint 保存后确认消费，保存输入后的确认失败可重启重试，不重复创建成果；待消费指令仍走原记录和回执。无新增数据库或交付事实源。
+
+registered 路径复用 RemoteAgent、静态 driver、当前实例、ProcessAdmission、ModelAccess 和 broker 资源提供者；不改变默认 Agent 的 beforeModel／contextItems 来源。确定性图无凭据也可执行；需要模型的源码图共用现有额度。重启只读取等待；原版本不可用拒绝普通接续，显式新版本另建尝试且保留旧 checkpoint 与文件。resume 缺少原 checkpoint 时停止，禁止从头执行。图等待同时核对持久 graphWait 和实际 interrupt，不接受仅有投影的等待回报。
+
+`tests/kernel/registered-graph.spec.ts` 的 10 项边界全部通过：normal、ack、upgrade、lost-wait、missing-checkpoint、materials、model、budget、cancel、revoke。固定 StateGraph 在实际子进程读取真实项目材料、从不存在路径创建成果、interrupt 等待并由新消息继续；实际文件／SQLite／资源仓储均沿内部提供者。测试宿主源码集合为夹具，生产默认集合仍为空；额度用例只调用真实 acquire/release，不向外部模型发请求。该组与 context-instructions、instruction-checkpoint、graph-registration 组合共 22/22 通过，包含 101 条原 Agent 指令及消费确认故障。
+
+独立只读审查关闭了恢复时旧指令身份误拒、材料依据兼容遗漏、checkpoint 缺失重放、取消后回写等待及 SDK 单对象 interrupt 校验问题；最终窄复核无剩余明确阻塞。格式清理后 harness/kernel 编译通过，相关 75 个源码／测试文件 Biome 通过。命令接线与更广回归随后独立记录，Graph 增量先交付审查。
+
 ### 第二轮 dev 接收
 
 2026-10-23，用户要求接收三工作树新一轮 PR。dev 保留原提交依次合并 #4、#5、#6，合并提交为 `b39292a`、`fa77d2e`、`a9d8afe`。工作域 change 已同步正式规格并归档；本变更的真实执行资源适配、保存／关联及首次创建已接入 dev，1.2 完成，tasks 为 **9/19**。工作台的指令来源、显式项持久化及多来源查询也已接入，但生产显式材料资源提供者仍待工作台线绑定。未同步其他工作树或控制其 Agent。

@@ -28,7 +28,9 @@ Electron 工作台和 CLI 共用独立 Node 内核，浏览器开发入口经同
 
 执行控制映射也由 `generate:contracts` 产生 schema 引用。名额申请／释放、健康、停止、checkpoint 消费确认、图初始化、模型事件及工具接续共用声明派生的参数、提供者签名、结果和等待语义，并在 IPC 两侧校验。动态工具的输入仍从原注册 schema 解析，Zod 默认值在宿主执行前应用；模型描述复用 models schema。SDK 消息与 Command 的原生类型适配留在 harness 内。
 
-`startExecutionWorker` 将共同 IPC、健康和停止机制留在 harness；`KernelApplication` 为根执行及能力子执行注入静态 `apps/kernel/src/execution-worker.ts` 入口，客户端载荷不能指定入口。宿主与 worker 共用 `execution-graphs.ts` 的源码注册集合，`ExecutionGraphs` 在构造图前核对身份、版本和配置 schema。生产集合当前为空；两节点 StateGraph 只在 `tests/fixtures/domain-execution-worker` 装配，定向测试为 `tests/kernel/graph-registration.spec.ts`。这证明工厂与无模型推进的实际子进程接线；harness 的 registered 尝试持久化、资源适配与等待恢复仍未接通，继续明确拒绝，不能据夹具推断完整业务图可用。
+`startExecutionWorker` 将共同 IPC、健康和停止机制留在 harness；`KernelApplication` 为根执行及能力子执行注入静态 `apps/kernel/src/execution-worker.ts` 入口，客户端载荷不能指定入口。宿主与 worker 共用 `execution-graphs.ts` 的源码注册集合，`ExecutionGraphs` 在构造图前核对身份、版本和配置 schema。生产集合当前为空；固定 StateGraph 仅在 `tests/fixtures/domain-execution-worker` 的宿主与 worker 同源装配，定向测试为 `graph-registration.spec.ts`、`registered-graph.spec.ts`。
+
+宿主经内部 broker `harness.startGraph` 选择 registered 图，后续沿普通 `session.send` 发送新指令。尝试保存图身份、版本、配置、材料依据、状态格式及 checkpoint 绑定；`session.get` 返回 `graphProgress` 和 waiting／waitId。工厂的 `resume` 将新消息映射为已声明等待 schema 的输入与指令身份；不匹配时保留等待和未消费消息，不转为默认 Agent。图使用宿主提供的 `InstructionSaver`，先保存 `instructionIds`／`graphResume` 再确认消费；等待须对应实际 checkpoint 的 interrupt。重启只读取记录，不自动推进；旧版本不可用或 checkpoint 缺失时保留原尝试与成果，显式新版本另建尝试。registered 执行共用当前实例授权、进程准入、模型额度、取消和真实资源端口，无模型图不要求模型凭据。
 
 框架文件上传／下载已加入同一内部契约映射，以 base64 传输 SDK 字节并保留帧上限；连续压缩的历史追加经过实际 IPC 验证。会话临时资源位于 `.scholoom/harness/sessions/<sessionId>/scratch`；旧共享资源复制后保留原件，清单无法核对时持续提示 `context_incomplete`，新会话失败重试不继承旧共享目录。恢复核查最多 1000 个已保存引用，超限明确未完整核查，临时资源缺失不抹去摘要和领域成果。
 
@@ -68,13 +70,13 @@ Agent、能力子执行与 PDF 共用宿主持有的进程容量，默认活动 
 | --- | --- |
 | 文献 | 沿共同 `ResourceRef`／材料版本提供所属读取；参考 `resource-access.spec.ts` 的真实项目、库及解析组合，替换外部摄取来源 |
 | 项目 | 沿 `HarnessProjectPort`／`ProjectFilePort` 取用项目能力；参考 `project-backend.spec.ts`，成果首次创建与操作核查等待资源创建提供者 |
-| 科研方法 | 源码定义注册元信息及工厂，由宿主与 worker 共用 `ExecutionGraphs`；参考 `graph-registration.spec.ts` 和固定两节点夹具，方法仓储参考 `research-module.spec.ts` |
+| 科研方法 | 源码定义注册元信息及工厂，由宿主与 worker 共用 `ExecutionGraphs`；参考 `graph-registration.spec.ts`、`registered-graph.spec.ts` 的固定图及等待适配，方法仓储参考 `research-module.spec.ts` |
 | Agent | 沿 `HarnessStorage`、领域端口及私有 worker 入口组合；参考 `harness-module.spec.ts`、`execution-isolation.spec.ts`，模型可用受控 HTTP 响应替换 |
 | 科研计算 | 宿主为消费模块解析私有工作空间、程序登记及授权回调；参考 `managed-commands.spec.ts` 的固定 Node 程序，环境选择和业务运行记录仍由计算域实现 |
 | 阅读交互 | 沿共同资源和 editor 端口接入，参考 `resource-access.spec.ts`、`editor-runtime.spec.ts` 及 `tests/ui/resource-opening.spec.ts`；UI 使用共同 renderer URL 配置 |
 | Zotero 生态 | 沿兼容宿主入口及共同 broker 接入；`tests/smoke/entrypoints.spec.ts` 验证真实宿主外壳，插件身份、SQL 和 BBT 生产接线另按所属契约验收 |
 
-上述内核测试路径均在 `tests/kernel/`。固定计数图实际运行 LangGraph 和 IPC，节点回报由测试宿主接收，未取用业务材料或保存科研成果；固定命令实际运行 Node 与受管进程树，工作空间和授权回调是测试提供者。资源授权、成果首次创建、持久等待和新消息接续的真实组合仍需完成领域交接及工作域前置。定位失败时，先区分协议拒绝、注册校验、准入等待、实际执行及结果交付，再沿对应测试和所属记录核查。
+上述内核测试路径均在 `tests/kernel/`。固定资源图实际运行 LangGraph、IPC、SQLite checkpoint 和所属资源提供者，从真实材料创建新成果并等待新消息接续；测试宿主装配源码集合，未注册产品科研方法。固定命令实际运行 Node 与受管进程树，机制用例的工作空间和授权回调是测试提供者。各组合的实跑范围见[领域交接交付](../openspec/changes/establish-domain-execution-handoffs/delivery.md)。定位失败时，先区分协议拒绝、注册校验、准入等待、实际执行及结果交付，再沿对应测试和所属记录核查。
 
 依赖和工具版本以 `package.json`、`pnpm-lock.yaml`、`.nvmrc` 为准。pnpm 的依赖安装脚本授权集中在 `pnpm-workspace.yaml`。Electron 42 起取消依赖的自动运行时下载，项目使用官方 `install-electron` 命令显式准备二进制，见 [上游安装说明](https://github.com/electron/electron/blob/main/docs/tutorial/installation.md)。
 

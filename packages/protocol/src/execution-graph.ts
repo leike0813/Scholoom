@@ -95,6 +95,7 @@ export const executionGraphOperations = {
             model: modelDescriptorSchema,
             attemptId: id,
             checkpointRef: id,
+            stateFormatVersion: id,
             checkpointPath: text,
             input: { anyOf: [graphResumeInputSchema, { const: null }] },
             instructions: instructionContextsSchema,

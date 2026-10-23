@@ -12,14 +12,17 @@ import {
 } from '@scholoom/platform/node';
 import { compileContract, limits, OperationError } from '@scholoom/protocol/core';
 import {
+  type ExecutionControlInputs,
   type ExecutionControlOutputs,
   type ExecutionControlProviders,
   type FrameworkToolResult,
+  type GraphProgress,
   type InstructionContext,
   isExecutionControlCall,
   isExecutionControlMethod,
   isExecutionControlResult,
 } from '@scholoom/protocol/execution';
+import type { ExecutionResourcePort } from '@scholoom/protocol/resources';
 import type { BackendProtocolV2, createDeepAgent } from 'deepagents';
 import { z } from 'zod';
 import type { Consumption } from './checkpoint.js';
@@ -29,7 +32,7 @@ import { decodeFrameworkMessage, encodeFrameworkMessage } from './framework-mess
 
 type AgentOptions = NonNullable<Parameters<typeof createDeepAgent>[0]>;
 type RemoteOptions = {
-  model: ModelExecution;
+  model?: ModelExecution;
   backend: BackendProtocolV2;
   middleware?: AgentOptions['middleware'];
   systemPrompt?: string;
@@ -45,6 +48,9 @@ type RemoteOptions = {
   processes?: ProcessAdmission;
   reservation?: ProcessReservation;
   workerEntry?: URL;
+  registered?: Extract<ExecutionControlInputs['execution.initialize'], { graph: unknown }>;
+  resources?: () => ExecutionResourcePort;
+  onGraph?: (progress: GraphProgress) => void | Promise<void>;
 };
 type Event = Omit<
   Extract<ExecutionControlOutputs['execution.next'], { done: false }>['event'],
@@ -90,6 +96,7 @@ export class RemoteAgent {
     let healthTimer: ReturnType<typeof setTimeout> | undefined;
     let peer: RpcPeer;
     const contexts = new Map<string, ReturnType<typeof AsyncLocalStorage.snapshot>>();
+    const resourcesInFlight = new Set<Promise<unknown>>();
     const middleware = (options.middleware ?? []) as readonly {
       name: string;
       beforeModel?: (...args: never[]) => unknown;
@@ -237,6 +244,8 @@ export class RemoteAgent {
         };
       },
       'model.acquire': async () => {
+        if (!options.model)
+          throw new OperationError('credentialUnavailable', '本图没有模型执行资格。');
         const lease = await options.model.acquire();
         try {
           options.signal.throwIfAborted();
@@ -250,7 +259,7 @@ export class RemoteAgent {
         return { leaseId: lease };
       },
       'model.release': ({ leaseId }) => {
-        if (leases.delete(leaseId)) options.model.release(leaseId);
+        if (leases.delete(leaseId)) options.model?.release(leaseId);
         return { ok: true };
       },
       'execution.consume': async (input) => {
@@ -279,6 +288,23 @@ export class RemoteAgent {
             if (!valid || options.signal.aborted)
               throw new OperationError('shuttingDown', '执行实例已失效。');
             options.authorize?.();
+            if (control && options.resources) {
+              const resources = options.resources();
+              if (control[0] === 'resources.describe')
+                return resources.describe(control[1].locator);
+              if (control[0] === 'resources.read') return resources.read(control[1]);
+              if (control[0] === 'resources.save') return resources.save(control[1]);
+              if (control[0] === 'resources.create') return resources.create(control[1]);
+              if (control[0] === 'resources.creation') return resources.creation(control[1]);
+              if (control[0] === 'resources.document') {
+                const request = control[1];
+                return resources.document(
+                  request,
+                  request.request.method,
+                  request.request.input as never,
+                );
+              }
+            }
             if (control?.[0] === 'model.acquire')
               return controlProviders['model.acquire'](control[1]);
             if (control?.[0] === 'model.release')
@@ -307,7 +333,15 @@ export class RemoteAgent {
             throw new OperationError('permissionDenied', '执行能力不可用。');
           };
           const runner = token ? contexts.get(token) : undefined;
-          return runner ? runner(dispatch) : dispatch();
+          const done = runner ? runner(dispatch) : dispatch();
+          if (method.startsWith('resources.')) {
+            resourcesInFlight.add(done);
+            void done.then(
+              () => resourcesInFlight.delete(done),
+              () => resourcesInFlight.delete(done),
+            );
+          }
+          return done;
         },
       },
     );
@@ -324,26 +358,34 @@ export class RemoteAgent {
     try {
       await options.onStart?.(owned);
       options.signal.throwIfAborted();
-      await callExecutionControl(peer, 'execution.initialize', {
-        model: options.model.descriptor,
-        tools,
-        ...(options.systemPrompt ? { systemPrompt: options.systemPrompt } : {}),
-        ...(options.checkpointPath ? { checkpointPath: options.checkpointPath } : {}),
-        middleware: middleware.map((item) => ({
-          name: item.name,
-          before: !!item.beforeModel,
-          tool: !!item.wrapToolCall,
-          model: !!item.wrapModelCall,
-        })),
-        input: input
-          ? { messages: input.messages.map((message) => encodeFrameworkMessage(message)) }
-          : null,
-        config: {
-          ...(config.configurable ? { configurable: config.configurable } : {}),
-          recursionLimit: typeof config.recursionLimit === 'number' ? config.recursionLimit : 1000,
-          durability: 'sync',
-        },
-      });
+      const descriptor = options.model?.descriptor;
+      const initialization =
+        options.registered ??
+        (descriptor
+          ? {
+              model: descriptor,
+              tools,
+              ...(options.systemPrompt ? { systemPrompt: options.systemPrompt } : {}),
+              ...(options.checkpointPath ? { checkpointPath: options.checkpointPath } : {}),
+              middleware: middleware.map((item) => ({
+                name: item.name,
+                before: !!item.beforeModel,
+                tool: !!item.wrapToolCall,
+                model: !!item.wrapModelCall,
+              })),
+              input: input
+                ? { messages: input.messages.map((message) => encodeFrameworkMessage(message)) }
+                : null,
+              config: {
+                ...(config.configurable ? { configurable: config.configurable } : {}),
+                recursionLimit:
+                  typeof config.recursionLimit === 'number' ? config.recursionLimit : 1000,
+                durability: 'sync' as const,
+              },
+            }
+          : undefined);
+      if (!initialization) throw new OperationError('credentialUnavailable', '缺少模型配置。');
+      await callExecutionControl(peer, 'execution.initialize', initialization);
       const health = async () => {
         if (!valid) return;
         try {
@@ -373,8 +415,12 @@ export class RemoteAgent {
         const next = await callExecutionControl(peer, 'execution.next', {});
         options.authorize?.();
         if (next.done) {
-          if ('graph' in next)
-            throw new OperationError('unavailable', '当前 Agent 驱动尚未接入图执行结果。');
+          if ('graph' in next) {
+            if (!options.registered || !options.onGraph)
+              throw new OperationError('unavailable', '缺少图结果接收者。');
+            await options.onGraph(next.graph);
+          } else if (options.registered)
+            throw new OperationError('outcomeUnknown', '缺少图执行结果。');
           break;
         }
         if (next.event) {
@@ -393,7 +439,11 @@ export class RemoteAgent {
       valid = false;
       clearTimeout(healthTimer);
       options.signal.removeEventListener('abort', stop);
-      await this.finishExecution(owned, leases, peer);
+      try {
+        await this.finishExecution(owned, leases, peer);
+      } finally {
+        await Promise.allSettled([...resourcesInFlight]);
+      }
     }
   }
   private async finishExecution(
@@ -414,7 +464,7 @@ export class RemoteAgent {
         throw new OperationError(error.code, `${error.message}撤权记录亦保存失败。`);
       throw error;
     }
-    for (const lease of leases) this.options.model.release(lease);
+    for (const lease of leases) this.options.model?.release(lease);
     peer.close();
     try {
       await this.options.onStop?.();
