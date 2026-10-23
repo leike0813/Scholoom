@@ -2,14 +2,18 @@ import { executionFileOperations } from './execution-files.js';
 import { executionGraphOperations } from './execution-graph.js';
 import { executionOperations } from './harness.js';
 import { modelAdmissionOperations } from './models.js';
-import { resourceCreationOperations, resourceOperations } from './resources.js';
+import {
+  resourceCreationOperations,
+  resourceOperations,
+  resourceSaveResultSchema,
+} from './resources.js';
 
 // The host binds instance, run and shared budget through the owned IPC connection.
 export const executionControlOperations = {
   'resources.describe': resourceOperations['resources.describe'],
   'resources.read': resourceOperations['resources.read'],
   'resources.document': resourceOperations['resources.document'],
-  'resources.save': resourceOperations['resources.save'],
+  'resources.save': { ...resourceOperations['resources.save'], result: resourceSaveResultSchema },
   ...resourceCreationOperations,
   ...executionFileOperations,
   ...executionGraphOperations,

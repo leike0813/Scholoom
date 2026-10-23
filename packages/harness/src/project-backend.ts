@@ -22,7 +22,7 @@ export class ProjectBackend implements BackendProtocolV2 {
     private readonly projectId: string,
     private readonly signal: AbortSignal,
     private readonly used: (path: string, fileId: string) => void | Promise<void>,
-    private readonly saved: (path: string, fileId?: string) => void | Promise<void>,
+    private readonly saved: (path: string, fileId?: string, basis?: string) => void | Promise<void>,
     private readonly onError?: (error: ErrorInfo) => void | Promise<void>,
     private readonly expectedOutput?: { path: string; fileId: string },
   ) {}
@@ -135,7 +135,7 @@ export class ProjectBackend implements BackendProtocolV2 {
         ...(expectedFileId ? { expectedFileId } : {}),
       });
       try {
-        await this.saved(local, edit.fileId);
+        await this.saved(local, edit.fileId, edit.basis);
       } catch {
         throw new OperationError('outcomeUnknown', '文件已保存，进展登记待核查。');
       }
@@ -176,7 +176,7 @@ export class ProjectBackend implements BackendProtocolV2 {
       });
       this.readBases.delete(local);
       try {
-        await this.saved(local, edit.fileId);
+        await this.saved(local, edit.fileId, edit.basis);
       } catch {
         throw new OperationError('outcomeUnknown', '文件已保存，进展登记待核查。');
       }

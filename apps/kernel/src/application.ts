@@ -14,6 +14,9 @@ import type {
   BusinessOutputs,
   BusinessParams,
   ResourceCreationInputs,
+  ResourceDescriptor,
+  ResourceRef,
+  ResourceSaveResult,
   WorkbenchContextInputs,
   WorkbenchSnapshot,
 } from '@scholoom/protocol';
@@ -121,6 +124,57 @@ export class KernelApplication extends ManualApplication {
   }
   protected override checkExecutionContext(context: CallContext): void {
     this.harness.checkExecutionContext(context);
+  }
+  protected override resourceUsed(
+    context: CallContext,
+    ref: ResourceRef | { source: 'project'; projectId: string },
+  ): void {
+    this.harness.recordResourceUse(context, ref);
+  }
+  protected override async savedResource(
+    context: CallContext,
+    resource: ResourceDescriptor,
+  ): Promise<ResourceSaveResult> {
+    this.checkExecutionContext(context);
+    if (
+      resource.ref.source !== 'project' ||
+      !resource.path ||
+      !context.projectId ||
+      !context.sessionId ||
+      !context.runId
+    )
+      throw new OperationError('permissionDenied', '保存结果缺少所属执行。');
+    const association = await this.harness.recordSavedResource(
+      context.projectId,
+      context.sessionId,
+      context.runId,
+      resource.path,
+      resource.ref.fileId,
+      resource.basis,
+    );
+    this.checkExecutionContext(context);
+    return { resource, association };
+  }
+  protected override async createdResource(
+    context: CallContext,
+    resource: ResourceDescriptor,
+    scope: { sessionId?: string; runId?: string },
+    operationId: string,
+  ): Promise<ResourceSaveResult> {
+    if (!scope.sessionId || !scope.runId || resource.ref.source !== 'project' || !resource.path)
+      return { resource };
+    if (context.role === 'execution') this.checkExecutionContext(context);
+    const association = await this.harness.recordSavedResource(
+      resource.ref.projectId,
+      scope.sessionId,
+      scope.runId,
+      resource.path,
+      resource.ref.fileId,
+      resource.basis,
+      operationId,
+    );
+    if (context.role === 'execution') this.checkExecutionContext(context);
+    return { resource, association };
   }
   harnessStorage(): HarnessStorage {
     const resources = new Map<string, HarnessProject>();

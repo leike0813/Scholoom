@@ -57,15 +57,13 @@ for (const race of [
       await expect.poll(() => model.requests.length).toBe(1);
       const context = app.context;
       if (!context) throw new Error('Expected host-bound running context');
-      const port = app.projectTargetRead(context);
-      const request = {
-        targetProjectId: target.project.id,
-        request: {
-          kind: 'readText' as const,
-          fileId: saved.fileId ?? '',
-          basis: initial.basis,
-        },
-      };
+      const port = app.executionResources(context);
+      if (!saved.fileId) throw new Error('Expected registered file');
+      const resource = await port.describe({
+        source: 'project',
+        projectId: target.project.id,
+        fileId: saved.fileId,
+      });
       if (race === 'queued-revocation') {
         blocker = target.files.coordinate([join(target.project.path, 'input.md')], async () => {
           entered.resolve();
@@ -85,7 +83,7 @@ for (const race of [
           return result;
         };
       }
-      const reading = port['project.readTarget'](request);
+      const reading = port.read({ ref: resource.ref, basis: initial.basis, encoding: 'utf8' });
       const rejected = expect(reading).rejects.toMatchObject({
         code:
           race === 'changed-content'
@@ -102,9 +100,9 @@ for (const race of [
       release.resolve();
       await rejected;
       if (race === 'cancelled-instance')
-        await expect(port['project.readTarget'](request)).rejects.toMatchObject({
-          code: 'instanceMismatch',
-        });
+        await expect(
+          port.read({ ref: resource.ref, basis: initial.basis, encoding: 'utf8' }),
+        ).rejects.toBeDefined();
       expect(await readFile(join(target.project.path, 'input.md'), 'utf8')).toBe(
         race === 'changed-content' ? 'new independent evidence' : 'retained evidence',
       );

@@ -34,7 +34,8 @@ const info = (path: string) =>
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') return undefined;
     throw error;
   });
-const byteBasis = (stat: BigIntStats) => [stat.dev, stat.ino, stat.size, stat.mtimeNs].join(':');
+export const byteBasis = (stat: BigIntStats) =>
+  [stat.dev, stat.ino, stat.size, stat.mtimeNs].join(':');
 
 export class ProjectFiles {
   private locks: { paths: string[]; done: Promise<void> }[] = [];
@@ -599,6 +600,7 @@ export class ProjectFiles {
     });
   }
   private async inspect(row: typeof tables.fileOperations.$inferSelect): Promise<FileOperation> {
+    if (row.value.kind === 'create') return row.value;
     if (!['prepared', 'unknown'].includes(row.value.state)) return row.value;
     const target = await info(row.details.destination);
     const source = await info(row.details.source);

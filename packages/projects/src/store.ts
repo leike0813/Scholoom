@@ -32,7 +32,8 @@ import {
 import Database from 'better-sqlite3';
 import { desc, eq, sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/better-sqlite3';
-import { imageMime, ProjectFiles } from './files.js';
+import { type CreationOwner, ProjectCreations } from './creations.js';
+import { byteBasis, imageMime, ProjectFiles } from './files.js';
 import * as tables from './schema.js';
 
 /** Physical container upgrade injected by the host; projects never opens another module's tables. */
@@ -76,6 +77,7 @@ export class ProjectStore {
     };
   }
   readonly files: ProjectFiles;
+  readonly creations: ProjectCreations;
   readonly database: Database.Database;
   readonly db;
   readonly internal: string;
@@ -95,6 +97,7 @@ export class ProjectStore {
     this.db = drizzle(database, { schema: tables });
     this.internal = join(project.path, '.scholoom');
     this.files = new ProjectFiles(this);
+    this.creations = new ProjectCreations(this);
   }
 
   static async open(
@@ -341,16 +344,27 @@ export class ProjectStore {
     basis?: string,
     expected?: string,
     expectedFileId?: string,
+    operation?: CreationOwner,
   ): Promise<FileEdit> {
     this.check('write');
     if (Buffer.byteLength(content) > projectLimits.fileBytes)
       throw new OperationError('tooLarge', '文件超过本期编辑上限。');
     const target = await this.path(input, true);
-    return this.serial(target, async () => {
+    if (operation && !/^[A-Za-z0-9_-]{1,128}$/.test(operation.operationId))
+      throw new OperationError('invalidRequest', '创建操作身份无效。');
+    const paths = [target];
+    if (operation) paths.push(join(this.internal, 'candidates', operation.operationId));
+    return this.files.coordinate(paths, async () => {
       this.check('write');
       if ((await this.path(input, true)) !== target)
         throw new OperationError('contentChanged', '目标路径已变化。');
       const create = basis === undefined && expected === undefined;
+      if (operation) {
+        if (!create) throw new OperationError('invalidRequest', '创建操作身份无效。');
+        input = relative(this.project.path, target).split(sep).join('/');
+        const previous = await this.creations.repeat(input, content, operation);
+        if (previous) return previous;
+      }
       const priorReference = create ? undefined : await this.files.reference(input);
       if (expectedFileId && priorReference?.fileId !== expectedFileId)
         throw new OperationError('contentChanged', '文件身份或位置已变化，请重新读取。');
@@ -382,27 +396,40 @@ export class ProjectStore {
         after: content,
         createdAt: new Date().toISOString(),
         created: create,
+        ...(operation ? { fileId: randomUUID() } : {}),
       };
       const candidateDir = join(this.internal, 'candidates');
       await privateDirectory(candidateDir);
       const candidate = join(candidateDir, edit.id);
       await writeFile(candidate, content, { mode: 0o600, flag: 'wx' });
-      const temporary = join(dirname(target), `.scholoom-${edit.id}.tmp`);
+      const temporary = operation ? candidate : join(dirname(target), `.scholoom-${edit.id}.tmp`);
       try {
-        const handle = await open(temporary, 'wx', mode);
+        const handle = await open(temporary, operation ? 'r' : 'wx', mode);
         try {
-          await handle.chmod(mode);
-          await handle.writeFile(content);
+          if (!operation) {
+            await handle.chmod(mode);
+            await handle.writeFile(content);
+          }
           await handle.sync();
+          edit.basis = byteBasis(await handle.stat({ bigint: true }));
         } finally {
           await handle.close();
         }
+        if (operation) await this.creations.prepare(input, edit, operation, candidate, target);
+        this.check('write');
+        if ((await this.path(input, true)) !== target)
+          throw new OperationError('contentChanged', '发布目标路径已变化。');
         if (create) {
           await link(temporary, target);
-          await unlink(temporary);
+          if (!operation) await unlink(temporary);
         } else await rename(temporary, target);
       } catch (error) {
-        await unlink(temporary).catch(() => {});
+        if (!operation) await unlink(temporary).catch(() => {});
+        if (operation && this.creations.find(operation.operationId, operation.owner))
+          throw new OperationError(
+            'outcomeUnknown',
+            '创建发布或登记结果待核查，候选与收据已保留。',
+          );
         if ((await exists(target)) && (await readFile(target, 'utf8')) === content)
           throw new OperationError(
             'outcomeUnknown',
@@ -410,8 +437,21 @@ export class ProjectStore {
           );
         throw error;
       }
+      if (operation) {
+        const row = this.creations.find(operation.operationId, operation.owner);
+        if (!row) throw new OperationError('outcomeUnknown', '创建收据不可用。');
+        try {
+          const current = await this.creations.inspect(row);
+          if (current.value.state !== 'complete') throw new Error('publication changed');
+          return current.details.creation?.edit ?? edit;
+        } catch {
+          throw new OperationError('outcomeUnknown', '文件已发布，但登记结果待核查。');
+        }
+      }
       try {
         edit.fileId = (priorReference ?? (await this.files.reference(input))).fileId;
+        if (byteBasis(await lstat(target, { bigint: true })) !== edit.basis)
+          throw new OperationError('outcomeUnknown', '保存后的文件已被替换或修改。');
         this.db.transaction((tx) => {
           tx.insert(tables.edits).values({ id: edit.id, path: input, value: edit }).run();
           const old = tx
@@ -586,6 +626,7 @@ export class ProjectStore {
     // checkpoint is an execution aid; restored copies resume from durable project facts.
     backup.omitted.push(
       '.scholoom/transfers（在途文件传输暂存；恢复副本不接续原传输）',
+      '.scholoom/candidates（未确认创建候选；恢复副本仅核查收据，不重放创建）',
       '.scholoom/checkpoints.sqlite（从持久材料安全接续）',
       '外部链接、非图片二进制、超过256KiB文本及超过1MiB图片；非声明私有内容',
     );
@@ -792,6 +833,7 @@ export class Projects {
   withAccess<T>(
     context: Pick<CallContext, 'role' | 'principal' | 'projectId'>,
     action: () => T,
+    authorize?: () => void,
   ): T {
     const parent = accessScope.getStore();
     const agent = context.role === 'execution' || context.principal.kind === 'agent';
@@ -800,7 +842,14 @@ export class Projects {
         agent: agent || parent?.agent === true,
         projectId: parent?.agent ? parent.projectId : agent ? context.projectId : undefined,
         ...(parent?.targetProjectId ? { targetProjectId: parent.targetProjectId } : {}),
-        ...(parent?.authorize ? { authorize: parent.authorize } : {}),
+        ...(parent?.authorize || authorize
+          ? {
+              authorize: () => {
+                parent?.authorize?.();
+                authorize?.();
+              },
+            }
+          : {}),
       },
       action,
     );

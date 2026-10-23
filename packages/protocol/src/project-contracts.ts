@@ -51,7 +51,7 @@ export const fileLocationSchema = object(
 export const fileOperationSchema = object(
   {
     id,
-    kind: { enum: ['mkdir', 'rename', 'move', 'trash', 'restore'] },
+    kind: { enum: ['mkdir', 'rename', 'move', 'trash', 'restore', 'create'] },
     state: { enum: ['prepared', 'complete', 'unknown', 'failed'] },
     path: text,
     destination: text,
@@ -299,6 +299,7 @@ export const projectHarnessOperations = {
   'project.path': projectExecutionOperations['project.path'],
   'project.material': projectMaterialOperations['project.material'],
   'files.read': projectsOperations['files.read'],
+  'files.readBytes': projectsOperations['files.readBytes'],
   'files.resolve': projectsOperations['files.resolve'],
   'files.operation': projectsOperations['files.operation'],
   'files.mkdir': projectsOperations['files.mkdir'],

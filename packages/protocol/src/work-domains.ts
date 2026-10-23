@@ -44,7 +44,7 @@ export const projectTargetReadOperations = {
         request: {
           anyOf: [
             object({ kind: { const: 'list' }, offset: count, limit: page }, ['kind']),
-            object({ kind: { const: 'describe' }, ...reference }, ['kind', 'fileId', 'basis']),
+            object({ kind: { const: 'describe' }, ...reference }, ['kind', 'fileId']),
             object({ kind: { const: 'readText' }, ...reference, offset: count, limit: textLimit }, [
               'kind',
               'fileId',

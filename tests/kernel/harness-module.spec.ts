@@ -94,6 +94,7 @@ test('harness owns its sessions through native storage and narrow replaceable po
     'project.material': unusedProject,
     'project.linkArtifact': unusedProject,
     'files.read': unusedProject,
+    'files.readBytes': unusedProject,
     'files.operation': unusedProject,
     'files.mkdir': unusedProject,
     'files.rename': unusedProject,

@@ -41,6 +41,8 @@ flowchart LR
 
 新增 `resources.create`／`resources.creation`，仅接入所属项目的新建能力。复用 ProjectStore.save 的目标必须不存在、路径串行保护、候选文件和原子发布，项目内部沿既有操作记录扩展 create 类型；不新增公共业务台账。创建前持久保存 operationId、可信归属、目标、候选及可核查发布身份，执行中使用稳定 editId，成功后返回 fileId/basis。相同身份不同输入拒绝，相同输入重复提交先查原结果。发布后回执或登记未知时保留候选与收据，按原创建身份及实际发布依据核对；不能只凭同路径同内容认定是本次创建，不能自动覆盖、删除或重写。无法确认则保持 unknown。关联失败仅补关联，固定图必须从不存在的输出路径开始验收。
 
+创建落在原 `file_operations.details.creation` 可选 JSON 字段，保留主体、首次 session／run、输入及 edit／候选依据；物理表结构不变。候选经同步后以硬链接原子发布，文件身份、编辑历史与操作完成在同一项目事务确认。原路径与 operationId 共同串行，重启核查只比较原发布物理身份和 basis，不重放。保存回执的可选 basis 来自发布前句柄，并在登记前复查；执行保存的 association 和首次创建查询复用 harness 原 `pending-artifacts`／artifacts，不另建关联账本。worker 保存返回同源 `ResourceSaveResult`，人工 `resources.save` 保留 descriptor。
+
 图输入材料、实际读取材料和结果各有独立字段。材料不存在、删除、版本变化或外链不可用时原样传递所属领域失败，由负责 Agent 按引用行为矩阵处理，不隐式复制、不猜测替代对象。不要把 ResourceEvidence 引用集合变成全局存储或项目反向索引。
 
 ### 可装配图驱动

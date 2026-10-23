@@ -6,6 +6,7 @@ export type Inputs = {
   'files.mkdir': FromSchema<(typeof projectHarnessOperations)['files.mkdir']['params']>;
   'files.operation': FromSchema<(typeof projectHarnessOperations)['files.operation']['params']>;
   'files.read': FromSchema<(typeof projectHarnessOperations)['files.read']['params']>;
+  'files.readBytes': FromSchema<(typeof projectHarnessOperations)['files.readBytes']['params']>;
   'files.rename': FromSchema<(typeof projectHarnessOperations)['files.rename']['params']>;
   'files.resolve': FromSchema<(typeof projectHarnessOperations)['files.resolve']['params']>;
   'files.restore': FromSchema<(typeof projectHarnessOperations)['files.restore']['params']>;
@@ -27,6 +28,7 @@ export type Outputs = {
   'files.mkdir': FromSchema<(typeof projectHarnessOperations)['files.mkdir']['result']>;
   'files.operation': FromSchema<(typeof projectHarnessOperations)['files.operation']['result']>;
   'files.read': FromSchema<(typeof projectHarnessOperations)['files.read']['result']>;
+  'files.readBytes': FromSchema<(typeof projectHarnessOperations)['files.readBytes']['result']>;
   'files.rename': FromSchema<(typeof projectHarnessOperations)['files.rename']['result']>;
   'files.resolve': FromSchema<(typeof projectHarnessOperations)['files.resolve']['result']>;
   'files.restore': FromSchema<(typeof projectHarnessOperations)['files.restore']['result']>;

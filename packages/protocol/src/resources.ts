@@ -8,6 +8,7 @@ import type {
   ProjectMaterialPort,
   ProjectsInputs,
   ProjectsOutputs,
+  ProjectTargetReadPort,
 } from './projects.js';
 import { count, flag, id, object, ok, text } from './schema.js';
 
@@ -311,7 +312,11 @@ export type ResourceLibraryMethod =
 export type ResourceLibraryPort = {
   [M in ResourceLibraryMethod]: (input: LibraryInputs[M]) => Promise<LibraryOutputs[M]>;
 };
-export type ResourcePorts = { project: ResourceProjectPort; library: ResourceLibraryPort };
+export type ResourcePorts = {
+  project: ResourceProjectPort;
+  library: ResourceLibraryPort;
+  target?: ProjectTargetReadPort;
+};
 export type ResourcePortFactory = (context: CallContext) => ResourcePorts;
 export type ReadingRecordPort = {
   [M in

@@ -60,6 +60,11 @@ const wait = {
 const facts = { inputs: [evidence], reads: [], results: [] };
 
 test('resource creation separates known saved identity, association and unknown effects', () => {
+  const save = compileContract(executionControlOperations['resources.save']);
+  expect(save.result({ resource, association: { operationId: 'link', state: 'unknown' } })).toBe(
+    true,
+  );
+  expect(save.result(resource)).toBe(false);
   const validate = compileContract(resourceCreationOperations['resources.create']);
   expect(
     validate.params({ projectId: 'p', path: 'report.md', operationId: 'op', content: 'text' }),
@@ -238,16 +243,21 @@ test('unwired capabilities reject before accepting work or losing explicit conte
   const app = new KernelApplication(directory, { environment: {} });
   try {
     await app.initialize();
-    expect(app.available()).not.toEqual(expect.arrayContaining(['resources.create']));
+    expect(app.available()).toEqual(
+      expect.arrayContaining(['resources.create', 'resources.creation']),
+    );
+    await expect(
+      app.call('resources.create', {
+        projectId: 'application',
+        path: 'report.md',
+        operationId: 'op',
+        content: 'text',
+      }),
+    ).rejects.toMatchObject({ code: 'permissionDenied' });
+    await expect(
+      app.call('resources.creation', { projectId: 'application', operationId: 'op' }),
+    ).rejects.toMatchObject({ code: 'permissionDenied' });
     for (const request of [
-      () =>
-        app.call('resources.create', {
-          projectId: 'application',
-          path: 'report.md',
-          operationId: 'op',
-          content: 'text',
-        }),
-      () => app.call('resources.creation', { projectId: 'application', operationId: 'op' }),
       () =>
         app.call('session.send', {
           projectId: 'application',

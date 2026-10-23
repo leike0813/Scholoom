@@ -18,9 +18,16 @@ import {
   businessSchemas,
   type CallArguments,
   type CallContext,
+  type ExecutionResourcePort,
   OperationError,
+  type ResourceCreationInputs,
+  type ResourceCreationOutputs,
+  type ResourceDescriptor,
   type ResourceInputs,
   type ResourceLibraryPort,
+  type ResourceRef,
+  type ResourceSaveResult,
+  resourceFormatForName,
   type WorkbenchChange,
 } from '@scholoom/protocol';
 import {
@@ -76,6 +83,7 @@ import {
   researchModuleOperations,
 } from '@scholoom/protocol/research';
 import { ManagedCommands } from './commands.js';
+import { executionResources } from './execution-resources.js';
 import { initializeProjectContainer } from './storage/project-container.js';
 import { WorkbenchContextStore } from './workbench-context.js';
 
@@ -124,6 +132,7 @@ const materialMethods = Object.keys(projectMaterialOperations).filter(
 );
 export type FoundationMethod =
   | keyof ResourceInputs
+  | keyof ResourceCreationInputs
   | keyof EditorInputs
   | Exclude<keyof ProjectsInputs, 'project.restore' | 'artifacts.reconcile'>
   | keyof LibraryInputs;
@@ -212,6 +221,7 @@ export class ManualApplication {
       (context) => {
         const port = this.modulePort(context, 'editor');
         return {
+          ...(context.targetRead ? { target: this.projectTargetRead(context) } : {}),
           project: {
             'files.resolve': (input) => port.call('files.resolve', input),
             'files.read': (input) => port.call('files.read', input),
@@ -386,6 +396,137 @@ export class ManualApplication {
   protected checkExecutionContext(_context: CallContext): void {
     throw new OperationError('unavailable', '当前组合没有执行实例提供者。');
   }
+  executionResources(context: CallContext): ExecutionResourcePort {
+    if (context.role !== 'execution' || context.principal.kind !== 'agent')
+      throw new OperationError('permissionDenied', '资源执行端口需要活动执行身份。');
+    this.checkExecutionContext(context);
+    return executionResources(
+      context,
+      (source) => {
+        const port = this.modulePort(source, 'harness');
+        return {
+          'resources.describe': (input) => port.call('resources.describe', input),
+          'resources.read': (input) => port.call('resources.read', input),
+          'resources.document': (input) => port.call('resources.document', input),
+          'resources.save': (input) => port.call('resources.save', input),
+          'resources.create': (input) => port.call('resources.create', input),
+          'resources.creation': (input) => port.call('resources.creation', input),
+        };
+      },
+      (source, resource) => this.savedResource(source, resource),
+    );
+  }
+  protected async savedResource(
+    _context: CallContext,
+    resource: ResourceDescriptor,
+  ): Promise<ResourceSaveResult> {
+    return { resource };
+  }
+  protected async createdResource(
+    _context: CallContext,
+    resource: ResourceDescriptor,
+    _scope: { sessionId?: string; runId?: string },
+    _operationId: string,
+  ): Promise<ResourceSaveResult> {
+    return { resource };
+  }
+  private async resourceCreation(
+    input: ResourceCreationInputs['resources.creation'],
+    context: CallContext,
+  ): Promise<ResourceCreationOutputs['resources.creation']> {
+    const row = await this.projects
+      .get(input.projectId)
+      .creations.query(
+        input.operationId,
+        context.principal.kind === 'human' ? undefined : this.creationOwner(context),
+      );
+    const creation = row.details.creation;
+    if (row.value.state !== 'complete' || !creation?.edit.fileId)
+      return { operationId: input.operationId, state: 'unknown' };
+    const { edit, basis } = creation;
+    const format = resourceFormatForName(edit.path);
+    const resource: ResourceDescriptor = {
+      ref: { source: 'project', projectId: input.projectId, fileId: creation.edit.fileId },
+      name: edit.path.split('/').at(-1) ?? edit.path,
+      path: edit.path,
+      basis,
+      format,
+      capabilities: {
+        read: true,
+        write: format === 'text',
+        readingRecords: false,
+        render: /\.(md|markdown|qmd|tex)$/i.test(edit.path),
+      },
+    };
+    const result = await this.createdResource(
+      context,
+      resource,
+      creation,
+      `create-${input.operationId}`,
+    );
+    return {
+      ...result,
+      resource: {
+        ...resource,
+        ref: { source: 'project', projectId: input.projectId, fileId: creation.edit.fileId },
+      },
+      operationId: input.operationId,
+      state: 'complete',
+    };
+  }
+  private creationOwner(context: CallContext): string {
+    return `${context.principal.kind}:${context.principal.id}:${context.sessionId ?? ''}`;
+  }
+  private async resourceOperation<T>(
+    context: CallContext,
+    ref: ResourceRef | { source: 'project'; projectId: string },
+    write: boolean,
+    action: () => Promise<T>,
+  ): Promise<T> {
+    if (context.role !== 'execution' && context.principal.kind !== 'agent') return action();
+    const targets = this.projectTargetRead(context);
+    const origin = context.projectId ? this.projects.get(context.projectId) : undefined;
+    const check = () => {
+      this.checkExecutionContext(context);
+      if (
+        context.role !== 'execution' ||
+        context.moduleId !== 'harness' ||
+        context.principal.kind !== 'agent' ||
+        context.principal.id !== context.sessionId ||
+        !context.projectId ||
+        context.workDomain?.projectId !== context.projectId ||
+        context.workDomain.sessionId !== context.sessionId ||
+        context.workDomain.kind !==
+          (context.projectId === 'application' ? 'application' : 'project')
+      )
+        throw new OperationError('permissionDenied', '资源调用缺少可信工作域。');
+      if (!origin || this.projects.get(context.projectId) !== origin)
+        throw new OperationError('instanceMismatch', '来源项目实例已变化。');
+      if (origin.project.trust !== 'trusted')
+        throw new OperationError('permissionDenied', '来源项目外发未授权。');
+      if (ref.source === 'library') {
+        if (context.targetRead)
+          throw new OperationError('permissionDenied', '不能扩大目标读取范围。');
+        this.library.check('read');
+        this.library.check('send');
+      } else if (context.targetRead) {
+        if (write || context.targetRead.targetProjectId !== ref.projectId)
+          throw new OperationError('permissionDenied', '目标资源只允许原范围读取。');
+        targets.check([ref.projectId]);
+      } else if (ref.projectId !== context.projectId || context.projectId === 'application') {
+        throw new OperationError('permissionDenied', '资源不属于当前可读写项目。');
+      }
+    };
+    check();
+    const result = await this.projects.withAccess(context, action, check);
+    check();
+    this.resourceUsed(context, ref);
+    return result;
+  }
+  protected resourceUsed(
+    _context: CallContext,
+    _ref: ResourceRef | { source: 'project'; projectId: string },
+  ): void {}
   protected modulePort(
     context: CallContext,
     moduleId: string,
@@ -405,6 +546,10 @@ export class ManualApplication {
     const port = this.modulePort(context, 'harness');
     return { call: port.call };
   }
+  private readonly targetInstances = new WeakMap<
+    AbortSignal,
+    Map<string, ReturnType<Projects['get']>>
+  >();
   projectTargetRead(
     context: CallContext,
   ): ProjectTargetReadPort & { check: (targetIds: Iterable<string>) => void } {
@@ -415,7 +560,10 @@ export class ManualApplication {
       ...(context.targetRead ? { targetRead: Object.freeze({ ...context.targetRead }) } : {}),
     });
     const origin = source.projectId ? this.projects.get(source.projectId) : undefined;
-    const targets = new Map<string, ReturnType<Projects['get']>>();
+    const targets =
+      (source.signal ? this.targetInstances.get(source.signal) : undefined) ??
+      new Map<string, ReturnType<Projects['get']>>();
+    if (source.signal) this.targetInstances.set(source.signal, targets);
     return {
       check: (targetIds) => {
         this.checkExecutionContext(source);
@@ -461,6 +609,7 @@ export class ManualApplication {
       'project.material': (input) => port.call('project.material', input),
       'files.read': (input) => port.call('files.read', input),
       'files.resolve': (input) => port.call('files.resolve', input),
+      'files.readBytes': (input) => port.call('files.readBytes', input),
       'files.operation': (input) => port.call('files.operation', input),
       'files.mkdir': (input) => port.call('files.mkdir', input),
       'files.rename': (input) => port.call('files.rename', input),
@@ -543,12 +692,56 @@ export class ManualApplication {
     Handlers<BusinessInputs, BusinessOutputs>,
     FoundationMethod
   > = {
+    'resources.create': (input, context) =>
+      this.resourceOperation(
+        context,
+        { source: 'project', projectId: input.projectId },
+        true,
+        async () => {
+          const store = this.projects.get(input.projectId);
+          try {
+            await store.save(input.path, input.content, undefined, undefined, undefined, {
+              operationId: input.operationId,
+              owner: this.creationOwner(context),
+              ...(context.sessionId ? { sessionId: context.sessionId } : {}),
+              ...(context.runId ? { runId: context.runId } : {}),
+            });
+          } catch (error) {
+            if (!(error instanceof OperationError) || error.code !== 'outcomeUnknown') throw error;
+            return { operationId: input.operationId, state: 'unknown' as const };
+          }
+          this.changed(input.projectId);
+          return this.resourceCreation(input, context);
+        },
+      ),
+    'resources.creation': (input, context) =>
+      this.resourceOperation(
+        context,
+        { source: 'project', projectId: input.projectId },
+        false,
+        () => this.resourceCreation(input, context),
+      ),
     'resources.cancel': (input, context) => this.resources.cancel(input.requestId, context),
-    'resources.describe': (input, context) => this.resources.describe(input.locator, context),
-    'resources.read': (input, context) => this.resources.read(input, context),
-    'resources.document': (input, context) => this.resources.document(input, context),
+    'resources.describe': (input, context) =>
+      this.resourceOperation<BusinessOutputs['resources.describe']>(
+        context,
+        input.locator,
+        false,
+        () => this.resources.describe(input.locator, context),
+      ),
+    'resources.read': (input, context) =>
+      this.resourceOperation(context, input.ref, false, () => this.resources.read(input, context)),
+    'resources.document': (input, context) =>
+      this.resourceOperation(context, input.ref, false, () =>
+        this.resources.document(input, context),
+      ),
     'resources.save': async (input, context) => {
-      const result = await this.resources.save(input, context);
+      const result = await this.resourceOperation<BusinessOutputs['resources.save']>(
+        context,
+        input.ref,
+        true,
+        () => this.resources.save(input, context),
+      );
       if (input.ref.source === 'project') this.changed(input.ref.projectId);
       return result;
     },

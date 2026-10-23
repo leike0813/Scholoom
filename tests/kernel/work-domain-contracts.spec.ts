@@ -35,6 +35,7 @@ test('target read schemas bound requests to registered identities and bounded sl
   for (const request of [
     { kind: 'list', offset: 0, limit: 100 },
     { kind: 'describe', ...reference },
+    { kind: 'describe', fileId: 'f' },
     { kind: 'readText', ...reference, offset: 0, limit: 262144 },
     { kind: 'readBytes', ...reference, offset: 0, limit: 262144 },
   ]) {
@@ -42,7 +43,7 @@ test('target read schemas bound requests to registered identities and bounded sl
   }
   for (const request of [
     { kind: 'list', limit: 101 },
-    { kind: 'describe', fileId: 'f' },
+    { kind: 'describe' },
     { kind: 'readText', ...reference, limit: 262145 },
     { kind: 'readBytes', ...reference, limit: 0 },
     { kind: 'readBytes', ...reference, limit: 262145 },
