@@ -23,7 +23,7 @@
 
 ## 决策与授权依据
 
-依据[全局工作域决定](../../../.scratch/domain-development/issues/04-research-methods-scope.md#全局会话与工作域)、[公共基础范围](../../../.scratch/domain-development/issues/10-parallel-design-and-delivery.md#q3公共基础优先补齐四组共同部分)和[共同工程分工](../../../.scratch/domain-development/issues/09-shared-engineering-responsibility.md#answer)。用户于 2026-10-22 要求“形成OpenSpec实施规划”，本轮授权为调查及规划，不包含业务实施、依赖安装、服务、真实模型或 Git 操作。
+依据[全局工作域决定](../../../../.scratch/domain-development/issues/04-research-methods-scope.md#全局会话与工作域)、[公共基础范围](../../../../.scratch/domain-development/issues/10-parallel-design-and-delivery.md#q3公共基础优先补齐四组共同部分)和[共同工程分工](../../../../.scratch/domain-development/issues/09-shared-engineering-responsibility.md#answer)。用户于 2026-10-22 要求“形成OpenSpec实施规划”，本轮授权为调查及规划，不包含业务实施、依赖安装、服务、真实模型或 Git 操作。
 
 随后用户要求开始实施，并明确选择“本轮只做共同契约 1.1”。当前实施授权限工作域、可信上下文及目标只读契约的声明、生成和验证；运行时读取、授权接线、其他 change、Git 提交和工作树操作仍不在本轮范围。
 

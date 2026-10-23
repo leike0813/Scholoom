@@ -18,7 +18,7 @@ flowchart LR
 
 | OpenSpec | 实际缺口与完成依据 |
 | --- | --- |
-| [establish-scoped-execution-foundation](../../openspec/changes/establish-scoped-execution-foundation/proposal.md) | application 归属及 scratch 已存在；补可信目标只读访问和领域再次授权，保留目标零持久修改及本项目保存保护。 |
+| [establish-scoped-execution-foundation](../../openspec/changes/archive/2026-10-23-establish-scoped-execution-foundation/proposal.md) | application 归属及 scratch 已存在；补可信目标只读访问和领域再次授权，保留目标零持久修改及本项目保存保护。 |
 | [establish-domain-execution-handoffs](../../openspec/changes/establish-domain-execution-handoffs/proposal.md) | 复用 ResourceRef，补实际材料／成果、新建及未知核查、源码装配图及等待恢复、宿主受管命令窄端口和独立夹具。 |
 | [establish-workbench-context-bridge](../../openspec/changes/establish-workbench-context-bridge/proposal.md) | 补认证连接所属快照、工具当次查询、显式选择项、共同 composer 可靠发送与多窗口草稿保护。 |
 

@@ -76,8 +76,23 @@ pnpm test:kernel tests/kernel/work-domains.spec.ts tests/kernel/target-races.spe
 
 32 个内核文件均在 tests/kernel/，后缀为 .spec.ts：broker、cancel-admission、capability-isolation、capability-stop-unknown、checkpoint-files、client、context-contributions、context-drafts、context-session、editor-runtime、editor、execution-capacity、execution-isolation、graph-registration、harness-module、harness-recovery、managed-commands、manual-application、model-access、platform-processes、process-admission、project-backend、public-contract-baseline、research-module、resource-access、rpc、sessions、target-races、target-reader、work-domain-contracts、work-domains、workbench-context。测试产物位于上表 output 目录；相关用例清理自己持有的应用、执行及临时数据。
 
+## 归档前核对（2026-10-23）
+
+使用项目 openspec-verify-change 流程，在同步 dev ed35c59 的本工作树核对当前实现、规划及接收记录。完整性：11/11 任务、4/4 要求；正确性：8 个场景均有实现及对应测试依据；一致性：独立只读端口、broker 装配、异步范围、原身份／basis、scratch 和模型前授权均沿已确认设计。无 CRITICAL、实现／规格偏离或需要阻塞归档的问题。
+
+| 要求／场景 | 当前实现及验证依据 |
+| --- | --- |
+| 固定工作域：全局会话取材，伪造／旧实例拒绝 | runtime.ts 的 fileContext／checkExecutionContext，manual.ts 的可信字段核对；work-domains、work-domain-contracts、broker、target-races 测试覆盖归属、伪造载荷、快照及取消迟到。 |
+| 跨项目只读：撤权／变化、拒写、未登记／私有路径 | ProjectTargetReader、Projects.withTargetRead 与宿主最终授权；target-reader、target-races、project-backend 覆盖四类读取、目标零修改、嵌套拒写、路径和内容依据；model-access 及 work-domains 覆盖排队授权及接续外发。 |
+| 临时区：两会话同名文件、缺失后接续 | sessionScratch 和原有受限 backend；work-domains、checkpoint-files、harness-recovery 覆盖同名隔离、链接逃逸、跨尝试／重启及 context_incomplete。 |
+| 本项目／人工组合与跨域失败隔离 | 独立端口不放宽 ProjectBackend；project-backend、manual-application、harness-module、sessions 分别核对条件保存、异步来源及无 harness 组合。并行失败与正常保存的证据由这些隔离／保存用例组合核对，不宣称新增了同时编排两者的端到端用例。 |
+
+本轮是源码、测试定义及已记录接收结果的核对，没有重跑或冒充接收阶段的 137 项内核和 4 项 smoke 结果。它们的命令、基线、替身与结果见上节；UI、真实模型、三平台和七域业务仍在所述证据范围之外。既有 21 项 UI lint 问题作为独立清理提交处理，不改变本 change 的实施完成结论。
+
+正式规格同步仅将 execution-work-domains 的 4 条 ADDED 要求纳入主规格，保持原 Purpose、要求和场景正文；归档保留全部工件及 .openspec.yaml。其他两个活动 change 仅修正指向本记录的路径，不改变其任务、规格或验收状态。
+
 ## 未完成事项与下一步
 
-- 本变更没有剩余实施任务；下一步在同步后的工作树核对正式验收并按 OpenSpec 流程处理规格同步／归档，不能顺带归档另外两项变更。
+- 本变更没有剩余实施任务；已核对正式验收并按 OpenSpec 流程同步规格／归档，另外两项变更保持活动状态。
 - 另外两线现可消费真实 project.readTarget、工作域／模型前授权检查及 store/files 保护；统一 ExecutionResourcePort 适配、图持久恢复和显式项执行仍由各自任务交付。
 - 全仓 lint 的既有前端问题尚未处理；未运行全仓测试、完整双宿主 UI／双实例、真实模型、分发包或跨平台验收。现有 UI harness 会启动开发服务器，受当前操作规则限制本轮未运行；Mermaid 未渲染。

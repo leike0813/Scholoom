@@ -3,7 +3,7 @@
  * CSL JSON 编辑表单
  */
 import type { LibrarySource } from '@scholoom/protocol';
-import { useState } from 'react';
+import { useId, useState } from 'react';
 
 interface MetadataSectionProps {
   entry: LibrarySource;
@@ -11,6 +11,7 @@ interface MetadataSectionProps {
 }
 
 export function MetadataSection({ entry, onUpdate }: MetadataSectionProps) {
+  const fieldId = useId();
   const [editing, setEditing] = useState(false);
   const [metadata, setMetadata] = useState(entry.metadata);
   const [saving, setSaving] = useState(false);
@@ -44,7 +45,7 @@ export function MetadataSection({ entry, onUpdate }: MetadataSectionProps) {
   const issued = metadata?.issued;
   const date =
     issued && typeof issued === 'object' && 'date-parts' in issued
-      ? (issued['date-parts'] as any)?.[0]?.join('-') ?? ''
+      ? ((issued['date-parts'] as any)?.[0]?.join('-') ?? '')
       : '';
 
   return (
@@ -52,7 +53,7 @@ export function MetadataSection({ entry, onUpdate }: MetadataSectionProps) {
       <div className="catalog-section-header">
         <span>题录信息</span>
         {!editing && onUpdate && (
-          <button className="btn-link" onClick={() => setEditing(true)}>
+          <button type="button" className="btn-link" onClick={() => setEditing(true)}>
             编辑
           </button>
         )}
@@ -60,34 +61,37 @@ export function MetadataSection({ entry, onUpdate }: MetadataSectionProps) {
       {editing ? (
         <div className="metadata-edit-form">
           <div className="form-row">
-            <label>标题</label>
+            <label htmlFor={`${fieldId}-title`}>标题</label>
             <input
+              id={`${fieldId}-title`}
               type="text"
               value={metadata?.title || ''}
               onChange={(e) => setMetadata({ ...metadata, title: e.target.value })}
             />
           </div>
           <div className="form-row">
-            <label>类型</label>
+            <label htmlFor={`${fieldId}-type`}>类型</label>
             <input
+              id={`${fieldId}-type`}
               type="text"
               value={metadata?.type || ''}
               onChange={(e) => setMetadata({ ...metadata, type: e.target.value })}
             />
           </div>
           <div className="form-row">
-            <label>DOI</label>
+            <label htmlFor={`${fieldId}-doi`}>DOI</label>
             <input
+              id={`${fieldId}-doi`}
               type="text"
               value={metadata?.DOI || ''}
               onChange={(e) => setMetadata({ ...metadata, DOI: e.target.value })}
             />
           </div>
           <div className="form-actions">
-            <button className="btn btn-sm" onClick={() => setEditing(false)}>
+            <button type="button" className="btn btn-sm" onClick={() => setEditing(false)}>
               取消
             </button>
-            <button className="btn btn-sm" onClick={handleSave} disabled={saving}>
+            <button type="button" className="btn btn-sm" onClick={handleSave} disabled={saving}>
               {saving ? '保存中...' : '保存'}
             </button>
           </div>

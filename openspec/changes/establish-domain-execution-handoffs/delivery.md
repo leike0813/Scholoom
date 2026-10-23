@@ -55,7 +55,7 @@
 
 ## 审查与问题处理
 
-2026-10-23 dev 接收时，保留工作域真实端口并处理 Harness 构造参数冲突；合并后的构造参数、根／子执行及连接路径经独立源码复核，无新增阻塞发现。全仓类型、构建、架构、137 项组合内核和 4 项真实入口冒烟通过，具体命令及证据统一见[工作域交付记录的 dev 接收验证](../establish-scoped-execution-foundation/delivery.md#dev-接收验证)。UI 端口配置在默认及 5275 各加载 104 项，仍未实跑双实例；4.1 保持未勾选。21 项既有文献库 UI lint 错误仍在，不以本地定向通过宣称全仓 CI 通过。
+2026-10-23 dev 接收时，保留工作域真实端口并处理 Harness 构造参数冲突；合并后的构造参数、根／子执行及连接路径经独立源码复核，无新增阻塞发现。全仓类型、构建、架构、137 项组合内核和 4 项真实入口冒烟通过，具体命令及证据统一见[工作域交付记录的 dev 接收验证](../archive/2026-10-23-establish-scoped-execution-foundation/delivery.md#dev-接收验证)。UI 端口配置在默认及 5275 各加载 104 项，仍未实跑双实例；4.1 保持未勾选。21 项既有文献库 UI lint 错误仍在，不以本地定向通过宣称全仓 CI 通过。
 
 独立 Agent 只读核对命令权限、等待重验、停止确认与 URL 隔离，未发现阻塞问题；随后审查 driver／registry 和默认入口，报告三处旧 worker 路径导致故障注入失效。主线已同步 capability-isolation、capability-stop-unknown 和 harness-recovery，24 项相关回归通过，独立复核关闭该 finding。本轮没有未关闭 finding；审查不覆盖尚未实施的资源授权和持久恢复。
 
