@@ -15,6 +15,7 @@ import {
   type ExecutionControlOutputs,
   type ExecutionControlProviders,
   type FrameworkToolResult,
+  type InstructionContext,
   isExecutionControlCall,
   isExecutionControlMethod,
   isExecutionControlResult,
@@ -138,8 +139,15 @@ export class RemoteAgent {
           messages: messages.map(decodeFrameworkMessage),
         } as never);
         if (!result || typeof result !== 'object') return null;
-        const update = result as { messages?: BaseMessage[]; instructionIds?: string[] };
+        const update = result as {
+          messages?: BaseMessage[];
+          instructionIds?: string[];
+          instructionRunId?: string;
+          instructions?: InstructionContext[];
+        };
         return {
+          ...(update.instructions ? { instructions: update.instructions } : {}),
+          ...(update.instructionRunId ? { instructionRunId: update.instructionRunId } : {}),
           ...(update.instructionIds ? { instructionIds: update.instructionIds } : {}),
           ...(update.messages
             ? { messages: update.messages.map((message) => encodeFrameworkMessage(message)) }

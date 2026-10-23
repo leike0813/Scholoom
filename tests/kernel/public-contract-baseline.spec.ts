@@ -238,6 +238,7 @@ test('unwired capabilities reject before accepting work or losing explicit conte
   const app = new KernelApplication(directory, { environment: {} });
   try {
     await app.initialize();
+    const session = app.harness.create('application');
     expect(app.available()).not.toEqual(expect.arrayContaining(['resources.create']));
     for (const request of [
       () =>
@@ -251,7 +252,7 @@ test('unwired capabilities reject before accepting work or losing explicit conte
       () =>
         app.call('session.send', {
           projectId: 'application',
-          sessionId: 'missing',
+          sessionId: session.id,
           instructionId: 'i',
           text: 'read selection',
           materials: [],
@@ -268,7 +269,9 @@ test('unwired capabilities reject before accepting work or losing explicit conte
     await expect(app.call('workbench.context.publish', { snapshot: null })).rejects.toMatchObject({
       code: 'permissionDenied',
     });
-    expect(app.harness.list({ projectId: 'application' }).sessions).toEqual([]);
+    const snapshot = await app.snapshot({ projectId: 'application', sessionId: session.id });
+    expect(snapshot.messages).toEqual([]);
+    expect(snapshot.run).toBeUndefined();
   } finally {
     await app.close();
     await rm(directory, { recursive: true, force: true });

@@ -192,7 +192,11 @@ EPUB 2／3 重排版与单文件 HTML 快照复用 reader tab 和共同记录。
 
 `WorkbenchSession` 的 `contextItems`、`appendContextItem`、`removeContextItem`、`updateContextComment` 供会话来源接入；dock／overlay 共用同一检查和批注入口。输入、材料、显式项和 pending 按工作台实例、配置、项目、会话保存；刷新沿窗口身份恢复，新窗口独立。旧草稿可明确复制到空目标，原值保留；迟到回执只移除原指令中未被继续修改的项。
 
-资源／授权适配与 Graph driver 前置增量尚未交付，当前不注册 Agent 上下文读取工具，也不接受非空 `contextItems` 进入执行。此类发送明确拒绝后保留可编辑草稿；结果未知仍保留原 pending 身份供核查。不得据当前快照或已保存摘录绕过资源读取与模型外发授权。完整端到端及双宿主组合验收仍在 `establish-workbench-context-bridge` 的后续任务中。
+Agent 的 `read_workbench_context` 工具按本次推进已注入的指令查询连接当前快照。两个窗口或窗口与 CLI 的指令同时参与时，返回 `ambiguous` 和当前 `instructionIds`，只接受明确指定且属于本推进的 ID；新推进不能引用旧推进的 ID。相同连接的多条指令共用当前快照，不自动选择最近窗口；无来源、断线、无快照及接收会话不匹配分别返回不可用原因。来源与显式项经模型前置 IPC 进入实际 worker 的结构化状态／checkpoint，持久来源不重建连接。
+
+服务端保存完整 `contextItems`，原身份重试比较全部载荷，字段顺序不影响相等性；同身份修改摘录、批注、引用或选择内容会被拒绝，重试不替换原来源。SDK 内容适配集中在 harness，明确区分用户草稿摘录、所附摘录与整份材料引用，不把附加当作已实际读取。已使用的资源引用随会话保存，在恢复、模型排队前后及最终准入时复查当前读取／外发权限。历史摘录保留原 basis，版本核对发生在实际重新读取时，不因资源更新而抹去历史或永久阻塞会话。
+
+领域交接的统一执行资源适配仍未交付。生产入口继续拒绝非空 `contextItems`，含资源选择或无法授权的裸 `selectedItems` 的上下文查询明确报 `unavailable`；拒绝后保留可编辑草稿，结果未知保留原 pending 身份。`KernelApplication` 的 `contextResources` 是宿主注入缝，当前只由隔离测试提供明确替身：复用 `ExecutionResourcePort.describe` 核对资源身份，并由资源所有者同步检查读取／外发授权；不能把人工资源端口或快照当作授权。注册图及 Agent 的直接初始化仍拒绝非空 `instructions`，避免绕过模型前置端口后丢弃显式项。真实取材、库外发／目标信任撤回及最终组合验收仍沿 `establish-workbench-context-bridge` 的后续任务推进。
 
 内核代码不会热替换。独立驻留实例在实现更新后需重启；调试内核需结束全部调试宿主，下一轮调试才加载新构建。工作台重连接回原实例。
 

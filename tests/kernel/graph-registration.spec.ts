@@ -52,6 +52,15 @@ test('source registration validates in host and actual worker before constructin
     }
     expect(graphs.resolve(selection).definition.stateFormatVersion).toBe('1');
     await expect(
+      callExecutionControl(peer, 'execution.initialize', {
+        graph: selection,
+        attemptId: 'attempt',
+        input: null,
+        instructions: [{ instructionId: 'must-not-be-discarded' }],
+      }),
+    ).rejects.toMatchObject({ code: 'unavailable' });
+    expect(effects).toHaveLength(0);
+    await expect(
       peer.request(
         'execution.initialize',
         {

@@ -187,6 +187,7 @@
         "@scholoom/protocol/core",
         "@scholoom/protocol/execution",
         "@scholoom/protocol/harness",
+        "@scholoom/protocol/resources",
         "@scholoom/protocol/models",
         "@scholoom/protocol/projects",
         "@scholoom/protocol/research",

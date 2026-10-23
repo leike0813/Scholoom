@@ -18,6 +18,13 @@ export {
   runStateSchema,
   sessionSchema,
 } from './harness-record-contracts.js';
+export type {
+  ContextItem,
+  InstructionContext,
+  WorkbenchContextOutputs,
+  WorkbenchSource,
+} from './workbench-context.js';
+export { isContextItems, workbenchContextInternalOperations } from './workbench-context.js';
 
 type CompleteModule<T extends Record<keyof typeof harnessModuleOperations, unknown>> = T;
 export type HarnessModuleInputs = CompleteModule<ModuleInputs>;

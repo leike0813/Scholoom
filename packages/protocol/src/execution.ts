@@ -8,6 +8,7 @@ export { executionControlOperations } from './execution-contracts.js';
 export type { FrameworkMessage, FrameworkToolResult } from './execution-graph.js';
 export { frameworkMessageSchema } from './execution-graph.js';
 export * from './graph-contracts.js';
+export type { InstructionContext } from './workbench-context.js';
 export type ExecutionControlMethod = keyof typeof executionControlOperations;
 type Complete<T extends Record<ExecutionControlMethod, unknown>> = T;
 export type ExecutionControlInputs = Complete<Inputs>;
