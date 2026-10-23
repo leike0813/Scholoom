@@ -113,6 +113,7 @@
         "project.material",
         "files.read",
         "files.resolve",
+        "platform.command",
         "platform.editorCommand",
         "files.importBegin",
         "files.importChunk",
@@ -283,7 +284,8 @@
         "files.read",
         "files.resolve",
         "session.check",
-        "harness.execute"
+        "harness.execute",
+        "harness.startGraph"
       ]
     },
     {

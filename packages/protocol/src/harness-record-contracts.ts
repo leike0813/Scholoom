@@ -1,10 +1,19 @@
-import { graphBindingSchema } from './graph-contracts.js';
+import { graphBindingSchema, graphProgressSchema } from './graph-contracts.js';
 import { modelPreferenceSchema, runModelConfigSchema } from './models.js';
 import { artifactSchema } from './project-contracts.js';
 import { array, content, count, flag, id, object, text } from './schema.js';
 import { contextItemsSchema, workbenchSourceSchema } from './workbench-context.js';
 export const runStateSchema = {
-  enum: ['queued', 'running', 'cancelling', 'cancelled', 'completed', 'failed', 'interrupted'],
+  enum: [
+    'queued',
+    'running',
+    'waiting',
+    'cancelling',
+    'cancelled',
+    'completed',
+    'failed',
+    'interrupted',
+  ],
 } as const;
 export const sessionSchema = object(
   {
@@ -59,6 +68,7 @@ export const runSchema = object(
     outputTokens: count,
     remoteOutcome: { enum: ['unknown', 'completed'] },
     graph: graphBindingSchema,
+    graphProgress: graphProgressSchema,
     modelConfig: runModelConfigSchema,
   },
   ['id', 'sessionId', 'attempt', 'state'],

@@ -33,7 +33,7 @@ flowchart LR
 
 图公共 DTO 集中于 `graph-contracts.ts`：注册定义、agent／registered 选择、等待、resume、持久绑定及输入／读取／保存证据。`execution.initialize` 保留原 Agent 分支，registered 分支接收 attemptId、图描述、可选模型及宿主私有 checkpointPath／checkpointRef，允许确定性图不提供模型。`execution.next` 以 done 加 graph 表达等待／完成／失败；等待结束的是当前推进，不表示科研完成。原 Agent 驱动对这些新结果明确报告不可用。
 
-`executionControlOperations` 同源引用资源读写与创建／查询声明，使 worker 无需另造资源消息；真实提供者留在 1.2／2.4 接入。内部 platform.command 单独导出，复用 editor 的参数、输出及等待边界，本轮不注册命令提供者。未接线的产品创建入口、registered 图和恢复输入均明确失败，不以默认 Agent 或成功空结果代替。
+`executionControlOperations` 同源引用资源读写与创建／查询声明，使 worker 无需另造资源消息；宿主经 broker 绑定所属真实提供者。内部 platform.command 单独导出，复用 editor 的参数、输出及等待边界，由 editor 实际消费。registered 图通过内部 harness.startGraph 接纳；未登记图或不匹配的恢复输入明确拒绝或保留等待，不以默认 Agent 或成功空结果代替。
 
 ### 同源材料与结果
 
@@ -46,6 +46,8 @@ flowchart LR
 图输入材料、实际读取材料和结果各有独立字段。材料不存在、删除、版本变化或外链不可用时原样传递所属领域失败，由负责 Agent 按引用行为矩阵处理，不隐式复制、不猜测替代对象。不要把 ResourceEvidence 引用集合变成全局存储或项目反向索引。
 
 ### 可装配图驱动
+
+持久等待使用原 run 的 `waiting` 状态及 `graphProgress` 查询投影；图绑定保留原材料依据，源码登记可声明具名等待 schema。宿主内部选择图，后续消息由对应工厂的等待适配器转换并按该 schema 校验；消息有歧义时保留未消费。registered 初始化携带本次有界 instructionIds，复用 InstructionSaver 确认持久消费，人工／普通 Agent 接口不添加第二种继续动作。
 
 在 protocol/execution 声明判别式执行描述：默认 `agent` 路径保留现有输入；`registered` 路径含 graphId、version、已校验 config、材料引用、工作域和尝试引用。业务方法到图的映射属于科研域，公共基础不修改旧材料分析方法含义，也不把当前 Skill 执行改名为新图。
 
@@ -67,7 +69,7 @@ worker 不接收用户模块路径或代码。RemoteAgent 由宿主注入固定 
 
 工作空间归属还须符合前序工作域限制：全局执行不能通过该端口请求通用 Shell／解释器或在只读目标内运行会写缓存的程序，即使程序已登记也不能扩大能力。人工 editor 编译继续沿原人工入口规则，Agent 及未来计算域操作则核对自身执行范围和目标授权；两者共用机制但不混淆主体。
 
-从 manual.ts 提取唯一命令提供者，集中执行准入、等待后重新授权、signal 传递、实际停止确认和释放。editorCommand 保留 Quarto／latexmk 的领域形状，作为薄适配调用同一提供者；EditorRuntime 继续管理输入快照、编译业务状态、缓存和最后成功预览。计算域随后提供其环境和工作空间描述、运行记录及 UI，不在本变更新造一套运行生命周期。
+从 manual.ts 提取唯一命令提供者，集中执行准入、等待后重新授权、signal 传递、实际停止确认和释放。editor 的实际命令端口将 tool 映射为 executableId 并消费 platform.command，editorCommand 保留 Quarto／latexmk 的领域形状作为薄适配；EditorRuntime 继续管理输入快照、编译业务状态、缓存和最后成功预览。宿主私有 commandWorkspace 解析原工作空间，Agent 额外核对 principal／session、工作域及当前运行实例，排队后重复核验。计算域随后提供其环境和工作空间描述、运行记录及 UI，不在本变更新造一套运行生命周期。
 
 ```mermaid
 sequenceDiagram

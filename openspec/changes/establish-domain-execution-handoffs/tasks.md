@@ -31,15 +31,15 @@ flowchart LR
 
 - [x] 2.1 消费 0.1 已交付的默认 agent／registered 及图身份版本配置声明，接入宿主和 worker 的同源注册；未注册、版本不符或非法配置在副作用前失败，类型和运行校验均覆盖。
 - [x] 2.2 从 harness 固定 child 主体提取通用图 driver，在宿主静态 worker 入口装配工厂；保持 harness 不导入 research 实现，并验证实际 worker 只接收受控入口及可校验 DTO。将提取增量及回归独立接入 dev，工作台线改动相同执行适配块前先同步。
-- [ ] 2.3 消费 0.1 的 waiting/completed/failed 及恢复契约，将图身份版本配置／状态格式／checkpoint／waitId 绑定落到持久尝试及查询，测试没有模型事件的确定性图；新指令经等待 schema 映射为 resume，checkpoint 成功后恰好确认消费，覆盖回执丢失及版本不兼容的新尝试。
-- [ ] 2.4 为已装配图接通当前实例、模型额度、checkpoint、资源工具与取消。用测试宿主装配的固定 StateGraph 在实际子进程中读材料、写文件、等待输入并按新消息接续；等待可查询且不在重启后自动执行。
+- [x] 2.3 消费 0.1 的 waiting/completed/failed 及恢复契约，将图身份版本配置／状态格式／checkpoint／waitId 绑定落到持久尝试及查询，测试没有模型事件的确定性图；新指令经等待 schema 映射为 resume，checkpoint 成功后恰好确认消费，覆盖回执丢失及版本不兼容的新尝试。
+- [x] 2.4 为已装配图接通当前实例、模型额度、checkpoint、资源工具与取消。用测试宿主装配的固定 StateGraph 在实际子进程中读材料、写文件、等待输入并按新消息接续；等待可查询且不在重启后自动执行。
 - [x] 2.5 回归普通会话及既有材料分析入口，核对默认 Agent、工具结果、实例失效、容量不足和停止未知仍沿原规则；测试夹具不进入生产默认注册。
 
 ## 3. 宿主共同受管命令
 
-- [ ] 3.1 消费 0.1 的内部 platform.command 契约，接入宿主私有 workspace／executable 解析，绑定真实消费模块及工作域；测试伪造工作空间、未登记程序、跨域越权及全局会话借已登记程序突破只读限制均被拒绝。
+- [x] 3.1 消费 0.1 的内部 platform.command 契约，接入宿主私有 workspace／executable 解析，绑定真实消费模块及工作域；测试伪造工作空间、未登记程序、跨域越权及全局会话借已登记程序突破只读限制均被拒绝。
 - [x] 3.2 提取唯一准入与 runCommand 提供者，editorCommand 通过薄适配复用；保持排版快照、缓存、取消及最后成功预览。扩展 editor-runtime.spec.ts，不增加通用计算运行记录。
-- [ ] 3.3 固定 Node 程序经过真实进程和准入，验证输出边界、等待撤权、取消、后代收尾及停止未知；扩展 process-admission.spec.ts 和 platform-processes.spec.ts。
+- [x] 3.3 固定 Node 程序经过真实进程和准入，验证输出边界、等待撤权、取消、后代收尾及停止未知；扩展 process-admission.spec.ts、managed-commands.spec.ts，复用 platform-processes.spec.ts 的真实进程覆盖。
 
 ## 4. 隔离夹具、整合与交付
 
@@ -51,6 +51,8 @@ flowchart LR
 - [ ] 4.6 根据实际执行结果取得 delivery instructions 并填写 delivery.md，记录公共基础完成标准、平台与替身边界，再更新本项状态。
 
 ## 续做入口
+
+2026-10-23，本轮先核对 `9c8212f` 已包含于当前树；2.3、2.4、3.1、3.3 的本树实现与验证完成，进度 **13/19**。Graph 与命令分别提交，向 dev 发出 [PR #8](https://github.com/leike0813/Scholoom/pull/8)，尚未合入。最终组合验收 4.x 保持未勾选；本轮真实接线、失败修复及续做边界见 [delivery](delivery.md#第三轮-graph-增量待-dev-接收)。后续先由 dev 接收并核对与工作台线上下文授权组合，再完成双实例、双宿主及最终公共基础验收。
 
 2026-10-23 dev 已接收 [PR #5](https://github.com/leike0813/Scholoom/pull/5)，合并提交 `fa77d2e`；资源授权、保存／关联及首次创建回归通过，1.2 完成，进度 9/19。接收验证及剩余边界见 [delivery](delivery.md#第二轮-dev-接收)。下一批推进 2.3、2.4 的持久 Graph 等待／恢复与生产资源接线，以及 3.1、3.3 的共同命令真实资格核对；不重复实现已交付的资源适配。
 

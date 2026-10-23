@@ -38,7 +38,9 @@ export class ManagedCommands {
       if (
         context.targetRead ||
         (agent &&
-          (context.workDomain?.kind !== 'project' ||
+          (context.principal.kind !== 'agent' ||
+            context.principal.id !== context.sessionId ||
+            context.workDomain?.kind !== 'project' ||
             context.workDomain.projectId !== workspace.projectId ||
             context.projectId !== workspace.projectId ||
             context.workDomain.sessionId !== context.sessionId ||

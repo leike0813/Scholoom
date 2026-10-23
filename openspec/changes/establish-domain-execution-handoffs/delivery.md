@@ -2,6 +2,38 @@
 
 ## 当前状态与成果
 
+### 第三轮 Graph 增量（待 dev 接收）
+
+2026-10-23，开始前确认当前工作树 HEAD 为 `9c8212f`、无未提交改动。用户授权本树实施、独立提交、推送并向 dev 发 PR；不自行合入、不操作其他工作树。2.3、2.4 先独立实现及实跑，以 `b279803`、`6def640`、`641ceb7` 推送并发出 [PR #8](https://github.com/leike0813/Scholoom/pull/8)，供 dev 独立审查；工作台等待状态映射另以 `40aa011` 补齐。随后完成 3.1、3.3，当前 tasks 为 **13/19**。PR 尚未合入，最终组合及双实例验收仍待后续，不宣称已接入 dev。
+
+宿主通过内部 `harness.startGraph` broker 接纳源码登记图，公共 `session.send` 继续当前图的等待。原 runs 保存身份／版本／配置／材料依据／状态格式／checkpoint 绑定，查询返回 graphProgress 及 waitId；工厂只将明确匹配的新消息转为已声明 schema 的 resume，未匹配消息保留未消费。真实 InstructionSaver 在 checkpoint 保存后确认消费，保存输入后的确认失败可重启重试，不重复创建成果；待消费指令仍走原记录和回执。无新增数据库或交付事实源。
+
+registered 路径复用 RemoteAgent、静态 driver、当前实例、ProcessAdmission、ModelAccess 和 broker 资源提供者；不改变默认 Agent 的 beforeModel／contextItems 来源。确定性图无凭据也可执行；需要模型的源码图共用现有额度。重启只读取等待；原版本不可用拒绝普通接续，显式新版本另建尝试且保留旧 checkpoint 与文件。resume 缺少原 checkpoint 时停止，禁止从头执行。图等待同时核对持久 graphWait 和实际 interrupt，不接受仅有投影的等待回报。
+
+`tests/kernel/registered-graph.spec.ts` 的 10 项边界全部通过：normal、ack、upgrade、lost-wait、missing-checkpoint、materials、model、budget、cancel、revoke。固定 StateGraph 在实际子进程读取真实项目材料、从不存在路径创建成果、interrupt 等待并由新消息继续；实际文件／SQLite／资源仓储均沿内部提供者。测试宿主源码集合为夹具，生产默认集合仍为空；额度用例只调用真实 acquire/release，不向外部模型发请求。该组与 context-instructions、instruction-checkpoint、graph-registration 组合共 22/22 通过，包含 101 条原 Agent 指令及消费确认故障。
+
+独立只读审查关闭了恢复时旧指令身份误拒、材料依据兼容遗漏、checkpoint 缺失重放、取消后回写等待及 SDK 单对象 interrupt 校验问题；最终窄复核无剩余明确阻塞。格式清理后 harness/kernel 编译通过，相关 75 个源码／测试文件 Biome 通过。命令接线与更广回归随后独立记录，Graph 增量先交付审查。
+
+### 第三轮共同命令及最终本树验证
+
+3.1 由 editor 实际消费 `platform.command`，tool 在原命令适配中映射为登记 executableId，原 editorCommand 保持薄适配。宿主沿 editor 私有工作空间及 Quarto／latexmk 程序登记，不开放通用 Shell。Agent principal 必须对应 session，工作域／项目／执行身份相符；宿主在准入前及排队后调用现有 harness.checkExecutionContext 和项目授权。人工 editor 组合不要求 harness。测试宿主仅覆盖私有工作空间描述以登记固定 Node；内部 broker、当前会话、授权、文件和进程均真实，受控模型只维持活动会话。
+
+3.3 扩展既有 managed-commands 与 process-admission，复用 platform-processes 和 editor-runtime。排队撤权、取消、撤销后无 signal 的旧实例、真实全局会话、伪造模块／工作空间／程序及目标只读范围均被拒绝。输出溢出、进程树后代、宿主退出与控制器失联走真实进程；未确认停止继续占用名额。独立审查复现启动期间取消仍派发命令的 P1，已在唯一 runCommand 启动后、发送前再次检查 signal，异常仍等待 finally 的真实停止；红测确认旧实现写入 marker，绿色断言文件未创建且占用归零。最终窄复核关闭 P1，无新增阻塞。
+
+本轮验证使用现有工具，无安装升级依赖；模型／临时进程按测试归属收尾。Linux、Node v24.12.0，真实 Quarto／LaTeX 沿本机既有安装。结果如下：
+
+| 命令或组合 | 结果及证据 |
+| --- | --- |
+| Playwright kernel：registered-graph、context-instructions、instruction-checkpoint、graph-registration | 22/22；确定性图、持久等待、消费回执、101 条指令及原 worker 注册 |
+| 同入口：harness、harness-recovery、capability-isolation、capability-stop-unknown、resource-identity、resource-creation、target-races | 39/39，3.9 分钟；原恢复／未知效果保护、101 份创建收据遗漏及重命名竞态继续通过。日志 `/tmp/scholoom-r3-graph-regression.log` |
+| 同入口：managed-commands、process-admission、platform-processes、platform-command-contracts、editor-runtime | 最终 23/23，27.7 秒；日志 `/tmp/scholoom-r3-commands-green.log`。启动取消红测 `/tmp/scholoom-r3-start-cancel-red-final.log`；初次全局会话用例误等第二份模型额度，改为核对真实活动实例，未放宽授权断言 |
+| 同入口：registered-graph、editor、resource-access | 25/25，2.4 分钟；最终 Graph 复验、人工真实转换／HTML／PDF／DOCX／多文件 LaTeX、资源撤权及仅补原身份关联。日志 `/tmp/scholoom-r3-live-final.log` |
+| 依赖顺序直接执行 13 个 workspace 包原 build／typecheck scripts；tools tsc | 13 包构建通过。首次类型检查发现 waiting 缺少工作台状态映射，补原位置“等待输入”后 desktop／兼容宿主及 tools 复验通过；状态显示不改来源、contextItems 或 composer。日志 `/tmp/scholoom-r3-all-build.log`；最终宿主重建 `/tmp/scholoom-r3-build-tail.log` |
+| contract-types.mjs --patch 格式化后比较、--self-test | 生成结果一致，自检通过；未改无关生成映射 |
+| check-architecture.ts、相关文件 Biome、tools tsc、git diff --check | 13 模块、198 源文件、0 findings；格式及类型通过 |
+
+工作树没有新增科研方法、计算域运行记录或通用命令入口。未运行双实例、双宿主 UI、真实外部模型／科研质量和三平台分发验收。最终公共基础组合、工作台线上下文授权接入及 dev 接收结果仍按 tasks 的 4.x 跟进，所有该组勾选保持未完成。
+
 ### 第二轮 dev 接收
 
 2026-10-23，用户要求接收三工作树新一轮 PR。dev 保留原提交依次合并 #4、#5、#6，合并提交为 `b39292a`、`fa77d2e`、`a9d8afe`。工作域 change 已同步正式规格并归档；本变更的真实执行资源适配、保存／关联及首次创建已接入 dev，1.2 完成，tasks 为 **9/19**。工作台的指令来源、显式项持久化及多来源查询也已接入，但生产显式材料资源提供者仍待工作台线绑定。未同步其他工作树或控制其 Agent。
@@ -114,9 +146,8 @@
 
 ## 未完成事项与下一步
 
-1. PR #5 已接入 dev，1.2、1.3、1.4 完成；工作台 2.2、3.2 可同步后绑定实际资源与所有者授权。生产显式项仍保持未接线保护，需工作台线完成真实授权与外发回归后开放。
-2. 1.3、1.4 已完成本树实现和资源路径验收；维持原只读、条件保存及未知效果保护。生产 registered Graph 的资源调度仍属于后续 2.4，测试宿主的实际两节点图不替代该任务。
-3. 后续沿 GraphDriver seam 实施 2.3 的持久图绑定、真实 interrupt／waitId、输入 schema 与新指令消费、版本不兼容及 checkpoint 后确认，再接通 2.4、3.1／3.3 的真实资源和执行资格。当前计数图仍不替代真实材料及成果交付。
-4. 2.2 已完成 dev 接入；4.1 的 URL／fixture 源码也已接入，消费者可同步后使用，实际双实例隔离验收仍未完成。下一批优先 Graph 等待与命令资格，不与工作台线重复修改来源、显式项和共同 composer。
-5. 本轮已取得双宿主共同资源的 12 项通过证据；写作 UI、双实例并发仍未运行。目标只读零写入已在 dev 组合及本树资源回归核对；真实模型、科研充分性和三平台分发仍未验，Mermaid 未渲染。
-6. 续做读取本记录和 tasks，再运行 `openspec instructions apply --change establish-domain-execution-handoffs --json`。CLI ready 仍只是依赖工件就绪；4.3／4.4／4.5／4.6 等整体验收和最终交付项保持未完成，按实际结果继续更新同一记录。
+1. [PR #8](https://github.com/leike0813/Scholoom/pull/8) 已向 dev 发出，Graph／命令独立提交；2.3、2.4、3.1、3.3 已完成本树验收，尚未实际合入 dev。本轮止于可审查 PR，不自行合并或同步其他工作树。
+2. 接收者先核对同源契约、当前实例及资源提供者，再验证与工作台线的显式项／beforeModel 上下文授权组合；本轮不改来源与 composer，不将固定图加入生产默认集合。
+3. 4.1 的 URL／fixture 源码已在 dev，实际双实例隔离未完成。4.2 的固定图／程序已有真实接线证据，七域最终独立接入及公共基础组合仍待明确接入执行者核验。
+4. 本轮未跑双宿主 UI；既有共同资源 12 项双宿主证据属于前轮。双实例、写作 UI、真实外部模型／科研充分性、三平台分发及 Mermaid 渲染均未在本轮验收。
+5. 续做先读取 tasks 与本记录，再运行 `openspec instructions apply --change establish-domain-execution-handoffs --json`。CLI ready 只表示依赖工件就绪；4.x 全组保持未勾选，不以本树通过替代 dev 接入和最终交付。

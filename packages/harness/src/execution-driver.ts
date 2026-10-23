@@ -66,11 +66,27 @@ export function startExecutionWorker(graphs = new ExecutionGraphs()): void {
       if (initialized) throw new OperationError('invalidRequest', '执行已经初始化。');
       if ('graph' in input) {
         const factory = graphs.resolve(input.graph);
+        if (
+          input.stateFormatVersion &&
+          input.stateFormatVersion !== factory.definition.stateFormatVersion
+        )
+          throw new OperationError('protocolIncompatible', '执行进程的图状态格式不兼容。');
         if (input.input && input.input.attemptId !== input.attemptId)
           throw new OperationError('invalidRequest', '恢复输入不属于当前尝试。');
         initialized = true;
         graphAttemptId = input.attemptId;
-        graphDriver = await factory.create(input, { peer, signal: signal.signal });
+        let checkpointer: InstructionSaver | undefined;
+        if (input.checkpointPath) {
+          database = new Database(input.checkpointPath, { fileMustExist: true });
+          checkpointer = new InstructionSaver(database, async (value) => {
+            await callExecutionControl(peer, 'execution.consume', value);
+          });
+        }
+        graphDriver = await factory.create(input, {
+          peer,
+          signal: signal.signal,
+          ...(checkpointer ? { checkpointer } : {}),
+        });
         return { ok: true };
       }
       initialized = true;

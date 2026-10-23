@@ -2,6 +2,7 @@ import type { RunnableConfig } from '@langchain/core/runnables';
 import type { Checkpoint, CheckpointMetadata } from '@langchain/langgraph-checkpoint';
 import { SqliteSaver } from '@langchain/langgraph-checkpoint-sqlite';
 import type { ContractParams } from '@scholoom/protocol/core';
+import type { GraphResumeInput, GraphWait } from '@scholoom/protocol/execution';
 import type { executionOperations } from '@scholoom/protocol/harness';
 import type Database from 'better-sqlite3';
 
@@ -38,5 +39,18 @@ export class InstructionSaver extends SqliteSaver {
   async confirmLatest(config: RunnableConfig): Promise<void> {
     const saved = await this.getTuple(config);
     if (saved) await this.acknowledge(saved.checkpoint);
+  }
+  /** Keep pending interrupt tasks intact when durably binding host control input. */
+  async bindGraph(
+    config: RunnableConfig,
+    value: { graphResume: GraphResumeInput; instructionIds: string[] } | { graphWait: GraphWait },
+  ): Promise<void> {
+    const saved = await this.getTuple(config);
+    if (!saved?.metadata) throw new Error('Graph checkpoint or metadata missing');
+    await this.put(
+      saved.config,
+      { ...saved.checkpoint, channel_values: { ...saved.checkpoint.channel_values, ...value } },
+      saved.metadata,
+    );
   }
 }

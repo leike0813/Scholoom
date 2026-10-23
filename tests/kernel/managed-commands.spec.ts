@@ -1,13 +1,17 @@
 import assert from 'node:assert/strict';
 import type { ChildProcess } from 'node:child_process';
+import { randomUUID } from 'node:crypto';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, test } from '@playwright/test';
+import { KernelApplication } from '../../apps/kernel/dist/application.js';
 import { type CommandWorkspace, ManagedCommands } from '../../apps/kernel/dist/commands.js';
 import { ManagedNode, ProcessAdmission } from '../../packages/platform/dist/node.js';
 import { type CallContext, OperationError } from '../../packages/protocol/dist/core.js';
+import type { PlatformCommandInput } from '../../packages/protocol/dist/platform.js';
+import { createModelServer } from '../model-server.js';
 
 const program = fileURLToPath(
   new URL('../fixtures/domain-execution-worker/command.mjs', import.meta.url),
@@ -62,7 +66,7 @@ test('host commands resolve identities and reject module, program and work-domai
     const execution: CallContext = {
       ...context,
       role: 'execution',
-      principal: { kind: 'agent', id: 'agent' },
+      principal: { kind: 'agent', id: 'session' },
       projectId: 'project',
       sessionId: 'session',
       runId: 'run',
@@ -74,6 +78,7 @@ test('host commands resolve identities and reject module, program and work-domai
       [{ ...request, executableId: process.execPath }, context],
       [request, { ...context, moduleId: 'research' }],
       [request, { ...execution, projectId: 'other' }],
+      [request, { ...execution, principal: { kind: 'agent', id: 'other' } }],
       [
         request,
         {
@@ -100,6 +105,153 @@ test('host commands resolve identities and reject module, program and work-domai
     await rm(f.root, { recursive: true });
   }
 });
+
+class CommandApplication extends KernelApplication {
+  context: CallContext | undefined;
+  workspace: CommandWorkspace | undefined;
+  override projectTargetRead(context: CallContext) {
+    this.context = context;
+    return super.projectTargetRead(context);
+  }
+  protected override commandWorkspace(id: string): CommandWorkspace {
+    if (id === 'workspace' && this.workspace) return this.workspace;
+    return super.commandWorkspace(id);
+  }
+  command(input: PlatformCommandInput, context: CallContext, moduleId = 'editor') {
+    return this.modulePort(context, moduleId).call('platform.command', input);
+  }
+  occupy() {
+    return this.processes.reserve();
+  }
+}
+
+for (const boundary of ['revoke', 'cancel', 'stale'] as const) {
+  test(`broker command rechecks a real execution after queued ${boundary}`, async () => {
+    const root = await mkdtemp(join(tmpdir(), 'scholoom-command-broker-'));
+    const model = await createModelServer();
+    model.hold = true;
+    const app = new CommandApplication(join(root, 'profile'), {
+      modelEndpoint: model.url,
+      environment: { MINIMAX_CN_API_KEY: 'synthetic' },
+    });
+    const occupied: ReturnType<CommandApplication['occupy']>[] = [];
+    try {
+      await app.initialize();
+      const project = await app.call('project.create', {
+        path: join(root, 'project'),
+        trust: 'trusted',
+      });
+      const session = await app.call('session.create', { projectId: project.id });
+      const scope = { projectId: project.id, sessionId: session.id };
+      await app.call('session.send', {
+        ...scope,
+        instructionId: randomUUID(),
+        text: 'Hold the active execution.',
+        materials: [],
+      });
+      await expect.poll(() => model.requests.length).toBe(1);
+      const context = app.context;
+      assert(context);
+      app.workspace = {
+        ownerModuleId: 'editor',
+        directory: project.path,
+        projectId: project.id,
+        executables: new Map([['node', process.execPath]]),
+      };
+      expect(await app.command(request, context)).toMatchObject({ code: 0, stdout: 'evidence 42' });
+      for (const [input, caller, moduleId, code] of [
+        [{ ...request, workspaceId: 'forged' }, context, 'editor', 'permissionDenied'],
+        [{ ...request, executableId: process.execPath }, context, 'editor', 'permissionDenied'],
+        [request, context, 'research', 'permissionDenied'],
+        [request, { ...context, instanceId: randomUUID() }, 'editor', 'instanceMismatch'],
+        [
+          request,
+          { ...context, principal: { kind: 'agent', id: 'other' } },
+          'editor',
+          'permissionDenied',
+        ],
+        [
+          request,
+          { ...context, targetRead: { targetProjectId: project.id, access: 'read' } },
+          'editor',
+          'permissionDenied',
+        ],
+        [
+          request,
+          {
+            ...context,
+            projectId: 'application',
+            workDomain: {
+              kind: 'application',
+              projectId: 'application',
+              sessionId: session.id,
+            },
+          },
+          'editor',
+          'permissionDenied',
+        ],
+      ] as const) {
+        await expect(app.command(input, caller, moduleId)).rejects.toMatchObject({ code });
+      }
+      if (boundary === 'revoke') {
+        const global = await app.call('session.create', { projectId: 'application' });
+        await app.call('session.send', {
+          projectId: 'application',
+          sessionId: global.id,
+          instructionId: randomUUID(),
+          text: 'Hold the global execution.',
+          materials: [],
+        });
+        await expect
+          .poll(() => {
+            if (app.context?.projectId !== 'application') return false;
+            try {
+              app.harness.checkExecutionContext(app.context);
+              return true;
+            } catch {
+              return false;
+            }
+          })
+          .toBe(true);
+        assert(app.context?.projectId === 'application');
+        await expect(app.command(request, app.context)).rejects.toMatchObject({
+          code: 'permissionDenied',
+        });
+      }
+      // Fill only this host's remaining slots; the held model keeps its real instance active.
+      try {
+        while (true) occupied.push(app.occupy());
+      } catch (error) {
+        expect(error).toMatchObject({ code: 'resourceLimit' });
+      }
+      const { signal: _signal, ...withoutSignal } = context;
+      const pending = app.command(request, boundary === 'stale' ? withoutSignal : context);
+      const rejected = expect(pending).rejects.toMatchObject({
+        code:
+          boundary === 'revoke'
+            ? 'permissionDenied'
+            : boundary === 'cancel'
+              ? 'shuttingDown'
+              : 'instanceMismatch',
+      });
+      if (boundary === 'revoke')
+        app.projects.get(project.id).grant({ trust: 'restricted', autoBackup: false });
+      else await app.call('session.cancel', scope);
+      occupied.shift()?.release();
+      await rejected;
+      if (boundary !== 'revoke')
+        await expect(app.command(request, withoutSignal)).rejects.toMatchObject({
+          code: 'instanceMismatch',
+        });
+    } finally {
+      for (const reservation of occupied) reservation.release();
+      model.release();
+      await app.close();
+      await model.close();
+      await rm(root, { recursive: true });
+    }
+  });
+}
 
 test('queued command rechecks authorization and can be cancelled without launching a process', async () => {
   const f = await fixture();
@@ -169,6 +321,34 @@ test('fixed program keeps output bounded and cancellation stops its actual proce
   } finally {
     controller.abort();
     await pending?.catch(() => {});
+    await rm(f.root, { recursive: true });
+  }
+});
+
+test('cancellation during process startup never dispatches the registered program', async () => {
+  const f = await fixture();
+  const controller = new AbortController();
+  const start = ManagedNode.start;
+  const marker = join(f.root, 'unexpected.txt');
+  ManagedNode.start = async (options) => {
+    const owned = await start(options);
+    controller.abort(new OperationError('shuttingDown', 'cancel during startup'));
+    return owned;
+  };
+  try {
+    await expect(
+      f.commands.execute(
+        {
+          ...request,
+          args: ['-e', "require('node:fs').writeFileSync(process.argv[1], 'unexpected')", marker],
+        },
+        { ...context, signal: controller.signal },
+      ),
+    ).rejects.toMatchObject({ code: 'shuttingDown' });
+    expect(await readFile(marker, 'utf8').catch(() => undefined)).toBeUndefined();
+    expect(f.processes.status.active).toBe(0);
+  } finally {
+    ManagedNode.start = start;
     await rm(f.root, { recursive: true });
   }
 });
