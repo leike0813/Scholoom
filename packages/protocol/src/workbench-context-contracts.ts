@@ -1,6 +1,6 @@
 import type { FromSchema } from 'json-schema-to-ts';
 import { resourceEvidenceSchema } from './resources.js';
-import { count, id, object, ok } from './schema.js';
+import { array, content, count, id, object, ok, text } from './schema.js';
 import { workbenchSourceSchema } from './workbench-source.js';
 
 export const contextLimits = {
@@ -65,7 +65,14 @@ export const contextItemsSchema = {
   maxItems: contextLimits.items,
 } as const;
 export const instructionContextSchema = object(
-  { instructionId: id, source: workbenchSourceSchema, contextItems: contextItemsSchema },
+  {
+    instructionId: id,
+    source: workbenchSourceSchema,
+    contextItems: contextItemsSchema,
+    text: content,
+    materials: array(text),
+    materialFileIds: array(text),
+  },
   ['instructionId'],
 );
 export const instructionContextsSchema = {

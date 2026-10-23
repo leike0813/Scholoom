@@ -58,13 +58,22 @@ export function startExecutionWorker(graphs = new ExecutionGraphs()): void {
       return context.run(token, handler);
     },
     'execution.initialize': async (input) => {
-      if (input.instructions?.length)
+      if (!('graph' in input) && input.instructions?.length)
         throw new OperationError(
           'unavailable',
           '初始化指令尚未接线；Agent 指令由模型前置端口注入。',
         );
       if (initialized) throw new OperationError('invalidRequest', '执行已经初始化。');
       if ('graph' in input) {
+        if (input.instructions?.length && !input.checkpointPath)
+          throw new OperationError('unavailable', '图指令上下文需要持久 checkpoint。');
+        if (
+          input.instructions?.some((item) => !input.instructionIds?.includes(item.instructionId)) ||
+          input.instructionIds?.some(
+            (id) => !input.instructions?.some((item) => item.instructionId === id),
+          )
+        )
+          throw new OperationError('invalidRequest', '图指令身份与完整上下文不匹配。');
         const factory = graphs.resolve(input.graph);
         if (
           input.stateFormatVersion &&
@@ -78,9 +87,20 @@ export function startExecutionWorker(graphs = new ExecutionGraphs()): void {
         let checkpointer: InstructionSaver | undefined;
         if (input.checkpointPath) {
           database = new Database(input.checkpointPath, { fileMustExist: true });
-          checkpointer = new InstructionSaver(database, async (value) => {
-            await callExecutionControl(peer, 'execution.consume', value);
-          });
+          checkpointer = new InstructionSaver(
+            database,
+            async (value) => {
+              await callExecutionControl(peer, 'execution.consume', value);
+            },
+            {
+              instructionRunId: input.attemptId,
+              instructions: [
+                ...(input.checkpointInstructions ?? []),
+                ...(input.instructions ?? []),
+              ],
+            },
+          );
+          await checkpointer.confirmLatest({ configurable: { thread_id: input.attemptId } });
         }
         graphDriver = await factory.create(input, {
           peer,

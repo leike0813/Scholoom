@@ -32,7 +32,9 @@ Electron 工作台和 CLI 共用独立 Node 内核，浏览器开发入口经同
 
 宿主经内部 broker `harness.startGraph` 选择 registered 图，后续沿普通 `session.send` 发送新指令。尝试保存图身份、版本、配置、材料依据、状态格式及 checkpoint 绑定；`session.get` 返回 `graphProgress` 和 waiting／waitId。工厂的 `resume` 将新消息映射为已声明等待 schema 的输入与指令身份；不匹配时保留等待和未消费消息，不转为默认 Agent。图使用宿主提供的 `InstructionSaver`，先保存 `instructionIds`／`graphResume` 再确认消费；等待须对应实际 checkpoint 的 interrupt。重启只读取记录，不自动推进；旧版本不可用或 checkpoint 缺失时保留原尝试与成果，显式新版本另建尝试。registered 执行共用当前实例授权、进程准入、模型额度、取消和真实资源端口，无模型图不要求模型凭据。
 
-registered 图的消息接续当前只接文字；`session.send` 的非空 `contextItems` 或旧材料附件在受理前报 `unavailable`，不丢弃附件后消费指令。图的启动材料继续由源码领域入口通过 `execution.materials` 提供。等待映射按游标每批最多 100 条核对，未匹配项保留，后续有效输入仍可进入匹配；普通 Agent 显式切图另建尝试并保留旧 checkpoint。将工作台附件用于图恢复前，仍须接通完整指令上下文、checkpoint 与授权复查，并纳入最终组合验收。
+registered 图的消息接续复用 `InstructionContext`，保留文字、原项目材料路径／身份、显式项和服务端持久来源。工厂 `resume` 收到完整上下文及原 `id/text`，已匹配指令经原 IPC 交给 worker 的 `create(input, context)`；源码启动材料继续使用独立的 `execution.materials`。worker 的 `InstructionSaver` 将完整上下文及 run 归属写入 checkpoint，宿主按服务端原消息核对后才确认消费；只保存身份不能确认。实际取材仍使用共同资源端口，受理、恢复、消费确认及模型排队前后／最终同步准入均复查授权。
+
+等待映射按游标每批最多 100 条核对，未匹配项保留，后续有效输入仍可进入匹配；每次 checkpoint 绑定当批已注入的指令，历史材料授权依据沿原会话记录保留。普通 Agent 显式切图另建尝试并保留旧 checkpoint。缺少持久 checkpoint 的图仍拒绝非空初始化指令，普通 Agent 直接初始化的保护也保留；三线最终组合另沿工作台 change 的 4.5 验收。定向入口为 `tests/kernel/registered-context.spec.ts`，真实内部 worker／资源／SQLite，模型边界为受控 HTTP。
 
 框架文件上传／下载已加入同一内部契约映射，以 base64 传输 SDK 字节并保留帧上限；连续压缩的历史追加经过实际 IPC 验证。会话临时资源位于 `.scholoom/harness/sessions/<sessionId>/scratch`；旧共享资源复制后保留原件，清单无法核对时持续提示 `context_incomplete`，新会话失败重试不继承旧共享目录。恢复核查最多 1000 个已保存引用，超限明确未完整核查，临时资源缺失不抹去摘要和领域成果。
 
@@ -222,7 +224,7 @@ Agent 的 `read_workbench_context` 工具按本次推进已注入的指令查询
 
 `KernelApplication.contextResources` 默认绑定已有 `executionResources(context)` 与资源所有者授权。受理前沿私有宿主标记核对接收会话、资源身份及读取／外发权限，只提供描述检查；活动执行才取得真实执行端口，不建立虚构 run，也不沿人工权限取材。`read_context_resource` 以明确的 `ref/basis` 复用共同资源读取，读取前后复查执行资格，取得的引用进入后续模型请求的授权检查。项目和库材料均已贯通；历史摘录与来源快照始终不构成授权凭证。
 
-`selectedItems` 中的每个 ID 必须对应同一快照 `selections` 的 `itemId`，并逐项通过资源所有者检查。缺少可核对证据的裸 ID 仍报 `unavailable`，不猜对象或退回最近窗口。拒绝发送保留可编辑草稿，结果未知保留原 pending 身份。注册图及 Agent 的直接初始化仍拒绝非空 `instructions`，实际 Agent 指令沿模型前置端口注入；三线最终组合验收继续沿本 change 的 4.5 推进。
+`selectedItems` 中的每个 ID 必须对应同一快照 `selections` 的 `itemId`，并逐项通过资源所有者检查。缺少可核对证据的裸 ID 仍报 `unavailable`，不猜对象或退回最近窗口。拒绝发送保留可编辑草稿，结果未知保留原 pending 身份。普通 Agent 的直接初始化仍拒绝非空 `instructions`，实际 Agent 指令沿模型前置端口注入；registered 图沿上文持久指令通道接入，三线最终组合验收继续沿本 change 的 4.5 推进。
 
 项目资源的 `basis` 与目标只读使用同一包含 ctime 的读取版本，等长改写并恢复 mtime 仍使旧版本失效。底层 `files.readBytes` 保留原 `basis` 发布证据及跨移动读取契约，另以显式 `resourceBasis` 返回／核对强读取版本；资源适配器只用强版本，原产物回执保留证据种类。创建的首次读取版本保存在既有操作记录内，之后修改或删除材料不改变原创建回执，重新读取仍须核对版本及身份。
 

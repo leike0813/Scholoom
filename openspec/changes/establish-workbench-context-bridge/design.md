@@ -11,6 +11,9 @@ flowchart LR
   A --> D[共同 composer 草稿]
   D --> I[可靠 session.send 及指令记录]
   I --> H[真实执行输入]
+  I --> G[registered Graph 完整指令映射]
+  G --> P[worker 保存上下文 checkpoint]
+  P --> K[宿主核对后确认消费]
   H --> R[共同资源端口重新授权]
 ```
 
@@ -32,7 +35,7 @@ flowchart LR
 
 快照以 receiver（项目／会话或 null）、viewId、selectedItems 与 selections 表达；null 快照表示清空。显式项复用资源引用和 basis，text 使用 quote／contentState，region 使用归一化矩形，object 使用 providerId／objectId／name／semantics。接入者使用 isContextItems／isWorkbenchContextSnapshot 同时检查 schema、64 KiB UTF-8 总量、重复 itemId 和矩形范围；单项摘录上限 8192 UTF-16 单元，批注上限 4096。
 
-产品 publish 声明不接收可信 connectionId；内部 read 只接受可选 instructionId，返回 available、unavailable 原因或 ambiguous 指令引用。session.send、持久消息和执行初始化已声明可选上下文项／来源，旧字段继续可读。实际 Agent 指令由 execution.beforeModel 的结构化 instructions 更新进入 worker 状态及 checkpoint；初始化非空 instructions 在注册图及 Agent 分支前拒绝，直到对应初始化消费链路接线。生产 contextResources 已绑定统一执行资源适配，显式项及含资源快照沿资源所有者核对身份和读取／外发权限。缺少依赖的独立测试仍可注入明确替身，不能据替身宣称真实资源交付。
+产品 publish 声明不接收可信 connectionId；内部 read 只接受可选 instructionId，返回 available、unavailable 原因或 ambiguous 指令引用。session.send、持久消息和执行初始化已声明可选上下文项／来源，旧字段继续可读。实际 Agent 指令由 execution.beforeModel 的结构化 instructions 更新进入 worker 状态及 checkpoint，直接初始化仍拒绝非空 instructions。registered Graph 的持久初始化复用 InstructionContext；无 checkpoint 时保留拒绝保护。生产 contextResources 已绑定统一执行资源适配，显式项及含资源快照沿资源所有者核对身份和读取／外发权限。缺少依赖的独立测试仍可注入明确替身，不能据替身宣称真实资源交付。
 
 ### 连接身份与实时快照
 
@@ -59,6 +62,10 @@ session.send 增加可选 contextItems，空缺表示旧指令。服务器在受
 资源读取版本包含 ctime，人工视图与目标只读共用同一依据。底层 files.readBytes 保留原 basis 发布证据及跨移动读取，增加显式 resourceBasis 返回／核对强读取版本；资源适配器只消费强版本。产物回执分别保存发布依据或资源读取版本，恢复不猜格式或降级。创建首次确认的资源读取版本保存在原 file_operations 可选 JSON 字段中，完成回执不依赖后续文件现状；不另建创建收据或更改图等待／共同命令。
 
 原材料路径与 materialFileIds 保留，避免强迫已有消息和已完成尝试迁移。新指令采用结构化项表达库材料和局部选择，不在 text 中拼接隐藏 JSON。IPC 两端及框架消息编码保留类型，SDK 内部适配集中在 harness。
+
+registered Graph 在原 InstructionContext 中补可选 text、materials、materialFileIds，恢复映射与 worker 使用同一份持久载荷；原 id/text 形状和源码 execution.materials 保持。宿主从所属会话持久消息重建 source，不采信工厂自报来源。InstructionSaver 在原 checkpoint 中按当批 instructionIds 保存完整上下文和 instructionRunId，写盘成功后才通过原消费 IPC 确认；宿主再核对完整载荷与原消息及 graphResume。重启读回原载荷，来源连接不会复活。旧 checkpoint 中完整上下文与持久消息冲突时停止，不补一个成功替身。
+
+Graph 受理、恢复映射、worker 初始化、消费确认和模型请求均复查当前权限，历史证据沿普通 Agent 的同一会话授权记录保存，避免换批或换执行路径绕过撤权。历史摘录 basis 不变，实际 resources.read 核对版本。固定图的真实资源／模型边界回归独立于最终 4.5，接线证明后才移除 registered 附件 unavailable 保护。
 
 ### UI 贡献及草稿
 

@@ -7,6 +7,7 @@ import {
   type GraphExecution,
   type GraphWait,
   graphDefinitionSchema,
+  type InstructionContext,
   registeredGraphSchema,
 } from '@scholoom/protocol/execution';
 import type { InstructionSaver } from './checkpoint.js';
@@ -23,7 +24,7 @@ export type GraphFactory = {
   definition: GraphDefinition;
   resume?(
     wait: GraphWait,
-    messages: readonly { id: string; text: string }[],
+    messages: readonly (InstructionContext & { id: string; text: string })[],
   ): { value: unknown; instructionIds: string[] } | undefined;
   create(
     input: RegisteredGraphInput,

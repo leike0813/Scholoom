@@ -99,6 +99,7 @@ export const executionGraphOperations = {
             checkpointPath: text,
             input: { anyOf: [graphResumeInputSchema, { const: null }] },
             instructions: instructionContextsSchema,
+            checkpointInstructions: instructionContextsSchema,
             instructionIds: { type: 'array', items: id, maxItems: 100, uniqueItems: true },
           },
           ['graph', 'attemptId', 'input'],
