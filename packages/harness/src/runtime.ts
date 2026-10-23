@@ -59,9 +59,11 @@ import type {
 import { researchRequestSchema } from '@scholoom/protocol/research';
 import type {
   ResourceEvidence,
+  ResourceInputs,
   ResourceRef,
   ResourceSaveResult,
 } from '@scholoom/protocol/resources';
+import { resourceOperations } from '@scholoom/protocol/resources';
 import type Database from 'better-sqlite3';
 import { CompositeBackend, FilesystemBackend, registerHarnessProfile } from 'deepagents';
 import { and, desc, eq, gt, lt, or, sql } from 'drizzle-orm';
@@ -1550,6 +1552,30 @@ export class Harness {
           systemPrompt:
             '你是 Scholoom 科研助手。使用中文与用户工作。项目正文以实际文件为准，附加材料只是引用，先读取。形成可承接的分析、理由、成果及下一步时保存为普通 Markdown 文件；在没有项目文件权限时只对话。仅使用授权工具。修改已有文件先读取，遇到冲突重读再修改。write_file 仅用于新建，edit_file 修改已有内容。不得声称未保存成果已交付。不要依赖旧 transcript 才能续做，可发现并读取项目已有成果。用户取消后不继续。',
           tools: [
+            {
+              name: 'read_context_resource',
+              description:
+                '按明确资源引用及原 basis 重新读取项目或库材料；每片有界。附加摘录和工作台选择不代表已读取。材料已变化时核查当前版本并询问用户，不猜测或替换引用。',
+              schema: resourceOperations['resources.read'].params,
+              func: async (input: ResourceInputs['resources.read']) => {
+                try {
+                  this.checkExecutionContext(fileContext);
+                  const resources = this.contextBridge?.resources?.(fileContext);
+                  if (!resources?.port.read)
+                    throw new OperationError('unavailable', '执行资源读取端口不可用。');
+                  resources.check([{ ref: input.ref, basis: input.basis }]);
+                  const result = await resources.port.read(input);
+                  resources.check([{ ref: input.ref, basis: input.basis }]);
+                  rememberContext([{ ref: input.ref, basis: input.basis }]);
+                  return JSON.stringify(result);
+                } catch (error) {
+                  const info = failure(error);
+                  const current = toolContext.getStore();
+                  if (current) current.error = info;
+                  return JSON.stringify({ error: info });
+                }
+              },
+            },
             {
               name: 'read_workbench_context',
               description:

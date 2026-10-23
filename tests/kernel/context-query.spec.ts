@@ -220,7 +220,9 @@ for (const scenario of [
       else if (scenario === 'mixedCli')
         expect(result).toEqual({ state: 'ambiguous', instructionIds: [firstId, secondId] });
       else if (scenario === 'unadaptedSelection' || scenario === 'bareSelection') {
-        expect(result).toMatchObject({ error: { code: 'unavailable' } });
+        expect(result).toMatchObject({
+          error: { code: scenario === 'bareSelection' ? 'unavailable' : 'permissionDenied' },
+        });
         expect(tool?.state).toBe('error');
         expect(JSON.stringify(model.requests)).not.toContain('unadapted_snapshot_secret');
         expect(JSON.stringify(model.requests)).not.toContain('private-row-id');

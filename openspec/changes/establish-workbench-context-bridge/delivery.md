@@ -2,57 +2,64 @@
 
 ## 当前状态与成果
 
-2026-10-23 第二轮 dev 接收：本线 PR #6 以 `a9d8afe` 合入，来源／checkpoint、多来源查询及幂等持久化进入 dev。工作域已归档，领域交接 1.2、1.3、1.4 也已接入；下一步可绑定真实 `contextResources` 并完成 2.2、3.2，当前生产保护仍保留。接收时另修复单次推进 100 条后新增指令导致重复失败的问题，独立复核和真实 100／1 条 checkpoint 回归通过。进度仍为 **10/16**；组合验证、首轮失败与复验及平台边界统一见[领域交接第二轮 dev 接收](../establish-domain-execution-handoffs/delivery.md#第二轮-dev-接收)。以下为工作树提交时的交付依据。
+2026-10-23 第三轮，当前 **13/16**：完成 2.2、3.2、4.4，保留前两轮已完成的十项；4.5–4.7 仍未完成。本树开始时干净，HEAD 为 `9c8212f37225683e5abc6326b2098c9b0d2835f7`，已包含用户指定的 dev 基线。实施前读取阶段约定、公共基础实施规划、本 change 和领域交接的“第二轮 dev 接收”，再取得 apply instructions。依赖的工作域授权、领域交接 1.2 统一资源适配、2.2 driver 与共同 UI URL 已接入，见[领域交接 delivery](../establish-domain-execution-handoffs/delivery.md#第二轮-dev-接收)。
 
-2026-10-23，沿用户确认的 dev `ed35c59` 续做，当前 **10/16**：本轮完成 2.1、2.3、3.1、3.3，保留既有 1.1–1.3、4.1–4.3。本 change 尚不能归档或启动七域。用户已授权提交、推送及向 dev 发 PR，未授权合入 dev；本轮没有控制其他工作树。
+用户授权实施、隔离双宿主服务、按归属收尾、提交推送和向 dev 发 PR；未合入 dev、未控制其他工作树，未变更依赖声明或锁文件，未升级或下载依赖。仍不启动七域或归档。
 
-依赖按实际增量核对：工作域授权及目标只读已接入，见[工作域交付](../archive/2026-10-23-establish-scoped-execution-foundation/delivery.md)；领域交接 2.2 driver 提取、共同 UI URL 源码已接入，工作树提交时统一执行资源适配 1.2 尚待接收，当前状态见[领域交接交付](../establish-domain-execution-handoffs/delivery.md)。本轮使用现有 driver、端口与 fixture，没有另建资源提供者、创建收据、图持久等待或共同命令。
+- `KernelApplication.contextResources` 默认绑定原 `executionResources` 和资源所有者授权。受理时没有活动 run，以宿主私有 signal 标记核对接收会话，只提供 describe 检查；不伪造执行、不经人工资源权限放行。标记可随内部 broker 传播，产品参数不能建立；来源项目和目标实例被固定，检查保留取消信号。
+- 活动执行经原资源端口取材。`read_context_resource` 复用同源 `resources.read` 参数与实际资源适配，按明确 ref/basis 有界读取，前后核对有效执行及权限，使用记录进入后续模型外发授权。真实目标项目与库附件均已贯通，库须有 read/send，目标须可信且有已登记身份。
+- `read_workbench_context` 仍在调用时查当前快照。selectedItems 只接受同一 selections 内有可核对资源证据的 itemId，所有 selections 逐项授权；裸 ID 明确 unavailable，不猜对象或静默 fallback。可信来源来自持久消息，多来源返回 ambiguous 及本推进 instructionIds，不选最近窗口。
+- 完整 contextItems 保存在原消息、pending、worker、IPC 与 checkpoint 中。真实模型排队期间撤销目标信任或库 send 后均无 HTTP 外发；重启后仅发送纯文本不能绕过 checkpoint 中旧摘录的授权。重新授权后可继续，并由真实 worker 重新读取原项目／库材料，正文进入受控模型请求。
+- 历史摘录保留原 basis。实际资源变化后旧 basis 重读返回 contentChanged，历史记录不被重写，新正文不被静默外发。异步授权后及最终同步准入均复查；快照和持久摘录不构成授权凭证。
+- 浏览器与真实 Electron 均通过现有源码视图选择、附加选区、共同 composer 批注和发送，再查看工具及 Agent 结果。刷新后 UI 和持久消息完整读回。延迟 session.send 回执期间修改批注、新增条目，释放回执后保留后续草稿，刷新仍保留。原多窗口草稿、pending 与迟到回执回归继续通过。
 
-- 可信指令来源随消息保存，经 `execution.beforeModel.instructions` 进入实际 worker 的结构化状态与 checkpoint。宿主只允许本推进已注入的指令选择来源；来源从持久消息取得，不信任工具自报连接。指令最初受理 run 与实际消费 run 可以不同，checkpoint 的 `instructionRunId` 标记实际注入范围；前序导入不恢复旧来源，中断恢复保留本推进来源，原回执不变。
-- `read_workbench_context` 在工具调用时查关联连接当前快照。同源指令共用当前快照，不同窗口或窗口与 CLI 混合则返回 `ambiguous` 及当前指令引用。显式 ID 必须属于本推进；无来源、断线、无快照和接收会话不匹配分别诊断，不选择最近窗口，不重绑已失效连接。
-- 服务端完整保存四种 `contextItems`，聚合校验沿协议入口；受理前复制载荷，避免在途草稿修改改变受理内容。重试比较全部载荷，字段顺序无关；改摘录、批注、basis、ref、region 或对象语义均拒绝。重复指令保留原回执及来源；提交后通知失败仍为 `outcomeUnknown`。
-- 显式项经模型前置 IPC、SDK 内容适配和 checkpoint 保留，模型可区分已保存摘录、用户草稿、批注与整份材料引用，不声称已读原文。实际注入与工具查询使用过的资源证据随会话保存；恢复、历史指令读取、模型排队前后及最后同步准入均重新检查读取／外发授权。受理事务也同步复查，避免凭据或配置等待期间撤权后新受理。
-- 历史摘录保留原内容与 basis。权限检查不强迫历史 basis 等于资源最新版本，实际重新读取时再核对版本，避免材料升级后会话永久失败。
-- 生产没有绑定 `contextResources`：非空显式项在受理前仍报 `unavailable`；资源选择查询也拒绝，裸 `selectedItems` 因缺少可核对的资源证据继续不可用。测试沿 `ExecutionResourcePort.describe` 注入明确替身及所有者同步授权检查，只验证本线编排，不代表真实取材／外发授权已交付。注册图及 Agent 直接初始化的非空 `instructions` 均保持保护；实际 Agent 指令只沿模型前置端口注入。
+既有来源／幂等／100 条单次 run 契约保持：来源随模型前置指令进入实际 worker 状态；原身份重试比较完整载荷并保留回执；超过 100 条的指令交下一 run。注册图及 Agent 直接初始化非空 instructions 的保护仍保留。本轮未修改 registered Graph 等待恢复或共同命令。接入示例及能力边界已更新到[开发说明](../../../docs/development.md#工作台上下文接入)，设计总览和时序图见[design.md](design.md)，实际接线已同步其正文。
 
-既有连接与 UI 成果保持：认证连接拥有有界单调快照，关闭只释放快照、不取消已受理领域操作；窗口草稿按稳定实例、配置、项目及会话隔离。选择贡献、真实源码选区、共同附加项检查与批注沿原组件；刷新保留 pending，迟到回执不清除后续新增或已修改的条目。接入方式与当前限制见[开发说明](../../../docs/development.md#工作台上下文接入)，总体与时序图仍见[设计](design.md)。
+### 必要的共享资源增量
+
+人工资源视图和目标只读原先使用不同 basis，跨项目重读会把未变化的材料报为 contentChanged。现由共同 fileFingerprint 生成含 ctime 的强资源版本；等长改写并恢复 mtime 仍拒绝旧版本。底层 files.readBytes 保留原 basis 发布证据及跨移动续读契约，显式增加 resourceBasis 参数／结果，资源适配器只消费强版本，不猜字符串格式、不降级。
+
+保存返回强资源版本；产物待关联回执分别持久保存发布依据或资源版本，重启沿原证据核查，不认领替换文件。首次创建继续复用原 file_operations 记录：候选清理后的 resourceBasis 与 complete 在原事务中提交，完成后再编辑或删除文件不改变原操作回执。旧完成记录缺该可选字段时，只有原发布身份／依据仍匹配才补齐，不按当前材料猜测。无物理表迁移，也未另建创建收据。同步文件操作限定在既有 creations 原生适配器，architecture.json 已登记相应 fs 访问。
+
+共享修正独立提交为 `84ae633`，上下文接线随后独立提交；整项等待 dev 审查接收。
 
 ## 实际验证
 
-Linux、Node v24.12.0、pnpm 11.10.0；真实内核、WebSocket、IPC、worker、SQLite checkpoint，外部模型边界为 loopback 受控响应，不使用真实模型凭据或真实科研材料。资源替身只描述身份及授权，不读取资源正文。
+Linux、Node v24.12.0、pnpm 11.10.0；使用真实内部项目／库资源、SQLite、worker、IPC 和 checkpoint。样本均为合成材料，外部模型边界为 loopback 受控 HTTP，没有真实模型凭据或科研质量验收。前两轮的授权替身测试仍保留，但本轮生产路径与新资源测试不注入 contextResources 替身。
 
-| 命令或入口 | 实际结果与边界 |
+| 命令／入口 | 实际结果与范围 |
 | --- | --- |
-| `pnpm generate:contracts`、生成器 `--self-test` | 通过。调用映射仍从 schema 推导；输出 patch 仅含既有格式差异，没有扩散改生成文件 |
-| `pnpm check:architecture` | 13 模块、196 源文件，零问题、零例外；仅给 harness 增加 protocol/resources 的契约依赖 |
-| `pnpm typecheck`、`pnpm build` | 通过；本轮命令均带 `--config.optimisticRepeatInstall=false` |
-| `tests/kernel/context-instructions.spec.ts context-query.spec.ts graph-registration.spec.ts public-contract-baseline.spec.ts` | 最终一轮 **22/22**。四类显式项持久化、完整幂等、重启、真实 worker／checkpoint、版本升级、准入排队撤权、多来源／CLI 歧义、调用时更新、非法指令引用、自动下一 run 消费后重启恢复、初始化不得丢弃 |
-| `tests/kernel/context-drafts.spec.ts context-session.spec.ts harness-recovery.spec.ts harness.spec.ts instruction-checkpoint.spec.ts work-domains.spec.ts`，连同初版 context-query | **33/33**。原多窗口／pending／迟到回执、真实保存／确认／回执故障恢复、scratch、压缩、工具及工作域路径保持通过 |
-| `tests/kernel/workbench-context.spec.ts sessions.spec.ts` | **10/10** 通过；同一批初版查询测试有一项错误地读取不存在的 tool.error 字段，已改核对工具状态及结构化输出，并由专项最终通过 |
-| 双宿主 `tests/ui/conversation.spec.ts resource-lifecycle.spec.ts --grep 'closing a resource\|conversation titles'` | **4/4**，浏览器与真实 Electron 各两项，覆盖原材料附加、发送、持久会话、刷新和阅读器请求生命周期；不作为新显式材料真实资源验收 |
-| 修改源码／测试的 `biome check`、`git diff --check`、OpenSpec strict validate | 通过。全仓 lint 仍为未修改 `workbench/library/` 的 **21 项既有错误**，未扩范围修复 |
+| `pnpm generate:contracts`、生成器 `--self-test` | 通过；生成 patch 仅既有格式差异，调用映射继续由 schema 派生 |
+| `pnpm check:architecture` | 最终 13 模块、198 源文件，零问题、零例外 |
+| `pnpm typecheck`、`pnpm build` | 通过。最后收据／取消修正后再构建 projects、kernel，并通过 tools 的 tsc；命令均带 `--config.optimisticRepeatInstall=false` |
+| `pnpm lint`、最后修改文件的 Biome check | 通过；全仓 74 warnings、35 infos。dev 已清除前两轮记录中的 21 项库 UI 错误，本轮没有沿用该旧失败结论 |
+| context-resources、harness、resource-access、resource-creation、target-reader | **33/33**，约 2.7 分钟：真实上下文、取材及模型外发、排队撤权、重启重新授权／重读、版本拒绝、保存／关联、创建与 101 份待关联收据 |
+| context-instructions、context-query、context-drafts、context-session、harness-recovery、instruction-checkpoint、workbench-context、work-domains、sessions、graph-registration、public-contract-baseline、project-files、resource-identity | **69/69**，约 4.3 分钟：来源／歧义、完整幂等、草稿、消费确认故障恢复、100/1 分 run、字节跨移动及原图入口 |
+| 最后原子收据修正的 context-resources、graph-registration、harness 的 101 收据、resource-access、resource-creation | 20 项首轮 **19 通过、1 取消错误码失败**；修正后复验 context-resources 及取消／撤权创建 **6/6**，约 1 分钟。其余 19 项已有通过证据，包括新加的完成事务写入失败／重启恢复、后续编辑及删除仍重放完成回执 |
+| 双宿主 `tests/ui/context-bridge.spec.ts` | 最终 **4/4**，约 2 分钟；浏览器与真实 Electron 各两项，实际附加／发送／工具重读／结果查看／刷新与迟到回执 |
+| `git diff --check`、本 change strict validate | 通过；apply instructions 确认 **13/16** |
 
-双宿主沿共同 URL 源码使用隔离端口 **5197** 与独立配置，Playwright fixture 和 teardown 负责所属内核、宿主与临时服务退出；结束后 5197 无监听。本树未安装 Electron 运行时，测试复用本机缓存的锁定 **44.5.1** 包，在 `/tmp/scholoom-context-electron-EDFYkK` 临时展开，经 `ELECTRON_OVERRIDE_DIST_PATH` 使用，结束后已移除本轮展开目录，没有执行依赖安装、升级或下载。平台及真实模型范围未扩大。
-
-本轮日志位于 `test-results/kernel/`、`test-results/ui-5197/`，命令日志位于 `/tmp/scholoom-context-{typecheck,build,lint}.log`。格式化／生成 payload 是系统临时工件，不进入产品或生产依赖。早期公共契约用例使用不存在的会话测试显式项保护，按真实准入顺序改为已建会话并核对没有消息或运行受理，最终通过。
+双宿主使用隔离端口 **5198**、独立 UI 配置及原 fixture／teardown，结束后无监听。本树复用本机已有锁定 Electron **44.5.1** 包，在 `/tmp/scholoom-r3-electron-YgqaeI` 临时展开，经 ELECTRON_OVERRIDE_DIST_PATH 使用；结束只收尾本轮所属进程与展开目录，没有执行安装、升级或下载。测试工件在 `test-results/r3-resources-final`、`r3-regression-final`、`r3-receipt-verified`、`r3-admission-verified` 及 `ui-5198`。命令日志为 `/tmp/scholoom-r3-{typecheck-final,build-final,lint-verified,architecture-verified,resources-final,regression-final,receipt-verified,admission-verified,ui-verified}.log`；测试定义和本记录保留可复验入口，本机日志不是跨机器持久工件。
 
 ## 审查与问题处理
 
-2026-10-23 合并后的来源保存、连接生命周期、窗口草稿和 RPC 回执经独立源码复核，无新增阻塞发现；全仓类型、构建、架构、137 项组合内核及 4 项真实入口冒烟通过。完整命令、模拟边界及 21 项既有 lint 错误见[工作域交付记录的 dev 接收验证](../archive/2026-10-23-establish-scoped-execution-foundation/delivery.md#dev-接收验证)。这些检查不包括本线尚未接通的模型前显式材料授权，也不构成 4.4／4.5 完成依据。
+独立默认继承模型只读复核生产受理标记、所有者授权、强版本及收据恢复；发现的问题均已修正并定点复核关闭。审查本身不替代主线程的真实测试。
 
-独立默认继承模型只读审查可信来源、模型外发、幂等与恢复，发现并修复三项：
+1. 初次统一 basis 会丢失 ctime 检查；采用显式 resourceBasis 保留强版本，同时恢复底层跨移动契约，真实等长改写／恢复 mtime 与字节跨移动测试通过。
+2. 保存／创建发布证据与资源版本混用，导致刚返回的资源不能重读；分别保存证据，并验证保存后立即读取、创建完成后编辑／删除仍查询原回执。
+3. complete 与资源版本分开持久化存在崩溃窗口；改为同一原事务提交。真实 SQLite 完成 UPDATE 失败时保留未知结果，重启核对原物理身份后恢复；不能把相同路径的替换文件认领为原创建。
+4. 受理取消需在最后同步检查复查；仅该路径补检查，活动执行保留既有 instanceMismatch 优先级。首次补检查使取消测试返回普通取消错误，修正后 6/6 通过，未放宽断言。
 
-1. 注册图分支可能接受后忽略初始化 instructions：将保护恢复到分支前，实际 worker 回归确认没有图效果。
-2. 历史 basis 与当前版本强比较导致会话永久阻塞：只复查当前身份／权限，旧 basis 留给实际重新取材核对；v1→v2 后续执行及历史保留回归通过。
-3. 自动续做在不同 run 实际消费追加指令时，按最初受理 run 恢复来源会漏候选：以 checkpoint 的实际注入 run 标记恢复。真实 worker 先完成 A、由 B 消费迟到指令，中断重启 B 后仍返回旧／新来源歧义，并把旧连接诊断为 disconnected，未把前序 A 指令当候选。
+实施中全局替换 byteBasis 曾使保存报告 outcomeUnknown，已撤回；最终明确区分原发布证据与强资源版本，无旧格式 fallback。初版测试中的三个 unavailable 预期已沿真实提供者改核对权限／身份失败，裸 selectedItems 的保护保留。Electron 首轮展开工具结果后最终回复在可见区外，按需渲染卸载正文；测试先滚动到最终回复再核对，随后双宿主两轮均 4/4 通过。架构检查首次指出 creations 新同步 fs 访问未登记，已在原适配器声明中补齐，最终零例外通过。
 
-三项定点复核无新增阻塞发现；独立审查只读代码／内存验证，真实 IPC、重启及双宿主测试由主线程执行。既有多窗口草稿未改变，原真实 hook／草稿回归已运行。资源所有者的真实授权与最终组合尚未验收，4.6 不据此次局部审查提前勾选。
+辅助只读调查曾越界运行测试并触发已有 Electron 缓存自动展开，已停止该委派并告知用户；没有改依赖版本或锁文件，也未把其测试结果作为主线程验收。主线程的双宿主验证使用上述单独临时展开目录并自行收尾。
 
 ## 未完成事项与下一步
 
-剩余 **6 项**见 [tasks.md](tasks.md)：2.2、3.2、4.4–4.7。
+剩余 **3 项**见 [tasks.md](tasks.md)：4.5、4.6、4.7。本轮局部验收与独立审查不提前完成最终交付。
 
-1. 同步已接入 dev 的领域交接 1.2 统一执行资源适配，核对实际提供者的读取／外发及同步最终检查，再绑定本线注入缝。不得拿人工资源端口替代；裸 selectedItems 的资源身份／权限没有对应依据前继续明确不可用。
-2. 同步后验收实际项目／库取材、排队期间撤销库外发与目标信任、恢复后重新授权及真实资源重新读取。仅完整链路成立才开放对应生产路径并勾选 2.2／3.2；当前替身结果不能代替这些证据。
-3. 完成必要本线双宿主新显式项验收后，三线实际能力与图／成果路径就绪时再由 4.5 指定当次整合负责人及隔离配置，开展真实公共基础组合，随后完成 4.6／4.7。不要启动七域或提前归档。
-4. PR #6 已由 dev 接收；用户手动同步后继续，不控制其他工作树。续做先读本记录及依赖 delivery，再取 `openspec instructions apply --change establish-workbench-context-bridge --json`。
+1. 4.5 等三线实际 Graph／共同命令／成果路径及必要 dev 增量就绪，指定当次整合负责人和隔离配置，再开展公共基础最终组合；本轮不承接其他线的图等待或共同命令实施。
+2. 完成组合后沿 4.6 复核可信连接、模型外发、幂等、多窗口与接入边界，随后更新本记录并完成 4.7，才判断归档和七域启动。
+3. 本轮提交、推送当前分支并向 dev 发 PR，停止于可审查 PR，不自行合入。dev 接收共享修正与上下文接线后，用户同步再续做；仍先读本记录和依赖 delivery，再取 apply instructions。
+
+未运行真实 Windows／macOS、三平台分发包或完整 UI 套件；未调用真实模型、未做科研充分性或三线最终组合验收。PDF／EPUB 精细选择和七域业务接入仍归后续领域工作，不能据本轮真实文本路径宣称完成。

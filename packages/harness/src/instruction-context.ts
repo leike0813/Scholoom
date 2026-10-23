@@ -20,7 +20,7 @@ export type ContextBridge = {
     | Extract<SnapshotResult, { state: 'unavailable' }>;
   /** The owner checks current read/send grants, including after model admission waits. */
   resources?: (context: CallContext) => {
-    port: Pick<ExecutionResourcePort, 'describe'>;
+    port: Pick<ExecutionResourcePort, 'describe'> & Partial<Pick<ExecutionResourcePort, 'read'>>;
     check: (evidence: readonly ResourceEvidence[]) => void;
   };
 };
@@ -36,7 +36,12 @@ export async function authorizeContextItems(
   resources.check(items);
   for (const item of items) {
     // Stored excerpts keep their original basis; actual resource reads verify that version.
-    await resources.port.describe(item.ref);
+    const resource = await resources.port.describe(item.ref);
+    if (!resource.capabilities.read)
+      throw new OperationError(
+        'unavailable',
+        resource.unavailableReason ?? '上下文材料当前不可读。',
+      );
   }
   resources.check(items);
 }
@@ -62,8 +67,8 @@ export async function readInstructionContext(
     sessionId: context.sessionId as string,
   });
   if (result.state !== 'available') return result;
-  // Bare selected IDs have no resource evidence with which to authorize disclosure.
-  if (result.snapshot.selectedItems.length)
+  const evidenced = new Set(result.snapshot.selections.map((item) => item.itemId));
+  if (result.snapshot.selectedItems.some((id) => !evidenced.has(id)))
     throw new OperationError('unavailable', '选择条目的资源授权适配尚未接线。');
   await authorizeContextItems(bridge, context, result.snapshot.selections);
   return { ...result, instructionId: selected.instructionId };

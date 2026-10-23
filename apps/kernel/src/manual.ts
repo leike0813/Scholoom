@@ -23,8 +23,10 @@ import {
   type ResourceCreationInputs,
   type ResourceCreationOutputs,
   type ResourceDescriptor,
+  type ResourceEvidence,
   type ResourceInputs,
   type ResourceLibraryPort,
+  type ResourceLocator,
   type ResourceRef,
   type ResourceSaveResult,
   resourceFormatForName,
@@ -308,10 +310,10 @@ export class ManualApplication {
         const source = context.projectId && this.projects.get(context.projectId);
         const target = this.projects.get(targetProjectId);
         const authorize = () => {
-          this.checkExecutionContext(context);
+          this.checkResourceContext(context);
           if (
             context.moduleId !== 'harness' ||
-            context.role !== 'execution' ||
+            (context.role !== 'execution' && !this.isInstructionAdmission(context)) ||
             context.principal.kind !== 'agent' ||
             !source ||
             !context.sessionId ||
@@ -395,6 +397,94 @@ export class ManualApplication {
   protected async projectReplacing(_projectId: string): Promise<void> {}
   protected checkExecutionContext(_context: CallContext): void {
     throw new OperationError('unavailable', '当前组合没有执行实例提供者。');
+  }
+  protected checkInstructionContext(_context: CallContext): void {
+    throw new OperationError('unavailable', '当前组合没有指令接收者提供者。');
+  }
+  // Broker copies contexts but preserves signal identity; admission marks stay host-private.
+  private readonly instructionAdmissions = new WeakSet<AbortSignal>();
+  private readonly instructionResourcePorts = new WeakMap<
+    CallContext,
+    {
+      port: Pick<ExecutionResourcePort, 'describe'> & Partial<Pick<ExecutionResourcePort, 'read'>>;
+      check: (items: readonly ResourceEvidence[]) => void;
+    }
+  >();
+  private isInstructionAdmission(context: CallContext): boolean {
+    return !!context.signal && this.instructionAdmissions.has(context.signal);
+  }
+  private checkResourceContext(context: CallContext): void {
+    if (this.isInstructionAdmission(context)) {
+      context.signal?.throwIfAborted();
+      this.checkInstructionContext(context);
+    } else this.checkExecutionContext(context);
+  }
+  protected instructionResources(context: CallContext) {
+    const previous = this.instructionResourcePorts.get(context);
+    if (previous) return previous;
+    const admission = context.role === 'host';
+    const signal = admission
+      ? AbortSignal.any(context.signal ? [context.signal] : [])
+      : context.signal;
+    if (admission && signal) this.instructionAdmissions.add(signal);
+    const source = Object.freeze({
+      ...context,
+      ...(signal ? { signal } : {}),
+      ...(admission
+        ? {
+            workDomain: Object.freeze(
+              context.projectId === 'application'
+                ? {
+                    kind: 'application' as const,
+                    projectId: 'application' as const,
+                    sessionId: context.sessionId as string,
+                  }
+                : {
+                    kind: 'project' as const,
+                    projectId: context.projectId as string,
+                    sessionId: context.sessionId as string,
+                  },
+            ),
+          }
+        : {}),
+    });
+    const targets = this.projectTargetRead(source);
+    const origin = source.projectId ? this.projects.get(source.projectId) : undefined;
+    const scope = (locator: ResourceLocator): CallContext => {
+      if (
+        source.targetRead &&
+        (locator.source !== 'project' || source.targetRead.targetProjectId !== locator.projectId)
+      )
+        throw new OperationError('permissionDenied', '不能扩大目标读取范围。');
+      return locator.source === 'project' && locator.projectId !== source.projectId
+        ? { ...source, targetRead: { targetProjectId: locator.projectId, access: 'read' } }
+        : source;
+    };
+    const check = (items: readonly ResourceEvidence[]) => {
+      if (!origin || this.projects.get(origin.project.id) !== origin)
+        throw new OperationError('instanceMismatch', '来源项目实例已变化。');
+      for (const item of items) {
+        const ref = item.ref;
+        this.resourceAuthorization(scope(ref), ref, false)();
+        if (ref.source === 'project' && ref.projectId !== source.projectId)
+          targets.check([ref.projectId]);
+      }
+    };
+    const resources = {
+      port: admission
+        ? {
+            describe: async (locator: ResourceLocator) => {
+              const scoped = scope(locator);
+              return this.resourceOperation(scoped, locator, false, () =>
+                this.resources.describe(locator, scoped),
+              );
+            },
+          }
+        : this.executionResources(source),
+      check,
+    };
+    this.instructionResourcePorts.set(context, resources);
+    return resources;
   }
   executionResources(context: CallContext): ExecutionResourcePort {
     if (context.role !== 'execution' || context.principal.kind !== 'agent')
@@ -485,12 +575,26 @@ export class ManualApplication {
     action: () => Promise<T>,
   ): Promise<T> {
     if (context.role !== 'execution' && context.principal.kind !== 'agent') return action();
+    const check = this.resourceAuthorization(context, ref, write);
+    check();
+    const result = await this.projects.withAccess(context, action, check);
+    check();
+    if (!this.isInstructionAdmission(context)) this.resourceUsed(context, ref);
+    return result;
+  }
+  private resourceAuthorization(
+    context: CallContext,
+    ref: ResourceRef | { source: 'project'; projectId: string },
+    write: boolean,
+  ): () => void {
     const targets = this.projectTargetRead(context);
     const origin = context.projectId ? this.projects.get(context.projectId) : undefined;
     const check = () => {
-      this.checkExecutionContext(context);
+      this.checkResourceContext(context);
+      if (write && this.isInstructionAdmission(context))
+        throw new OperationError('permissionDenied', '指令受理检查不提供资源写入。');
       if (
-        context.role !== 'execution' ||
+        (context.role !== 'execution' && !this.isInstructionAdmission(context)) ||
         context.moduleId !== 'harness' ||
         context.principal.kind !== 'agent' ||
         context.principal.id !== context.sessionId ||
@@ -518,11 +622,7 @@ export class ManualApplication {
         throw new OperationError('permissionDenied', '资源不属于当前可读写项目。');
       }
     };
-    check();
-    const result = await this.projects.withAccess(context, action, check);
-    check();
-    this.resourceUsed(context, ref);
-    return result;
+    return check;
   }
   protected resourceUsed(
     _context: CallContext,
@@ -567,7 +667,7 @@ export class ManualApplication {
     if (source.signal) this.targetInstances.set(source.signal, targets);
     return {
       check: (targetIds) => {
-        this.checkExecutionContext(source);
+        this.checkResourceContext(source);
         if (origin?.project.trust !== 'trusted' || this.projects.get(origin.project.id) !== origin)
           throw new OperationError('permissionDenied', '来源项目信任或身份已变化。');
         for (const id of targetIds) {
@@ -582,19 +682,17 @@ export class ManualApplication {
         }
       },
       'project.readTarget': async (input) => {
-        this.checkExecutionContext(source);
+        this.checkResourceContext(source);
         if (source.targetRead && source.targetRead.targetProjectId !== input.targetProjectId)
           throw new OperationError('permissionDenied', '不能扩大目标只读访问范围。');
         const target = this.projects.get(input.targetProjectId);
         if (targets.has(input.targetProjectId) && targets.get(input.targetProjectId) !== target)
           throw new OperationError('instanceMismatch', '目标项目实例已变化。');
-        const result = await this.modulePort(
-          {
-            ...source,
-            targetRead: { targetProjectId: input.targetProjectId, access: 'read' },
-          },
-          'harness',
-        ).call('project.readTarget', input);
+        const scoped: CallContext = {
+          ...source,
+          targetRead: { targetProjectId: input.targetProjectId, access: 'read' },
+        };
+        const result = await this.modulePort(scoped, 'harness').call('project.readTarget', input);
         if (targets.has(input.targetProjectId) && targets.get(input.targetProjectId) !== target)
           throw new OperationError('instanceMismatch', '目标项目实例已变化。');
         targets.set(input.targetProjectId, target);

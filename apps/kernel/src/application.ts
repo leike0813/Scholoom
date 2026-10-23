@@ -89,7 +89,7 @@ export class KernelApplication extends ManualApplication {
       (context) => this.projectTargetRead(context),
       {
         read: (source, receiver) => this.workbenchContexts.read(source, receiver),
-        ...(options.contextResources ? { resources: options.contextResources } : {}),
+        resources: options.contextResources ?? ((context) => this.instructionResources(context)),
       },
     );
     this.broker.register('runtime', this.handlers);
@@ -133,6 +133,20 @@ export class KernelApplication extends ManualApplication {
   }
   protected override checkExecutionContext(context: CallContext): void {
     this.harness.checkExecutionContext(context);
+  }
+  protected override checkInstructionContext(context: CallContext): void {
+    if (
+      context.moduleId !== 'harness' ||
+      context.role !== 'host' ||
+      context.principal.kind !== 'agent' ||
+      context.principal.id !== context.sessionId ||
+      !context.projectId ||
+      !context.sessionId ||
+      context.runId ||
+      context.instanceId
+    )
+      throw new OperationError('permissionDenied', '缺少可信指令接收者。');
+    this.harness.getSession(context.projectId, context.sessionId);
   }
   protected override resourceUsed(
     context: CallContext,

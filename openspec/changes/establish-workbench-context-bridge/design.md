@@ -32,7 +32,7 @@ flowchart LR
 
 快照以 receiver（项目／会话或 null）、viewId、selectedItems 与 selections 表达；null 快照表示清空。显式项复用资源引用和 basis，text 使用 quote／contentState，region 使用归一化矩形，object 使用 providerId／objectId／name／semantics。接入者使用 isContextItems／isWorkbenchContextSnapshot 同时检查 schema、64 KiB UTF-8 总量、重复 itemId 和矩形范围；单项摘录上限 8192 UTF-16 单元，批注上限 4096。
 
-产品 publish 声明不接收可信 connectionId；内部 read 只接受可选 instructionId，返回 available、unavailable 原因或 ambiguous 指令引用。session.send、持久消息和执行初始化已声明可选上下文项／来源，旧字段继续可读。实际 Agent 指令由 execution.beforeModel 的结构化 instructions 更新进入 worker 状态及 checkpoint；初始化非空 instructions 在注册图及 Agent 分支前拒绝，直到对应初始化消费链路接线。生产非空 contextItems 及含资源的快照查询在统一资源适配就绪前明确不可用；隔离替身验证可靠受理、执行传递与模型前权限复查，不代表真实资源交付。
+产品 publish 声明不接收可信 connectionId；内部 read 只接受可选 instructionId，返回 available、unavailable 原因或 ambiguous 指令引用。session.send、持久消息和执行初始化已声明可选上下文项／来源，旧字段继续可读。实际 Agent 指令由 execution.beforeModel 的结构化 instructions 更新进入 worker 状态及 checkpoint；初始化非空 instructions 在注册图及 Agent 分支前拒绝，直到对应初始化消费链路接线。生产 contextResources 已绑定统一执行资源适配，显式项及含资源快照沿资源所有者核对身份和读取／外发权限。缺少依赖的独立测试仍可注入明确替身，不能据替身宣称真实资源交付。
 
 ### 连接身份与实时快照
 
@@ -46,6 +46,8 @@ session.send 在宿主受理时附加来源连接关联，不复制隐含选区�
 
 查询快照前核对有效实例、指令归属及当前接收会话，再逐项核对项目／库的读取和外发权限，工具不得以“只是界面状态”绕过授权。查询所得选择仅是线索，是否为用户所指对象由 Agent 理解，不足时询问。
 
+快照的 selectedItems 只接受同一 selections 内可核对的 itemId；裸 ID 仍明确 unavailable。受理检查以宿主私有标记复用资源所有者授权，仅开放 describe，不伪造活动执行身份；实际执行绑定既有 executionResources。`read_context_resource` 复用共同 resources.read 的参数和实现，调用前后核对有效执行、权限及版本，后续模型外发重新授权。
+
 ### 显式附加与持久指令
 
 在 protocol/resources 复用前序 ResourceEvidence；显式项为判别类型 `resource|text|region|object`，包含本地 itemId、ref/basis、必要选择载荷和可选 comment。text 附摘录及 contentState（saved/draft）；region 为对该版本图片的归一化矩形；object 附提供者给出的名称／标识及有界语义资料，缺少语义时只能用 region。draft 摘录明确为用户草稿，不当作 basis 对应原文。每条指令最多 16 项，显式正文总量不超过 64 KiB，批注单项最多 4096 单元。
@@ -53,6 +55,8 @@ session.send 在宿主受理时附加来源连接关联，不复制隐含选区�
 session.send 增加可选 contextItems，空缺表示旧指令。服务器在受理前核对项结构、资源归属及材料外发权限；可靠消息、pending 重试相等性及恢复结果包含完整 contextItems。模型前再次核对材料授权，队列期间撤权不能凭保存摘录继续外发。消息投影显示明确附加项，实际读取沿独立工具事实，不声称已读完整原文。
 
 历史摘录保留发送时的 basis 和内容。恢复及模型外发复查当前身份和权限，实际重新取材才核对版本；不要求历史 basis 始终等于资源最新版本。已使用的引用随会话持久保存，因此工具结果、历史消息或摘要仍须通过当前读取／外发检查。无资源适配时不会以已保存摘录代替授权。
+
+资源读取版本包含 ctime，人工视图与目标只读共用同一依据。底层 files.readBytes 保留原 basis 发布证据及跨移动读取，增加显式 resourceBasis 返回／核对强读取版本；资源适配器只消费强版本。产物回执分别保存发布依据或资源读取版本，恢复不猜格式或降级。创建首次确认的资源读取版本保存在原 file_operations 可选 JSON 字段中，完成回执不依赖后续文件现状；不另建创建收据或更改图等待／共同命令。
 
 原材料路径与 materialFileIds 保留，避免强迫已有消息和已完成尝试迁移。新指令采用结构化项表达库材料和局部选择，不在 text 中拼接隐藏 JSON。IPC 两端及框架消息编码保留类型，SDK 内部适配集中在 harness。
 
