@@ -48,4 +48,6 @@ flowchart LR
 
 ## 续做入口
 
+2026-10-23，dev 以 `c76df43` 接收 [PR #12](https://github.com/leike0813/Scholoom/pull/12) 的 3.4 增量，领域 #11 的隔离夹具与双宿主验证也已接入。当前仍为 **14/17**，4.5–4.7 未勾选。下一轮由本线担任当次最终整合负责人，声明隔离配置，沿已有真实提供者开展 4.5，并与领域线 4.4 的失败路径互引证据；随后做 4.6 独立审查。接收验证见 [delivery](delivery.md#第四轮-dev-接收)，不因前置已齐备提前完成任务、归档或启动七域。
+
 核对共同契约与当前任务实际依赖增量的 delivery／dev 接入结果，再运行 `openspec instructions apply --change establish-workbench-context-bridge --json`，不以另外两个 change 整项交付作为独立任务启动条件。实际执行后更新 delivery；具体阅读图表命中、报告脚本、通用计算管理、库分析存储及业务 Graph 流程由所属领域继续。

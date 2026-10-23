@@ -34,7 +34,7 @@ Electron 工作台和 CLI 共用独立 Node 内核，浏览器开发入口经同
 
 registered 图的消息接续复用 `InstructionContext`，保留文字、原项目材料路径／身份、显式项和服务端持久来源。工厂 `resume` 收到完整上下文及原 `id/text`，已匹配指令经原 IPC 交给 worker 的 `create(input, context)`；源码启动材料继续使用独立的 `execution.materials`。worker 的 `InstructionSaver` 将完整上下文及 run 归属写入 checkpoint，宿主按服务端原消息核对后才确认消费；只保存身份不能确认。实际取材仍使用共同资源端口，受理、恢复、消费确认及模型排队前后／最终同步准入均复查授权。
 
-等待映射按游标每批最多 100 条核对，未匹配项保留，后续有效输入仍可进入匹配；每次 checkpoint 绑定当批已注入的指令，历史材料授权依据沿原会话记录保留。普通 Agent 显式切图另建尝试并保留旧 checkpoint。缺少持久 checkpoint 的图仍拒绝非空初始化指令，普通 Agent 直接初始化的保护也保留；三线最终组合另沿工作台 change 的 4.5 验收。定向入口为 `tests/kernel/registered-context.spec.ts`，真实内部 worker／资源／SQLite，模型边界为受控 HTTP。
+等待映射按游标每批最多 100 条核对，未匹配项保留，后续有效输入仍可进入匹配。registered 指令在初始化前经所属 IPC 逐条传递，当前指令与 checkpoint 历史分开重建，避免将整个批次挤入单帧；传输未完成不会构造图或确认消费。checkpoint 可保留跨等待累计的完整上下文，消费确认每批最多 100 条，同一尝试的确认凭证累计保存，部分确认后重启仍可核查；历史材料授权依据沿原会话记录保留。普通 Agent 显式切图另建尝试并保留旧 checkpoint。缺少持久 checkpoint 的图仍拒绝非空初始化指令，普通 Agent 直接初始化的保护也保留；三线最终组合另沿工作台 change 的 4.5 验收。定向入口为 `tests/kernel/registered-context.spec.ts`，真实内部 worker／资源／SQLite，模型边界为受控 HTTP。
 
 框架文件上传／下载已加入同一内部契约映射，以 base64 传输 SDK 字节并保留帧上限；连续压缩的历史追加经过实际 IPC 验证。会话临时资源位于 `.scholoom/harness/sessions/<sessionId>/scratch`；旧共享资源复制后保留原件，清单无法核对时持续提示 `context_incomplete`，新会话失败重试不继承旧共享目录。恢复核查最多 1000 个已保存引用，超限明确未完整核查，临时资源缺失不抹去摘要和领域成果。
 

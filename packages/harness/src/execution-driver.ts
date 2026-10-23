@@ -40,6 +40,8 @@ export function startExecutionWorker(graphs = new ExecutionGraphs()): void {
   let graphAttemptId: string | undefined;
   let database: Database.Database | undefined;
   let initialized = false;
+  const stagedInstructions = new Map<string, InstructionContext>();
+  const currentInstructionIds = new Set<string>();
   const controlProviders: Pick<ExecutionControlProviders, 'execution.health' | 'execution.stop'> = {
     'execution.health': () => ({ processId: process.pid }),
     'execution.stop': () => {
@@ -50,8 +52,14 @@ export function startExecutionWorker(graphs = new ExecutionGraphs()): void {
 
   const graphProviders: Pick<
     ExecutionControlProviders,
-    'execution.tool' | 'execution.initialize' | 'execution.next'
+    'execution.tool' | 'execution.instructions' | 'execution.initialize' | 'execution.next'
   > = {
+    'execution.instructions': ({ instruction, current }) => {
+      if (initialized) throw new OperationError('invalidRequest', '执行已经初始化。');
+      stagedInstructions.set(instruction.instructionId, instruction);
+      if (current) currentInstructionIds.add(instruction.instructionId);
+      return { ok: true };
+    },
     'execution.tool': async ({ token }) => {
       const handler = handlers.get(token);
       if (!handler) throw new OperationError('permissionDenied', '工具接续不可用。');
@@ -65,10 +73,22 @@ export function startExecutionWorker(graphs = new ExecutionGraphs()): void {
         );
       if (initialized) throw new OperationError('invalidRequest', '执行已经初始化。');
       if ('graph' in input) {
+        input = {
+          ...input,
+          instructions:
+            input.instructions ??
+            [...currentInstructionIds].map((id) => {
+              const instruction = stagedInstructions.get(id);
+              if (!instruction) throw new OperationError('invalidRequest', '完整图指令尚未传入。');
+              return instruction;
+            }),
+          instructionIds: input.instructionIds ?? [...currentInstructionIds],
+        };
         if (input.instructions?.length && !input.checkpointPath)
           throw new OperationError('unavailable', '图指令上下文需要持久 checkpoint。');
+        const instructionIds = input.instructionIds;
         if (
-          input.instructions?.some((item) => !input.instructionIds?.includes(item.instructionId)) ||
+          input.instructions?.some((item) => !instructionIds?.includes(item.instructionId)) ||
           input.instructionIds?.some(
             (id) => !input.instructions?.some((item) => item.instructionId === id),
           )
@@ -95,6 +115,7 @@ export function startExecutionWorker(graphs = new ExecutionGraphs()): void {
             {
               instructionRunId: input.attemptId,
               instructions: [
+                ...stagedInstructions.values(),
                 ...(input.checkpointInstructions ?? []),
                 ...(input.instructions ?? []),
               ],
@@ -107,6 +128,8 @@ export function startExecutionWorker(graphs = new ExecutionGraphs()): void {
           signal: signal.signal,
           ...(checkpointer ? { checkpointer } : {}),
         });
+        stagedInstructions.clear();
+        currentInstructionIds.clear();
         return { ok: true };
       }
       initialized = true;
@@ -324,6 +347,7 @@ export function startExecutionWorker(graphs = new ExecutionGraphs()): void {
         if (method === 'execution.stop') return controlProviders[method]({});
         if (signal.signal.aborted) throw new OperationError('shuttingDown', '执行已停止。');
         if (call?.[0] === 'execution.tool') return graphProviders[call[0]](call[1]);
+        if (call?.[0] === 'execution.instructions') return graphProviders[call[0]](call[1]);
         if (call?.[0] === 'execution.initialize') return graphProviders[call[0]](call[1]);
         if (call?.[0] === 'execution.next') return graphProviders[call[0]](call[1]);
         throw new OperationError('invalidRequest', '执行操作不可用。');

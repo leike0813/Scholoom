@@ -2,6 +2,35 @@
 
 ## 当前状态与成果
 
+### 第四轮 dev 接收
+
+2026-10-23，用户要求处理三个工作树的新一轮任务。dev 从干净的 `e324367` 保留原提交，依次以 `2ae82e8`、`356769b`、`c76df43` 无冲突合入 PR #10、#11、[#12](https://github.com/leike0813/Scholoom/pull/12)。本变更 3.4 的 registered 完整指令上下文现已接入，领域线的实际双实例隔离及双宿主验证前置也已接入。当前仍为 **14/17**；4.5–4.7 未完成，没有归档或启动七域。用户手动同步其他工作树，本轮未控制其 Agent。
+
+独立审查固定头 `25d693d` 确认两项 P2，主线在接收中修复：
+
+1. 图累计保留第 101 条指令时，旧 Saver 先保存再因确认上限失败；新增 checkpointInstructions 的单次初始化上限又阻断重启。Saver 现保存前核对身份结构，写盘后每批最多确认 100 条；原所属记录在同一尝试内累计确认身份，使中途确认失败后原 checkpoint 仍可核查。累计历史不再通过一个受限初始化数组传输。
+2. 70 条各 32768 个 ASCII 字符的合法指令，共同装入初始化后超过 2 MiB IPC 帧，重试仍失败。现复用同源执行控制增加 `execution.instructions`，经所属连接逐条传递当前／历史完整上下文；全部到达后才初始化工厂，worker 按原身份重建输入和 Saver 上下文。保留帧上限、指令内容、原身份及顺序，不为降低载荷丢弃材料或提前消费。
+
+生产修改集中于 protocol 执行声明及其生成映射、原 RemoteAgent／worker driver、InstructionSaver 和 HarnessRecords；开发说明、原 design／delta spec 同步。没有新建记录权威、进程体系、依赖或生产 Graph。独立审查对完整来源、附件、waitId、保存后消费及模型最终授权未确认新增绕过，上轮六项修复未见回退。
+
+Linux／Node 24.12.0／pnpm 11.10.0 的接收证据：
+
+| 实际命令／组合 | 结果与范围 |
+| --- | --- |
+| 修复前合并后的 12 文件内核组合；实际双实例；Chromium／Electron 定向 UI；入口 smoke | 分别 **101/101、1/1、10/10、4/4**，入口及环境见[领域接收记录](../establish-domain-execution-handoffs/delivery.md#第四轮-dev-接收)。不将这些结果称为容量修复后的重跑 |
+| 修复后根 `typecheck`、`build`，均带 `--config.optimisticRepeatInstall=false` | 全仓通过；首次共享构建的可变 union 参数回调窄化错误已修复，再重建及完整检查通过。日志 `/tmp/scholoom-integrate-r4-final-{typecheck,build}.log` |
+| 修复后原 registered-context、registered-graph、graph-registration、instruction-checkpoint、harness-recovery、context-instructions | **49/49，6.6 分钟**。真实内部 worker／资源／SQLite，模型边界为 loopback 受控 HTTP；覆盖普通 Agent、完整附件、旧上下文缺失／空数组、终态补确认、保存／确认／回执故障、来源冲突、等待分页、撤权及取消。日志 `/tmp/scholoom-integrate-r4-fix-regression.log` |
+| 新增容量专项 `registered-context.spec.ts --grep 'registered cumulative context\|registered large instruction batches'`，独立 output `test-results/integrate-r4-volume` | **2/2，35.7 秒**。复用原固定图，先受理 100 条并保存，再追加第 101 条、注入最后一批消费确认失败；重启后完整载荷及 101 条消费状态保持、成果仅一份。另实测 70 条各 32768 个字符的完整文本进入 worker／checkpoint，重启后仍能取回旧上下文并完成。日志 `/tmp/scholoom-integrate-r4-volume.log` |
+| 新用例及共用夹具定稿后完整重跑 registered-context，独立 output `test-results/integrate-r4-context-final`；tools tsc／最终 Biome | **13/13，2.8 分钟**，覆盖两个新边界及原完整上下文／故障／授权用例；tools 类型与全仓 lint 通过。日志 `/tmp/scholoom-integrate-r4-context-final.log`、`/tmp/scholoom-integrate-r4-volume-types.log`、`/tmp/scholoom-integrate-r4-final-lint.log`。13 项与上表重叠，不累加为不同用例 |
+| 修复后架构、Biome、生成器 self-test、生成 patch 格式化比对及 `git diff --check` | 通过；13 模块／198 文件零架构问题；lint 零错误、74 warnings／35 infos；六份生成映射与 schema 一致 |
+| OpenSpec | 两 active change strict 通过；正式规格普通校验 17/17，额外 strict 15/17，失败仅为 agent-harness／ui-workbench-shell 的既有长 Requirement 警告 |
+
+本轮没有将固定样例的合成材料视为科研充分性，也未据局部回归完成最终三线组合。#10 固定头三平台 CI 仍失败，详见[工作域接收记录](../archive/2026-10-23-establish-scoped-execution-foundation/delivery.md#第四轮-ci-修复接收)。旧库 UI 入口补齐仅有调查方案，未确认实施。
+
+修复后的独立窄复核关闭两项 P2，无新增阻塞：只读核对当前／历史上下文重建、等待身份及授权，另用内存探针验证 201 条分批确认在第二批失败后保留已确认凭证并补齐；201 条历史加 1 条当前指令的传输探针最大帧 32921 字节。探针不替代主线真实 worker 回归。辅助测试委派未返回可用成果，主线停止该任务后复用原夹具实现两项回归，没有引入新 Graph 或测试框架。首次测试夹具误向 startGraph 传 materials 导致参数校验拒绝，已按正式入口移除；匿名测试子类返回类型过窄及一处可选链 lint 也已修正，未放宽生产校验或断言。
+
+下一轮由本线担任当次最终整合负责人，先声明隔离配置并取得 apply instructions，推进 4.5 的全局会话读可信项目／库、工具查询变化后的工作台选择、可靠显式发送及固定图保存成果。领域线承担 4.4 的执行与失败组合，双方互引证据；本线再做 4.6 独立审查，按实际结果更新同一 delivery。4.7、归档和七域启动仍等待必要验收，不把 CLI ready 或本次 PR 接收当作完成。
+
 ### 第四轮 registered Graph 指令上下文
 
 2026-10-23，开始前确认本树 HEAD 为 dev `e324367`、工作区干净，已包含用户指定基线。先读 AGENTS、scholoom-dev 阶段约定、公共基础实施规划、两条 active change 的最新 tasks／delivery，再取得 apply instructions。用户要求本轮独立接通 registered Graph 的完整指令上下文，提交、推送并向 dev 发 PR，最终组合留待领域夹具及隔离验证就绪；本轮未操作其他工作树或合入 dev，没有安装、升级或下载依赖。

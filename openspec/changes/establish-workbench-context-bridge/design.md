@@ -65,6 +65,8 @@ session.send 增加可选 contextItems，空缺表示旧指令。服务器在受
 
 registered Graph 在原 InstructionContext 中补可选 text、materials、materialFileIds，恢复映射与 worker 使用同一份持久载荷；原 id/text 形状和源码 execution.materials 保持。宿主从所属会话持久消息重建 source，不采信工厂自报来源。InstructionSaver 在原 checkpoint 中按当批 instructionIds 保存完整上下文和 instructionRunId，写盘成功后才通过原消费 IPC 确认；宿主再核对完整载荷与原消息及 graphResume。重启读回原载荷，来源连接不会复活。旧 checkpoint 中完整上下文与持久消息冲突时停止，不补一个成功替身。
 
+完整指令通过所属执行连接的 `execution.instructions` 逐条传递，标明当前输入或 checkpoint 历史；全部传输完成后才初始化图，worker 据原身份重建工厂输入和 Saver 上下文。单帧上限保持不变，累计历史不占用一次初始化数组的 100 条容量。Saver 保存前检查身份结构，写盘后分批确认，每批最多 100 条；所属记录在同一尝试内累积已确认身份，任一批确认或回执失败仍可沿原 checkpoint 补交，不截断历史或重放成果。
+
 Graph 受理、恢复映射、worker 初始化、消费确认和模型请求均复查当前权限，历史证据沿普通 Agent 的同一会话授权记录保存，避免换批或换执行路径绕过撤权。历史摘录 basis 不变，实际 resources.read 核对版本。固定图的真实资源／模型边界回归独立于最终 4.5，接线证明后才移除 registered 附件 unavailable 保护。
 
 ### UI 贡献及草稿

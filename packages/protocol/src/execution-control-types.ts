@@ -44,6 +44,9 @@ export type Inputs = {
   'execution.initialize': FromSchema<
     (typeof executionControlOperations)['execution.initialize']['params']
   >;
+  'execution.instructions': FromSchema<
+    (typeof executionControlOperations)['execution.instructions']['params']
+  >;
   'execution.next': FromSchema<(typeof executionControlOperations)['execution.next']['params']>;
   'execution.stop': FromSchema<(typeof executionControlOperations)['execution.stop']['params']>;
   'execution.tool': FromSchema<(typeof executionControlOperations)['execution.tool']['params']>;
@@ -109,6 +112,9 @@ export type Outputs = {
   'execution.health': FromSchema<(typeof executionControlOperations)['execution.health']['result']>;
   'execution.initialize': FromSchema<
     (typeof executionControlOperations)['execution.initialize']['result']
+  >;
+  'execution.instructions': FromSchema<
+    (typeof executionControlOperations)['execution.instructions']['result']
   >;
   'execution.next': FromSchema<(typeof executionControlOperations)['execution.next']['result']>;
   'execution.stop': FromSchema<(typeof executionControlOperations)['execution.stop']['result']>;

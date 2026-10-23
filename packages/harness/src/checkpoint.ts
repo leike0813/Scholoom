@@ -23,19 +23,27 @@ export class InstructionSaver extends SqliteSaver {
   ) {
     super(db);
   }
-  private async acknowledge(checkpoint: Checkpoint): Promise<void> {
+  private instructionIds(checkpoint: Checkpoint): string[] {
     const ids: unknown = checkpoint.channel_values.instructionIds;
-    if (ids === undefined) return;
-    if (!Array.isArray(ids) || ids.length > 100 || ids.some((id) => typeof id !== 'string' || !id))
+    if (ids === undefined) return [];
+    if (!Array.isArray(ids) || ids.some((id) => typeof id !== 'string' || !id))
       throw new Error('Invalid checkpoint instruction identities');
-    if (ids.length)
-      await this.confirm({ checkpointId: checkpoint.id, instructionIds: [...new Set(ids)] });
+    return [...new Set(ids)];
+  }
+  private async acknowledge(checkpoint: Checkpoint): Promise<void> {
+    const ids = this.instructionIds(checkpoint);
+    for (let offset = 0; offset < ids.length; offset += 100)
+      await this.confirm({
+        checkpointId: checkpoint.id,
+        instructionIds: ids.slice(offset, offset + 100),
+      });
   }
   override async put(
     config: RunnableConfig,
     checkpoint: Checkpoint,
     metadata: CheckpointMetadata,
   ): Promise<RunnableConfig> {
+    this.instructionIds(checkpoint);
     if (this.instructions) {
       const previous = await this.getTuple(config);
       const known = new Map(

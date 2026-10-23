@@ -6,7 +6,7 @@ import {
 } from './graph-contracts.js';
 import { modelDescriptorSchema } from './models.js';
 import { array, count, flag, id, object, ok, text } from './schema.js';
-import { instructionContextsSchema } from './workbench-context.js';
+import { instructionContextSchema, instructionContextsSchema } from './workbench-context.js';
 
 // Framework payloads preserve content blocks and provider metadata as JSON objects.
 export const frameworkMessageSchema = object(
@@ -85,6 +85,14 @@ export const agentInitializationSchema = object(
   ['model', 'tools', 'middleware', 'input', 'config'],
 );
 export const executionGraphOperations = {
+  'execution.instructions': {
+    params: object({ instruction: instructionContextSchema, current: { type: 'boolean' } }, [
+      'instruction',
+      'current',
+    ]),
+    result: ok,
+    semantics: { effect: 'write', returns: 'result', waitMs: 10000 },
+  },
   'execution.initialize': {
     params: {
       anyOf: [

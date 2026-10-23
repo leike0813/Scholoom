@@ -359,7 +359,7 @@ export class RemoteAgent {
       await options.onStart?.(owned);
       options.signal.throwIfAborted();
       const descriptor = options.model?.descriptor;
-      const initialization =
+      let initialization =
         options.registered ??
         (descriptor
           ? {
@@ -385,6 +385,24 @@ export class RemoteAgent {
             }
           : undefined);
       if (!initialization) throw new OperationError('credentialUnavailable', '缺少模型配置。');
+      if ('graph' in initialization) {
+        const {
+          instructions = [],
+          checkpointInstructions = [],
+          instructionIds: _ids,
+          ...selection
+        } = initialization;
+        for (const [items, current] of [
+          [checkpointInstructions, false],
+          [instructions, true],
+        ] as const)
+          for (const instruction of items) {
+            options.signal.throwIfAborted();
+            options.authorize?.();
+            await callExecutionControl(peer, 'execution.instructions', { instruction, current });
+          }
+        initialization = selection;
+      }
       await callExecutionControl(peer, 'execution.initialize', initialization);
       const health = async () => {
         if (!valid) return;

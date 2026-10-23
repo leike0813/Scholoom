@@ -14,7 +14,11 @@ import type { GraphExecution } from '../../packages/protocol/dist/execution.js';
 import type { ContextItem, InstructionContext } from '../../packages/protocol/dist/index.js';
 import { createModelServer } from '../model-server.js';
 
-async function fixture(withModel = false, retainInstructionIds = false) {
+async function fixture(
+  withModel = false,
+  retainInstructionIds = false,
+  queued: { count?: number; text?: string } = {},
+) {
   const root = await mkdtemp(join(tmpdir(), 'scholoom-graph-context-'));
   const model = await createModelServer({
     respond: () => ({ text: 'Authorized graph context received.' }),
@@ -33,7 +37,11 @@ async function fixture(withModel = false, retainInstructionIds = false) {
     ),
   };
   const profile = join(root, 'profile');
-  const app = new KernelApplication(profile, options);
+  const app = new (class extends KernelApplication {
+    occupy() {
+      return this.processes.reserve();
+    }
+  })(profile, options);
   await app.initialize();
   const project = await app.call('project.create', {
     path: join(root, 'project'),
@@ -83,12 +91,28 @@ async function fixture(withModel = false, retainInstructionIds = false) {
     materials: [{ ref: pinned.ref, basis: pinned.basis }],
     workDomain: { kind: 'project', ...scope },
   };
-  const first = await app.startGraph({
-    ...scope,
+  const initialInstructions = Array.from({ length: queued.count ?? 1 }, () => ({
     instructionId: randomUUID(),
-    text: 'Save the source material and wait.',
-    execution,
-  });
+    text: queued.text ?? 'Save the source material and wait.',
+    materials: [] as string[],
+  }));
+  const firstInput = initialInstructions[0];
+  assert(firstInput);
+  const holds = queued.count ? Array.from({ length: 4 }, () => app.occupy()) : [];
+  await Promise.all(holds.map((hold) => hold.ready));
+  let first: Awaited<ReturnType<KernelApplication['startGraph']>>;
+  try {
+    first = await app.startGraph({
+      ...scope,
+      instructionId: firstInput.instructionId,
+      text: firstInput.text,
+      execution,
+    });
+    for (const message of initialInstructions.slice(1))
+      await app.call('session.send', { ...scope, ...message });
+  } finally {
+    for (const hold of holds) hold.release();
+  }
   await expect
     .poll(async () => (await app.snapshot(scope)).run?.state, { timeout: 20000 })
     .toBe('waiting');
@@ -109,7 +133,19 @@ async function fixture(withModel = false, retainInstructionIds = false) {
     materialFileIds: pinned.ref.source === 'project' ? [pinned.ref.fileId] : [],
     contextItems,
   };
-  return { root, profile, model, options, app, project, target, scope, first, input };
+  return {
+    root,
+    profile,
+    model,
+    options,
+    app: app as KernelApplication,
+    project,
+    target,
+    scope,
+    first,
+    input,
+    initialInstructions,
+  };
 }
 
 async function checkpoint(app: KernelApplication, projectId: string, runId: string) {
@@ -124,6 +160,104 @@ async function checkpoint(app: KernelApplication, projectId: string, runId: stri
     opened.database.close();
   }
 }
+
+test('registered cumulative context beyond 100 instructions reconciles partial consumption after restart', async () => {
+  const f = await fixture(false, true, { count: 100 });
+  let app: KernelApplication = f.app;
+  try {
+    expect((await checkpoint(app, f.project.id, f.first.runId))?.instructions).toEqual(
+      f.initialInstructions,
+    );
+    app.projects
+      .get(f.project.id)
+      .database.exec(
+        `CREATE TRIGGER fail_last_batch BEFORE UPDATE OF consumed ON instructions WHEN NEW.id = '${f.input.instructionId}' BEGIN SELECT RAISE(ABORT, 'last batch acknowledgement failure'); END`,
+      );
+    const receipt = await app.call('session.send', f.input);
+    await expect
+      .poll(async () => (await app.snapshot(f.scope)).run?.state, { timeout: 20000 })
+      .toBe('interrupted');
+    const saved = await checkpoint(app, f.project.id, f.first.runId);
+    assert(saved);
+    expect(saved.instructionIds).toEqual([
+      ...f.initialInstructions.map((item) => item.instructionId),
+      f.input.instructionId,
+    ]);
+    expect((saved.instructions as InstructionContext[]).slice(0, 100)).toEqual(
+      f.initialInstructions,
+    );
+    await app.close();
+    app = new KernelApplication(f.profile, f.options);
+    await app.initialize();
+    app.projects.get(f.project.id).database.exec('DROP TRIGGER fail_last_batch');
+    await app.call('session.send', {
+      ...f.scope,
+      instructionId: randomUUID(),
+      text: '{"approve":true}',
+      materials: [],
+    });
+    await expect
+      .poll(async () => (await app.snapshot(f.scope)).run?.state, { timeout: 20000 })
+      .toBe('completed');
+    expect((await checkpoint(app, f.project.id, receipt.runId))?.instructions).toEqual(
+      saved.instructions,
+    );
+    const consumed = app.projects
+      .get(f.project.id)
+      .database.prepare(
+        'SELECT COUNT(*) AS count FROM instructions WHERE sessionId = ? AND consumed = 1',
+      )
+      .get(f.scope.sessionId) as { count: number };
+    expect(consumed.count).toBe(101);
+    expect(await app.call('session.send', f.input)).toEqual(receipt);
+    for (const path of ['result.md', 'result.md.context.md'])
+      expect(app.projects.get(f.project.id).history(path)).toHaveLength(1);
+  } finally {
+    await app.close();
+    await f.model.close();
+  }
+});
+
+test('registered large instruction batches reach the worker and resume from complete checkpoint context', async () => {
+  const f = await fixture(false, false, {
+    count: 70,
+    text: 'large accepted input '.padEnd(32768, 'x'),
+  });
+  let app: KernelApplication = f.app;
+  try {
+    const saved = await checkpoint(app, f.project.id, f.first.runId);
+    expect(saved?.instructions).toEqual(f.initialInstructions);
+    const consumed = app.projects
+      .get(f.project.id)
+      .database.prepare(
+        'SELECT COUNT(*) AS count FROM instructions WHERE sessionId = ? AND consumed = 1',
+      )
+      .get(f.scope.sessionId) as { count: number };
+    expect(consumed.count).toBe(70);
+    await app.close();
+    app = new KernelApplication(f.profile, f.options);
+    await app.initialize();
+    const receipt = await app.call('session.send', f.input);
+    await expect
+      .poll(async () => (await app.snapshot(f.scope)).run?.state, { timeout: 20000 })
+      .toBe('completed');
+    expect((await checkpoint(app, f.project.id, receipt.runId))?.instructions).toMatchObject([
+      {
+        instructionId: f.input.instructionId,
+        text: f.input.text,
+        contextItems: f.input.contextItems,
+      },
+    ]);
+    const original = f.initialInstructions[0];
+    assert(original);
+    expect(await app.call('session.send', { ...f.scope, ...original })).toEqual(f.first);
+    for (const path of ['result.md', 'result.md.context.md'])
+      expect(app.projects.get(f.project.id).history(path)).toHaveLength(1);
+  } finally {
+    await app.close();
+    await f.model.close();
+  }
+});
 
 test('registered worker receives trusted source, explicit project/library items and legacy attachments through mapping, checkpoint and model', async () => {
   const f = await fixture(true);

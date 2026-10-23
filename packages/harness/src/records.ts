@@ -43,11 +43,30 @@ export class HarnessRecords {
           .run();
         changed = true;
       }
-      if (changed)
+      if (changed) {
+        const previous = tx
+          .select()
+          .from(schema.meta)
+          .where(eq(schema.meta.key, `consumption:${runId}`))
+          .get();
+        const confirmed = {
+          ...value,
+          instructionIds: [
+            ...new Set([
+              ...((previous ? JSON.parse(previous.value) : { instructionIds: [] }) as Consumption)
+                .instructionIds,
+              ...value.instructionIds,
+            ]),
+          ],
+        };
         tx.insert(schema.meta)
-          .values({ key: `consumption:${runId}`, value: JSON.stringify(value) })
-          .onConflictDoUpdate({ target: schema.meta.key, set: { value: JSON.stringify(value) } })
+          .values({ key: `consumption:${runId}`, value: JSON.stringify(confirmed) })
+          .onConflictDoUpdate({
+            target: schema.meta.key,
+            set: { value: JSON.stringify(confirmed) },
+          })
           .run();
+      }
       return changed;
     });
   }

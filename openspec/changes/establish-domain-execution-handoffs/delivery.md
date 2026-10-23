@@ -2,6 +2,25 @@
 
 ## 当前状态与成果
 
+### 第四轮 dev 接收
+
+2026-10-23，用户要求处理三个工作树完成的新一轮任务。dev 在干净的 `e324367` 上保留原提交，依次以 `2ae82e8`、`356769b`、`c76df43` 合入 [#10](https://github.com/leike0813/Scholoom/pull/10)、[#11](https://github.com/leike0813/Scholoom/pull/11)、[#12](https://github.com/leike0813/Scholoom/pull/12)，无冲突。#11 的双实例隔离及独立夹具验证现已接入，#12 的 registered 完整指令上下文也已接入；本变更仍为 **16/19**，4.4–4.6 保持未勾选，没有归档或启动七域。
+
+接收时在 Linux／Node 24.12.0／pnpm 11.10.0 复验：
+
+| 实际入口 | 结果与范围 |
+| --- | --- |
+| 根 `typecheck`、`build`，均带 `--config.optimisticRepeatInstall=false`；架构、Biome、生成器 self-test 及格式化后生成映射比对 | 通过；13 模块、198 文件零架构问题，lint 无错误、74 warnings／35 infos，六份生成文件一致 |
+| 内核 CLI，指定 registered-context、registered-graph、instruction-checkpoint、graph-registration、context-resources、context-instructions、context-query、harness-recovery、harness、resource-access、resource-creation、managed-commands | **101/101，10.4 分钟**；模型为 loopback 受控 HTTP，内部 broker／SQLite／worker／资源为真实提供者 |
+| `SCHOOLOOM_UI_PORT=5351`，smoke development 单项 `--grep 'two renderer instances'` | **1/1，38.8 秒**；5351／5352 两配置真实实例，关闭 A 后 B 保持原身份且继续保存 |
+| `SCHOOLOOM_UI_PORT=5353`，UI config 的 context-bridge、resource-opening、resource-lifecycle、writing-editor | Chromium／Electron **10/10，5.5 分钟**，覆盖显式发送及持久读回、迟到回执、共同资源与写作 |
+| smoke entrypoints | **4/4，40.9 秒**，独立 Node、真实 Electron/preload、关窗重连及兼容宿主 |
+| OpenSpec | 两个 active change strict 通过；正式规格普通校验 **17/17**。额外 strict 校验 **15/17**，agent-harness／ui-workbench-shell 的既有长 Requirement 警告升级为失败，未为消除警告改写无关契约 |
+
+上述 101 项、双实例及双宿主结果属于三个 PR 合并后的源码；独立审查随后发现并修复的累计指令／IPC 容量边界、修复后受影响回归与审查结果统一见[工作台第四轮 dev 接收](../establish-workbench-context-bridge/delivery.md#第四轮-dev-接收)，不把修复前结果表述为修复后重跑。日志 `/tmp/scholoom-integrate-r4-{kernel,isolation,ui,entrypoints,typecheck,build,lint}.log`，工件为 `test-results/kernel` 及 `test-results/integrate-r4-{isolation,ui,entrypoints}`；本轮测试只收尾所属执行，5351–5353 最终无监听，未操作其他工作树或其 Agent。
+
+4.4 的显式输入至实际成果查询、取消／关联部分失败／worker 失联组合仍需本线完成；4.5 安排执行协议、资源授权及命令收尾的独立模块审查。工作台线为下一轮当次最终整合负责人，承担其 4.5 的用户路径，双方互引证据及待接入修复，不重复实现公共 runtime／driver。完整内核／UI、真实模型科研充分性及三平台分发未验；#10 固定头的三平台 CI 仍失败，工具修复与剩余失败见[工作域记录](../archive/2026-10-23-establish-scoped-execution-foundation/delivery.md#第四轮-ci-修复接收)。
+
 ### 第四轮隔离夹具与双宿主验证
 
 2026-10-23，开始前确认 HEAD 为 `e324367`、工作树干净；已读取 AGENTS、开发说明、scholoom-dev 阶段约定、最新 tasks／delivery 及 apply instructions（ready、13/19）。用户授权直接完成 4.1–4.3、提交推送并向 dev 发新 PR，不自行合入或操作其他工作树。本轮完成本树验收，进度 **16/19**；4.4–4.6 继续未完成。此前的 Graph 恢复与实例／资源授权修复保持原样，registered 完整指令上下文仍由工作台线交付。
