@@ -159,6 +159,13 @@ for (const revocation of ['library-send', 'target-instance'] as const) {
         projectId: target.project.id,
         fileId: other.fileId,
       });
+      const openedForeign = await app.call('resources.describe', {
+        locator: { source: 'project', projectId: target.project.id, fileId: other.fileId },
+      });
+      expect(foreign.basis).toBe(openedForeign.basis);
+      expect(
+        await port.read({ ref: openedForeign.ref, basis: openedForeign.basis, encoding: 'utf8' }),
+      ).toMatchObject({ data: 'target evidence' });
       expect(foreign.capabilities.write).toBe(false);
       await expect(
         port.create({

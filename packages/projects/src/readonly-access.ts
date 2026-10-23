@@ -9,6 +9,7 @@ import {
   projectLimits,
 } from '@scholoom/protocol/projects';
 import { asc, eq, sql } from 'drizzle-orm';
+import { byteBasis } from './files.js';
 import * as tables from './schema.js';
 import type { ProjectStore } from './store.js';
 
@@ -87,6 +88,7 @@ export class ProjectTargetReader {
         const { bytesRead } = await handle.read(buffer, 0, buffer.length, offset);
         const after = await handle.stat({ bigint: true });
         this.verify(after, request.basis);
+        if (fileFingerprint(opened) !== fileFingerprint(after)) throw changed();
         await this.inspect(request.fileId, path, request.basis, true);
         const { kind: _kind, ...file } = descriptor;
         let bytes = buffer.subarray(0, bytesRead);
@@ -148,8 +150,7 @@ export class ProjectTargetReader {
   }
 
   private verify(stats: BigIntStats, basis: string): void {
-    if (!stats.isFile() || stats.isSymbolicLink() || fileFingerprint(stats) !== basis)
-      throw changed();
+    if (!stats.isFile() || stats.isSymbolicLink() || byteBasis(stats) !== basis) throw changed();
   }
 
   private async inspect(
@@ -181,12 +182,13 @@ export class ProjectTargetReader {
         throw new OperationError('permissionDenied', '目标不是无链接的普通文件。');
       if (before.size > BigInt(projectLimits.binaryFileBytes))
         throw new OperationError('resourceLimit', '目标文件超过128MiB读取上限。');
-      const actual = basis ?? fileFingerprint(before);
+      const actual = basis ?? byteBasis(before);
       this.verify(before, actual);
       if ((await this.store.path(path)) !== absolute || this.location(fileId) !== path)
         throw changed();
       const after = await lstat(absolute, { bigint: true });
       this.verify(after, actual);
+      if (fileFingerprint(before) !== fileFingerprint(after)) throw changed();
       this.store.check('read');
       return { kind: 'describe', fileId, path, basis: actual, size: Number(after.size) };
     } catch (error) {

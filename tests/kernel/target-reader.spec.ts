@@ -104,7 +104,8 @@ test('target reads reject missing registration, changed basis, unsafe paths and 
     await writeFile(join(f.target.project.path, 'input.md'), 'changed');
     for (const kind of ['describe', 'readText', 'readBytes'] as const)
       await expect(f.read({ kind, ...ref })).rejects.toMatchObject({ code: 'contentChanged' });
-    const current = await f.target.material('input.md');
+    const current = await f.read({ kind: 'describe', fileId: created.fileId ?? '' });
+    if (current.kind !== 'describe') throw new Error('Expected descriptor');
     for (const request of [
       { kind: 'list' as const, limit: 101 },
       { kind: 'list' as const, offset: -1 },
