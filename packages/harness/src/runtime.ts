@@ -2,6 +2,7 @@ import { AsyncLocalStorage } from 'node:async_hooks';
 import { randomUUID } from 'node:crypto';
 import { readdir, readFile, unlink } from 'node:fs/promises';
 import { join } from 'node:path';
+import { isDeepStrictEqual } from 'node:util';
 import {
   AIMessage,
   type BaseMessage,
@@ -29,10 +30,12 @@ import type {
   HarnessInputs,
   HarnessOutputs,
   HarnessSnapshot,
+  InstructionContext,
   Message,
   Run,
   Session,
 } from '@scholoom/protocol/harness';
+import { isContextItems, workbenchContextInternalOperations } from '@scholoom/protocol/harness';
 import {
   isLibraryToolCall,
   type LibraryToolPort,
@@ -54,7 +57,11 @@ import type {
   ResearchToolsPort,
 } from '@scholoom/protocol/research';
 import { researchRequestSchema } from '@scholoom/protocol/research';
-import type { ResourceRef, ResourceSaveResult } from '@scholoom/protocol/resources';
+import type {
+  ResourceEvidence,
+  ResourceRef,
+  ResourceSaveResult,
+} from '@scholoom/protocol/resources';
 import type Database from 'better-sqlite3';
 import { CompositeBackend, FilesystemBackend, registerHarnessProfile } from 'deepagents';
 import { and, desc, eq, gt, lt, or, sql } from 'drizzle-orm';
@@ -69,6 +76,12 @@ import {
   sessionScratch,
 } from './checkpoint-files.js';
 import { ExecutionGraphs } from './graph-registry.js';
+import {
+  authorizeContextItems,
+  type ContextBridge,
+  contextItemContent,
+  readInstructionContext,
+} from './instruction-context.js';
 import { ProjectBackend } from './project-backend.js';
 import type { HarnessRecords } from './records.js';
 import { RemoteAgent } from './remote-agent.js';
@@ -285,6 +298,7 @@ export class Harness {
     private readonly targetFiles?: (context: CallContext) => ProjectTargetReadPort & {
       check: (targetIds: Iterable<string>) => void;
     },
+    private readonly contextBridge?: ContextBridge,
   ) {}
 
   async initialize(): Promise<void> {
@@ -576,7 +590,8 @@ export class Harness {
         original?.value.text !== input.text ||
         JSON.stringify(original.value.materials) !== JSON.stringify(input.materials) ||
         JSON.stringify(original.value.materialFileIds ?? []) !==
-          JSON.stringify(input.materialFileIds ?? [])
+          JSON.stringify(input.materialFileIds ?? []) ||
+        !isDeepStrictEqual(original.value.contextItems ?? [], input.contextItems ?? [])
       )
         throw new OperationError('invalidRequest', '指令身份已用于其他内容。');
       return { instructionId: previous.id, runId: previous.runId };
@@ -588,15 +603,24 @@ export class Harness {
     input: HarnessInputs['session.send'],
     source?: CallContext['workbenchSource'],
   ): Promise<{ instructionId: string; runId: string }> {
-    if (input.contextItems?.length)
-      throw new OperationError('unavailable', '显式上下文项尚未接线。');
+    if (input.contextItems && !isContextItems(input.contextItems))
+      throw new OperationError('invalidRequest', '显式上下文项不符合容量及结构约定。');
+    input = structuredClone(input);
     if (this.stopped) throw new OperationError('shuttingDown', '内核正在停止。');
     const project = this.projects.get(input.projectId);
     const session = this.session(project, input.sessionId);
     const previous = this.acceptedInstruction(project, input);
     if (previous) return previous;
+    const admissionContext: CallContext = {
+      moduleId: 'harness',
+      role: 'host',
+      principal: { kind: 'agent', id: session.id },
+      projectId: project.id,
+      sessionId: session.id,
+    };
     try {
       await this.port(project)['project.check']({ projectId: project.id, access: 'send' });
+      await authorizeContextItems(this.contextBridge, admissionContext, input.contextItems ?? []);
       if (!(await this.model.credentials.status()).configured)
         throw new OperationError('credentialUnavailable', '请先配置 MiniMax API Key。');
       if (input.materialFileIds && input.materialFileIds.length !== input.materials.length)
@@ -645,6 +669,11 @@ export class Harness {
       this.records(project).transaction((tx) => {
         replay = this.acceptedInstruction(project, input);
         if (replay) return;
+        if (input.contextItems?.length) {
+          const resources = this.contextBridge?.resources?.(admissionContext);
+          if (!resources) throw new OperationError('unavailable', '执行资源授权适配尚未接线。');
+          resources.check(input.contextItems);
+        }
         const current = tx
           .select()
           .from(tables.sessions)
@@ -679,6 +708,7 @@ export class Harness {
               text: input.text,
               materials: input.materials,
               ...(input.materialFileIds ? { materialFileIds: input.materialFileIds } : {}),
+              ...(input.contextItems ? { contextItems: input.contextItems } : {}),
               ...(source ? { source: { ...source } } : {}),
               state: 'accepted',
               createdAt: now(),
@@ -843,6 +873,31 @@ export class Harness {
       const libraryContextKey = `library-context:${run.sessionId}`;
       const targetContextKey = `target-read-context:${run.sessionId}`;
       const targetChecks = new Set<string>();
+      const contextKey = `instruction-resource-context:${run.sessionId}`;
+      const contextEvidence = new Map<string, ResourceEvidence>(
+        (
+          JSON.parse(
+            this.records(project)
+              .select()
+              .from(tables.meta)
+              .where(eq(tables.meta.key, contextKey))
+              .get()?.value ?? '[]',
+          ) as ResourceEvidence[]
+        ).map((item) => [JSON.stringify(item.ref), item]),
+      );
+      const rememberContext = (items: readonly ResourceEvidence[]) => {
+        if (!items.length) return;
+        for (const item of items)
+          contextEvidence.set(JSON.stringify(item.ref), { ref: item.ref, basis: item.basis });
+        const value = JSON.stringify([...contextEvidence.values()]);
+        this.records(project)
+          .insert(tables.meta)
+          .values({ key: contextKey, value })
+          .onConflictDoUpdate({ target: tables.meta.key, set: { value } })
+          .run();
+      };
+      const effectiveInstructions = new Map<string, InstructionContext>();
+      let executionContext: CallContext;
       const previousTargets: string[] = JSON.parse(
         this.records(project)
           .select()
@@ -861,6 +916,9 @@ export class Harness {
       });
       const authorizeModel = async () => {
         await this.port(project)['project.check']({ projectId: project.id, access: 'send' });
+        await authorizeContextItems(this.contextBridge, executionContext, [
+          ...contextEvidence.values(),
+        ]);
         if (
           this.records(project)
             .select()
@@ -881,6 +939,11 @@ export class Harness {
             .get()?.value ?? '[]',
         );
         for (const targetId of currentTargets) targetChecks.add(targetId);
+        if (contextEvidence.size) {
+          const resources = this.contextBridge?.resources?.(executionContext);
+          if (!resources) throw new OperationError('unavailable', '执行资源授权适配尚未接线。');
+          resources.check([...contextEvidence.values()]);
+        }
         if (targets) targets.check(targetChecks);
         else if (targetChecks.size) throw new OperationError('unavailable', '目标只读端口不可用。');
       });
@@ -1051,6 +1114,7 @@ export class Harness {
         ),
         signal,
       };
+      executionContext = fileContext;
       const backend = new CompositeBackend(
         trackBackend(
           new ProjectBackend(
@@ -1154,7 +1218,12 @@ export class Harness {
               .from(tables.messages)
               .where(eq(tables.messages.id, previous.id))
               .get()?.value;
-            if (!stored?.materialFileIds?.length) continue;
+            if (!stored) continue;
+            if (stored.contextItems?.length) {
+              await authorizeContextItems(this.contextBridge, fileContext, stored.contextItems);
+              rememberContext(stored.contextItems);
+            }
+            if (!stored.materialFileIds?.length && !stored.contextItems?.length) continue;
             const content = await this.instructionContent(project, stored);
             if (content !== previous.content)
               incoming.push(new HumanMessage({ id: previous.id, content }));
@@ -1166,6 +1235,22 @@ export class Harness {
               .where(eq(tables.messages.id, item.id))
               .get()?.value;
             if (!message) continue;
+            await authorizeContextItems(
+              this.contextBridge,
+              fileContext,
+              message.contextItems ?? [],
+            );
+            rememberContext(message.contextItems ?? []);
+            effectiveInstructions.set(item.id, {
+              instructionId: item.id,
+              ...(message.source ? { source: message.source } : {}),
+              ...(message.contextItems ? { contextItems: message.contextItems } : {}),
+            });
+            if (effectiveInstructions.size > 100)
+              throw new OperationError(
+                'resourceLimit',
+                '本次推进的上下文指令超过 100 条，请核查后继续。',
+              );
             if (!present.has(item.id))
               incoming.push(
                 new HumanMessage({
@@ -1177,6 +1262,8 @@ export class Harness {
           return {
             ...(incoming.length ? { messages: incoming } : {}),
             instructionIds: pending.map((item) => item.id),
+            instructionRunId: run.id,
+            instructions: [...effectiveInstructions.values()],
           };
         },
         wrapModelCall: async (request, handler) => {
@@ -1447,6 +1534,34 @@ export class Harness {
           systemPrompt:
             '你是 Scholoom 科研助手。使用中文与用户工作。项目正文以实际文件为准，附加材料只是引用，先读取。形成可承接的分析、理由、成果及下一步时保存为普通 Markdown 文件；在没有项目文件权限时只对话。仅使用授权工具。修改已有文件先读取，遇到冲突重读再修改。write_file 仅用于新建，edit_file 修改已有内容。不得声称未保存成果已交付。不要依赖旧 transcript 才能续做，可发现并读取项目已有成果。用户取消后不继续。',
           tools: [
+            {
+              name: 'read_workbench_context',
+              description:
+                '调用时查询本次推进的工作台当前选择。多来源返回 ambiguous 与当前 instructionIds；需明确选择其中的 instructionId，不能选择最近窗口。选择只是线索，材料需实际读取。',
+              schema: workbenchContextInternalOperations['workbench.context.read'].params,
+              func: async ({ instructionId }: { instructionId?: string }) => {
+                try {
+                  this.checkExecutionContext(fileContext);
+                  await this.port(project)['project.check']({
+                    projectId: project.id,
+                    access: 'send',
+                  });
+                  const result = await readInstructionContext(
+                    [...effectiveInstructions.values()],
+                    instructionId,
+                    fileContext,
+                    this.contextBridge,
+                  );
+                  if (result.state === 'available') rememberContext(result.snapshot.selections);
+                  return JSON.stringify(result);
+                } catch (error) {
+                  const info = failure(error);
+                  const current = toolContext.getStore();
+                  if (current) current.error = info;
+                  return JSON.stringify({ error: info });
+                }
+              },
+            },
             {
               name: 'read_work_domain',
               description:
@@ -1731,7 +1846,15 @@ export class Harness {
                         consumed: row.consumed,
                         message,
                         currentContent: message
-                          ? await this.instructionContent(project, message)
+                          ? await (async () => {
+                              await authorizeContextItems(
+                                this.contextBridge,
+                                fileContext,
+                                message.contextItems ?? [],
+                              );
+                              rememberContext(message.contextItems ?? []);
+                              return this.instructionContent(project, message);
+                            })()
                           : undefined,
                       };
                     }),
@@ -1758,6 +1881,31 @@ export class Harness {
       let input: { messages: BaseMessage[] } | null = { messages: [] };
       const checkpoint = await saver.getTuple(config);
       if (checkpoint) {
+        const saved = checkpoint.checkpoint.channel_values.instructions;
+        if (
+          checkpoint.checkpoint.channel_values.instructionRunId === run.id &&
+          Array.isArray(saved)
+        )
+          for (const item of saved as InstructionContext[]) {
+            const row = this.records(project)
+              .select()
+              .from(tables.instructions)
+              .where(eq(tables.instructions.id, item.instructionId))
+              .get();
+            if (row?.sessionId === run.sessionId) {
+              const message = this.records(project)
+                .select()
+                .from(tables.messages)
+                .where(eq(tables.messages.id, item.instructionId))
+                .get()?.value;
+              if (message)
+                effectiveInstructions.set(item.instructionId, {
+                  instructionId: item.instructionId,
+                  ...(message.source ? { source: message.source } : {}),
+                  ...(message.contextItems ? { contextItems: message.contextItems } : {}),
+                });
+            }
+          }
         await saver.confirmLatest(config);
         input = {
           messages: this.checkpointToolResults(
@@ -1788,6 +1936,18 @@ export class Harness {
             .run();
         }
         input = { messages: await this.continuation(project, run.sessionId) };
+        for (const message of input.messages) {
+          if (!message.id) continue;
+          const stored = this.records(project)
+            .select()
+            .from(tables.messages)
+            .where(eq(tables.messages.id, message.id))
+            .get()?.value;
+          if (stored?.contextItems?.length) {
+            await authorizeContextItems(this.contextBridge, fileContext, stored.contextItems);
+            rememberContext(stored.contextItems);
+          }
+        }
       }
       const summary = checkpoint?.checkpoint.channel_values._summarizationEvent;
       let historyMissing = false;
@@ -2023,6 +2183,11 @@ export class Harness {
   }
 
   private async instructionContent(project: HarnessProject, message: Message): Promise<string> {
+    if (message.contextItems?.length)
+      message = {
+        ...message,
+        text: `${message.text}\n明确附加项（不代表已读取完整原文）：\n${message.contextItems.map(contextItemContent).join('\n\n')}`,
+      };
     if (!message.materials.length) return message.text;
     if (!message.materialFileIds?.length)
       return `${message.text}\n附加材料引用（先读取再使用）：${message.materials.join(', ')}`;

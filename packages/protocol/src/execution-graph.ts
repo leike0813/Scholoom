@@ -24,7 +24,12 @@ export const frameworkMessageSchema = object(
   ['type', 'data'],
 );
 const messageUpdate = object(
-  { messages: array(frameworkMessageSchema), instructionIds: array(id) },
+  {
+    messages: array(frameworkMessageSchema),
+    instructionIds: array(id),
+    instructionRunId: id,
+    instructions: instructionContextsSchema,
+  },
   [],
 );
 const toolCall = object(

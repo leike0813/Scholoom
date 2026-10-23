@@ -145,4 +145,5 @@ export const workbenchContextContracts = {
   ...workbenchContextInternalOperations,
 } as const;
 export type ContextItem = FromSchema<typeof contextItemSchema>;
+export type InstructionContext = FromSchema<typeof instructionContextSchema>;
 export type WorkbenchContextSnapshot = FromSchema<typeof workbenchContextSnapshotSchema>;

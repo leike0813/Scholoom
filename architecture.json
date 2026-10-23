@@ -191,6 +191,7 @@
         "@scholoom/protocol/execution",
         "@scholoom/protocol/resources",
         "@scholoom/protocol/harness",
+        "@scholoom/protocol/resources",
         "@scholoom/protocol/models",
         "@scholoom/protocol/projects",
         "@scholoom/protocol/research",

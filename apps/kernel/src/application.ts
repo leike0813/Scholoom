@@ -2,6 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { Handlers } from '@scholoom/broker';
 import {
+  type ContextBridge,
   Harness,
   type HarnessProject,
   HarnessRecords,
@@ -38,7 +39,11 @@ export class KernelApplication extends ManualApplication {
   readonly research: ResearchRuntime;
   constructor(
     directory: string,
-    options: { modelEndpoint?: string; environment?: NodeJS.ProcessEnv } = {},
+    options: {
+      modelEndpoint?: string;
+      environment?: NodeJS.ProcessEnv;
+      contextResources?: ContextBridge['resources'];
+    } = {},
   ) {
     super(directory);
     process.env.LANGSMITH_TRACING = 'false';
@@ -82,6 +87,10 @@ export class KernelApplication extends ManualApplication {
       new URL('./execution-worker.js', import.meta.url),
       executionGraphs,
       (context) => this.projectTargetRead(context),
+      {
+        read: (source, receiver) => this.workbenchContexts.read(source, receiver),
+        ...(options.contextResources ? { resources: options.contextResources } : {}),
+      },
     );
     this.broker.register('runtime', this.handlers);
     this.broker.register('runtime-internal', {

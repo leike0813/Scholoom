@@ -9,6 +9,7 @@ import { OperationError } from '@scholoom/protocol/core';
 import {
   type ExecutionControlProviders,
   type FrameworkToolResult,
+  type InstructionContext,
   isExecutionControlCall,
   isExecutionControlMethod,
   isExecutionControlResult,
@@ -58,7 +59,10 @@ export function startExecutionWorker(graphs = new ExecutionGraphs()): void {
     },
     'execution.initialize': async (input) => {
       if (input.instructions?.length)
-        throw new OperationError('unavailable', '结构化指令上下文尚未接线。');
+        throw new OperationError(
+          'unavailable',
+          '初始化指令尚未接线；Agent 指令由模型前置端口注入。',
+        );
       if (initialized) throw new OperationError('invalidRequest', '执行已经初始化。');
       if ('graph' in input) {
         const factory = graphs.resolve(input.graph);
@@ -79,6 +83,8 @@ export function startExecutionWorker(graphs = new ExecutionGraphs()): void {
       const backend = executionFiles(peer, () => context.getStore());
       const instructionState = z.object({
         instructionIds: z.array(z.string()).max(100).default([]),
+        instructionRunId: z.string().default(''),
+        instructions: z.array(z.custom<InstructionContext>()).max(100).default([]),
       });
       const middleware = input.middleware.map((item) =>
         createMiddleware<typeof instructionState>({
@@ -96,6 +102,10 @@ export function startExecutionWorker(graphs = new ExecutionGraphs()): void {
                   });
                   return update
                     ? {
+                        ...(update.instructions ? { instructions: update.instructions } : {}),
+                        ...(update.instructionRunId
+                          ? { instructionRunId: update.instructionRunId }
+                          : {}),
                         ...(update.instructionIds ? { instructionIds: update.instructionIds } : {}),
                         ...(update.messages
                           ? { messages: update.messages.map(decodeFrameworkMessage) }
