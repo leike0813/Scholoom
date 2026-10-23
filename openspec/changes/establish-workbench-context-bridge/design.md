@@ -69,6 +69,8 @@ registered Graph 在原 InstructionContext 中补可选 text、materials、mater
 
 Graph 受理、恢复映射、worker 初始化、消费确认和模型请求均复查当前权限，历史证据沿普通 Agent 的同一会话授权记录保存，避免换批或换执行路径绕过撤权。历史摘录 basis 不变，实际 resources.read 核对版本。固定图的真实资源／模型边界回归独立于最终 4.5，接线证明后才移除 registered 附件 unavailable 保护。
 
+普通 Agent 的 beforeModel 更新在 RemoteAgent 编码后按实际 UTF-8 JSON 字节判断传递方式；大更新经同源 execution.modelUpdate 逐项传递消息与 InstructionContext，小更新保留原响应。worker 以本次 beforeModel 独立 token 绑定临时载荷，仅在完整原响应成功后交给 SDK，finally 释放暂存。失败和迟到帧不能提交半份更新；单 run 最多 100 条、原回执、SDK checkpoint 及保存后确认机制保持。
+
 ### UI 贡献及草稿
 
 在现有 WorkbenchSession 上增加选择贡献与 `appendContextItem` 窄入口，具体领域只提交自身对象的纯数据及释放动作。库导航、报告按钮及阅读器复用这一入口；发布选择不等于 append，更不自动发送。先以现有文本视图和固定区域提供者验证共同链路，图表精细命中及报告脚本运行由阅读交互线后续承接。

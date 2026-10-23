@@ -159,8 +159,22 @@ export const executionGraphOperations = {
     semantics: { effect: 'write', returns: 'result', waitMs: 3600000 },
   },
   'execution.beforeModel': {
-    params: object({ name: id, messages: array(frameworkMessageSchema) }, ['name', 'messages']),
+    params: object({ name: id, token: id, messages: array(frameworkMessageSchema) }, [
+      'name',
+      'token',
+      'messages',
+    ]),
     result: { anyOf: [messageUpdate, { const: null }] },
+    semantics: { effect: 'write', returns: 'result', waitMs: 30000 },
+  },
+  'execution.modelUpdate': {
+    params: {
+      anyOf: [
+        object({ token: id, message: frameworkMessageSchema }, ['token', 'message']),
+        object({ token: id, instruction: instructionContextSchema }, ['token', 'instruction']),
+      ],
+    },
+    result: ok,
     semantics: { effect: 'write', returns: 'result', waitMs: 5000 },
   },
   'execution.wrapModel': {

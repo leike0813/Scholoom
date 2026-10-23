@@ -8,6 +8,7 @@ import { createExecutionModel, modelFailure } from '@scholoom/models/execution';
 import { OperationError } from '@scholoom/protocol/core';
 import {
   type ExecutionControlProviders,
+  type FrameworkMessage,
   type FrameworkToolResult,
   type InstructionContext,
   isExecutionControlCall,
@@ -42,6 +43,9 @@ export function startExecutionWorker(graphs = new ExecutionGraphs()): void {
   let initialized = false;
   const stagedInstructions = new Map<string, InstructionContext>();
   const currentInstructionIds = new Set<string>();
+  let pendingModelUpdate:
+    | { token: string; messages: FrameworkMessage[]; instructions: InstructionContext[] }
+    | undefined;
   const controlProviders: Pick<ExecutionControlProviders, 'execution.health' | 'execution.stop'> = {
     'execution.health': () => ({ processId: process.pid }),
     'execution.stop': () => {
@@ -52,8 +56,19 @@ export function startExecutionWorker(graphs = new ExecutionGraphs()): void {
 
   const graphProviders: Pick<
     ExecutionControlProviders,
-    'execution.tool' | 'execution.instructions' | 'execution.initialize' | 'execution.next'
+    | 'execution.tool'
+    | 'execution.instructions'
+    | 'execution.initialize'
+    | 'execution.next'
+    | 'execution.modelUpdate'
   > = {
+    'execution.modelUpdate': (input) => {
+      if (!pendingModelUpdate || pendingModelUpdate.token !== input.token)
+        throw new OperationError('invalidRequest', '没有对应的模型前置更新。');
+      if ('message' in input) pendingModelUpdate.messages.push(input.message);
+      else pendingModelUpdate.instructions.push(input.instruction);
+      return { ok: true };
+    },
     'execution.instructions': ({ instruction, current }) => {
       if (initialized) throw new OperationError('invalidRequest', '执行已经初始化。');
       stagedInstructions.set(instruction.instructionId, instruction);
@@ -152,25 +167,44 @@ export function startExecutionWorker(graphs = new ExecutionGraphs()): void {
           ...(item.before
             ? {
                 beforeModel: async (state) => {
-                  const update = await callExecutionControl(peer, 'execution.beforeModel', {
-                    name: item.name,
-                    messages: state.messages.map((message) => ({
-                      type: message.getType() === 'human' ? 'human' : 'ai',
-                      data: { ...(message.id ? { id: message.id } : {}), content: '' },
-                    })),
-                  });
-                  return update
-                    ? {
-                        ...(update.instructions ? { instructions: update.instructions } : {}),
-                        ...(update.instructionRunId
-                          ? { instructionRunId: update.instructionRunId }
-                          : {}),
-                        ...(update.instructionIds ? { instructionIds: update.instructionIds } : {}),
-                        ...(update.messages
-                          ? { messages: update.messages.map(decodeFrameworkMessage) }
-                          : {}),
-                      }
-                    : undefined;
+                  const pending = {
+                    token: randomUUID(),
+                    messages: [] as FrameworkMessage[],
+                    instructions: [] as InstructionContext[],
+                  };
+                  pendingModelUpdate = pending;
+                  try {
+                    const update = await callExecutionControl(peer, 'execution.beforeModel', {
+                      name: item.name,
+                      token: pending.token,
+                      messages: state.messages.map((message) => ({
+                        type: message.getType() === 'human' ? 'human' : 'ai',
+                        data: { ...(message.id ? { id: message.id } : {}), content: '' },
+                      })),
+                    });
+                    return update
+                      ? {
+                          ...(update.instructions
+                            ? { instructions: [...pending.instructions, ...update.instructions] }
+                            : {}),
+                          ...(update.instructionRunId
+                            ? { instructionRunId: update.instructionRunId }
+                            : {}),
+                          ...(update.instructionIds
+                            ? { instructionIds: update.instructionIds }
+                            : {}),
+                          ...(update.messages
+                            ? {
+                                messages: [...pending.messages, ...update.messages].map(
+                                  decodeFrameworkMessage,
+                                ),
+                              }
+                            : {}),
+                        }
+                      : undefined;
+                  } finally {
+                    pendingModelUpdate = undefined;
+                  }
                 },
               }
             : {}),
@@ -348,6 +382,7 @@ export function startExecutionWorker(graphs = new ExecutionGraphs()): void {
         if (signal.signal.aborted) throw new OperationError('shuttingDown', '执行已停止。');
         if (call?.[0] === 'execution.tool') return graphProviders[call[0]](call[1]);
         if (call?.[0] === 'execution.instructions') return graphProviders[call[0]](call[1]);
+        if (call?.[0] === 'execution.modelUpdate') return graphProviders[call[0]](call[1]);
         if (call?.[0] === 'execution.initialize') return graphProviders[call[0]](call[1]);
         if (call?.[0] === 'execution.next') return graphProviders[call[0]](call[1]);
         throw new OperationError('invalidRequest', '执行操作不可用。');

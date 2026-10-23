@@ -139,7 +139,7 @@ export class RemoteAgent {
       ExecutionControlProviders,
       'execution.beforeModel' | 'execution.wrapModel' | 'execution.wrapTool' | 'execution.custom'
     > = {
-      'execution.beforeModel': async ({ name, messages }) => {
+      'execution.beforeModel': async ({ name, token, messages }) => {
         const item = findMiddleware(name);
         if (!item.beforeModel) throw new OperationError('permissionDenied', '模型前置能力不可用。');
         const result = await item.beforeModel({
@@ -152,13 +152,25 @@ export class RemoteAgent {
           instructionRunId?: string;
           instructions?: InstructionContext[];
         };
-        return {
+        const encoded = {
           ...(update.instructions ? { instructions: update.instructions } : {}),
           ...(update.instructionRunId ? { instructionRunId: update.instructionRunId } : {}),
           ...(update.instructionIds ? { instructionIds: update.instructionIds } : {}),
           ...(update.messages
             ? { messages: update.messages.map((message) => encodeFrameworkMessage(message)) }
             : {}),
+        };
+        // Reserve framing space without changing the complete SDK update or its consumption boundary.
+        if (Buffer.byteLength(JSON.stringify(encoded), 'utf8') < limits.frameBytes / 2)
+          return encoded;
+        for (const message of encoded.messages ?? [])
+          await callExecutionControl(peer, 'execution.modelUpdate', { token, message });
+        for (const instruction of encoded.instructions ?? [])
+          await callExecutionControl(peer, 'execution.modelUpdate', { token, instruction });
+        return {
+          ...encoded,
+          ...(encoded.messages ? { messages: [] } : {}),
+          ...(encoded.instructions ? { instructions: [] } : {}),
         };
       },
       'execution.wrapModel': async ({ name }) => {

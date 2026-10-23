@@ -1,3 +1,4 @@
+import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -6,6 +7,7 @@ import { expect, test } from '@playwright/test';
 import { KernelApplication } from '../../apps/kernel/dist/application.js';
 import { SqliteSaver } from '../../apps/kernel/node_modules/@langchain/langgraph-checkpoint-sqlite/dist/index.js';
 import { openCheckpoint } from '../../packages/harness/dist/node.js';
+import { ManagedNode } from '../../packages/platform/dist/node.js';
 import { OperationError } from '../../packages/protocol/dist/core.js';
 import type {
   CallContext,
@@ -243,6 +245,167 @@ test('instructions beyond the current advancement capacity keep their receipt an
     await rm(root, { recursive: true });
   }
 });
+
+for (const kind of ['text', 'context', 'transfer'] as const) {
+  test(`large ordinary Agent ${kind} updates retain complete payloads through model IPC and restart`, async () => {
+    test.setTimeout(90000);
+    const root = await mkdtemp(join(tmpdir(), 'scholoom-context-large-'));
+    const model = await createModelServer({
+      maxBodyBytes: 8 * 1024 * 1024,
+      respond: ({ calls }) =>
+        calls.includes('read_work_domain')
+          ? { text: 'Complete instruction batch received.' }
+          : { tool: { name: 'read_work_domain', input: {} } },
+    });
+    const options = { modelEndpoint: model.url, environment: { MINIMAX_CN_API_KEY: 'synthetic' } };
+    const app = new (class extends KernelApplication {
+      occupy() {
+        return this.processes.reserve();
+      }
+    })(join(root, 'profile'), options);
+    const holds = Array.from({ length: 4 }, () => app.occupy());
+    let reopened: KernelApplication | undefined;
+    let active: KernelApplication = app;
+    const start = ManagedNode.start;
+    const frames: { method: string; bytes: number; elapsed: number }[] = [];
+    const started = Date.now();
+    let updates = 0;
+    ManagedNode.start = async (options) => {
+      const child = await start(options);
+      const send = child.send.bind(child);
+      child.send = (frame) => {
+        if (
+          frame &&
+          typeof frame === 'object' &&
+          'method' in frame &&
+          typeof frame.method === 'string'
+        )
+          frames.push({
+            method: frame.method,
+            bytes: Buffer.byteLength(JSON.stringify(frame)),
+            elapsed: Date.now() - started,
+          });
+        if (
+          kind === 'transfer' &&
+          frame &&
+          typeof frame === 'object' &&
+          'method' in frame &&
+          frame.method === 'execution.modelUpdate' &&
+          ++updates === 2
+        )
+          return Promise.reject(new OperationError('unavailable', 'synthetic incomplete update'));
+        return send(frame);
+      };
+      return child;
+    };
+    try {
+      await Promise.all(holds.map((hold) => hold.ready));
+      await app.initialize();
+      const project = await app.call('project.create', {
+        path: join(root, 'target'),
+        trust: 'trusted',
+      });
+      await app.call('files.save', {
+        projectId: project.id,
+        path: 'input.txt',
+        content: 'real resource evidence',
+      });
+      const resource = await app.call('resources.describe', {
+        locator: { source: 'project', projectId: project.id, path: 'input.txt' },
+      });
+      const session = await app.call('session.create', { projectId: 'application' });
+      const scope = { projectId: 'application', sessionId: session.id };
+      const inputs = Array.from({ length: kind === 'text' ? 70 : 24 }, (_, index) => ({
+        ...scope,
+        instructionId: randomUUID(),
+        text: `MODEL_CHAT large_${index}_`.padEnd(kind === 'text' ? 32768 : 128, 'x'),
+        materials: [],
+        ...(kind !== 'text'
+          ? {
+              contextItems: Array.from(
+                { length: 7 },
+                (_, item): ContextItem => ({
+                  kind: 'text',
+                  itemId: randomUUID(),
+                  ref: resource.ref,
+                  basis: resource.basis,
+                  quote: `draft_${index}_${item}_`.padEnd(8192, 'y'),
+                  contentState: 'draft',
+                }),
+              ),
+            }
+          : {}),
+      }));
+      const receipts = [];
+      for (const input of inputs) receipts.push(await app.call('session.send', input));
+      for (const hold of holds) hold.release();
+      if (kind === 'transfer') {
+        await expect
+          .poll(
+            async () =>
+              ['failed', 'interrupted'].includes((await app.snapshot(scope)).run?.state ?? ''),
+            { timeout: 30000 },
+          )
+          .toBe(true);
+        expect(model.requests).toHaveLength(0);
+        expect(
+          (await app.snapshot(scope)).messages
+            .filter((message) => message.role === 'user')
+            .every((message) => message.state === 'accepted'),
+        ).toBe(true);
+        await app.close();
+        ManagedNode.start = start;
+        reopened = new KernelApplication(join(root, 'profile'), options);
+        await reopened.initialize();
+        active = reopened;
+        const recovery = {
+          ...scope,
+          instructionId: randomUUID(),
+          text: 'MODEL_CHAT recover complete update',
+          materials: [],
+        };
+        inputs.push(recovery);
+        receipts.push(await active.call('session.send', recovery));
+      }
+      await expect
+        .poll(async () => (await active.snapshot(scope)).run?.state, { timeout: 30000 })
+        .toBe('completed');
+      const sent = model.requests.map((request) => JSON.stringify(request.messages));
+      for (const input of inputs)
+        expect(sent.some((request) => request.includes(input.text))).toBe(true);
+      const completed = (await active.snapshot(scope)).run;
+      assert(completed);
+      expect(
+        await checkpointInstructions(active.projects.get('application').internal, completed.id),
+      ).toEqual(
+        inputs.map(({ instructionId, contextItems }) => ({
+          instructionId,
+          ...(contextItems ? { contextItems } : {}),
+        })),
+      );
+      await active.close();
+      reopened = new KernelApplication(join(root, 'profile'), options);
+      await reopened.initialize();
+      for (const [index, input] of inputs.entries())
+        expect(await reopened.call('session.send', input)).toEqual(receipts[index]);
+      expect(
+        (await reopened.snapshot(scope)).messages
+          .filter((message) => message.role === 'user')
+          .every((message) => message.state === 'consumed'),
+      ).toBe(true);
+    } finally {
+      ManagedNode.start = start;
+      await test.info().attach('instruction-ipc', {
+        body: JSON.stringify(frames),
+        contentType: 'application/json',
+      });
+      for (const hold of holds) hold.release();
+      await app.close();
+      await reopened?.close();
+      await model.close();
+    }
+  });
+}
 
 test('server persists all context item kinds and keeps their original source across restart', async () => {
   const root = await mkdtemp(join(tmpdir(), 'scholoom-context-persist-'));

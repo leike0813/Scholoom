@@ -24,6 +24,7 @@ export interface ModelServer {
 }
 
 export interface ModelServerOptions {
+  maxBodyBytes?: number;
   respond?: (input: {
     user: string;
     calls: readonly string[];
@@ -52,13 +53,16 @@ function sendError(res: ServerResponse, status: number, message: string): void {
   sendJson(res, status, { type: 'error', error: { type: 'invalid_request_error', message } });
 }
 
-async function readJsonBody(req: IncomingMessage): Promise<Record<string, unknown>> {
+async function readJsonBody(
+  req: IncomingMessage,
+  maxBytes = MAX_BODY_BYTES,
+): Promise<Record<string, unknown>> {
   const chunks: Array<Buffer> = [];
   let size = 0;
   for await (const chunk of req) {
     const buffer = chunk as Buffer;
     size += buffer.length;
-    if (size > MAX_BODY_BYTES) {
+    if (size > maxBytes) {
       throw Object.assign(new Error('request body exceeds 2 MiB'), { status: 413 });
     }
     chunks.push(buffer);
@@ -530,7 +534,7 @@ export async function createModelServer(options: ModelServerOptions = {}): Promi
     }
     let body: Record<string, unknown>;
     try {
-      body = await readJsonBody(req);
+      body = await readJsonBody(req, options.maxBodyBytes);
     } catch (error) {
       const status = (error as { status?: number }).status ?? 400;
       sendError(res, status, (error as Error).message);
