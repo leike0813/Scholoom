@@ -2,6 +2,58 @@
 
 ## 当前状态与成果
 
+### 第五轮最终组合与独立审查
+
+2026-10-23 至 24，用户指定本线为当次最终整合负责人，授权同步最新 dev，声明隔离配置后推进 4.5／4.6，更新原记录、提交推送并向 dev 发 PR；不合入、不归档或启动七域。开始工作树干净，fetch 与 fast-forward 核对最新 dev **23e68c8**，包含 #11 隔离夹具、#12 完整 Graph 上下文和接收容量修复。读两 active change 最新 tasks／delivery、阶段约定及 apply instructions：工作台 14/17、领域 16/19，均 ready。领域 4.4 整组尚未交付，本轮不代勾。
+
+本轮 **4.5／4.6 已完成本树验收，当前 16/17**；4.7 保持未完成。修复及组合以两个独立提交向 dev 发同一 PR，停止于可审查结果；不将本树验收表述为 dev 接收或公共基础全部完成。
+
+新增 `tests/kernel/workbench-integration.spec.ts` 正常／关联失败两个分支，复用原 broker、资源所有者、worker、SQLite checkpoint 和源码 durable-resource 图：
+
+1. 真实认证 WebSocket 向 application 全局会话发送完整项目／库显式摘录；发送后同连接更新选择，实际 Agent 工具查询新快照并读取可信项目／库正文。历史摘录、basis 及可信 source 保持。
+2. 全局普通工作区写入被拒绝，项目／应用均无目标文件；原 socket 断开后实际工具返回 disconnected，不借另一个在线连接。原身份补交回执不变，改变载荷拒绝。
+3. 固定 Graph 经源码内部入口启动，保存第一份成果后 interrupt；原 session.send 显式项经恢复映射、worker、模型和完整 checkpoint 后确认消费。公共 resources.creation/read 取得最终资源身份、正文和关联，重试不重放成果。
+4. 沿领域既有 artifacts SQLite 触发器注入关联失败：创建／磁盘保存 complete，association unknown，graphProgress 保留部分结果；解除故障后只由原 creation 补关联，inode 和历史不变。
+
+双宿主新增场景在现有 `tests/ui/context-bridge.spec.ts`：全局会话用户经真实库视图附加资源、共同 composer 发送，随后打开另一库材料，工具读取新选择及可信项目／库；刷新后的原显式项／来源和原身份补交保持。材料准备走真实 API，附加、选择、发送及查看回复经 UI；Graph 启动仍为源码内部入口，没有新增产品图选择按钮。没有重建资源提供者、创建收据、Graph 等待或共同命令。
+
+#### 隔离与验证边界
+
+主线程承担最终验收。内核每例新建 `/tmp/scholoom-final-context-*`，含独立 profile、项目、库和成果；容量回归为 `/tmp/scholoom-context-large-*` 的独立 profile／target。WebSocket／模型监听随机回环端口。UI 声明端口 **5363**，每轮新配置；首轮沿原 config 生成，完整回归明确 `/tmp/scholoom-r5-ui-8d3mtJ`，各例项目和输入另建 `/tmp/scholoom-final-context-ui-*`。输出 `test-results/r5-combination-kernel*`、`r5-ui*`、`r5-kernel-verified`，容量探针附 instruction-ipc，组合附 combination-evidence，UI 附 global-ui-evidence，不含 token／凭据。原 fixture 仅关闭本轮所属 app、worker、模型、Vite 和 Electron，保留诊断工件。
+
+Linux／Node 24.12.0／pnpm 11.10.0，Chromium 与真实 Electron/preload；内部文件、broker、SQLite、资源及 IPC 为真实实现。模型为 loopback 受控 HTTP 和合成样本，没有真实外部凭据；固定图只在测试注册，生产集合仍为空。没有安装升级依赖、操作其他工作树或合入 dev。
+
+#### 运行记录及失败处理
+
+首轮新组合 **1/1**、新增全局双宿主 **2/2**，随后完整 context-bridge／resource-lifecycle 双宿主 **8/8，4.0 分钟**。首次 50 项内核取得 **48 通过、2 失败**：主线程同步源码后漏了先重建，dist 仍为旧 Saver／传输实现，101 条累计与大输入执行旧代码。确认后重建全部 shared，再做最终回归；首次结果保留 `/tmp/scholoom-r5-kernel-final.log`，不称最新源码通过。
+
+最终修复、完整重建后结果如下；早期探测与复验重叠，不相加为不同用例：
+
+| 实际命令／范围 | 结果及证据 |
+| --- | --- |
+| `pnpm --config.optimisticRepeatInstall=false typecheck`、同选项 `build` | 全仓通过，日志 `/tmp/scholoom-r5-{typecheck,build}.log` |
+| 同选项 `lint`、`node scripts/check-architecture.ts` | 通过；74 warnings／35 infos，13 模块、198 文件、零问题／例外，日志 `/tmp/scholoom-r5-lint-verified.log`、`/tmp/scholoom-r5-architecture-final.log` |
+| `node packages/protocol/scripts/contract-types.mjs --patch`、`--self-test`，生成 patch 经 Biome 后与源码核对 | 六份映射一致，生成检查通过；仅执行控制映射因新增同源 op 改变 |
+| 现有 kernel CLI，指定 workbench-integration、registered-context、context-resources、resource-access、context-query、context-instructions、context-drafts、context-session、workbench-context、harness-recovery | **65/65，8.8 分钟**；正常／部分关联组合、可信连接及歧义、普通／Graph 容量、传递中断、保存／确认／回执／来源故障、恢复撤权、资源版本及多窗口草稿。日志 `/tmp/scholoom-r5-kernel-verified.log`，工件 `test-results/r5-kernel-verified` |
+| `SCHOOLOOM_UI_PORT=5363 SCHOOLOOM_UI_DATA_DIR=/tmp/scholoom-r5-ui-verified-Znon1k xvfb-run -a node node_modules/@playwright/test/cli.js test --config playwright.ui.config.ts tests/ui/context-bridge.spec.ts tests/ui/resource-lifecycle.spec.ts --workers=1 --output=test-results/r5-ui-verified` | Chromium／真实 Electron **8/8，3.9 分钟**；全局库附加及变化选择、项目选区、模型重读取材、刷新与迟到回执、所属读取取消。日志 `/tmp/scholoom-r5-ui-verified.log`；原 fixture 已结束，5363 无监听 |
+| 两 active change `openspec validate <name> --strict`、`git diff --check` | 通过；本线 apply 以 tasks 为准为 16/17、ready，仍未最终交付 |
+
+内核和 UI 直接调用已安装的 Playwright CLI；未执行 setup 安装脚本。新增容量单项的传递边界附件和组合／UI 结果附件用于复验诊断；本机日志不是跨机持久证据，源码用例保留正式入口。未重跑完整内核／完整 UI、双实例 smoke、真实外部模型科研及 Windows／macOS 分发包；双实例依赖复用领域 #11 已接收证据。
+
+#### 独立审查与容量修复
+
+两名默认继承模型独立只读审查。一组核对可信来源、调用时查询、版本及 Graph／普通 Agent 模型准入，另一组核对完整幂等、重启回执、累计指令、checkpoint 消费、多窗口草稿及组合断言。后者无 P1/P2；前者发现普通 Agent 的 beforeModel 仍将整批合法指令装进单帧，70×32768 字符即超过 2 MiB，已受理后无法推进。
+
+现沿原 RemoteAgent／worker 增加同源 execution.modelUpdate，按编码字节选择原响应或逐项传递 framework message／InstructionContext。本次 beforeModel 独立 token 绑定暂存，完整原响应成功后才交 SDK，finally 释放。帧上限仍为 2 MiB，单 run 最多 100 条、原回执、授权及保存后消费机制不变。beforeModel 有界等待由 5 秒改为 **30 秒**，覆盖批次真实资源授权和分帧；探针确认摘录批次超时发生于授权阶段，未开始传递，不以跳过授权或放宽帧上限解决。
+
+复用 context-instructions 增加长正文、大批真实资源显式摘录及第二帧 send 失败三项；模型夹具仅为大输入可配置 HTTP body 上限。重建 dev 基线后两项容量红测均中断；首次新测试将 target 放进 profile 遭合法拒绝，已修正隔离布局再复现。实现时漏派发新 op 已修正；框架压缩使最后请求不含全部历史，断言核对实际请求曾收到完整正文及完整 checkpoint，不锁定压缩结果。大更新最终 **2/2**；分帧中断 **1/1**，无 HTTP、全部原指令 accepted，重启后完整输入和原回执恢复。新增测试空 pattern 及格式 lint 错误已修复，未放宽规则。以上三项再次包含于最终 65/65；独立窄复核关闭原容量 P2 和派发遗漏，核对 token 隔离、迟到帧拒绝、finally 清理及失败不提交半更新，无新增 P1/P2。审查员没有写文件或运行测试，真实结果由主线程执行。
+
+#### 领域证据复用与剩余范围
+
+领域实跑范围引用[第四轮 dev 接收](../establish-domain-execution-handoffs/delivery.md#第四轮-dev-接收)及[隔离夹具双宿主记录](../establish-domain-execution-handoffs/delivery.md#第四轮隔离夹具与双宿主验证)。既有 resource-access 覆盖目标拒写、排队撤权及关联 unknown／重启补关联；registered-context 覆盖项目／库排队和最终同步准入撤权、恢复后授权与重读取材；registered-graph 覆盖取消和持久等待。机制复用，不重复实现。领域 4.4 的取消／关联失败／worker 失联整组及其模块独立审查仍由原 change 交付，不把普通 Agent worker 失联证据称为 registered 图组合通过。
+
+开发说明补七域选择／视图／工具接入表、明确 instructionId 查询形状和真实边界；design 总览及流程保持，新分帧机制同步 design／delta spec。接入口说明不代表七域业务交付。4.7 暂保留待领域最终整合证据，当前不宣称全部公共基础完成。
+
 ### 第四轮 dev 接收
 
 2026-10-23，用户要求处理三个工作树的新一轮任务。dev 从干净的 `e324367` 保留原提交，依次以 `2ae82e8`、`356769b`、`c76df43` 无冲突合入 PR #10、#11、[#12](https://github.com/leike0813/Scholoom/pull/12)。本变更 3.4 的 registered 完整指令上下文现已接入，领域线的实际双实例隔离及双宿主验证前置也已接入。当前仍为 **14/17**；4.5–4.7 未完成，没有归档或启动七域。用户手动同步其他工作树，本轮未控制其 Agent。
@@ -48,6 +100,8 @@ Linux／Node 24.12.0／pnpm 11.10.0 的接收证据：
 
 ## 实际验证
 
+本节保留第四轮独立 Graph 增量的验证；第五轮组合与容量修复结果见上方第五轮记录。
+
 Linux、Node v24.12.0、pnpm 11.10.0。使用真实内部项目／库附件、broker、worker 子进程、IPC、SQLite checkpoint、资源创建及所属记录；样本为合成材料。模型边界为 loopback 受控 HTTP，worker 实际调用同一模型适配和额度，不使用真实外部凭据。未注入人工资源端口或成功授权替身。
 
 | 命令／入口 | 结果与范围 |
@@ -87,8 +141,6 @@ dev `e324367` 已包含 PR #9 的生产工作台资源授权以及 PR #8 的持�
 
 ## 未完成事项与下一步
 
-仅剩原 **4.5、4.6、4.7**。本轮以一个独立提交和向 dev 的 PR 交付 registered 指令上下文增量，停止于可审查 PR，不自行合入。
+当前只剩本线 **4.7**。4.5／4.6 的本树验收和普通 Agent 容量修复见第五轮；本轮提交推送后停止于向 dev 的可审查 PR，不自行合入或归档。领域 4.4–4.6 的执行／失败整组、独立模块审查及交付仍由原 change 承担，不能据本线通过提前声明全部公共基础完成或启动七域。
 
-4.5 须等待领域交接的实际夹具、双实例隔离及必要验证就绪，dev 接收本增量后，指定当次整合负责人和隔离配置再开展最终组合；本轮不据固定图局部回归提前勾选。其后完成最终审查和交付记录任务，才判断归档与七域启动。用户同步后仍先读原 tasks／delivery 和依赖记录，再取得 apply instructions。
-
-未运行完整内核／完整 UI、真实 Windows／macOS 分发包或真实模型科研验收；本轮没有重跑双宿主 UI，也未开展领域双实例及 4.5 三线最终组合。固定图的合成样本不证明科研充分性，前序双宿主证据也不替代待开展的组合验收。
+用户同步后先读取原 tasks／delivery 和领域最新记录，再取得 apply instructions；补齐实际 dev 接收及领域剩余证据后判断最终交付。完整内核／完整 UI、真实外部模型科研充分性、Windows／macOS 分发及三平台 CI 不在本轮通过范围。固定图合成样本不证明科研充分性。
