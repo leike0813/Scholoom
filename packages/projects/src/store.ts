@@ -345,6 +345,7 @@ export class ProjectStore {
     expected?: string,
     expectedFileId?: string,
     operation?: CreationOwner,
+    resourceBasis?: string,
   ): Promise<FileEdit> {
     this.check('write');
     if (Buffer.byteLength(content) > projectLimits.fileBytes)
@@ -359,6 +360,8 @@ export class ProjectStore {
       if ((await this.path(input, true)) !== target)
         throw new OperationError('contentChanged', '目标路径已变化。');
       const create = basis === undefined && expected === undefined;
+      if (resourceBasis && create)
+        throw new OperationError('invalidRequest', '资源版本保存要求原文件读取依据。');
       if (operation) {
         if (!create) throw new OperationError('invalidRequest', '创建操作身份无效。');
         input = relative(this.project.path, target).split(sep).join('/');
@@ -376,6 +379,11 @@ export class ProjectStore {
           throw new OperationError('contentChanged', '读取依据失效，请重新读取。');
         const handle = await open(target, 'r');
         try {
+          if (
+            resourceBasis &&
+            fileFingerprint(await handle.stat({ bigint: true })) !== resourceBasis
+          )
+            throw new OperationError('contentChanged', '资源版本已变化，请重新读取。');
           const info = await handle.stat();
           mode = info.mode & 0o777;
           if (info.size > projectLimits.fileBytes)
@@ -419,6 +427,11 @@ export class ProjectStore {
         this.check('write');
         if ((await this.path(input, true)) !== target)
           throw new OperationError('contentChanged', '发布目标路径已变化。');
+        if (
+          resourceBasis &&
+          fileFingerprint(await lstat(target, { bigint: true })) !== resourceBasis
+        )
+          throw new OperationError('contentChanged', '发布前资源版本已变化，请重新读取。');
         if (create) {
           await link(temporary, target);
           if (!operation) await unlink(temporary);

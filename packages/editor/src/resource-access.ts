@@ -293,6 +293,7 @@ export class ResourceAccess {
       content,
       basis: source.basis,
       expectedFileId: ref.fileId,
+      resourceBasis: basis,
     });
     if (saved.fileId !== ref.fileId || !saved.basis)
       throw new OperationError('outcomeUnknown', '保存已执行，但实际身份或依据未确认。');

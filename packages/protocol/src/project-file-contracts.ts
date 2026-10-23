@@ -35,11 +35,10 @@ export const projectExecutionOperations = {
     semantics: { effect: 'read', returns: 'result', waitMs: 5000 },
   },
   'project.saveFile': {
-    params: object({ ...fileSaveOperation.params.properties, expectedFileId: id }, [
-      'projectId',
-      'path',
-      'content',
-    ]),
+    params: object(
+      { ...fileSaveOperation.params.properties, expectedFileId: id, resourceBasis: id },
+      ['projectId', 'path', 'content'],
+    ),
     result: fileSaveOperation.result,
     semantics: fileSaveOperation.semantics,
   },

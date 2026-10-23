@@ -45,6 +45,8 @@ flowchart LR
 
 图输入材料、实际读取材料和结果各有独立字段。材料不存在、删除、版本变化或外链不可用时原样传递所属领域失败，由负责 Agent 按引用行为矩阵处理，不隐式复制、不猜测替代对象。不要把 ResourceEvidence 引用集合变成全局存储或项目反向索引。
 
+资源条件保存的原 strong basis 沿内部 `project.saveFile.resourceBasis` 进入项目串行临界区，实际打开的源句柄与发布前目标都核对原版本。文本读取令牌继续负责内容及路径，fileId 继续负责身份，不能仅凭保存前资源层核验或相同文本认领替换对象；不增加文件哈希或副本权威。
+
 ### 可装配图驱动
 
 持久等待使用原 run 的 `waiting` 状态及 `graphProgress` 查询投影；图绑定保留原材料依据，源码登记可声明具名等待 schema。宿主内部选择图，后续消息由对应工厂的等待适配器转换并按该 schema 校验；消息有歧义时保留未消费。registered 初始化携带本次有界 instructionIds，复用 InstructionSaver 确认持久消费，人工／普通 Agent 接口不添加第二种继续动作。

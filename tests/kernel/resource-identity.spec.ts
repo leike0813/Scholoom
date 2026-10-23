@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
-import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, rename, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test as base, expect } from '@playwright/test';
@@ -37,6 +37,72 @@ function barrier() {
     resolve = done;
   });
   return { promise, resolve };
+}
+
+for (const boundary of ['queued', 'publishing'] as const) {
+  test(`resource save rejects a same-content replacement while ${boundary}`, async ({
+    resources: { app, project },
+  }) => {
+    const path = join(project.path, 'note.md');
+    await app.call('files.save', { projectId: project.id, path: 'note.md', content: 'original' });
+    const resource = await app.call('resources.describe', {
+      locator: { source: 'project', projectId: project.id, path: 'note.md' },
+    });
+    const store = app.projects.get(project.id);
+    const save = store.save.bind(store);
+    const resolve = store.path.bind(store);
+    const coordinate = store.files.coordinate.bind(store.files);
+    const entered = barrier();
+    const release = barrier();
+    let armed = false;
+    let checks = 0;
+    store.save = (...args) => {
+      armed = true;
+      return save(...args);
+    };
+    if (boundary === 'queued') {
+      store.files.coordinate = async (paths, action) => {
+        if (armed) {
+          armed = false;
+          entered.resolve();
+          await release.promise;
+        }
+        return coordinate(paths, action);
+      };
+    } else {
+      store.path = async (...args) => {
+        const resolved = await resolve(...args);
+        if (armed && ++checks === 3) {
+          entered.resolve();
+          await release.promise;
+        }
+        return resolved;
+      };
+    }
+    try {
+      const pending = app.call('resources.save', {
+        ref: resource.ref,
+        basis: resource.basis,
+        content: 'stale overwrite',
+      });
+      const rejected = expect(pending).rejects.toMatchObject({ code: 'contentChanged' });
+      await entered.promise;
+      await rename(path, join(project.path, 'original.md'));
+      await writeFile(path, 'original');
+      const replacement = await stat(path, { bigint: true });
+      release.resolve();
+      await rejected;
+      expect(await readFile(path, 'utf8')).toBe('original');
+      expect((await stat(path, { bigint: true })).ino).toBe(replacement.ino);
+      expect(await readFile(join(project.path, 'original.md'), 'utf8')).toBe('original');
+      expect(store.history('note.md')).toHaveLength(1);
+    } finally {
+      release.resolve();
+      store.save = save;
+      store.path = resolve;
+      store.files.coordinate = coordinate;
+    }
+  });
 }
 
 test('text from a reused path cannot be delivered under the moved file identity', async ({
