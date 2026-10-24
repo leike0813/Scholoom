@@ -1,6 +1,6 @@
 import { fork } from 'node:child_process';
 import { once } from 'node:events';
-import { cp, mkdtemp, rm, symlink, writeFile } from 'node:fs/promises';
+import { cp, mkdir, mkdtemp, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -25,9 +25,10 @@ test('owned execution starts from a Unicode installation path containing spaces'
       recursive: true,
     });
     await writeFile(join(root, 'package.json'), '{"type":"module"}');
+    await mkdir(join(root, 'node_modules', '@scholoom'), { recursive: true });
     await symlink(
-      fileURLToPath(new URL('../../packages/platform/node_modules/', import.meta.url)),
-      join(root, 'node_modules'),
+      fileURLToPath(new URL('../../packages/protocol/', import.meta.url)),
+      join(root, 'node_modules', '@scholoom', 'protocol'),
       'junction',
     );
     const platform: typeof import('../../packages/platform/dist/node.js') = await import(
