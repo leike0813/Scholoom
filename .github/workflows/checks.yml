@@ -31,6 +31,8 @@ jobs:
       - run: pnpm check:architecture
       - run: pnpm typecheck
       - run: pnpm build
+      - name: Validate native process ownership
+        run: pnpm exec playwright test --config playwright.kernel.config.ts tests/kernel/platform-processes.spec.ts tests/kernel/managed-commands.spec.ts --output test-results/process-ownership
       - uses: quarto-dev/quarto-actions/setup@v2
         with:
           version: '1.9.37'

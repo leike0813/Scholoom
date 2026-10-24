@@ -101,7 +101,12 @@ export class ManagedNode extends EventEmitter {
     );
     this.controller.on('message', (value: unknown) => {
       if (!value || typeof value !== 'object') return;
-      const message = value as { type?: string; identity?: ProcessIdentity; value?: unknown };
+      const message = value as {
+        type?: string;
+        identity?: ProcessIdentity;
+        value?: unknown;
+        reason?: string;
+      };
       if (message.type === 'ready' && message.identity?.instanceId === options.instanceId) {
         this.identity = Object.freeze(message.identity);
         this.emit('ready');
@@ -110,7 +115,15 @@ export class ManagedNode extends EventEmitter {
         confirm();
       } else if (message.type === 'frame') this.emit('message', message.value);
       else if (message.type === 'failure')
-        this.emit('failure', new OperationError('unavailable', '执行进程通信失败。'));
+        this.emit(
+          'failure',
+          new OperationError(
+            'unavailable',
+            message.reason === 'nativeScopeUnavailable'
+              ? '当前平台无法建立完整进程归属，执行尚未启动。'
+              : '执行进程通信失败。',
+          ),
+        );
     });
   }
 

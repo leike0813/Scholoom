@@ -360,6 +360,43 @@ for (const boundary of ['cancel', 'revoke', 'rebind'] as const) {
   });
 }
 
+for (const normalExit of [false, true]) {
+  test(`detached command descendants stop before releasing capacity (normalExit=${normalExit})`, async () => {
+    const f = await fixture();
+    const abort = new AbortController();
+    let pending: Promise<unknown> | undefined;
+    try {
+      const marker = join(f.root, 'detached.json');
+      pending = f.commands.execute(
+        {
+          ...request,
+          args: [program, normalExit ? 'detached-exit' : 'detached', marker],
+        },
+        { ...context, signal: abort.signal },
+      );
+      const outcome = normalExit
+        ? expect(pending).resolves.toMatchObject({ code: 0 })
+        : expect(pending).rejects.toBeDefined();
+      await expect.poll(async () => readFile(marker, 'utf8').catch(() => '')).not.toBe('');
+      if (!normalExit) {
+        await expect
+          .poll(async () => Number(await readFile(`${marker}.heartbeat`, 'utf8')))
+          .toBeGreaterThan(1);
+        abort.abort();
+      }
+      await outcome;
+      expect(f.processes.status.active).toBe(0);
+      const stopped = await readFile(`${marker}.heartbeat`, 'utf8');
+      await new Promise((resolve) => setTimeout(resolve, 150));
+      expect(await readFile(`${marker}.heartbeat`, 'utf8')).toBe(stopped);
+    } finally {
+      abort.abort();
+      await pending?.catch(() => {});
+      await rm(f.root, { recursive: true });
+    }
+  });
+}
+
 test('queued command refuses a workspace rebound while waiting for capacity', async () => {
   const f = await fixture();
   const held = f.processes.reserve();

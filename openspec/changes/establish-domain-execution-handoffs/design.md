@@ -1,5 +1,15 @@
 # 实现设计
 
+## detached 后代的原生归属修复
+
+2026-10-24，用户明确授权主分支继续修复 P1，再完成公共基础验收，不再委派。沿原进程停止契约扩展平台受控适配，不降低任意本机程序的后代收尾保证：
+
+- 由平台构建独立原生监督程序，拥有实际执行进程及归属。Linux 使用 child subreaper，直接子进程列表来自内核；单线程监督者独占 wait/reap，停止后迭代收尾被接管的后代，只有 wait 确认无子进程才成功。Windows 使用不允许 breakaway 的 Job Object，子程序执行用户模块前完成归属，作业活动进程归零才成功。
+- macOS 使用 kqueue NOTE_TRACK 在启动门释放前登记 root，内核跟踪 fork／exit；通过 Mach task right 控制具体执行对象，退出事件消除已结束对象。跟踪丢失或无法控制仍存活对象时报告停止未知，保留容量；不能改为扫描或按旧 PID 猜测成功。
+- Node 控制器保留同源 IPC、独立停止及有界等待，原生监督程序通过私有控制管道获知停止或控制器失联。最小 bootstrap 在原生归属就绪后才导入原 worker，导入期间有界缓存消息；目标模块和外部命令不能在登记前执行。监督程序失败不产生 stopped 回执。
+
+新增平台私有 native/process-scope.c、build-process-scope.mjs 和 src/process-bootstrap.ts，修改平台 build、process-controller.ts 及必要打包检查；对外 ManagedNode、受管命令、harness 和业务图接口不变。使用系统编译器，不新增 npm 依赖。验证复用原正常／取消／失联测试，新增 detached 后代及正常 root 退出场景，检查心跳停止和容量释放；实际三平台 CI 和分发能力分别记录。原复现脚本已在合并基线上再次证明 P1，日志 `/tmp/scholoom-r5-detached-probe.log`，探针后代均由其 finally 明确收尾。
+
 ## 变更总览
 
 ```mermaid

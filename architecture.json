@@ -54,6 +54,10 @@
           "apis": ["child_process"]
         },
         {
+          "path": "src/process-bootstrap.ts",
+          "apis": ["fs"]
+        },
+        {
           "path": "src/processes.ts",
           "apis": ["child_process", "process.env"]
         },
