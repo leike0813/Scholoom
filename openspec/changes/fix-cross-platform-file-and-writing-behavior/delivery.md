@@ -2,7 +2,7 @@
 
 ## 当前状态与成果
 
-本变更基于 dev `23e68c8`，实施 PR #10 暴露的跨平台公共缺陷清理。实现已提交推送为 `b894d01`，审查入口为 [PR #13 → dev](https://github.com/leike0813/Scholoom/pull/13)。按用户当前授权直接执行并向 dev 发 PR；不合入，不实施库 UI，不重开已归档变更，不修改另外两个活动 change。
+本变更基于 dev `23e68c8`，实施 PR #10 暴露的跨平台公共缺陷清理，主要源码已提交推送至 `001cab8`，审查入口为 [PR #13 → dev](https://github.com/leike0813/Scholoom/pull/13)。本轮止于可审查 PR，整条 CI 尚未通过：Windows 执行状态等待未稳定（PR 2项失败、同代码 push 23项失败），Linux／macOS smoke 仍受旧库 UI 入口阻断。保留验证待办，不归档本 change；原已归档变更及另外两个活动 change 均未改动。
 
 - 写作产物根、目录浏览及项目准入使用相同真实路径表示；保留根外链接及私有目录拒绝。创建前拒绝私有根，不留下新目录。
 - 创建候选通过 `r+` 句柄执行原有 fsync；原子发布、依据核验、收据和效果未知处理保留。
@@ -31,27 +31,33 @@
 | Windows 后续源码修复：共享构建、editor tsc、tools tsc、lint／架构／OpenSpec | 通过；沿用已有依赖；日志 `/tmp/scoped-r5-records-build.log`、`/tmp/scoped-r5-final-lint.log` |
 | 后续定向 `editor-runtime`、`editor`、`resource-access`、`execution-secrets` | Linux 25/25 通过，1.5 分钟；真实编译与目标重开保留，日志 `/tmp/scoped-r5-records-regression.log` |
 | 独立审查修正后的 editor-runtime | Linux 7/7 通过，5.5 秒；含首次失败后显式重试、目录替换拒绝及65／66轮原缓存断言；`/tmp/scoped-r5-records-final.log` |
+| 最终工作空间准备缓存释放收尾 | Linux editor-runtime 7/7 通过，5.2 秒，editor tsc／Biome 通过；`/tmp/scoped-r5-records-cleanup.log`。仅清除已结束工作空间的内存准备记录，停止未知时磁盘诊断仍保留；该收尾及文档提交的最新 CI 不冒记为完成 |
+| Windows 剩余两项 harness 用例在本机定向复跑 | Linux 2/2 通过，21 秒；`pnpm test:kernel tests/kernel/harness-recovery.spec.ts tests/kernel/harness.spec.ts --grep 'an empty saved scratch\|Agent structure tools' --output test-results/cross-platform-harness-diagnosis`；日志 `/tmp/scoped-r5-harness-diagnosis.log`。没有修改其断言、超时或 harness 实现 |
 
 远端基线为 [dev CI 39976414916](https://github.com/leike0813/Scholoom/actions/runs/39976414916)：Linux 380 通过、1 失败；macOS 369 通过、12 失败；Windows 320 通过、51 失败、12 既有跳过。根因与源日志见 [investigation.md](investigation.md)。不能用 Linux 结果代替 Windows fsync、命令查找或 macOS 系统别名验证。
 
-修复后实际 PR CI 为 [39981909728](https://github.com/leike0813/Scholoom/actions/runs/39981909728)，代码 SHA `b894d01`。三平台均已通过 lint、架构、typecheck、build 和写作工具链准备：
+最终主要源码的实际 PR CI 为 [40047684957](https://github.com/leike0813/Scholoom/actions/runs/40047684957)，代码 SHA `001cab8`。三平台均已通过 lint、架构、typecheck、build 和写作工具链准备，写作工具沿用原 CI 声明：Quarto 1.9.37 及 TinyTeX／latexmk／caption；本轮没有修改 CI 配置或本机依赖。
 
 | 平台／job | kernel | smoke／后续步骤 |
 | --- | --- | --- |
-| Linux / 120511081728 | 382 通过、2 既有跳过，16.4 分钟 | 5 通过、1 失败、1 既有 live 跳过；失败为等待旧库授权入口；UI／打包未到达 |
-| macOS / 120511081838 | 382 通过、2 既有跳过，15.6 分钟 | 4 通过、2 失败、1 既有 live 跳过；隔离测试路径断言已按真实路径后续修正，另一个仍为旧库授权入口；UI／打包未到达 |
-| Windows / 120511081448 | 340 通过、32 失败、12 既有跳过 | 多项执行状态等待失败；原 fsync 已无 EPERM；仍有 APPDATA、收据 rename 和目标移动失败，smoke／UI／打包未到达 |
+| Linux / 120733041163 | 383 通过、2 既有跳过，16.3 分钟 | 5 通过、1 失败、1 既有 live 跳过；失败为等待旧库授权入口；UI／打包未到达 |
+| macOS / 120733041310 | 383 通过、2 既有跳过，17.8 分钟 | 5 通过、1 失败、1 既有 live 跳过；隔离路径修正已通过，失败同为旧库授权入口；UI／打包未到达 |
+| Windows / 120733041407 | 371 通过、2 失败、12 既有跳过，35.8 分钟 | 本轮写作、目录、记录、创建、重开回归通过；两项 harness 仍在5秒后为 running；smoke／UI／打包未到达 |
 
-同代码 push Windows [39981865053](https://github.com/leike0813/Scholoom/actions/runs/39981865053) 则为 366 通过、6 失败、12 既有跳过；后续测试路径提交 `5245169` 的 Windows [39986421464](https://github.com/leike0813/Scholoom/actions/runs/39986421464) 为 363 通过、9 失败、12 既有跳过。三份结果均保留，差异及可确认根因见 investigation 的“Windows 后续实跑”。本次 APPDATA、完整目标释放及 EditorRecords 修复尚需新 CI，以上旧结果不代表后续代码已通过 Windows。
+Windows 本轮具体验收：history／full-cache 原66／65轮分别18.9／18.0秒通过；目录替换及首次失败后恢复264毫秒通过；真实 Quarto HTML／PDF／DOCX 分别16.8／17.4／6.5秒通过；目标实例重开和旧端口拒绝10.5秒通过。原 fsync、收据 rename、APPDATA 及目标移动错误在本轮对应回归中不再出现。日志为 `/tmp/scoped-r5-001cab8-{linux,mac,win}.log`，远端由上述 CI 保留。中间失败运行及真实差异见 [investigation.md](investigation.md) 的“Windows 后续实跑”，不以本轮结果抹掉旧失败。
 
-两平台 smoke 的 `development.spec.ts:408` 等待测试 helper 中的“文献库授权与备份”，失败页面快照已是当前库列表且没有该入口；保留 180 秒上限及原断言。Linux 诊断产物在 `/tmp/scoped-r5-fixed-linux-artifacts`，真实日志为 `/tmp/scoped-r5-fixed-{linux,mac}.log`，远端由上述 CI 保留。该 UI 入口属于用户暂缓的库 UI 方案，本轮不补功能、不改为跳过或绕过授权。macOS 隔离测试正、负项目期望同时 realpath，修复误拒绝并让排除断言实际核对另一项目；后续修正只在 Linux 实跑，macOS 重跑结果不得冒记。
+同代码 push [40047681750 / Windows job 120733032189](https://github.com/leike0813/Scholoom/actions/runs/40047681750) 为350通过、23失败、12既有跳过，39.4分钟。本轮具体验收同样通过：缓存24.4／23.2秒，HTML／PDF／DOCX 20.9／16.7／8.3秒，目标实例重开10.4秒；但多项 harness、会话、材料及真实模型回归停在短状态等待，不能称 Windows 整体稳定。原日志 `/tmp/scoped-r5-001cab8-win-push.log`，失败定义由该CI保留，不只报告较好的一次。
+
+两平台 smoke 的 `development.spec.ts:408` 等待 helper 中已移除的“文献库授权与备份”，失败页面快照已是当前库列表且没有该入口。保留180秒上限及原断言，不补功能、不跳过或绕过授权；沿用户暂缓的库 UI 方案等待确认。初次诊断产物在 `/tmp/scoped-r5-fixed-linux-artifacts`，后续同样失败可由本轮日志核对。真实 live 模型、完整 UI、目标平台分发包及安装恢复不在通过范围内。
 
 ## 审查与问题处理
 
-原生独立 Agent 静态审查覆盖四个源码文件及别名、旧实例、秘密隔离回归，未发现可确认的访问范围扩大、私有目录泄露、秘密继承或保存保护退化。确认目标 DB 关闭后重开仍产生新实例，旧端口拒绝断言保留；Windows 实际行为仍须 CI 验证。主线程核对所有 diff，ESM 只改变模块说明符，文件系统参数仍为本机路径。
+原生独立 Agent 分别静态审查初版权限边界、后续 EditorRecords／完整目标释放及 APPDATA；未发现可确认的访问范围扩大、私有目录泄露、秘密继承或保存保护退化。初版仅关 project DB 的准备被真实 Windows EPERM 证伪，已改用既有生命周期钩子释放全部目标仓储；原源执行持有与旧端口拒绝断言保留，并经本轮 Windows 实跑。ESM 只改变模块说明符，文件系统参数仍为本机路径。
 
-后续独立审查覆盖 EditorRecords、目标释放测试准备及 APPDATA，发现首次目录准备失败会永久缓存 rejected Promise。已修正为当前错误继续抛出、仅删除对应失败准备项，并扩展同一真实回归验证显式下一请求成功。其余指定范围未发现问题；仍以实际 Windows 验证为准。
+后续独立审查发现首次目录准备失败会永久缓存 rejected Promise。已修正为当前错误继续抛出、仅删除对应失败准备项；审查复核关闭该 P2，同一真实回归验证显式下一请求成功，本轮 Windows 也通过。
 
 ## 未完成事项与下一步
 
-本机验证与审查已完成，代码已推送并创建 PR。下一步核对本次实际三平台结果并更新本记录。平台未运行、失败及流水线未到达的步骤应分别保留；库 UI 入口方案及其他领域功能不属于本变更。
+本轮已形成可审查 PR，任务3.1保留未勾选，整体 CI 未绿。PR的两项未解决用例位于 `tests/kernel/harness-recovery.spec.ts:381` 和 `tests/kernel/harness.spec.ts:809`：Windows 5秒状态等待期望 completed，实际 running；本机同例2/2通过。push另有23项状态等待失败，涉及 capability-isolation、context-instructions／query、execution-secrets、harness-recovery／harness、literature integration、pdf-isolation、sessions、work-domains／materials；具体用例见该CI日志。现有证据不足以判定正常慢执行还是停滞，不归为单纯环境缺失，不宣称已修复。
+
+若继续处理，先在真实 Windows 复现这两项，并在关闭测试实例前利用现有 run／tool records、受管进程身份、受控模型请求和 checkpoint 诊断，区分启动、模型、工具与最终保存阶段；原断言和上限保留。涉及 harness/runtime 的实现改动须先按原范围约束给出具体依据及方案，不在本轮扩入。库 UI 入口待原方案确认；不启动七域、不自动合入 dev、不归档本 change。

@@ -8,6 +8,7 @@ flowchart LR
   Runtime --> Canonical[各资源适配内真实根核对]
   Runtime --> Candidate[候选可写句柄同步与原子发布]
   Runtime --> Managed[受管命令环境白名单]
+  Runtime --> Records[editor 私有目录准备与记录读写协调]
   Tests[既有回归] --> Runtime
   CI[三平台 CI] --> Tests
 ```
@@ -34,7 +35,7 @@ sequenceDiagram
 
 ## 文件变化
 
-- 修改 packages/editor/src/resources.ts、packages/projects/src/directory-browser.ts：真实根范围；不扩大访问。
+- 修改 packages/editor/src/resources.ts、packages/editor/src/runtime.ts、packages/projects/src/directory-browser.ts：真实根范围、实例私有记录生命周期及同路径读写协调；不扩大访问。
 - 修改 packages/projects/src/store.ts：项目准入比较真实应用根，候选句柄 r+；其余数据保护不变。
 - 修改 packages/platform/src/processes.ts：Windows 系统程序查找必要环境。
 - 扩展 tests/kernel/editor-runtime.spec.ts、project-files.spec.ts 的别名回归；调整 editor.spec.ts 的 BibTeX 语义输入、file-watch.spec.ts 与 project-runtime-relocation.spec.ts 的真实路径期望。

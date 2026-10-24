@@ -238,10 +238,8 @@ export class EditorRuntime {
         updatedAt: stamp(),
       });
     this.workspaces.delete(workspace.id);
-    if (!uncertain) {
-      await rm(workspace.directory, { recursive: true, force: true });
-      this.records.forget(workspace.directory);
-    }
+    if (!uncertain) await rm(workspace.directory, { recursive: true, force: true });
+    this.records.forget(workspace.directory);
   }
   private async transient<T>(
     context: CallContext,
@@ -583,10 +581,9 @@ export class EditorRuntime {
             updatedAt: stamp(),
           });
         this.workspaces.delete(workspace.id);
-        if (job.state !== 'unknown') {
+        if (job.state !== 'unknown')
           await rm(workspace.directory, { recursive: true, force: true });
-          this.records.forget(workspace.directory);
-        }
+        this.records.forget(workspace.directory);
       }
       await persist();
     }
