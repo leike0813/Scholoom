@@ -1,5 +1,8 @@
+import type { ChildProcess } from 'node:child_process';
+import { channel } from 'node:diagnostics_channel';
 import { createRequire } from 'node:module';
 import { join } from 'node:path';
+import { setTimeout } from 'node:timers/promises';
 import { expect, test } from '@playwright/test';
 import type { KernelApplication } from '../apps/kernel/dist/application.js';
 import type { RunInstance } from '../packages/harness/dist/node.js';
@@ -17,26 +20,52 @@ export async function expectExecutionCompleted(
 ): Promise<void> {
   const started = performance.now();
   const samples: unknown[] = [];
+  const children: unknown[] = [];
+  const topic = channel('child_process');
+  const observe = (message: unknown) => {
+    const child = (message as { process: ChildProcess }).process;
+    const startedMs = Math.round(performance.now() - started);
+    child.once('exit', (code, signal) => {
+      children.push({
+        executable: child.spawnfile.split(/[\\/]/).at(-1),
+        startedMs,
+        endedMs: Math.round(performance.now() - started),
+        code,
+        signal,
+      });
+    });
+  };
+  topic.subscribe(observe);
+  const sample = async () => {
+    const snapshot = await app.snapshot(scope);
+    samples.push({
+      elapsedMs: Math.round(performance.now() - started),
+      afterDeadline: failed,
+      run: snapshot.run,
+      modelRequests: model.requests.length,
+      tools: snapshot.messages
+        .filter((message) => message.role === 'tool')
+        .map((message) => ({ id: message.id, name: message.tool?.name, state: message.state })),
+    });
+    return snapshot.run?.state;
+  };
   let failed = false;
   try {
-    await expect
-      .poll(async () => {
-        const snapshot = await app.snapshot(scope);
-        samples.push({
-          elapsedMs: Math.round(performance.now() - started),
-          run: snapshot.run,
-          modelRequests: model.requests.length,
-          tools: snapshot.messages
-            .filter((message) => message.role === 'tool')
-            .map((message) => ({ id: message.id, name: message.tool?.name, state: message.state })),
-        });
-        return snapshot.run?.state;
-      })
-      .toBe('completed');
+    await expect.poll(sample).toBe('completed');
   } catch (error) {
     failed = true;
+    if (process.env.SCHOOLOOM_EXECUTION_DIAGNOSTICS === '1') {
+      // Observe progress without changing the original failed verdict or starting another run.
+      const deadline = performance.now() + 15_000;
+      while (performance.now() < deadline) {
+        const state = await sample();
+        if (state && !['queued', 'running', 'cancelling'].includes(state)) break;
+        await setTimeout(250);
+      }
+    }
     throw error;
   } finally {
+    topic.unsubscribe(observe);
     if (failed || process.env.SCHOOLOOM_EXECUTION_DIAGNOSTICS === '1') {
       const database = new Database(
         join(app.projects.get(scope.projectId).internal, 'project.sqlite'),
@@ -53,7 +82,7 @@ export async function expectExecutionCompleted(
           return { instanceId, runId, processId, state };
         });
         await test.info().attach('execution-stages', {
-          body: JSON.stringify({ platform: process.platform, ...scope, samples, instances }),
+          body: JSON.stringify({ platform: process.platform, ...scope, samples, children, instances }),
           contentType: 'application/json',
         });
       } finally {
