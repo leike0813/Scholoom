@@ -47,7 +47,7 @@ flowchart LR
 - [x] 4.2 复用现有测试组合添加窄契约替身及真实固定图／程序夹具，记录实际接线和替身，补七域独立接入说明；不另建工作台或通用测试框架。
 - [x] 4.3 运行 pnpm generate:contracts、pnpm check:architecture、pnpm typecheck、pnpm build 以及受影响资源／harness／科研／editor／进程内核测试；双宿主运行共同资源与写作定向回归。
 - [x] 4.4 在测试宿主装配真实内部模块，从显式输入经 worker 到实际材料读取、保存及结果查询；注入取消、关联部分失败和 worker 失联，取得可核查结果。真实模型和科研充分性另验。
-- [ ] 4.5 对执行协议、资源授权、命令收尾及并发安排独立审查，修复问题并更新 docs/development.md 和必要架构说明。
+- [x] 4.5 对执行协议、资源授权、命令收尾及并发安排独立审查，修复问题并更新 docs/development.md 和必要架构说明。
 - [ ] 4.6 根据实际执行结果取得 delivery instructions 并填写 delivery.md，记录公共基础完成标准、平台与替身边界，再更新本项状态。
 
 ## 收尾范围

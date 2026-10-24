@@ -18,6 +18,8 @@
 
 本机Graph等待／恢复、取消／撤权和checkpoint回归 **17/17，1.9分钟**，日志 `/tmp/scholoom-macos-close-regression.log`。生成器self-test通过，六份生成映射经格式化比对一致。四项delta已同步正式规格，既有Purpose和未涉及Requirement逐项比对保持，正式规格普通校验 **19/19**；agent-harness／ui-workbench-shell保留既有长Requirement警告。尚待真实Mac最终UI及目录包结果后完成归档。
 
+测试修正提交 `b595f9c` 的 [Checks 40099675143](https://github.com/leike0813/Scholoom/actions/runs/40099675143) 真实macOS：新增降级双宿主通过，内核2/2和入口4/4通过；已有library浏览器用例在刷新前的草稿检查失败，其余3项通过。该用例也使用只等待click完成的共用createSession辅助函数，未等待异步会话实际选中。现统一在fixture中等待新的选中会话身份，不使用固定延时，也不修改产品草稿保存。最终本机5617降级＋库管理双宿主 **4/4，1.1分钟**；tools类型和改动文件Biome通过，日志 `/tmp/scholoom-macos-close-ui-fixture.log`。真实Mac第三轮结果待回填。
+
 全仓验证边界：`4616aa8` 的完整 [Checks 40082740497](https://github.com/leike0813/Scholoom/actions/runs/40082740497) 三平台失败，Windows专项 [40082740532](https://github.com/leike0813/Scholoom/actions/runs/40082740532) 通过。Linux 内核397通过2跳过、smoke6通过1跳过；UI102通过6失败2跳过，失败分别是同名项目定位、旧RPC gate无 held 请求、写作PDF预览，各双宿主。Windows完整内核378通过9失败12跳过，剩余为执行状态短等待路径；macOS原受管专项因当前不可用失败。本轮只按新范围调整macOS验收，Linux／Windows原测试继续保留，未隐藏上述失败。详细日志 `/tmp/scholoom-macos-close-ci-failures.log`，未将全仓CI标作通过。
 
 ### Windows与库UI后续收敛，macOS条件仍未具备
@@ -321,8 +323,6 @@ registered 路径复用 RemoteAgent、静态 driver、当前实例、ProcessAdmi
 
 ## 未完成事项与下一步
 
-1. 本树已同步 dev `23e68c8`，4.4 的真实执行／三类失败组合及资源版本竞态修复向 dev 送审，尚未据本轮本地通过宣称该增量已合入。
-2. 4.5 独立模块审查已执行，P2 修复并关闭；P1 detached 后代归属及停止误报仍开放。OS 级归属能力的本轮实施／单独立项范围待用户确认；不使用扫描或 env 标记猜测全树已退出，不把“非强沙箱”解释为排除原收尾责任。
-3. 工作台线继续承担最终用户路径，本轮实际取材／保存／结果查询及失败组合可作为其模块前置证据；最终三线组合和独立验收仍按双方原 tasks 跟进。
-4. 未验真实外部模型／科研充分性、完整 UI／内核和三平台分发。普通进程树及 75 项回归通过不关闭上述 P1，也不表示全仓 CI 达标。
-5. 续做读取 tasks 与本记录，再取得 apply instructions。当前 17/19；4.5、4.6 保持未勾选，不归档或启动七域。
+当前真实实现和验收范围以上方“macOS 显式不可用与人工降级收尾”为准。三工作树PR均已接入dev；既有独立模块审查发现的资源竞态已修复，后代归属在Linux／Windows修复，macOS按用户新授权明确拒绝执行。本轮完成主线核对和必要开发说明，没有新增独立代理审查。
+
+剩余本轮验收是修正测试后真实Mac的双宿主UI和目录包结果，随后完成5.5／4.6及归档。完整macOS受管执行、ES／服务／VM后端、Apple签名／权限和实际分发安装恢复另立变更。未知归属没有自动解除入口，保持容量及接续保护；真实模型／科研充分性和全仓CI遗留失败不在本轮已完成范围内。

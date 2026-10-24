@@ -93,7 +93,19 @@ export const test = base.extend<UiFixtures>({
 export { expect };
 
 export async function createSession(page: Page, projectName = '普通会话'): Promise<void> {
+  const selected = page.getByRole('button', { name: /^打开会话 /, pressed: true });
+  const previous = await selected.evaluateAll((rows) =>
+    rows[0]?.closest('li')?.getAttribute('data-session-id'),
+  );
   await page.getByRole('button', { name: `在${projectName}中新建会话`, exact: true }).click();
+  await expect
+    .poll(() =>
+      selected.evaluateAll((rows, prior) => {
+        const id = rows[0]?.closest('li')?.getAttribute('data-session-id');
+        return rows.length === 1 && !!id && id !== prior;
+      }, previous),
+    )
+    .toBe(true);
 }
 
 async function chooseProjectDirectory(page: Page, path: string, mode: 'open' | 'create') {

@@ -45,7 +45,6 @@ test('unavailable execution keeps draft and manual file editing in the workbench
     const projectPath = join(root, projectName);
     await addProject(uiPage, projectPath, { mode: 'create' });
     await createSession(uiPage, projectName);
-    await expect(uiPage.getByRole('button', { name: /^打开会话 /, pressed: true })).toBeVisible();
     const composer = uiPage.getByRole('textbox', { name: '研究指令' });
     await expect(composer).toBeEnabled();
     await composer.fill('保留的研究草稿');
