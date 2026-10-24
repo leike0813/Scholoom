@@ -1,0 +1,35 @@
+name: Windows execution diagnosis
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  execution:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    env:
+      SCHOOLOOM_EXECUTION_DIAGNOSTICS: '1'
+      PLAYWRIGHT_HTML_OUTPUT_DIR: test-results/execution-report
+      PLAYWRIGHT_HTML_OPEN: never
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm --config.optimisticRepeatInstall=false install --frozen-lockfile
+      - run: pnpm --config.optimisticRepeatInstall=false build:shared
+      - name: Repeat the failing execution paths without retries
+        run: pnpm --config.optimisticRepeatInstall=false exec playwright test --config playwright.kernel.config.ts tests/kernel/context-instructions.spec.ts tests/kernel/harness.spec.ts --grep 'a later basis upgrade|Agent structure tools' --repeat-each 5 --reporter=list,html --output test-results/windows-execution
+      - name: Check development owner lifecycle
+        if: '!cancelled()'
+        run: pnpm --config.optimisticRepeatInstall=false exec playwright test --config playwright.kernel.config.ts tests/kernel/development-execution.spec.ts --output test-results/windows-owner
+      - uses: actions/upload-artifact@v4
+        if: '!cancelled()'
+        with:
+          name: windows-execution-diagnostics
+          path: test-results/

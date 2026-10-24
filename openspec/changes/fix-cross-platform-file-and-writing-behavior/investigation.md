@@ -1,5 +1,11 @@
 # 调查依据
 
+## Windows 执行等待的定向诊断
+
+2026-10-24，续做核对最终源码 `cb7eb06` 的 [CI 40060356348](https://github.com/leike0813/Scholoom/actions/runs/40060356348)：Windows 原生专项 16 通过／1 跳过，完整内核 385 通过／2 失败／12 跳过。最新 trace 显示 basis-upgrade 在首次指令的 5 秒等待内一直 queued；structure 从 queued 进入 running，5 秒内未完成。现有 trace 没有 worker、模型请求与工具阶段证据，不据此认定产品错误或测试期限错误。
+
+本轮增加手动 Windows 定向 workflow：只构建共享模块，两个失败路径各独立重复 5 次，再检查开发宿主生命周期，无测试重试。沿原 5 秒完成断言记录有界状态采样、模型请求数、工具身份／状态及本会话进程实例；不记录正文、工具输入输出或凭据。诊断在测试清理前取得，HTML 报告保存成功样本及失败 trace；无需等待写作工具链或全仓测试。Linux 同入口两轮 4/4 通过，42.3 秒，尚不是 Windows 根因结论。
+
 ## 当前事实与复用选择
 
 基线为远端 dev 23e68c8。最新 CI [39976414916](https://github.com/leike0813/Scholoom/actions/runs/39976414916) 的 Linux job 120492067017 为 380 通过、1 失败，仍是书目大小写；macOS job 120492067069 为 369 通过、12 失败，分别涉及产物别名根、书目大小写、监听注入路径、私有目录与重定位路径；Windows job 120492066674 为 320 通过、51 失败、12 既有跳过，耗时 41.6 分钟。Windows 除已定位的 ESM、别名、CMD、fsync 与移动问题外，包含执行状态等待超时，修复后须按实际结果逐项核对，不先归因于平台速度。PR #10 运行 39959929016 三平台日志保存在 `/tmp/scoped-r5-pr10-*.log`，最新日志在 `/tmp/scoped-r5-latest-{linux,mac,win}.log`。

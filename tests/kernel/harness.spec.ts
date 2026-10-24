@@ -9,6 +9,7 @@ import { startKernelServer } from '../../apps/kernel/dist/server.js';
 import { ToolMessage } from '../../apps/kernel/node_modules/@langchain/core/dist/messages/index.js';
 import { createKernelClient } from '../../packages/client/dist/index.js';
 import { protocolVersion } from '../../packages/protocol/dist/index.js';
+import { expectExecutionCompleted } from '../execution-diagnostics.js';
 import { createModelServer } from '../model-server.js';
 
 test('real graph reads, writes and retains thinking across model tool turns', async () => {
@@ -801,12 +802,11 @@ test('Agent structure tools use shared storage and keep saved artifact identity 
       text: 'MODEL_STRUCTURE',
       materials: [],
     });
-    await expect
-      .poll(
-        async () =>
-          (await app.snapshot({ projectId: store.project.id, sessionId: session.id })).run?.state,
-      )
-      .toBe('completed');
+    await expectExecutionCompleted(
+      app,
+      { projectId: store.project.id, sessionId: session.id },
+      model,
+    );
     expect(await readFile(join(store.project.path, 'recovered', 'result.md'), 'utf8')).toContain(
       '42',
     );

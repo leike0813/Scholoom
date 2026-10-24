@@ -16,6 +16,7 @@ import type {
   ResourceEvidence,
   ResourceLocator,
 } from '../../packages/protocol/dist/index.js';
+import { expectExecutionCompleted } from '../execution-diagnostics.js';
 import { createModelServer, type ModelServer } from '../model-server.js';
 
 const projectRef = {
@@ -603,7 +604,7 @@ test('a later basis upgrade completes while the prior excerpt remains historical
       materials: [],
       contextItems: firstItems,
     });
-    await expect.poll(async () => (await app.snapshot(scope)).run?.state).toBe('completed');
+    await expectExecutionCompleted(app, scope, model);
 
     fixture.basis.value = 'basis-2';
     const secondId = randomUUID();
@@ -615,7 +616,7 @@ test('a later basis upgrade completes while the prior excerpt remains historical
       materials: [],
       contextItems: secondItems,
     });
-    await expect.poll(async () => (await app.snapshot(scope)).run?.state).toBe('completed');
+    await expectExecutionCompleted(app, scope, model);
 
     const messages = (await app.snapshot(scope)).messages;
     expect(messages.find((message) => message.id === firstId)?.contextItems).toEqual(firstItems);
