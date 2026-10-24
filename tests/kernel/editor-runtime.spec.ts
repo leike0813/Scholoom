@@ -1,9 +1,19 @@
-import { access, mkdir, mkdtemp, readFile, rm, stat, symlink, writeFile } from 'node:fs/promises';
+import {
+  access,
+  mkdir,
+  mkdtemp,
+  readFile,
+  rename,
+  rm,
+  stat,
+  symlink,
+  writeFile,
+} from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { expect, test } from '@playwright/test';
 import { type EditorPorts, EditorRuntime } from '../../packages/editor/dist/node.js';
-import { readOutput } from '../../packages/editor/dist/resources.js';
+import { EditorRecords, readOutput } from '../../packages/editor/dist/resources.js';
 import { fileFingerprint } from '../../packages/platform/dist/node.js';
 import { type CallContext, OperationError } from '../../packages/protocol/dist/core.js';
 import type { EditorCommandInput } from '../../packages/protocol/dist/editor.js';
@@ -13,6 +23,36 @@ const context: CallContext = {
   role: 'product',
   principal: { kind: 'human', id: 'test' },
 };
+
+test('editor records preserve ordered receipts and refuse a replaced private directory', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'scholoom-records-'));
+  const directory = join(root, 'records');
+  const path = join(directory, 'job.json');
+  const records = new EditorRecords();
+  try {
+    await writeFile(directory, 'blocked directory');
+    await expect(records.write(path, { state: 'blocked' })).rejects.toThrow();
+    await rm(directory);
+    await records.write(path, { state: 'queued' });
+    const running = records.write(path, { state: 'running' });
+    const observed = records.read(path);
+    const completed = records.write(path, { state: 'completed' });
+    await Promise.all([running, completed]);
+    expect(await observed).toEqual({ state: 'running' });
+    expect(await records.read(path)).toEqual({ state: 'completed' });
+    await rename(directory, join(root, 'original'));
+    await mkdir(directory);
+    await expect(records.write(path, { state: 'replaced' })).rejects.toMatchObject({
+      code: 'permissionDenied',
+    });
+    expect(JSON.parse(await readFile(join(root, 'original', 'job.json'), 'utf8'))).toEqual({
+      state: 'completed',
+    });
+    await expect(stat(path)).rejects.toMatchObject({ code: 'ENOENT' });
+  } finally {
+    await rm(root, { recursive: true });
+  }
+});
 
 test('output roots accept directory aliases while rejecting links outside the owned output', async () => {
   const root = await mkdtemp(join(tmpdir(), 'scholoom-output-alias-'));
@@ -211,7 +251,15 @@ test('history cache evicts old outputs while preserving current and recently rea
     for (let index = 0; index < 66; index++) {
       const receipt = await setup.render(`cache-${index}`);
       await expect
-        .poll(async () => (await setup.job(receipt.id)).state, { intervals: [1, 2, 5] })
+        .poll(
+          async () => {
+            const job = await setup.job(receipt.id);
+            if (job.state === 'failed' || job.state === 'interrupted')
+              throw new Error(JSON.stringify({ index, job }));
+            return job.state;
+          },
+          { intervals: [1, 2, 5] },
+        )
         .toBe('completed');
       const id = (await setup.job(receipt.id)).output?.id;
       expect(id).toBeDefined();
@@ -249,7 +297,15 @@ test('a full cache of latest versions still permits replacing an existing manusc
       file = `file-${index % 64}`;
       const receipt = await setup.render(`latest-${index}`);
       await expect
-        .poll(async () => (await setup.job(receipt.id)).state, { intervals: [1, 2, 5] })
+        .poll(
+          async () => {
+            const job = await setup.job(receipt.id);
+            if (job.state === 'failed' || job.state === 'interrupted')
+              throw new Error(JSON.stringify({ index, job }));
+            return job.state;
+          },
+          { intervals: [1, 2, 5] },
+        )
         .toBe('completed');
     }
     const original = (await setup.job('latest-0')).output;

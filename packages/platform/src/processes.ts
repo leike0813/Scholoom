@@ -46,6 +46,7 @@ export function nodeEnvironment(
     'PATH',
     'PATHEXT',
     'COMSPEC',
+    'APPDATA',
     'SystemRoot',
     'WINDIR',
     'TEMP',
