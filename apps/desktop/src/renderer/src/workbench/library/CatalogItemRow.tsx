@@ -47,7 +47,7 @@ export function CatalogItemRow({
 
   const attachmentStatus =
     entry.attachmentState === 'recorded'
-      ? '已有附件'
+      ? '已有附件登记'
       : entry.attachmentState === 'unavailable'
         ? '附件未取得'
         : '';
@@ -69,7 +69,7 @@ export function CatalogItemRow({
       role="option"
       tabIndex={0}
       aria-selected={isSelected}
-      aria-label={`${entry.metadata?.title || '(无标题)'} by ${creators || '(无作者)'}`}
+      aria-label={`查看题录 ${entry.metadata?.title || '(无标题)'}`}
     >
       <div className="catalog-cell catalog-cell-title" title={entry.metadata?.title}>
         {entry.metadata?.title || '(无标题)'}

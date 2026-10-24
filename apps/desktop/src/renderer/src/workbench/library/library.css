@@ -10,14 +10,37 @@
   min-height: 0;
 }
 
+.library-management {
+  max-height: 40%;
+  overflow: auto;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.library-management > .project-controls {
+  margin: 0;
+}
+
 /* 工具栏 */
 .library-toolbar {
   display: flex;
+  flex-wrap: wrap;
+  flex-shrink: 0;
   align-items: center;
   gap: 12px;
   padding: 8px 12px;
   border-bottom: 1px solid var(--border);
   background: var(--surface);
+}
+
+.library-toolbar > input {
+  min-width: 0;
+  flex: 1 1 calc(var(--space-unit) * 24);
+  max-width: calc(var(--space-unit) * 80);
+}
+
+.library-toolbar > button {
+  white-space: nowrap;
 }
 
 .library-search {

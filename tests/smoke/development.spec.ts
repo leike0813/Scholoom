@@ -211,7 +211,7 @@ async function createLibraryItem(page: Page, title: string): Promise<void> {
   await panel.getByText('手动建项', { exact: true }).click();
   await panel.getByLabel('题名', { exact: true }).fill(title);
   await panel.getByRole('button', { name: '创建题录', exact: true }).click();
-  await expect(panel.getByRole('button', { name: `查看题录 ${title}`, exact: true })).toBeVisible({
+  await expect(panel.getByRole('option', { name: `查看题录 ${title}`, exact: true })).toBeVisible({
     timeout: 30_000,
   });
 }
@@ -220,7 +220,7 @@ async function expectLibraryItem(page: Page, title: string): Promise<void> {
   await page.getByRole('button', { name: '文献库', exact: true }).click();
   const panel = page.getByRole('region', { name: '文献库', exact: true });
   await panel.getByLabel('查找题录', { exact: true }).fill(title);
-  await expect(panel.getByRole('button', { name: `查看题录 ${title}`, exact: true })).toBeVisible({
+  await expect(panel.getByRole('option', { name: `查看题录 ${title}`, exact: true })).toBeVisible({
     timeout: 30_000,
   });
 }
@@ -408,7 +408,8 @@ test('two renderer instances isolate business data and closing one leaves the ot
 test('real dev commands share one development kernel and the last owner recycles it', async ({
   page,
 }, info) => {
-  test.setTimeout(180_000);
+  // Three real commands rebuild shared packages; each startup retains its own 60s bound.
+  test.setTimeout(300_000);
   const browserPort = 5315;
   const debugPort = 9315;
   const root = await mkdtemp(join(tmpdir(), 'scholoom-dev-command-'));

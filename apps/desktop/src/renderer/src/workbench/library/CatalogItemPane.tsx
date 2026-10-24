@@ -4,13 +4,10 @@
  */
 import type { KernelClient } from '@scholoom/client';
 import type { LibraryAttachment, LibraryBatch, LibrarySource } from '@scholoom/protocol';
-import { useRef, useState } from 'react';
+import { type ReactNode, useRef, useState } from 'react';
 import { AttachmentsSection } from './AttachmentsSection';
 import { CatalogItemSidenav, type SidenavSection } from './CatalogItemSidenav';
-import { MetadataSection } from './MetadataSection';
 import { ReadingSection } from './ReadingSection';
-import { RelatedSection } from './RelatedSection';
-import { TagsSection } from './TagsSection';
 
 interface CatalogItemPaneProps {
   entry: LibrarySource | null;
@@ -19,6 +16,7 @@ interface CatalogItemPaneProps {
   readable: boolean;
   writable: boolean;
   tick: number;
+  metadata: ReactNode;
   onBatch: (batch: LibraryBatch) => void;
   onOpenResource?: ((material: LibraryAttachment) => void) | undefined;
 }
@@ -30,6 +28,7 @@ export function CatalogItemPane({
   readable,
   writable,
   tick,
+  metadata,
   onBatch,
   onOpenResource,
 }: CatalogItemPaneProps) {
@@ -60,7 +59,11 @@ export function CatalogItemPane({
     <section className="catalog-item-pane" aria-label="题录详情">
       <CatalogItemSidenav activeSection={activeSection} onSectionChange={handleSectionChange} />
       <div className="catalog-item-pane-content" ref={contentRef}>
-        <MetadataSection entry={entry} />
+        {metadata}
+        <p role="status" aria-label="附件登记状态">
+          {entry.attachmentState === 'recorded' ? '已有附件登记' : '附件未取得'}
+          {entry.metadataOrigin === 'filename' ? ' · 待核对（文件名）' : ''}
+        </p>
         <AttachmentsSection
           client={client}
           enabled={enabled}
@@ -72,8 +75,6 @@ export function CatalogItemPane({
           onOpenResource={onOpenResource}
         />
         <ReadingSection />
-        <TagsSection sourceId={entry.id} />
-        <RelatedSection sourceId={entry.id} />
       </div>
     </section>
   );

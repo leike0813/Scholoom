@@ -9,6 +9,9 @@ on:
       - tests/kernel/context-instructions.spec.ts
       - tests/kernel/harness.spec.ts
       - tests/kernel/development-execution.spec.ts
+      - tests/kernel/managed-commands.spec.ts
+      - tests/kernel/platform-processes.spec.ts
+      - tests/smoke/entrypoints.spec.ts
   workflow_dispatch:
 
 permissions:
@@ -33,9 +36,23 @@ jobs:
       - run: pnpm --config.optimisticRepeatInstall=false build:shared
       - name: Repeat the failing execution paths without retries
         run: pnpm --config.optimisticRepeatInstall=false exec playwright test --config playwright.kernel.config.ts tests/kernel/context-instructions.spec.ts tests/kernel/harness.spec.ts --grep 'a later basis upgrade|Agent structure tools' --repeat-each 5 --reporter=list,html --output test-results/windows-execution
+      - name: Verify native ownership and command authorization
+        if: '!cancelled()'
+        run: pnpm --config.optimisticRepeatInstall=false exec playwright test --config playwright.kernel.config.ts tests/kernel/platform-processes.spec.ts tests/kernel/managed-commands.spec.ts --output test-results/windows-ownership
       - name: Check development owner lifecycle
         if: '!cancelled()'
         run: pnpm --config.optimisticRepeatInstall=false exec playwright test --config playwright.kernel.config.ts tests/kernel/development-execution.spec.ts --output test-results/windows-owner
+      - name: Build the desktop entrypoint
+        if: '!cancelled()'
+        run: pnpm --config.optimisticRepeatInstall=false --filter @scholoom/desktop build
+      - name: Prepare Electron
+        if: '!cancelled()'
+        run: pnpm --config.optimisticRepeatInstall=false setup:electron
+      - name: Repeat initial Electron loading
+        if: '!cancelled()'
+        run: pnpm --config.optimisticRepeatInstall=false exec playwright test tests/smoke/entrypoints.spec.ts --grep 'desktop loads React' --repeat-each 3 --reporter=list,html --output test-results/windows-desktop
+        env:
+          PLAYWRIGHT_HTML_OUTPUT_DIR: test-results/desktop-report
       - uses: actions/upload-artifact@v4
         if: '!cancelled()'
         with:

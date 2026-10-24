@@ -36,8 +36,25 @@ test('desktop loads React and its sandbox preload', async () => {
         SCHOOLOOM_NODE_EXECUTABLE: process.execPath,
       },
     });
+    const started = performance.now();
+    const rendererEvents: unknown[] = [];
     try {
       const window = await app.firstWindow();
+      window.on('pageerror', (error) => {
+        rendererEvents.push({
+          elapsedMs: Math.round(performance.now() - started),
+          event: 'pageerror',
+          name: error.name,
+          frames: error.stack?.split('\n').slice(1, 5),
+        });
+      });
+      window.on('crash', () => rendererEvents.push({ event: 'crash' }));
+      window.on('domcontentloaded', () =>
+        rendererEvents.push({
+          elapsedMs: Math.round(performance.now() - started),
+          event: 'domcontentloaded',
+        }),
+      );
       await expect(window.getByRole('heading', { level: 1 })).toBeVisible();
       await expect(window.getByRole('status', { name: '连接状态' })).toContainText('已连接', {
         timeout: connectionTimeout,
@@ -56,6 +73,28 @@ test('desktop loads React and its sandbox preload', async () => {
         timeout: connectionTimeout,
       });
       await expect(window.getByRole('checkbox')).toHaveCount(0);
+    } catch (error) {
+      const windows = await app.evaluate(({ BrowserWindow }) =>
+        BrowserWindow.getAllWindows().map((window) => {
+          const url = new URL(window.webContents.getURL() || 'about:blank');
+          return {
+            id: window.id,
+            url: `${url.protocol}//${url.host}${url.pathname}`,
+            loading: window.webContents.isLoadingMainFrame(),
+            destroyed: window.webContents.isDestroyed(),
+            rendererProcessId: window.webContents.getOSProcessId(),
+          };
+        }),
+      );
+      await test.info().attach('desktop-startup', {
+        body: JSON.stringify({
+          elapsedMs: Math.round(performance.now() - started),
+          windows,
+          rendererEvents,
+        }),
+        contentType: 'application/json',
+      });
+      throw error;
     } finally {
       await closeDesktop(app);
     }

@@ -33,12 +33,13 @@ test('user imports, edits and groups real library metadata without losing the co
     await panel.getByLabel('写入库', { exact: true }).check();
     await panel.getByRole('button', { name: '保存库授权', exact: true }).click();
     await expect.poll(async () => (await client.call('library.status', {})).write).toBe(true);
-    await panel.getByText('手动建项', { exact: true }).click();
+    await panel.getByRole('button', { name: '新建题录', exact: true }).click();
+    await expect(panel.getByLabel('题名', { exact: true })).toBeFocused();
     await panel.getByLabel('题名', { exact: true }).fill(title);
     await panel.getByLabel('DOI', { exact: true }).fill(`10.1234/${suffix}`);
     await panel.getByRole('button', { name: '创建题录', exact: true }).click();
     await expect(
-      panel.getByRole('button', { name: `查看题录 ${title}`, exact: true }),
+      panel.getByRole('option', { name: `查看题录 ${title}`, exact: true }),
     ).toBeVisible();
     await panel.getByText('集合', { exact: true }).first().click();
     await panel.getByLabel('集合名称', { exact: true }).fill(collection);
@@ -50,7 +51,7 @@ test('user imports, edits and groups real library metadata without losing the co
         ),
       )
       .toBe(true);
-    await panel.getByRole('button', { name: `查看题录 ${title}`, exact: true }).click();
+    await panel.getByRole('option', { name: `查看题录 ${title}`, exact: true }).click();
     await panel.getByLabel('题录标签', { exact: true }).fill('synthetic');
     await panel.getByLabel(`集合 ${collection}`, { exact: true }).check();
     await panel.getByRole('button', { name: '保存题录更正', exact: true }).click();
@@ -103,7 +104,7 @@ test('user imports, edits and groups real library metadata without losing the co
     await armRpcGate(uiPage, 'library.update');
     await panel.getByRole('button', { name: '保存题录更正', exact: true }).click();
     await json.fill(JSON.stringify({ title, DOI: `10.1234/${suffix}`, abstract: '离屏后续编辑' }));
-    await panel.getByRole('button', { name: `查看题录 文件研究-${suffix}`, exact: true }).click();
+    await panel.getByRole('option', { name: `查看题录 文件研究-${suffix}`, exact: true }).click();
     await json.fill(JSON.stringify({ title: `另一条目草稿-${suffix}` }));
     await releaseRpcGate(uiPage);
     await expect
@@ -113,7 +114,7 @@ test('user imports, edits and groups real library metadata without losing the co
       )
       .toBe('切换前提交');
     await expect(json).toHaveValue(new RegExp(`另一条目草稿-${suffix}`));
-    await panel.getByRole('button', { name: `查看题录 ${title}`, exact: true }).click();
+    await panel.getByRole('option', { name: `查看题录 ${title}`, exact: true }).click();
     await expect(json).toHaveValue(/离屏后续编辑/);
     await panel.getByRole('button', { name: '保存题录更正', exact: true }).click();
     await expect
@@ -157,10 +158,10 @@ test('user imports, edits and groups real library metadata without losing the co
     await uiPage.getByRole('button', { name: '文献库', exact: true }).click();
     await panel.getByLabel('查找题录', { exact: true }).fill(`外部更正-${suffix}`);
     await expect(
-      panel.getByRole('button', { name: `查看题录 外部更正-${suffix}`, exact: true }),
+      panel.getByRole('option', { name: `查看题录 外部更正-${suffix}`, exact: true }),
     ).toBeVisible();
     await expect(composer).toHaveValue('浏览题录时保留的指令草稿');
-    await panel.getByRole('button', { name: `查看题录 外部更正-${suffix}`, exact: true }).click();
+    await panel.getByRole('option', { name: `查看题录 外部更正-${suffix}`, exact: true }).click();
     await expect(panel.getByLabel('题录 CSL JSON', { exact: true })).toHaveValue(
       new RegExp(`未保存草稿-${suffix}`),
     );

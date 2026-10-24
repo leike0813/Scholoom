@@ -1,80 +1,77 @@
-/**
- * 文献库工具栏
- */
-import type { KernelClient } from '@scholoom/client';
-import { CollectionFilter } from './CollectionFilter';
-import { type VersionFilter, VersionFilterDropdown } from './VersionFilter';
+import type { LibraryCollection } from '@scholoom/protocol';
 
 interface LibraryToolbarProps {
-  client: KernelClient;
-  enabled: boolean;
-  searchQuery: string;
-  onSearchChange: (query: string) => void;
-  selectedCollections: string[];
-  onCollectionsChange: (collections: string[]) => void;
-  versionFilter: VersionFilter;
-  onVersionFilterChange: (filter: VersionFilter) => void;
+  query: string;
+  onQueryChange: (value: string) => void;
+  collectionId: string;
+  collections: LibraryCollection[];
+  onCollectionChange: (value: string) => void;
+  tag: string;
+  onTagChange: (value: string) => void;
   currentPage: number;
-  totalPages: number;
-  onPageChange: (page: number) => void;
+  hasNext: boolean;
+  onPrevious: () => void;
+  onNext: () => void;
   onNewEntry: () => void;
+  readable: boolean;
 }
 
-export function LibraryToolbar({
-  client,
-  enabled,
-  searchQuery,
-  onSearchChange,
-  selectedCollections,
-  onCollectionsChange,
-  versionFilter,
-  onVersionFilterChange,
-  currentPage,
-  totalPages,
-  onPageChange,
-  onNewEntry,
-}: LibraryToolbarProps) {
+export function LibraryToolbar(props: LibraryToolbarProps) {
   return (
     <div className="library-toolbar">
       <input
-        type="text"
+        type="search"
         className="library-search"
         placeholder="查找题录"
-        value={searchQuery}
-        onChange={(e) => onSearchChange(e.target.value)}
         aria-label="查找题录"
+        maxLength={200}
+        value={props.query}
+        onChange={(event) => props.onQueryChange(event.target.value)}
       />
-      <CollectionFilter
-        client={client}
-        enabled={enabled}
-        selectedCollections={selectedCollections}
-        onSelectionChange={onCollectionsChange}
+      <select
+        aria-label="按集合筛选"
+        value={props.collectionId}
+        onChange={(event) => props.onCollectionChange(event.target.value)}
+      >
+        <option value="">全部集合</option>
+        {props.collectionId && !props.collections.some((item) => item.id === props.collectionId) ? (
+          <option value={props.collectionId}>当前集合</option>
+        ) : null}
+        {props.collections.map((item) => (
+          <option key={item.id} value={item.id}>
+            {item.name}
+          </option>
+        ))}
+      </select>
+      <input
+        aria-label="按标签筛选"
+        placeholder="标签"
+        maxLength={100}
+        value={props.tag}
+        onChange={(event) => props.onTagChange(event.target.value)}
       />
-      <VersionFilterDropdown value={versionFilter} onChange={onVersionFilterChange} />
       <div className="library-pagination">
         <button
           type="button"
           className="btn btn-sm"
-          onClick={() => onPageChange(currentPage - 1)}
-          disabled={currentPage <= 1}
-          aria-label="上一页"
+          disabled={!props.readable || props.currentPage <= 1}
+          aria-label="上一页题录"
+          onClick={props.onPrevious}
         >
           ◀
         </button>
-        <span className="pagination-info">
-          {currentPage} / {totalPages || 1}
-        </span>
+        <span className="pagination-info">第 {props.currentPage} 页</span>
         <button
           type="button"
           className="btn btn-sm"
-          onClick={() => onPageChange(currentPage + 1)}
-          disabled={currentPage >= totalPages}
-          aria-label="下一页"
+          disabled={!props.readable || !props.hasNext}
+          aria-label="下一页题录"
+          onClick={props.onNext}
         >
           ▶
         </button>
       </div>
-      <button type="button" className="btn btn-sm" onClick={onNewEntry} aria-label="新建题录">
+      <button type="button" className="btn btn-sm" aria-label="新建题录" onClick={props.onNewEntry}>
         + 新建题录
       </button>
     </div>

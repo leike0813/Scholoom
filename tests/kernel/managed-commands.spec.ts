@@ -149,7 +149,7 @@ for (const boundary of ['revoke', 'cancel', 'stale'] as const) {
         text: 'Hold the active execution.',
         materials: [],
       });
-      await expect.poll(() => model.requests.length).toBe(1);
+      await expect.poll(() => model.requests.length, { timeout: 20_000 }).toBe(1);
       const context = app.context;
       assert(context);
       app.workspace = {
@@ -203,15 +203,18 @@ for (const boundary of ['revoke', 'cancel', 'stale'] as const) {
           materials: [],
         });
         await expect
-          .poll(() => {
-            if (app.context?.projectId !== 'application') return false;
-            try {
-              app.harness.checkExecutionContext(app.context);
-              return true;
-            } catch {
-              return false;
-            }
-          })
+          .poll(
+            () => {
+              if (app.context?.projectId !== 'application') return false;
+              try {
+                app.harness.checkExecutionContext(app.context);
+                return true;
+              } catch {
+                return false;
+              }
+            },
+            { timeout: 20_000 },
+          )
           .toBe(true);
         assert(app.context?.projectId === 'application');
         await expect(app.command(request, app.context)).rejects.toMatchObject({

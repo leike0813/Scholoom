@@ -1,232 +1,1088 @@
-/**
- * 文献库 Tab 主容器
- * 两栏布局：条目列表 + 详情面板
- */
 import type { KernelClient } from '@scholoom/client';
-import type { LibraryAttachment, LibrarySource } from '@scholoom/protocol';
+import type {
+  CslMetadata,
+  LibraryAttachment,
+  LibraryBatch,
+  LibrarySource,
+  LibraryStatus,
+} from '@scholoom/protocol';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { AttachmentImport } from '../AttachmentsPanel';
+import { draftKey, readDraft, writeDraft } from '../drafts';
 import { CatalogItemList } from './CatalogItemList';
 import { CatalogItemPane } from './CatalogItemPane';
 import { CatalogSelection } from './CatalogSelection';
 import { LibraryToolbar } from './LibraryToolbar';
-import type { VersionFilter } from './VersionFilter';
 
-const PAGE_SIZE = 25; // comfortable
+const PAGE = 25;
+/** 与协议 library.ingest.json 的上限一致；按字节核对多字节文本。 */
+const IMPORT_LIMIT = 262144;
+const BATCH_STATE: Record<LibraryBatch['state'], string> = {
+  queued: '排队中',
+  running: '处理中',
+  completed: '已完成',
+  interrupted: '已中断',
+};
+const ENTRY_STATE: Record<string, string> = {
+  pending: '未执行',
+  created: '已创建',
+  reused: '已复用',
+  failed: '失败',
+};
+const EXCLUSION_REASON: Record<string, string> = { externalDependency: '外链未复制' };
+/** 文件批次候选用文件名对应输入，题录批次用题名；不展开候选正文。 */
+const candidateLabel = (
+  kind: LibraryBatch['kind'],
+  candidate: Record<string, unknown> | undefined,
+) => {
+  const value = kind === 'files' ? candidate?.filename : candidate?.title;
+  return typeof value === 'string' ? ` · ${value}` : '';
+};
 
-interface LibraryTabProps {
-  client: KernelClient;
-  enabled: boolean;
-  onOpenResource?: ((material: LibraryAttachment) => void) | undefined;
-}
+const messageOf = (error: unknown) =>
+  error instanceof Error ? error.message : '操作未完成，请核对当前状态。';
+const bytesOf = (text: string): number => new TextEncoder().encode(text).length;
 
-export function LibraryTab({ client, enabled, onOpenResource }: LibraryTabProps) {
-  const [entries, setEntries] = useState<LibrarySource[]>([]);
-  const [totalCount, setTotalCount] = useState(0);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCollections, setSelectedCollections] = useState<string[]>([]);
-  const [versionFilter, setVersionFilter] = useState<VersionFilter>('all');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [selectedEntry, setSelectedEntry] = useState<LibrarySource | null>(null);
-  const [grants, setGrants] = useState({ read: false, write: false });
-  const [permissionError, setPermissionError] = useState('');
-  const [tick, setTick] = useState(0);
-
-  const entriesRef = useRef<LibrarySource[]>([]);
-  entriesRef.current = entries;
-  const selectionRef = useRef<CatalogSelection | null>(null);
-  if (!selectionRef.current) {
-    selectionRef.current = new CatalogSelection((selected) => {
-      // 选择变化：加载首个选中条目的详情
-      const indices = Array.from(selected);
-      if (indices.length > 0) {
-        const firstIndex = indices[0];
-        const entry = firstIndex === undefined ? undefined : entriesRef.current[firstIndex];
-        if (entry) {
-          setSelectedEntry(entry);
-        }
-      } else {
-        setSelectedEntry(null);
-      }
-    });
-  }
-  const selection = selectionRef.current;
-
+/**
+ * 读取结果与请求键绑定：键变化后的迟到结果不写入界面。
+ * tick 只触发重读，键不变时保留上一次结果，避免库变化使输入短暂失效。
+ */
+function useRead<T>(
+  key: string,
+  load: (() => Promise<T>) | undefined,
+  tick = 0,
+): { value: T | undefined; error: string } {
+  const [received, setReceived] = useState<{ key: string; value?: T; error?: string }>();
+  const loader = useRef(load);
+  loader.current = load;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: tick 显式刷新同一有界对象，保留其当前画面。
   useEffect(() => {
-    if (!enabled) return;
-    return client.subscribeChanges((change) => {
-      if (change.libraryChanged) setTick((value) => value + 1);
-    });
-  }, [client, enabled]);
-
-  // 库通知只刷新授权与当前附件页，不重建题录编辑状态。
-  // biome-ignore lint/correctness/useExhaustiveDependencies: tick 显式重读库授权。
-  useEffect(() => {
-    if (!enabled) {
-      setGrants({ read: false, write: false });
-      return;
-    }
-    let live = true;
-    void client.call('library.status', {}).then(
-      (status) => {
-        if (!live) return;
-        setGrants({ read: status.read, write: status.write });
-        setPermissionError('');
+    const run = loader.current;
+    if (!run) return;
+    let active = true;
+    void run().then(
+      (value) => {
+        if (active) setReceived({ key, value });
       },
-      (reason: unknown) => {
-        if (!live) return;
-        setGrants({ read: false, write: false });
-        setPermissionError(reason instanceof Error ? reason.message : '库授权读取失败。');
+      (reason) => {
+        if (active) setReceived({ key, error: messageOf(reason) });
       },
     );
     return () => {
-      live = false;
+      active = false;
     };
-  }, [client, enabled, tick]);
+  }, [key, tick]);
+  if (received !== undefined && received.key === key)
+    return { value: received.value, error: received.error ?? '' };
+  return { value: undefined, error: '' };
+}
 
-  const loadPage = useCallback(
-    async (page: number, query: string, collections: string[], version: VersionFilter) => {
-      if (!enabled) return;
-      setLoading(true);
-      setError('');
-      try {
-        const result = await client.call('library.list', {
-          offset: (page - 1) * PAGE_SIZE,
-          limit: PAGE_SIZE,
-          ...(query ? { query } : {}),
-          ...(collections.length > 0 ? { collections } : {}),
-          ...(version === 'latest' ? { latestOnly: true } : {}),
-        });
-        setEntries(result.sources);
-        // 计算总数：使用 sources.length，实际 API 可能返回 nextOffset
-        setTotalCount(result.sources.length + (page - 1) * PAGE_SIZE);
-        setCurrentPage(page);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : '加载失败');
-      } finally {
-        setLoading(false);
-      }
-    },
-    [client, enabled],
+export function LibraryTab({
+  client,
+  enabled,
+  onOpenResource,
+}: {
+  client: KernelClient;
+  enabled: boolean;
+  onOpenResource?: ((material: LibraryAttachment) => void) | undefined;
+}) {
+  const directory = client.getSnapshot().status?.dataDirectory ?? '';
+  const [revision, setRevision] = useState(0);
+  const [error, setError] = useState('');
+
+  const [grants, setGrants] = useState({ read: true, write: false, send: false, autoBackup: true });
+  const grantsEdited = useRef(false);
+  const editGrant = (name: keyof typeof grants, value: boolean) => {
+    grantsEdited.current = true;
+    setGrants((current) => ({ ...current, [name]: value }));
+  };
+  const [destination, setDestination] = useState('');
+  const [restored, setRestored] = useState('');
+
+  const [query, setQuery] = useState('');
+  const [activeQuery, setActiveQuery] = useState('');
+  const [collectionFilter, setCollectionFilter] = useState('');
+  const [tagFilter, setTagFilter] = useState('');
+  const [collectionOffsets, setCollectionOffsets] = useState<number[]>([0]);
+  const collectionOffset = collectionOffsets.at(-1) ?? 0;
+  const [offsets, setOffsets] = useState<number[]>([0]);
+  const offset = offsets.at(-1) ?? 0;
+
+  const [selectedId, setSelectedId] = useState('');
+  const sourcesRef = useRef<LibrarySource[]>([]);
+  const [selection] = useState(
+    () =>
+      new CatalogSelection((indices) => {
+        const index = [...indices][0];
+        setSelectedId(index === undefined ? '' : (sourcesRef.current[index]?.id ?? ''));
+      }),
+  );
+  const manualForm = useRef<HTMLDetailsElement>(null);
+  const titleInput = useRef<HTMLInputElement>(null);
+  const [editId, setEditId] = useState('');
+  const [editRevision, setEditRevision] = useState(0);
+  const [dirty, setDirty] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [metadataText, setMetadataText] = useState('');
+  const [tagsText, setTagsText] = useState('');
+  const [chosenCollections, setChosenCollections] = useState<readonly string[]>([]);
+  const [chosenRelated, setChosenRelated] = useState<readonly string[]>([]);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [historyOffsets, setHistoryOffsets] = useState<number[]>([0]);
+  const historyOffset = historyOffsets.at(-1) ?? 0;
+
+  const [title, setTitle] = useState('');
+  const [doi, setDoi] = useState('');
+  const [version, setVersion] = useState('published');
+  const [importText, setImportText] = useState('');
+  const [importVersion, setImportVersion] = useState('published');
+
+  const [collectionName, setCollectionName] = useState('');
+  const [parentId, setParentId] = useState('');
+
+  const [batchId, setBatchId] = useState('');
+  const [batchOffsets, setBatchOffsets] = useState<number[]>([0]);
+  const batchOffset = batchOffsets.at(-1) ?? 0;
+  const [entryOffsets, setEntryOffsets] = useState<number[]>([0]);
+  const entryOffset = entryOffsets.at(-1) ?? 0;
+  const [poll, setPoll] = useState(0);
+
+  const importDraft = draftKey(directory, 'library', 'import');
+  const metadataDraft = useCallback(
+    (sourceId: string) => draftKey(directory, 'library', 'metadata', sourceId),
+    [directory],
+  );
+  const editSnapshot = JSON.stringify({
+    id: editId,
+    revision: editRevision,
+    metadataText,
+    tagsText,
+    chosenCollections,
+    chosenRelated,
+  });
+  const currentEdit = useRef({ id: editId, snapshot: editSnapshot });
+  currentEdit.current = { id: editId, snapshot: editSnapshot };
+  const currentSelection = useRef(selectedId);
+  currentSelection.current = selectedId;
+  const refresh = () => setRevision((value) => value + 1);
+
+  // 库变化只重读当前范围；未保存的更正由 dirty 保护。
+  useEffect(
+    () =>
+      client.subscribeChanges((change) => {
+        if (change.libraryChanged === true) setRevision((value) => value + 1);
+      }),
+    [client],
   );
 
-  // 初始加载
-  // biome-ignore lint/correctness/useExhaustiveDependencies: 初始页只随授权状态加载，筛选变化另行触发。
   useEffect(() => {
-    if (enabled) {
-      void loadPage(1, searchQuery, selectedCollections, versionFilter);
+    setImportText(readDraft(importDraft));
+  }, [importDraft]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setActiveQuery(query.trim()), query.trim() ? 150 : 0);
+    return () => clearTimeout(timer);
+  }, [query]);
+
+  const status = useRead<LibraryStatus>(
+    `status:${enabled}`,
+    enabled ? () => client.call('library.status', {}) : undefined,
+    revision,
+  );
+  const readable = enabled && status.value?.read === true;
+  const writable = enabled && status.value?.write === true;
+
+  useEffect(() => {
+    const value = status.value;
+    if (value && !grantsEdited.current)
+      setGrants({
+        read: value.read,
+        write: value.write,
+        send: value.send,
+        autoBackup: value.autoBackup,
+      });
+  }, [status.value]);
+
+  const collectionsRead = useRead(
+    `collections:${readable}:${collectionOffset}`,
+    readable
+      ? () => client.call('library.collections', { offset: collectionOffset, limit: 100 })
+      : undefined,
+    revision,
+  );
+  const collections = collectionsRead.value?.collections ?? [];
+
+  const listRead = useRead(
+    `list:${readable}:${offset}:${activeQuery}:${collectionFilter}:${tagFilter}`,
+    readable
+      ? () =>
+          client.call('library.list', {
+            offset,
+            limit: PAGE,
+            ...(activeQuery ? { query: activeQuery } : {}),
+            ...(collectionFilter ? { collectionId: collectionFilter } : {}),
+            ...(tagFilter.trim() ? { tag: tagFilter.trim() } : {}),
+          })
+      : undefined,
+    revision,
+  );
+  const sources = readable ? (listRead.value?.sources ?? []) : [];
+  sourcesRef.current = sources;
+
+  const detailRead = useRead(
+    `get:${readable}:${selectedId}`,
+    readable && selectedId ? () => client.call('library.get', { sourceId: selectedId }) : undefined,
+    revision,
+  );
+  const detail = readable ? detailRead.value : undefined;
+
+  const historyRead = useRead(
+    `history:${readable}:${selectedId}:${historyOffset}`,
+    readable && selectedId && historyOpen
+      ? () =>
+          client.call('library.history', {
+            sourceId: selectedId,
+            offset: historyOffset,
+            limit: PAGE,
+          })
+      : undefined,
+    revision,
+  );
+
+  const batchesRead = useRead(
+    `batches:${readable}:${batchOffset}`,
+    readable
+      ? () => client.call('library.batches', { offset: batchOffset, limit: PAGE })
+      : undefined,
+    revision,
+  );
+
+  const batchRead = useRead(
+    `batch:${readable}:${batchId}:${entryOffset}`,
+    readable && batchId
+      ? () => client.call('library.batch', { batchId, offset: entryOffset, limit: PAGE })
+      : undefined,
+    revision + poll,
+  );
+  const batch = batchRead.value?.batch;
+
+  const backupsRead = useRead(
+    `backups:${readable}`,
+    readable ? () => client.call('library.backups', {}) : undefined,
+    revision,
+  );
+
+  // 只轮询仍在执行的批次；完成或中断后自动停止。
+  useEffect(() => {
+    if (!batch) return;
+    if (batch.state !== 'queued' && batch.state !== 'running') return;
+    const timer = setTimeout(() => setPoll((value) => value + 1), 800);
+    return () => clearTimeout(timer);
+  }, [batch]);
+
+  // 草稿只在切换条目或显式重读时替换，库范围刷新不覆盖未保存的更正。
+  useEffect(() => {
+    if (!detail) return;
+    if (detail.id === editId && (dirty || detail.revision <= editRevision)) return;
+    let saved:
+      | {
+          revision: number;
+          metadataText: string;
+          tagsText: string;
+          chosenCollections: string[];
+          chosenRelated: string[];
+        }
+      | undefined;
+    try {
+      const value = JSON.parse(readDraft(metadataDraft(detail.id)) || 'null');
+      if (
+        value &&
+        Number.isInteger(value.revision) &&
+        typeof value.metadataText === 'string' &&
+        typeof value.tagsText === 'string' &&
+        [value.chosenCollections, value.chosenRelated].every(
+          (ids) => Array.isArray(ids) && ids.every((id) => typeof id === 'string'),
+        )
+      )
+        saved = value;
+    } catch {
+      /* Keep the authoritative record readable if local storage was edited. */
     }
-  }, [enabled]);
+    setEditId(detail.id);
+    setEditRevision(saved?.revision ?? detail.revision);
+    setDirty(!!saved);
+    setMetadataText(saved?.metadataText ?? JSON.stringify(detail.metadata, null, 2));
+    setTagsText(saved?.tagsText ?? detail.tags.join(', '));
+    setChosenCollections(saved?.chosenCollections ?? [...detail.collectionIds]);
+    setChosenRelated(saved?.chosenRelated ?? [...detail.relatedIds]);
+  }, [detail, dirty, editId, editRevision, metadataDraft]);
 
-  // 搜索防抖 300ms
-  const searchTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
-  const handleSearchChange = useCallback(
-    (query: string) => {
-      setSearchQuery(query);
-      if (searchTimeoutRef.current) {
-        clearTimeout(searchTimeoutRef.current);
-      }
-      searchTimeoutRef.current = setTimeout(() => {
-        void loadPage(1, query, selectedCollections, versionFilter);
-      }, 300);
-    },
-    [loadPage, selectedCollections, versionFilter],
-  );
+  useEffect(() => {
+    if (dirty && editId === selectedId)
+      writeDraft(
+        metadataDraft(editId),
+        JSON.stringify({
+          revision: editRevision,
+          metadataText,
+          tagsText,
+          chosenCollections,
+          chosenRelated,
+        }),
+      );
+  }, [
+    dirty,
+    editId,
+    selectedId,
+    editRevision,
+    metadataText,
+    tagsText,
+    chosenCollections,
+    chosenRelated,
+    metadataDraft,
+  ]);
 
-  const handleCollectionsChange = useCallback(
-    (collections: string[]) => {
-      setSelectedCollections(collections);
-      void loadPage(1, searchQuery, collections, versionFilter);
-    },
-    [loadPage, searchQuery, versionFilter],
-  );
+  const relatedCandidates = [
+    ...sources.map((source) => ({ id: source.id, title: source.metadata.title })),
+    ...(detail?.relatedIds ?? [])
+      .filter((id) => !sources.some((source) => source.id === id))
+      .map((id) => ({ id, title: id })),
+  ].filter((candidate) => candidate.id !== detail?.id);
 
-  const handleVersionFilterChange = useCallback(
-    (filter: VersionFilter) => {
-      setVersionFilter(filter);
-      void loadPage(1, searchQuery, selectedCollections, filter);
-    },
-    [loadPage, searchQuery, selectedCollections],
-  );
+  const run = async (action: () => Promise<unknown>) => {
+    setError('');
+    try {
+      await action();
+    } catch (reason) {
+      setError(messageOf(reason));
+    }
+  };
 
-  const handlePageChange = useCallback(
-    (page: number) => {
-      void loadPage(page, searchQuery, selectedCollections, versionFilter);
-    },
-    [loadPage, searchQuery, selectedCollections, versionFilter],
-  );
+  /** 批次回执接入既有批次结果区；题录摄取与本地材料摄取共用。 */
+  const applyBatch = (batch: LibraryBatch) => {
+    setBatchId(batch.id);
+    setEntryOffsets([0]);
+    refresh();
+  };
 
-  const handleDoubleClick = useCallback((entry: LibrarySource) => {
-    setSelectedEntry(entry);
-  }, []);
-
-  const handleBatch = useCallback(() => {
-    setTick((value) => value + 1);
-  }, []);
-
-  const handleNewEntry = useCallback(() => {
-    // 打开新建题录表单（未来实现）
-    console.log('New entry');
-  }, []);
-
-  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
-
-  if (!enabled) {
-    return (
-      <section className="library-tab" aria-label="文献库">
-        <div className="library-tab-disabled">
-          <p>文献库功能需要权限授权</p>
-        </div>
-      </section>
+  const ingest = async (json: string, batchVersion: string, origin: string) => {
+    if (bytesOf(json) > IMPORT_LIMIT) throw new Error('题录输入超过 256KiB 上限。');
+    applyBatch(
+      await client.call('library.ingest', {
+        batchId: crypto.randomUUID(),
+        json,
+        version: batchVersion,
+        origin,
+      }),
     );
-  }
+  };
+
+  const createRecord = () =>
+    run(async () => {
+      const metadata: Record<string, unknown> = { title: title.trim() };
+      if (doi.trim()) metadata.DOI = doi.trim();
+      await ingest(JSON.stringify([metadata]), version.trim(), 'workbench-manual');
+      setTitle('');
+      setDoi('');
+    });
+
+  const importRecords = () =>
+    run(() => ingest(importText, importVersion.trim(), 'workbench-import'));
+
+  const selectFile = (input: HTMLInputElement) => {
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+    void run(async () => {
+      const text = await file.text();
+      if (bytesOf(text) > IMPORT_LIMIT) throw new Error('所选文件超过 256KiB 上限。');
+      setImportText(text);
+      writeDraft(importDraft, text);
+    });
+  };
+
+  const createCollection = () =>
+    run(async () => {
+      await client.call('library.saveCollection', {
+        name: collectionName.trim(),
+        ...(parentId ? { parentId } : {}),
+      });
+      setCollectionName('');
+      refresh();
+    });
+
+  const saveDetail = () =>
+    run(async () => {
+      if (!detail || saving) return;
+      setSaving(true);
+      try {
+        const submitted = currentEdit.current;
+        let metadata: CslMetadata;
+        try {
+          metadata = JSON.parse(metadataText) as CslMetadata;
+        } catch {
+          throw new Error('题录 JSON 无法解析，草稿已保留。');
+        }
+        const updated = await client.call('library.update', {
+          sourceId: detail.id,
+          revision: editRevision,
+          metadata,
+          tags: [
+            ...new Set(
+              tagsText
+                .split(',')
+                .map((tag) => tag.trim())
+                .filter(Boolean),
+            ),
+          ],
+          collectionIds: [...chosenCollections],
+          relatedIds: [...chosenRelated],
+        });
+        const key = metadataDraft(detail.id);
+        try {
+          const draft = JSON.parse(readDraft(key) || 'null');
+          if (draft?.revision === editRevision) {
+            const same =
+              draft.metadataText === metadataText &&
+              draft.tagsText === tagsText &&
+              JSON.stringify(draft.chosenCollections) === JSON.stringify(chosenCollections) &&
+              JSON.stringify(draft.chosenRelated) === JSON.stringify(chosenRelated);
+            writeDraft(key, same ? '' : JSON.stringify({ ...draft, revision: updated.revision }));
+          }
+        } catch {
+          /* Preserve an unreadable local draft for explicit recovery. */
+        }
+        if (currentSelection.current === detail.id && currentEdit.current.id === detail.id) {
+          setEditRevision((current) => (current === editRevision ? updated.revision : current));
+          if (currentEdit.current.snapshot === submitted.snapshot) {
+            writeDraft(metadataDraft(detail.id), '');
+            setDirty(false);
+          }
+        }
+        refresh();
+      } finally {
+        setSaving(false);
+      }
+    });
+
+  const reloadDetail = () => {
+    if (!detail) return;
+    writeDraft(metadataDraft(detail.id), '');
+    setEditRevision(0);
+    setDirty(false);
+    refresh();
+  };
+
+  const resumeBatch = () =>
+    run(async () => {
+      await client.call('library.resume', { batchId });
+      refresh();
+    });
+
+  const toggled = (ids: readonly string[], id: string): string[] =>
+    ids.includes(id) ? ids.filter((item) => item !== id) : [...ids, id];
 
   return (
     <section className="library-tab" aria-label="文献库">
-      <LibraryToolbar
-        client={client}
-        enabled={enabled}
-        searchQuery={searchQuery}
-        onSearchChange={handleSearchChange}
-        selectedCollections={selectedCollections}
-        onCollectionsChange={handleCollectionsChange}
-        versionFilter={versionFilter}
-        onVersionFilterChange={handleVersionFilterChange}
-        currentPage={currentPage}
-        totalPages={totalPages}
-        onPageChange={handlePageChange}
-        onNewEntry={handleNewEntry}
-      />
-      {permissionError ? (
-        <div className="library-error" role="alert">
-          {permissionError}
-        </div>
-      ) : null}
-      {error && (
-        <div className="library-error" role="alert">
+      {error ? (
+        <p className="business-error" role="alert">
           {error}
-        </div>
-      )}
-      {loading && <div className="library-loading">加载中...</div>}
+        </p>
+      ) : null}
+
+      <LibraryToolbar
+        query={query}
+        onQueryChange={(value) => {
+          setQuery(value);
+          setOffsets([0]);
+        }}
+        collectionId={collectionFilter}
+        collections={collections}
+        onCollectionChange={(value) => {
+          setCollectionFilter(value);
+          setOffsets([0]);
+        }}
+        tag={tagFilter}
+        onTagChange={(value) => {
+          setTagFilter(value);
+          setOffsets([0]);
+        }}
+        currentPage={offsets.length}
+        hasNext={listRead.value?.nextOffset !== undefined}
+        onPrevious={() => setOffsets((current) => current.slice(0, -1))}
+        onNext={() => {
+          const next = listRead.value?.nextOffset;
+          if (next !== undefined) setOffsets((current) => [...current, next]);
+        }}
+        onNewEntry={() => {
+          if (manualForm.current) manualForm.current.open = true;
+          titleInput.current?.focus();
+        }}
+        readable={readable}
+      />
+
+      {listRead.error ? (
+        <p className="business-error" role="alert">
+          {listRead.error}
+        </p>
+      ) : null}
+      {!listRead.value ? (
+        <p className="empty-hint">{readable ? '正在读取题录…' : '需先授权库读取。'}</p>
+      ) : null}
+      {listRead.value && !sources.length ? <p className="empty-hint">没有匹配的题录</p> : null}
+      <div className="library-management">
+        <fieldset className="project-controls" disabled={!enabled}>
+          <legend>摄取批次</legend>
+          <details>
+            <summary>本地材料摄取</summary>
+            <AttachmentImport
+              client={client}
+              enabled={enabled}
+              writable={writable}
+              onBatch={applyBatch}
+            />
+          </details>
+          {batchesRead.error ? (
+            <p className="business-error" role="alert">
+              {batchesRead.error}
+            </p>
+          ) : null}
+          <ul>
+            {(batchesRead.value?.batches ?? []).map((item) => (
+              <li key={item.id}>
+                <button
+                  type="button"
+                  className="btn"
+                  aria-label={`查看批次 ${item.createdAt}`}
+                  aria-pressed={item.id === batchId}
+                  onClick={() => {
+                    setBatchId(item.id);
+                    setEntryOffsets([0]);
+                  }}
+                >
+                  {item.createdAt} · {BATCH_STATE[item.state]} · {item.processed}/{item.total}
+                </button>
+              </li>
+            ))}
+          </ul>
+          <div className="file-view-controls">
+            <button
+              type="button"
+              className="btn"
+              disabled={!readable || batchOffsets.length < 2}
+              onClick={() => setBatchOffsets((current) => current.slice(0, -1))}
+            >
+              上一页批次
+            </button>
+            <button
+              type="button"
+              className="btn"
+              disabled={!readable || batchesRead.value?.nextOffset === undefined}
+              onClick={() => {
+                const next = batchesRead.value?.nextOffset;
+                if (next !== undefined) setBatchOffsets((current) => [...current, next]);
+              }}
+            >
+              下一页批次
+            </button>
+          </div>
+          {batchRead.error ? (
+            <p className="business-error" role="alert">
+              {batchRead.error}
+            </p>
+          ) : null}
+          {batch ? (
+            <>
+              <p role="status" aria-label="批次进度">
+                批次 {batch.id} · {BATCH_STATE[batch.state]} · 已处理 {batch.processed}/
+                {batch.total} · 失败 {batch.failed} · 来源 {batch.origin}
+                {batch.error ? ` · 中断原因 ${batch.error.message}` : ''}
+              </p>
+              <ul>
+                {(batchRead.value?.entries ?? []).map((entry) => (
+                  <li key={entry.index}>
+                    第 {entry.index + 1} 条 · {ENTRY_STATE[entry.state] ?? entry.state}
+                    {entry.conflicts.length ? ` · 冲突字段 ${entry.conflicts.join('、')}` : ''}
+                    {entry.error ? ` · ${entry.error.message}` : ''}
+                    {candidateLabel(batch.kind, entry.candidate)}
+                    {entry.sourceId ? ` · ${entry.sourceId}` : ''}
+                  </li>
+                ))}
+              </ul>
+              <div className="file-view-controls">
+                <button
+                  type="button"
+                  className="btn"
+                  disabled={!readable || entryOffsets.length < 2}
+                  onClick={() => setEntryOffsets((current) => current.slice(0, -1))}
+                >
+                  上一页批次结果
+                </button>
+                <button
+                  type="button"
+                  className="btn"
+                  disabled={!readable || batchRead.value?.nextOffset === undefined}
+                  onClick={() => {
+                    const next = batchRead.value?.nextOffset;
+                    if (next !== undefined) setEntryOffsets((current) => [...current, next]);
+                  }}
+                >
+                  下一页批次结果
+                </button>
+                {batch.state === 'interrupted' ? (
+                  <button
+                    type="button"
+                    className="btn"
+                    disabled={!writable}
+                    onClick={() => void resumeBatch()}
+                  >
+                    接续未执行项
+                  </button>
+                ) : null}
+              </div>
+            </>
+          ) : null}
+        </fieldset>
+
+        <fieldset className="project-controls" disabled={!enabled}>
+          <details ref={manualForm}>
+            <summary>手动建项</summary>
+            <label>
+              题名
+              <input
+                ref={titleInput}
+                aria-label="题名"
+                value={title}
+                onChange={(event) => setTitle(event.target.value)}
+              />
+            </label>
+            <label>
+              DOI
+              <input
+                aria-label="DOI"
+                value={doi}
+                onChange={(event) => setDoi(event.target.value)}
+              />
+            </label>
+            <label>
+              版本标签
+              <input
+                aria-label="版本标签"
+                value={version}
+                onChange={(event) => setVersion(event.target.value)}
+              />
+            </label>
+            <p>未知发表版本填 unspecified，不参与自动去重。</p>
+            <button
+              type="button"
+              className="btn"
+              disabled={!writable || !title.trim()}
+              onClick={() => void createRecord()}
+            >
+              创建题录
+            </button>
+          </details>
+
+          <details>
+            <summary>CSL JSON 导入</summary>
+            <label>
+              CSL JSON 文本
+              <textarea
+                className="composer-input"
+                aria-label="CSL JSON 文本"
+                rows={8}
+                spellCheck={false}
+                value={importText}
+                onChange={(event) => {
+                  setImportText(event.target.value);
+                  writeDraft(importDraft, event.target.value);
+                }}
+              />
+            </label>
+            <label>
+              选择本机文件
+              <input
+                type="file"
+                accept="application/json,.json"
+                aria-label="选择 CSL JSON 文件"
+                onChange={(event) => selectFile(event.currentTarget)}
+              />
+            </label>
+            <label>
+              导入版本标签
+              <input
+                aria-label="导入版本标签"
+                value={importVersion}
+                onChange={(event) => setImportVersion(event.target.value)}
+              />
+            </label>
+            <p>上限 256KiB／1000 条；选择文件只读取你选中的 JSON 文本。</p>
+            <button
+              type="button"
+              className="btn"
+              disabled={!writable || !importText.trim()}
+              onClick={() => void importRecords()}
+            >
+              导入批次
+            </button>
+          </details>
+
+          <details>
+            <summary>集合</summary>
+            <label>
+              集合名称
+              <input
+                aria-label="集合名称"
+                value={collectionName}
+                onChange={(event) => setCollectionName(event.target.value)}
+              />
+            </label>
+            <label>
+              父集合
+              <select
+                aria-label="父集合"
+                value={parentId}
+                onChange={(event) => setParentId(event.target.value)}
+              >
+                <option value="">无父集合</option>
+                {parentId && !collections.some((item) => item.id === parentId) ? (
+                  <option value={parentId}>所选父集合 {parentId}</option>
+                ) : null}
+                {collections.map((collection) => (
+                  <option key={collection.id} value={collection.id}>
+                    {collection.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button
+              type="button"
+              className="btn"
+              disabled={!writable || !collectionName.trim()}
+              onClick={() => void createCollection()}
+            >
+              创建集合
+            </button>
+            <ul>
+              {collections.map((collection) => (
+                <li key={collection.id}>
+                  {collection.name}
+                  {collection.parentId ? `（父集合 ${collection.parentId}）` : ''}
+                </li>
+              ))}
+            </ul>
+            <button
+              type="button"
+              className="btn"
+              disabled={collectionOffsets.length < 2}
+              onClick={() => setCollectionOffsets((current) => current.slice(0, -1))}
+            >
+              上一页集合
+            </button>
+            <button
+              type="button"
+              className="btn"
+              disabled={collectionsRead.value?.nextOffset === undefined}
+              onClick={() => {
+                const next = collectionsRead.value?.nextOffset;
+                if (next !== undefined) setCollectionOffsets((current) => [...current, next]);
+              }}
+            >
+              下一页集合
+            </button>
+          </details>
+
+          <details>
+            <summary>文献库授权与备份</summary>
+            <p role="status" aria-label="库状态">
+              库 {status.value?.id ?? '未读取'} · 修订号 {status.value?.revision ?? 0}
+            </p>
+            <label>
+              <input
+                type="checkbox"
+                checked={grants.read}
+                onChange={(event) => editGrant('read', event.target.checked)}
+              />
+              读取库
+            </label>
+            <label>
+              <input
+                type="checkbox"
+                checked={grants.write}
+                onChange={(event) => editGrant('write', event.target.checked)}
+              />
+              写入库
+            </label>
+            <label>
+              <input
+                type="checkbox"
+                checked={grants.send}
+                onChange={(event) => editGrant('send', event.target.checked)}
+              />
+              发送文献材料到模型
+            </label>
+            <label>
+              <input
+                type="checkbox"
+                checked={grants.autoBackup}
+                onChange={(event) => editGrant('autoBackup', event.target.checked)}
+              />
+              自动备份
+            </label>
+            <button
+              type="button"
+              className="btn"
+              onClick={() =>
+                void run(async () => {
+                  const result = await client.call('library.grant', grants);
+                  grantsEdited.current = false;
+                  setGrants({
+                    read: result.read,
+                    write: result.write,
+                    send: result.send,
+                    autoBackup: result.autoBackup,
+                  });
+                  refresh();
+                })
+              }
+            >
+              保存库授权
+            </button>
+            <button
+              type="button"
+              className="btn"
+              disabled={!readable}
+              onClick={() =>
+                void run(async () => {
+                  await client.call('library.backup', {});
+                  refresh();
+                })
+              }
+            >
+              立即备份
+            </button>
+            <label>
+              独立恢复目录
+              <input
+                aria-label="独立恢复目录"
+                value={destination}
+                onChange={(event) => setDestination(event.target.value)}
+              />
+            </label>
+            {backupsRead.error ? (
+              <p className="business-error" role="alert">
+                {backupsRead.error}
+              </p>
+            ) : null}
+            {(backupsRead.value ?? []).map((backup) => {
+              const exclusions = backup.exclusions ?? [];
+              return (
+                <div key={backup.id}>
+                  <span>
+                    {backup.createdAt} ·{' '}
+                    {backup.scope === 'catalog-and-managed-files'
+                      ? '题录及托管材料'
+                      : '仅题录数据库'}
+                  </span>{' '}
+                  <button
+                    type="button"
+                    className="btn"
+                    aria-label={`恢复备份 ${backup.createdAt}`}
+                    disabled={!readable || !destination.trim()}
+                    onClick={() =>
+                      void run(async () => {
+                        const copy = await client.call('library.restore', {
+                          backupId: backup.id,
+                          destination: destination.trim(),
+                        });
+                        setRestored(`副本目录：${copy.directory}`);
+                      })
+                    }
+                  >
+                    恢复此副本
+                  </button>
+                  {exclusions.length ? (
+                    <ul>
+                      {exclusions.map((exclusion) => (
+                        <li key={exclusion.attachmentId}>
+                          缺项 {exclusion.attachmentId}：
+                          {EXCLUSION_REASON[exclusion.reason] ?? exclusion.reason}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </div>
+              );
+            })}
+            {restored ? (
+              <p role="status" aria-label="恢复结果">
+                {restored}
+              </p>
+            ) : null}
+          </details>
+        </fieldset>
+      </div>
       <div className="library-content">
         <div className="library-list-pane">
           <CatalogItemList
-            entries={entries}
+            entries={sources}
             selection={selection}
-            onDoubleClick={handleDoubleClick}
+            onDoubleClick={(entry) => setSelectedId(entry.id)}
           />
         </div>
         <div className="library-detail-pane">
           <CatalogItemPane
-            entry={selectedEntry}
+            entry={detail ?? null}
             client={client}
             enabled={enabled}
-            readable={grants.read}
-            writable={grants.write}
-            tick={tick}
-            onBatch={handleBatch}
+            readable={readable}
+            writable={writable}
+            tick={revision}
+            onBatch={applyBatch}
             onOpenResource={onOpenResource}
+            metadata={
+              <div className="catalog-section" id="section-metadata">
+                {' '}
+                {detailRead.error ? (
+                  <p className="business-error" role="alert">
+                    {detailRead.error}
+                  </p>
+                ) : null}
+                {detail ? (
+                  <p>
+                    稳定身份 {detail.id} · 修订号 {detail.revision} · 版本 {detail.version} · 来源{' '}
+                    {detail.origins.join('、') || '无'}
+                  </p>
+                ) : (
+                  <p className="empty-hint">正在读取题录…</p>
+                )}
+                {detail ? (
+                  <fieldset className="project-controls" disabled={!enabled}>
+                    <label>
+                      CSL JSON 题录
+                      <textarea
+                        className="composer-input"
+                        aria-label="题录 CSL JSON"
+                        rows={10}
+                        spellCheck={false}
+                        value={metadataText}
+                        onChange={(event) => {
+                          setMetadataText(event.target.value);
+                          setDirty(true);
+                        }}
+                      />
+                    </label>
+                    <label id="section-tags">
+                      标签
+                      <input
+                        aria-label="题录标签"
+                        value={tagsText}
+                        onChange={(event) => {
+                          setTagsText(event.target.value);
+                          setDirty(true);
+                        }}
+                      />
+                    </label>
+                    <fieldset>
+                      <legend>集合</legend>
+                      {collections.map((collection) => (
+                        <label key={collection.id}>
+                          <input
+                            type="checkbox"
+                            checked={chosenCollections.includes(collection.id)}
+                            onChange={() => {
+                              setChosenCollections((current) => toggled(current, collection.id));
+                              setDirty(true);
+                            }}
+                          />
+                          集合 {collection.name}
+                        </label>
+                      ))}
+                    </fieldset>
+                    <fieldset id="section-related">
+                      <legend>关联版本</legend>
+                      {relatedCandidates.map((candidate) => (
+                        <label key={candidate.id}>
+                          <input
+                            type="checkbox"
+                            checked={chosenRelated.includes(candidate.id)}
+                            onChange={() => {
+                              setChosenRelated((current) => toggled(current, candidate.id));
+                              setDirty(true);
+                            }}
+                          />
+                          关联版本 {candidate.title}
+                        </label>
+                      ))}
+                    </fieldset>
+                    <div className="file-view-controls">
+                      <button
+                        type="button"
+                        className="btn"
+                        disabled={!writable || saving}
+                        onClick={() => void saveDetail()}
+                      >
+                        保存题录更正
+                      </button>
+                      <button
+                        type="button"
+                        className="btn"
+                        disabled={!readable || saving}
+                        onClick={reloadDetail}
+                      >
+                        重新读取题录
+                      </button>
+                      <button
+                        type="button"
+                        className="btn"
+                        disabled={!readable}
+                        onClick={() => setHistoryOpen((value) => !value)}
+                      >
+                        {historyOpen ? '收起历史' : '查看历史'}
+                      </button>
+                    </div>
+                    {historyOpen ? (
+                      <>
+                        {historyRead.error ? (
+                          <p className="business-error" role="alert">
+                            {historyRead.error}
+                          </p>
+                        ) : null}
+                        <ul>
+                          {(historyRead.value?.sources ?? []).map((snapshot) => (
+                            <li key={snapshot.revision}>
+                              修订号 {snapshot.revision} · {snapshot.metadata.title} ·{' '}
+                              {snapshot.updatedAt}
+                            </li>
+                          ))}
+                        </ul>
+                        <div className="file-view-controls">
+                          <button
+                            type="button"
+                            className="btn"
+                            disabled={!readable || historyOffsets.length < 2}
+                            onClick={() => setHistoryOffsets((current) => current.slice(0, -1))}
+                          >
+                            上一页历史
+                          </button>
+                          <button
+                            type="button"
+                            className="btn"
+                            disabled={!readable || historyRead.value?.nextOffset === undefined}
+                            onClick={() => {
+                              const next = historyRead.value?.nextOffset;
+                              if (next !== undefined)
+                                setHistoryOffsets((current) => [...current, next]);
+                            }}
+                          >
+                            下一页历史
+                          </button>
+                        </div>
+                      </>
+                    ) : null}
+                  </fieldset>
+                ) : null}
+              </div>
+            }
           />
         </div>
       </div>

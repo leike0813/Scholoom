@@ -76,7 +76,7 @@ async function importMaterials(
 
 async function selectSource(page: Page, panel: Locator, title: string): Promise<Locator> {
   await panel.getByLabel('查找题录', { exact: true }).fill(title);
-  await panel.getByRole('button', { name: `查看题录 ${title}`, exact: true }).click();
+  await panel.getByRole('option', { name: `查看题录 ${title}`, exact: true }).click();
   return page.getByRole('region', { name: '题录详情', exact: true });
 }
 
@@ -143,9 +143,7 @@ test('用户摄取本机材料、添加多用途附件、分页查看并下载�
     await rm(articlePath);
 
     await panel.getByLabel('查找题录', { exact: true }).fill(articleName);
-    const row = panel.locator('li', {
-      has: uiPage.getByRole('button', { name: `查看题录 ${articleName}`, exact: true }),
-    });
+    const row = panel.getByRole('option', { name: `查看题录 ${articleName}`, exact: true });
     await expect(row).toContainText('已有附件登记');
     await expect(row).toContainText('待核对');
 
