@@ -24,7 +24,15 @@ macOS 后续规划已按用户选择落入同一 investigation／design 和 task
 
 安装夹具修正提交 `bf051e7` 的 [CI 40058485995](https://github.com/leike0813/Scholoom/actions/runs/40058485995) Linux／Windows 原生专项均通过，包含中文及空格安装路径。此前旧 CI 的未完成 Linux 后续由主线取消，保留失败证据并沿最新源码验证。主线整组内核 **397 通过、2 既有跳过，24.5 分钟**；全仓最终 build 通过；context-bridge／resource-lifecycle 双宿主 **8/8，3.8 分钟**，隔离 5581 已释放。日志 `/tmp/scholoom-r5-ownership-{complete,fullbuild,ui}.log`。这些属于下述最后接续谓词修正之前的证据。
 
-最终自查发现只核对当前／最近尝试仍会让连续重试绕过更早的未知归属。现普通 Agent、registered 图及项目释放复用实例／所属 run 的单一有界查询，接续覆盖同会话历史，孤立归属保留未知，其他会话正常并发保持。原 prior-writer 的实际存活／已退出两种根场景均扩展为连续两次拒绝，随后显式解除夹具故障才恢复；本机两项通过。harness 重建、tools 类型、改动文件 Biome、架构及 diff 检查通过；包含普通恢复／图／并发／项目迁移／工作台组合的 45 项回归正在运行，最终结果另补，不将前组通过冒作修正后整组重跑。
+最终自查发现只核对当前／最近尝试仍会让连续重试绕过更早的未知归属。现普通 Agent、registered 图及项目释放复用实例／所属 run 的单一有界查询，接续覆盖同会话历史，孤立归属保留未知，其他会话正常并发保持。原 prior-writer 的实际存活／已退出两种根场景均扩展为连续两次拒绝，随后显式解除夹具故障才恢复；本机两项通过。harness 重建、tools 类型、改动文件 Biome、架构及 diff 检查通过；修正后包含普通恢复／图／并发／项目迁移／工作台组合的回归 **45/45，6.1 分钟**，日志 `/tmp/scholoom-r5-session-ownership{,-build}.log`。整组 397／双宿主 8 项属于修正前结果，不冒作修正后重跑；45 项与前组重叠，不相加为独立用例。
+
+最终源码提交 `cb7eb06` 已推送，[CI 40060356348](https://github.com/leike0813/Scholoom/actions/runs/40060356348) Linux／Windows 原生专项均通过，完整内核仍在运行；macOS 专项失败符合当前实际能力，不能宣称完整 CI 通过。前一版 `bf051e7` 的真实 Windows 完整内核为 **386 通过、1 失败、12 跳过，30.2 分钟**，失败是 `development-execution` 的 SIGKILL 场景 60 秒超时；原生专项 **16 通过、1 跳过，30.6 秒**。没有归为超时太短或放宽限制，未解决验证仍由跨平台修复变更记录。
+
+最终 Linux x64 目录包 `/tmp/scholoom-r5-final-package.URBBxM` 使用末轮重建后的真实共享模块：构建成功；原入口 smoke **4/4，36.9 秒**；从包内 platform 实际启动私有监督程序，经 IPC 派生后代，停止返回后后代已退出。日志 `/tmp/scholoom-r5-ownership-{package-final,packaged-final,packaged-native}.log`，工件 `test-results/integrate-r5-ownership-packaged`。首次 smoke 命令误用不存在的配置名，未执行测试；改用原 `playwright.config.ts` 后取得上述结果。此前目录包保留为比较工件，最终包及日志保留为复验依据；不以文件存在代替实际执行。
+
+主线进一步读取 Windows 实际 trace，定位上述 SIGKILL 场景先在模型请求等待中得到 0，尚未执行 owner SIGKILL，随后清理持续到总期限；未将场景名称误作停止阶段根因。调查依据和具体入口更新到跨平台变更的未完成事项。
+
+本轮由主线完成接收、修复及可验收部分收尾，没有再委派或操作其他工作树。工作台上下文已独立归档；本项仍为 **19/24**，4.5／4.6 和 5.3–5.5 未完成，macOS 完整目标及真实方案验证继续保留。跨平台修复 3.1 亦未完成；全部公共基础尚未验收，七域未启动。确认丢失后的未知归属目前没有自动解除入口，接续及仓储释放继续受保护。真实外部模型／科研充分性、完整 UI 及三平台实际分发安装恢复未验收。正常测试 fixture 已结束，5581 无监听；不关闭仍在运行且提供最终平台证据的 CI。
 
 ### 第五轮实际交付与独立模块审查
 

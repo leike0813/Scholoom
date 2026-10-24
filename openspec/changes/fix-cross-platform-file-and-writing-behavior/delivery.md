@@ -10,7 +10,11 @@
 
 同次 Linux 内核 **390 通过、5 失败、2 跳过**，五项属于新原生控制路径的故障注入与旧根 PID 推断，修复及新验收由领域变更记录；macOS 原生专项 **14 失败、2 通过**，kqueue 假设不成立。用户已决定保留 macOS 全功能目标，先规划系统服务／隔离环境，公共基础尚不验收。不能以本次 Windows kernel 通过宣称三平台 CI 或分发完成，3.1 继续保留待办；没有删除断言、放宽等待或跳过旧库 UI。
 
-本变更基于 dev `23e68c8`，实施 PR #10 暴露的跨平台公共缺陷清理，主要源码已提交推送至 `001cab8`，审查入口为 [PR #13 → dev](https://github.com/leike0813/Scholoom/pull/13)。本轮止于可审查 PR，整条 CI 尚未通过：Windows 执行状态等待未稳定（PR 2项失败、同代码 push 23项失败），Linux／macOS smoke 仍受旧库 UI 入口阻断。保留验证待办，不归档本 change；原已归档变更及另外两个活动 change 均未改动。
+安装夹具修正后的 `bf051e7` / [CI 40058485995](https://github.com/leike0813/Scholoom/actions/runs/40058485995) Windows 原生专项 **16 通过、1 跳过，30.6 秒**，含中文和空格安装路径；完整内核 **386 通过、1 失败、12 跳过，30.2 分钟**。失败是 `tests/kernel/development-execution.spec.ts` 的开发宿主 SIGKILL 场景 60 秒超时，smoke 未到达；并非前一轮同样的标题失败，也不能据此关闭旧 smoke 待办。日志 `/tmp/scholoom-r5-windows-bf051e7.log`，远端 trace 已保留。最新接续保护源码 `cb7eb06` 的 CI 仍在进行，Linux／Windows 原生专项通过，完整平台结果尚待完成。主线本机完整内核 397 通过／2 跳过、末轮接续修正后 45/45、双宿主 8/8 及最终 Linux 包入口 4/4 的分阶段证据见领域 delivery，不把本机证据替代 Windows／macOS。
+
+### 原工作树交付
+
+本变更基于 dev `23e68c8`，实施 PR #10 暴露的跨平台公共缺陷清理，主要源码已提交推送至 `001cab8`，审查入口为 [PR #13 → dev](https://github.com/leike0813/Scholoom/pull/13)。原工作树交付止于可审查 PR，当时整条 CI 未通过：Windows 执行状态等待未稳定（PR 2项失败、同代码 push 23项失败），Linux／macOS smoke 仍受旧库 UI 入口阻断。保留原记录和验证待办；当前接收状态以上方主分支记录为准。
 
 - 写作产物根、目录浏览及项目准入使用相同真实路径表示；保留根外链接及私有目录拒绝。创建前拒绝私有根，不留下新目录。
 - 创建候选通过 `r+` 句柄执行原有 fsync；原子发布、依据核验、收据和效果未知处理保留。
@@ -66,6 +70,6 @@ Windows 本轮具体验收：history／full-cache 原66／65轮分别18.9／18.0
 
 ## 未完成事项与下一步
 
-本轮已形成可审查 PR，任务3.1保留未勾选，整体 CI 未绿。PR的两项未解决用例位于 `tests/kernel/harness-recovery.spec.ts:381` 和 `tests/kernel/harness.spec.ts:809`：Windows 5秒状态等待期望 completed，实际 running；本机同例2/2通过。push另有23项状态等待失败，涉及 capability-isolation、context-instructions／query、execution-secrets、harness-recovery／harness、literature integration、pdf-isolation、sessions、work-domains／materials；具体用例见该CI日志。现有证据不足以判定正常慢执行还是停滞，不归为单纯环境缺失，不宣称已修复。
+PR #13 已在 dev 接收，3.1 保留未勾选，整体 CI 未绿。原两项及 23 项 Windows 状态等待失败在 `a8f1947` 的完整内核中未复现，但不据一次运行认定历史不稳定的原因。最新生产源码及安装路径夹具的实际跨平台复验继续以主分支记录和 CI 为准。
 
-若继续处理，先在真实 Windows 复现这两项，并在关闭测试实例前利用现有 run／tool records、受管进程身份、受控模型请求和 checkpoint 诊断，区分启动、模型、工具与最终保存阶段；原断言和上限保留。涉及 harness/runtime 的实现改动须先按原范围约束给出具体依据及方案，不在本轮扩入。库 UI 入口待原方案确认；不启动七域、不自动合入 dev、不归档本 change。
+当前未关闭的是 Windows 开发宿主 SIGKILL 场景超时、旧库 UI 入口验收，以及此前 Windows Electron 入口在 5 秒内未找到一级标题。已读取实际 trace：SIGKILL 场景先在 `model.requests.length` 的 5 秒等待中得到 0，尚未执行 owner SIGKILL，随后清理持续至总计 60 秒；调查应从模型请求前的 run／worker／模型准入及清理等待开始，不能把场景名当作停止阶段失败的证据。前一轮标题失败没有页面快照或 renderer 加载原因，同样不能认定超时太短。续做先核对最新 CI，沿实际 run／tool records、进程身份及模型请求诊断，保留原断言与上限；标题若再现再核对实际窗口、页面加载和 renderer 错误。库 UI 实施仍待原方案确认，不改走 API 假装用户入口通过。macOS 完整归属由领域变更第 5 组继续规划，保留全功能目标；本项未归档，七域仍待公共基础验收，本轮不再分派工作树任务。
