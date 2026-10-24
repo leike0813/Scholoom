@@ -29,4 +29,4 @@ Linux、Node 24.12.0、pnpm 11.10.0，复用现有运行时与依赖。真实客
 
 ## 未完成事项与下一步
 
-本变更的 Linux 双宿主用户路径完成。完整UI110项、真实外部模型与科研质量、三平台实际分发安装恢复未在本轮验收。macOS受管执行及未知归属的公共基础验收由[领域执行 change](../../establish-domain-execution-handoffs/tasks.md)继续承接，不据本变更通过关闭其剩余任务。Windows执行与Electron验证见同轮跨平台修复交付。
+本变更的 Linux 双宿主用户路径完成。完整UI110项、真实外部模型与科研质量、三平台实际分发安装恢复未在本轮验收。macOS受管执行及未知归属的公共基础验收由[领域执行 change](../2026-10-24-establish-domain-execution-handoffs/tasks.md)继续承接，不据本变更通过关闭其剩余任务。Windows执行与Electron验证见同轮跨平台修复交付。

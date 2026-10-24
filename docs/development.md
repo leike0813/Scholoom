@@ -84,7 +84,7 @@ Agent、能力子执行与 PDF 共用宿主持有的进程容量，默认活动 
 
 固定样例位于 `tests/fixtures/domain-execution-worker/`：`fixed-counter` 只检查实际两节点图及 IPC，其 `execution.custom` 回报由内联测试提供者接收；`fixed-resource` 检查真实材料与首次创建；`durable-resource` 沿完整 KernelApplication 跑真实 SQLite checkpoint、interrupt 和新消息恢复。`worker-v2.mjs`／`worker-model.mjs` 分别提供升级及模型额度边界，额度用例只调用真实 acquire/release，不据此宣称模型生成通过。生产 `apps/kernel/src/execution-graphs.ts` 当前为空，固定图不注册为科研方法。
 
-同目录 `command.mjs` 的 echo／overflow／tree 模式实际运行 Node、输出边界和后代进程。机制用例的工作空间和授权回调是明确替身，broker 用例使用活动会话和真实实例授权。各组合的实跑范围见[领域交接交付](../openspec/changes/establish-domain-execution-handoffs/delivery.md)。定位失败时，先区分协议拒绝、注册校验、准入等待、实际执行及结果交付，再沿对应测试和所属记录核查。
+同目录 `command.mjs` 的 echo／overflow／tree 模式实际运行 Node、输出边界和后代进程。机制用例的工作空间和授权回调是明确替身，broker 用例使用活动会话和真实实例授权。各组合的实跑范围见[领域交接交付](../openspec/changes/archive/2026-10-24-establish-domain-execution-handoffs/delivery.md)。定位失败时，先区分协议拒绝、注册校验、准入等待、实际执行及结果交付，再沿对应测试和所属记录核查。
 
 先按根命令完成构建，再选择表中相应 spec；已有运行时无需重新执行安装脚本。例如：
 
@@ -122,7 +122,7 @@ SCHOOLOOM_UI_PORT=5343 node node_modules/@playwright/test/cli.js test --config p
 
 `apps/kernel/src/commands.ts` 的 `ManagedCommands` 统一解析宿主私有工作空间和程序登记，管理进程准入、排队后再次授权及实际停止。editor 实际消费内部 `platform.command`，`platform.editorCommand` 保留为同一实现的薄适配。生产工作空间仅由 editor 提供，限 Quarto／latexmk，不开放客户端指定本机目录或程序。全局工作域及目标只读范围不获命令权限；Agent 必须具有相符 principal／session／项目工作域，宿主在排队前后核对 harness 当前运行实例和项目授权。人工排版可独立于 harness。命令失败和停止未知继续由 editor 保留原工作空间、诊断及最后成功预览。
 
-`tests/kernel/managed-commands.spec.ts` 的机制用例使用固定工作空间及授权替身；broker 用例在隔离真实 KernelApplication／活动执行中使用宿主源码登记的固定 Node 程序，核对排队撤权、取消、失效实例及全局范围拒绝。进程树、输出边界和控制丢失沿原真实进程用例，`process-admission.spec.ts` 另核对未确认停止保留占用。实际结果见[领域交接交付](../openspec/changes/establish-domain-execution-handoffs/delivery.md)。
+`tests/kernel/managed-commands.spec.ts` 的机制用例使用固定工作空间及授权替身；broker 用例在隔离真实 KernelApplication／活动执行中使用宿主源码登记的固定 Node 程序，核对排队撤权、取消、失效实例及全局范围拒绝。进程树、输出边界和控制丢失沿原真实进程用例，`process-admission.spec.ts` 另核对未确认停止保留占用。实际结果见[领域交接交付](../openspec/changes/archive/2026-10-24-establish-domain-execution-handoffs/delivery.md)。
 
 受管执行由 `packages/platform/native/process-scope.c` 的私有原生监督程序持有归属：Linux 使用 subreaper 接管孤儿后代，Windows 使用禁止 breakaway 的 Job Object。原 worker 先停在最小 bootstrap，归属确认后才取得显式环境并载入业务模块；调用方环境不能在登记前执行代码。取消或根程序退出后，监督程序清理剩余后代，仅在原生范围为空时确认停止；确认失败保留 unknown 和容量占用。`managed-commands.spec.ts` 的 detached 用例以实际后代心跳核对取消及根程序正常退出，不能以进程组为空代替全范围停止。
 
@@ -130,7 +130,7 @@ SCHOOLOOM_UI_PORT=5343 node node_modules/@playwright/test/cli.js test --config p
 
 platform 的 build 会先使用系统 C 编译器构建监督程序，Windows 使用已安装的 Visual Studio C 工具链；Electron 打包核对该文件已解包。`ManagedNode.availability` 是平台受管执行可用性的唯一来源，经 `KernelStatus.managedExecution` 发布给客户端；以实际内核平台为准。当前 macOS 明确不可用：普通 Agent、源码图、外部命令、材料解析及完整排版在创建 worker 前返回 unavailable，命令不进入容量等待，解析不加载材料快照。工作台状态栏提示原因，禁止新执行发送并保留草稿；人工文件编辑、题录／附件管理、已有成果和会话查询仍可用，不切换到无隔离执行。已有未知停止及容量占用仍受保护。
 
-macOS 完整能力恢复另立变更：Darwin 不支持 kqueue 自动后代跟踪，ES 后代客户端／系统服务需核对系统范围、entitlement、签名、安装授权与完整停止；VM 需证明 macOS 工具语义和材料／成果传输。需有目标 Mac、必要 Apple 权限及真实分发验证，候选 API 不构成交付。调查与实际边界见[领域交接交付](../openspec/changes/establish-domain-execution-handoffs/delivery.md)。
+macOS 完整能力恢复另立变更：Darwin 不支持 kqueue 自动后代跟踪，ES 后代客户端／系统服务需核对系统范围、entitlement、签名、安装授权与完整停止；VM 需证明 macOS 工具语义和材料／成果传输。需有目标 Mac、必要 Apple 权限及真实分发验证，候选 API 不构成交付。调查与实际边界见[领域交接交付](../openspec/changes/archive/2026-10-24-establish-domain-execution-handoffs/delivery.md)。
 
 源码与 QMD／Markdown 可视编辑共用同一草稿。Markdown／QMD 轻量预览读取未保存草稿；完整排版读取已保存稿件，打开预览或保存时更新当前选择格式。QMD 默认 HTML，切换 PDF 后更新 PDF；LaTeX 保留原生多文件工程并编译 PDF。HTML、PDF、DOCX 均可通过显式导出生成到工作区，沿用既有文件冲突与传输保护。
 

@@ -82,4 +82,4 @@ Windows 本轮具体验收：history／full-cache 原66／65轮分别18.9／18.0
 
 ## 未完成事项与下一步
 
-本项文件／写作修复及约定验证记录完成。完整CI、真实外部科研、全部UI与目标平台实际分发安装恢复不在本项通过范围；Electron历史偶发失败只取得未复现与新增诊断的结论。macOS完整归属由[领域变更第5组](../../establish-domain-execution-handoffs/tasks.md)继续承接，用户无Mac及Apple账号，ES entitlement／签名条件尚不具备。公共基础整体仍未验收，不因本项或库UI独立完成启动七域。
+本项文件／写作修复及约定验证记录完成。完整CI、真实外部科研、全部UI与目标平台实际分发安装恢复不在本项通过范围；Electron历史偶发失败只取得未复现与新增诊断的结论。macOS完整归属由[领域变更第5组](../2026-10-24-establish-domain-execution-handoffs/tasks.md)继续承接，用户无Mac及Apple账号，ES entitlement／签名条件尚不具备。公共基础整体仍未验收，不因本项或库UI独立完成启动七域。

@@ -33,7 +33,7 @@
 
 ## 决策与授权依据
 
-依据[Graph 运行基础](../../../.scratch/domain-development/issues/04-research-methods-scope.md#answer)、[程序运行分工](../../../.scratch/domain-development/issues/06-managed-computation-scope.md#answer)、[七域安排](../../../.scratch/domain-development/issues/10-parallel-design-and-delivery.md#answer)。本轮只获“形成OpenSpec实施规划”授权，不实施程序运行或业务 Graph。库身份、引用键、修订、删除恢复及插件 SQL 适配不在本变更中修改；受生态调查影响的领域契约仍在所属变更定案前闭合。
+依据[Graph 运行基础](../../../../.scratch/domain-development/issues/04-research-methods-scope.md#answer)、[程序运行分工](../../../../.scratch/domain-development/issues/06-managed-computation-scope.md#answer)、[七域安排](../../../../.scratch/domain-development/issues/10-parallel-design-and-delivery.md#answer)。本轮只获“形成OpenSpec实施规划”授权，不实施程序运行或业务 Graph。库身份、引用键、修订、删除恢复及插件 SQL 适配不在本变更中修改；受生态调查影响的领域契约仍在所属变更定案前闭合。
 
 用户随后确认按资源契约、执行及工作台共同契约、dev 基线的顺序继续，推进至三个 change 可以并行。本轮据此实施 1.1 与 0.1，并验证旧路径和未接线能力的明确失败；具体图驱动、成果创建提供者及受管命令实现仍由后续任务承接。
 

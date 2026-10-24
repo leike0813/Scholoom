@@ -19,10 +19,10 @@ flowchart LR
 | OpenSpec | 实际缺口与完成依据 |
 | --- | --- |
 | [establish-scoped-execution-foundation](../../openspec/changes/archive/2026-10-23-establish-scoped-execution-foundation/proposal.md) | 已完成并归档：application／scratch、可信目标只读、领域再次授权及零持久修改保护已接入 dev；后续按正式规格消费。 |
-| [establish-domain-execution-handoffs](../../openspec/changes/establish-domain-execution-handoffs/proposal.md) | 复用 ResourceRef，补实际材料／成果、新建及未知核查、源码装配图及等待恢复、宿主受管命令窄端口和独立夹具。 |
-| [establish-workbench-context-bridge](../../openspec/changes/archive/2026-10-24-establish-workbench-context-bridge/proposal.md) | 已完成并归档：认证连接所属快照、工具当次查询、显式项完整指令、共同 composer 及多窗口草稿保护已接入 dev；不解除领域与平台剩余验收条件。 |
+| [establish-domain-execution-handoffs](../../openspec/changes/archive/2026-10-24-establish-domain-execution-handoffs/proposal.md) | 已完成并归档：实际资源／成果首次创建、未知核查、源码图等待恢复、受管命令及隔离夹具已接入dev。Linux／Windows受管执行，macOS明确不可用并保留人工能力。 |
+| [establish-workbench-context-bridge](../../openspec/changes/archive/2026-10-24-establish-workbench-context-bridge/proposal.md) | 已完成并归档：认证连接所属快照、工具当次查询、显式项完整指令、共同 composer 及多窗口草稿保护已接入 dev。 |
 
-三个变更采用共同契约先交付、三个工作树并行实现、真实整合按依赖验收的安排。公共基础以工作域、真实内部资源／执行接线、固定样例及独立开发入口的实际证据验收，不以 CLI ready 或替身通过代替已交付。七域开发仍等待全部公共基础验收。
+三个变更已按共同契约、并行实现、真实整合的顺序交付。公共基础依据工作域、真实内部资源／执行接线、固定样例及独立开发入口验收；用户已授权macOS以显式不可用及人工降级收尾，可以进入七域后续规划和开发。执行路径目前支持Linux／Windows，macOS仅保留不依赖受管进程的能力；不据此宣称全仓CI或三平台发布验收完成。
 
 ### 共同契约的交付边界
 
@@ -84,10 +84,10 @@ flowchart LR
 
 每个变更包含 proposal、investigation、delta specs、design 和 tasks；delivery 在实际执行后形成。源码与现状依据在各 investigation，已执行的共同契约及回归验证见所属 delivery，不把契约交付视为真实授权、图运行或工作台功能已经完成。
 
-共同契约基线使用协议版本 4。三条实现工作树为 scoped-execution-foundation、domain-execution-handoffs、workbench-context-bridge，均归 Orca 的 Scholoom 项目。2026-10-24 dev 已接收第五轮 PR #13、#14、#15，分别以 `607dd19`、`f238bf8`、`d66a308` 保留原提交合入。用户明确要求在本分支完成收尾、不再分派；后续缺口由主分支接续，不操作其他工作树或 Agent。工作域已归档，工作台最终组合与容量修复、领域真实图及失败组合、跨平台文件与写作修复均已接入；任务完成依据仍见各自 tasks／delivery，七域等待全部公共基础验收。
+共同契约基线使用协议版本4。三工作树的第五轮PR #13、#14、#15已接入dev，主线按用户授权完成剩余整合，不再分派或操作其他工作树Agent。当前任务和实际证据见各变更tasks／delivery，不另维持一份进度记录。
 
-收尾重点是领域独立审查已复现的 P1：detached 后代逃离 POSIX 进程组后仍运行，原实现却确认停止并释放容量。用户授权主分支补齐，再完成公共基础验收。Linux subreaper 与 Windows Job Object 已接入，真实 CI 原生专项通过；macOS 的 kqueue 候选已被 Apple 源码和真实 CI 证伪，当前明确不可用。用户已选择保留 macOS 全功能目标，先规划系统级服务／隔离环境，公共基础暂不验收；领域原 investigation／design／tasks 第 5 组承接后代 ES 客户端、服务及 VM 的真实可行性与分发验证。具体实现、证据与剩余验收见领域 delivery，不以两平台专项通过宣称三平台或公共基础完成。
+独立审查发现的detached后代P1已按当前平台范围处理：Linux subreaper／Windows Job Object持有完整归属，macOS在worker前拒绝执行。用户在确认缺少Mac／Apple账号后，明确授权以声明和人工fallback完成本轮；这取代此前等待完整macOS后端的条件。完整ES／系统服务／VM方案另立变更，必要硬件、权限、安装及分发验证不能由候选API替代。实际验证和审查边界见[领域交付](../../openspec/changes/archive/2026-10-24-establish-domain-execution-handoffs/delivery.md)。
 
-文件／写作修复与库管理入口已按自身范围完成、同步规格并归档，实际结果和未验边界分别见[跨平台交付](../../openspec/changes/archive/2026-10-24-fix-cross-platform-file-and-writing-behavior/delivery.md)和[库UI交付](../../openspec/changes/archive/2026-10-24-restore-library-management-entrypoints/delivery.md)。Windows失败路径经定向诊断和重复回归收敛，库UI仍由真实用户入口验收。Electron历史偶发失败本轮未复现，已补诊断，未宣称找到根因。macOS签名／ES授权及真实平台验证条件尚不具备，继续沿领域变更第5组处理；其独立完成不解除公共基础剩余条件。
+文件／写作修复和库管理入口已独立归档，见[跨平台交付](../../openspec/changes/archive/2026-10-24-fix-cross-platform-file-and-writing-behavior/delivery.md)和[库UI交付](../../openspec/changes/archive/2026-10-24-restore-library-management-entrypoints/delivery.md)。全仓CI仍有Linux UI定位／RPC gate／PDF预览及Windows执行状态短等待等遗留失败；Electron历史偶发首次加载失败已补诊断，未宣称找到根因。这些限制和真实模型／科研充分性、三平台实际分发安装恢复分别跟进，不阻止沿已验收公共契约开展后续领域开发。
 
 续做先读所选变更、上表对应依赖增量的实际 delivery 及 dev 接入结果，取得 apply instructions；不要求其他 change 全部完成才开始独立任务。规划就绪不构成新增操作授权。本轮由主 Agent 在 dev 整合验收并收尾，不再安排工作树任务。各变更的验证必须区分真实模块、外部受控响应、平台及尚未验证范围。

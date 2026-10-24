@@ -4,6 +4,8 @@
 
 ### macOS 显式不可用与人工降级收尾
 
+最终进度 **24/24**。公共基础按Linux／Windows受管执行、macOS显式不可用及人工降级的范围交付，可以进入后续领域开发；这不表示全仓CI或三平台发布验收完成。正式规格已同步，历史记录中的待办不再代表当前任务状态。
+
 2026-10-24，用户明确调整验收范围：缺少 Mac／Apple 账号，先将相应特性设为不可用，以“显式声明＋fallback”完成本 change 并归档。该授权取代此前等待完整 macOS 后端的阻塞条件；后文历史记录中的未验收结论保留其当时范围。本轮 fallback 仅保留人工文件、题录／附件、草稿、历史会话和已有成果，不提供无隔离执行。ES／系统服务／VM 仍是未来恢复完整能力的调查方向，需要另立变更、必要硬件／权限及真实分发验证。
 
 已实现 `ManagedNode.availability` 单一声明，经同源 `KernelStatus.managedExecution` 提供给连接客户端。harness 在新指令受理前、命令在容量等待前、材料解析在快照加载前、底层启动在控制器创建前拒绝不可用平台。原指令幂等回执及未知归属保护保持。工作台按内核状态提示原因并禁发送，保留可编辑草稿及人工入口；设计总览已与实际接线核对。
@@ -20,13 +22,15 @@
 
 测试修正提交 `b595f9c` 的 [Checks 40099675143](https://github.com/leike0813/Scholoom/actions/runs/40099675143) 真实macOS：新增降级双宿主通过，内核2/2和入口4/4通过；已有library浏览器用例在刷新前的草稿检查失败，其余3项通过。该用例也使用只等待click完成的共用createSession辅助函数，未等待异步会话实际选中。现统一在fixture中等待新的选中会话身份，不使用固定延时，也不修改产品草稿保存。最终本机5617降级＋库管理双宿主 **4/4，1.1分钟**；tools类型和改动文件Biome通过，日志 `/tmp/scholoom-macos-close-ui-fixture.log`。真实Mac第三轮结果待回填。
 
+最终测试提交 `55d020c` 的 [Checks 40100596838／macOS job](https://github.com/leike0813/Scholoom/actions/runs/40100596838/job/120891769816) 全部通过：真实macOS 26.6.2／arm64 的类型／架构／lint／构建、内核降级 **2/2，8秒**、应用入口 **4/4，29.8秒**、库＋降级双宿主UI **4/4，1.5分钟**，以及desktop／zotero-host的arm64目录打包。没有替换availability或状态响应，验证实际不可用分支；目录包未做Apple签名、公证或安装升级验收。完整job日志 `/tmp/scholoom-macos-close-real-mac-final.log`。Linux／Windows同次原生归属专项通过，完整套件仍在运行，不记作全仓通过。本机更新fixture后，原上下文显式材料及模型发送路径双宿主 **2/2，1.2分钟**，日志 `/tmp/scholoom-macos-close-ui-context.log`。本轮临时profile／trace／目录包工件按调查和复验依据保留，5611–5619已释放，没有接管其他实例。
+
 全仓验证边界：`4616aa8` 的完整 [Checks 40082740497](https://github.com/leike0813/Scholoom/actions/runs/40082740497) 三平台失败，Windows专项 [40082740532](https://github.com/leike0813/Scholoom/actions/runs/40082740532) 通过。Linux 内核397通过2跳过、smoke6通过1跳过；UI102通过6失败2跳过，失败分别是同名项目定位、旧RPC gate无 held 请求、写作PDF预览，各双宿主。Windows完整内核378通过9失败12跳过，剩余为执行状态短等待路径；macOS原受管专项因当前不可用失败。本轮只按新范围调整macOS验收，Linux／Windows原测试继续保留，未隐藏上述失败。详细日志 `/tmp/scholoom-macos-close-ci-failures.log`，未将全仓CI标作通过。
 
 ### Windows与库UI后续收敛，macOS条件仍未具备
 
-2026-10-24，主线按用户批准方案继续完成Windows定向诊断、独立库UI及Electron入口复验；不再分派，也未操作其他工作树。最终Windows定向CI [40081004866](https://github.com/leike0813/Scholoom/actions/runs/40081004866)：原失败执行路径重复10/10、原生归属／命令授权16通过1既有跳过、开发宿主2/2、Electron首次加载3/3。阶段诊断证明Windows冷启动与权限准备后，同次结构执行约6.4秒正常完成，原5秒功能等待不适合该路径；测试调整和所有历史失败详见[跨平台交付](../archive/2026-10-24-fix-cross-platform-file-and-writing-behavior/delivery.md#本轮按变更范围完成收尾)。没有更改生产准入、权限和停止时限。
+2026-10-24，主线按用户批准方案继续完成Windows定向诊断、独立库UI及Electron入口复验；不再分派，也未操作其他工作树。最终Windows定向CI [40081004866](https://github.com/leike0813/Scholoom/actions/runs/40081004866)：原失败执行路径重复10/10、原生归属／命令授权16通过1既有跳过、开发宿主2/2、Electron首次加载3/3。阶段诊断证明Windows冷启动与权限准备后，同次结构执行约6.4秒正常完成，原5秒功能等待不适合该路径；测试调整和所有历史失败详见[跨平台交付](../2026-10-24-fix-cross-platform-file-and-writing-behavior/delivery.md#本轮按变更范围完成收尾)。没有更改生产准入、权限和停止时限。
 
-库管理入口独立恢复，最终Linux浏览器／Electron的库、附件、上下文、资源及关闭回归16/16，真实dev命令回收／重启读回也通过；见[库UI交付](../archive/2026-10-24-restore-library-management-entrypoints/delivery.md)。本轮公共原生／命令／生命周期19/19及执行4/4通过，类型／构建／架构／lint均通过；模型仍为loopback合成响应，没有真实科研或三平台分发验收。
+库管理入口独立恢复，最终Linux浏览器／Electron的库、附件、上下文、资源及关闭回归16/16，真实dev命令回收／重启读回也通过；见[库UI交付](../2026-10-24-restore-library-management-entrypoints/delivery.md)。本轮公共原生／命令／生命周期19/19及执行4/4通过，类型／构建／架构／lint均通过；模型仍为loopback合成响应，没有真实科研或三平台分发验收。
 
 用户明确告知无Mac、无Apple开发者账号。GitHub macOS runner可作普通编译或无特权实验，不能替代ES entitlement审批、产品签名和真实分发条件。按investigation保留5.3外部阻塞、5.4选型及5.5实施待办；不在缺少条件时编写猜测性ES生产后端，也不默认选VM。当前19/24，4.5／4.6仍未完成，公共基础整体仍未验收；文件／写作8/8、库UI4/4已同步正式规格并归档，其独立收尾不解除本项条件。新的适配未获得独立代理审查，继续如实保留。
 
@@ -80,7 +84,7 @@ macOS 后续规划已按用户选择落入同一 investigation／design 和 task
 
 延迟器始终先调用实际资源提供者并原样返回其结果；没有用成功替身代替文件、仓储、broker 或授权。完整指令／来源和实际读取正文分别核对，保存 checkpoint 后消费的原边界保留。每个新用例的 `actual-delivery` 附件记录隔离配置、项目、run／instruction、资源及依据、关联和前后状态，不包含凭据。默认生产源码注册仍为空。
 
-工作台完整上下文、累计 101 条分批确认及大文本 IPC 的接入依据继续引用[工作台第四轮 dev 接收](../archive/2026-10-24-establish-workbench-context-bridge/delivery.md#第四轮-dev-接收)。本轮补充模块级执行／失败证据供其最终 4.5 用户路径引用；工作台仍承担其最终用户路径与整合责任，本线不重复改 runtime、driver、来源或 composer。
+工作台完整上下文、累计 101 条分批确认及大文本 IPC 的接入依据继续引用[工作台第四轮 dev 接收](../2026-10-24-establish-workbench-context-bridge/delivery.md#第四轮-dev-接收)。本轮补充模块级执行／失败证据供其最终 4.5 用户路径引用；工作台仍承担其最终用户路径与整合责任，本线不重复改 runtime、driver、来源或 composer。
 
 #### 4.5 独立模块审查及未关闭问题
 
@@ -124,9 +128,9 @@ Linux、Node 24.12.0、pnpm 11.10.0；使用现有 Electron／Chromium 和依赖
 | smoke entrypoints | **4/4，40.9 秒**，独立 Node、真实 Electron/preload、关窗重连及兼容宿主 |
 | OpenSpec | 两个 active change strict 通过；正式规格普通校验 **17/17**。额外 strict 校验 **15/17**，agent-harness／ui-workbench-shell 的既有长 Requirement 警告升级为失败，未为消除警告改写无关契约 |
 
-上述 101 项、双实例及双宿主结果属于三个 PR 合并后的源码；独立审查随后发现并修复的累计指令／IPC 容量边界、修复后受影响回归与审查结果统一见[工作台第四轮 dev 接收](../archive/2026-10-24-establish-workbench-context-bridge/delivery.md#第四轮-dev-接收)，不把修复前结果表述为修复后重跑。日志 `/tmp/scholoom-integrate-r4-{kernel,isolation,ui,entrypoints,typecheck,build,lint}.log`，工件为 `test-results/kernel` 及 `test-results/integrate-r4-{isolation,ui,entrypoints}`；本轮测试只收尾所属执行，5351–5353 最终无监听，未操作其他工作树或其 Agent。
+上述 101 项、双实例及双宿主结果属于三个 PR 合并后的源码；独立审查随后发现并修复的累计指令／IPC 容量边界、修复后受影响回归与审查结果统一见[工作台第四轮 dev 接收](../2026-10-24-establish-workbench-context-bridge/delivery.md#第四轮-dev-接收)，不把修复前结果表述为修复后重跑。日志 `/tmp/scholoom-integrate-r4-{kernel,isolation,ui,entrypoints,typecheck,build,lint}.log`，工件为 `test-results/kernel` 及 `test-results/integrate-r4-{isolation,ui,entrypoints}`；本轮测试只收尾所属执行，5351–5353 最终无监听，未操作其他工作树或其 Agent。
 
-4.4 的显式输入至实际成果查询、取消／关联部分失败／worker 失联组合仍需本线完成；4.5 安排执行协议、资源授权及命令收尾的独立模块审查。工作台线为下一轮当次最终整合负责人，承担其 4.5 的用户路径，双方互引证据及待接入修复，不重复实现公共 runtime／driver。完整内核／UI、真实模型科研充分性及三平台分发未验；#10 固定头的三平台 CI 仍失败，工具修复与剩余失败见[工作域记录](../archive/2026-10-23-establish-scoped-execution-foundation/delivery.md#第四轮-ci-修复接收)。
+4.4 的显式输入至实际成果查询、取消／关联部分失败／worker 失联组合仍需本线完成；4.5 安排执行协议、资源授权及命令收尾的独立模块审查。工作台线为下一轮当次最终整合负责人，承担其 4.5 的用户路径，双方互引证据及待接入修复，不重复实现公共 runtime／driver。完整内核／UI、真实模型科研充分性及三平台分发未验；#10 固定头的三平台 CI 仍失败，工具修复与剩余失败见[工作域记录](../2026-10-23-establish-scoped-execution-foundation/delivery.md#第四轮-ci-修复接收)。
 
 ### 第四轮隔离夹具与双宿主验证
 
@@ -247,7 +251,7 @@ registered 路径复用 RemoteAgent、静态 driver、当前实例、ProcessAdmi
 
 以下保留 dev 接收时的历史结果，资源部分的后续状态以上述续做记录为准。2026-10-23，用户要求当前 dev 收回三个工作树的 PR。PR #2 的四个提交（2f15047、2d6c721、c994fe7、f27a16a）以 0e5e167 合入；三个 PR 的组合源码基线为 efc9429。通用 driver 的真实接线和回归已接入 dev，2.2 完成，当时 tasks 为 6/19。持久等待和完整整合仍未完成，不能归档。
 
-工作域真实授权也已随 PR #1 接入同一 dev，本变更 1.2、1.4、2.4、3.3 的工作域前置现已满足；统一执行资源适配和业务图接线仍需本线实现。工作台线已交付连接／草稿增量，但未接通显式项执行。依赖和共享文件归属继续沿[公共规划](../../../.scratch/domain-development/public-foundation-plan.md)。本轮未同步其他工作树或操作其 Agent，用户将手动同步。
+工作域真实授权也已随 PR #1 接入同一 dev，本变更 1.2、1.4、2.4、3.3 的工作域前置现已满足；统一执行资源适配和业务图接线仍需本线实现。工作台线已交付连接／草稿增量，但未接通显式项执行。依赖和共享文件归属继续沿[公共规划](../../../../.scratch/domain-development/public-foundation-plan.md)。本轮未同步其他工作树或操作其 Agent，用户将手动同步。
 
 以下保留 2026-10-22 在 fe2f0bc 上独立实现的证据及当时边界。原用户已授权本线实施、提交、推送和 PR；本轮授权接收、修复冲突、验证及更新 dev。
 
@@ -313,7 +317,7 @@ registered 路径复用 RemoteAgent、静态 driver、当前实例、ProcessAdmi
 
 本次资源授权及创建／关联增量经独立 Agent 只读审查。发现并关闭两项 P1：资源读取与后续模型外发未共享目标实例绑定；普通 Agent／能力子执行丢失保存 basis。前者由同执行信号共享目标绑定及实例替换回归修复；后者贯穿 write/edit／根／能力保存回调，并扩展原 harness 失败关联用例，验证同内容替换被拒绝、恢复原文件后才补关联。旧 pending 缺 basis 时保持 unknown。审查复核已关闭问题，真实定向测试也通过；审查不覆盖后置的持久 Graph 等待／命令完整接线。
 
-2026-10-23 dev 接收时，保留工作域真实端口并处理 Harness 构造参数冲突；合并后的构造参数、根／子执行及连接路径经独立源码复核，无新增阻塞发现。全仓类型、构建、架构、137 项组合内核和 4 项真实入口冒烟通过，具体命令及证据统一见[工作域交付记录的 dev 接收验证](../archive/2026-10-23-establish-scoped-execution-foundation/delivery.md#dev-接收验证)。UI 端口配置在默认及 5275 各加载 104 项，仍未实跑双实例；4.1 保持未勾选。21 项既有文献库 UI lint 错误仍在，不以本地定向通过宣称全仓 CI 通过。
+2026-10-23 dev 接收时，保留工作域真实端口并处理 Harness 构造参数冲突；合并后的构造参数、根／子执行及连接路径经独立源码复核，无新增阻塞发现。全仓类型、构建、架构、137 项组合内核和 4 项真实入口冒烟通过，具体命令及证据统一见[工作域交付记录的 dev 接收验证](../2026-10-23-establish-scoped-execution-foundation/delivery.md#dev-接收验证)。UI 端口配置在默认及 5275 各加载 104 项，仍未实跑双实例；4.1 保持未勾选。21 项既有文献库 UI lint 错误仍在，不以本地定向通过宣称全仓 CI 通过。
 
 独立 Agent 只读核对命令权限、等待重验、停止确认与 URL 隔离，未发现阻塞问题；随后审查 driver／registry 和默认入口，报告三处旧 worker 路径导致故障注入失效。主线已同步 capability-isolation、capability-stop-unknown 和 harness-recovery，24 项相关回归通过，独立复核关闭该 finding。本轮没有未关闭 finding；审查不覆盖尚未实施的资源授权和持久恢复。
 
@@ -325,4 +329,4 @@ registered 路径复用 RemoteAgent、静态 driver、当前实例、ProcessAdmi
 
 当前真实实现和验收范围以上方“macOS 显式不可用与人工降级收尾”为准。三工作树PR均已接入dev；既有独立模块审查发现的资源竞态已修复，后代归属在Linux／Windows修复，macOS按用户新授权明确拒绝执行。本轮完成主线核对和必要开发说明，没有新增独立代理审查。
 
-剩余本轮验收是修正测试后真实Mac的双宿主UI和目录包结果，随后完成5.5／4.6及归档。完整macOS受管执行、ES／服务／VM后端、Apple签名／权限和实际分发安装恢复另立变更。未知归属没有自动解除入口，保持容量及接续保护；真实模型／科研充分性和全仓CI遗留失败不在本轮已完成范围内。
+本轮任务24/24完成，四项delta已同步正式规格。完整macOS受管执行、ES／服务／VM后端、Apple签名／权限和实际分发安装恢复另立变更。未知归属没有自动解除入口，保持容量及接续保护；真实模型／科研充分性和全仓CI遗留失败不在本轮已完成范围内。后续领域按正式规格及公共实施规划推进，不再分派本轮工作树任务。

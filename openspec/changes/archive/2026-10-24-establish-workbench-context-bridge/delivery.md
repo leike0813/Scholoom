@@ -62,7 +62,7 @@ Linux／Node 24.12.0／pnpm 11.10.0，Chromium 与真实 Electron/preload；内�
 
 #### 领域证据复用与剩余范围
 
-领域实跑范围引用[第四轮 dev 接收](../../establish-domain-execution-handoffs/delivery.md#第四轮-dev-接收)及[隔离夹具双宿主记录](../../establish-domain-execution-handoffs/delivery.md#第四轮隔离夹具与双宿主验证)。既有 resource-access 覆盖目标拒写、排队撤权及关联 unknown／重启补关联；registered-context 覆盖项目／库排队和最终同步准入撤权、恢复后授权与重读取材；registered-graph 覆盖取消和持久等待。机制复用，不重复实现。领域 4.4 的取消／关联失败／worker 失联整组及其模块独立审查仍由原 change 交付，不把普通 Agent worker 失联证据称为 registered 图组合通过。
+领域实跑范围引用[第四轮 dev 接收](../2026-10-24-establish-domain-execution-handoffs/delivery.md#第四轮-dev-接收)及[隔离夹具双宿主记录](../2026-10-24-establish-domain-execution-handoffs/delivery.md#第四轮隔离夹具与双宿主验证)。既有 resource-access 覆盖目标拒写、排队撤权及关联 unknown／重启补关联；registered-context 覆盖项目／库排队和最终同步准入撤权、恢复后授权与重读取材；registered-graph 覆盖取消和持久等待。机制复用，不重复实现。领域 4.4 的取消／关联失败／worker 失联整组及其模块独立审查仍由原 change 交付，不把普通 Agent worker 失联证据称为 registered 图组合通过。
 
 开发说明补七域选择／视图／工具接入表、明确 instructionId 查询形状和真实边界；design 总览及流程保持，新分帧机制同步 design／delta spec。接入口说明不代表七域业务交付。4.7 暂保留待领域最终整合证据，当前不宣称全部公共基础完成。
 
@@ -81,7 +81,7 @@ Linux／Node 24.12.0／pnpm 11.10.0 的接收证据：
 
 | 实际命令／组合 | 结果与范围 |
 | --- | --- |
-| 修复前合并后的 12 文件内核组合；实际双实例；Chromium／Electron 定向 UI；入口 smoke | 分别 **101/101、1/1、10/10、4/4**，入口及环境见[领域接收记录](../../establish-domain-execution-handoffs/delivery.md#第四轮-dev-接收)。不将这些结果称为容量修复后的重跑 |
+| 修复前合并后的 12 文件内核组合；实际双实例；Chromium／Electron 定向 UI；入口 smoke | 分别 **101/101、1/1、10/10、4/4**，入口及环境见[领域接收记录](../2026-10-24-establish-domain-execution-handoffs/delivery.md#第四轮-dev-接收)。不将这些结果称为容量修复后的重跑 |
 | 修复后根 `typecheck`、`build`，均带 `--config.optimisticRepeatInstall=false` | 全仓通过；首次共享构建的可变 union 参数回调窄化错误已修复，再重建及完整检查通过。日志 `/tmp/scholoom-integrate-r4-final-{typecheck,build}.log` |
 | 修复后原 registered-context、registered-graph、graph-registration、instruction-checkpoint、harness-recovery、context-instructions | **49/49，6.6 分钟**。真实内部 worker／资源／SQLite，模型边界为 loopback 受控 HTTP；覆盖普通 Agent、完整附件、旧上下文缺失／空数组、终态补确认、保存／确认／回执故障、来源冲突、等待分页、撤权及取消。日志 `/tmp/scholoom-integrate-r4-fix-regression.log` |
 | 新增容量专项 `registered-context.spec.ts --grep 'registered cumulative context\|registered large instruction batches'`，独立 output `test-results/integrate-r4-volume` | **2/2，35.7 秒**。复用原固定图，先受理 100 条并保存，再追加第 101 条、注入最后一批消费确认失败；重启后完整载荷及 101 条消费状态保持、成果仅一份。另实测 70 条各 32768 个字符的完整文本进入 worker／checkpoint，重启后仍能取回旧上下文并完成。日志 `/tmp/scholoom-integrate-r4-volume.log` |
@@ -99,7 +99,7 @@ Linux／Node 24.12.0／pnpm 11.10.0 的接收证据：
 
 2026-10-23，开始前确认本树 HEAD 为 dev `e324367`、工作区干净，已包含用户指定基线。先读 AGENTS、scholoom-dev 阶段约定、公共基础实施规划、两条 active change 的最新 tasks／delivery，再取得 apply instructions。用户要求本轮独立接通 registered Graph 的完整指令上下文，提交、推送并向 dev 发 PR，最终组合留待领域夹具及隔离验证就绪；本轮未操作其他工作树或合入 dev，没有安装、升级或下载依赖。
 
-新增原任务 **3.4** 记录这个独立前置增量，已完成，当前 **14/17**。原 4.5、4.6、4.7 仍未勾选；没有归档或启动七域。领域交接的 4.x 夹具／隔离／最终交付不由此增量代替，其 dev 接收事实见[领域交接第三轮记录](../../establish-domain-execution-handoffs/delivery.md#第三轮-dev-接收)。
+新增原任务 **3.4** 记录这个独立前置增量，已完成，当前 **14/17**。原 4.5、4.6、4.7 仍未勾选；没有归档或启动七域。领域交接的 4.x 夹具／隔离／最终交付不由此增量代替，其 dev 接收事实见[领域交接第三轮记录](../2026-10-24-establish-domain-execution-handoffs/delivery.md#第三轮-dev-接收)。
 
 - 复用共同 `InstructionContext`，补可选 text、materials、materialFileIds；source、contextItems 继续引用原同源声明。GraphFactory.resume 保留 id/text 形状并取得完整上下文。宿主只从所属会话的持久消息重建可信来源，不采信工厂或 worker 自报窗口。
 - 已匹配指令经原 `execution.initialize` IPC 交给实际 worker。当前 instructions 与已核对的 checkpointInstructions 分开传递，后者只为旧 checkpoint／累计身份补齐上下文，不替换本轮匹配输入。旧 checkpoint 只有身份时从同会话持久消息补齐；已保存完整载荷与持久消息冲突则停止。
