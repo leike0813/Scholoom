@@ -1,7 +1,7 @@
 import { type ChildProcess, spawn } from 'node:child_process';
 import type { Readable, Writable } from 'node:stream';
 import { fileURLToPath } from 'node:url';
-import { frameSize } from './processes.js';
+import { frameSize, nodeEnvironment } from './processes.js';
 
 let execution: ChildProcess | undefined;
 let instanceId: string | undefined;
@@ -116,7 +116,7 @@ process.on('message', (value: unknown) => {
         {
           detached: process.platform !== 'win32',
           stdio: ['ignore', 'ignore', 'ignore', 'ipc', 'pipe', 'pipe'],
-          env: message.env ?? {},
+          env: nodeEnvironment(),
           windowsHide: true,
           serialization: 'json',
         },
@@ -147,7 +147,11 @@ process.on('message', (value: unknown) => {
             const line = status.slice(0, end);
             status = status.slice(end + 1);
             if (line.startsWith('E ')) {
-              send({ type: 'failure', reason: 'nativeScopeUnavailable' });
+              send({
+                type: 'failure',
+                reason: 'nativeScopeUnavailable',
+                detail: line.slice(2, 130),
+              });
               void stop();
               return;
             }
@@ -157,12 +161,15 @@ process.on('message', (value: unknown) => {
               arm();
             } else if (line === 'R' && armed && !loaded && !stopping) {
               loaded = true;
-              child.send({ type: 'load', entry: message.entry }, (error) => {
-                if (error) {
-                  send({ type: 'failure' });
-                  void stop();
-                } else send({ type: 'ready', identity: { pid, instanceId } });
-              });
+              child.send(
+                { type: 'load', entry: message.entry, env: message.env ?? {} },
+                (error) => {
+                  if (error) {
+                    send({ type: 'failure' });
+                    void stop();
+                  } else send({ type: 'ready', identity: { pid, instanceId } });
+                },
+              );
             } else throw new Error('Native execution ownership unavailable.');
           }
         } catch {
@@ -191,7 +198,7 @@ process.on('message', (value: unknown) => {
           moduleReady = true;
           for (const frame of startupFrames) deliver(frame);
           startupFrames.length = 0;
-        } else if (moduleReady) send({ type: 'frame', value: payload });
+        } else if (loaded) send({ type: 'frame', value: payload });
       });
       child.once('error', () => {
         send({ type: 'failure' });

@@ -10,7 +10,7 @@ import { RpcPeer } from '../../packages/broker/dist/rpc.js';
 import type { RunInstance } from '../../packages/harness/dist/node.js';
 import { callExecutionControl } from '../../packages/harness/dist/node.js';
 import type { ProcessAdmission } from '../../packages/platform/dist/node.js';
-import { ManagedNode } from '../../packages/platform/dist/node.js';
+import { ManagedNode, processMayBeAlive } from '../../packages/platform/dist/node.js';
 import { createModelServer } from '../model-server.js';
 
 const harnessExecutionWorker = new URL('../../packages/harness/dist/execution.js', import.meta.url);
@@ -409,17 +409,11 @@ test('an unconfirmed Agent stop retains interrupted state and occupied capacity 
     app.harness.cancel(scope.projectId, scope.sessionId);
     await expect.poll(async () => (await app.snapshot(scope)).run?.state).toBe('interrupted');
     expect((await app.snapshot(scope)).run?.remoteOutcome).toBe('unknown');
-    expect(() => process.kill(processId, 0)).not.toThrow();
+    await expect.poll(() => processMayBeAlive(processId)).toBe(false);
     expect((Reflect.get(app, 'processes') as ProcessAdmission).status.active).toBe(1);
   } finally {
     ManagedNode.start = start;
-    if (owned?.identity) {
-      try {
-        process.kill(-owned.identity.pid, 'SIGKILL');
-      } catch (error) {
-        expect((error as NodeJS.ErrnoException).code).toBe('ESRCH');
-      }
-    }
+    await owned?.stop().catch((error) => expect(error).toMatchObject({ code: 'outcomeUnknown' }));
     await app.close();
     await rm(root, { recursive: true });
   }

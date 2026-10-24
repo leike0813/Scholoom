@@ -23,6 +23,6 @@
 
 ## 决策与授权依据
 
-依据[工具理解上下文](../../../.scratch/domain-development/issues/05-agent-collaboration-scope.md#q4由-agent-通过工具理解工作台上下文)、[Codex 式交互及草稿保护](../../../.scratch/domain-development/issues/07-research-interaction-scope.md#answer)、[公共基础范围](../../../.scratch/domain-development/issues/10-parallel-design-and-delivery.md#answer)。用户授权本轮形成规划，不启动业务实施或开发服务器；界面实施先更新既有 UI 设计事实源。
+依据[工具理解上下文](../../../../.scratch/domain-development/issues/05-agent-collaboration-scope.md#q4由-agent-通过工具理解工作台上下文)、[Codex 式交互及草稿保护](../../../../.scratch/domain-development/issues/07-research-interaction-scope.md#answer)、[公共基础范围](../../../../.scratch/domain-development/issues/10-parallel-design-and-delivery.md#answer)。用户授权本轮形成规划，不启动业务实施或开发服务器；界面实施先更新既有 UI 设计事实源。
 
 用户随后确认按已列顺序继续完成共同契约并形成 dev 基线，推进至三个 change 可以并行。本轮据此实施 1.1 的声明、协议升级与兼容验证；认证连接、可靠指令实际持久化及工作台 UI 仍在后续任务中实现。

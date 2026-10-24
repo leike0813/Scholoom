@@ -437,13 +437,7 @@ test('lost process controller leaves command stop unknown and retains its occupi
     expect(f.processes.status.active).toBe(1);
   } finally {
     ManagedNode.start = start;
-    if (owned?.identity) {
-      try {
-        process.kill(-owned.identity.pid, 'SIGKILL');
-      } catch (error) {
-        expect((error as NodeJS.ErrnoException).code).toBe('ESRCH');
-      }
-    }
+    await owned?.stop().catch((error) => expect(error).toMatchObject({ code: 'outcomeUnknown' }));
     await pending?.catch(() => {});
     await rm(f.root, { recursive: true });
   }

@@ -5,8 +5,18 @@
 2026-10-24，用户明确授权主分支继续修复 P1，再完成公共基础验收，不再委派。沿原进程停止契约扩展平台受控适配，不降低任意本机程序的后代收尾保证：
 
 - 由平台构建独立原生监督程序，拥有实际执行进程及归属。Linux 使用 child subreaper，直接子进程列表来自内核；单线程监督者独占 wait/reap，停止后迭代收尾被接管的后代，只有 wait 确认无子进程才成功。Windows 使用不允许 breakaway 的 Job Object，子程序执行用户模块前完成归属，作业活动进程归零才成功。
-- macOS 使用 kqueue NOTE_TRACK 在启动门释放前登记 root，内核跟踪 fork／exit；通过 Mach task right 控制具体执行对象，退出事件消除已结束对象。跟踪丢失或无法控制仍存活对象时报告停止未知，保留容量；不能改为扫描或按旧 PID 猜测成功。
+- macOS 的原生后端仍待确定：真实 runner 和 [Apple XNU filt_procattach](https://github.com/apple-oss-distributions/xnu/blob/main/bsd/kern/kern_event.c) 均证明 NOTE_TRACK／NOTE_CHILD 返回 ENOTSUP，原 kqueue 候选已删除，不能将 BSD 支持视为 macOS 支持。用户已选择保留全功能目标，先规划系统级服务／隔离环境，公共基础暂不验收；当前在执行用户代码前明确不可用只是失败保护，不是已接受的交付边界。系统级 coalition 创建也有特权限制，候选证据与 macOS 27 后代 ES API 见 [investigation](investigation.md#macos-完整进程归属收尾调查与后续规划)。
 - Node 控制器保留同源 IPC、独立停止及有界等待，原生监督程序通过私有控制管道获知停止或控制器失联。最小 bootstrap 在原生归属就绪后才导入原 worker，导入期间有界缓存消息；目标模块和外部命令不能在登记前执行。监督程序失败不产生 stopped 回执。
+- 原生监督程序及 bootstrap 使用宿主最小环境启动，调用方的显式环境在归属确认后通过原 IPC 交给 bootstrap，再加载目标模块；避免运行时预加载变量在登记前执行代码。原生能力不可用且用户代码未启动时，确认未创建执行后释放准入；已经启动但停止未确认时仍保留占用。
+- 普通 Agent／registered 图接续及项目仓储释放只消费已确认 exited 的实例记录；删除以根 PID 消失推断全范围停止的分支。控制器失联后的自动清理不替代停止确认；未知归属当前仍需核查，重启不自动消除。Windows 原生启动使用宽字符路径并引用两个文件参数，覆盖含空格与非 ASCII 的安装目录。
+
+### macOS 后续实施的决定条件
+
+先对本机 ES 后代客户端／系统服务和 VM 分别作最小可行性验证，再选择后端。必须证明订阅与业务加载之间无空窗、后代身份不会误伤其他程序、停止确认包含在途派生，且失联或事件缺失保留未知。系统服务另外证明签名调用方、用户与执行范围授权，以及批准拒绝、撤销、升级和卸载；不得将服务变成任意 root 命令端口。VM 另外证明 macOS 工具语义、材料传入、成果保存和强制停机后的原收据核查，不让 guest 取得不受限的宿主目录。仅凭官方 API 的说明不完成这些验证。
+
+文件影响以选择结果为准：`packages/platform/native/process-scope.c` 和平台私有 macOS 适配负责归属；`build-process-scope.mjs`、desktop 打包／签名配置负责原生工件及 entitlement；必要服务或 guest 桥只接既有同源执行契约和限制，`apps/kernel/src/commands.ts`／harness／材料读取继续消费共同提供者，不能各自管理后代。实际归属与确认持久化若扩展 DTO，先在 protocol 定义再统一接线。复用现有 process／managed-command／未知停止回归，新增的真实 Mac 场景仅覆盖安装权限和候选机制独有风险。
+
+系统与硬件最低范围、Apple entitlement 的可取得性、服务权限和 guest 环境取舍仍未定案。tasks 第 5 组先交付实验和可审查的具体方案，再实施；当前不安装服务、申请权限或引入 VM 依赖，不归档本变更。
 
 新增平台私有 native/process-scope.c、build-process-scope.mjs 和 src/process-bootstrap.ts，修改平台 build、process-controller.ts 及必要打包检查；对外 ManagedNode、受管命令、harness 和业务图接口不变。使用系统编译器，不新增 npm 依赖。验证复用原正常／取消／失联测试，新增 detached 后代及正常 root 退出场景，检查心跳停止和容量释放；实际三平台 CI 和分发能力分别记录。原复现脚本已在合并基线上再次证明 P1，日志 `/tmp/scholoom-r5-detached-probe.log`，探针后代均由其 finally 明确收尾。
 

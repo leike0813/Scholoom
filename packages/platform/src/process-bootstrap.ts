@@ -12,9 +12,15 @@ for (const fd of [4, 5]) {
 const receive = async (message: unknown) => {
   try {
     frameSize(message);
-    const launch = message as { type?: string; entry?: string };
+    const launch = message as { type?: string; entry?: string; env?: Record<string, string> };
     if (launch.type !== 'load' || !launch.entry?.startsWith('file:'))
       throw new Error('Invalid execution startup.');
+    const environment = Object.entries(launch.env ?? {});
+    if (environment.some(([, value]) => typeof value !== 'string'))
+      throw new Error('Invalid execution environment.');
+    // Caller environment reaches executable code only after native ownership is established.
+    for (const name of Object.keys(process.env)) delete process.env[name];
+    for (const [name, value] of environment) process.env[name] = value;
     await import(launch.entry);
     process.send?.({ type: 'loaded' });
   } catch {

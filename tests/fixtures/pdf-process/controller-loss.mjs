@@ -4,7 +4,7 @@ process.on('message', (message) => {
     kind: 'result',
     ref: message.ref,
     token: message.token,
-    result: { processId: process.pid, controllerId: process.ppid },
+    result: { processId: process.pid },
   });
   for (;;) {}
 });

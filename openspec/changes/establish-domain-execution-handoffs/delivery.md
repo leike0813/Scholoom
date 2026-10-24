@@ -8,9 +8,17 @@
 
 主线在组合基线上复跑原 detached 探针，取消及父程序正常退出后心跳继续、active=0，确认 P1 仍存在，探针后代已明确清理。随后按原 design 新增原生监督与启动门，Linux subreaper／Windows Job Object／macOS kqueue 与 Mach task right；尚未取得实际三平台结果前不标记 4.5／4.6 完成。Linux 当前 19 项原进程／命令／容量回归及 2 项正式 detached 回归通过；正常退出用例先通过 IPC 核实后代已写心跳，再验证全部收尾后容量释放，不把“后代尚未启动”误算通过。原生监督取消探针的心跳从 27 保持 27、后代已消失；旧探针在正常退出时已因后代来不及写文件而不适用，正式回归补齐了这个边界。
 
+`a8f1947` 已推送以取得真实三平台 [CI 40054938577](https://github.com/leike0813/Scholoom/actions/runs/40054938577)。Linux／Windows 的原生进程专项通过；macOS 14 失败／2 通过，不能宣称支持。主线随后核对 Apple XNU，确认 NOTE_TRACK／NOTE_CHILD 明确 ENOTSUP，此前的 BSD 跟踪假设错误；已删除不成立的 kqueue／Mach 候选，macOS 在用户代码前明确不可用，不回退为进程组成功。用户随后明确选择保留 macOS 全功能目标，先规划系统级服务／隔离环境，暂不宣称公共基础验收完成；当前不可用不是同意缩减交付范围。Linux 原生组合 61/61（7.7 分钟），Linux 目录包包含私有原生执行文件，实际打包入口冒烟 4/4（38.6 秒）；这些结果不覆盖 macOS。
+
 合并后的类型／完整构建、lint／架构与六份映射一致性通过；三 active change strict 及 18 份正式规格普通校验通过。修复前双宿主 12/12、双实例 1/1；入口冒烟初次 Electron 两项在构建期间关闭会话，构建完成后未改代码复验 4/4。修复前完整内核运行至 292 项通过、2 项既有跳过，由主线主动中断以固定原生修复后的构建，不将未跑的 100 项算通过。
 
 原生修复初版 C 写入返回值检查、TypeScript IPC/stdio 类型，以及启动时 FD 保留与消息门已在本机修正：POSIX 在 Node 启动前必须保留 4／5 号私有管道，避免 bootstrap 误关 Node 重用的内部描述符；控制器在 import 完成前有界缓存原消息，不重复回放。实际运行后才编写本记录；当前日志 `/tmp/scholoom-r5-{native-second,detached,detached-probe,entrypoints-final,ui,isolation}.log`，尚未最终交付。CI 提前放置原生进程专项以取得三平台反馈，待平台问题收敛后再核对是否保留该诊断步骤。
+
+Linux CI 完整内核实际为 **390 通过、5 失败、2 跳过，21.5 分钟**，失败不是库 UI：两项 unready 夹具的模块加载期间消息被控制器丢弃；另有旧故障测试假定控制器失联后 worker 必然存活，以及 PDF 夹具用 ppid 指向新增原生监督程序而非原 Node 控制器。主线修复归属确认后加载期间的出站转发，保留入站队列上限；故障注入改为实际持有的 Node 控制器句柄，核对 worker 自动清理但没有确认仍保留占用。初次窄复验 **5/6** 又发现 registered 子执行的根 PID 消失后 releaseProject 错误放行；继续删除普通 Agent／registered 图接续及仓储释放中的根 PID 成功推断，沿实例退出确认统一保护。扩展原 prior-writer 回归覆盖实际存活及本轮已退出的进程，不向旧 PID 发送信号。源码和构建固定前的本机全内核于 57 项后主动中断，未称完整通过。Windows 宽字符启动补文件参数引用，新增真实复制安装目录的含空格／中文路径回归；实际新结果待下次记录。
+
+上述修正后根 typecheck（含共享重建和 tools）、架构及全仓 lint 通过，架构 13 模块／199 文件零问题，lint 零错误、74 warnings／35 infos。未知停止、加载期间未就绪、控制器死亡、根进程存活／已退出接续保护及含空格中文安装路径的窄回归 **10/10，39.5 秒**，日志 `/tmp/scholoom-r5-ownership-final.log`。随后固定 dist 重跑完整内核，日志 `/tmp/scholoom-r5-ownership-complete.log`，结果尚待完成。新的原生实现由主线核对，没有新增独立代理审查。
+
+macOS 后续规划已按用户选择落入同一 investigation／design 和 tasks 第 5 组；Apple 官方文档另确认 macOS 27 的 descendants ES 客户端无需 root／TCC，但仍需 entitlement，故将其纳入本机候选并纠正此前过宽判断。当前只完成一手调查及实验／文件边界规划，没有安装系统服务、申请权限、提高最低系统版本、引入 VM 或将候选视为通过。4.5／4.6 保持未完成，全部公共基础尚未验收，不启动七域。
 
 ### 第五轮实际交付与独立模块审查
 
@@ -30,7 +38,7 @@
 
 延迟器始终先调用实际资源提供者并原样返回其结果；没有用成功替身代替文件、仓储、broker 或授权。完整指令／来源和实际读取正文分别核对，保存 checkpoint 后消费的原边界保留。每个新用例的 `actual-delivery` 附件记录隔离配置、项目、run／instruction、资源及依据、关联和前后状态，不包含凭据。默认生产源码注册仍为空。
 
-工作台完整上下文、累计 101 条分批确认及大文本 IPC 的接入依据继续引用[工作台第四轮 dev 接收](../establish-workbench-context-bridge/delivery.md#第四轮-dev-接收)。本轮补充模块级执行／失败证据供其最终 4.5 用户路径引用；工作台仍承担其最终用户路径与整合责任，本线不重复改 runtime、driver、来源或 composer。
+工作台完整上下文、累计 101 条分批确认及大文本 IPC 的接入依据继续引用[工作台第四轮 dev 接收](../archive/2026-10-24-establish-workbench-context-bridge/delivery.md#第四轮-dev-接收)。本轮补充模块级执行／失败证据供其最终 4.5 用户路径引用；工作台仍承担其最终用户路径与整合责任，本线不重复改 runtime、driver、来源或 composer。
 
 #### 4.5 独立模块审查及未关闭问题
 
@@ -74,7 +82,7 @@ Linux、Node 24.12.0、pnpm 11.10.0；使用现有 Electron／Chromium 和依赖
 | smoke entrypoints | **4/4，40.9 秒**，独立 Node、真实 Electron/preload、关窗重连及兼容宿主 |
 | OpenSpec | 两个 active change strict 通过；正式规格普通校验 **17/17**。额外 strict 校验 **15/17**，agent-harness／ui-workbench-shell 的既有长 Requirement 警告升级为失败，未为消除警告改写无关契约 |
 
-上述 101 项、双实例及双宿主结果属于三个 PR 合并后的源码；独立审查随后发现并修复的累计指令／IPC 容量边界、修复后受影响回归与审查结果统一见[工作台第四轮 dev 接收](../establish-workbench-context-bridge/delivery.md#第四轮-dev-接收)，不把修复前结果表述为修复后重跑。日志 `/tmp/scholoom-integrate-r4-{kernel,isolation,ui,entrypoints,typecheck,build,lint}.log`，工件为 `test-results/kernel` 及 `test-results/integrate-r4-{isolation,ui,entrypoints}`；本轮测试只收尾所属执行，5351–5353 最终无监听，未操作其他工作树或其 Agent。
+上述 101 项、双实例及双宿主结果属于三个 PR 合并后的源码；独立审查随后发现并修复的累计指令／IPC 容量边界、修复后受影响回归与审查结果统一见[工作台第四轮 dev 接收](../archive/2026-10-24-establish-workbench-context-bridge/delivery.md#第四轮-dev-接收)，不把修复前结果表述为修复后重跑。日志 `/tmp/scholoom-integrate-r4-{kernel,isolation,ui,entrypoints,typecheck,build,lint}.log`，工件为 `test-results/kernel` 及 `test-results/integrate-r4-{isolation,ui,entrypoints}`；本轮测试只收尾所属执行，5351–5353 最终无监听，未操作其他工作树或其 Agent。
 
 4.4 的显式输入至实际成果查询、取消／关联部分失败／worker 失联组合仍需本线完成；4.5 安排执行协议、资源授权及命令收尾的独立模块审查。工作台线为下一轮当次最终整合负责人，承担其 4.5 的用户路径，双方互引证据及待接入修复，不重复实现公共 runtime／driver。完整内核／UI、真实模型科研充分性及三平台分发未验；#10 固定头的三平台 CI 仍失败，工具修复与剩余失败见[工作域记录](../archive/2026-10-23-establish-scoped-execution-foundation/delivery.md#第四轮-ci-修复接收)。
 

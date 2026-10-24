@@ -1,3 +1,4 @@
+import { spawnSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { mkdtemp, readdir, readFile, rename, rm } from 'node:fs/promises';
 import { createRequire } from 'node:module';
@@ -509,62 +510,64 @@ test('real framework compression shares model admission and preserves its summar
   }
 });
 
-test('a possibly live prior writer prevents execution reuse without signalling an unrelated PID', async () => {
-  const root = await mkdtemp(join(tmpdir(), 'scholoom-old-writer-'));
-  const model = await createModelServer();
-  const app = new KernelApplication(join(root, 'profile'), {
-    modelEndpoint: model.url,
-    environment: { MINIMAX_CN_API_KEY: 'synthetic' },
-  });
-  try {
-    await app.initialize();
-    const session = app.harness.create('application');
-    const scope = { projectId: 'application', sessionId: session.id };
-    const first = await app.harness.send({
-      ...scope,
-      instructionId: randomUUID(),
-      text: 'MODEL_CHAT initial',
-      materials: [],
+for (const rootState of ['live', 'exited'] as const)
+  test(`an unconfirmed prior scope prevents execution reuse when its root is ${rootState}`, async () => {
+    const root = await mkdtemp(join(tmpdir(), 'scholoom-old-writer-'));
+    const model = await createModelServer();
+    const app = new KernelApplication(join(root, 'profile'), {
+      modelEndpoint: model.url,
+      environment: { MINIMAX_CN_API_KEY: 'synthetic' },
     });
-    await expect.poll(async () => (await app.snapshot(scope)).run?.state).toBe('completed');
-    const records = new HarnessRecords(app.projects.get('application').internal);
     try {
-      const value = {
-        instanceId: 'unresolved-owner',
-        hostInstanceId: 'old-host',
-        runId: first.runId,
-        processId: process.pid,
-        state: 'running',
-      };
-      records.db.$client
-        .prepare('INSERT INTO run_instances(id,run_id,host_instance_id,value) VALUES (?,?,?,?)')
-        .run(value.instanceId, value.runId, value.hostInstanceId, JSON.stringify(value));
-      const count = model.requests.length;
-      await app.harness.send({
+      await app.initialize();
+      const session = app.harness.create('application');
+      const scope = { projectId: 'application', sessionId: session.id };
+      const first = await app.harness.send({
         ...scope,
         instructionId: randomUUID(),
-        text: 'MODEL_CHAT next',
-        materials: [],
-      });
-      await expect.poll(async () => (await app.snapshot(scope)).run?.state).toBe('failed');
-      expect(model.requests).toHaveLength(count);
-      records.db.$client.prepare('DELETE FROM run_instances WHERE id=?').run(value.instanceId);
-      await app.harness.send({
-        ...scope,
-        instructionId: randomUUID(),
-        text: 'MODEL_CHAT retry after ownership resolved',
+        text: 'MODEL_CHAT initial',
         materials: [],
       });
       await expect.poll(async () => (await app.snapshot(scope)).run?.state).toBe('completed');
+      const records = new HarnessRecords(app.projects.get('application').internal);
+      try {
+        const value = {
+          instanceId: 'unresolved-owner',
+          hostInstanceId: 'old-host',
+          runId: first.runId,
+          processId:
+            rootState === 'live' ? process.pid : spawnSync(process.execPath, ['-e', '']).pid,
+          state: 'running',
+        };
+        records.db.$client
+          .prepare('INSERT INTO run_instances(id,run_id,host_instance_id,value) VALUES (?,?,?,?)')
+          .run(value.instanceId, value.runId, value.hostInstanceId, JSON.stringify(value));
+        const count = model.requests.length;
+        await app.harness.send({
+          ...scope,
+          instructionId: randomUUID(),
+          text: 'MODEL_CHAT next',
+          materials: [],
+        });
+        await expect.poll(async () => (await app.snapshot(scope)).run?.state).toBe('failed');
+        expect(model.requests).toHaveLength(count);
+        records.db.$client.prepare('DELETE FROM run_instances WHERE id=?').run(value.instanceId);
+        await app.harness.send({
+          ...scope,
+          instructionId: randomUUID(),
+          text: 'MODEL_CHAT retry after ownership resolved',
+          materials: [],
+        });
+        await expect.poll(async () => (await app.snapshot(scope)).run?.state).toBe('completed');
+      } finally {
+        records.close();
+      }
     } finally {
-      records.close();
+      await app.close();
+      await model.close();
+      await rm(root, { recursive: true });
     }
-  } finally {
-    await app.close();
-    await model.close();
-    await rm(root, { recursive: true });
-  }
-});
+  });
 
 test('serialized checkpoint corruption falls back to a new attempt and preserves the unusable source', async () => {
   const root = await mkdtemp(join(tmpdir(), 'scholoom-checkpoint-content-'));

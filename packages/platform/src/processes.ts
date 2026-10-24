@@ -106,6 +106,7 @@ export class ManagedNode extends EventEmitter {
         identity?: ProcessIdentity;
         value?: unknown;
         reason?: string;
+        detail?: string;
       };
       if (message.type === 'ready' && message.identity?.instanceId === options.instanceId) {
         this.identity = Object.freeze(message.identity);
@@ -120,7 +121,7 @@ export class ManagedNode extends EventEmitter {
           new OperationError(
             'unavailable',
             message.reason === 'nativeScopeUnavailable'
-              ? '当前平台无法建立完整进程归属，执行尚未启动。'
+              ? `当前平台无法建立完整进程归属，执行尚未启动：${message.detail ?? 'native scope unavailable'}`
               : '执行进程通信失败。',
           ),
         );

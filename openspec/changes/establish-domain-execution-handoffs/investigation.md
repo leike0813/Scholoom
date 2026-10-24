@@ -1,5 +1,25 @@
 # 调查依据
 
+## macOS 完整进程归属：收尾调查与后续规划
+
+2026-10-24，用户在主分支要求修复 detached 后代 P1，随后明确选择“保持 macOS 全功能目标，先规划系统级服务／隔离环境，暂不宣称公共基础验收完成”。本节为当前候选依据；没有选定 macOS 实施后端，也没有授权安装系统服务、修改本机权限或部署 VM。
+
+| 一手来源与已核对事实 | 对方案的影响 |
+| --- | --- |
+| [Apple XNU filt_procattach](https://github.com/apple-oss-distributions/xnu/blob/main/bsd/kern/kern_event.c) 明确拒绝 NOTE_TRACK／NOTE_CHILD；本轮真实 macOS CI 同样报告不可用 | 删除 BSD kqueue 自动跟踪候选，不能靠原进程组或一次 PID 扫描证明全范围停止。 |
+| [XNU coalition syscall](https://github.com/apple-oss-distributions/xnu/blob/main/bsd/kern/sys_coalition.c) 对创建检查 privileged coalition | 不能把普通用户可建立 coalition 当作现成公开方案；root 服务也不自动获得受支持的进程容器接口。 |
+| [SMAppService.register](https://developer.apple.com/documentation/servicemanagement/smappservice/register()) 的 LaunchDaemon 注册需管理员批准 | 它解决服务安装与生命周期，不单独证明 detached 后代归属。服务方案须另外证明归属与停止机制。 |
+| [Endpoint Security client](https://developer.apple.com/documentation/endpointsecurity/es_new_client(_:_:)) 要求 entitlement 与 TCC；[entitlement 文档](https://developer.apple.com/documentation/bundleresources/entitlements/com.apple.developer.endpoint-security.client) 要求向 Apple 申请 | 本机 root 或能编译不等于产品可分发；签名、批准与权限拒绝是可行性条件。 |
+| [es_new_descendants_client](https://developer.apple.com/documentation/endpointsecurity/es_new_descendants_client(_:_:)) 的官方 Markdown 标明 macOS 27 起，观察递归后代；无需 root／TCC，仍需 entitlement，非 root 后代的 setuid／setgid 执行受限 | 新增较窄的本机候选，纠正“所有本机方案均须 root 服务”的过宽推断。不能据文档存在提高最低系统版本，也不能直接宣称完整任意程序支持。 |
+| [Endpoint Security seq_num](https://developer.apple.com/documentation/endpointsecurity/es_message_t/seq_num) 说明内核队列可能丢事件，可用序号发现 | 能观察 fork 不等于可靠停止；须验证通知积压／丢失、身份复用、确认时仍在途的后代及无新事件时的完整性。证据不完整保持 unknown。 |
+| [Apple macOS VM 样例](https://developer.apple.com/documentation/virtualization/running-macos-in-a-virtual-machine-on-apple-silicon) 使用 Apple silicon、系统镜像与独立 VM 配置 | 隔离环境是不同的部署方案，须核对硬件、系统范围、原生程序与环境兼容、材料传输及持久成果；不能静默用 Linux VM 替代 macOS 本机程序。当前样例新增 macOS 27 功能，不把样例部署目标视为整个框架最低版本。 |
+
+Apple 页面正文由官方 `.md` 入口读取，快照在 `/tmp/scholoom-r5-macos-{descendants,client,service,vm,entitlement}.md`；XNU 片段见 `/tmp/scholoom-r5-xnu-*.c`。这是一手文档／源码调查，未在 Mac 编译或执行这些候选。
+
+调查顺序先尝试保留本机工具语义：验证有签名的后代 ES 客户端及系统服务方案，只有其保证或分发条件不能满足目标时再评估隔离环境。各候选统一用同一 detached 双重派生、短命父进程、取消／正常退出、宿主／监督者死亡、积压和权限撤销实验。以实际完整归属停止及未确认保护为判据，不以能收到事件或能安装服务为通过。
+
+需要闭合的决定包括最低 macOS／硬件范围、entitlement 可取得性、是否接受服务授权或 guest 环境、升级卸载及确认丢失后的核查。先取得可复验原型证据及安装权限方案，再更新本变更设计／规格并作实施决定；当前保留 macOS 全功能目标和 4.5／4.6 待办，不新增猜测性生产适配。后续步骤见 tasks 第 5 组。
+
 ## 当前事实与复用选择
 
 2026-10-22，静态阅读及已有归档证据核对；本轮未实跑。真实工作域行为依赖工作域变更的对应增量；独立实现可在共同契约落入 dev 后并行，不据规划文件存在声称已可用。

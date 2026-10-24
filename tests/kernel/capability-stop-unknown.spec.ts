@@ -7,7 +7,11 @@ import { join } from 'node:path';
 import { expect, test } from '@playwright/test';
 import { KernelApplication } from '../../apps/kernel/dist/application.js';
 import type { RunInstance } from '../../packages/harness/dist/node.js';
-import { ManagedNode, type ProcessAdmission } from '../../packages/platform/dist/node.js';
+import {
+  ManagedNode,
+  type ProcessAdmission,
+  processMayBeAlive,
+} from '../../packages/platform/dist/node.js';
 import { createModelServer } from '../model-server.js';
 
 for (const [registered, rootStart] of [
@@ -120,7 +124,7 @@ for (const [registered, rootStart] of [
         expect((await app.research.list(scope)).attempts[0]?.state).not.toBe('cancelled');
       }
       expect((await app.snapshot(scope)).run?.remoteOutcome).toBe('unknown');
-      expect(() => process.kill(processId, 0)).not.toThrow();
+      await expect.poll(() => processMayBeAlive(processId)).toBe(false);
       if (registered)
         expect(instances().find((row) => row.processId === processId)?.state).not.toBe('exited');
       else
@@ -136,13 +140,7 @@ for (const [registered, rootStart] of [
     } finally {
       release();
       ManagedNode.start = start;
-      if (owned?.identity) {
-        try {
-          process.kill(-owned.identity.pid, 'SIGKILL');
-        } catch (error) {
-          expect((error as NodeJS.ErrnoException).code).toBe('ESRCH');
-        }
-      }
+      await owned?.stop().catch((error) => expect(error).toMatchObject({ code: 'outcomeUnknown' }));
       await app.close();
       await model.close();
       await rm(root, { recursive: true });

@@ -49,6 +49,8 @@ harness 是产品核心，其他能力优先服务 Agent，同时供人使用。
 
 模块职责与统一 broker 沿[模块依赖决议](../.scratch/runtime-architecture/issues/01-module-dependencies-and-authority.md#answer)，进程部署与监督沿[执行进程决议](../.scratch/runtime-architecture/issues/03-session-execution-processes.md#answer)。活动 Agent 执行及独立子 Agent、advisor 执行各自独占受管进程，宿主统一准入与监督；会话、持久执行身份与 PID 分别表达。宿主故障允许执行中断并显式接续，首阶段不承诺模块独立升级或宿主故障时持续执行。
 
+私有原生监督程序在载入业务模块前建立进程归属，以完整范围为空确认停止，失败保留未知状态和容量占用。Linux／Windows 机制、构建入口及 macOS 当前不可用边界见[开发说明](development.md#科研写作与排版)。
+
 ![Scholoom 部署与数据权威](diagrams/deployment.svg)
 
 [PlantUML 图源](diagrams/deployment.puml)。图与下表表达目标部署，当前实现见第 2 节；统一 broker 的逻辑关系见[模块依赖图](../.scratch/runtime-architecture/issues/01-module-dependencies-and-authority.md#产品构成与依赖方向)。领域操作和变化反馈经 broker 到达共同权威及调用方，相关缓存读到确认结果后才能依其导出。Connector 的本机采集适配是接线建议，配对协议待实施调查。

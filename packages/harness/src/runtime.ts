@@ -20,7 +20,6 @@ import {
   ProcessAdmission,
   type ProcessReservation,
   privateDirectory,
-  processMayBeAlive,
   ResourceAccess,
 } from '@scholoom/platform/node';
 import type { CallContext, ErrorInfo } from '@scholoom/protocol/core';
@@ -1025,15 +1024,7 @@ export class Harness {
         .from(tables.instances)
         .all()
         .filter((row) => row.runId === run.id && row.value.state !== 'exited');
-      for (const row of unsettled) {
-        if (!row.value.processId || processMayBeAlive(row.value.processId))
-          throw new OperationError('outcomeUnknown', '旧图执行停止尚未确认。');
-        this.records(project)
-          .update(tables.instances)
-          .set({ value: { ...row.value, state: 'exited' } })
-          .where(eq(tables.instances.id, row.id))
-          .run();
-      }
+      if (unsettled.length) throw new OperationError('outcomeUnknown', '旧图执行停止尚未确认。');
       release = await claimCheckpoints(project.internal, [binding.checkpointRef]);
       const opened = await openCheckpoint(project.internal, binding.checkpointRef);
       database = opened.database;
@@ -1670,13 +1661,7 @@ export class Harness {
       for (const row of this.records(project).select().from(tables.instances).all()) {
         const prior = row.value;
         if (prior.state === 'exited' || ![run.id, predecessor?.id].includes(prior.runId)) continue;
-        if (!prior.processId || processMayBeAlive(prior.processId))
-          throw new OperationError('unavailable', '旧执行写者尚未排除，停止相关接续。');
-        this.records(project)
-          .update(tables.instances)
-          .set({ value: { ...prior, state: 'exited' } })
-          .where(eq(tables.instances.id, row.id))
-          .run();
+        throw new OperationError('unavailable', '旧执行写者尚未排除，停止相关接续。');
       }
       checkpointClaims.push(
         await claimCheckpoints(project.internal, [
@@ -3190,10 +3175,7 @@ export class Harness {
         .select()
         .from(tables.instances)
         .all()
-        .some(
-          ({ value }) =>
-            value.state !== 'exited' && (!value.processId || processMayBeAlive(value.processId)),
-        )
+        .some(({ value }) => value.state !== 'exited')
     )
       throw new OperationError('outcomeUnknown', '项目执行停止尚未确认，不能替换仓储。');
     project.records.close();

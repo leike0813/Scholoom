@@ -1,3 +1,5 @@
+import assert from 'node:assert/strict';
+import type { ChildProcess } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -7,7 +9,11 @@ import { KernelApplication } from '../../apps/kernel/dist/application.js';
 import { Harness } from '../../packages/harness/dist/node.js';
 import { MaterialReading } from '../../packages/library/dist/node.js';
 import { ModelConfigStore } from '../../packages/models/dist/node.js';
-import { ProcessAdmission } from '../../packages/platform/dist/node.js';
+import {
+  ManagedNode,
+  ProcessAdmission,
+  processMayBeAlive,
+} from '../../packages/platform/dist/node.js';
 import { createModelServer } from '../model-server.js';
 import { syntheticPdf } from '../pdf-fixture.js';
 
@@ -219,18 +225,23 @@ test('controller loss cannot report a busy calculation stopped or release its pr
     admission,
   );
   const controller = new AbortController();
-  let report!: (value: { processId: number; controllerId: number }) => void;
-  const reported = new Promise<{ processId: number; controllerId: number }>((resolve) => {
+  const start = ManagedNode.start;
+  let child: ManagedNode | undefined;
+  ManagedNode.start = async (options) => {
+    child = await start(options);
+    return child;
+  };
+  let report!: (value: { processId: number }) => void;
+  const reported = new Promise<{ processId: number }>((resolve) => {
     report = resolve;
   });
-  let processId: number | undefined;
   const pending = reading
     .run(
       async () => new ArrayBuffer(0),
       { kind: 'info' },
       {
         signal: controller.signal,
-        verify: async (value: { processId: number; controllerId: number }) => {
+        verify: async (value: { processId: number }) => {
           report(value);
           await new Promise<void>(() => {});
         },
@@ -239,24 +250,20 @@ test('controller loss cannot report a busy calculation stopped or release its pr
     .catch((error: { code: string }) => error.code);
   try {
     const owned = await reported;
-    processId = owned.processId;
-    process.kill(owned.controllerId, 'SIGKILL');
+    assert(child);
+    const controlProcess = Reflect.get(child, 'controller') as ChildProcess;
+    controlProcess.kill('SIGKILL');
     controller.abort();
     expect(await pending).toBe('outcomeUnknown');
-    expect(() => process.kill(owned.processId, 0)).not.toThrow();
+    await expect.poll(() => processMayBeAlive(owned.processId)).toBe(false);
     expect(admission.status.active).toBe(1);
     await expect(
       reading.run(async () => new ArrayBuffer(0), { kind: 'info' }, { waitForCapacity: false }),
     ).rejects.toMatchObject({ code: 'resourceLimit' });
   } finally {
+    ManagedNode.start = start;
     controller.abort();
-    if (processId) {
-      try {
-        process.kill(-processId, 'SIGKILL');
-      } catch (error) {
-        expect((error as NodeJS.ErrnoException).code).toBe('ESRCH');
-      }
-    }
+    await child?.stop().catch((error) => expect(error).toMatchObject({ code: 'outcomeUnknown' }));
     await reading.close();
   }
 });

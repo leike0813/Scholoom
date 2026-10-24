@@ -20,7 +20,7 @@ flowchart LR
 | --- | --- |
 | [establish-scoped-execution-foundation](../../openspec/changes/archive/2026-10-23-establish-scoped-execution-foundation/proposal.md) | 已完成并归档：application／scratch、可信目标只读、领域再次授权及零持久修改保护已接入 dev；后续按正式规格消费。 |
 | [establish-domain-execution-handoffs](../../openspec/changes/establish-domain-execution-handoffs/proposal.md) | 复用 ResourceRef，补实际材料／成果、新建及未知核查、源码装配图及等待恢复、宿主受管命令窄端口和独立夹具。 |
-| [establish-workbench-context-bridge](../../openspec/changes/establish-workbench-context-bridge/proposal.md) | 补认证连接所属快照、工具当次查询、显式选择项、共同 composer 可靠发送与多窗口草稿保护。 |
+| [establish-workbench-context-bridge](../../openspec/changes/archive/2026-10-24-establish-workbench-context-bridge/proposal.md) | 已完成并归档：认证连接所属快照、工具当次查询、显式项完整指令、共同 composer 及多窗口草稿保护已接入 dev；不解除领域与平台剩余验收条件。 |
 
 三个变更采用共同契约先交付、三个工作树并行实现、真实整合按依赖验收的安排。公共基础以工作域、真实内部资源／执行接线、固定样例及独立开发入口的实际证据验收，不以 CLI ready 或替身通过代替已交付。七域开发仍等待全部公共基础验收。
 
@@ -84,8 +84,10 @@ flowchart LR
 
 每个变更包含 proposal、investigation、delta specs、design 和 tasks；delivery 在实际执行后形成。源码与现状依据在各 investigation，已执行的共同契约及回归验证见所属 delivery，不把契约交付视为真实授权、图运行或工作台功能已经完成。
 
-共同契约基线使用协议版本 4。三条实现工作树现为 scoped-execution-foundation、domain-execution-handoffs、workbench-context-bridge，均归 Orca 的 Scholoom 项目。2026-10-23 dev 已接收第四轮 PR #10、#11、#12，分别以 `2ae82e8`、`356769b`、`c76df43` 保留原提交合入；工作域已归档，持久 Graph、命令资格、工作台真实资源授权、registered Graph 完整指令上下文及双实例隔离回归已接入。接收验证及剩余范围见各自 delivery；用户手动将更新后的 dev 同步到工作树，再发送下一阶段指令，不由接入者控制工作树内 Agent。两个 active 变更继续按局部前置开展，七域等待全部公共基础验收。
+共同契约基线使用协议版本 4。三条实现工作树为 scoped-execution-foundation、domain-execution-handoffs、workbench-context-bridge，均归 Orca 的 Scholoom 项目。2026-10-24 dev 已接收第五轮 PR #13、#14、#15，分别以 `607dd19`、`f238bf8`、`d66a308` 保留原提交合入。用户明确要求在本分支完成收尾、不再分派；后续缺口由主分支接续，不操作其他工作树或 Agent。工作域已归档，工作台最终组合与容量修复、领域真实图及失败组合、跨平台文件与写作修复均已接入；任务完成依据仍见各自 tasks／delivery，七域等待全部公共基础验收。
 
-下一批交付按实际缺口安排：工作域线基于 #10 的 CI 结果修复仍失败的跨平台基础行为；Windows 的 TeX 安装命令及 caption 已修正，三平台全仓 CI 仍未通过。旧库 UI 产品入口缺口已有 PR 调查方案，尚未确认实施，不把测试改成直接内核调用来代替 UI 验收，也不重新打开已归档工作域变更。领域交接线推进 4.4 的真实内部执行及取消／关联部分失败／worker 失联组合，完成本模块 4.5 的独立审查；工作台线作为当次最终整合负责人，使用已接入夹具推进 4.5 的全局会话、实时选择、显式发送和固定图成果路径，声明隔离配置，补 4.6 审查。两线互引证据，不重复维护同一验收；4.6／4.7 的最终交付及归档仍按实际结果判断。公共 runtime／driver 的交叉修改仍由所属线交付独立增量并经 dev 同步。各线进度、证据及待办仍只在原 tasks／delivery 维护。
+收尾重点是领域独立审查已复现的 P1：detached 后代逃离 POSIX 进程组后仍运行，原实现却确认停止并释放容量。用户授权主分支补齐，再完成公共基础验收。Linux subreaper 与 Windows Job Object 已接入，真实 CI 原生专项通过；macOS 的 kqueue 候选已被 Apple 源码和真实 CI 证伪，当前明确不可用。用户已选择保留 macOS 全功能目标，先规划系统级服务／隔离环境，公共基础暂不验收；领域原 investigation／design／tasks 第 5 组承接后代 ES 客户端、服务及 VM 的真实可行性与分发验证。具体实现、证据与剩余验收见领域 delivery，不以两平台专项通过宣称三平台或公共基础完成。
 
-实施前先读所选变更、上表对应依赖增量的实际 delivery 及 dev 接入结果，取得 apply instructions；不要求其他 change 全部完成才开始独立任务。规划就绪不构成新增操作授权。公共补充仍按自己的工作树实现、dev 接入检查后同步；真实整合任务当次明确负责人。各变更的验证必须区分真实模块、外部受控响应、平台及尚未验证范围。
+跨平台修复由 `fix-cross-platform-file-and-writing-behavior` 接续，Windows 状态等待及完整 CI 按实际结果处理。旧库 UI 产品入口缺口已有调查方案，尚未确认实施，不把测试改成直接内核调用代替 UI 验收，也不重新打开已归档工作域变更。工作台本项成果可独立验收，其最终交付不解除领域及平台剩余条件。各变更只在约定成果和必要验证完成后同步规格、归档。
+
+续做先读所选变更、上表对应依赖增量的实际 delivery 及 dev 接入结果，取得 apply instructions；不要求其他 change 全部完成才开始独立任务。规划就绪不构成新增操作授权。本轮由主 Agent 在 dev 整合验收并收尾，不再安排工作树任务。各变更的验证必须区分真实模块、外部受控响应、平台及尚未验证范围。

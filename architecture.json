@@ -55,7 +55,7 @@
         },
         {
           "path": "src/process-bootstrap.ts",
-          "apis": ["fs"]
+          "apis": ["fs", "process.env"]
         },
         {
           "path": "src/processes.ts",

@@ -124,7 +124,11 @@ SCHOOLOOM_UI_PORT=5343 node node_modules/@playwright/test/cli.js test --config p
 
 `tests/kernel/managed-commands.spec.ts` 的机制用例使用固定工作空间及授权替身；broker 用例在隔离真实 KernelApplication／活动执行中使用宿主源码登记的固定 Node 程序，核对排队撤权、取消、失效实例及全局范围拒绝。进程树、输出边界和控制丢失沿原真实进程用例，`process-admission.spec.ts` 另核对未确认停止保留占用。实际结果见[领域交接交付](../openspec/changes/establish-domain-execution-handoffs/delivery.md)。
 
-独立模块审查复现了 POSIX 进程组的已知缺口：程序自行派生 detached 后代后，原组停止仍可能误报全树停止并释放容量。当前尚未提供覆盖此情形的 OS 级进程归属；不能将既有普通后代回归当作该情形通过。平台增量范围待确认，领域交接 4.5 保持未完成，复现与决议依据见同一交付记录。
+受管执行由 `packages/platform/native/process-scope.c` 的私有原生监督程序持有归属：Linux 使用 subreaper 接管孤儿后代，Windows 使用禁止 breakaway 的 Job Object。原 worker 先停在最小 bootstrap，归属确认后才取得显式环境并载入业务模块；调用方环境不能在登记前执行代码。取消或根程序退出后，监督程序清理剩余后代，仅在原生范围为空时确认停止；确认失败保留 unknown 和容量占用。`managed-commands.spec.ts` 的 detached 用例以实际后代心跳核对取消及根程序正常退出，不能以进程组为空代替全范围停止。
+
+执行接续及项目仓储释放同样要求原实例已确认 exited；根 PID 消失不构成完整归属停止的证据。控制器异常退出后，即使监督程序实际清理了 worker，确认丢失仍保留未知状态，重启也不从根 PID 推断安全。当前没有自动消除这类未知归属的入口，须先核查并处理原归属，不能借新尝试绕过保护。
+
+platform 的 build 会先使用系统 C 编译器构建监督程序，Windows 使用已安装的 Visual Studio C 工具链；Electron 打包核对该文件已解包。macOS 当前未建立同等保证，在载入业务模块前明确报告原生范围不可用。Darwin 不支持 kqueue 的自动后代跟踪；用户已决定保留 macOS 全功能目标，先规划系统服务／隔离环境。macOS 27 后代 Endpoint Security 客户端也在候选中，系统范围、entitlement、签名分发和完整停止保证须实际验证，不能据候选存在宣称支持。领域交接 4.5 保持未完成，依据及后续步骤见同一变更的 investigation／design／tasks 第 5 组。
 
 源码与 QMD／Markdown 可视编辑共用同一草稿。Markdown／QMD 轻量预览读取未保存草稿；完整排版读取已保存稿件，打开预览或保存时更新当前选择格式。QMD 默认 HTML，切换 PDF 后更新 PDF；LaTeX 保留原生多文件工程并编译 PDF。HTML、PDF、DOCX 均可通过显式导出生成到工作区，沿用既有文件冲突与传输保护。
 

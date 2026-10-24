@@ -2,6 +2,18 @@
 
 ## 当前状态与成果
 
+### 主分支最终接收
+
+2026-10-24，用户要求在 dev 接收三个工作树成果并完成收尾，不再分派。主线从干净的 `23e68c8` 保留原提交合入 #13、#14、#15；本项 PR #15 固定头 `65927fae78fc543752fbef34164d596fae37c217`，合并提交 `d66a308`，GitHub 已确认为 MERGED。原 4.5／4.6 的组合及独立审查成果已在 dev 接收，本项 4.7 的交付记录现完成，**17/17**。
+
+主线核对本项完成判据：认证连接所属快照、调用时查询与多来源歧义、显式项完整幂等、模型前授权及多窗口草稿均沿原设计交付。普通 Agent 大更新、registered 完整指令及 checkpoint 容量修复保持；没有增加第二份资源权威或生产科研 Graph。新增正式规格 `openspec/specs/workbench-agent-context/spec.md` 与本项 delta 同步，保留原 Purpose 和全部场景，通过 strict 校验。
+
+接收在 Linux／Node 24.12.0／pnpm 11.10.0，复用既有依赖。三项合并后根 typecheck／build、架构及契约生成核对通过，lint 零错误（74 warnings、35 infos）。双宿主 context-bridge／resource-opening／resource-lifecycle／writing-editor **12/12，6.2 分钟**，隔离端口 5371；真实双实例 **1/1，37.3 秒**，5373／5374；入口 smoke 初次在完整构建期间 Electron 两项关闭会话，构建结束后未改代码复验 **4/4，46 秒**，不把首次失败隐去或认定其原因。日志 `/tmp/scholoom-r5-{ui,isolation,entrypoints,entrypoints-final}.log`。
+
+随后主线修复领域独立审查的 detached 进程 P1，原生归属接入后，包含 workbench-integration／registered-context／harness-recovery／harness／editor／editor-runtime／resource-identity 的真实内核组合 **61/61，7.7 分钟**，日志 `/tmp/scholoom-r5-native-integration.log`；Linux 目录包实际入口 **4/4，38.6 秒**。本项原独立审查及窄复核见下节，本轮按用户要求没有再委派审查或其他任务。
+
+内部 broker、SQLite、资源与 worker 均真实，模型边界仍为本机受控 HTTP，材料为合成样本。本项完成只表明工作台上下文能力及约定组合已交付；领域 4.5／4.6、macOS 原生归属范围及跨平台完整 CI 仍见各自 delivery。**全部公共基础尚未验收，不启动七域。** 未验证真实外部模型科研充分性、完整 UI 及三平台分发安装恢复。
+
 ### 第五轮最终组合与独立审查
 
 2026-10-23 至 24，用户指定本线为当次最终整合负责人，授权同步最新 dev，声明隔离配置后推进 4.5／4.6，更新原记录、提交推送并向 dev 发 PR；不合入、不归档或启动七域。开始工作树干净，fetch 与 fast-forward 核对最新 dev **23e68c8**，包含 #11 隔离夹具、#12 完整 Graph 上下文和接收容量修复。读两 active change 最新 tasks／delivery、阶段约定及 apply instructions：工作台 14/17、领域 16/19，均 ready。领域 4.4 整组尚未交付，本轮不代勾。
@@ -50,7 +62,7 @@ Linux／Node 24.12.0／pnpm 11.10.0，Chromium 与真实 Electron/preload；内�
 
 #### 领域证据复用与剩余范围
 
-领域实跑范围引用[第四轮 dev 接收](../establish-domain-execution-handoffs/delivery.md#第四轮-dev-接收)及[隔离夹具双宿主记录](../establish-domain-execution-handoffs/delivery.md#第四轮隔离夹具与双宿主验证)。既有 resource-access 覆盖目标拒写、排队撤权及关联 unknown／重启补关联；registered-context 覆盖项目／库排队和最终同步准入撤权、恢复后授权与重读取材；registered-graph 覆盖取消和持久等待。机制复用，不重复实现。领域 4.4 的取消／关联失败／worker 失联整组及其模块独立审查仍由原 change 交付，不把普通 Agent worker 失联证据称为 registered 图组合通过。
+领域实跑范围引用[第四轮 dev 接收](../../establish-domain-execution-handoffs/delivery.md#第四轮-dev-接收)及[隔离夹具双宿主记录](../../establish-domain-execution-handoffs/delivery.md#第四轮隔离夹具与双宿主验证)。既有 resource-access 覆盖目标拒写、排队撤权及关联 unknown／重启补关联；registered-context 覆盖项目／库排队和最终同步准入撤权、恢复后授权与重读取材；registered-graph 覆盖取消和持久等待。机制复用，不重复实现。领域 4.4 的取消／关联失败／worker 失联整组及其模块独立审查仍由原 change 交付，不把普通 Agent worker 失联证据称为 registered 图组合通过。
 
 开发说明补七域选择／视图／工具接入表、明确 instructionId 查询形状和真实边界；design 总览及流程保持，新分帧机制同步 design／delta spec。接入口说明不代表七域业务交付。4.7 暂保留待领域最终整合证据，当前不宣称全部公共基础完成。
 
@@ -69,7 +81,7 @@ Linux／Node 24.12.0／pnpm 11.10.0 的接收证据：
 
 | 实际命令／组合 | 结果与范围 |
 | --- | --- |
-| 修复前合并后的 12 文件内核组合；实际双实例；Chromium／Electron 定向 UI；入口 smoke | 分别 **101/101、1/1、10/10、4/4**，入口及环境见[领域接收记录](../establish-domain-execution-handoffs/delivery.md#第四轮-dev-接收)。不将这些结果称为容量修复后的重跑 |
+| 修复前合并后的 12 文件内核组合；实际双实例；Chromium／Electron 定向 UI；入口 smoke | 分别 **101/101、1/1、10/10、4/4**，入口及环境见[领域接收记录](../../establish-domain-execution-handoffs/delivery.md#第四轮-dev-接收)。不将这些结果称为容量修复后的重跑 |
 | 修复后根 `typecheck`、`build`，均带 `--config.optimisticRepeatInstall=false` | 全仓通过；首次共享构建的可变 union 参数回调窄化错误已修复，再重建及完整检查通过。日志 `/tmp/scholoom-integrate-r4-final-{typecheck,build}.log` |
 | 修复后原 registered-context、registered-graph、graph-registration、instruction-checkpoint、harness-recovery、context-instructions | **49/49，6.6 分钟**。真实内部 worker／资源／SQLite，模型边界为 loopback 受控 HTTP；覆盖普通 Agent、完整附件、旧上下文缺失／空数组、终态补确认、保存／确认／回执故障、来源冲突、等待分页、撤权及取消。日志 `/tmp/scholoom-integrate-r4-fix-regression.log` |
 | 新增容量专项 `registered-context.spec.ts --grep 'registered cumulative context\|registered large instruction batches'`，独立 output `test-results/integrate-r4-volume` | **2/2，35.7 秒**。复用原固定图，先受理 100 条并保存，再追加第 101 条、注入最后一批消费确认失败；重启后完整载荷及 101 条消费状态保持、成果仅一份。另实测 70 条各 32768 个字符的完整文本进入 worker／checkpoint，重启后仍能取回旧上下文并完成。日志 `/tmp/scholoom-integrate-r4-volume.log` |
@@ -77,7 +89,7 @@ Linux／Node 24.12.0／pnpm 11.10.0 的接收证据：
 | 修复后架构、Biome、生成器 self-test、生成 patch 格式化比对及 `git diff --check` | 通过；13 模块／198 文件零架构问题；lint 零错误、74 warnings／35 infos；六份生成映射与 schema 一致 |
 | OpenSpec | 两 active change strict 通过；正式规格普通校验 17/17，额外 strict 15/17，失败仅为 agent-harness／ui-workbench-shell 的既有长 Requirement 警告 |
 
-本轮没有将固定样例的合成材料视为科研充分性，也未据局部回归完成最终三线组合。#10 固定头三平台 CI 仍失败，详见[工作域接收记录](../archive/2026-10-23-establish-scoped-execution-foundation/delivery.md#第四轮-ci-修复接收)。旧库 UI 入口补齐仅有调查方案，未确认实施。
+本轮没有将固定样例的合成材料视为科研充分性，也未据局部回归完成最终三线组合。#10 固定头三平台 CI 仍失败，详见[工作域接收记录](../2026-10-23-establish-scoped-execution-foundation/delivery.md#第四轮-ci-修复接收)。旧库 UI 入口补齐仅有调查方案，未确认实施。
 
 修复后的独立窄复核关闭两项 P2，无新增阻塞：只读核对当前／历史上下文重建、等待身份及授权，另用内存探针验证 201 条分批确认在第二批失败后保留已确认凭证并补齐；201 条历史加 1 条当前指令的传输探针最大帧 32921 字节。探针不替代主线真实 worker 回归。辅助测试委派未返回可用成果，主线停止该任务后复用原夹具实现两项回归，没有引入新 Graph 或测试框架。首次测试夹具误向 startGraph 传 materials 导致参数校验拒绝，已按正式入口移除；匿名测试子类返回类型过窄及一处可选链 lint 也已修正，未放宽生产校验或断言。
 
@@ -87,7 +99,7 @@ Linux／Node 24.12.0／pnpm 11.10.0 的接收证据：
 
 2026-10-23，开始前确认本树 HEAD 为 dev `e324367`、工作区干净，已包含用户指定基线。先读 AGENTS、scholoom-dev 阶段约定、公共基础实施规划、两条 active change 的最新 tasks／delivery，再取得 apply instructions。用户要求本轮独立接通 registered Graph 的完整指令上下文，提交、推送并向 dev 发 PR，最终组合留待领域夹具及隔离验证就绪；本轮未操作其他工作树或合入 dev，没有安装、升级或下载依赖。
 
-新增原任务 **3.4** 记录这个独立前置增量，已完成，当前 **14/17**。原 4.5、4.6、4.7 仍未勾选；没有归档或启动七域。领域交接的 4.x 夹具／隔离／最终交付不由此增量代替，其 dev 接收事实见[领域交接第三轮记录](../establish-domain-execution-handoffs/delivery.md#第三轮-dev-接收)。
+新增原任务 **3.4** 记录这个独立前置增量，已完成，当前 **14/17**。原 4.5、4.6、4.7 仍未勾选；没有归档或启动七域。领域交接的 4.x 夹具／隔离／最终交付不由此增量代替，其 dev 接收事实见[领域交接第三轮记录](../../establish-domain-execution-handoffs/delivery.md#第三轮-dev-接收)。
 
 - 复用共同 `InstructionContext`，补可选 text、materials、materialFileIds；source、contextItems 继续引用原同源声明。GraphFactory.resume 保留 id/text 形状并取得完整上下文。宿主只从所属会话的持久消息重建可信来源，不采信工厂或 worker 自报窗口。
 - 已匹配指令经原 `execution.initialize` IPC 交给实际 worker。当前 instructions 与已核对的 checkpointInstructions 分开传递，后者只为旧 checkpoint／累计身份补齐上下文，不替换本轮匹配输入。旧 checkpoint 只有身份时从同会话持久消息补齐；已保存完整载荷与持久消息冲突则停止。
@@ -96,7 +108,7 @@ Linux／Node 24.12.0／pnpm 11.10.0 的接收证据：
 - 受理、等待映射、恢复、worker 初始化及消费确认继续复查资源许可。Graph 与普通 Agent 复用原会话材料授权记录，模型排队前后和最后同步准入均复查，不能以切换执行路径、换批或纯文本续做绕过旧摘录的撤权。历史摘录保留原 basis，实际读取核对版本。
 - 完整路径通过后移除 registered 消息附件的 unavailable 保护：显式项目／库材料、原项目路径／身份附件均实际进入映射、worker、checkpoint 和取材路径。文字输入及源码 `execution.materials` 保持独立。没有持久 checkpoint 的图仍拒绝非空初始化指令，普通 Agent 的直接初始化保护保留。
 
-设计总览／数据流已同步[design.md](design.md)，完整行为补入原 delta spec；开发入口及界限见[开发说明](../../../docs/development.md)。本轮不重建资源提供者、创建收据、Graph 等待机制或共同命令。生产源码 Graph 注册集合仍为空，测试宿主与 worker 的固定图是明确的源码注册夹具，不是已发布的科研方法。
+设计总览／数据流已同步[design.md](design.md)，完整行为补入原 delta spec；开发入口及界限见[开发说明](../../../../docs/development.md)。本轮不重建资源提供者、创建收据、Graph 等待机制或共同命令。生产源码 Graph 注册集合仍为空，测试宿主与 worker 的固定图是明确的源码注册夹具，不是已发布的科研方法。
 
 ## 实际验证
 
@@ -141,6 +153,4 @@ dev `e324367` 已包含 PR #9 的生产工作台资源授权以及 PR #8 的持�
 
 ## 未完成事项与下一步
 
-当前只剩本线 **4.7**。4.5／4.6 的本树验收和普通 Agent 容量修复见第五轮；本轮提交推送后停止于向 dev 的可审查 PR，不自行合入或归档。领域 4.4–4.6 的执行／失败整组、独立模块审查及交付仍由原 change 承担，不能据本线通过提前声明全部公共基础完成或启动七域。
-
-用户同步后先读取原 tasks／delivery 和领域最新记录，再取得 apply instructions；补齐实际 dev 接收及领域剩余证据后判断最终交付。完整内核／完整 UI、真实外部模型科研充分性、Windows／macOS 分发及三平台 CI 不在本轮通过范围。固定图合成样本不证明科研充分性。
+本项约定任务 **17/17**，真实接收与验证见上方“主分支最终接收”，可同步正式规格并归档。本项不再分派工作树任务。公共基础剩余条件由领域及跨平台修复变更继续记录，不能以本项归档宣称全部公共基础完成或启动七域。固定图合成样本不证明科研充分性，真实外部模型、完整 UI、三平台分发安装与恢复仍未验收。

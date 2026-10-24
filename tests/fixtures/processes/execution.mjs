@@ -13,6 +13,9 @@ process.on('message', (message) => {
     child.send({ action: 'block' });
     process.send({ descendant: child.pid });
   } else if (message.action === 'environment') {
-    process.send({ secret: process.env.SCHOLOOM_TEST_SECRET ?? null });
+    process.send({
+      secret: process.env.SCHOLOOM_TEST_SECRET ?? null,
+      explicit: process.env.SCHOLOOM_TEST_EXPLICIT ?? null,
+    });
   } else process.send(message);
 });
