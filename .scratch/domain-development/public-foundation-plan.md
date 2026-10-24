@@ -88,6 +88,6 @@ flowchart LR
 
 收尾重点是领域独立审查已复现的 P1：detached 后代逃离 POSIX 进程组后仍运行，原实现却确认停止并释放容量。用户授权主分支补齐，再完成公共基础验收。Linux subreaper 与 Windows Job Object 已接入，真实 CI 原生专项通过；macOS 的 kqueue 候选已被 Apple 源码和真实 CI 证伪，当前明确不可用。用户已选择保留 macOS 全功能目标，先规划系统级服务／隔离环境，公共基础暂不验收；领域原 investigation／design／tasks 第 5 组承接后代 ES 客户端、服务及 VM 的真实可行性与分发验证。具体实现、证据与剩余验收见领域 delivery，不以两平台专项通过宣称三平台或公共基础完成。
 
-跨平台修复由 `fix-cross-platform-file-and-writing-behavior` 接续，Windows 状态等待及完整 CI 按实际结果处理。旧库 UI 产品入口缺口已有调查方案，尚未确认实施，不把测试改成直接内核调用代替 UI 验收，也不重新打开已归档工作域变更。工作台本项成果可独立验收，其最终交付不解除领域及平台剩余条件。各变更只在约定成果和必要验证完成后同步规格、归档。
+文件／写作修复与库管理入口已按自身范围完成、同步规格并归档，实际结果和未验边界分别见[跨平台交付](../../openspec/changes/archive/2026-10-24-fix-cross-platform-file-and-writing-behavior/delivery.md)和[库UI交付](../../openspec/changes/archive/2026-10-24-restore-library-management-entrypoints/delivery.md)。Windows失败路径经定向诊断和重复回归收敛，库UI仍由真实用户入口验收。Electron历史偶发失败本轮未复现，已补诊断，未宣称找到根因。macOS签名／ES授权及真实平台验证条件尚不具备，继续沿领域变更第5组处理；其独立完成不解除公共基础剩余条件。
 
 续做先读所选变更、上表对应依赖增量的实际 delivery 及 dev 接入结果，取得 apply instructions；不要求其他 change 全部完成才开始独立任务。规划就绪不构成新增操作授权。本轮由主 Agent 在 dev 整合验收并收尾，不再安排工作树任务。各变更的验证必须区分真实模块、外部受控响应、平台及尚未验证范围。

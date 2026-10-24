@@ -2,7 +2,7 @@
  * 虚拟化条目列表
  */
 import type { LibrarySource } from '@scholoom/protocol';
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useRef } from 'react';
 import { useVirtualizedList } from '../useVirtualizedList';
 import { CatalogItemRow } from './CatalogItemRow';
 import type { CatalogSelection } from './CatalogSelection';
@@ -59,13 +59,6 @@ export function CatalogItemList({ entries, selection, onDoubleClick }: CatalogIt
     },
     [entries.length, selection, scrollToIndex],
   );
-
-  // 首次加载聚焦
-  useEffect(() => {
-    if (entries.length > 0 && containerRef.current) {
-      containerRef.current.focus();
-    }
-  }, [entries.length]);
 
   const handleSelect = (index: number, modifiers: { shift: boolean; ctrl: boolean }) => {
     if (modifiers.shift) {

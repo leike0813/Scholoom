@@ -483,11 +483,13 @@ export function LibraryTab({
 
   return (
     <section className="library-tab" aria-label="文献库">
-      {error ? (
-        <p className="business-error" role="alert">
-          {error}
-        </p>
-      ) : null}
+      {[...new Set([error, status.error, collectionsRead.error, detailRead.error])]
+        .filter(Boolean)
+        .map((message) => (
+          <p key={message} className="business-error" role="alert">
+            {message}
+          </p>
+        ))}
 
       <LibraryToolbar
         query={query}
@@ -942,11 +944,6 @@ export function LibraryTab({
             metadata={
               <div className="catalog-section" id="section-metadata">
                 {' '}
-                {detailRead.error ? (
-                  <p className="business-error" role="alert">
-                    {detailRead.error}
-                  </p>
-                ) : null}
                 {detail ? (
                   <p>
                     稳定身份 {detail.id} · 修订号 {detail.revision} · 版本 {detail.version} · 来源{' '}

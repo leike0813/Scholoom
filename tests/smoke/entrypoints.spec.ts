@@ -74,26 +74,31 @@ test('desktop loads React and its sandbox preload', async () => {
       });
       await expect(window.getByRole('checkbox')).toHaveCount(0);
     } catch (error) {
-      const windows = await app.evaluate(({ BrowserWindow }) =>
-        BrowserWindow.getAllWindows().map((window) => {
-          const url = new URL(window.webContents.getURL() || 'about:blank');
-          return {
-            id: window.id,
-            url: `${url.protocol}//${url.host}${url.pathname}`,
-            loading: window.webContents.isLoadingMainFrame(),
-            destroyed: window.webContents.isDestroyed(),
-            rendererProcessId: window.webContents.getOSProcessId(),
-          };
-        }),
-      );
-      await test.info().attach('desktop-startup', {
-        body: JSON.stringify({
-          elapsedMs: Math.round(performance.now() - started),
-          windows,
-          rendererEvents,
-        }),
-        contentType: 'application/json',
-      });
+      const windows = await app
+        .evaluate(({ BrowserWindow }) =>
+          BrowserWindow.getAllWindows().map((window) => {
+            const url = new URL(window.webContents.getURL() || 'about:blank');
+            return {
+              id: window.id,
+              url: `${url.protocol}//${url.host}${url.pathname}`,
+              loading: window.webContents.isLoadingMainFrame(),
+              destroyed: window.webContents.isDestroyed(),
+              rendererProcessId: window.webContents.getOSProcessId(),
+            };
+          }),
+        )
+        .catch(() => null);
+      await test
+        .info()
+        .attach('desktop-startup', {
+          body: JSON.stringify({
+            elapsedMs: Math.round(performance.now() - started),
+            windows,
+            rendererEvents,
+          }),
+          contentType: 'application/json',
+        })
+        .catch(() => {});
       throw error;
     } finally {
       await closeDesktop(app);
