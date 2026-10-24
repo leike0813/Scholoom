@@ -9,6 +9,7 @@ import {
   HarnessRecords,
   InstructionSaver,
   openCheckpoint,
+  type RunInstance,
 } from '../../packages/harness/dist/node.js';
 import type { GraphExecution } from '../../packages/protocol/dist/execution.js';
 import type { ContextItem, InstructionContext } from '../../packages/protocol/dist/index.js';
@@ -293,6 +294,15 @@ test('registered worker receives trusted source, explicit project/library items 
     );
     expect(JSON.stringify(f.model.requests.at(-1)?.messages)).toContain(`actual-${f.target.id}`);
     expect((await app.snapshot(f.scope)).run?.graph?.materials).toHaveLength(1);
+    const progress = (await app.call('workbench.watch', f.scope)).run?.graphProgress;
+    expect(progress?.kind).toBe('graph.completed');
+    expect(progress?.evidence.creations).toHaveLength(2);
+    expect(
+      await app.call('resources.creation', {
+        projectId: f.project.id,
+        operationId: 'context-result-context',
+      }),
+    ).toMatchObject({ state: 'complete', association: { state: 'confirmed' } });
     await app.close();
     app = new KernelApplication(f.profile, f.options);
     await app.initialize();
@@ -308,6 +318,177 @@ test('registered worker receives trusted source, explicit project/library items 
     await f.model.close();
   }
 });
+
+for (const failure of ['cancel', 'association', 'worker-lost'] as const) {
+  test(`registered explicit input preserves actual delivery across ${failure}`, async () => {
+    const f = await fixture(true);
+    let app = f.app;
+    const product = app.connectProduct();
+    const path = 'result.md.context.md';
+    const operationId = 'context-result-context';
+    let release = () => {};
+    const delivery = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let published = false;
+    const resources = app.executionResources.bind(app);
+    app.executionResources = (context) => {
+      const port = resources(context);
+      return {
+        ...port,
+        create: async (input) => {
+          const result = await port.create(input);
+          if (input.path === path) {
+            published = true;
+            // Hold only delivery of the real result; file, identity and owner receipt already exist.
+            if (failure !== 'association') await delivery;
+          }
+          return result;
+        },
+      };
+    };
+    try {
+      await expect(stat(join(f.project.path, path))).rejects.toMatchObject({ code: 'ENOENT' });
+      if (failure === 'association')
+        app.projects
+          .get(f.project.id)
+          .database.exec(
+            "CREATE TRIGGER reject_context_association BEFORE INSERT ON artifacts BEGIN SELECT RAISE(ABORT, 'association unavailable'); END",
+          );
+      const receipt = await product.call('session.send', f.input);
+      await expect.poll(() => published, { timeout: 20000 }).toBe(true);
+      const output = JSON.parse(await readFile(join(f.project.path, path), 'utf8'));
+      const message = (await app.call('workbench.watch', f.scope)).messages.find(
+        (item) => item.id === f.input.instructionId,
+      );
+      assert(message?.source);
+      const { projectId: _project, sessionId: _session, ...input } = f.input;
+      expect(output.instructions).toEqual([{ ...input, source: message.source }]);
+      expect(output.reads.map((item: { data: string }) => item.data)).toEqual([
+        `actual-${f.target.id}`,
+        'actual-library-context-91',
+        `actual-${f.project.id}`,
+      ]);
+      expect(message.state).toBe('consumed');
+      const saved = await checkpoint(app, f.project.id, receipt.runId);
+      expect(saved?.instructions).toEqual(output.instructions);
+      const original = await stat(join(f.project.path, path), { bigint: true });
+      const instances = () =>
+        (
+          app.projects
+            .get(f.project.id)
+            .database.prepare('SELECT value FROM run_instances')
+            .all() as { value: string }[]
+        )
+          .map((row) => JSON.parse(row.value) as RunInstance)
+          .filter((row) => row.runId === receipt.runId);
+      if (failure === 'cancel') {
+        const cancelled = app.call('session.cancel', f.scope);
+        release();
+        await cancelled;
+      } else if (failure === 'worker-lost') {
+        const owned = instances().find((row) => row.state === 'running');
+        assert(owned?.processId);
+        process.kill(owned.processId, 'SIGKILL');
+        release();
+      }
+      await expect
+        .poll(async () => (await app.call('workbench.watch', f.scope)).run?.state, {
+          timeout: 20000,
+        })
+        .toBe(
+          failure === 'association' ? 'completed' : failure === 'cancel' ? 'cancelled' : 'failed',
+        );
+      await expect.poll(() => instances().every((row) => row.state === 'exited')).toBe(true);
+      const beforeRestart = await app.call('workbench.watch', f.scope);
+      if (failure === 'association') {
+        expect(beforeRestart.run?.graphProgress).toMatchObject({
+          kind: 'graph.completed',
+          evidence: {
+            creations: expect.arrayContaining([
+              {
+                operationId,
+                state: 'complete',
+                resource: expect.anything(),
+                association: expect.objectContaining({ state: 'unknown' }),
+              },
+            ]),
+          },
+        });
+      } else {
+        expect(beforeRestart.run?.remoteOutcome).toBe('unknown');
+        expect(beforeRestart.run?.graphProgress?.kind).not.toBe('graph.completed');
+      }
+      const requests = f.model.requests.length;
+      product.close();
+      await app.close();
+      app = new KernelApplication(f.profile, f.options);
+      await app.initialize();
+      expect((await app.call('workbench.watch', f.scope)).run?.state).toBe(
+        beforeRestart.run?.state,
+      );
+      expect(f.model.requests).toHaveLength(requests);
+      if (failure === 'association')
+        app.projects.get(f.project.id).database.exec('DROP TRIGGER reject_context_association');
+      const checked = await app.call('resources.creation', {
+        projectId: f.project.id,
+        operationId,
+      });
+      expect(checked).toMatchObject({ state: 'complete', association: { state: 'confirmed' } });
+      assert(checked.state === 'complete' && checked.resource.ref.source === 'project');
+      expect((await app.call('files.read', { projectId: f.project.id, path })).fileId).toBe(
+        checked.resource.ref.fileId,
+      );
+      const reconciled = await app.call('artifacts.reconcile', {
+        ...f.scope,
+        runId: receipt.runId,
+        paths: [path],
+      });
+      expect(reconciled[0]).toMatchObject({ state: 'linked', fileId: checked.resource.ref.fileId });
+      if (failure === 'worker-lost') {
+        await app.call('session.send', {
+          ...f.scope,
+          instructionId: randomUUID(),
+          text: '{"approve":true}',
+          materials: [],
+        });
+        await expect
+          .poll(async () => (await app.call('workbench.watch', f.scope)).run?.state, {
+            timeout: 20000,
+          })
+          .toBe('completed');
+      }
+      expect((await stat(join(f.project.path, path), { bigint: true })).ino).toBe(original.ino);
+      expect(JSON.parse(await readFile(join(f.project.path, path), 'utf8'))).toEqual(output);
+      expect(app.projects.get(f.project.id).history(path)).toHaveLength(1);
+      expect(await app.call('session.send', f.input)).toEqual(receipt);
+      await test.info().attach('actual-delivery', {
+        body: JSON.stringify(
+          {
+            failure,
+            profile: f.profile,
+            project: f.project.path,
+            runId: receipt.runId,
+            instructionId: f.input.instructionId,
+            resource: checked.resource,
+            association: checked.association,
+            inode: String(original.ino),
+            interruptedState: beforeRestart.run?.state,
+            finalState: (await app.call('workbench.watch', f.scope)).run?.state,
+          },
+          null,
+          2,
+        ),
+        contentType: 'application/json',
+      });
+    } finally {
+      release();
+      product.close();
+      await app.close();
+      await f.model.close();
+    }
+  });
+}
 
 for (const contextState of ['missing', 'empty'] as const) {
   test(`a legacy checkpoint with ${contextState} context retains verified old instruction identities alongside new resume context`, async () => {

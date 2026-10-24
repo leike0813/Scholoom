@@ -313,9 +313,14 @@ export class ManualApplication {
         this.checkProjectScope(projectId, context);
         return this.projects.get(projectId).path(path, allowMissing);
       },
-      'project.saveFile': ({ projectId, path, content, basis, expectedFileId }, context) => {
+      'project.saveFile': (
+        { projectId, path, content, basis, expectedFileId, resourceBasis },
+        context,
+      ) => {
         this.checkProjectScope(projectId, context);
-        return this.projects.get(projectId).save(path, content, basis, undefined, expectedFileId);
+        return this.projects
+          .get(projectId)
+          .save(path, content, basis, undefined, expectedFileId, undefined, resourceBasis);
       },
     });
     this.registerProjectHandlers('project-target-read', {

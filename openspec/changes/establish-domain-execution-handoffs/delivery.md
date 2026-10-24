@@ -2,6 +2,53 @@
 
 ## 当前状态与成果
 
+### 第五轮实际交付与独立模块审查
+
+2026-10-23，用户授权同步最新 dev、完成 4.4 的执行／失败组合和 4.5 独立模块审查、提交推送并向 dev 发 PR，暂不归档或启动七域。开始时工作树干净；显式 fetch origin dev 后 fast-forward 核对为最新 `23e68c8`，无需合并。本树 4.4 通过，进度 **17/19**；4.5 审查发现的 P1 未关闭，4.5／4.6 仍未勾选。没有操作其他工作树或其 Agent。
+
+#### 4.4 真实显式输入、交付与失败组合
+
+复用工作台线已有 `registered-context.spec.ts`／`durable-resource` 工厂及真实 KernelApplication，正常路径保留服务器来源、显式目标项目／库项、旧项目路径与 fileId；worker 实际读取三个来源，并经现有模型适配使用 loopback 受控响应。已保存成果经公共 `workbench.watch` 查询 graph.completed／两份创建证据，经 `resources.creation` 查询实际资源和已确认关联。原文件先由图从不存在路径首次创建，不预建输出。
+
+新增三种失败均在同一实际 worker／资源路径验证：
+
+| 边界 | 注入点与实际核对 |
+| --- | --- |
+| cancel | 宿主仅延迟真实 `resources.create` 完成结果的交付；文件、身份、创建收据已经保存，再请求 session.cancel。实际输入已进入 checkpoint 并消费，run 取消且 remoteOutcome 保持 unknown，进程已退出，已有成果保留；重启不自动推进 |
+| association | 真实项目 SQLite 的 artifacts INSERT trigger 抛错，首次创建仍返回 complete、association 为 unknown，graph.completed 的创建证据保留部分结果。重启移除故障后按原 operationId 查询并只补关联，files.read／artifacts.reconcile 核对原 fileId，inode／内容／一份历史均保持 |
+| worker-lost | 真实创建完成、回执尚未交给 worker 时，对当前 run 的实际进程 PID 注入 SIGKILL；run failed、remoteOutcome unknown，不报 graph.completed。重启只查询原收据；发送新指令恢复后仍是原文件、原内容和一份历史，未重写成果 |
+
+延迟器始终先调用实际资源提供者并原样返回其结果；没有用成功替身代替文件、仓储、broker 或授权。完整指令／来源和实际读取正文分别核对，保存 checkpoint 后消费的原边界保留。每个新用例的 `actual-delivery` 附件记录隔离配置、项目、run／instruction、资源及依据、关联和前后状态，不包含凭据。默认生产源码注册仍为空。
+
+工作台完整上下文、累计 101 条分批确认及大文本 IPC 的接入依据继续引用[工作台第四轮 dev 接收](../establish-workbench-context-bridge/delivery.md#第四轮-dev-接收)。本轮补充模块级执行／失败证据供其最终 4.5 用户路径引用；工作台仍承担其最终用户路径与整合责任，本线不重复改 runtime、driver、来源或 composer。
+
+#### 4.5 独立模块审查及未关闭问题
+
+两位独立代理分别核对图协议／恢复，以及资源／命令／进程模块，使用基线 `23e68c8`、当前契约、源码及真实局部探针。首个图审查代理被服务端风险筛查拒绝、没有产生审查结果；按项目约定换用 gpt-6-luna 后完成只读审查。图模块未确认新增行为错误，既有 registered-context／registered-graph 定向 27 项通过，另核对主线新增组合结果。该代理使用了默认 `test-results/kernel` 工件目录，不能宣称其工件唯一；主线所有实际验收均使用独立 output 和本轮唯一日志目录，未清理共享目录或其他执行。
+
+资源／命令审查发现两项原有问题：
+
+- **P2 已关闭：资源版本检查与实际保存之间的同内容替换。** 原 ResourceAccess 只将文本令牌与 expectedFileId 传给保存；独立真实探针在最后核验后替换同内容文件，旧保存仍覆盖目标。本轮新增内部 `project.saveFile.resourceBasis`，沿原 broker／Manual 传入 Store，串行保存内核对实际源句柄和发布前目标的 strong version。原文本 token、fileId、创建收据及未知效果保护保留。queued／publishing 两个真实文件回归均拒绝旧保存并保留替换对象；独立原探针复验返回 contentChanged，窄复核关闭 P2。内部同源声明和派生类型传递字段，不改公开产品协议版本。
+- **P1 开放：脱离 POSIX 原进程组的后代未停止却确认收尾。** 真实固定 Node 程序派生 detached 后代持续写心跳；取消时父程序仍存活，后代已有独立进程组。取消后 active=0，心跳仍由 26 增到 34；父程序先正常退出时也可复现。日志 `/tmp/scholoom-review-two.n0J2Vo/detached-probe.log`、`/tmp/scholoom-review-boundary.s3t8JA/p1-parent-boundary.log`。探针所属后代已明确收尾。进程决议 Q2/Q3 与本 change 的停止未知场景要求保留实际归属及占用；平台决议虽不承诺任意本机代码强沙箱，也没有将此保证限定为合作程序。现有进程组、一次扫描或 env 标记均不能可靠证明全部后代停止；不能凭原组消失修补为成功。OS 级进程归属的实施范围已向用户提出选择，决定前未增加猜测性控制或缩减契约；4.5 保持未完成。
+
+P2 独立原探针及绿色日志为 `/tmp/scholoom-review-boundary.s3t8JA/p2-save-race.mjs`、`p2-save-race-recheck.log`。上述发现不伪装成新增组合造成的回归；本轮未改进程控制器、没有据普通后代用例通过关闭 detached 问题。开发说明和原 design 已更新资源版本路径、公共结果查询入口及进程限制；没有新建交付事实源。
+
+#### 实际验证与剩余范围
+
+Linux、Node 24.12.0、pnpm 11.10.0；使用现有 Electron／Chromium 和依赖，没有安装升级。模型边界为本机受控 HTTP，不使用真实外部模型。主线日志统一位于 `/tmp/scholoom-domain-execution-r5-l3V5sf/`，防止并行工作线覆盖通用临时文件。
+
+| 实际入口 | 结果及范围 |
+| --- | --- |
+| `registered-context.spec.ts --grep 'actual delivery\|worker receives trusted'`，独立 output `domain-r5-delivery` | **4/4，57.6 秒**；正常路径公开查询及三个真实失败组合 |
+| 新增三场景附件定稿后 `--grep 'actual delivery'`，output `domain-r5-delivery-final` | **3/3，44 秒**；保留 actual-delivery 附件；与前组重叠，不相加 |
+| resource-identity 的 queued／publishing 两项 | **2/2，5.6 秒**；真实同内容替换，文件内容、inode 和原历史均核对 |
+| registered-context、resource-identity、resource-access、resource-creation、project-files、project-backend、managed-commands、process-admission、platform-processes | **75/75，4.5 分钟**；含分批累计确认／大文本、完整上下文、撤权／取消、原收据和普通进程树；日志 `regression.log`，output `test-results/domain-r5-regression` |
+| 根 typecheck、build，均带 `--config.optimisticRepeatInstall=false` | 通过，含内部可选 resourceBasis 的调用方／工具类型和生产构建。首次新增查询误用不存在的 session.get，已修正为正式公共 workbench.watch 并重验，没有新增产品操作 |
+| 生成器 self-test／patch 格式化比对、check-architecture.ts、lint、改动文件 Biome、git diff --check | 通过；六份生成映射一致，13 模块／198 文件零架构 findings／例外，lint 无错误、74 warnings／35 infos 保留 |
+| `SCHOOLOOM_UI_PORT=5591`，既有双宿主 resource-opening | **2/2，56.5 秒**；真实浏览器／Electron 的共同资源条件保存及独立状态，日志 `ui.log`、output `test-results/domain-r5-ui`。5591 结束后无监听 |
+
+未跑完整内核／UI、三平台分发、真实外部模型或科研充分性。75 项绿色及普通进程树回归不能关闭上述 P1；本轮 4.4 的完成不等同于 4.5／4.6 最终交付，仍不归档或启动七域。
+
 ### 第四轮 dev 接收
 
 2026-10-23，用户要求处理三个工作树完成的新一轮任务。dev 在干净的 `e324367` 上保留原提交，依次以 `2ae82e8`、`356769b`、`c76df43` 合入 [#10](https://github.com/leike0813/Scholoom/pull/10)、[#11](https://github.com/leike0813/Scholoom/pull/11)、[#12](https://github.com/leike0813/Scholoom/pull/12)，无冲突。#11 的双实例隔离及独立夹具验证现已接入，#12 的 registered 完整指令上下文也已接入；本变更仍为 **16/19**，4.4–4.6 保持未勾选，没有归档或启动七域。
@@ -216,8 +263,8 @@ registered 路径复用 RemoteAgent、静态 driver、当前实例、ProcessAdmi
 
 ## 未完成事项与下一步
 
-1. PR #8／#9 及后续恢复／授权修复已由 dev 接收，本树基线为 `e324367`。本轮 4.1–4.3 的回归及说明向 dev 送审，实际合入前不宣称该增量已接收；不自行合入或同步其他工作树。
-2. 工作台线继续交付 registered 图的完整指令上下文、checkpoint 与授权复查。该增量经 dev 接收后，4.4 再核对显式输入、实际资源／成果及失败路径；本轮保持附件未接线保护，不改变源码默认注册。
-3. 4.5／4.6 的最终组合审查与交付保持待验，按原公共基础规划明确当次整合负责人。本轮独立审查只覆盖新增隔离用例和接入说明，不能代替最终三线复核。
-4. 仍未验真实外部模型／科研充分性、完整 UI／内核及三平台分发。UI 首次加载超时及独立复验记录见本轮证据；不据复验通过声称并发冷启动性能或全仓 CI 已达标。
-5. 续做读取 tasks 与本记录，再取得 apply instructions。当前 16/19；最终 4.4–4.6 保持未勾选，不以本树通过替代 dev 接入和最终交付。
+1. 本树已同步 dev `23e68c8`，4.4 的真实执行／三类失败组合及资源版本竞态修复向 dev 送审，尚未据本轮本地通过宣称该增量已合入。
+2. 4.5 独立模块审查已执行，P2 修复并关闭；P1 detached 后代归属及停止误报仍开放。OS 级归属能力的本轮实施／单独立项范围待用户确认；不使用扫描或 env 标记猜测全树已退出，不把“非强沙箱”解释为排除原收尾责任。
+3. 工作台线继续承担最终用户路径，本轮实际取材／保存／结果查询及失败组合可作为其模块前置证据；最终三线组合和独立验收仍按双方原 tasks 跟进。
+4. 未验真实外部模型／科研充分性、完整 UI／内核和三平台分发。普通进程树及 75 项回归通过不关闭上述 P1，也不表示全仓 CI 达标。
+5. 续做读取 tasks 与本记录，再取得 apply instructions。当前 17/19；4.5、4.6 保持未勾选，不归档或启动七域。
