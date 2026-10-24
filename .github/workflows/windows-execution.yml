@@ -1,6 +1,14 @@
 name: Windows execution diagnosis
 
 on:
+  push:
+    branches: [dev]
+    paths:
+      - .github/workflows/windows-execution.yml
+      - tests/execution-diagnostics.ts
+      - tests/kernel/context-instructions.spec.ts
+      - tests/kernel/harness.spec.ts
+      - tests/kernel/development-execution.spec.ts
   workflow_dispatch:
 
 permissions:
