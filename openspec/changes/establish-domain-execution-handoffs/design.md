@@ -8,7 +8,7 @@
 - macOS 的原生后端仍待确定：真实 runner 和 [Apple XNU filt_procattach](https://github.com/apple-oss-distributions/xnu/blob/main/bsd/kern/kern_event.c) 均证明 NOTE_TRACK／NOTE_CHILD 返回 ENOTSUP，原 kqueue 候选已删除，不能将 BSD 支持视为 macOS 支持。用户已选择保留全功能目标，先规划系统级服务／隔离环境，公共基础暂不验收；当前在执行用户代码前明确不可用只是失败保护，不是已接受的交付边界。系统级 coalition 创建也有特权限制，候选证据与 macOS 27 后代 ES API 见 [investigation](investigation.md#macos-完整进程归属收尾调查与后续规划)。
 - Node 控制器保留同源 IPC、独立停止及有界等待，原生监督程序通过私有控制管道获知停止或控制器失联。最小 bootstrap 在原生归属就绪后才导入原 worker，导入期间有界缓存消息；目标模块和外部命令不能在登记前执行。监督程序失败不产生 stopped 回执。
 - 原生监督程序及 bootstrap 使用宿主最小环境启动，调用方的显式环境在归属确认后通过原 IPC 交给 bootstrap，再加载目标模块；避免运行时预加载变量在登记前执行代码。原生能力不可用且用户代码未启动时，确认未创建执行后释放准入；已经启动但停止未确认时仍保留占用。
-- 普通 Agent／registered 图接续及项目仓储释放只消费已确认 exited 的实例记录；删除以根 PID 消失推断全范围停止的分支。控制器失联后的自动清理不替代停止确认；未知归属当前仍需核查，重启不自动消除。Windows 原生启动使用宽字符路径并引用两个文件参数，覆盖含空格与非 ASCII 的安装目录。
+- 普通 Agent／registered 图接续及项目仓储释放复用同一有界查询，只消费已确认 exited 的实例记录；接续核对同一会话所有历史归属，缺少所属 run 的孤立记录保留未知，不能只看最近一次尝试或根 PID。控制器失联后的自动清理不替代停止确认；未知归属当前仍需核查，重启不自动消除。Windows 原生启动使用宽字符路径并引用两个文件参数，覆盖含空格与非 ASCII 的安装目录。
 
 ### macOS 后续实施的决定条件
 

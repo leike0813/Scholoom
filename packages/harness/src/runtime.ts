@@ -157,6 +157,21 @@ export class Harness {
   private records(project: HarnessProject) {
     return this.repository(project).db;
   }
+  private unconfirmedInstance(project: HarnessProject, sessionId?: string) {
+    return this.records(project)
+      .select({ value: tables.instances.value })
+      .from(tables.instances)
+      .leftJoin(tables.runs, eq(tables.instances.runId, tables.runs.id))
+      .where(
+        and(
+          sql`json_extract(${tables.instances.value}, '$.state') != 'exited'`,
+          sessionId
+            ? or(eq(tables.runs.sessionId, sessionId), sql`${tables.runs.id} IS NULL`)
+            : undefined,
+        ),
+      )
+      .get();
+  }
   private port(
     project?: HarnessProject,
     sessionId?: string,
@@ -1019,12 +1034,8 @@ export class Harness {
       const factory = this.graphs.resolve(graph);
       if (factory.definition.stateFormatVersion !== binding.stateFormatVersion)
         throw new OperationError('protocolIncompatible', '图状态格式不兼容，旧记录及成果已保留。');
-      const unsettled = this.records(project)
-        .select()
-        .from(tables.instances)
-        .all()
-        .filter((row) => row.runId === run.id && row.value.state !== 'exited');
-      if (unsettled.length) throw new OperationError('outcomeUnknown', '旧图执行停止尚未确认。');
+      if (this.unconfirmedInstance(project, run.sessionId))
+        throw new OperationError('outcomeUnknown', '旧图执行停止尚未确认。');
       release = await claimCheckpoints(project.internal, [binding.checkpointRef]);
       const opened = await openCheckpoint(project.internal, binding.checkpointRef);
       database = opened.database;
@@ -1658,11 +1669,8 @@ export class Harness {
         .map((row) => row.value)
         .filter((previous) => previous.id !== run.id)
         .sort((a, b) => b.attempt - a.attempt)[0];
-      for (const row of this.records(project).select().from(tables.instances).all()) {
-        const prior = row.value;
-        if (prior.state === 'exited' || ![run.id, predecessor?.id].includes(prior.runId)) continue;
+      if (this.unconfirmedInstance(project, run.sessionId))
         throw new OperationError('unavailable', '旧执行写者尚未排除，停止相关接续。');
-      }
       checkpointClaims.push(
         await claimCheckpoints(project.internal, [
           run.id,
@@ -3170,13 +3178,7 @@ export class Harness {
       .map(([, value]) => value);
     for (const item of active) item.controller.abort(new Error('Project relocated'));
     await Promise.all(active.map((item) => item.done));
-    if (
-      this.records(project)
-        .select()
-        .from(tables.instances)
-        .all()
-        .some(({ value }) => value.state !== 'exited')
-    )
+    if (this.unconfirmedInstance(project))
       throw new OperationError('outcomeUnknown', '项目执行停止尚未确认，不能替换仓储。');
     project.records.close();
     this.repositories.delete(project.internal);

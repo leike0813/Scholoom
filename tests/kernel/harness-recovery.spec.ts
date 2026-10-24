@@ -543,14 +543,16 @@ for (const rootState of ['live', 'exited'] as const)
           .prepare('INSERT INTO run_instances(id,run_id,host_instance_id,value) VALUES (?,?,?,?)')
           .run(value.instanceId, value.runId, value.hostInstanceId, JSON.stringify(value));
         const count = model.requests.length;
-        await app.harness.send({
-          ...scope,
-          instructionId: randomUUID(),
-          text: 'MODEL_CHAT next',
-          materials: [],
-        });
-        await expect.poll(async () => (await app.snapshot(scope)).run?.state).toBe('failed');
-        expect(model.requests).toHaveLength(count);
+        for (let retry = 0; retry < 2; retry++) {
+          await app.harness.send({
+            ...scope,
+            instructionId: randomUUID(),
+            text: `MODEL_CHAT retry ${retry} while ownership remains unconfirmed`,
+            materials: [],
+          });
+          await expect.poll(async () => (await app.snapshot(scope)).run?.state).toBe('failed');
+          expect(model.requests).toHaveLength(count);
+        }
         records.db.$client.prepare('DELETE FROM run_instances WHERE id=?').run(value.instanceId);
         await app.harness.send({
           ...scope,
