@@ -2,6 +2,7 @@ import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { createServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { RpcPeer } from '@scholoom/broker/rpc';
+import { ManagedNode } from '@scholoom/platform/node';
 import {
   type BusinessParams,
   type ErrorInfo,
@@ -28,7 +29,11 @@ export async function startKernelServer(
     Partial<Pick<KernelApplication, 'available' | 'connectProduct'>>,
   development = false,
 ) {
-  let status: KernelStatus = { ...initialStatus, capabilities: application?.available?.() ?? [] };
+  let status: KernelStatus = {
+    ...initialStatus,
+    capabilities: application?.available?.() ?? [],
+    managedExecution: ManagedNode.availability,
+  };
   const token = randomBytes(32).toString('hex');
   const http = createServer((_request, response) => {
     response.writeHead(404).end();

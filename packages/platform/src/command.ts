@@ -21,6 +21,7 @@ export async function runCommand(
   } = {},
 ): Promise<CommandResult> {
   options.signal?.throwIfAborted();
+  ManagedNode.requireAvailable();
   const env: Record<string, string> = {};
   for (const name of [
     'HOME',

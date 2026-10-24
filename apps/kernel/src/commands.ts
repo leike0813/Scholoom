@@ -1,4 +1,4 @@
-import { type ProcessAdmission, runCommand } from '@scholoom/platform/node';
+import { ManagedNode, type ProcessAdmission, runCommand } from '@scholoom/platform/node';
 import { type CallContext, compileContract, OperationError } from '@scholoom/protocol/core';
 import {
   type PlatformCommandInput,
@@ -52,6 +52,7 @@ export class ManagedCommands {
       return { directory: workspace.directory, projectId: workspace.projectId, executable };
     };
     const initial = check();
+    ManagedNode.requireAvailable();
     const confirm = () => {
       const current = check();
       if (

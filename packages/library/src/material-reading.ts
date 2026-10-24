@@ -63,6 +63,7 @@ export class MaterialReading {
       return Promise.reject(new OperationError('shuttingDown', '材料读取已取消。'));
     let immediateReservation: ProcessReservation | undefined;
     try {
+      ManagedNode.requireAvailable();
       if (options.waitForCapacity === false) immediateReservation = this.processes?.reserve();
     } catch (error) {
       return Promise.reject(error);

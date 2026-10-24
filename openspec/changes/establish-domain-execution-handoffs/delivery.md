@@ -2,6 +2,20 @@
 
 ## 当前状态与成果
 
+### macOS 显式不可用与人工降级收尾
+
+2026-10-24，用户明确调整验收范围：缺少 Mac／Apple 账号，先将相应特性设为不可用，以“显式声明＋fallback”完成本 change 并归档。该授权取代此前等待完整 macOS 后端的阻塞条件；后文历史记录中的未验收结论保留其当时范围。本轮 fallback 仅保留人工文件、题录／附件、草稿、历史会话和已有成果，不提供无隔离执行。ES／系统服务／VM 仍是未来恢复完整能力的调查方向，需要另立变更、必要硬件／权限及真实分发验证。
+
+已实现 `ManagedNode.availability` 单一声明，经同源 `KernelStatus.managedExecution` 提供给连接客户端。harness 在新指令受理前、命令在容量等待前、材料解析在快照加载前、底层启动在控制器创建前拒绝不可用平台。原指令幂等回执及未知归属保护保持。工作台按内核状态提示原因并禁发送，保留可编辑草稿及人工入口；设计总览已与实际接线核对。
+
+本机 Linux／Node 24.12.0 已完成根 typecheck、build、架构检查、lint、变更 strict 和 diff 检查。原生／命令／降级定向 **19/19，36.6秒**；Linux 降级测试只替换平台声明边界，其余真实 KernelApplication、进程诊断、文件及题录持久化均真实运行，证明无子进程、无材料加载、无新指令记录及无容量等待。日志 `/tmp/scholoom-macos-close-{typecheck,build,lint,kernel}.log`。曾误在 UI 测试运行时启动 build，立即中止；完整 build 已单独通过，UI 改为之后独立复验，不将重叠运行作为最终依据。
+
+首轮 UI 的库管理双宿主通过，新增降级用例因错把带标签的 summary 定位为 button 而失败，已沿既有通知测试修正，并配置合成凭据避免将“缺模型配置”误认平台禁发送。完整 build 后独立复验：`SCHOOLOOM_UI_PORT=5613 pnpm --config.optimisticRepeatInstall=false test:ui tests/ui/platform-availability.spec.ts tests/ui/library.spec.ts`，浏览器／Electron **4/4，1.1分钟**，核对通知、禁发送、草稿刷新保留、真实人工文件保存、库编辑及恢复。非macOS仅替换renderer所见的状态响应，后端人工操作真实；未发送任何模型请求。日志 `/tmp/scholoom-macos-close-ui-final.log`；真实macOS runner待回填，暂不勾选5.5或归档。
+
+第五轮独立模块审查发现的资源竞态 P2 已修复；后代归属 P1 由 Linux subreaper／Windows Job Object 修复，macOS按用户新授权明确不可用。本轮为主线核对及定向测试，没有新增独立代理审查。不能把此前审查表述成对新增原生适配的独立审查。
+
+全仓验证边界：`4616aa8` 的完整 [Checks 40082740497](https://github.com/leike0813/Scholoom/actions/runs/40082740497) 三平台失败，Windows专项 [40082740532](https://github.com/leike0813/Scholoom/actions/runs/40082740532) 通过。Linux 内核397通过2跳过、smoke6通过1跳过；UI102通过6失败2跳过，失败分别是同名项目定位、旧RPC gate无 held 请求、写作PDF预览，各双宿主。Windows完整内核378通过9失败12跳过，剩余为执行状态短等待路径；macOS原受管专项因当前不可用失败。本轮只按新范围调整macOS验收，Linux／Windows原测试继续保留，未隐藏上述失败。详细日志 `/tmp/scholoom-macos-close-ci-failures.log`，未将全仓CI标作通过。
+
 ### Windows与库UI后续收敛，macOS条件仍未具备
 
 2026-10-24，主线按用户批准方案继续完成Windows定向诊断、独立库UI及Electron入口复验；不再分派，也未操作其他工作树。最终Windows定向CI [40081004866](https://github.com/leike0813/Scholoom/actions/runs/40081004866)：原失败执行路径重复10/10、原生归属／命令授权16通过1既有跳过、开发宿主2/2、Electron首次加载3/3。阶段诊断证明Windows冷启动与权限准备后，同次结构执行约6.4秒正常完成，原5秒功能等待不适合该路径；测试调整和所有历史失败详见[跨平台交付](../archive/2026-10-24-fix-cross-platform-file-and-writing-behavior/delivery.md#本轮按变更范围完成收尾)。没有更改生产准入、权限和停止时限。

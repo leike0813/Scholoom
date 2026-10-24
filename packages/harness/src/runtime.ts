@@ -17,6 +17,7 @@ import { type ModelAccess, modelFailure, type RunModelConfig } from '@scholoom/m
 import {
   atomicPrivateFile,
   failure,
+  ManagedNode,
   ProcessAdmission,
   type ProcessReservation,
   privateDirectory,
@@ -692,6 +693,7 @@ export class Harness {
       }
       return previous;
     }
+    ManagedNode.requireAvailable();
     const prior = this.latestRun(project, input.sessionId);
     if (prior?.graph && prior.state === 'waiting')
       await this.active.get(activeKey(project, session.id))?.done;

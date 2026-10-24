@@ -128,7 +128,9 @@ SCHOOLOOM_UI_PORT=5343 node node_modules/@playwright/test/cli.js test --config p
 
 执行接续及项目仓储释放同样要求原实例已确认 exited；根 PID 消失不构成完整归属停止的证据。普通 Agent 与 registered 图接续核对同一会话的全部未确认归属，连续重试不能绕过更早的未知实例；其他会话的正常并发保持。控制器异常退出后，即使监督程序实际清理了 worker，确认丢失仍保留未知状态，重启也不从根 PID 推断安全。当前没有自动消除这类未知归属的入口，须先核查并处理原归属。
 
-platform 的 build 会先使用系统 C 编译器构建监督程序，Windows 使用已安装的 Visual Studio C 工具链；Electron 打包核对该文件已解包。macOS 当前未建立同等保证，在载入业务模块前明确报告原生范围不可用。Darwin 不支持 kqueue 的自动后代跟踪；用户已决定保留 macOS 全功能目标，先规划系统服务／隔离环境。macOS 27 后代 Endpoint Security 客户端也在候选中，系统范围、entitlement、签名分发和完整停止保证须实际验证，不能据候选存在宣称支持。领域交接 4.5 保持未完成，依据及后续步骤见同一变更的 investigation／design／tasks 第 5 组。
+platform 的 build 会先使用系统 C 编译器构建监督程序，Windows 使用已安装的 Visual Studio C 工具链；Electron 打包核对该文件已解包。`ManagedNode.availability` 是平台受管执行可用性的唯一来源，经 `KernelStatus.managedExecution` 发布给客户端；以实际内核平台为准。当前 macOS 明确不可用：普通 Agent、源码图、外部命令、材料解析及完整排版在创建 worker 前返回 unavailable，命令不进入容量等待，解析不加载材料快照。工作台状态栏提示原因，禁止新执行发送并保留草稿；人工文件编辑、题录／附件管理、已有成果和会话查询仍可用，不切换到无隔离执行。已有未知停止及容量占用仍受保护。
+
+macOS 完整能力恢复另立变更：Darwin 不支持 kqueue 自动后代跟踪，ES 后代客户端／系统服务需核对系统范围、entitlement、签名、安装授权与完整停止；VM 需证明 macOS 工具语义和材料／成果传输。需有目标 Mac、必要 Apple 权限及真实分发验证，候选 API 不构成交付。调查与实际边界见[领域交接交付](../openspec/changes/establish-domain-execution-handoffs/delivery.md)。
 
 源码与 QMD／Markdown 可视编辑共用同一草稿。Markdown／QMD 轻量预览读取未保存草稿；完整排版读取已保存稿件，打开预览或保存时更新当前选择格式。QMD 默认 HTML，切换 PDF 后更新 PDF；LaTeX 保留原生多文件工程并编译 PDF。HTML、PDF、DOCX 均可通过显式导出生成到工作区，沿用既有文件冲突与传输保护。
 
@@ -341,7 +343,7 @@ UI 测试期间保持源码和共享包构建产物稳定；改动或重新构�
 
 `pnpm package:dir` 构建并分别生成两个 Electron 目录包，输出到 `release/desktop` 和 `release/zotero-host`。桌面包包含内核、执行桥、原生依赖与 PDF WASM，仍要求本机 Node 24；不生成签名安装器或尚未实现的科研执行工具。`SCHOOLOOM_PACKAGED_DESKTOP=<实际桌面可执行文件>` 可让既有入口 smoke 启动该分发包；`SCHOOLOOM_PACKAGED_KERNEL=<解包的 @scholoom/kernel 目录> pnpm test:kernel tests/kernel/cli-runtime.spec.ts` 验证包内实际图、工具、持久化及 PDF 解析。本机目录包通过不替代目标平台签名、安装后及恢复验收。
 
-GitHub Actions 使用 Linux、Windows、macOS 矩阵运行同一检查与目录打包；远端结果以实际 workflow 运行为准。本机 Linux 通过不表示三平台已验收。
+GitHub Actions 三平台均运行静态检查、构建及目录打包。Linux／Windows 保留受管归属、完整内核与 UI 测试；macOS 运行真实不可用声明、零 worker 拒绝、人工文件／题录、双宿主降级与入口测试，不安装当前不可用的排版工具链。`platform-availability.spec.ts` 在 macOS 使用真实声明，在其他平台只替换能力边界；UI 的非 macOS 用例只替换状态响应，人工操作仍走真实内核。远端结果以实际 workflow 运行为准，降级通过不表示 macOS 全功能或三平台发布验收。
 
 ## 实施约定
 

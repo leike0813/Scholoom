@@ -121,6 +121,24 @@ export class OperationError extends Error {
   }
 }
 
+export const managedExecutionAvailabilitySchema = {
+  anyOf: [
+    {
+      type: 'object',
+      properties: { available: { const: true } },
+      required: ['available'],
+      additionalProperties: false,
+    },
+    {
+      type: 'object',
+      properties: { available: { const: false }, reason: { type: 'string', minLength: 1 } },
+      required: ['available', 'reason'],
+      additionalProperties: false,
+    },
+  ],
+} as const;
+export type ManagedExecutionAvailability = FromSchema<typeof managedExecutionAvailabilitySchema>;
+
 export const kernelStatusSchema = {
   type: 'object',
   properties: {
@@ -129,6 +147,7 @@ export const kernelStatusSchema = {
     dataDirectory: { type: 'string', minLength: 1 },
     startedAt: { type: 'string', minLength: 1 },
     state: { enum: ['running', 'stopping'] },
+    managedExecution: managedExecutionAvailabilitySchema,
     capabilities: {
       type: 'array',
       items: { type: 'string', minLength: 1 },

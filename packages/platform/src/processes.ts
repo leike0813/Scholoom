@@ -1,6 +1,6 @@
 import { type ChildProcess, fork } from 'node:child_process';
 import { EventEmitter } from 'node:events';
-import { limits, OperationError } from '@scholoom/protocol/core';
+import { limits, type ManagedExecutionAvailability, OperationError } from '@scholoom/protocol/core';
 import type { ProcessReservation } from './admission.js';
 
 export type ProcessIdentity = Readonly<{ pid: number; instanceId: string }>;
@@ -62,6 +62,19 @@ export function nodeEnvironment(
 
 /** The controller remains responsive when the owned execution loop is blocked. */
 export class ManagedNode extends EventEmitter {
+  static get availability(): ManagedExecutionAvailability {
+    return process.platform === 'linux' || process.platform === 'win32'
+      ? { available: true }
+      : {
+          available: false,
+          reason:
+            '当前平台暂不支持受管执行：Agent、外部命令和材料解析不可用；仍可人工管理文件、题录及已有成果。',
+        };
+  }
+  static requireAvailable(): void {
+    const status = ManagedNode.availability;
+    if (!status.available) throw new OperationError('unavailable', status.reason);
+  }
   readonly exited: Promise<{ code: number | null; signal: NodeJS.Signals | null }>;
   readonly stopped: Promise<void>;
   private readonly controller: ChildProcess;
@@ -131,6 +144,7 @@ export class ManagedNode extends EventEmitter {
   static async start(options: ManagedNodeOptions): Promise<ManagedNode> {
     if (options.entry.protocol !== 'file:' || !options.instanceId)
       throw new OperationError('invalidRequest', '执行入口或身份无效。');
+    ManagedNode.requireAvailable();
     const owned = new ManagedNode(options);
     const ready = new Promise<void>((resolve, reject) => {
       const timer = setTimeout(

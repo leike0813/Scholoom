@@ -82,6 +82,8 @@ export function useBusinessSession(
   const retainedEffort = useRef<Record<string, Effort>>({});
   const directoryRef = useRef('');
   const currentDirectory = client?.getSnapshot().status?.dataDirectory;
+  const managedExecution = client?.getSnapshot().status?.managedExecution;
+  const executionUnavailable = managedExecution?.available === false;
   if (currentDirectory) directoryRef.current = currentDirectory;
   const directory = directoryRef.current;
   const contextKey = draftKey(directory, selection.projectId, selection.sessionId, 'context-items');
@@ -428,6 +430,7 @@ export function useBusinessSession(
     isDisabled: creating || !!session?.archived,
     isSendDisabled:
       phase !== 'connected' ||
+      executionUnavailable ||
       !!contextReadError ||
       !snapshot?.provider.configured ||
       !session ||
@@ -439,7 +442,7 @@ export function useBusinessSession(
         .map((part) => (part.type === 'text' ? part.text : ''))
         .join('\n');
       const text = rawText.trim();
-      if (!text || !session || !client || phase !== 'connected') return;
+      if (!text || !session || !client || phase !== 'connected' || executionUnavailable) return;
       const pendingKey = draftKey(directory, selection.projectId, session.id, 'pending');
       const input: BusinessParams<'session.send'> = {
         projectId: selection.projectId,
@@ -745,6 +748,16 @@ export function useBusinessSession(
         }
       : {}),
     notices: [
+      ...(managedExecution?.available === false
+        ? [
+            {
+              id: 'managed-execution-unavailable',
+              severity: 'info' as const,
+              summary: managedExecution.reason,
+              content: <p>{managedExecution.reason}</p>,
+            },
+          ]
+        : []),
       ...(legacyConversationDraft(directory, selection.projectId, selection.sessionId).some(
         (entry) => entry.value,
       )

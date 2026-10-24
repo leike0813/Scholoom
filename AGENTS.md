@@ -15,6 +15,7 @@
 - 模块设计、依赖调整与重构先核对[模块依赖决议](.scratch/runtime-architecture/issues/01-module-dependencies-and-authority.md#answer)：跨模块动作经统一 broker，宿主管装配与生命周期；模块掌握自身记录和授权，私有包支持提取。人工基础操作独立于 harness，科研运行时依托 harness；依赖方向与同源契约须有可执行守卫。
 - 调用、传输及调度沿[内部接口决议](.scratch/runtime-architecture/issues/06-internal-interfaces-and-ipc.md#answer)：进程内 broker 直调，跨进程共用 JSON-RPC 机制并按角色注册；Node 子进程用 IPC，Zotero 插件兼容宿主用回环 WebSocket。操作语义沿同源契约，双向等待及积压有界，具体字段与参数经实施验证。
 - 系统访问及原生适配沿[平台决议](.scratch/runtime-architecture/issues/02-platform-access.md#answer)：普通模块使用有资源范围的平台能力，原生访问限定到受控适配；保证、释放责任和不可用状态进入共同契约，跨平台承诺以真实目标环境验证为准。
+- 当前 macOS 受管执行明确不可用，沿内核的 `managedExecution` 声明保留人工文件、题录及已有成果；不得回退到无隔离执行。恢复完整能力须另立 OpenSpec 并完成实际归属、权限及分发验证，见[开发说明](docs/development.md#科研写作与排版)。
 - 共同文献题录与附件由独立 library 管理，项目保留引用；库写入与材料外发分别授权。摄取、修订及接续沿[题录库规格](openspec/specs/literature-catalog/spec.md)，文件归属、版本核对和重定位沿[附件规格](openspec/specs/literature-attachments/spec.md)；题录、附件登记、实际可读与分析状态分别表达。
 - 库知识引用完整性是科研可信度红线：禁止 fallback，不维护库材料与项目引用的反向映射。材料创建即取得唯一身份，删除后再入库使用新身份，回收站恢复原对象保留原身份与删除历史；删除记录保留操作者及必要语义。异常需用户决策时 Agent 明确报错、暂停询问并等待选择，无对象且无删除记录则交 Agent 核查。修改库身份、删除或引用读取时核对[材料引用行为矩阵](.scratch/domain-development/issues/03-project-research-assets-scope.md#材料引用行为矩阵)，外链失效单列。
 - 项目访问沿[项目信任约定](docs/development.md#基本单-agent-harness)：Agent 读写与模型外发统一要求项目信任，受限项目仍可人工浏览编辑；可信调用身份随异步操作及库摄取批次保留。多项目会话选择同时切换项目文件标签和右栏，共同文献及阅读器保持独立。
