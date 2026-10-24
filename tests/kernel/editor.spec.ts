@@ -80,7 +80,7 @@ test('manual editor performs real academic conversion and preserves bibliography
   try {
     assert(!('harness' in app));
     const bibliography =
-      '@article{sample2026,title={Independent Evidence},author={Smith, Jane},year={2026}}\n';
+      '@article{sample2026,title={{Independent Evidence}},author={Smith, Jane},year={2026}}\n';
     await writeFile(join(path, 'refs.bib'), bibliography);
     const content =
       '---\ntitle: Writing sample\nbibliography: refs.bib\n---\n\n# Findings {#sec-findings}\n\nA finding [@sample2026, p. 7] and $E=mc^2$.\n\n| Method | Value |\n|---|---|\n| A | 42 |\n';

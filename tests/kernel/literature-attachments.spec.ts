@@ -6,7 +6,6 @@ import { copyFile, lstat, mkdtemp, readFile, rename, rm, writeFile } from 'node:
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { expect, test } from '@playwright/test';
 import { LiteratureCatalog } from '../../packages/library/dist/node.js';
 import { fileFingerprint } from '../../packages/platform/dist/node.js';
@@ -361,7 +360,7 @@ test('process termination preserves committed attachments and resume handles onl
   const path = join(root, 'input.bin'),
     profile = join(root, 'profile');
   await writeFile(path, Buffer.alloc(256 * 1024, 42));
-  const module = fileURLToPath(new URL('../../packages/library/dist/node.js', import.meta.url));
+  const module = new URL('../../packages/library/dist/node.js', import.meta.url).href;
   const code = `const {LiteratureCatalog}=await import(process.argv[1]);
     let sent=false;const catalog=new LiteratureCatalog(process.argv[2],()=>{
       let batch;try{batch=catalog.batch({batchId:'crash'}).batch;}catch{return;}
@@ -486,7 +485,7 @@ test('complete material awaiting publication survives a crash without adopting c
   const profile = join(root, 'profile'),
     path = join(root, 'input.txt');
   await writeFile(path, 'material A\n');
-  const module = fileURLToPath(new URL('../../packages/library/dist/node.js', import.meta.url));
+  const module = new URL('../../packages/library/dist/node.js', import.meta.url).href;
   const code = `import fs from 'node:fs/promises';import {syncBuiltinESMExports} from 'node:module';
     fs.link=async()=>{setInterval(()=>{},1000);process.send('ready');await new Promise(()=>{});};syncBuiltinESMExports();
     const {LiteratureCatalog}=await import(process.argv[1]);const catalog=new LiteratureCatalog(process.argv[2],()=>{});

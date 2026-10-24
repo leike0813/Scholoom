@@ -130,7 +130,7 @@ SCHOOLOOM_UI_PORT=5343 node node_modules/@playwright/test/cli.js test --config p
 
 产物缓存按项目限制为 256 MiB／64 份；单个产物最多 128 MiB、单文件最多 64 MiB、资源最多 1000 个。已有稿件按替换后的净占用准入，提交余量最多 128 MiB／1 份，切换成功后回收可淘汰旧版。缓存保护最后成功产物、最近 5 分钟读取的产物及导出；受保护的暂留产物仍计入后续准入，历史收据保留，过期产物查询返回 `notFound`。
 
-相关验证入口为 `pnpm build`、`pnpm test:kernel tests/kernel/editor.spec.ts tests/kernel/editor-runtime.spec.ts tests/kernel/editor-source.spec.ts` 和 `pnpm test:ui tests/ui/writing-editor.spec.ts tests/ui/writing-editor-recovery.spec.ts tests/ui/writing-editor-pdf.spec.ts tests/ui/file-workbench.spec.ts`。`test:ui` 使用项目既有 Chromium 与真实 Electron 双宿主场景，覆盖学术内容往返、待转换草稿恢复、QMD／多文件 TeX PDF 预览及导出；文件工作台场景核对共享草稿、冲突、结构变化、主题与长稿输入性能。独立组件与实际内核产物验证另有对应测试；各层实际结果及平台边界见交付记录。
+相关验证入口为 `pnpm build`、`pnpm test:kernel tests/kernel/editor.spec.ts tests/kernel/editor-runtime.spec.ts tests/kernel/editor-source.spec.ts` 和 `pnpm test:ui tests/ui/writing-editor.spec.ts tests/ui/writing-editor-recovery.spec.ts tests/ui/writing-editor-pdf.spec.ts tests/ui/file-workbench.spec.ts`。`test:ui` 使用项目既有 Chromium 与真实 Electron 双宿主场景，覆盖学术内容往返、待转换草稿恢复、QMD／多文件 TeX PDF 预览及导出；文件工作台场景核对共享草稿、冲突、结构变化、主题与长稿输入性能。BibTeX 题名沿 Pandoc 的书目语义转换，需要保留大小写的题名使用花括号保护，例如 `title={{Independent Evidence}}`。独立组件与实际内核产物验证另有对应测试；各层实际结果及平台边界见交付记录。
 
 ## 内核配置与生命周期
 
@@ -182,7 +182,7 @@ useStatusBarItem('reading', {
 
 真实首页默认空 tab；连接不等于模型及授权就绪。设置 tab 集中模型、授权、备份与归档会话管理。左区顶部动作提供查找会话、添加项目、文献库与设置；查找会话打开跨最近项目的弹窗搜索，添加项目打开弹窗并以“打开／新建”两种模式完成，每个项目行在扩展菜单右侧提供新建所属会话按钮；菜单支持打开项目与从侧栏移除（经确认，不删目录、不停止执行）；会话、文件编辑、发送和取消复用共同客户端。开发态显式打开 `?scenario=ui-foundation` 才加载隔离样例；它仍只保留最新一轮，使用固定材料和回复，不读文件、不调模型、不持久化；生产构建忽略样例参数。
 
-添加项目弹窗的目录选择按宿主分路：Electron 经窄 preload 桥 `pickDirectory` 调用主进程系统目录选择器（只启用打开／新建目录，取消返回 `null`）；浏览器宿主没有系统路径选择能力，使用内核 `project.browseDirectories` RPC 在弹窗内浏览目录——只列目录不列文件，realpath 后要求普通目录，排除符号链接、隐藏项与应用私有配置目录，按名称排序并受单页上限约束，返回真实路径。跨最近项目的会话查找走 `session.search`，由内核一次有界合并返回，UI 不做逐项目查询。
+添加项目弹窗的目录选择按宿主分路：Electron 经窄 preload 桥 `pickDirectory` 调用主进程系统目录选择器（只启用打开／新建目录，取消返回 `null`）；浏览器宿主没有系统路径选择能力，使用内核 `project.browseDirectories` RPC 在弹窗内浏览目录——只列目录不列文件，realpath 后要求普通目录，排除符号链接、隐藏项与应用私有配置目录，按名称排序并受单页上限约束，返回真实路径。目录浏览、项目准入和写作产物读取均以真实根核对范围，系统目录别名不改变访问权限。跨最近项目的会话查找走 `session.search`，由内核一次有界合并返回，UI 不做逐项目查询。
 
 项目目录移动后经“打开项目”重新定位，宿主先协调原项目执行收尾，再关闭并重建 harness／research 仓储及私有目录绑定；会话、工具记录和成果身份随项目保留。无法排除旧执行写者时拒绝替换仓储，保留停止未知诊断。Windows 对打开中的 SQLite 文件有系统移动限制，移动前应关闭使用该项目的内核；Linux 的实跑不代表其他平台已验收。
 

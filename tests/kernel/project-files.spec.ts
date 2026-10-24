@@ -6,6 +6,7 @@ import {
   realpath,
   rename,
   rm,
+  stat,
   symlink,
   writeFile,
 } from 'node:fs/promises';
@@ -97,6 +98,24 @@ test('directory browsing lists real directories, hides private entries and bound
     const top = await browser.browse({ path: root });
     expect(top.directories.map((item) => item.name)).toEqual(['tree']);
     expect(top.directories.some((item) => item.path === projects.directory)).toBe(false);
+    const alias = join(root, 'alias');
+    await symlink(root, alias, process.platform === 'win32' ? 'junction' : 'dir');
+    const aliasBrowser = new DirectoryBrowser(join(alias, 'profile'));
+    expect(
+      (await aliasBrowser.browse({ path: root })).directories.map((item) => item.name),
+    ).toEqual(['tree']);
+    await expect(aliasBrowser.browse({ path: join(alias, 'profile') })).rejects.toMatchObject({
+      code: 'permissionDenied',
+    });
+    await expect(projects.open(join(alias, 'profile'))).rejects.toMatchObject({
+      code: 'permissionDenied',
+    });
+    const aliasProjects = new Projects(join(alias, 'profile'));
+    const forbidden = join(alias, 'profile', 'forbidden');
+    await expect(aliasProjects.create(forbidden)).rejects.toMatchObject({
+      code: 'permissionDenied',
+    });
+    await expect(stat(forbidden)).rejects.toMatchObject({ code: 'ENOENT' });
     const limited = await browser.browse({ path: join(root, 'tree'), limit: 1 });
     expect(limited.directories.map((item) => item.name)).toEqual(['alpha']);
     expect(limited.truncated).toBe(true);

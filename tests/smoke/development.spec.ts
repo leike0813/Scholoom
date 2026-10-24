@@ -1,6 +1,6 @@
 import { type ChildProcess, spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { basename, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -349,10 +349,10 @@ test('two renderer instances isolate business data and closing one leaves the ot
       if (!own || !other) throw new Error('Missing instance identity');
       expect(
         (await client.call('workbench.watch', {})).projects.map((project) => project.path),
-      ).toContain(own.project);
+      ).toContain(await realpath(own.project));
       expect(
         (await client.call('workbench.watch', {})).projects.map((project) => project.path),
-      ).not.toContain(other.project);
+      ).not.toContain(await realpath(other.project));
       expect(
         (await client.call('library.list', { query: other.libraryName })).sources,
       ).toHaveLength(0);

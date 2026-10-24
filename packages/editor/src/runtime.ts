@@ -2,7 +2,6 @@ import { randomUUID } from 'node:crypto';
 import { mkdir, readdir, rename, rm } from 'node:fs/promises';
 import { basename, dirname, join, posix } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { privateDirectory } from '@scholoom/platform/node';
 import { type CallContext, OperationError } from '@scholoom/protocol/core';
 import type {
   EditorCommandInput,
@@ -19,14 +18,7 @@ import type {
   ProjectsOutputs,
 } from '@scholoom/protocol/projects';
 import { convertDocument } from './conversion.js';
-import {
-  atomicRecord,
-  outputSize,
-  outputStorageSize,
-  readOutput,
-  readRecord,
-  snapshot,
-} from './resources.js';
+import { EditorRecords, outputSize, outputStorageSize, readOutput, snapshot } from './resources.js';
 
 export type EditorPorts = {
   check(projectId: string, access: 'read' | 'write'): Promise<void>;
@@ -64,6 +56,7 @@ const part = (value: string) => `item-${encodeURIComponent(value)}`;
 
 /** Manuscript operations own their receipts and outputs; project text stays project-owned. */
 export class EditorRuntime {
+  private readonly records = new EditorRecords();
   private readonly active = new Map<string, Active>();
   private readonly queues = new Map<string, { running?: Active; waiting?: Active }>();
   private readonly requests = new Map<string, Promise<RenderJob>>();
@@ -133,7 +126,7 @@ export class EditorRuntime {
         await Promise.all(
           names
             .filter((name) => name.endsWith('.json'))
-            .map((name) => readRecord<T>(join(directory, name))),
+            .map((name) => this.records.read<T>(join(directory, name))),
         )
       ).filter((value) => value !== undefined) as T[];
     };
@@ -192,8 +185,8 @@ export class EditorRuntime {
   private async workspace(projectId?: string) {
     const id = randomUUID();
     const directory = join(this.directory, 'work', id);
-    await privateDirectory(directory);
-    await atomicRecord(join(directory, 'owner.json'), {
+    await this.records.prepare(directory);
+    await this.records.write(join(directory, 'owner.json'), {
       id,
       projectId,
       state: 'allocated',
@@ -238,7 +231,7 @@ export class EditorRuntime {
     const owner = this.workspaces.get(workspace.id);
     const uncertain = owner?.uncertain;
     if (uncertain)
-      await atomicRecord(join(workspace.directory, 'owner.json'), {
+      await this.records.write(join(workspace.directory, 'owner.json'), {
         id: workspace.id,
         projectId: owner.projectId,
         state: 'unknown',
@@ -246,6 +239,7 @@ export class EditorRuntime {
       });
     this.workspaces.delete(workspace.id);
     if (!uncertain) await rm(workspace.directory, { recursive: true, force: true });
+    this.records.forget(workspace.directory);
   }
   private async transient<T>(
     context: CallContext,
@@ -345,7 +339,7 @@ export class EditorRuntime {
     if (this.closing) throw new OperationError('shuttingDown', '排版正在关闭。');
     const port = this.ports(context);
     await port.check(input.projectId, 'read');
-    const previous = await readRecord<RenderJob>(
+    const previous = await this.records.read<RenderJob>(
       this.recordPath(input.projectId, input.operationId),
     );
     if (previous) {
@@ -375,11 +369,11 @@ export class EditorRuntime {
       diagnostics: [],
       log: '',
     };
-    const latest = await readRecord<RenderOutput>(
+    const latest = await this.records.read<RenderOutput>(
       this.latestPath(input.projectId, material.fileId, input.format),
     );
     if (latest) job.lastSuccess = latest;
-    await atomicRecord(this.recordPath(job.projectId, job.id), job);
+    await this.records.write(this.recordPath(job.projectId, job.id), job);
     const controller = new AbortController();
     let finish = () => {};
     const done = new Promise<void>((resolve) => {
@@ -435,7 +429,7 @@ export class EditorRuntime {
     if (queue?.waiting === active) delete queue.waiting;
     this.active.delete(`${active.job.projectId}:${active.job.id}`);
     try {
-      await atomicRecord(this.recordPath(active.job.projectId, active.job.id), active.job);
+      await this.records.write(this.recordPath(active.job.projectId, active.job.id), active.job);
     } finally {
       active.finish();
     }
@@ -445,11 +439,11 @@ export class EditorRuntime {
     const port = this.ports(context, controller.signal);
     const persist = async () => {
       job.updatedAt = stamp();
-      await atomicRecord(this.recordPath(job.projectId, job.id), job);
+      await this.records.write(this.recordPath(job.projectId, job.id), job);
     };
     try {
       workspace = await this.workspace(job.projectId);
-      await atomicRecord(join(workspace.directory, 'owner.json'), {
+      await this.records.write(join(workspace.directory, 'owner.json'), {
         id: workspace.id,
         projectId: job.projectId,
         jobId: job.id,
@@ -457,7 +451,7 @@ export class EditorRuntime {
         createdAt: stamp(),
       });
       if (job.fileId) job.path = await port.locate(job.projectId, job.fileId);
-      const latest = await readRecord<RenderOutput>(
+      const latest = await this.records.read<RenderOutput>(
         this.latestPath(job.projectId, job.fileId ?? job.path, job.format),
       );
       if (latest) job.lastSuccess = latest;
@@ -516,9 +510,9 @@ export class EditorRuntime {
       const outputId = randomUUID();
       const storageBytes = await outputStorageSize(outputRoot);
       const published = join(this.root(job.projectId), 'data', outputId);
-      await privateDirectory(dirname(published));
+      await this.records.prepare(dirname(published));
       await this.publish(job.projectId, async () => {
-        const previous = await readRecord<RenderOutput>(
+        const previous = await this.records.read<RenderOutput>(
           this.latestPath(job.projectId, job.fileId ?? job.path, job.format),
         );
         await this.prune(job.projectId, storageBytes, previous?.id);
@@ -538,7 +532,7 @@ export class EditorRuntime {
           path: relative,
           storageBytes,
         };
-        await atomicRecord(this.outputPath(job.projectId, output.id), output);
+        await this.records.write(this.outputPath(job.projectId, output.id), output);
         await rename(outputRoot, published);
         const {
           projectId: _project,
@@ -547,7 +541,7 @@ export class EditorRuntime {
           storageBytes: _bytes,
           ...publicOutput
         } = output;
-        await atomicRecord(
+        await this.records.write(
           this.latestPath(job.projectId, job.fileId ?? job.path, job.format),
           publicOutput,
         );
@@ -579,7 +573,7 @@ export class EditorRuntime {
     } finally {
       if (workspace) {
         if (job.state === 'unknown')
-          await atomicRecord(join(workspace.directory, 'owner.json'), {
+          await this.records.write(join(workspace.directory, 'owner.json'), {
             id: workspace.id,
             projectId: job.projectId,
             jobId: job.id,
@@ -589,13 +583,14 @@ export class EditorRuntime {
         this.workspaces.delete(workspace.id);
         if (job.state !== 'unknown')
           await rm(workspace.directory, { recursive: true, force: true });
+        this.records.forget(workspace.directory);
       }
       await persist();
     }
   }
   async job(input: EditorInputs['editor.job'], context: CallContext): Promise<RenderJob> {
     await this.ports(context).check(input.projectId, 'read');
-    let job = await readRecord<RenderJob>(this.recordPath(input.projectId, input.jobId));
+    let job = await this.records.read<RenderJob>(this.recordPath(input.projectId, input.jobId));
     if (!job || job.projectId !== input.projectId)
       throw new OperationError('notFound', '排版任务不存在。');
     if (
@@ -603,11 +598,12 @@ export class EditorRuntime {
       !this.active.has(`${job.projectId}:${job.id}`)
     ) {
       // Completion can publish while the first read is in flight, then release its active entry.
-      job = (await readRecord<RenderJob>(this.recordPath(input.projectId, input.jobId))) ?? job;
+      job =
+        (await this.records.read<RenderJob>(this.recordPath(input.projectId, input.jobId))) ?? job;
       if (['queued', 'running', 'cancelling'].includes(job.state)) {
         job.state = 'interrupted';
         job.updatedAt = stamp();
-        await atomicRecord(this.recordPath(job.projectId, job.id), job);
+        await this.records.write(this.recordPath(job.projectId, job.id), job);
       }
     }
     if (
@@ -636,7 +632,7 @@ export class EditorRuntime {
   }
   private async saved(projectId: string, id: string, context: CallContext) {
     await this.ports(context).check(projectId, 'read');
-    const output = await readRecord<SavedOutput>(this.outputPath(projectId, id));
+    const output = await this.records.read<SavedOutput>(this.outputPath(projectId, id));
     if (!output || output.projectId !== projectId)
       throw new OperationError('notFound', '排版产物不存在。');
     return output;

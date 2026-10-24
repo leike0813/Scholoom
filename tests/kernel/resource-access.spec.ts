@@ -18,6 +18,20 @@ import { PAGE_ONE_TEXT, syntheticPdf } from '../pdf-fixture.js';
 
 class ExecutionApplication extends KernelApplication {
   context: CallContext | undefined;
+  private readonly preparedMoves = new Set<string>();
+
+  async moveTarget(projectId: string, destination: string): Promise<void> {
+    await super.projectReplacing(projectId);
+    const store = this.projects.get(projectId);
+    await store.close();
+    await rename(store.project.path, destination);
+    this.preparedMoves.add(projectId);
+  }
+
+  protected override async projectReplacing(projectId: string): Promise<void> {
+    if (!this.preparedMoves.delete(projectId)) await super.projectReplacing(projectId);
+  }
+
   override projectTargetRead(context: CallContext) {
     this.context = context;
     return super.projectTargetRead(context);
@@ -234,7 +248,7 @@ for (const revocation of ['library-send', 'target-instance'] as const) {
           port.read({ ref, basis: library.basis, encoding: 'utf8' }),
         ).rejects.toMatchObject({ code: 'permissionDenied' });
       } else {
-        await rename(target.project.path, join(root, 'moved'));
+        await app.moveTarget(target.project.id, join(root, 'moved'));
         const replacement = await app.projects.open(join(root, 'moved'));
         replacement.grant({ trust: 'trusted', autoBackup: false });
         await expect(

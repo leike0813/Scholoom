@@ -1,5 +1,6 @@
-import { constants } from 'node:fs';
+import { type BigIntStats, constants } from 'node:fs';
 import {
+  lstat,
   mkdir,
   open,
   readdir,
@@ -139,11 +140,57 @@ function passiveMarkdown(body: string) {
   return { body, resources };
 }
 
-export async function atomicRecord(path: string, value: unknown): Promise<void> {
-  await privateDirectory(dirname(path));
-  const candidate = `${path}.${crypto.randomUUID()}.tmp`;
-  await writeFile(candidate, JSON.stringify(value), { mode: 0o600, flag: 'wx' });
-  await rename(candidate, path);
+export class EditorRecords {
+  private readonly directories = new Map<string, Promise<BigIntStats>>();
+  private readonly pending = new Map<string, Promise<unknown>>();
+
+  async prepare(directory: string): Promise<void> {
+    let prepared = this.directories.get(directory);
+    if (!prepared) {
+      prepared = privateDirectory(directory).then(() => lstat(directory, { bigint: true }));
+      this.directories.set(directory, prepared);
+    }
+    const identity = await prepared.catch((error: unknown) => {
+      if (this.directories.get(directory) === prepared) this.directories.delete(directory);
+      throw error;
+    });
+    const current = await lstat(directory, { bigint: true });
+    if (
+      !current.isDirectory() ||
+      current.isSymbolicLink() ||
+      current.dev !== identity.dev ||
+      current.ino !== identity.ino
+    )
+      throw new OperationError('permissionDenied', '编辑器记录目录已变化，请保留现场核查。');
+  }
+
+  forget(directory: string): void {
+    this.directories.delete(directory);
+  }
+
+  private async coordinate<T>(path: string, action: () => Promise<T>): Promise<T> {
+    const prior = this.pending.get(path) ?? Promise.resolve();
+    const pending = prior.catch(() => {}).then(action);
+    this.pending.set(path, pending);
+    try {
+      return await pending;
+    } finally {
+      if (this.pending.get(path) === pending) this.pending.delete(path);
+    }
+  }
+
+  write(path: string, value: unknown): Promise<void> {
+    return this.coordinate(path, async () => {
+      await this.prepare(dirname(path));
+      const candidate = `${path}.${crypto.randomUUID()}.tmp`;
+      await writeFile(candidate, JSON.stringify(value), { mode: 0o600, flag: 'wx' });
+      await rename(candidate, path);
+    });
+  }
+
+  read<T>(path: string): Promise<T | undefined> {
+    return this.coordinate(path, () => readRecord<T>(path));
+  }
 }
 export async function readRecord<T>(path: string): Promise<T | undefined> {
   try {
@@ -154,8 +201,9 @@ export async function readRecord<T>(path: string): Promise<T | undefined> {
   }
 }
 export async function readOutput(root: string, path: string, offset: number, limit: number) {
-  const target = await realpath(resolve(root, path));
-  if (!target.startsWith(`${resolve(root)}${sep}`))
+  const canonicalRoot = await realpath(root);
+  const target = await realpath(resolve(canonicalRoot, path));
+  if (!target.startsWith(`${canonicalRoot}${sep}`))
     throw new OperationError('permissionDenied', '产物资源越界。');
   const handle = await open(target, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
   try {

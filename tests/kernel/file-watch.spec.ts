@@ -167,7 +167,7 @@ test('filename-less nested directory events notify the subscribed directory', as
     const internal = watches as unknown as {
       handleChange(directory: string, name?: string): void;
     };
-    internal.handleChange(nested, undefined);
+    internal.handleChange(await store.path('nested'), undefined);
     await waitFor(() => changes.flat().includes('nested'));
   } finally {
     watches?.close();
@@ -199,7 +199,7 @@ test('overflow collapses more than 100 pending paths to one subscribed directory
     const internal = watches as unknown as {
       handleChange(directory: string, name?: string): void;
     };
-    internal.handleChange(projectPath, undefined);
+    internal.handleChange(store.project.path, undefined);
     await waitFor(() => changes.length > 0);
     expect(changes).toEqual([['']]);
   } finally {

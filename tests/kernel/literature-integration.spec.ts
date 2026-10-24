@@ -4,7 +4,6 @@ import { once } from 'node:events';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { expect, test } from '@playwright/test';
 import { KernelApplication } from '../../apps/kernel/dist/application.js';
 import { startKernelServer } from '../../apps/kernel/dist/server.js';
@@ -115,7 +114,7 @@ test('shared clients observe the same persistent library and model tools respect
 
 test('a terminated batch retains committed source identities and only pending items resume', async () => {
   const root = await mkdtemp(join(tmpdir(), 'scholoom-library-crash-'));
-  const module = fileURLToPath(new URL('../../packages/library/dist/node.js', import.meta.url));
+  const module = new URL('../../packages/library/dist/node.js', import.meta.url).href;
   const source = `import {LiteratureCatalog} from ${JSON.stringify(module)};
     const catalog=new LiteratureCatalog(process.argv[1],()=>{});await catalog.initialize();
     catalog.grant({read:true,write:true,send:false,autoBackup:false});
