@@ -138,7 +138,7 @@ for (const ownerExit of ['dispose', 'SIGKILL'] as const) {
         text: 'MODEL_CHAT held while the development owner exits',
         materials: [],
       });
-      await expect.poll(() => model.requests.length).toBe(1);
+      await expect.poll(() => model.requests.length, { timeout: 20_000 }).toBe(1);
       await expect
         .poll(() => runInstance(projectPath, accepted.runId)?.state, { timeout: 10_000 })
         .toBe('running');

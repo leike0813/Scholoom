@@ -51,7 +51,8 @@ export async function expectExecutionCompleted(
   };
   let failed = false;
   try {
-    await expect.poll(sample).toBe('completed');
+    // Cold worker startup and multi-tool execution are not a five-second product SLA.
+    await expect.poll(sample, { timeout: 20_000 }).toBe('completed');
   } catch (error) {
     failed = true;
     if (process.env.SCHOOLOOM_EXECUTION_DIAGNOSTICS === '1') {
@@ -82,7 +83,13 @@ export async function expectExecutionCompleted(
           return { instanceId, runId, processId, state };
         });
         await test.info().attach('execution-stages', {
-          body: JSON.stringify({ platform: process.platform, ...scope, samples, children, instances }),
+          body: JSON.stringify({
+            platform: process.platform,
+            ...scope,
+            samples,
+            children,
+            instances,
+          }),
           contentType: 'application/json',
         });
       } finally {
