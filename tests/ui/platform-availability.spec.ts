@@ -45,7 +45,9 @@ test('unavailable execution keeps draft and manual file editing in the workbench
     const projectPath = join(root, projectName);
     await addProject(uiPage, projectPath, { mode: 'create' });
     await createSession(uiPage, projectName);
+    await expect(uiPage.getByRole('button', { name: /^打开会话 /, pressed: true })).toBeVisible();
     const composer = uiPage.getByRole('textbox', { name: '研究指令' });
+    await expect(composer).toBeEnabled();
     await composer.fill('保留的研究草稿');
     await expect(uiPage.getByRole('button', { name: '发送指令', exact: true })).toBeDisabled();
     await uiPage.getByLabel('工作台通知', { exact: true }).click();
@@ -60,6 +62,7 @@ test('unavailable execution keeps draft and manual file editing in the workbench
     await uiPage.keyboard.insertText('# 人工成果');
     await uiPage.getByRole('button', { name: '保存文件', exact: true }).first().click();
     await expect.poll(() => readFile(join(projectPath, 'notes.md'), 'utf8')).toBe('# 人工成果');
+    await expect(composer).toHaveValue('保留的研究草稿');
     await uiPage.reload();
     await expect(composer).toHaveValue('保留的研究草稿');
     await expect(uiPage.getByRole('button', { name: '发送指令', exact: true })).toBeDisabled();

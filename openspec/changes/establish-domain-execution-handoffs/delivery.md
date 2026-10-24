@@ -14,6 +14,10 @@
 
 第五轮独立模块审查发现的资源竞态 P2 已修复；后代归属 P1 由 Linux subreaper／Windows Job Object 修复，macOS按用户新授权明确不可用。本轮为主线核对及定向测试，没有新增独立代理审查。不能把此前审查表述成对新增原生适配的独立审查。
 
+实现提交 `a1caa2d` 的 [Checks 40098357462](https://github.com/leike0813/Scholoom/actions/runs/40098357462) 中，真实macOS内核降级 **2/2，6.9秒**、应用入口 **4/4，40.6秒**，库UI双宿主通过。新增UI用例在刷新时草稿为空：trace显示创建会话后立即输入，输入后控件仍进入创建中的disabled状态；测试未等待新会话成为实际选中对象。现等待可访问的选中会话和可用输入框，并在刷新前后核对草稿；本机5615双宿主 **2/2，38.7秒**，日志 `/tmp/scholoom-macos-close-ui-selection.log`，待真实Mac复验。原失败日志及trace保留在 `/tmp/scholoom-macos-close-real-mac.log` 和 `/tmp/scholoom-macos-close-mac-artifacts/`，未改生产草稿逻辑或放宽等待时限。
+
+本机Graph等待／恢复、取消／撤权和checkpoint回归 **17/17，1.9分钟**，日志 `/tmp/scholoom-macos-close-regression.log`。生成器self-test通过，六份生成映射经格式化比对一致。四项delta已同步正式规格，既有Purpose和未涉及Requirement逐项比对保持，正式规格普通校验 **19/19**；agent-harness／ui-workbench-shell保留既有长Requirement警告。尚待真实Mac最终UI及目录包结果后完成归档。
+
 全仓验证边界：`4616aa8` 的完整 [Checks 40082740497](https://github.com/leike0813/Scholoom/actions/runs/40082740497) 三平台失败，Windows专项 [40082740532](https://github.com/leike0813/Scholoom/actions/runs/40082740532) 通过。Linux 内核397通过2跳过、smoke6通过1跳过；UI102通过6失败2跳过，失败分别是同名项目定位、旧RPC gate无 held 请求、写作PDF预览，各双宿主。Windows完整内核378通过9失败12跳过，剩余为执行状态短等待路径；macOS原受管专项因当前不可用失败。本轮只按新范围调整macOS验收，Linux／Windows原测试继续保留，未隐藏上述失败。详细日志 `/tmp/scholoom-macos-close-ci-failures.log`，未将全仓CI标作通过。
 
 ### Windows与库UI后续收敛，macOS条件仍未具备
