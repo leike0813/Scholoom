@@ -33,7 +33,7 @@ Labels: wayfinder:map
 
 2026-10-22，[七域并行设计及交付安排](issues/10-parallel-design-and-delivery.md#answer)已确认：统一规划七域近期工作，先交付四组公共基础，再由七条开发线按依赖推进首个独立结果。具体公共基础缺口、域内设计、文件边界及实施任务转后续 OpenSpec 规划。
 
-本轮公共基础的实际实施入口与依赖见[公共基础实施规划](public-foundation-plan.md)：共同契约先落入 dev，三个工作树并行实现，真实整合按依赖验收；七域仍等待全部公共基础验收。决定见[并行安排票](issues/10-parallel-design-and-delivery.md#后续规划入口与交付责任)，各变更任务及实际结果以所属 OpenSpec 为准。
+公共基础已按Linux／Windows受管执行、macOS显式不可用及人工降级的范围交付并归档，证据见[公共基础实施规划](public-foundation-plan.md)。三个旧工作树已回收；下一轮的七线范围、先行生态调查、共享文件归属、独立交付及具体整合任务见[七线并行开发计划](parallel-development-plan.md)。该计划不预设七线同时实施，也不展开被后置的具体业务Graph；实际任务和结果仍由各OpenSpec维护。
 
 ### 讨论方式与事实来源
 

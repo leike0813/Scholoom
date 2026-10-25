@@ -6,7 +6,7 @@
 
 当前实施组织以 2026-10-22 确认的[七域并行设计及交付安排](../.scratch/domain-development/issues/10-parallel-design-and-delivery.md#answer)为准：先规划七域近期工作，调查并补齐四组公共基础，完成验证后，七域各自一条开发线按依赖推进首个独立结果。公共补充在自身工作树实现，经 dev 接入验证后同步；各工作树、dev 接入与具体整合任务分别验收，详见[共同工程分工](../.scratch/domain-development/issues/09-shared-engineering-responsibility.md#answer)。具体公共基础缺口与域内实施任务由后续 OpenSpec 调查及规划确定。
 
-公共基础已按实际缺口拆为三个实施规划入口：共同契约先落入 dev，三个工作树并行实现，真实整合按依赖验收；文件归属及领域交接见[公共基础实施规划](../.scratch/domain-development/public-foundation-plan.md)。七域开发仍等待全部公共基础验收；工件与实际交付分别核对，不以规划 ready 宣称基础已经完成。
+公共基础的三个change已按Linux／Windows受管执行、macOS显式不可用及人工降级范围交付并归档，见[公共基础规划及证据](../.scratch/domain-development/public-foundation-plan.md)。下一轮以[七线并行开发计划](../.scratch/domain-development/parallel-development-plan.md)为实施组织入口：七域分别规划，生态调查在受影响契约定案前交付，各线按局部依赖实施，具体整合任务各有负责人；全仓CI遗留失败单独核对，不宣称发布验收已通过。
 
 本路线图安排初设规格的实施顺序、依赖和验收节点。当前 Figma 设计尚未就绪，开发可先使用已有工作台与真实模块夹具推进；视觉设计按功能分批接入。顺序可根据实施证据调整，本文不表示业务已经实现，也不一次性授权全部开发、安装依赖或发布。
 
@@ -14,7 +14,7 @@
 
 ## 1. 推进方式：开发与界面设计并行
 
-共同内核、项目文件及单 Agent 的既有短路径作为后续基础复用。当前从公共基础缺口调查继续，随后各开发线在同一工作台上交付独立结果，并按实际依赖安排跨域整合。
+共同内核、项目文件、受管执行及工作台上下文作为后续基础复用。当前进入七线详细规划，扣除已交付的公共能力，在同一工作台上交付领域独立结果，再按实际依赖安排跨域整合。
 
 这延续了 [#14](../.scratch/scholoom-foundations/issues/14-agent-development-discipline.md#按实际使用路径开发与交付) 和 [#20](../.scratch/scholoom-foundations/issues/20-ui-debugging-and-e2e-harness.md#answer) 的做法：模块按自身契约独立交付，界面尽早承接真实能力，完整路径再做整合验收。Figma 提供视觉与交互设计输入，不承担领域接口、数据权威或执行状态的定义。
 

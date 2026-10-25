@@ -1,6 +1,6 @@
 # 类 Zotero 文献管理工具实施计划
 
-状态：职责与分批方案已确认，实施按所属 OpenSpec 授权推进。共同资源 A 批已交付，证据见该变更 tasks／delivery；其余变更名表示拆分建议。后续先完成[七域并行安排](issues/10-parallel-design-and-delivery.md#answer)中的公共基础，再由文献开发线衔接 B 批，本轮未授权后续业务实施。
+状态：职责与分批方案已确认，实施按所属OpenSpec授权推进。共同资源A批、公共基础和库管理入口恢复已交付；下一轮文献线按[七线并行计划](parallel-development-plan.md#1-文献literature-workbench)复核B批剩余范围。其余变更名表示拆分建议，本轮规划不自动授权后续业务实施。
 
 ## 目标与完成标准
 
@@ -12,14 +12,14 @@
 
 ## 一、当前差距与交付归属
 
-未交付项沿 2026-10-20 的静态差距核对，实施时按当前代码重验；共同资源一项已按正式交付更新。“已有”不代表本轮实跑。功能基线中的可选扩展不能借“完整”自动覆盖既有明确后置范围。
+未交付项沿2026-10-20静态差距，B批相关现状已于2026-10-25按库管理恢复交付及当前代码修订；其余批次在实施时继续重验。“已有”不代表本轮重新实跑，功能基线中的可选扩展不能借“完整”覆盖既有明确后置范围。
 
 | 能力 | 当前事实 | 需要交付 | 批次 |
 | --- | --- | --- | --- |
 | 共同打开 | 项目文件与库附件已使用共同资源接口及格式视图，见 [A 批交付](../../openspec/changes/archive/2026-10-20-unify-workbench-resource-opening/delivery.md) | 后续复用稳定资源引用及共同阅读编辑接线 | A（已交付） |
-| 主界面 | 列表／详情已有，集合筛选扁平；部分菜单仍占位 | 集合导航、可配置条目表、详情面板、实际菜单操作、空／忙／失败状态 | B |
-| 手动录入与编辑 | CSL 元数据可存；当前 `MetadataSection.onUpdate` 未由容器接入，新建按钮未接真实表单 | 类型对应字段、创建者及角色编辑、录入和保存；保留未识别字段及修订冲突保护 | B |
-| 文献选择与工具 | 行多选只在组件内；无当前选择工具 | 稳定身份选择、主选／多选语义、作用于当前工作台的上下文工具，切 tab 不改执行项目 | B |
+| 主界面 | 有界列表／详情、管理表单、集合基础及真实菜单入口已恢复；集合仍是扁平筛选 | 完整集合导航、可配置条目表与领域菜单，保持已有入口和失败反馈 | B |
+| 手动录入与编辑 | 手动建项、CSL JSON编辑、修订核对、标签／关联编辑及持久草稿已接回，见[库UI交付](../../openspec/changes/archive/2026-10-24-restore-library-management-entrypoints/delivery.md) | 类型对应字段、创建者及角色的产品化编辑；复用已接通保存并保留未知字段和冲突保护 | B |
+| 文献选择与工具 | 共同连接快照与上下文工具已交付；当前列表选择仍以行索引维护并派生详情对象 | 稳定身份主选／多选，分页筛选后正确重建选择；完善文献贡献，切tab不改执行项目，不重建上下文系统 | B |
 | 集合与标签 | parentId、tags 及基础写入已有，完整树和标签界面不足 | 集合树增改移除、归属拖放、标签筛选及批量整理；集合操作不复制条目 | C |
 | 附件 | 托管／外链、分段读取、材料版本及重定位已有 | 产品化附件操作、独立附件和父子关系、缺失定位、名称／用途管理、统一打开 | C |
 | 关系与批量操作 | relatedIds 及互反更新已有，界面仍占位 | 关联浏览／更正、多选批量操作、逐项结果与失败后核查 | C |
@@ -37,7 +37,7 @@
 | RSS | 当前未见实现 | 订阅、刷新、已读状态、将候选收录到库；网络失败不使已有库不可用 | H |
 | 设置与可靠性 | 库授权及独立备份基础已有 | 集中可用设置、诊断、真实恢复／升级、大库负载、实际分发核对 | 各批＋I |
 
-代码依据：[library protocol](../../packages/protocol/src/library.ts)、[catalog](../../packages/library/src/catalog.ts)、[库表](../../packages/library/src/schema.ts)、[文献 UI](../../apps/desktop/src/renderer/src/workbench/library/LibraryTab.tsx)、[详情容器](../../apps/desktop/src/renderer/src/workbench/library/CatalogItemPane.tsx)、[题录编辑](../../apps/desktop/src/renderer/src/workbench/library/MetadataSection.tsx)、[tab 状态](../../apps/desktop/src/renderer/src/workbench/tab-state.ts)。不要以组件文件存在代替其真实接线。
+代码依据：[library protocol](../../packages/protocol/src/library.ts)、[catalog](../../packages/library/src/catalog.ts)、[库表](../../packages/library/src/schema.ts)、[文献UI及题录保存](../../apps/desktop/src/renderer/src/workbench/library/LibraryTab.tsx)、[详情容器](../../apps/desktop/src/renderer/src/workbench/library/CatalogItemPane.tsx)、[选择](../../apps/desktop/src/renderer/src/workbench/library/CatalogSelection.ts)、[tab状态](../../apps/desktop/src/renderer/src/workbench/tab-state.ts)。不要以组件文件存在代替其真实接线。
 
 ## 二、具体界面安排
 
@@ -81,7 +81,7 @@
 | 批次／建议变更 | 主要新增、修改或复用文件 | 可观察验收与前置 |
 | --- | --- | --- |
 | **A：`unify-workbench-resource-opening`** | 新 protocol/resources、editor/resource-access、工作台 resource 控制器；修改 projects 有界字节读取、宿主装配、tab-state/session/business-session、FileEditor、PdfReader、DocumentReader、附件打开回调 | 项目与库内同格式资源走共同接口；草稿／版本／撤权受保护；双宿主从实际入口打开。实施与验收状态见该变更 tasks／delivery。 |
-| **B：`complete-library-catalog-workbench`** | 修改 LibraryTab、CatalogItemList/Row、CatalogSelection、MetadataSection、CatalogItemPane、LibraryToolbar 及必要挂载；新增 CollectionTree、ItemForm 和文献选择提供者；复用公共基础的上下文及协议接线 | 收录并编辑一条真实题录，集合导航／选择／批量状态可用；工具能读当前选项；切库后同一项目会话继续。A 已交付；本轮所需公共基础完成验证后启动独立实施，实际领域接入经双宿主核对。 |
+| **B：`complete-library-catalog-workbench`** | 复用LibraryTab已恢复的表单与保存；修改CatalogItemList/Row、CatalogSelection、CatalogItemPane、LibraryToolbar，按需要提取类型化ItemForm／集合导航及完善文献上下文贡献 | 类型化录入／更正、集合导航、稳定主选／多选及可配置列；工具读取实际选择，切库后同一项目会话继续。公共基础已交付，受生态调查影响的字段／身份契约先闭合，领域接入经双宿主验证。 |
 | **C：`complete-library-organization`** | 从 catalog 中抽出实际独立的集合／标签／附件／关系职责；修改 schema/migrations、protocol/library 和对应 sections，新增批量动作及可逆操作记录 | 条目跨集合不复制，标签及关联真正写回，附件独立与父子关系可查；批量更正／撤销核对后续修订，逐项失败与重启一致。依赖 B 的稳定选择及共同操作。 |
 | **D：笔记与阅读专项** | `add-library-notes-workbench` 新库 notes 仓储及迁移、共同资源可写适配、ReadingSection；`complete-shared-reading-workbench` 补 ReadingRecordsPanel 与共同阅读视图的基线行为，复用文本编辑器；朗读适配统一平台能力 | 分别验收独立／子笔记创建编辑重开、批注入笔记回到原文；基线批注种类、PDF 阅读模式与朗读的真实目标行为、阅读位置与记录一致。过大的阅读专项再按功能拆分。依赖 A 及 C 的对象关系；笔记可由 Agent 工具读取。 |
 | **E：`add-library-trash-and-merge`** | 新 trash/merge 领域逻辑、迁移和查询；修改附件／条目关系与 UI 特殊视图，扩展备份 | 删除—恢复、候选去重—选主合并—旧引用核查；中断及后续编辑不丢内容；真实副本恢复。依赖 C、D 的关系稳定，独立审查数据保护。 |
