@@ -28,6 +28,7 @@
 - [Agent 会话](.scratch/scholoom-foundations/issues/43-free-agent-conversation-and-research-tasks.md)沿通用 harness，不分类型、不绑定研究任务；任务通过工具操作，多会话可处理同一对象。用户通过发送消息推进会话，执行恢复由内部处理，交互与接续沿[会话边界](.scratch/runtime-architecture/issues/04-execution-persistence-and-recovery.md#会话交互边界)。
 - 全局会话归属[固定系统工作域](.scratch/domain-development/issues/04-research-methods-scope.md#全局会话与工作域)，各会话临时文件隔离，库成果与接续依据随库保存。跨项目访问沿目标授权且只读；工具和程序均须落实限制，全局会话暂不开放无隔离的通用 Shell／任意代码入口。设计其持久化、授权和执行能力时先核对该决定。
 - 工作推进及接续所需分析、依据、决定、进展和下一步在形成时保存为工作区材料与所属记录，沿[工作区承接](.scratch/scholoom-foundations/issues/35-research-workspace-context.md)。会话可用完即弃，同一会话的连贯体验不替代这些事实源；任何工作推进均不以会话记录或上下文为必要依赖。
+- 项目研究任务以公开 `tasks/*.task.md` 入口及其过程文件为权威，任务关系写回入口，库来源只存指针；任务状态与执行状态分开。任务工具和UI复用同一项目身份、强依据保存及创建核查，不另存正文或自动重放关联，运行与格式入口见[文件研究任务](docs/development.md#文件研究任务)。
 - 文件并发、误操作与备份恢复按 [#13](.scratch/scholoom-foundations/issues/13-storage-and-change-model.md#answer)：内部按文件串行保存，内容变化即重读；恢复到独立副本并保护后续成果。checkpoint 失效后的新执行接续及产物关联部分成功沿 [#25](.scratch/scholoom-foundations/issues/25-harness-business-integration.md#持续保存分批交付与恢复)。
 - [交互式科研界面](.scratch/scholoom-foundations/issues/45-interactive-research-reports.md)是一等原生接口，供 Agent、能力和迁入工作流共同使用。
 - 现阶段排除依赖[持续精确原文定位](.scratch/scholoom-foundations/issues/44-defer-continuous-precise-source-location.md)的功能；保留当次选区、来源摘录和重新核查。

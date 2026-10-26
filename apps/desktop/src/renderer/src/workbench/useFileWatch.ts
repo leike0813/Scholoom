@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 
 /** Owns subscriptions across scope changes, reconnects, and component disposal. */
 export function useFileWatch(
-  client: KernelClient,
+  client: KernelClient | null,
   projectId: string,
   paths: readonly string[],
   onChange: (paths: string[]) => void,
@@ -14,6 +14,7 @@ export function useFileWatch(
   const [error, setError] = useState('');
   const scope = JSON.stringify([...new Set(paths)].sort());
   useEffect(() => {
+    if (!client) return;
     let disposed = false;
     let generation = 0;
     const ids = new Set<string>();

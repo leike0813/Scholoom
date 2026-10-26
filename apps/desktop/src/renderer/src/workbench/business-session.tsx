@@ -12,7 +12,7 @@ import type {
   WorkbenchSnapshot,
 } from '@scholoom/protocol';
 import { isContextItems, validateBusiness } from '@scholoom/protocol';
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { ArtifactNotice } from './ArtifactNotice';
 import {
   confirmContextDraft,
@@ -41,6 +41,7 @@ import {
 import { SessionList } from './SessionList';
 import { SessionSearchDialog } from './SessionSearch';
 import type { FileTarget, KernelPhase, WorkbenchSession } from './session';
+import { useTasks } from './tasks/use-tasks';
 
 export function useBusinessSession(
   client: KernelClient | null,
@@ -57,6 +58,14 @@ export function useBusinessSession(
   }>();
   const [selection, setSelection] = useState({ projectId: 'application', sessionId: '' });
   const snapshot = received?.selection === selection ? received.value : undefined;
+  const taskState = useTasks(client, phase, selection.projectId, snapshot?.fileRevision ?? 0);
+  const taskGraphs = useMemo<WorkbenchSession['taskGraphs']>(() => {
+    if (!client || phase !== 'connected') return undefined;
+    return {
+      list: (input) => client.call('tasks.graphs', input),
+      run: (input) => client.call('tasks.runGraph', input),
+    };
+  }, [client, phase]);
   const [error, setError] = useState('');
   const [materials, setMaterials] = useState<string[]>([]);
   const [materialFileIds, setMaterialFileIds] = useState<Record<string, string>>({});
@@ -632,6 +641,57 @@ export function useBusinessSession(
       if (selected === selectedRef.current) setFile(target);
     },
     fileRevision: snapshot?.fileRevision ?? 0,
+    ...(taskState.port
+      ? {
+          taskPort: taskState.port,
+          ...(taskGraphs ? { taskGraphs } : {}),
+          taskRevision: taskState.revision,
+          taskWatchError: taskState.error,
+          taskDraftKey: storedDraftKey(directory, selection.projectId, 'task-create'),
+          taskCreation: (operationId: string) => {
+            if (!client) return Promise.reject(new Error('内核未连接。'));
+            return client.call('resources.creation', {
+              projectId: selection.projectId,
+              operationId,
+            });
+          },
+          associateTask: async (entry, path, role, note) => {
+            if (!client) throw new Error('内核未连接。');
+            const document = fileDocument(
+              storedDraftKey(directory, entry.task.projectId, entry.task.fileId, 'file'),
+              storedDraftKey(directory, entry.task.projectId, entry.path, 'file'),
+            );
+            await document.flush();
+            if (document.hasDraft())
+              throw new Error('入口有未保存修改，请先在编辑器中保存或核对草稿。');
+            const resource = await client.call('resources.describe', {
+              locator: { source: 'project', projectId: entry.task.projectId, path },
+            });
+            if (resource.ref.source !== 'project') throw new Error('请选择当前项目材料。');
+            const metadata = {
+              ...entry.metadata,
+              links: [
+                ...(entry.metadata.links ?? []),
+                {
+                  id: crypto.randomUUID(),
+                  role,
+                  target: { kind: 'project-file' as const, fileId: resource.ref.fileId },
+                  ...(note ? { note } : {}),
+                },
+              ],
+            };
+            const content = entry.content.replace(
+              /^(\uFEFF?)---\r?\n[\s\S]*?\r?\n---(?:\r?\n|$)/,
+              (_match, bom: string) => `${bom}---\n${JSON.stringify(metadata)}\n---\n`,
+            );
+            return client.call('tasks.save', {
+              task: entry.task,
+              basis: entry.entry.basis,
+              content,
+            });
+          },
+        }
+      : {}),
     adapter,
     executionContext: {
       project: project?.name ?? '正在读取项目',
@@ -659,6 +719,12 @@ export function useBusinessSession(
     },
     draftKey: draftKey(directory, selection.projectId, selection.sessionId || 'unsent'),
     ...(resourceTarget ? { resourceTarget } : {}),
+    resolveResource: async (target) => {
+      if (!client || phase !== 'connected') throw new Error('内核未连接。');
+      const resource = await client.call('resources.describe', { locator: target.locator });
+      if (resource.unavailableReason) throw new Error(resource.unavailableReason);
+      return { ...target, locator: resource.ref, name: resource.name };
+    },
     isResourceDirty: (resource) => {
       const target = projectTarget(resource);
       if (!target) return false;
@@ -1011,7 +1077,7 @@ export function useBusinessSession(
           ? 'failed'
           : 'idle',
     })),
-    activeSessionId: selection.sessionId,
+    activeSessionId: session?.id ?? '',
     selectSession: (id) => select(selection.projectId, id),
     ...(phase === 'connected' && snapshot && !creating
       ? { createSession: () => createSession() }

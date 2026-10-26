@@ -1,4 +1,4 @@
-import { errorInfoSchema } from './core.js';
+import { errorInfoSchema } from './error-contracts.js';
 import { flag, id, object, text } from './schema.js';
 
 const projectRef = object({ source: { const: 'project' }, projectId: id, fileId: id }, [
@@ -44,7 +44,7 @@ export const resourceAssociationSchema = object(
   ['operationId', 'state'],
 );
 export const resourceSaveResultSchema = object(
-  { resource: resourceDescriptorSchema, association: resourceAssociationSchema },
+  { resource: resourceDescriptorSchema, association: resourceAssociationSchema, editId: id },
   ['resource'],
 );
 const createdResource = {
@@ -59,6 +59,7 @@ export const resourceCreationResultSchema = {
         state: { const: 'complete' },
         resource: createdResource,
         association: resourceAssociationSchema,
+        editId: id,
       },
       ['operationId', 'state', 'resource'],
     ),

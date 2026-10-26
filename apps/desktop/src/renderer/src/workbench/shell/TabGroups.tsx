@@ -1,3 +1,4 @@
+import type { TaskRef } from '@scholoom/protocol';
 import type { KeyboardEvent, ReactNode } from 'react';
 import { readerKindForName } from '../reader-material';
 import type { ResourceTarget } from '../resource-controller';
@@ -9,6 +10,7 @@ import { IconEdit, IconLibrary, IconPreview, IconReader, IconSettings, IconSplit
 
 const kindLabels: Record<TabKind, { title: string; description: string }> = {
   settings: { title: '设置', description: '' },
+  task: { title: '研究任务', description: '' },
   library: { title: '文献库', description: '文献库界面将在后续变更接入，此页为框架占位。' },
   reader: { title: '阅读器', description: '阅读器界面将在后续变更接入，此页为框架占位。' },
   editor: { title: '编辑器', description: '编辑器界面将在后续变更接入，此页为框架占位。' },
@@ -17,6 +19,7 @@ const kindLabels: Record<TabKind, { title: string; description: string }> = {
 
 const kindIcons: Record<TabKind, () => ReactNode> = {
   settings: IconSettings,
+  task: IconEdit,
   library: IconLibrary,
   reader: IconReader,
   editor: IconEdit,
@@ -74,6 +77,7 @@ export interface TabGroupsProps {
     | undefined;
   renderSettings?: ReactNode;
   renderLibrary?: ReactNode | undefined;
+  renderTask?: ((task: TaskRef, viewId: string) => ReactNode) | undefined;
   renderResource?:
     | ((
         target: ResourceTarget,
@@ -98,6 +102,7 @@ export function TabGroups({
   onView,
   renderSettings,
   renderLibrary,
+  renderTask,
   contextName,
   onOpenSettings,
 }: TabGroupsProps) {
@@ -239,6 +244,8 @@ export function TabGroups({
                   active.transient ? () => onPin?.(groupIndex, active.id) : undefined,
                   group.id,
                 )
+              ) : active?.kind === 'task' && active.task && renderTask ? (
+                renderTask(active.task, group.id)
               ) : active?.kind === 'library' && renderLibrary ? (
                 renderLibrary
               ) : active?.kind === 'settings' ? (

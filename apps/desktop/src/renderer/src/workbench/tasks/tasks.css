@@ -1,0 +1,189 @@
+.task-list,
+.task-detail {
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  color: var(--text-primary);
+  font: var(--font-size-control) / 1.5 var(--font-ui);
+}
+
+.task-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.task-toolbar,
+.task-row-title {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-unit);
+}
+
+.task-list > .task-toolbar,
+.task-list > p,
+.task-form,
+.task-pagination {
+  padding: var(--space-unit) calc(var(--space-unit) * 2);
+}
+
+.task-muted {
+  color: var(--text-secondary);
+  font-size: var(--font-size-meta);
+}
+
+.task-error {
+  color: var(--status-error);
+  overflow-wrap: anywhere;
+}
+
+.task-list-viewport {
+  flex: 1;
+  min-height: calc(var(--row-h) * 3);
+  overflow: auto;
+}
+
+.task-list-space {
+  position: relative;
+}
+
+.task-list-row {
+  position: absolute;
+  width: 100%;
+  height: calc(var(--row-h) * 3);
+}
+
+.task-row-content,
+.task-row-issue {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-unit);
+  width: 100%;
+  height: 100%;
+  padding: calc(var(--space-unit) * 2);
+  text-align: left;
+  overflow: hidden;
+  border-bottom: 1px solid var(--border);
+}
+
+.task-list-row:hover {
+  background: var(--surface-hover);
+}
+
+.task-list-row[aria-selected="true"] {
+  background: var(--surface-active);
+}
+
+.task-row-title {
+  width: 100%;
+  flex-wrap: nowrap;
+}
+
+.task-row-title strong,
+.task-row-path {
+  display: block;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.task-row-summary {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+
+.task-status--active {
+  color: var(--status-ok);
+  background: var(--surface);
+}
+
+.task-status--waiting,
+.task-status--completed {
+  color: var(--text-secondary);
+  background: var(--pill-neutral-bg);
+}
+
+.task-form {
+  display: grid;
+  gap: calc(var(--space-unit) * 2);
+  max-height: 60%;
+  overflow: auto;
+  border-bottom: 1px solid var(--border);
+}
+
+.task-form label {
+  display: grid;
+  gap: var(--space-unit);
+}
+
+.task-form input,
+.task-form textarea {
+  min-width: 0;
+  width: 100%;
+  padding: calc(var(--space-unit) * 2);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text-primary);
+  font: inherit;
+}
+
+.task-form textarea {
+  resize: vertical;
+}
+
+.task-receipt,
+.task-reference {
+  overflow-wrap: anywhere;
+}
+
+.task-receipt code {
+  font-family: var(--font-mono);
+}
+
+.task-detail {
+  overflow: auto;
+  padding: calc(var(--space-unit) * 4);
+}
+
+.task-heading h2,
+.task-detail h3 {
+  font-size: var(--font-size-document);
+  overflow-wrap: anywhere;
+}
+
+.task-heading,
+.task-section {
+  margin-block: calc(var(--space-unit) * 4);
+}
+
+.task-body {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font: var(--font-size-document) / 1.6 var(--font-prose);
+}
+
+.task-items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.task-items > li {
+  padding-block: calc(var(--space-unit) * 2);
+  border-bottom: 1px solid var(--border);
+}
+
+.task-detail button[aria-pressed="true"] {
+  background: var(--surface-active);
+}
+
+:is(.task-list, .task-detail) :focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: calc(var(--space-unit) / 2);
+}

@@ -2,10 +2,11 @@ import { editorOperations } from './editor.js';
 import { harnessOperations, harnessSnapshotSchema } from './harness.js';
 import { libraryOperations } from './library.js';
 import { modelsOperations, providerSchema } from './models.js';
-import { projectSchema, projectsOperations } from './projects.js';
+import { projectSchema, projectsOperations, projectTaskOperations } from './projects.js';
 import { researchOperations } from './research.js';
 import { resourceCreationOperations, resourceOperations } from './resources.js';
 import { array, count, flag, id, object, page } from './schema.js';
+import { taskGraphOperations } from './task-graph-contracts.js';
 import { workbenchContextOperations } from './workbench-context.js';
 
 const scope = {
@@ -49,6 +50,8 @@ export const businessSchemas = {
   ...editorOperations,
   ...modelsOperations,
   ...projectsOperations,
+  ...projectTaskOperations,
+  ...taskGraphOperations,
   ...harnessOperations,
   ...libraryOperations,
   ...researchOperations,

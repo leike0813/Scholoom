@@ -1,6 +1,7 @@
 import { fileExplorerOperations } from './file-explorer-contracts.js';
 import {
   editSchema,
+  fileChangeOperations,
   fileSaveOperation,
   projectExecutionOperations,
 } from './project-file-contracts.js';
@@ -81,6 +82,7 @@ export const backupSchema = object({ id, createdAt: text, omitted: array(text) }
 
 export const projectsOperations = {
   ...fileExplorerOperations,
+  ...fileChangeOperations,
   'project.open': {
     semantics: { effect: 'write', returns: 'result', waitMs: 5000 },
     params: object({ path: id, trust: trustDecision }, ['path']),
@@ -292,6 +294,7 @@ export const projectMaterialOperations = {
 } as const;
 
 export const projectHarnessOperations = {
+  ...fileChangeOperations,
   'project.fileRevision': {
     params: object(project, ['projectId']),
     result: count,

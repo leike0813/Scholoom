@@ -4,7 +4,7 @@ import {
   resourceCreationResultSchema,
   resourceEvidenceSchema,
   resourceSaveResultSchema,
-} from './resources.js';
+} from './resource-contracts.js';
 import { flag, id, object } from './schema.js';
 import { workDomainSchema } from './work-domains.js';
 

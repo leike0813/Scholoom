@@ -180,8 +180,20 @@
         { "path": "src/file-watch.ts", "apis": ["fs", "fs/promises"] },
         { "path": "src/directory-browser.ts", "apis": ["fs/promises", "os"] }
       ],
-      "provides": ["project.checkRead", "project.material", "project.readTarget"],
-      "consumes": []
+      "provides": [
+        "project.checkRead",
+        "project.material",
+        "project.readTarget",
+        "files.changes",
+        "files.edit",
+        "tasks.list",
+        "tasks.read",
+        "tasks.create",
+        "tasks.save",
+        "tasks.graphs",
+        "tasks.runGraph"
+      ],
+      "consumes": ["tasks.read", "tasks.save", "resources.describe", "resources.create"]
     },
     {
       "name": "harness",
@@ -212,6 +224,12 @@
       "provides": [],
       "consumes": [
         "files.list",
+        "files.changes",
+        "files.edit",
+        "tasks.list",
+        "tasks.read",
+        "tasks.create",
+        "tasks.save",
         "resources.describe",
         "resources.read",
         "resources.document",

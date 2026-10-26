@@ -41,6 +41,7 @@ test('all legacy grant combinations require trust again without losing manual wo
           autoBackup: false,
         }),
       );
+      store.database.exec('DROP TABLE program_runs; DROP TABLE delegations;');
       store.database.pragma('user_version = 3');
       ids.push(store.project.id);
     }
@@ -444,7 +445,7 @@ test('migration protects old database and requires renewed trust; images stay bo
     const id = store.project.id;
     store.grant({ trust: 'trusted', autoBackup: false });
     store.database.exec(
-      'DROP TABLE harness_meta; DROP TABLE research_attempts; DROP TABLE run_instances;',
+      'DROP TABLE harness_meta; DROP TABLE research_attempts; DROP TABLE run_instances; DROP TABLE program_runs; DROP TABLE delegations;',
     );
     store.database.pragma('user_version = 1');
     await projects.close();

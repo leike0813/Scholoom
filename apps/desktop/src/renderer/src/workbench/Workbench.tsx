@@ -25,6 +25,10 @@ import { StatusBar } from './shell/StatusBar';
 import { type TabGroupState, TabGroups, type TabItem } from './shell/TabGroups';
 import { normalizeLegacyTab, openResourceTab, resourceTabKind } from './tab-state';
 import './library/library.css';
+import type { TaskRef } from '@scholoom/protocol';
+import type { ResourceTarget } from './resource-controller';
+import { TaskList } from './tasks/TaskList';
+import { TaskPanel } from './tasks/TaskPanel';
 
 const THEME_ORDER: readonly ThemeMode[] = ['system', 'light', 'dark'];
 const isGlobalTab = (tab: TabItem) =>
@@ -78,6 +82,8 @@ function WorkbenchContent({ session }: { session: WorkbenchSession }) {
   const rightRef = useRef(rightWidth);
   rightRef.current = rightWidth;
   const [theme, setTheme] = useState<ThemeMode>('system');
+  const [taskError, setTaskError] = useState('');
+  const taskNavigation = useRef(0);
   const [groups, setGroups] = useState<readonly TabGroupState[]>(
     session.initialTabs?.length
       ? [
@@ -107,6 +113,7 @@ function WorkbenchContent({ session }: { session: WorkbenchSession }) {
   useLayoutEffect(() => {
     const next = session.projectId ?? 'sample';
     if (next === currentProject.current) return;
+    taskNavigation.current++;
     // 共同材料独立于项目会话；只把项目自己的tab存入项目布局。
     projectGroups.current.set(
       currentProject.current,
@@ -245,6 +252,7 @@ function WorkbenchContent({ session }: { session: WorkbenchSession }) {
 
   const activateTab = useCallback(
     (groupIndex: number, tabId: string) => {
+      taskNavigation.current++;
       flushGroup(groupIndex, () => {
         setActiveGroupId(groups[groupIndex]?.id ?? null);
         setGroups((current) =>
@@ -274,6 +282,7 @@ function WorkbenchContent({ session }: { session: WorkbenchSession }) {
 
   const closeTab = useCallback(
     (groupIndex: number, tabId: string) => {
+      taskNavigation.current++;
       flushGroup(groupIndex, () => {
         const group = groups[groupIndex];
         if (group?.activeId === tabId && group.tabs.length === 1) {
@@ -295,6 +304,7 @@ function WorkbenchContent({ session }: { session: WorkbenchSession }) {
 
   const splitGroup = useCallback(
     (groupIndex: number) => {
+      taskNavigation.current++;
       flushGroup(groupIndex, () => {
         const candidate = groups[groupIndex];
         if (groups.length < 2 && candidate?.activeId && candidate.tabs.length >= 2) {
@@ -345,14 +355,17 @@ function WorkbenchContent({ session }: { session: WorkbenchSession }) {
   }, [agentExpanded, splitGroup]);
 
   const activeSession = session.sessions?.find((item) => item.id === session.activeSessionId);
+  const taskCreation = session.taskCreation;
   const activeGroup = groups.find((group) => group.id === activeGroupId);
   const activeResource = activeGroup?.tabs.find((tab) => tab.id === activeGroup.activeId)?.resource;
   const activeFile = activeResource ? projectTarget(activeResource) : undefined;
   /** 用现有 tab 逻辑打开内容：收起 overlay，不切换会话。 */
-  const openTab = (tab: TabItem) => {
+  const openTab = (tab: TabItem, isCurrent?: () => boolean) => {
+    if (!isCurrent) taskNavigation.current++;
     flushGroup(
       groups.findIndex((group) => group.id === activeGroupId),
       () => {
+        if (isCurrent && !isCurrent()) return;
         setAgentExpanded(false);
         const targetGroupId =
           groups.find((group) => group.id === activeGroupId)?.id ?? groups[0]?.id ?? 'a';
@@ -374,6 +387,50 @@ function WorkbenchContent({ session }: { session: WorkbenchSession }) {
     );
   };
   const settings = () => openTab({ id: 'settings', title: '设置', kind: 'settings' });
+  const openTask = async (task: TaskRef) => {
+    const generation = ++taskNavigation.current;
+    const isCurrent = () =>
+      generation === taskNavigation.current && currentProject.current === task.projectId;
+    setTaskError('');
+    try {
+      const read = await session.taskPort?.read({ task });
+      if (!read || !isCurrent()) return;
+      openTab(
+        {
+          id: `task:${task.projectId}:${task.taskId}:${task.fileId}`,
+          title: read.metadata.title,
+          kind: 'task',
+          task,
+        },
+        isCurrent,
+      );
+    } catch (reason) {
+      if (generation === taskNavigation.current && currentProject.current === task.projectId)
+        setTaskError(reason instanceof Error ? reason.message : '任务打开失败。');
+    }
+  };
+  const openTaskResource = async (target: ResourceTarget) => {
+    const generation = ++taskNavigation.current;
+    const projectId = currentProject.current;
+    const isCurrent = () =>
+      generation === taskNavigation.current && currentProject.current === projectId;
+    const resolved = session.resolveResource ? await session.resolveResource(target) : target;
+    if (!isCurrent()) return;
+    setAgentExpanded(false);
+    flushGroup(
+      groupsRef.current.findIndex((group) => group.id === activeGroupRef.current),
+      () => {
+        if (!isCurrent()) return;
+        const next = openResourceTab(
+          { groups: groupsRef.current, activeGroupId: activeGroupRef.current },
+          resolved,
+          isResourceDirtyRef.current,
+        );
+        setGroups(next.groups);
+        setActiveGroupId(next.activeGroupId);
+      },
+    );
+  };
   const openLibrary = session.library
     ? () => openTab({ id: 'library', title: '文献库', kind: 'library' })
     : undefined;
@@ -474,6 +531,7 @@ function WorkbenchContent({ session }: { session: WorkbenchSession }) {
     if (!target) return;
     if (target.locator.source === 'project' && target.locator.projectId !== currentProject.current)
       return;
+    taskNavigation.current++;
     setAgentExpanded(false);
     let live = true;
     flushGroup(
@@ -569,7 +627,17 @@ function WorkbenchContent({ session }: { session: WorkbenchSession }) {
             onPin={pinTab}
             renderSettings={session.controls}
             renderLibrary={session.library}
+            renderTask={(task, viewId) => (
+              <TaskPanel
+                key={`${task.projectId}:${task.taskId}:${task.fileId}`}
+                session={session}
+                task={task}
+                viewId={viewId}
+                onOpenResource={openTaskResource}
+              />
+            )}
             onView={(groupIndex, mode) => {
+              taskNavigation.current++;
               const group = groupsRef.current[groupIndex];
               const target = group?.tabs.find((tab) => tab.id === group.activeId)?.resource;
               void (
@@ -640,6 +708,27 @@ function WorkbenchContent({ session }: { session: WorkbenchSession }) {
           <AuxiliaryPane
             fileTree={session.fileTree ?? []}
             tasks={session.tasks ?? []}
+            taskNavigator={
+              session.taskPort && session.projectId ? (
+                <>
+                  {taskError ? <p role="alert">{taskError}</p> : null}
+                  {session.taskWatchError ? (
+                    <p role="alert">自动更新暂不可用：{session.taskWatchError}</p>
+                  ) : null}
+                  <TaskList
+                    port={session.taskPort}
+                    projectId={session.projectId}
+                    selectionKey={`${activeGroup?.id ?? ''}:${activeGroup?.activeId ?? ''}`}
+                    revision={session.taskRevision ?? 0}
+                    {...(session.taskDraftKey ? { draftKey: session.taskDraftKey } : {})}
+                    onOpen={(task) => void openTask(task)}
+                    {...(taskCreation
+                      ? { creation: ({ operationId }) => taskCreation(operationId) }
+                      : {})}
+                  />
+                </>
+              ) : undefined
+            }
             materials={session.materials}
             selectedMaterials={session.selectedMaterials}
             toggleMaterial={session.toggleMaterial}
@@ -669,7 +758,12 @@ function WorkbenchContent({ session }: { session: WorkbenchSession }) {
       updateContextComment={session.updateContextComment}
       contextError={session.contextError}
       publishContext={session.publishContext}
-      activeViewId={activeResource ? activeGroupId : null}
+      activeViewId={
+        activeResource ||
+        activeGroup?.tabs.find((tab) => tab.id === activeGroup.activeId)?.kind === 'task'
+          ? activeGroupId
+          : null
+      }
       receiver={
         session.projectId && session.activeSessionId
           ? { projectId: session.projectId, sessionId: session.activeSessionId }

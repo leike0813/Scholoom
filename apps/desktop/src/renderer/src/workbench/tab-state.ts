@@ -1,15 +1,16 @@
-import type { ResourceLocator } from '@scholoom/protocol';
+import type { ResourceLocator, TaskRef } from '@scholoom/protocol';
 import { readerKindForName } from './reader-material.js';
 import { type ResourceTarget, resourceKey } from './resource-controller.js';
 import type { FileTarget } from './session.js';
 
-export type TabKind = 'library' | 'reader' | 'editor' | 'preview' | 'settings';
+export type TabKind = 'library' | 'reader' | 'editor' | 'preview' | 'settings' | 'task';
 export type FileViewMode = 'source' | 'visual' | 'preview' | 'render';
 export interface TabItem {
   id: string;
   title: string;
   kind: TabKind;
   resource?: ResourceTarget;
+  task?: TaskRef;
   transient?: boolean;
   editorMode?: FileViewMode;
 }

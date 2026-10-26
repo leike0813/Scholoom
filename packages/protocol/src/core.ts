@@ -1,7 +1,10 @@
 import { Ajv, type AnySchema } from 'ajv';
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
+import { errorInfoSchema } from './error-contracts.js';
 import type { TargetReadScope, WorkDomain } from './work-domains.js';
 import type { WorkbenchSource } from './workbench-source.js';
+
+export { errorInfoSchema } from './error-contracts.js';
 
 export type { TargetReadScope, WorkDomain } from './work-domains.js';
 
@@ -83,34 +86,6 @@ export const kernelRuntimeInfoSchema = {
 
 export type KernelRuntimeInfo = FromSchema<typeof kernelRuntimeInfoSchema>;
 
-export const errorInfoSchema = {
-  type: 'object',
-  properties: {
-    code: {
-      enum: [
-        'authenticationFailed',
-        'protocolIncompatible',
-        'instanceMismatch',
-        'invalidRequest',
-        'unavailable',
-        'outcomeUnknown',
-        'shuttingDown',
-        'permissionDenied',
-        'startupFailed',
-        'notFound',
-        'contentChanged',
-        'targetAmbiguous',
-        'tooLarge',
-        'credentialUnavailable',
-        'modelFailed',
-        'resourceLimit',
-      ],
-    },
-    message: { type: 'string', maxLength: 512 },
-  },
-  required: ['code', 'message'],
-  additionalProperties: false,
-} as const;
 export type ErrorInfo = FromSchema<typeof errorInfoSchema>;
 
 export class OperationError extends Error {

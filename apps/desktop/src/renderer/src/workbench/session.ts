@@ -5,6 +5,12 @@ import type {
   ErrorInfo,
   FileLocation,
   ModelOption,
+  TaskGraphInputs,
+  TaskGraphOutputs,
+  TaskLink,
+  TaskPort,
+  TaskRead,
+  TaskSummary,
   WorkbenchContextSnapshot,
 } from '@scholoom/protocol';
 import type { ReactNode } from 'react';
@@ -55,14 +61,7 @@ export interface FileNode {
   open?: boolean;
 }
 
-export type TaskStatus = 'running' | 'awaiting' | 'done' | 'idle';
-
-export interface TaskSummary {
-  id: string;
-  title: string;
-  status: TaskStatus;
-  updatedAt: string;
-}
+export type { TaskStatus, TaskSummary } from '@scholoom/protocol';
 
 export interface WorkbenchNotice {
   id: string;
@@ -105,6 +104,23 @@ export interface WorkbenchSession {
   openMessageFile?: (path: string, fileId?: string) => Promise<void>;
   projectId?: string;
   fileRevision?: number;
+  taskPort?: TaskPort;
+  taskGraphs?: {
+    list: (input: TaskGraphInputs['tasks.graphs']) => Promise<TaskGraphOutputs['tasks.graphs']>;
+    run: (input: TaskGraphInputs['tasks.runGraph']) => Promise<TaskGraphOutputs['tasks.runGraph']>;
+  };
+  taskRevision?: number;
+  taskWatchError?: string;
+  taskDraftKey?: string;
+  taskCreation?: (
+    operationId: string,
+  ) => Promise<import('@scholoom/protocol').ResourceCreationOutputs['resources.creation']>;
+  associateTask?: (
+    entry: TaskRead,
+    path: string,
+    role: TaskLink['role'],
+    note: string,
+  ) => Promise<TaskRead>;
   resolveFiles?: ((fileIds: string[]) => Promise<FileLocation[]>) | undefined;
   initialTabs?: readonly {
     id: string;
@@ -113,6 +129,7 @@ export interface WorkbenchSession {
   }[];
   fileNavigator?: ReactNode | ((activeFile?: FileTarget) => ReactNode);
   resourceTarget?: ResourceTarget;
+  resolveResource?: (target: ResourceTarget) => Promise<ResourceTarget>;
   renderResource?: (
     target: ResourceTarget,
     mode?: import('./tab-state.js').FileViewMode,
