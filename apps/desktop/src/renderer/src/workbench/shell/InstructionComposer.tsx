@@ -1,7 +1,9 @@
 import { ComposerPrimitive, useAui, useAuiState } from '@assistant-ui/react';
 import type { Effort } from '@scholoom/protocol';
 import type { ComponentProps, ReactNode } from 'react';
+import { ContextItemLocation } from '../ContextItemLocation';
 import { useContextContribution } from '../context-contributions';
+import { resourceSourceLabels } from '../resource-controller';
 import type { WorkbenchSession } from '../session';
 import { IconChevronDown, IconSend, IconTune } from './icons';
 import { Menu } from './menu';
@@ -27,22 +29,17 @@ export function InstructionContextItems() {
                   ? '草稿摘录'
                   : '文字摘录'
                 : item.kind === 'object'
-                  ? item.name
+                  ? `${item.contentState === 'draft' ? '草稿对象 · ' : ''}${item.name}`
                   : item.kind === 'region'
                     ? '图片区域'
                     : '资源'}
             </summary>
             <p>
-              {item.ref.source === 'project' ? '项目材料' : '库材料'} · {item.basis}
+              {resourceSourceLabels[item.ref.source]} · {item.basis}
             </p>
             {item.kind === 'text' ? <blockquote>{item.quote}</blockquote> : null}
             {item.kind === 'object' ? <p>{item.semantics}</p> : null}
-            {item.kind === 'region' ? (
-              <p>
-                区域：{Math.round(item.region.x * 100)}%，{Math.round(item.region.y * 100)}%；
-                {Math.round(item.region.width * 100)}% × {Math.round(item.region.height * 100)}%
-              </p>
-            ) : null}
+            <ContextItemLocation item={item} />
             <label>
               批注
               <textarea

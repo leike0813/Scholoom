@@ -110,6 +110,7 @@ export interface WorkbenchSession {
   projectTrustDialog?: ReactNode;
   activeSessionTitle?: string;
   openMessageFile?: (path: string, fileId?: string) => Promise<void>;
+  openMessageResource?: (ref: import('@scholoom/protocol').ResourceRef) => Promise<void>;
   projectId?: string;
   fileRevision?: number;
   taskPort?: TaskPort;

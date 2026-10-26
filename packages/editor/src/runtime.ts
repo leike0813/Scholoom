@@ -1,8 +1,9 @@
 import { randomUUID } from 'node:crypto';
-import { mkdir, readdir, rename, rm } from 'node:fs/promises';
+import { mkdir, readdir, rename, rm, stat } from 'node:fs/promises';
 import { basename, dirname, join, posix } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { type CallContext, OperationError } from '@scholoom/protocol/core';
+import { fileFingerprint } from '@scholoom/platform/node';
+import { type CallContext, compileContract, OperationError } from '@scholoom/protocol/core';
 import type {
   EditorCommandInput,
   EditorCommandResult,
@@ -17,6 +18,13 @@ import type {
   ProjectsInputs,
   ProjectsOutputs,
 } from '@scholoom/protocol/projects';
+import {
+  type ResourceDescriptor,
+  type ResourceInputs,
+  type ResourceLocator,
+  type ResourceOutputs,
+  renderInputSchema,
+} from '@scholoom/protocol/resources';
 import { convertDocument } from './conversion.js';
 import { EditorRecords, outputSize, outputStorageSize, readOutput, snapshot } from './resources.js';
 
@@ -53,6 +61,7 @@ type SavedOutput = RenderOutput & {
 };
 const stamp = () => new Date().toISOString();
 const part = (value: string) => `item-${encodeURIComponent(value)}`;
+const validRenderInput = compileContract({ params: renderInputSchema, result: true }).params;
 
 /** Manuscript operations own their receipts and outputs; project text stays project-owned. */
 export class EditorRuntime {
@@ -534,13 +543,23 @@ export class EditorRuntime {
         };
         await this.records.write(this.outputPath(job.projectId, output.id), output);
         await rename(outputRoot, published);
+        const publishedOutput: SavedOutput = {
+          ...output,
+          basis: fileFingerprint(await stat(join(published, relative), { bigint: true })),
+          input: {
+            ref: { source: 'project', projectId: job.projectId, fileId: result.fileId },
+            basis: result.basis,
+            dependencies: result.dependencies.map((dependency) => ({ ...dependency })),
+          },
+        };
+        await this.records.write(this.outputPath(job.projectId, output.id), publishedOutput);
         const {
           projectId: _project,
           directory: _directory,
           path: _path,
           storageBytes: _bytes,
           ...publicOutput
-        } = output;
+        } = publishedOutput;
         await this.records.write(
           this.latestPath(job.projectId, job.fileId ?? job.path, job.format),
           publicOutput,
@@ -633,9 +652,79 @@ export class EditorRuntime {
   private async saved(projectId: string, id: string, context: CallContext) {
     await this.ports(context).check(projectId, 'read');
     const output = await this.records.read<SavedOutput>(this.outputPath(projectId, id));
-    if (!output || output.projectId !== projectId)
+    if (!output || output.projectId !== projectId || output.id !== id)
       throw new OperationError('notFound', '排版产物不存在。');
     return output;
+  }
+  private async savedRender(projectId: string, outputId: string, context: CallContext) {
+    const output = await this.saved(projectId, outputId, context);
+    if (output.format !== 'pdf')
+      throw new OperationError('invalidRequest', '只支持 PDF 排版产物资源。');
+    if (
+      !output.basis ||
+      !output.input ||
+      !validRenderInput(output.input) ||
+      output.input.ref.projectId !== projectId
+    )
+      throw new OperationError('unavailable', '排版产物缺少可核对的输入或字节依据。');
+    return { ...output, basis: output.basis, input: output.input };
+  }
+  async resource(
+    locator: Extract<ResourceLocator, { source: 'render' }>,
+    context: CallContext,
+  ): Promise<ResourceDescriptor> {
+    const release = this.lease(locator.outputId);
+    try {
+      const output = await this.savedRender(locator.projectId, locator.outputId, context);
+      await readOutput(output.directory, output.path, 0, 1, output.basis);
+      await this.ports(context).check(locator.projectId, 'read');
+      return {
+        ref: locator,
+        basis: output.basis,
+        name: output.name,
+        format: 'pdf',
+        render: { jobId: output.jobId, input: output.input },
+        capabilities: { read: true, write: false, readingRecords: false, render: false },
+      };
+    } finally {
+      release();
+    }
+  }
+  async readResource(
+    input: ResourceInputs['resources.read'],
+    context: CallContext,
+  ): Promise<ResourceOutputs['resources.read']> {
+    const { ref, basis, encoding, offset = 0, limit = 262144 } = input;
+    if (ref.source !== 'render' || encoding !== 'base64')
+      throw new OperationError('invalidRequest', '排版产物仅支持 render 资源的字节读取。');
+    if (
+      !Number.isSafeInteger(offset) ||
+      offset < 0 ||
+      !Number.isInteger(limit) ||
+      limit < 1 ||
+      limit > 262144
+    )
+      throw new OperationError('invalidRequest', '排版产物分片范围无效。');
+    const release = this.lease(ref.outputId);
+    try {
+      const output = await this.savedRender(ref.projectId, ref.outputId, context);
+      if (basis !== output.basis)
+        throw new OperationError('contentChanged', '排版产物读取依据不匹配。');
+      const value = await readOutput(output.directory, output.path, offset, limit, basis);
+      await this.ports(context).check(ref.projectId, 'read');
+      return {
+        ref,
+        basis,
+        data: value.base64,
+        offset,
+        size: value.byteLength,
+        unit: 'byte',
+        truncated: false,
+        ...(value.nextOffset === undefined ? {} : { nextOffset: value.nextOffset }),
+      };
+    } finally {
+      release();
+    }
   }
   async output(
     input: EditorInputs['editor.output'],
@@ -647,7 +736,13 @@ export class EditorRuntime {
       const path = input.resource
         ? posix.join(posix.dirname(output.path), input.resource)
         : output.path;
-      const value = await readOutput(output.directory, path, input.offset, input.limit ?? 262144);
+      const value = await readOutput(
+        output.directory,
+        path,
+        input.offset,
+        input.limit ?? 262144,
+        input.resource ? undefined : output.basis,
+      );
       await this.ports(context).check(input.projectId, 'read');
       return { ...value, name: input.resource ? posix.basename(path) : output.name };
     } finally {
@@ -672,7 +767,7 @@ export class EditorRuntime {
       });
       if (transfer.state !== 'uploading') return { transferId: transfer.id };
       for (let offset = 0; offset < output.byteLength; ) {
-        const chunk = await readOutput(output.directory, output.path, offset, 262144);
+        const chunk = await readOutput(output.directory, output.path, offset, 262144, output.basis);
         await port.importChunk({
           projectId: input.projectId,
           operationId: transfer.id,

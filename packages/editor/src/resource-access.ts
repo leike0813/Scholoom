@@ -31,6 +31,12 @@ export class ResourceAccess {
     private readonly parser: ResourceParser,
   ) {}
 
+  private renderPort(ports: ResourcePorts) {
+    if (ports.target) throw new OperationError('permissionDenied', '产物不开放跨项目读取。');
+    if (!ports.render) throw new OperationError('unavailable', '产物资源提供者不可用。');
+    return ports.render;
+  }
+
   private async projectLocation(
     ports: ResourcePorts,
     locator: Extract<ResourceLocator, { source: 'project' }>,
@@ -64,6 +70,9 @@ export class ResourceAccess {
   }
   async describe(locator: ResourceLocator, context: CallContext): Promise<ResourceDescriptor> {
     const ports = this.ports(context);
+    if (locator.source === 'render') {
+      return this.renderPort(ports).describe(locator);
+    }
     if (locator.source === 'project') {
       const location = await this.projectLocation(ports, locator);
       const bytes = await this.projectBytes(ports, {
@@ -120,6 +129,11 @@ export class ResourceAccess {
     };
   }
   private async verify(ports: ResourcePorts, ref: ResourceRef, basis: string) {
+    if (ref.source === 'render') {
+      const descriptor = await this.renderPort(ports).describe(ref);
+      if (descriptor.basis !== basis) throw changed();
+      return;
+    }
     if (ref.source === 'project') {
       await this.projectBytes(ports, {
         projectId: ref.projectId,
@@ -180,6 +194,11 @@ export class ResourceAccess {
     const { ref, basis, encoding, offset = 0, limit = 262144 } = input;
     const ports = this.ports(context);
     await this.verify(ports, ref, basis);
+    if (ref.source === 'render') {
+      const value = await this.renderPort(ports).read(input);
+      await this.verify(ports, ref, basis);
+      return value;
+    }
     if (encoding === 'base64') {
       if (ref.source === 'project') {
         const value = await this.projectBytes(ports, {
@@ -375,13 +394,16 @@ export class ResourceAccess {
       let offset = 0;
       for (;;) {
         signal.throwIfAborted();
-        const value = await this.projectBytes(ports, {
-          projectId: ref.projectId,
-          fileId: ref.fileId,
-          basis,
-          offset,
-          limit: 262144,
-        });
+        const value = await this.read(
+          {
+            ref,
+            basis,
+            encoding: 'base64',
+            offset,
+            limit: 262144,
+          },
+          context,
+        );
         parts.push(Buffer.from(value.data, 'base64'));
         if (value.nextOffset === undefined) break;
         if (value.nextOffset <= offset) throw new OperationError('unavailable', '资源读取未推进。');

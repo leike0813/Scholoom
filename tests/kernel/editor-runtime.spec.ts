@@ -87,13 +87,14 @@ async function fixture(
   command: (input: EditorCommandInput, signal?: AbortSignal) => ReturnType<EditorPorts['command']>,
   verify?: () => Promise<void>,
   identity: () => string = () => 'file',
+  check: EditorPorts['check'] = async () => {},
 ) {
   const root = await mkdtemp(join(tmpdir(), 'scholoom-editor-runtime-'));
   const path = join(root, 'main.md');
   await writeFile(path, '# Results\n');
   let reads = 0;
-  const runtime = new EditorRuntime(join(root, 'editor'), (_context, signal) => ({
-    check: async () => {},
+  const ports = (_context: CallContext, signal?: AbortSignal): EditorPorts => ({
+    check,
     locate: async () => 'main.md',
     material: async (_projectId, name) => {
       if (name !== 'main.md') throw new OperationError('notFound', 'missing fixture material');
@@ -118,14 +119,238 @@ async function fixture(
     importFinish: async () => {
       throw new Error('unused');
     },
-  }));
-  const render = (operationId: string) =>
+  });
+  const runtime = new EditorRuntime(join(root, 'editor'), ports);
+  const render = (operationId: string, format: 'html' | 'pdf' = 'html') =>
     runtime.render(
-      { projectId: 'project', path: 'main.md', format: 'html', automatic: true, operationId },
+      { projectId: 'project', path: 'main.md', format, automatic: true, operationId },
       context,
     );
   const job = (jobId: string) => runtime.job({ projectId: 'project', jobId }, context);
-  return { runtime, render, job };
+  return {
+    runtime,
+    render,
+    job,
+    root,
+    path,
+    reopen: () => new EditorRuntime(join(root, 'editor'), ports),
+  };
+}
+
+const pdf = Buffer.from('%PDF-1.7\nrender fixture\n');
+async function outputFixture() {
+  const grants = { read: true, checksRemaining: Number.POSITIVE_INFINITY };
+  const compiler = { fail: false };
+  let runtime: EditorRuntime;
+  const setup = await fixture(
+    async (input) => {
+      if (compiler.fail) return { code: 1, stdout: '', stderr: 'fixture compilation failed' };
+      const directory = runtime.commandWorkspace(input.workspaceId).directory;
+      expect(await readFile(join(directory, 'main.md'), 'utf8')).toContain('# Results');
+      const output = join(directory, 'output');
+      await mkdir(output);
+      const format = input.args[input.args.indexOf('--to') + 1];
+      await writeFile(join(output, `main.${format}`), format === 'pdf' ? pdf : '<p>result</p>');
+      return { code: 0, stdout: '', stderr: '' };
+    },
+    undefined,
+    undefined,
+    async (_project, access) => {
+      if (access !== 'read' || !grants.read || grants.checksRemaining-- <= 0)
+        throw new OperationError('permissionDenied', 'fixture access denied');
+    },
+  );
+  runtime = setup.runtime;
+  const complete = async (id: string, format: 'html' | 'pdf' = 'pdf') => {
+    await setup.render(id, format);
+    await expect
+      .poll(async () => (await setup.job(id)).state, { intervals: [1, 2, 5] })
+      .toBe('completed');
+    const output = (await setup.job(id)).output;
+    if (!output?.basis || !output.input) throw new Error('Missing published render evidence');
+    return output;
+  };
+  const location = (id: string) =>
+    ({ source: 'render', projectId: 'project', outputId: id }) as const;
+  const record = (id: string) =>
+    join(setup.root, 'editor', 'item-project', 'outputs', `item-${id}.json`);
+  const bytesPath = (id: string) =>
+    join(setup.root, 'editor', 'item-project', 'data', id, 'main.pdf');
+  return { ...setup, grants, compiler, complete, location, record, bytesPath };
+}
+
+test('published PDF resources keep their own bytes and producing input when the next job fails', async () => {
+  const setup = await outputFixture();
+  const { runtime, location } = setup;
+  try {
+    const inputBasis = fileFingerprint(await stat(setup.path, { bigint: true }));
+    const output = await setup.complete('success');
+    expect(output.basis).toBe(
+      fileFingerprint(await stat(setup.bytesPath(output.id), { bigint: true })),
+    );
+    expect(output.basis).not.toBe(inputBasis);
+    expect(output.input).toEqual({
+      ref: { source: 'project', projectId: 'project', fileId: 'file' },
+      basis: inputBasis,
+      dependencies: [{ path: 'main.md', basis: inputBasis }],
+    });
+    const descriptor = await runtime.resource(location(output.id), context);
+    expect(descriptor).toMatchObject({
+      ref: location(output.id),
+      basis: output.basis,
+      format: 'pdf',
+      render: { jobId: 'success', input: output.input },
+      capabilities: { read: true, write: false, readingRecords: false, render: false },
+    });
+    const chunks: Buffer[] = [];
+    let offset = 0;
+    do {
+      const chunk = await runtime.readResource(
+        { ref: descriptor.ref, basis: descriptor.basis, encoding: 'base64', offset, limit: 7 },
+        context,
+      );
+      expect(chunk).toMatchObject({
+        ref: descriptor.ref,
+        basis: output.basis,
+        offset,
+        size: pdf.length,
+        unit: 'byte',
+        truncated: false,
+      });
+      chunks.push(Buffer.from(chunk.data, 'base64'));
+      offset = chunk.nextOffset ?? pdf.length;
+    } while (offset < pdf.length);
+    expect(Buffer.concat(chunks)).toEqual(pdf);
+    await writeFile(setup.path, '# Results changed\n');
+    setup.compiler.fail = true;
+    await setup.render('failed', 'pdf');
+    await expect.poll(async () => (await setup.job('failed')).state).toBe('failed');
+    const failed = await setup.job('failed');
+    expect(failed.basis).not.toBe(inputBasis);
+    expect(failed.lastSuccess).toEqual(output);
+    expect(failed.output).toBeUndefined();
+    const restarted = setup.reopen();
+    try {
+      expect(await restarted.resource(location(output.id), context)).toEqual(descriptor);
+    } finally {
+      await restarted.close();
+    }
+  } finally {
+    await runtime.close();
+    await rm(setup.root, { recursive: true });
+  }
+});
+
+test('render resource reads reject other formats, stale basis and revoked read authority', async () => {
+  const setup = await outputFixture();
+  const { runtime, location, grants } = setup;
+  try {
+    const output = await setup.complete('read-only');
+    const ref = location(output.id);
+    const input = { ref, basis: output.basis ?? '', encoding: 'base64' as const };
+    await expect(runtime.readResource({ ...input, basis: 'stale' }, context)).rejects.toMatchObject(
+      { code: 'contentChanged' },
+    );
+    await expect(
+      runtime.readResource({ ...input, encoding: 'utf8' }, context),
+    ).rejects.toMatchObject({ code: 'invalidRequest' });
+    await expect(
+      runtime.readResource(
+        { ...input, ref: { source: 'project', projectId: 'project', fileId: 'file' } },
+        context,
+      ),
+    ).rejects.toMatchObject({ code: 'invalidRequest' });
+    await expect(runtime.readResource({ ...input, limit: 262145 }, context)).rejects.toMatchObject({
+      code: 'invalidRequest',
+    });
+    await expect(
+      runtime.export(
+        { projectId: 'project', outputId: output.id, operationId: 'export', path: 'export.pdf' },
+        context,
+      ),
+    ).rejects.toMatchObject({ code: 'permissionDenied' });
+    const html = await setup.complete('html', 'html');
+    await expect(runtime.resource(location(html.id), context)).rejects.toMatchObject({
+      code: 'invalidRequest',
+    });
+    for (const read of [
+      () => runtime.resource(ref, context),
+      () => runtime.readResource(input, context),
+    ]) {
+      grants.checksRemaining = 1;
+      await expect(read()).rejects.toMatchObject({ code: 'permissionDenied' });
+    }
+    grants.checksRemaining = Number.POSITIVE_INFINITY;
+    grants.read = false;
+    await expect(runtime.resource(ref, context)).rejects.toMatchObject({
+      code: 'permissionDenied',
+    });
+    await expect(runtime.readResource(input, context)).rejects.toMatchObject({
+      code: 'permissionDenied',
+    });
+  } finally {
+    await runtime.close();
+    await rm(setup.root, { recursive: true });
+  }
+});
+
+for (const missing of ['basis', 'input'] as const) {
+  test(`legacy output without ${missing} still previews but cannot become a render resource`, async () => {
+    const setup = await outputFixture();
+    try {
+      const output = await setup.complete('legacy');
+      const path = setup.record(output.id);
+      const record = JSON.parse(await readFile(path, 'utf8'));
+      delete record[missing];
+      await writeFile(path, JSON.stringify(record));
+      await expect(
+        setup.runtime.resource(setup.location(output.id), context),
+      ).rejects.toMatchObject({ code: 'unavailable' });
+      await expect(
+        setup.runtime.readResource(
+          { ref: setup.location(output.id), basis: output.basis ?? '', encoding: 'base64' },
+          context,
+        ),
+      ).rejects.toMatchObject({ code: 'unavailable' });
+      const preview = await setup.runtime.output(
+        { projectId: 'project', outputId: output.id, offset: 0 },
+        context,
+      );
+      expect(Buffer.from(preview.base64, 'base64')).toEqual(pdf);
+    } finally {
+      await setup.runtime.close();
+      await rm(setup.root, { recursive: true });
+    }
+  });
+}
+
+for (const change of ['modified', 'replaced', 'missing'] as const) {
+  test(`render descriptors and bytes reject ${change} published output`, async () => {
+    const setup = await outputFixture();
+    try {
+      const output = await setup.complete('changed');
+      const path = setup.bytesPath(output.id);
+      if (change === 'modified') await writeFile(path, '%PDF-1.7\nchanged bytes\n');
+      else if (change === 'missing') await rm(path);
+      else {
+        await writeFile(`${path}.replacement`, pdf);
+        await rename(`${path}.replacement`, path);
+      }
+      const code = change === 'missing' ? 'notFound' : 'contentChanged';
+      await expect(
+        setup.runtime.resource(setup.location(output.id), context),
+      ).rejects.toMatchObject({ code });
+      await expect(
+        setup.runtime.readResource(
+          { ref: setup.location(output.id), basis: output.basis ?? '', encoding: 'base64' },
+          context,
+        ),
+      ).rejects.toMatchObject({ code });
+    } finally {
+      await setup.runtime.close();
+      await rm(setup.root, { recursive: true });
+    }
+  });
 }
 
 test('concurrent automatic requests keep one waiting item and close settles every receipt', async () => {
@@ -242,14 +467,14 @@ test('history cache evicts old outputs while preserving current and recently rea
   const setup = await fixture(async (input) => {
     const output = join(runtime.commandWorkspace(input.workspaceId).directory, 'output');
     await mkdir(output);
-    await writeFile(join(output, 'main.html'), '<p>cache evidence</p>');
+    await writeFile(join(output, 'main.pdf'), pdf);
     return { code: 0, stdout: '', stderr: '' };
   });
   runtime = setup.runtime;
   const outputs: string[] = [];
   try {
     for (let index = 0; index < 66; index++) {
-      const receipt = await setup.render(`cache-${index}`);
+      const receipt = await setup.render(`cache-${index}`, 'pdf');
       await expect
         .poll(
           async () => {
@@ -270,8 +495,14 @@ test('history cache evicts old outputs while preserving current and recently rea
     const read = (outputId: string) =>
       runtime.output({ projectId: 'project', outputId, offset: 0 }, context);
     await expect(read(outputs[0] ?? '')).rejects.toMatchObject({ code: 'notFound' });
-    await expect(read(outputs[1] ?? '')).resolves.toMatchObject({ byteLength: 21 });
-    await expect(read(outputs.at(-1) ?? '')).resolves.toMatchObject({ byteLength: 21 });
+    await expect(read(outputs[1] ?? '')).resolves.toMatchObject({ byteLength: pdf.length });
+    await expect(read(outputs.at(-1) ?? '')).resolves.toMatchObject({ byteLength: pdf.length });
+    const resource = (outputId: string) =>
+      runtime.resource({ source: 'render', projectId: 'project', outputId }, context);
+    await expect(resource(outputs[0] ?? '')).rejects.toMatchObject({ code: 'notFound' });
+    await expect(resource(outputs[1] ?? '')).resolves.toMatchObject({
+      capabilities: { read: true, write: false },
+    });
     expect((await setup.job('cache-0')).state).toBe('completed');
   } finally {
     await runtime.close();

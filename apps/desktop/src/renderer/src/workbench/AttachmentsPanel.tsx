@@ -16,7 +16,7 @@ const ATTACHMENT_STATE: Record<LibraryAttachment['state'], { label: string; pill
   changed: { label: '内容已变', pill: 'pill--idle' },
   unavailable: { label: '不可用', pill: 'pill--idle' },
 };
-const READER_LABEL = { pdf: 'PDF', epub: 'EPUB', html: '网页' } as const;
+const READER_LABEL = { pdf: 'PDF', epub: 'EPUB', html: '网页', image: '图片' } as const;
 const MANAGE_HINT = '每行一份本机绝对路径，最多 100 份；按文件名建立待核对题录，外链只登记原位置。';
 const ATTACH_HINT = '每行一份本机绝对路径，最多 100 份；附件加入当前题录，外链只登记原位置。';
 

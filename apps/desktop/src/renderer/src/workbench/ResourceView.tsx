@@ -2,6 +2,7 @@ import type { KernelClient } from '@scholoom/client';
 import type { ResourceDescriptor } from '@scholoom/protocol';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { DocumentReader } from './DocumentReader';
+import { ImageResourceView } from './ImageResourceView';
 import { PdfReader } from './PdfReader';
 import { FileEditor } from './project-ui';
 import { readerKindForName } from './reader-material';
@@ -10,6 +11,7 @@ import {
   createResourcePort,
   type ReadingRecordAdapter,
   type ResourceTarget,
+  sameResourceRef,
 } from './resource-controller';
 import type { FileTarget } from './session';
 import type { FileViewMode } from './tab-state';
@@ -42,7 +44,7 @@ export function ResourceView({
   const changed = useRef(onChanged);
   changed.current = onChanged;
   useEffect(() => () => port.cancelPending(), [port]);
-  const readerKind = readerKindForName(target.name);
+  const readerKind = target.locator.source === 'render' ? 'pdf' : readerKindForName(target.name);
   const [loaded, setLoaded] = useState<{
     resource: ResourceDescriptor;
     records?: ReadingRecordAdapter;
@@ -61,6 +63,11 @@ export function ResourceView({
     setError('');
     void (async () => {
       const resource = await port.describe(target.locator);
+      if (
+        target.locator.source === 'render' &&
+        (resource.format !== 'pdf' || !sameResourceRef(resource.ref, target.locator))
+      )
+        throw new Error('排版产物身份或格式不匹配。');
       const ref = resource.ref;
       const records =
         ref.source === 'library'
@@ -108,14 +115,23 @@ export function ResourceView({
     );
   if (error) return <p role="alert">{error}</p>;
   if (!loaded) return <p role="status">{enabled ? '正在打开资源…' : '需连接内核。'}</p>;
-  return readerKind === 'pdf' ? (
-    <PdfReader resource={loaded.resource} port={port} records={loaded.records} enabled={enabled} />
+  return readerKind === 'image' ? (
+    <ImageResourceView resource={loaded.resource} port={port} enabled={enabled} viewId={viewId} />
+  ) : readerKind === 'pdf' ? (
+    <PdfReader
+      resource={loaded.resource}
+      port={port}
+      records={loaded.records}
+      enabled={enabled}
+      viewId={viewId}
+    />
   ) : (
     <DocumentReader
       resource={loaded.resource}
       port={port}
       records={loaded.records}
       enabled={enabled}
+      viewId={viewId}
     />
   );
 }

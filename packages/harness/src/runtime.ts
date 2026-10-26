@@ -375,7 +375,7 @@ export class Harness {
       ref.source === 'library'
         ? `library-context:${context.sessionId}`
         : `target-read-context:${context.sessionId}`;
-    if (ref.source === 'project' && ref.projectId === context.projectId) return;
+    if (ref.source !== 'library' && ref.projectId === context.projectId) return;
     const records = this.records(project);
     const previous: string[] =
       ref.source === 'library'
@@ -2773,7 +2773,7 @@ export class Harness {
             {
               name: 'read_context_resource',
               description:
-                '按明确资源引用及原 basis 重新读取项目或库材料；每片有界。附加摘录和工作台选择不代表已读取。材料已变化时核查当前版本并询问用户，不猜测或替换引用。',
+                '按明确资源引用及原 basis 重新读取项目、库或只读排版产物；每片有界，PDF及图片用base64取得实际字节。附加摘录不代表已读取。材料已变化时核查当前版本并询问用户，不猜测或替换引用。',
               schema: resourceOperations['resources.read'].params,
               func: async (input: ResourceInputs['resources.read']) => {
                 try {
@@ -2785,6 +2785,35 @@ export class Harness {
                   const result = await resources.port.read(input);
                   resources.check([{ ref: input.ref, basis: input.basis }]);
                   rememberContext([{ ref: input.ref, basis: input.basis }]);
+                  return JSON.stringify(result);
+                } catch (error) {
+                  const info = failure(error);
+                  const current = toolContext.getStore();
+                  if (current) current.error = info;
+                  return JSON.stringify({ error: info });
+                }
+              },
+            },
+            {
+              name: 'read_context_document',
+              description:
+                '按实际ref和basis解析PDF或文档。先用pdfInfo确认页，再readPdfPage读取指定页文字；产物引用不能换成源码。只读、有界，实际取用重新核对权限。',
+              schema: resourceOperations['resources.document'].params,
+              func: async (input: ResourceInputs['resources.document']) => {
+                try {
+                  this.checkExecutionContext(fileContext);
+                  const resources = this.contextBridge?.resources?.(fileContext);
+                  if (!resources?.port.document)
+                    throw new OperationError('unavailable', '执行文档读取端口不可用。');
+                  const evidence = [{ ref: input.ref, basis: input.basis }];
+                  resources.check(evidence);
+                  const result = await resources.port.document(
+                    input,
+                    input.request.method,
+                    input.request.input,
+                  );
+                  resources.check(evidence);
+                  rememberContext(evidence);
                   return JSON.stringify(result);
                 } catch (error) {
                   const info = failure(error);

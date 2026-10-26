@@ -1,4 +1,5 @@
 import type { FromSchema } from 'json-schema-to-ts';
+import { renderInputSchema } from './resource-contracts.js';
 import { array, content, count, flag, id, object, text } from './schema.js';
 
 export const renderFormatSchema = { enum: ['html', 'pdf', 'docx'] } as const;
@@ -8,7 +9,16 @@ const diagnostic = object({ code: id, message: text, path: text, line: count }, 
   'message',
 ]);
 export const renderOutputSchema = object(
-  { id, jobId: id, name: id, format: renderFormatSchema, byteLength: count, createdAt: text },
+  {
+    id,
+    jobId: id,
+    name: id,
+    format: renderFormatSchema,
+    byteLength: count,
+    createdAt: text,
+    basis: id,
+    input: renderInputSchema,
+  },
   ['id', 'jobId', 'name', 'format', 'byteLength', 'createdAt'],
 );
 export const renderJobSchema = object(

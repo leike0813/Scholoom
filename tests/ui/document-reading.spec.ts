@@ -134,7 +134,18 @@ for (const format of ['epub', 'html'] as const) {
       await uiPage.mouse.down();
       await uiPage.mouse.move(points.x2, points.y2, { steps: 12 });
       await uiPage.mouse.up();
+      await reader.getByRole('button', { name: '附加选区', exact: true }).click();
       await reader.getByRole('button', { name: '保留选区', exact: true }).click();
+      const context = uiPage
+        .locator('.agent-dock')
+        .getByRole('region', { name: '附加上下文', exact: true });
+      await context.getByLabel('查看附加上下文', { exact: true }).click();
+      await context.locator('details.menu details summary').click();
+      await expect(context.getByRole('blockquote')).toHaveText(quote);
+      await expect(context).toContainText('原版本章节');
+      await context.getByLabel('上下文批注 1', { exact: true }).press('Escape');
+      await uiPage.evaluate(() => window.getSelection()?.removeAllRanges());
+      await expect(reader.getByRole('button', { name: '保留选区', exact: true })).toBeDisabled();
       const records = reader.getByRole('region', { name: '阅读记录', exact: true });
       const note = records.getByRole('textbox', { name: '新文献笔记', exact: true });
       if (!(await note.isVisible()))

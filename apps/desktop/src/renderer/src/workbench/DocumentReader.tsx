@@ -1,4 +1,10 @@
-import type { DocumentNode, ReadingRecord, TextLocation } from '@scholoom/protocol';
+import {
+  type ContextItem,
+  type DocumentNode,
+  isContextItems,
+  type ReadingRecord,
+  type TextLocation,
+} from '@scholoom/protocol';
 import type {
   ResourceDescriptor,
   ResourceDocumentInputs,
@@ -9,10 +15,12 @@ import {
   type ReactNode,
   useCallback,
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
 } from 'react';
+import { useContextContribution } from './context-contributions';
 import { prepareReadingRecord, ReadingRecordsPanel } from './ReadingRecordsPanel';
 import type { ReadingRecordAdapter, WorkbenchResourcePort } from './resource-controller';
 
@@ -164,11 +172,13 @@ export function DocumentReader({
   port,
   records: recordAdapter,
   enabled,
+  viewId: suppliedViewId,
 }: {
   resource: ResourceDescriptor;
   port: WorkbenchResourcePort;
   records?: ReadingRecordAdapter | undefined;
   enabled: boolean;
+  viewId?: string | undefined;
 }) {
   const [tick, setTick] = useState(0);
   const [grants, setGrants] = useState({ read: false });
@@ -201,6 +211,20 @@ export function DocumentReader({
     imageQueue.current = imageQueue.current.then(job, job);
   }, []);
   const article = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const clearInvalidSelection = () => {
+      const current = window.getSelection();
+      if (
+        !current?.rangeCount ||
+        current.isCollapsed ||
+        !article.current?.contains(current.anchorNode) ||
+        !article.current.contains(current.focusNode)
+      )
+        setSelection((value) => (value ? undefined : value));
+    };
+    document.addEventListener('selectionchange', clearInvalidSelection);
+    return () => document.removeEventListener('selectionchange', clearInvalidSelection);
+  }, []);
   const searchEpoch = useRef(0);
   const mounted = useRef(true);
   const resourceKey = JSON.stringify([resource.ref, resource.basis]);
@@ -210,6 +234,30 @@ export function DocumentReader({
   const section = received?.key === key ? received.value : undefined;
   const [authorizedKey, setAuthorizedKey] = useState('');
   const active = enabled && grants.read && authorizedKey === resourceKey;
+  const context = useContextContribution();
+  const instanceId = useId();
+  const viewId = suppliedViewId ?? instanceId;
+  const contextItem = useMemo<ContextItem | undefined>(
+    () =>
+      active && section && selection && selection.location.sectionId === section.sectionId
+        ? {
+            kind: 'text',
+            itemId: crypto.randomUUID(),
+            ref: resource.ref,
+            basis: resource.basis,
+            quote: selection.quote,
+            contentState: 'saved',
+            location: selection.location,
+          }
+        : undefined,
+    [active, section, selection, resource],
+  );
+  const selectionValid = !contextItem || isContextItems([contextItem]);
+  const contribute = context.contributeSelection;
+  useEffect(() => {
+    contribute(viewId, contextItem && selectionValid ? { selections: [contextItem] } : undefined);
+    return () => contribute(viewId);
+  }, [contribute, viewId, contextItem, selectionValid]);
   const activeRef = useRef(active);
   activeRef.current = active;
   useEffect(() => {
@@ -618,6 +666,19 @@ export function DocumentReader({
         >
           重新读取文档
         </button>
+        {context.available ? (
+          <button
+            type="button"
+            className="btn"
+            disabled={!contextItem || !selectionValid}
+            onClick={() => {
+              if (contextItem && selectionValid)
+                context.appendContextItem({ ...contextItem, itemId: crypto.randomUUID() });
+            }}
+          >
+            附加选区
+          </button>
+        ) : null}
         {recordAdapter && resource.capabilities.readingRecords ? (
           <>
             <button
@@ -664,6 +725,7 @@ export function DocumentReader({
           {actionError || error}
         </p>
       ) : null}
+      {!selectionValid ? <p role="alert">选区超出附加容量，请缩小选择。</p> : null}
       {!grants.read ? <p>资源当前不可读取。</p> : null}
       {loading ? <p role="status">正在读取文档。</p> : null}
       {active && search ? (

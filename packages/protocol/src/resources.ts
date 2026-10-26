@@ -178,8 +178,8 @@ export function resourceFormatForName(name: string): ResourceDescriptor['format'
   if (/\.pdf$/i.test(name)) return 'pdf';
   if (/\.epub$/i.test(name)) return 'epub';
   if (/\.html?$/i.test(name)) return 'html';
-  if (/\.(png|jpe?g|gif|webp|zip|docx?|xlsx?|pptx?|exe|so|dll|wasm)$/i.test(name))
-    return 'unsupported';
+  if (/\.(png|jpe?g|gif|webp)$/i.test(name)) return 'image';
+  if (/\.(zip|docx?|xlsx?|pptx?|exe|so|dll|wasm)$/i.test(name)) return 'unsupported';
   return 'text';
 }
 export type ResourceInputs = {
@@ -246,6 +246,10 @@ export type ResourcePorts = {
   project: ResourceProjectPort;
   library: ResourceLibraryPort;
   target?: ProjectTargetReadPort;
+  render?: {
+    describe(locator: Extract<ResourceLocator, { source: 'render' }>): Promise<ResourceDescriptor>;
+    read(input: ResourceInputs['resources.read']): Promise<ResourceOutputs['resources.read']>;
+  };
 };
 export type ResourcePortFactory = (context: CallContext) => ResourcePorts;
 export type ReadingRecordPort = {

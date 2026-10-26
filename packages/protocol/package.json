@@ -9,6 +9,10 @@
       "types": "./dist/host.d.ts",
       "import": "./dist/host.js"
     },
+    "./reports": {
+      "types": "./dist/report-contracts.d.ts",
+      "import": "./dist/report-contracts.js"
+    },
     "./resources": {
       "types": "./dist/resources.d.ts",
       "import": "./dist/resources.js"

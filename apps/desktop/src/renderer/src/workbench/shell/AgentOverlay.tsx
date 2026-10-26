@@ -77,6 +77,7 @@ export interface AgentOverlayProps {
   title: string;
   messageKey: string;
   openFile?: WorkbenchSession['openMessageFile'];
+  openResource?: WorkbenchSession['openMessageResource'];
   context: WorkbenchSession['executionContext'];
   reset?: (() => void) | undefined;
   onCollapse: () => void;
@@ -86,7 +87,7 @@ export interface AgentOverlayProps {
 
 /** 展开态 Agent 面板：占满中间区的 overlay，完整消息流 + composer。 */
 export const AgentOverlay = forwardRef<HTMLDivElement, AgentOverlayProps>(function AgentOverlay(
-  { title, messageKey, openFile, context, reset, onCollapse, cancel, loadEarlier },
+  { title, messageKey, openFile, openResource, context, reset, onCollapse, cancel, loadEarlier },
   ref,
 ) {
   return (
@@ -112,7 +113,10 @@ export const AgentOverlay = forwardRef<HTMLDivElement, AgentOverlayProps>(functi
             更早消息
           </button>
         ) : null}
-        <MessageFiles.Provider key={messageKey} value={{ documentKey: messageKey, openFile }}>
+        <MessageFiles.Provider
+          key={messageKey}
+          value={{ documentKey: messageKey, openFile, openResource }}
+        >
           <ThreadPrimitive.Messages components={{ UserMessage, AssistantMessage }} />
         </MessageFiles.Provider>
       </ThreadPrimitive.Viewport>
