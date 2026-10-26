@@ -18,7 +18,7 @@
 
 共享包与内核构建为 ESM；Electron main/preload 构建为 CJS。根 `pnpm build` 按工作区依赖顺序构建。`pnpm typecheck` 先生成共享包声明，确保刚安装的工作区也能解析共享接口。
 
-Electron 工作台和 CLI 共用独立 Node 内核，浏览器开发入口经同一客户端连接。关闭或退出工作台只关闭界面；兼容宿主尚未接入内核监督，也未加载插件。
+Electron 工作台和 CLI 共用独立 Node 内核，浏览器开发入口经同一客户端连接。关闭或退出工作台只关闭界面；兼容宿主尚未接入内核监督或共同文献。其私有 `ZoteroHost` 模块已支持固定 BBT 原包及隔离 Adapter 验证，产品默认入口仍只加载外壳，见下文独立验收。
 
 协议 schema 是 DTO 的事实源，类型从 schema 推导；客户端和内核使用 Ajv 校验消息、认证、状态及引导结果。连接状态不代表研究指令已经可执行。
 
@@ -78,9 +78,25 @@ Agent、能力子执行与 PDF 共用宿主持有的进程容量，默认活动 
 | Agent | 沿 `HarnessStorage`、领域端口及私有 worker 入口组合；参考 `harness-module.spec.ts`、`execution-isolation.spec.ts`，外部模型复用 `tests/model-server.ts` 的 loopback 受控响应 |
 | 科研计算 | 参考 `managed-commands.spec.ts` 的 `ManagedCommands(processes, resolveWorkspace, authorize)`；私有工作空间声明 ownerModuleId、directory、projectId、executables，真实宿主用例覆写 `commandWorkspace` 登记固定 Node。环境选择和业务运行记录由计算域实现 |
 | 阅读交互 | 沿共同资源和 editor 端口接入，参考 `resource-access.spec.ts`、`editor-runtime.spec.ts` 及 `tests/ui/resource-opening.spec.ts`；UI 使用共同 renderer URL 配置 |
-| Zotero 生态 | 沿兼容宿主入口及共同 broker 接入；`tests/smoke/entrypoints.spec.ts` 验证真实宿主外壳，插件身份、SQL 和 BBT 生产接线另按所属契约验收 |
+| Zotero 生态 | `tests/smoke/entrypoints.spec.ts` 验证默认外壳；`zotero-host.spec.ts` 验证真实 Electron、原 BBT／Worker 与明确的合成 Adapter。共同身份、正式键、提交查询及长驻监督尚未接线；生产不可用 |
 
 表中内核用例位于 `tests/kernel/`，UI 与宿主外壳用例分别在 `tests/ui/`、`tests/smoke/`。窄端口内存替身受 TypeScript 检查，跨 broker／IPC 的输入输出继续经过原同源 schema；资源、文件及仓储的真实组合使用所属提供者，不用成功替身代替。
+
+#### BBT 独立验收
+
+固定资源与原包来源记录在 `apps/zotero-host/resources/versions.json`；原 XPI 不随仓提交、不在启动时下载。准备指定 BBT 9.0.68 原发布包后执行：
+
+```sh
+pnpm --filter @scholoom/zotero-host build
+SCHOOLOOM_BBT_XPI=/absolute/path/zotero-better-bibtex-9.0.68.xpi xvfb-run -a node node_modules/@playwright/test/cli.js test --config playwright.config.ts tests/smoke/zotero-host.spec.ts --output test-results/zotero-host
+node node_modules/@playwright/test/cli.js test --config playwright.kernel.config.ts tests/kernel/zotero-host-scope.spec.ts
+```
+
+第一组需要现有 `unzip`、Electron及Linux图形会话／Xvfb；有图形会话可省去 `xvfb-run -a`。资产未指定时用例明确跳过。每轮创建独立临时profile及SQLite样本，运行真实原bootstrap、主包、Worker、IndexedDB和两个translator，核对包及执行成员不变；数据库Adapter只在 `tests/fixtures/zotero-host`，没有产品库路径。默认显式补键，保留已有键；缓存失效反例、正常通知、重启、版本失败、启动取消、迟到保存、卡住的renderer与悬空链接分别核查。
+
+`ZoteroHost.status()` 返回版本、真实运行时、阶段及有界诊断，`production.available`保持false；`closed/localResourcesClosed`仅指本模块的插件、计时器及窗口资源收尾，不是整个进程树退出确认。未知操作仍需核查，完成后可再次close。相同profile不同时启动两个host；该私有Module只接受宿主注入的可信Adapter和固定资源，不向用户开放任意插件、路径或程序入口。
+
+第二组仅在Linux运行：复用现有受管命令和原生归属，实际创建Electron renderer与忙Worker再取消并核对退出。夹具通过已有Xvfb启动，`--no-sandbox`只用于该固定测试命令，结果不证明Chromium产品sandbox或分发保证。它证明有界命令承载可复用，不表示已具备长驻host的ready／身份／回环WS及正常关闭协议；Windows尚未实跑，macOS保持不可用。完整状态及下一步沿 `connect-zotero-host-bbt` 的tasks／delivery。
 
 固定样例位于 `tests/fixtures/domain-execution-worker/`：`fixed-counter` 只检查实际两节点图及 IPC，其 `execution.custom` 回报由内联测试提供者接收；`fixed-resource` 检查真实材料与首次创建；`durable-resource` 沿完整 KernelApplication 跑真实 SQLite checkpoint、interrupt 和新消息恢复。`worker-v2.mjs`／`worker-model.mjs` 分别提供升级及模型额度边界，额度用例只调用真实 acquire/release，不据此宣称模型生成通过。生产 `apps/kernel/src/execution-graphs.ts` 当前为空，固定图不注册为科研方法。
 

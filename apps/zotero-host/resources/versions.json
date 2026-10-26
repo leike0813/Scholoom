@@ -1,0 +1,15 @@
+{
+  "zotero": {
+    "version": "10.0.5",
+    "sourceCommit": "ca61760225d25191d0c65acbfd0c4f12a172d263",
+    "schemaCommit": "70c3aa98627413d6a30dca955886eafbde085ce9",
+    "utilitiesCommit": "1dd38e27edf81e9d9c4161c957b7efb7f5681ac3",
+    "dateFormats": "dateFormats.json"
+  },
+  "bbt": {
+    "version": "9.0.68",
+    "id": "better-bibtex@iris-advies.com",
+    "asset": "https://github.com/retorquere/zotero-better-bibtex/releases/download/v9.0.68/zotero-better-bibtex-9.0.68.xpi"
+  },
+  "validationScope": "Injected isolated sample Adapter; production common-library connection unavailable"
+}
