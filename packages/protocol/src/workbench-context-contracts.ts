@@ -1,4 +1,5 @@
 import type { FromSchema } from 'json-schema-to-ts';
+import { readingIndex, readingLocationSchema } from './library.js';
 import { resourceEvidenceSchema } from './resources.js';
 import { array, content, count, id, object, ok, text } from './schema.js';
 import { workbenchSourceSchema } from './workbench-source.js';
@@ -27,6 +28,7 @@ export const contextItemSchema = {
         ...base,
         quote: excerpt,
         contentState: { enum: ['saved', 'draft'] },
+        location: readingLocationSchema,
       },
       ['kind', 'itemId', 'ref', 'basis', 'quote', 'contentState'],
     ),
@@ -34,6 +36,25 @@ export const contextItemSchema = {
       {
         kind: { const: 'region' },
         ...base,
+        target: {
+          anyOf: [
+            object({ kind: { const: 'image' } }, ['kind']),
+            object(
+              {
+                kind: { const: 'pdf' },
+                pageIndex: readingIndex,
+                width: { type: 'number', exclusiveMinimum: 0 },
+                height: { type: 'number', exclusiveMinimum: 0 },
+              },
+              ['kind', 'pageIndex', 'width', 'height'],
+            ),
+            object({ kind: { const: 'object' }, providerId: id, objectId: id }, [
+              'kind',
+              'providerId',
+              'objectId',
+            ]),
+          ],
+        },
         region: object(
           {
             x: { type: 'number', minimum: 0, maximum: 1 },
@@ -54,6 +75,7 @@ export const contextItemSchema = {
         objectId: id,
         name: id,
         semantics: excerpt,
+        contentState: { enum: ['saved', 'draft'] },
       },
       ['kind', 'itemId', 'ref', 'basis', 'providerId', 'objectId', 'name', 'semantics'],
     ),

@@ -128,6 +128,16 @@ export class KernelApplication extends ManualApplication {
     );
     this.broker.register('runtime', this.handlers);
     this.broker.register('runtime-internal', {
+      'harness.executions': (input, context) => {
+        if (
+          context.role !== 'host' ||
+          context.principal.kind !== 'system' ||
+          (context.projectId && context.projectId !== input.projectId) ||
+          (context.sessionId && context.sessionId !== input.sessionId)
+        )
+          throw new OperationError('permissionDenied', '执行历史需要所属宿主查询。');
+        return this.harness.executions(input);
+      },
       'harness.startGraph': (input, context) => {
         if (context.role !== 'host' || context.principal.kind !== 'system')
           throw new OperationError('permissionDenied', '图选择需要所属领域的宿主入口。');

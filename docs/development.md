@@ -33,6 +33,8 @@ Electron 工作台和 CLI 共用独立 Node 内核，浏览器开发入口经同
 
 宿主经内部 broker `harness.startGraph` 选择 registered 图，后续沿普通 `session.send` 发送新指令。尝试保存图身份、版本、配置、材料依据、状态格式及 checkpoint 绑定；公共 `workbench.watch/snapshot` 返回 `graphProgress` 和 waiting／waitId。工厂的 `resume` 将新消息映射为已声明等待 schema 的输入与指令身份；不匹配时保留等待和未消费消息，不转为默认 Agent。图使用宿主提供的 `InstructionSaver`，先保存 `instructionIds`／`graphResume` 再确认消费；等待须对应实际 checkpoint 的 interrupt。重启只读取记录，不自动推进；旧版本不可用或 checkpoint 缺失时保留原尝试与成果，显式新版本另建尝试。registered 执行共用当前实例授权、进程准入、模型额度、取消和真实资源端口，无模型图不要求模型凭据。
 
+内部宿主通过 `harness.executions` 按所属 projectId/sessionId 及 runId、instructionId、originInstructionId 之一查询历史，默认25、最多100项，响应最多512KiB；按指令命中时还返回原Message用于核对输入，消息缺失明确unavailable。源码图来源由宿主从显式启动指令生成，并传入registered初始化；普通接续继承，同配置显式新启动另起来源。查询不执行或补造旧历史，不扩大材料授权。定向验证入口为 `tests/kernel/execution-history.spec.ts`。
+
 registered 图的消息接续复用 `InstructionContext`，保留文字、原项目材料路径／身份、显式项和服务端持久来源。工厂 `resume` 收到完整上下文及原 `id/text`，已匹配指令经原 IPC 交给 worker 的 `create(input, context)`；源码启动材料继续使用独立的 `execution.materials`。worker 的 `InstructionSaver` 将完整上下文及 run 归属写入 checkpoint，宿主按服务端原消息核对后才确认消费；只保存身份不能确认。实际取材仍使用共同资源端口，受理、恢复、消费确认及模型排队前后／最终同步准入均复查授权。
 
 等待映射按游标每批最多 100 条核对，未匹配项保留，后续有效输入仍可进入匹配。registered 指令在初始化前经所属 IPC 逐条传递，当前指令与 checkpoint 历史分开重建，避免将整个批次挤入单帧；传输未完成不会构造图或确认消费。checkpoint 可保留跨等待累计的完整上下文，消费确认每批最多 100 条，同一尝试的确认凭证累计保存，部分确认后重启仍可核查；历史材料授权依据沿原会话记录保留。普通 Agent 显式切图另建尝试并保留旧 checkpoint。缺少持久 checkpoint 的图仍拒绝非空初始化指令，普通 Agent 直接初始化的保护也保留；三线最终组合另沿工作台 change 的 4.5 验收。定向入口为 `tests/kernel/registered-context.spec.ts`，真实内部 worker／资源／SQLite，模型边界为受控 HTTP。
@@ -82,6 +84,12 @@ Agent、能力子执行与 PDF 共用宿主持有的进程容量，默认活动 
 | Zotero 生态 | 沿兼容宿主入口及共同 broker 接入；`tests/smoke/entrypoints.spec.ts` 验证真实宿主外壳，插件身份、SQL 和 BBT 生产接线另按所属契约验收 |
 
 表中内核用例位于 `tests/kernel/`，UI 与宿主外壳用例分别在 `tests/ui/`、`tests/smoke/`。窄端口内存替身受 TypeScript 检查，跨 broker／IPC 的输入输出继续经过原同源 schema；资源、文件及仓储的真实组合使用所属提供者，不用成功替身代替。
+
+七线公共接入沿 `integrate-shared-domain-foundations`：资源声明已抽到 `protocol/resource-contracts.ts`，原 `resources` 导出保留；ContextItem 可携带当次位置、区域基准及草稿对象标识。图片格式和排版产物仍须所属视图／提供者接线，不能仅凭声明启用。集合查询支持 `parentId: null` 的根范围、明确父身份的直接子范围及未指定时的原扁平分页，CSL 编辑声明不封闭合法 metadata。
+
+`ManagedCommands.start/cancel` 使用宿主登记的工作区和有界观察端口，启动意图先确认，输出分片确认后放行，`started` 不代表应用 ready；日志、退出和 `stopped` 分别核对，观察失败保留原占用。有限长时限由 `command-deadline` 分段，null 无总期限。定向入口为 `command-observation.spec.ts`、`managed-commands.spec.ts`；长驻 Electron 的应用握手仍由后续生态监督接口提供。
+
+项目容器统一为 v4→v5 委派结构→v6 程序运行结构，各步保留保护源副本并事务推进。旧未发布 program-only v5 明确拒绝且保留现场，不自动改写；领域记录恢复钩子等实际模块合入后组合。相关回归为 `project-container.spec.ts`、`project-migration-chain.spec.ts`、`project-recovery.spec.ts`。这些结构已准备不代表领域业务或界面已交付。
 
 固定样例位于 `tests/fixtures/domain-execution-worker/`：`fixed-counter` 只检查实际两节点图及 IPC，其 `execution.custom` 回报由内联测试提供者接收；`fixed-resource` 检查真实材料与首次创建；`durable-resource` 沿完整 KernelApplication 跑真实 SQLite checkpoint、interrupt 和新消息恢复。`worker-v2.mjs`／`worker-model.mjs` 分别提供升级及模型额度边界，额度用例只调用真实 acquire/release，不据此宣称模型生成通过。生产 `apps/kernel/src/execution-graphs.ts` 当前为空，固定图不注册为科研方法。
 

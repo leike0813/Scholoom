@@ -352,6 +352,11 @@ export class LiteratureCatalog {
     const rows = this.db
       .select()
       .from(tables.collections)
+      .where(
+        input.parentId === undefined
+          ? undefined
+          : sql`json_extract(${tables.collections.value}, '$.parentId') IS ${input.parentId}`,
+      )
       .orderBy(tables.collections.id)
       .limit(limit + 1)
       .offset(offset)
