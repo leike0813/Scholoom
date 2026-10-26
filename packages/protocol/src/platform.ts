@@ -66,3 +66,43 @@ export type PlatformCommandResult = FromSchema<
 export type PlatformCommandPort = {
   'platform.command': (input: PlatformCommandInput) => Promise<PlatformCommandResult>;
 };
+
+export const platformProgramOperations = {
+  'platform.programStart': {
+    params: object(
+      {
+        workspaceId: id,
+        executableId: id,
+        args: { type: 'array', items: { type: 'string', maxLength: 4096 }, maxItems: 128 },
+        timeoutMs: { type: ['integer', 'null'], minimum: 1 },
+      },
+      ['workspaceId', 'executableId', 'args', 'timeoutMs'],
+    ),
+    result: object({ commandInstanceId: id }, ['commandInstanceId']),
+    semantics: { effect: 'write', returns: 'reference', waitMs: 5000 },
+  },
+  'platform.programCancel': {
+    params: object({ workspaceId: id, commandInstanceId: id }, [
+      'workspaceId',
+      'commandInstanceId',
+    ]),
+    result: ok,
+    semantics: { effect: 'write', returns: 'reference', waitMs: 5000 },
+  },
+} as const;
+export type PlatformProgramInputs = {
+  'platform.programStart': FromSchema<
+    (typeof platformProgramOperations)['platform.programStart']['params']
+  >;
+  'platform.programCancel': FromSchema<
+    (typeof platformProgramOperations)['platform.programCancel']['params']
+  >;
+};
+export type PlatformProgramOutputs = {
+  'platform.programStart': FromSchema<
+    (typeof platformProgramOperations)['platform.programStart']['result']
+  >;
+  'platform.programCancel': FromSchema<
+    (typeof platformProgramOperations)['platform.programCancel']['result']
+  >;
+};

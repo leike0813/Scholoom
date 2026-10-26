@@ -82,6 +82,7 @@ function allContextItems(): ContextItem[] {
       basis: 'basis-1',
       quote: 'saved_quote_73',
       contentState: 'saved',
+      location: { pageIndex: 2, rects: [{ x: 10, y: 20, width: 30, height: 40 }] },
       comment: 'text_comment_73',
     },
     {
@@ -90,6 +91,7 @@ function allContextItems(): ContextItem[] {
       ref: projectRef,
       basis: 'basis-1',
       region: { x: 0.1, y: 0.2, width: 0.3, height: 0.4 },
+      target: { kind: 'image' },
       comment: 'region_comment_73',
     },
     {
@@ -101,6 +103,7 @@ function allContextItems(): ContextItem[] {
       objectId: 'fixture-object',
       name: 'fixture object',
       semantics: 'object_semantics_73',
+      contentState: 'draft',
       comment: 'object_comment_73',
     },
   ];
@@ -504,6 +507,20 @@ test('same instruction identity accepts reordered fields, survives a lost receip
       return items;
     };
     const mutations: Array<[string, ContextItem[]]> = [
+      [
+        'location',
+        changed('text-item', (item) =>
+          item.kind === 'text' ? { ...item, location: { pageIndex: 3 } } : item,
+        ),
+      ],
+      [
+        'region target',
+        changed('region-item', (item) =>
+          item.kind === 'region'
+            ? { ...item, target: { kind: 'pdf', pageIndex: 0, width: 600, height: 800 } }
+            : item,
+        ),
+      ],
       [
         'quote',
         changed('text-item', (item) =>
