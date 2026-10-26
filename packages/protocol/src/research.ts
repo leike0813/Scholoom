@@ -2,6 +2,10 @@ import { Ajv } from 'ajv';
 import type { FromSchema } from 'json-schema-to-ts';
 import {
   type researchAttemptSchema,
+  type researchGraphCallSchema,
+  type researchGraphDeliverySchema,
+  type researchGraphSchema,
+  type researchGraphStartSchema,
   type researchInputSchema,
   researchMethodSchema,
   type researchOperations,
@@ -17,7 +21,7 @@ type CompleteModule<T extends Record<keyof typeof researchModuleOperations, unkn
 export type ResearchModuleInputs = CompleteModule<ModuleInputs>;
 export type ResearchModuleOutputs = CompleteModule<ModuleOutputs>;
 export type ResearchToolsPort = {
-  [M in keyof ResearchInputs | 'research.invoke']: (
+  [M in Exclude<keyof ResearchInputs, 'research.requestGraph'> | 'research.invoke']: (
     input: M extends keyof ResearchInputs
       ? ResearchInputs[M]
       : ResearchModuleInputs['research.invoke'],
@@ -33,6 +37,10 @@ export type ResearchInput = FromSchema<typeof researchInputSchema>;
 export type ResearchMethod = FromSchema<typeof researchMethodSchema>;
 export type ResearchRequest = FromSchema<typeof researchRequestSchema>;
 export type ResearchAttempt = FromSchema<typeof researchAttemptSchema>;
+export type ResearchGraph = FromSchema<typeof researchGraphSchema>;
+export type ResearchGraphCall = FromSchema<typeof researchGraphCallSchema>;
+export type ResearchGraphStart = FromSchema<typeof researchGraphStartSchema>;
+export type ResearchGraphDelivery = FromSchema<typeof researchGraphDeliverySchema>;
 const ajv = new Ajv();
 export const isResearchMethod = ajv.compile<ResearchMethod>(researchMethodSchema);
 export const isResearchRequest = ajv.compile<ResearchRequest>(researchRequestSchema);

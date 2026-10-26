@@ -111,8 +111,12 @@ export type Inputs = {
   'provider.saveProfile': FromSchema<(typeof businessSchemas)['provider.saveProfile']['params']>;
   'provider.setDefaults': FromSchema<(typeof businessSchemas)['provider.setDefaults']['params']>;
   'research.attempts': FromSchema<(typeof businessSchemas)['research.attempts']['params']>;
+  'research.graph': FromSchema<(typeof businessSchemas)['research.graph']['params']>;
+  'research.graphCalls': FromSchema<(typeof businessSchemas)['research.graphCalls']['params']>;
+  'research.graphs': FromSchema<(typeof businessSchemas)['research.graphs']['params']>;
   'research.method': FromSchema<(typeof businessSchemas)['research.method']['params']>;
   'research.methods': FromSchema<(typeof businessSchemas)['research.methods']['params']>;
+  'research.requestGraph': FromSchema<(typeof businessSchemas)['research.requestGraph']['params']>;
   'resources.cancel': FromSchema<(typeof businessSchemas)['resources.cancel']['params']>;
   'resources.create': FromSchema<(typeof businessSchemas)['resources.create']['params']>;
   'resources.creation': FromSchema<(typeof businessSchemas)['resources.creation']['params']>;
@@ -249,8 +253,12 @@ export type Outputs = {
   'provider.saveProfile': FromSchema<(typeof businessSchemas)['provider.saveProfile']['result']>;
   'provider.setDefaults': FromSchema<(typeof businessSchemas)['provider.setDefaults']['result']>;
   'research.attempts': FromSchema<(typeof businessSchemas)['research.attempts']['result']>;
+  'research.graph': FromSchema<(typeof businessSchemas)['research.graph']['result']>;
+  'research.graphCalls': FromSchema<(typeof businessSchemas)['research.graphCalls']['result']>;
+  'research.graphs': FromSchema<(typeof businessSchemas)['research.graphs']['result']>;
   'research.method': FromSchema<(typeof businessSchemas)['research.method']['result']>;
   'research.methods': FromSchema<(typeof businessSchemas)['research.methods']['result']>;
+  'research.requestGraph': FromSchema<(typeof businessSchemas)['research.requestGraph']['result']>;
   'resources.cancel': FromSchema<(typeof businessSchemas)['resources.cancel']['result']>;
   'resources.create': FromSchema<(typeof businessSchemas)['resources.create']['result']>;
   'resources.creation': FromSchema<(typeof businessSchemas)['resources.creation']['result']>;

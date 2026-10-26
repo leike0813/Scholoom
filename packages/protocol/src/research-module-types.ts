@@ -5,8 +5,14 @@ import type { researchModuleOperations } from './research-module-contracts.js';
 export type Inputs = {
   'research.invoke': FromSchema<(typeof researchModuleOperations)['research.invoke']['params']>;
   'research.progress': FromSchema<(typeof researchModuleOperations)['research.progress']['params']>;
+  'research.startGraph': FromSchema<
+    (typeof researchModuleOperations)['research.startGraph']['params']
+  >;
 };
 export type Outputs = {
   'research.invoke': FromSchema<(typeof researchModuleOperations)['research.invoke']['result']>;
   'research.progress': FromSchema<(typeof researchModuleOperations)['research.progress']['result']>;
+  'research.startGraph': FromSchema<
+    (typeof researchModuleOperations)['research.startGraph']['result']
+  >;
 };

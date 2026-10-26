@@ -245,6 +245,9 @@
         "project.path",
         "project.saveFile",
         "research.methods",
+        "research.graphs",
+        "research.graph",
+        "research.graphCalls",
         "research.method",
         "research.attempts",
         "research.invoke",
@@ -296,6 +299,8 @@
         "@scholoom/protocol/research",
         "@scholoom/protocol/harness",
         "@scholoom/protocol/projects",
+        "@scholoom/protocol/execution",
+        "@scholoom/protocol/resources",
         "@scholoom/platform/node"
       ],
       "systemAdapters": [{ "path": "src/content.ts", "apis": ["fs/promises"] }],
@@ -309,7 +314,9 @@
         "session.check",
         "harness.execute",
         "harness.startGraph",
-        "harness.executions"
+        "harness.executions",
+        "research.startGraph",
+        "resources.read"
       ]
     },
     {

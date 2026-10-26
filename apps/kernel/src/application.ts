@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { isDeepStrictEqual } from 'node:util';
 import type { Handlers } from '@scholoom/broker';
 import {
   type ContextBridge,
@@ -28,7 +29,13 @@ import type {
 } from '@scholoom/protocol';
 import type { CallContext } from '@scholoom/protocol/core';
 import { OperationError } from '@scholoom/protocol/core';
-import type { ResearchProgressPort, ResearchToolsPort } from '@scholoom/protocol/research';
+import type {
+  ResearchGraph,
+  ResearchModuleInputs,
+  ResearchModuleOutputs,
+  ResearchProgressPort,
+  ResearchToolsPort,
+} from '@scholoom/protocol/research';
 import { ResearchRecords, ResearchRuntime } from '@scholoom/research/node';
 import { executionGraphs } from './execution-graphs.js';
 import { type FileExecutionFacts, type FoundationMethod, ManualApplication } from './manual.js';
@@ -46,6 +53,7 @@ export class KernelApplication extends ManualApplication {
   private readonly originFacts:
     | ((context: CallContext) => FileExecutionFacts | undefined)
     | undefined;
+  private readonly graphAdmissions = new WeakMap<AbortSignal, () => void>();
   constructor(
     directory: string,
     options: {
@@ -53,6 +61,7 @@ export class KernelApplication extends ManualApplication {
       environment?: NodeJS.ProcessEnv;
       contextResources?: ContextBridge['resources'];
       executionGraphs?: ExecutionGraphs;
+      researchGraphs?: readonly ResearchGraph[];
       workerEntry?: URL;
       fileExecutionFacts?: (context: CallContext) => FileExecutionFacts | undefined;
       taskResearch?: TaskResearchPort;
@@ -83,7 +92,96 @@ export class KernelApplication extends ManualApplication {
         execute: async (input, context) => {
           await this.modulePort(context, 'research').call('harness.execute', input);
         },
+        graphs: {
+          start: (input, context) =>
+            this.modulePort(
+              {
+                moduleId: 'research',
+                role: 'host',
+                principal: { kind: 'system', id: 'research' },
+                projectId: input.projectId,
+                sessionId: input.sessionId,
+                ...(context?.workbenchSource ? { workbenchSource: context.workbenchSource } : {}),
+                ...(context?.signal ? { signal: context.signal } : {}),
+              },
+              'research',
+            ).call('harness.startGraph', input),
+          executions: (input) =>
+            this.modulePort(
+              {
+                moduleId: 'research',
+                role: 'host',
+                principal: { kind: 'system', id: 'research' },
+                projectId: input.projectId,
+                sessionId: input.sessionId,
+              },
+              'research',
+            ).call('harness.executions', input),
+          read: (input, context) =>
+            context.role === 'execution'
+              ? this.executionResources(context).read(input)
+              : this.modulePort(context, 'research').call('resources.read', input),
+          request: {
+            authorize: async (input, context) => {
+              const resources = this.instructionResources({
+                moduleId: 'harness',
+                role: 'host',
+                principal: { kind: 'agent', id: input.sessionId },
+                projectId: input.projectId,
+                sessionId: input.sessionId,
+                ...(context.signal ? { signal: context.signal } : {}),
+              });
+              resources.check(input.materials);
+              for (const material of input.materials) {
+                const current = await resources.port.describe(material.ref);
+                if (
+                  !isDeepStrictEqual(current.ref, material.ref) ||
+                  current.basis !== material.basis
+                )
+                  throw new OperationError('contentChanged', '科研材料身份或版本已变化。');
+                if (!current.capabilities.read)
+                  throw new OperationError(
+                    'unavailable',
+                    current.unavailableReason ?? '科研材料当前不可读。',
+                  );
+              }
+              return () => resources.check(input.materials);
+            },
+            start: async (input, context, check) => {
+              const signal = AbortSignal.any(context.signal ? [context.signal] : []);
+              this.graphAdmissions.set(signal, () => {
+                signal.throwIfAborted();
+                check();
+                const session = this.harness.getSession(input.projectId, input.sessionId);
+                if (['queued', 'running', 'cancelling', 'waiting'].includes(session.state))
+                  throw new OperationError(
+                    'invalidRequest',
+                    '会话已有未完成推进，不能切换科研图。',
+                  );
+              });
+              try {
+                return await this.modulePort(
+                  {
+                    moduleId: 'research',
+                    role: 'host',
+                    principal: { kind: 'system', id: 'research' },
+                    projectId: input.projectId,
+                    sessionId: input.sessionId,
+                    ...(context.workbenchSource
+                      ? { workbenchSource: context.workbenchSource }
+                      : {}),
+                    signal,
+                  },
+                  'research',
+                ).call('research.startGraph', input);
+              } finally {
+                this.graphAdmissions.delete(signal);
+              }
+            },
+          },
+        },
       },
+      options.researchGraphs,
     );
     this.harness = new Harness(
       this.harnessStorage(),
@@ -128,6 +226,7 @@ export class KernelApplication extends ManualApplication {
           throw new OperationError('permissionDenied', '执行历史需要所属宿主查询。');
         return this.harness.executions(input);
       },
+      'research.startGraph': (input, context) => this.research.graphCalls.start(input, context),
       'harness.startGraph': (input, context) => {
         if (context.role !== 'host' || context.principal.kind !== 'system')
           throw new OperationError('permissionDenied', '图选择需要所属领域的宿主入口。');
@@ -139,8 +238,9 @@ export class KernelApplication extends ManualApplication {
             text: input.text,
             materials: [],
           },
-          undefined,
+          context.workbenchSource,
           input.execution,
+          context.signal ? this.graphAdmissions.get(context.signal) : undefined,
         );
       },
       'models.status': () => this.models.status(),
@@ -195,6 +295,14 @@ export class KernelApplication extends ManualApplication {
       { moduleId: 'research', role: 'host', principal: { kind: 'system', id: 'source-graph' } },
       'research',
     ).call('harness.startGraph', input);
+  }
+  startResearchGraph(
+    input: ResearchModuleInputs['research.startGraph'],
+  ): Promise<ResearchModuleOutputs['research.startGraph']> {
+    return this.modulePort(
+      { moduleId: 'research', role: 'host', principal: { kind: 'system', id: 'research' } },
+      'research',
+    ).call('research.startGraph', input);
   }
   protected override checkInstructionContext(context: CallContext): void {
     if (
@@ -297,6 +405,9 @@ export class KernelApplication extends ManualApplication {
   researchTools(context: CallContext): ResearchToolsPort {
     const port = this.modulePort(context, 'harness');
     return {
+      'research.graphs': (input) => port.call('research.graphs', input),
+      'research.graph': (input) => port.call('research.graph', input),
+      'research.graphCalls': (input) => port.call('research.graphCalls', input),
       'research.methods': (input) => port.call('research.methods', input),
       'research.method': (input) => port.call('research.method', input),
       'research.attempts': (input) => port.call('research.attempts', input),
@@ -338,6 +449,10 @@ export class KernelApplication extends ManualApplication {
   }
 
   readonly handlers: Pick<Handlers<BusinessInputs, BusinessOutputs>, RuntimeMethod> = {
+    'research.requestGraph': (input, context) => this.research.graphCalls.request(input, context),
+    'research.graphs': (input) => this.research.graphs.discover(input),
+    'research.graph': (input) => this.research.graphs.describe(input),
+    'research.graphCalls': (input, context) => this.research.graphCalls.list(input, context),
     'research.methods': async () => {
       return this.research.content.discover();
     },
@@ -395,7 +510,7 @@ export class KernelApplication extends ManualApplication {
       const researchRecords = new ResearchRecords(internal);
       try {
         harnessRecords.restore(identity.id);
-        researchRecords.restore();
+        researchRecords.restore(identity.id);
       } finally {
         harnessRecords.close();
         researchRecords.close();

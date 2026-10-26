@@ -39,9 +39,9 @@ node node_modules/@playwright/test/cli.js test --config playwright.kernel.config
 
 ## 未完成事项与下一步
 
-公共实现的独立范围已完成。本轮追加公共补丁准备，dev接入与Agent组合验收门保持开放，详见tasks 3／4；没有操作dev、其他树或Git交付。当前同树科研消费的真实broker／worker整合已验证，不代表跨树或项目任务整合完成。未运行Windows／macOS、UI／Electron交互、真实模型或分发包验收，不能从Linux结果推导这些结论。
+公共实现的独立范围、公共补丁准备及主线接入验收已完成，详见tasks 3／4及下文2026-10-26记录。用户同步公共dev及消费者接线核对仍待本次同步完成，tasks 4.2保持开放；本文件冲突消解不作为同步或验收证据。同树科研消费的真实broker／worker整合及隔离Agent组合已验证，不代表跨树或项目任务整合完成。未运行Windows／macOS、UI／Electron交互、真实模型或分发包验收，不能从Linux结果推导这些结论。
 
-## 本轮公共补丁交接
+## 公共补丁准备阶段交接（主线接入前）
 
 本次正式输入为 `/tmp/scholoom-phase2-handoff-VZS5mS/{manifest.json,acceptance.md,coordination-plan.md}` 及该包agent-delegation源码快照；manifest基线仍为e3d58fc。主线接收本线独立成果，报告科研组合17/17通过，未发现本线确证缺陷。本轮没有新业务缺陷修复或运行时改写；完成的是可脱离科研私有业务的切片准备与独立复验。
 
@@ -70,7 +70,7 @@ node node_modules/@playwright/test/cli.js test --config playwright.kernel.config
 
 首次准备失败均保留：`/tmp/scholoom-research-phase2-mwkSBe/` 在workspace别名解析处停止；本轮目录setup.log记录原因。首次pnpm build:shared触发依赖元数据检查，试图自动安装，在删除modules确认前以ERR_PNPM_ABORTED_REMOVE_MODULES_DIR_NO_TTY中止，原日志为public-build.log；未完成安装、未设置自动清理确认。随后直接运行项目既有build脚本并显式核对workspace解析范围成功，未放宽权限、安装新依赖或改测试时限。
 
-接入顺序：公共代码与本change工件→主线在dev按design合并Agent相关符号、从最终schema重生映射并验证→用户同步消费者→任务／科研I1和Agent I3分别实际验收。Agent A1授权修复及计算线迁移组合仍由所属线提供，不包含在本补丁；tasks 4.1保持未完成。
+该阶段接入顺序：公共代码与本change工件→主线在dev按design合并Agent相关符号、从最终schema重生映射并验证→用户同步消费者→任务／科研I1和Agent I3分别实际验收。Agent A1授权修复及计算线迁移组合由所属线提供，不包含在本补丁；交接时tasks 4.1尚未完成，后续进展见下文主线接入验收。
 
 原审查Agent（gpt-6.1-sol／high）本轮独立只读复核：补丁9文件与provenance及隔离副本一致，其余1997个基线受管文件保持e3d58fc；32个workspace链接均指向隔离基线；最小broker调用者／提供者齐备，未发现科研私有依赖或遗漏的关键组合符号。未重跑测试或将文本合并判为生命周期验收。另以正式本线快照逐文件比较41项，只有本轮两change的tasks／design／delivery共6份文件变化，业务源码未改；记录为source-preservation.json。
 
