@@ -4,6 +4,7 @@ import { readDraft, writeDraft } from '../drafts';
 import type { ResourceTarget } from '../resource-controller';
 import type { WorkbenchSession } from '../session';
 import { TaskDetail } from './TaskDetail';
+import { TaskGraphAction } from './TaskGraphAction';
 
 export function TaskPanel({
   session,
@@ -56,6 +57,14 @@ export function TaskPanel({
         viewId={viewId}
         revision={(session.taskRevision ?? 0) + saved}
         onOpenResource={onOpenResource}
+        renderGraphAction={(current, workItemId) => (
+          <TaskGraphAction
+            session={session}
+            entry={current}
+            {...(workItemId === undefined ? {} : { workItemId })}
+            onOpenResource={onOpenResource}
+          />
+        )}
         {...(session.appendContextItem ? { onAppendContext: session.appendContextItem } : {})}
         {...(session.associateTask
           ? {

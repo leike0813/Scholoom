@@ -11,6 +11,8 @@ export type Inputs = {
   'editor.output': FromSchema<(typeof businessSchemas)['editor.output']['params']>;
   'editor.render': FromSchema<(typeof businessSchemas)['editor.render']['params']>;
   'editor.tools': FromSchema<(typeof businessSchemas)['editor.tools']['params']>;
+  'files.changes': FromSchema<(typeof businessSchemas)['files.changes']['params']>;
+  'files.edit': FromSchema<(typeof businessSchemas)['files.edit']['params']>;
   'files.history': FromSchema<(typeof businessSchemas)['files.history']['params']>;
   'files.importBegin': FromSchema<(typeof businessSchemas)['files.importBegin']['params']>;
   'files.importChunk': FromSchema<(typeof businessSchemas)['files.importChunk']['params']>;
@@ -119,8 +121,10 @@ export type Inputs = {
   'session.search': FromSchema<(typeof businessSchemas)['session.search']['params']>;
   'session.send': FromSchema<(typeof businessSchemas)['session.send']['params']>;
   'tasks.create': FromSchema<(typeof businessSchemas)['tasks.create']['params']>;
+  'tasks.graphs': FromSchema<(typeof businessSchemas)['tasks.graphs']['params']>;
   'tasks.list': FromSchema<(typeof businessSchemas)['tasks.list']['params']>;
   'tasks.read': FromSchema<(typeof businessSchemas)['tasks.read']['params']>;
+  'tasks.runGraph': FromSchema<(typeof businessSchemas)['tasks.runGraph']['params']>;
   'tasks.save': FromSchema<(typeof businessSchemas)['tasks.save']['params']>;
   'workbench.context.publish': FromSchema<
     (typeof businessSchemas)['workbench.context.publish']['params']
@@ -137,6 +141,8 @@ export type Outputs = {
   'editor.output': FromSchema<(typeof businessSchemas)['editor.output']['result']>;
   'editor.render': FromSchema<(typeof businessSchemas)['editor.render']['result']>;
   'editor.tools': FromSchema<(typeof businessSchemas)['editor.tools']['result']>;
+  'files.changes': FromSchema<(typeof businessSchemas)['files.changes']['result']>;
+  'files.edit': FromSchema<(typeof businessSchemas)['files.edit']['result']>;
   'files.history': FromSchema<(typeof businessSchemas)['files.history']['result']>;
   'files.importBegin': FromSchema<(typeof businessSchemas)['files.importBegin']['result']>;
   'files.importChunk': FromSchema<(typeof businessSchemas)['files.importChunk']['result']>;
@@ -245,8 +251,10 @@ export type Outputs = {
   'session.search': FromSchema<(typeof businessSchemas)['session.search']['result']>;
   'session.send': FromSchema<(typeof businessSchemas)['session.send']['result']>;
   'tasks.create': FromSchema<(typeof businessSchemas)['tasks.create']['result']>;
+  'tasks.graphs': FromSchema<(typeof businessSchemas)['tasks.graphs']['result']>;
   'tasks.list': FromSchema<(typeof businessSchemas)['tasks.list']['result']>;
   'tasks.read': FromSchema<(typeof businessSchemas)['tasks.read']['result']>;
+  'tasks.runGraph': FromSchema<(typeof businessSchemas)['tasks.runGraph']['result']>;
   'tasks.save': FromSchema<(typeof businessSchemas)['tasks.save']['result']>;
   'workbench.context.publish': FromSchema<
     (typeof businessSchemas)['workbench.context.publish']['result']

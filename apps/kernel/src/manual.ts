@@ -11,6 +11,7 @@ import {
   Projects,
   ProjectTargetReader,
   ProjectTasks,
+  TaskGraphs,
 } from '@scholoom/projects/node';
 import {
   type BusinessInputs,
@@ -62,7 +63,9 @@ import {
   platformCommandOperations,
 } from '@scholoom/protocol/platform';
 import {
+  type FileEditOrigin,
   type HarnessProjectPort,
+  isFileEditOrigin,
   type ProjectExecutionInputs,
   type ProjectExecutionOutputs,
   type ProjectFilePort,
@@ -80,7 +83,9 @@ import {
   projectMaterialOperations,
   projectTargetReadOperations,
   type ResearchProjectPort,
+  type TaskGraphInputs,
   type TaskPort,
+  type TaskResearchPort,
 } from '@scholoom/protocol/projects';
 import {
   type ResearchModuleInputs,
@@ -100,7 +105,7 @@ const applicationSchemas: typeof editorPlatformOperations &
   typeof harnessModuleOperations &
   typeof researchModuleOperations &
   typeof libraryModuleOperations &
-  typeof projectHarnessOperations &
+  Omit<typeof projectHarnessOperations, keyof typeof businessSchemas> &
   typeof modelsModuleOperations &
   typeof projectTargetReadOperations = {
   ...editorPlatformOperations,
@@ -115,7 +120,7 @@ const applicationSchemas: typeof editorPlatformOperations &
   ...modelsModuleOperations,
   ...projectTargetReadOperations,
 } as const;
-type ApplicationInputs = BusinessInputs & {
+type InternalInputs = {
   'platform.editorCommand': EditorCommandInput;
   'platform.command': PlatformCommandInput;
 } & ProjectMaterialInputs &
@@ -126,7 +131,7 @@ type ApplicationInputs = BusinessInputs & {
   ProjectHarnessInputs &
   ModelsModuleInputs &
   ProjectTargetReadInputs;
-type ApplicationOutputs = BusinessOutputs & {
+type InternalOutputs = {
   'platform.editorCommand': EditorCommandResult;
   'platform.command': PlatformCommandResult;
 } & ProjectMaterialOutputs &
@@ -137,6 +142,8 @@ type ApplicationOutputs = BusinessOutputs & {
   ProjectHarnessOutputs &
   ModelsModuleOutputs &
   ProjectTargetReadOutputs;
+type ApplicationInputs = BusinessInputs & Omit<InternalInputs, keyof BusinessInputs>;
+type ApplicationOutputs = BusinessOutputs & Omit<InternalOutputs, keyof BusinessOutputs>;
 const architecture: { modules: { name: string; consumes?: string[] }[] } = JSON.parse(
   readFileSync(new URL('./architecture.json', import.meta.url), 'utf8'),
 );
@@ -145,10 +152,20 @@ const libraryConsumes =
 const materialMethods = Object.keys(projectMaterialOperations).filter(
   (method): method is keyof ProjectMaterialInputs => libraryConsumes.includes(method),
 );
+export type FileExecutionFacts = {
+  projectId: string;
+  sessionId: string;
+  runId: string;
+  instanceId: string;
+  instructionIds?: string[];
+  delegation?: Extract<FileEditOrigin, { kind: 'execution' }>['delegation'];
+};
+
 export type FoundationMethod =
   | keyof ResourceInputs
   | keyof ResourceCreationInputs
   | keyof ProjectTaskInputs
+  | keyof TaskGraphInputs
   | keyof EditorInputs
   | Exclude<keyof ProjectsInputs, 'project.restore' | 'artifacts.reconcile'>
   | keyof LibraryInputs;
@@ -177,7 +194,10 @@ export class ManualApplication {
     { moduleId: 'product', principal: { kind: 'human', id: 'local' }, role: 'product' },
     Object.keys(businessSchemas) as BusinessMethod[],
   );
-  constructor(directory: string) {
+  constructor(
+    directory: string,
+    private readonly taskResearch?: TaskResearchPort,
+  ) {
     this.broker.register('workbench-context', {
       'workbench.context.publish': ({ snapshot }, context) => {
         this.workbenchContexts.publish(context.workbenchSource, snapshot);
@@ -324,7 +344,9 @@ export class ManualApplication {
         this.checkProjectScope(projectId, context);
         return this.projects
           .get(projectId)
-          .save(path, content, basis, undefined, expectedFileId, undefined, resourceBasis);
+          .save(path, content, basis, undefined, expectedFileId, undefined, resourceBasis, {
+            origin: this.fileOrigin(projectId, context),
+          });
       },
     });
     this.registerProjectHandlers('project-target-read', {
@@ -417,6 +439,63 @@ export class ManualApplication {
   }
   protected async projectOpened(): Promise<void> {}
   protected async projectReplacing(_projectId: string): Promise<void> {}
+  protected executionFileFacts(_context: CallContext): FileExecutionFacts | undefined {
+    return undefined;
+  }
+  protected checkFileHistoryContext(context: CallContext): void {
+    if (context.principal.kind === 'agent') this.checkExecutionContext(context);
+  }
+  protected fileOrigin(projectId: string, context: CallContext): FileEditOrigin {
+    const principal = context.principal;
+    if (principal.kind === 'human')
+      return {
+        kind: 'human',
+        projectId,
+        moduleId: context.moduleId,
+        principal: { kind: 'human', id: principal.id },
+      };
+    if (principal.kind === 'system')
+      return {
+        kind: 'system',
+        projectId,
+        moduleId: context.moduleId,
+        principal: { kind: 'system', id: principal.id },
+      };
+    this.checkExecutionContext(context);
+    if (
+      context.projectId !== projectId ||
+      !context.sessionId ||
+      principal.id !== context.sessionId ||
+      !context.runId ||
+      !context.instanceId
+    )
+      throw new OperationError('permissionDenied', '文件修改来源缺少所属执行。');
+    const facts = this.executionFileFacts(context);
+    if (
+      facts &&
+      (['projectId', 'sessionId', 'runId', 'instanceId'] as const).some(
+        (key) => facts[key] !== context[key],
+      )
+    )
+      throw new OperationError('instanceMismatch', '文件来源事实不属于当前执行。');
+    const origin: FileEditOrigin = {
+      kind: 'execution',
+      projectId,
+      moduleId: context.moduleId,
+      principal: { kind: 'agent', id: principal.id },
+      sessionId: context.sessionId,
+      runId: context.runId,
+      instanceId: context.instanceId,
+      instructionContext: facts?.instructionIds
+        ? { state: 'observed', instructionIds: [...facts.instructionIds] }
+        : { state: 'unknown', reason: 'notCaptured' },
+      tool: { state: 'unknown', reason: 'notBound' },
+      ...(facts?.delegation ? { delegation: { ...facts.delegation } } : {}),
+    };
+    if (!isFileEditOrigin(origin))
+      throw new OperationError('unavailable', '执行来源事实不符合文件契约。');
+    return origin;
+  }
   protected checkExecutionContext(_context: CallContext): void {
     throw new OperationError('unavailable', '当前组合没有执行实例提供者。');
   }
@@ -548,7 +627,13 @@ export class ManualApplication {
     _context: CallContext,
     resource: ResourceDescriptor,
   ): Promise<ResourceSaveResult> {
-    return { resource };
+    const editId =
+      resource.ref.source === 'project'
+        ? this.projects
+            .get(resource.ref.projectId)
+            .editForEvidence(resource.ref.fileId, resource.basis)
+        : undefined;
+    return { resource, ...(editId ? { editId } : {}) };
   }
   protected async createdResource(
     _context: CallContext,
@@ -601,6 +686,7 @@ export class ManualApplication {
       },
       operationId: input.operationId,
       state: 'complete',
+      editId: edit.id,
     };
   }
   private creationOwner(context: CallContext): string {
@@ -741,6 +827,8 @@ export class ManualApplication {
   harnessProject(context: CallContext): HarnessProjectPort {
     const port = this.modulePort(context, 'harness');
     return {
+      'files.changes': (input) => port.call('files.changes', input),
+      'files.edit': (input) => port.call('files.edit', input),
       'project.check': (input) => port.call('project.check', input),
       'project.path': (input) => port.call('project.path', input),
       'project.material': (input) => port.call('project.material', input),
@@ -817,6 +905,25 @@ export class ManualApplication {
       throw new OperationError('permissionDenied', '目标项目任务请经只读文件入口核查。');
     return new ProjectTasks(this.projects.get(projectId));
   }
+  private taskGraphs(context: CallContext): TaskGraphs {
+    const port = this.modulePort(context, 'projects');
+    return new TaskGraphs(
+      {
+        read: (input) => port.call('tasks.read', input),
+        save: (input) => port.call('tasks.save', input),
+      },
+      {
+        describe: (locator) => port.call('resources.describe', { locator }),
+        create: (input) => port.call('resources.create', input),
+      },
+      this.taskResearch ?? {
+        graphs: async () => ({ graphs: [], unavailableReason: '科研图启动提供者尚未接入。' }),
+        start: async () => {
+          throw new OperationError('unavailable', '科研图启动提供者尚未接入。');
+        },
+      },
+    );
+  }
   subscribe(listener: (change: WorkbenchChange) => void): () => void {
     this.listeners.add(listener);
     return () => {
@@ -843,6 +950,20 @@ export class ManualApplication {
     Handlers<BusinessInputs, BusinessOutputs>,
     FoundationMethod
   > = {
+    'tasks.graphs': (input, context) =>
+      this.resourceOperation(
+        context,
+        { source: 'project', projectId: input.projectId },
+        false,
+        () => this.taskGraphs(context).list(input, context),
+      ),
+    'tasks.runGraph': (input, context) =>
+      this.resourceOperation(
+        context,
+        { source: 'project', projectId: input.task.projectId },
+        true,
+        () => this.taskGraphs(context).run(input, context),
+      ),
     'tasks.list': (input, context) =>
       this.resourceOperation(
         context,
@@ -867,6 +988,7 @@ export class ManualApplication {
             await this.taskOwner(input.projectId, context).create(input, {
               operationId: input.operationId,
               owner: this.creationOwner(context),
+              origin: this.fileOrigin(input.projectId, context),
               ...(context.sessionId ? { sessionId: context.sessionId } : {}),
               ...(context.runId ? { runId: context.runId } : {}),
             });
@@ -894,7 +1016,10 @@ export class ManualApplication {
         { source: 'project', projectId: input.task.projectId },
         true,
         async () => {
-          const result = await this.taskOwner(input.task.projectId, context).save(input);
+          const result = await this.taskOwner(input.task.projectId, context).save(
+            input,
+            this.fileOrigin(input.task.projectId, context),
+          );
           this.changed(input.task.projectId);
           return result;
         },
@@ -910,6 +1035,7 @@ export class ManualApplication {
             await store.save(input.path, input.content, undefined, undefined, undefined, {
               operationId: input.operationId,
               owner: this.creationOwner(context),
+              origin: this.fileOrigin(input.projectId, context),
               ...(context.sessionId ? { sessionId: context.sessionId } : {}),
               ...(context.runId ? { runId: context.runId } : {}),
             });
@@ -1199,9 +1325,14 @@ export class ManualApplication {
       this.checkProjectScope(p.projectId, context);
       return this.projects.get(p.projectId).read(p.path, p.offset);
     },
-    'files.save': async (input) => {
+    'files.save': async (input, context) => {
       const p = input;
-      const edit = await this.projects.get(p.projectId).save(p.path, p.content, p.basis);
+      this.checkProjectScope(p.projectId, context);
+      const edit = await this.projects
+        .get(p.projectId)
+        .save(p.path, p.content, p.basis, undefined, undefined, undefined, undefined, {
+          origin: this.fileOrigin(p.projectId, context),
+        });
       this.changed(p.projectId);
       return edit;
     },
@@ -1209,9 +1340,32 @@ export class ManualApplication {
       const p = input;
       return this.projects.get(p.projectId).history(p.path);
     },
-    'files.undo': async (input) => {
+    'files.changes': (input, context) =>
+      this.resourceOperation(
+        context,
+        { source: 'project', projectId: input.projectId },
+        false,
+        () => {
+          this.checkFileHistoryContext(context);
+          return this.projects.get(input.projectId).changes(input);
+        },
+      ),
+    'files.edit': (input, context) =>
+      this.resourceOperation(
+        context,
+        { source: 'project', projectId: input.projectId },
+        false,
+        async () => {
+          this.checkFileHistoryContext(context);
+          return this.projects.get(input.projectId).edit(input.fileId, input.editId);
+        },
+      ),
+    'files.undo': async (input, context) => {
       const p = input;
-      const result = await this.projects.get(p.projectId).undo(p.editId);
+      this.checkProjectScope(p.projectId, context);
+      const result = await this.projects
+        .get(p.projectId)
+        .undo(p.editId, this.fileOrigin(p.projectId, context));
       this.changed(p.projectId);
       return result;
     },

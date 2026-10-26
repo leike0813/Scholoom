@@ -120,6 +120,16 @@ SCHOOLOOM_UI_PORT=5343 node node_modules/@playwright/test/cli.js test --config p
 
 定向检查：`tests/kernel/research-tasks.spec.ts`（文件任务／人工组合／恢复）、`task-tools.spec.ts`（工具范围）、`research-task-agent.spec.ts`（真实内部执行与受控模型接续）、双宿主 `tests/ui/research-tasks.spec.ts`。构建与UI仍须分开，隔离配置及临时服务只收尾本轮归属。
 
+任务详情的“运行科研图”经`tasks.graphs/runGraph`使用当前选定会话。项目重读完整TaskRef、入口basis及sourceLinkIds，派生实际材料依据；调用回执保存为独立process材料，再条件更新任务入口。`TaskResearchPort`由科研所属适配注入，负责人工身份、空闲会话、执行授权及原调用去重；未注入时目录明确不可用，不注册测试图。当前注入端口验收不表示真实科研组合I1通过。启动未知保留原invocationId／instructionId／processOperationId；过程保存与任务关联分别核查，不能重跑代替补关联。
+
+## 文件修改记录与来源
+
+项目的FileEdit可包含`origin`、实际`beforeEvidence/afterEvidence`及撤销的`revertsEditId`，和正文历史同事务登记。宿主从实际CallContext绑定人工／系统身份或活动执行的project/session/run/instance；额外的`fileExecutionFacts`注入只接受与执行四元组匹配的可信提供者事实。未接入真实指令／委派提供者时不补造记录，精确tool始终unknown；普通保存参数不接受来源。旧历史没有origin即未知，外部未登记修改也不推断作者。
+
+`files.changes({projectId,fileId,afterEditId?,limit?})`返回有界摘要和coverage，默认25，上限100；`files.edit({projectId,fileId,editId})`读取指定完整记录。续页只传cursor及limit，不再传顶层锚点；cursor固定项目／fileId、初始锚点状态、首屏保留上下界和续页位置，窗口下界被裁剪后明确失效。anchor missing、retention unknown/pruned及current changedOrUnrecorded分别表示覆盖缺口，不能把空页当完整无变化。负责Agent的`get_file_changes/read_file_edit`只读当前可信项目，子实例暂不开放任意历史正文。
+
+`files.undo`仍撤销一次完整编辑。它核对稳定实体、完整after和原byteBasis，再按当前强依据发布；正常内部改名不会因ctime变化丢失撤销资格，后续内容／实体变化仍拒绝。成功形成新记录及revertsEditId；落盘或移至撤销保留区后历史登记失败返回outcomeUnknown。项目资源创建／执行保存只在实际登记可核查时返回可选editId，旧结果不猜，association仍表示执行成果关联。定向验证见`file-change-contracts.spec.ts`、`file-edit-origins.spec.ts`及原资源创建／身份测试；阅读差异消费者须同步提供者后独立接入。
+
 ## 共同资源打开
 
 文件树、消息文件链接和文献附件均进入 `resource-controller.ts` 的资源引用及工作台 `renderResource`，由 `ResourceView` 选择同一文本、PDF 或 EPUB／HTML 组件。库 tab 和库附件跨项目保留，项目切换恢复各自文件组及草稿；资源导航不切换 Agent 会话或项目信任。

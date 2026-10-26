@@ -12,7 +12,7 @@ import type {
   WorkbenchSnapshot,
 } from '@scholoom/protocol';
 import { isContextItems, validateBusiness } from '@scholoom/protocol';
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { ArtifactNotice } from './ArtifactNotice';
 import {
   confirmContextDraft,
@@ -59,6 +59,13 @@ export function useBusinessSession(
   const [selection, setSelection] = useState({ projectId: 'application', sessionId: '' });
   const snapshot = received?.selection === selection ? received.value : undefined;
   const taskState = useTasks(client, phase, selection.projectId, snapshot?.fileRevision ?? 0);
+  const taskGraphs = useMemo<WorkbenchSession['taskGraphs']>(() => {
+    if (!client || phase !== 'connected') return undefined;
+    return {
+      list: (input) => client.call('tasks.graphs', input),
+      run: (input) => client.call('tasks.runGraph', input),
+    };
+  }, [client, phase]);
   const [error, setError] = useState('');
   const [materials, setMaterials] = useState<string[]>([]);
   const [materialFileIds, setMaterialFileIds] = useState<Record<string, string>>({});
@@ -637,6 +644,7 @@ export function useBusinessSession(
     ...(taskState.port
       ? {
           taskPort: taskState.port,
+          ...(taskGraphs ? { taskGraphs } : {}),
           taskRevision: taskState.revision,
           taskWatchError: taskState.error,
           taskDraftKey: storedDraftKey(directory, selection.projectId, 'task-create'),
@@ -1069,7 +1077,7 @@ export function useBusinessSession(
           ? 'failed'
           : 'idle',
     })),
-    activeSessionId: selection.sessionId,
+    activeSessionId: session?.id ?? '',
     selectSession: (id) => select(selection.projectId, id),
     ...(phase === 'connected' && snapshot && !creating
       ? { createSession: () => createSession() }

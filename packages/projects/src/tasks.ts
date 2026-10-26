@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { failure } from '@scholoom/platform/node';
 import { OperationError } from '@scholoom/protocol/core';
 import {
+  type FileEditOrigin,
   isTaskMetadata,
   type ProjectTaskInputs,
   type ProjectTaskOutputs,
@@ -203,7 +204,7 @@ export class ProjectTasks {
     return this.store.save(input.path, input.content, undefined, undefined, undefined, owner);
   }
 
-  async save(input: ProjectTaskInputs['tasks.save']): Promise<TaskRead> {
+  async save(input: ProjectTaskInputs['tasks.save'], origin?: FileEditOrigin): Promise<TaskRead> {
     this.check(input.task);
     this.store.check('write');
     const candidate = metadata(input.content);
@@ -220,6 +221,7 @@ export class ProjectTasks {
       input.task.fileId,
       undefined,
       input.basis,
+      origin ? { origin } : undefined,
     );
     try {
       return await this.readEntry(input.task.fileId, undefined, edit.basis);

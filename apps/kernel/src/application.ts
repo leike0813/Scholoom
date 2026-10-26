@@ -21,6 +21,7 @@ import type {
   ResourceDescriptor,
   ResourceRef,
   ResourceSaveResult,
+  TaskResearchPort,
   WorkbenchContextInputs,
   WorkbenchSnapshot,
 } from '@scholoom/protocol';
@@ -29,7 +30,7 @@ import { OperationError } from '@scholoom/protocol/core';
 import type { ResearchProgressPort, ResearchToolsPort } from '@scholoom/protocol/research';
 import { ResearchRecords, ResearchRuntime } from '@scholoom/research/node';
 import { executionGraphs } from './execution-graphs.js';
-import { type FoundationMethod, ManualApplication } from './manual.js';
+import { type FileExecutionFacts, type FoundationMethod, ManualApplication } from './manual.js';
 
 type RuntimeMethod = Exclude<
   keyof BusinessInputs,
@@ -40,6 +41,9 @@ export class KernelApplication extends ManualApplication {
   readonly models: ModelAccess;
   readonly harness: Harness;
   readonly research: ResearchRuntime;
+  private readonly originFacts:
+    | ((context: CallContext) => FileExecutionFacts | undefined)
+    | undefined;
   constructor(
     directory: string,
     options: {
@@ -48,9 +52,12 @@ export class KernelApplication extends ManualApplication {
       contextResources?: ContextBridge['resources'];
       executionGraphs?: ExecutionGraphs;
       workerEntry?: URL;
+      fileExecutionFacts?: (context: CallContext) => FileExecutionFacts | undefined;
+      taskResearch?: TaskResearchPort;
     } = {},
   ) {
-    super(directory);
+    super(directory, options.taskResearch);
+    this.originFacts = options.fileExecutionFacts;
     process.env.LANGSMITH_TRACING = 'false';
     process.env.LANGCHAIN_TRACING_V2 = 'false';
     this.credentials = new CredentialStore(join(directory, 'credentials'), options.environment);
@@ -194,6 +201,12 @@ export class KernelApplication extends ManualApplication {
   ): void {
     this.harness.recordResourceUse(context, ref);
   }
+  protected override executionFileFacts(context: CallContext): FileExecutionFacts | undefined {
+    return this.originFacts?.(context);
+  }
+  protected override checkFileHistoryContext(context: CallContext): void {
+    if (context.principal.kind === 'agent') this.harness.checkFileHistoryContext(context);
+  }
   protected override async savedResource(
     context: CallContext,
     resource: ResourceDescriptor,
@@ -216,7 +229,7 @@ export class KernelApplication extends ManualApplication {
       { resourceBasis: resource.basis },
     );
     this.checkExecutionContext(context);
-    return { resource, association };
+    return { ...(await super.savedResource(context, resource)), association };
   }
   protected override async createdResource(
     context: CallContext,

@@ -24,9 +24,13 @@ import {
   type Artifact,
   type FileContent,
   type FileEdit,
+  type FileEditOrigin,
   type FileEntry,
+  isFileEditOrigin,
   type Project,
   type ProjectBackup,
+  type ProjectsInputs,
+  type ProjectsOutputs,
   projectLimits,
 } from '@scholoom/protocol/projects';
 import Database from 'better-sqlite3';
@@ -38,6 +42,7 @@ import * as tables from './schema.js';
 
 /** Physical container upgrade injected by the host; projects never opens another module's tables. */
 export type ContainerInitializer = (database: Database.Database, internal: string) => Promise<void>;
+export type FileEditSource = { origin: FileEditOrigin; revertsEditId?: string };
 
 const hidden = new Set(['.scholoom', '.git', 'node_modules', 'dist', 'build', 'target', '.venv']);
 const accessScope = new AsyncLocalStorage<{
@@ -347,8 +352,15 @@ export class ProjectStore {
     expectedFileId?: string,
     operation?: CreationOwner,
     resourceBasis?: string,
+    source?: FileEditSource,
+    expectedByteBasis?: string,
   ): Promise<FileEdit> {
     this.check('write');
+    const editSource: FileEditSource = structuredClone(
+      source ?? { origin: operation?.origin ?? { kind: 'unknown', reason: 'unattributed' } },
+    );
+    if (!isFileEditOrigin(editSource.origin))
+      throw new OperationError('invalidRequest', '修改来源不符合领域契约。');
     if (Buffer.byteLength(content) > projectLimits.fileBytes)
       throw new OperationError('tooLarge', '文件超过本期编辑上限。');
     const target = await this.path(input, true);
@@ -373,6 +385,7 @@ export class ProjectStore {
       if (expectedFileId && priorReference?.fileId !== expectedFileId)
         throw new OperationError('contentChanged', '文件身份或位置已变化，请重新读取。');
       let before = '';
+      let beforeBasis: string | undefined;
       let mode = 0o600;
       if (!create) {
         const source = basis ? this.bases.get(basis) : undefined;
@@ -380,6 +393,10 @@ export class ProjectStore {
           throw new OperationError('contentChanged', '读取依据失效，请重新读取。');
         const handle = await open(target, 'r');
         try {
+          const original = await handle.stat({ bigint: true });
+          beforeBasis = fileFingerprint(original);
+          if (expectedByteBasis && byteBasis(original) !== expectedByteBasis)
+            throw new OperationError('contentChanged', '原编辑的文件实体或内容版本已变化。');
           if (
             resourceBasis &&
             fileFingerprint(await handle.stat({ bigint: true })) !== resourceBasis
@@ -405,6 +422,20 @@ export class ProjectStore {
         after: content,
         createdAt: new Date().toISOString(),
         created: create,
+        origin: editSource.origin,
+        ...(editSource.revertsEditId ? { revertsEditId: editSource.revertsEditId } : {}),
+        ...(priorReference && beforeBasis
+          ? {
+              beforeEvidence: {
+                ref: {
+                  source: 'project',
+                  projectId: this.project.id,
+                  fileId: priorReference.fileId,
+                },
+                basis: beforeBasis,
+              },
+            }
+          : {}),
         ...(operation ? { fileId: randomUUID() } : {}),
       };
       const candidateDir = join(this.internal, 'candidates');
@@ -428,9 +459,10 @@ export class ProjectStore {
         this.check('write');
         if ((await this.path(input, true)) !== target)
           throw new OperationError('contentChanged', '发布目标路径已变化。');
+        const conditionBasis = resourceBasis ?? (expectedByteBasis ? beforeBasis : undefined);
         if (
-          resourceBasis &&
-          fileFingerprint(await lstat(target, { bigint: true })) !== resourceBasis
+          conditionBasis &&
+          fileFingerprint(await lstat(target, { bigint: true })) !== conditionBasis
         )
           throw new OperationError('contentChanged', '发布前资源版本已变化，请重新读取。');
         if (create) {
@@ -464,19 +496,31 @@ export class ProjectStore {
       }
       try {
         edit.fileId = (priorReference ?? (await this.files.reference(input))).fileId;
-        if (byteBasis(await lstat(target, { bigint: true })) !== edit.basis)
+        const published = await lstat(target, { bigint: true });
+        if (byteBasis(published) !== edit.basis)
           throw new OperationError('outcomeUnknown', '保存后的文件已被替换或修改。');
+        edit.afterEvidence = {
+          ref: { source: 'project', projectId: this.project.id, fileId: edit.fileId },
+          basis: fileFingerprint(published),
+        };
         this.db.transaction((tx) => {
           tx.insert(tables.edits).values({ id: edit.id, path: input, value: edit }).run();
           const old = tx
             .select({ seq: tables.edits.seq })
             .from(tables.edits)
-            .where(eq(tables.edits.path, input))
+            .where(
+              sql`json_extract(${tables.edits.value}, '$.fileId') = ${edit.fileId} OR (${tables.edits.path} = ${input} AND json_extract(${tables.edits.value}, '$.fileId') IS NULL)`,
+            )
             .orderBy(desc(tables.edits.seq))
             .limit(100)
             .offset(projectLimits.history)
             .all();
           for (const row of old) tx.delete(tables.edits).where(eq(tables.edits.seq, row.seq)).run();
+          if (old.length)
+            tx.insert(tables.meta)
+              .values({ key: `file-history-pruned:${edit.fileId}`, value: 'true' })
+              .onConflictDoNothing()
+              .run();
         });
       } catch {
         throw new OperationError('outcomeUnknown', '文件已保存，但历史登记结果未知；请核查。');
@@ -520,12 +564,173 @@ export class ProjectStore {
       .slice(0, projectLimits.history);
   }
 
-  async undo(editId: string): Promise<FileEdit> {
+  edit(fileId: string, editId: string): FileEdit {
+    this.check('read');
+    this.files.location(fileId);
+    const row = this.db.select().from(tables.edits).where(eq(tables.edits.id, editId)).get();
+    if (!row || row.value.fileId !== fileId)
+      throw new OperationError('notFound', '修改记录不属于此文件或已不在保留范围。');
+    return row.value;
+  }
+
+  editForEvidence(fileId: string, basis: string): string | undefined {
+    this.check('read');
+    return this.db
+      .select()
+      .from(tables.edits)
+      .where(
+        sql`json_extract(${tables.edits.value}, '$.fileId') = ${fileId} AND json_extract(${tables.edits.value}, '$.afterEvidence.basis') = ${basis}`,
+      )
+      .limit(1)
+      .get()?.id;
+  }
+
+  async changes(input: ProjectsInputs['files.changes']): Promise<ProjectsOutputs['files.changes']> {
+    this.check('read');
+    if (input.projectId !== this.project.id)
+      throw new OperationError('permissionDenied', '修改查询不属于当前项目。');
+    const location = this.files.location(input.fileId);
+    const cursor = 'cursor' in input ? input.cursor : undefined;
+    if (cursor && (cursor.projectId !== this.project.id || cursor.fileId !== input.fileId))
+      throw new OperationError('invalidRequest', '修改游标不属于当前文件窗口。');
+    const fileRows = sql`json_extract(${tables.edits.value}, '$.fileId') = ${input.fileId}`;
+    const latest = this.db
+      .select()
+      .from(tables.edits)
+      .where(fileRows)
+      .orderBy(desc(tables.edits.seq))
+      .limit(1)
+      .get();
+    const rowFor = (id: string) =>
+      this.db
+        .select()
+        .from(tables.edits)
+        .where(sql`${tables.edits.id} = ${id} AND ${fileRows}`)
+        .get();
+    const anchorId =
+      cursor?.afterEditId ?? ('afterEditId' in input ? input.afterEditId : undefined);
+    const anchor = anchorId ? rowFor(anchorId) : undefined;
+    const through = cursor ? rowFor(cursor.throughEditId) : latest;
+    const before = cursor ? rowFor(cursor.beforeEditId) : undefined;
+    const anchorState =
+      cursor?.anchor ?? (!anchorId ? 'notRequested' : anchor ? 'matched' : 'missing');
+    const from = cursor
+      ? rowFor(cursor.fromEditId)
+      : through
+        ? this.db
+            .select()
+            .from(tables.edits)
+            .where(
+              sql`${fileRows} AND ${tables.edits.seq} > ${anchor?.seq ?? 0} AND ${tables.edits.seq} <= ${through.seq}`,
+            )
+            .orderBy(tables.edits.seq)
+            .limit(1)
+            .get()
+        : undefined;
+    if (
+      cursor &&
+      ((!anchorId && anchorState !== 'notRequested') ||
+        (anchorId && anchorState === 'notRequested'))
+    )
+      throw new OperationError('invalidRequest', '修改游标的锚点状态不符。');
+    if (
+      cursor &&
+      (!through ||
+        !before ||
+        !from ||
+        (anchorState === 'matched' && !anchor) ||
+        (anchorState === 'missing' && anchor) ||
+        before.seq > through.seq ||
+        from.seq > before.seq ||
+        (anchor && from.seq <= anchor.seq))
+    )
+      throw new OperationError('contentChanged', '修改查询窗口已失效，请重新读取。');
+    const limit = input.limit ?? 25;
+    if (!Number.isInteger(limit) || limit < 1 || limit > 100)
+      throw new OperationError('invalidRequest', '修改查询分页范围无效。');
+    const rows =
+      through && from
+        ? this.db
+            .select()
+            .from(tables.edits)
+            .where(
+              sql`${fileRows} AND ${tables.edits.seq} <= ${through.seq} AND ${tables.edits.seq} >= ${from?.seq ?? 0} AND ${tables.edits.seq} < ${before?.seq ?? through.seq + 1}`,
+            )
+            .orderBy(desc(tables.edits.seq))
+            .limit(limit + 1)
+            .all()
+        : [];
+    const pageRows = rows.slice(0, limit);
+    let current: ProjectsOutputs['files.changes']['coverage']['current'] = 'unavailable';
+    if (location.state === 'present') {
+      try {
+        const actual = await this.files.readBytes(input.fileId, { limit: 1 });
+        current =
+          latest?.value.afterEvidence?.basis === actual.resourceBasis
+            ? 'matchesLatest'
+            : 'changedOrUnrecorded';
+      } catch (error) {
+        this.check('read');
+        if ((error as { code?: string }).code === 'permissionDenied') throw error;
+      }
+    }
+    this.check('read');
+    const last = pageRows.at(-1);
+    return {
+      changes: pageRows.map(({ value }) => ({
+        editId: value.id,
+        fileId: input.fileId,
+        createdAt: value.createdAt,
+        ...(value.origin ? { origin: value.origin } : {}),
+        ...(value.beforeEvidence ? { beforeEvidence: value.beforeEvidence } : {}),
+        ...(value.afterEvidence ? { afterEvidence: value.afterEvidence } : {}),
+        ...(value.revertsEditId ? { revertsEditId: value.revertsEditId } : {}),
+      })),
+      ...(rows.length > limit && through && from && last
+        ? {
+            nextCursor: {
+              projectId: this.project.id,
+              fileId: input.fileId,
+              anchor: anchorState,
+              fromEditId: from.id,
+              throughEditId: through.id,
+              beforeEditId: last.id,
+              ...(anchorId ? { afterEditId: anchorId } : {}),
+            },
+          }
+        : {}),
+      coverage: {
+        anchor: anchorState,
+        retention: this.db
+          .select()
+          .from(tables.meta)
+          .where(eq(tables.meta.key, `file-history-pruned:${input.fileId}`))
+          .get()
+          ? 'pruned'
+          : 'unknown',
+        current,
+      },
+    };
+  }
+
+  async undo(editId: string, origin?: FileEditOrigin): Promise<FileEdit> {
+    const undoOrigin = structuredClone(origin ?? { kind: 'unknown', reason: 'unattributed' });
+    if (!isFileEditOrigin(undoOrigin)) throw new OperationError('invalidRequest', '撤销来源无效。');
     const row = this.db.select().from(tables.edits).where(eq(tables.edits.id, editId)).get();
     if (!row) throw new OperationError('notFound', '修改历史不存在。');
     const currentPath = row.value.fileId ? this.files.currentPath(row.value.fileId) : row.path;
     if (!row.value.created)
-      return this.save(currentPath, row.value.before, undefined, row.value.after, row.value.fileId);
+      return this.save(
+        currentPath,
+        row.value.before,
+        undefined,
+        row.value.after,
+        row.value.fileId,
+        undefined,
+        undefined,
+        { origin: undoOrigin, revertsEditId: editId },
+        row.value.basis,
+      );
     this.check('write');
     const target = await this.path(currentPath);
     return this.serial(target, async () => {
@@ -538,6 +743,10 @@ export class ProjectStore {
         throw new OperationError('contentChanged', '原文件位置已变化，请重新读取。');
       if ((await readFile(target, 'utf8')) !== row.value.after)
         throw new OperationError('contentChanged', '后续修改不能被撤销覆盖。');
+      const actual = await lstat(target, { bigint: true });
+      const beforeBasis = fileFingerprint(actual);
+      if (row.value.basis && byteBasis(actual) !== row.value.basis)
+        throw new OperationError('contentChanged', '原创建实体或版本已变化。');
       const retired = join(this.internal, 'reverted');
       await privateDirectory(retired);
       await rename(target, join(retired, row.value.id));
@@ -548,14 +757,29 @@ export class ProjectStore {
         before: row.value.after,
         after: '',
         createdAt: new Date().toISOString(),
+        origin: undoOrigin,
+        revertsEditId: editId,
+        ...(row.value.fileId
+          ? {
+              beforeEvidence: {
+                ref: { source: 'project', projectId: this.project.id, fileId: row.value.fileId },
+                basis: beforeBasis,
+              },
+            }
+          : {}),
       };
-      this.db.insert(tables.edits).values({ id: edit.id, path: edit.path, value: edit }).run();
-      if (row.value.fileId)
-        this.db
-          .update(tables.fileReferences)
-          .set({ value: { ...this.files.location(row.value.fileId), state: 'missing' } })
-          .where(eq(tables.fileReferences.id, row.value.fileId))
-          .run();
+      try {
+        this.db.transaction((tx) => {
+          tx.insert(tables.edits).values({ id: edit.id, path: edit.path, value: edit }).run();
+          if (row.value.fileId)
+            tx.update(tables.fileReferences)
+              .set({ value: { ...this.files.location(row.value.fileId), state: 'missing' } })
+              .where(eq(tables.fileReferences.id, row.value.fileId))
+              .run();
+        });
+      } catch {
+        throw new OperationError('outcomeUnknown', '文件已移至撤销保留区，但历史登记结果未知。');
+      }
       this.files.changed();
       return edit;
     });

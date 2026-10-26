@@ -319,6 +319,17 @@ for (const replacement of [false, true, 'rename'] as const) {
         resource: { ref: resource.ref },
         association: { state: 'unknown' },
       });
+      assert(result.editId);
+      expect(
+        await app.call('files.edit', {
+          projectId: project.id,
+          fileId: saved.fileId,
+          editId: result.editId,
+        }),
+      ).toMatchObject({
+        after: 'saved actual result',
+        origin: { kind: 'execution', sessionId: session.id, runId },
+      });
       const identity = await stat(join(project.path, 'input.md'), { bigint: true });
       expect(await readFile(join(project.path, 'input.md'), 'utf8')).toBe('saved actual result');
       const created = await port.create({
@@ -329,6 +340,17 @@ for (const replacement of [false, true, 'rename'] as const) {
       });
       expect(created).toMatchObject({ state: 'complete', association: { state: 'unknown' } });
       assert(created.state === 'complete');
+      assert(created.editId);
+      expect(
+        await app.call('files.edit', {
+          projectId: project.id,
+          fileId: created.resource.ref.fileId,
+          editId: created.editId,
+        }),
+      ).toMatchObject({
+        after: 'created actual result',
+        origin: { kind: 'execution', sessionId: session.id, runId },
+      });
       const creationIdentity = await stat(join(project.path, 'created.md'), { bigint: true });
       if (replacement === 'rename') {
         for (const path of ['input.md', 'created.md'])

@@ -86,6 +86,7 @@ import {
   prepareScratch,
   sessionScratch,
 } from './checkpoint-files.js';
+import { createFileChangeTools } from './file-change-tools.js';
 import { ExecutionGraphs } from './graph-registry.js';
 import {
   authorizeContextItems,
@@ -303,6 +304,17 @@ export class Harness {
         throw new OperationError('instanceMismatch', '执行实例资格已撤销。');
       currentId = current.parentInstanceId;
     }
+  }
+  checkFileHistoryContext(context: CallContext): void {
+    this.checkExecutionContext(context);
+    const project = this.projects.get(context.projectId as string);
+    const instance = this.records(project)
+      .select()
+      .from(tables.instances)
+      .where(eq(tables.instances.id, context.instanceId as string))
+      .get()?.value;
+    if (instance?.parentInstanceId)
+      throw new OperationError('permissionDenied', '子执行未获整个文件历史读取权限。');
   }
   private readonly capabilityReservations = new AsyncLocalStorage<ProcessReservation>();
   private readonly capabilityExecutors = new Map<
@@ -2242,6 +2254,15 @@ export class Harness {
           systemPrompt:
             '你是 Scholoom 科研助手。使用中文与用户工作。项目正文以实际文件为准，附加材料只是引用，先读取。形成可承接的分析、理由、成果及下一步时保存为普通 Markdown 文件；在没有项目文件权限时只对话。仅使用授权工具。修改已有文件先读取，遇到冲突重读再修改。write_file 仅用于新建，edit_file 修改已有内容。不得声称未保存成果已交付。不要依赖旧 transcript 才能续做，可发现并读取项目已有成果。用户取消后不继续。',
           tools: [
+            ...createFileChangeTools({
+              port: this.projectPort(fileContext),
+              projectId: project.id,
+              check: () => this.checkFileHistoryContext(fileContext),
+              onError: (error) => {
+                const current = toolContext.getStore();
+                if (current) current.error = error;
+              },
+            }),
             ...(this.taskPort && this.executionResources
               ? createTaskTools({
                   port: this.taskPort(fileContext),

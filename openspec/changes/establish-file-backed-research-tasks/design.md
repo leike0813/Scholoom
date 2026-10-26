@@ -230,19 +230,31 @@ M2独立规划为[establish-trusted-file-edit-origins](../establish-trusted-file
 
 ## 8. I1用户入口与真实组合验收方案
 
+### 2026-10-26 已确认实施范围与同步事实
+
+本轮用户明确选择任务详情单一“运行科研图”动作，取代下文历史D-I1待审分支。恢复HEAD为77cd078，0519904及b838402均已为祖先；资源叶schema、执行历史和Graph来源、v6迁移、双窗口fixture及图片枚举已在本树正式源码，证据为`/tmp/scholoom-sync-recovery-wyn13R/recovery.md`。旧公共补丁无需重新起草或复制。恢复验证只证明已有切片，不证明I1。
+
+项目拥有`task-graph-contracts.ts`中的`tasks.graphs`及`tasks.runGraph`、`projects/TaskGraphs`和任务详情薄挂载。请求携带完整TaskRef、入口basis、可选workItemId、所选sourceLinkIds、图版本／开放config、用户当前会话及稳定invocationId／instructionId／processOperationId。服务端重读入口、核对任务与工作项身份，只允许source用途且适用当前工作项的链接；经所属资源端口派生实际ResourceEvidence，核对已有链接basis，再重读入口。客户端不能提供材料版本或执行权限。
+
+科研线提供注入`TaskResearchPort`：分页目录和`start`。它在原human/product身份下负责会话归属、空闲、项目信任、配置、材料／模型外发授权、原调用身份去重及human→host窄适配；项目不复制第二套启动，不向科研schema增加TaskRef。未注入时目录为空并有不可用原因，run明确unavailable，校准图只在隔离测试注入。正式源码尚无该私有实际适配，真实I1保持开放。
+
+调用回执先保存为独立process材料`tasks/<processOperationId>.graph-call.md`，只含project/session/invocation/instruction/run查询指针；以原入口basis追加process链接。返回call、原资源创建结果和独立taskAssociation。创建或关联失败保留实际调用及材料，不回滚、不重试图、不复制运行状态。新会话沿原tasks.read和文件发现指针。任务UI在共同正文未保存时拒绝启动，保持原请求、未知回执与部分结果；切换／刷新不生成替身请求。
+
+新增／修改到达点：protocol操作聚合及生成映射、projects导出、kernel Manual／Kernel构造注入与handlers、architecture的明确消费、WorkbenchSession及任务详情表单、UI设计和定向测试。先构建再测；最小验收覆盖真实任务／项目／库取材配合注入科研端口、来源变化／越权、入口冲突、过程创建与关联部分失败，以及双宿主空目录／表单行为。注入端口不叫真实科研或固定worker组合通过。下文保留原真实组合测试定义，待实际科研提供者接入再执行。
+
 ### 现有事实与需要主线选择的入口
 
 科研快照已有`research.graphs`、`research.graph`及`research.graphCalls({projectId,sessionId,invocationId?})`。`KernelApplication.startResearchGraph`／内部`research.startGraph`要求可信host/system并返回`{invocationId,instructionId,runId}`；底层startGraph绕过科研调用记录，不能代替它。默认researchGraphs及本树executionGraphs均为空；现有模型invoke_research_capability是旧能力，不是Graph用户启动入口。
 
-**D-I1待审：**推荐在既有任务详情增加按需“运行科研图”动作，选择实际graphs目录、版本、开放配置、材料与一个用户明确选定的空闲会话，任务引用仅作可选上下文。替代为会话工具栏的同一目录动作，两者共用唯一启动适配，不另建工作台。该新增用户交互及外部启动契约尚未确认，当前只提案，不新增按钮或RPC。
+**D-I1已确认：**采用既有任务详情单一“运行科研图”动作，选择目录、版本、开放配置及来源，使用用户明确选定的会话。项目拥有任务编排，科研拥有唯一可信人工启动适配，不另建工作台或第二套启动。
 
-研究线应拥有候选产品启动方法（例如`research.startGraphForSession`，名字待确认）及host绑定：从已认证human入口核对项目／信任、会话空闲、描述及配置／资源版本，再调用现有startResearchGraph。不得让客户端自报host身份，不让活动Agent在同会话递归抢占根执行；忙碌时明确拒绝，用户自行选择空闲会话，不自动取消或新建。等待仍由原session.send推进，断线／未知启动按原invocationId查询，不另起调用。
+研究线拥有`TaskResearchPort.start`的实际适配及host绑定：从已认证human入口核对项目／信任、会话空闲、描述及配置／资源版本，再调用其现有startResearchGraph。本树仅注入端口及明确不可用默认值。不得让客户端自报host身份，不让活动Agent在同会话递归抢占根执行；忙碌时明确拒绝，用户自行选择空闲会话，不自动取消或新建。等待仍由原session.send推进，断线／未知启动按原invocationId查询，不另起调用。
 
 项目线负责任务动作薄挂载、TaskRef／工作项核对和组合测试；科研线负责目录、启动与graphCalls；harness负责原worker及执行历史；library和projects分别核对材料。公共构造和工具安装点须经dev组合后使用，不在本树私自复制。
 
 ### 可执行验收计划及停止条件
 
-共同增量进入dev、消费者同步且D-I1获批后，用隔离Browser／真实Electron harness经**同一用户动作**启动。验收宿主静态注册快照`research-graph-runtime/tests/fixtures/research-graph-worker/{graphs.mjs,worker.mjs}`的`scholoom.calibration@1`；它仅是测试目录／固定worker，不能注册成生产科研功能或冒称实际综合流程。无测试注册的产品目录继续为空。
+公共基线同步及D-I1选择现已具备；取得实际科研适配后，仍须用隔离Browser／真实Electron harness经**同一用户动作**完成下述真实组合。验收宿主静态注册快照`research-graph-runtime/tests/fixtures/research-graph-worker/{graphs.mjs,worker.mjs}`的`scholoom.calibration@1`；它仅是测试目录／固定worker，不能注册成生产科研功能或冒称实际综合流程。无测试注册的产品目录继续为空。
 
 1. 隔离真实库导入合成UTF-8材料、实际项目创建任务；通过工作台保存长比较过程、目标／依据／障碍／下一步并关联，所有ref／basis来自所属真实提供者。
 2. 任务动作发现校准描述，显式选择TaskRef、可选工作项、库来源及长过程Evidence、空闲会话和outputPath／goal。实际科研start记录、broker、worker、仓储及资源读取均为真实接线。校准图现有read／create／wait／check足够；不新增后置综合流程节点。
@@ -251,4 +263,4 @@ M2独立规划为[establish-trusted-file-edit-origins](../establish-trusted-file
 5. 在明确项目过程材料中保存实际返回的`projectId/sessionId/invocationId/instructionId/runId`查询线索并关联该文件；这只是指向科研记录的工作材料，不向TaskLink临时增加graph union。新会话从任务入口读目标、过程、报告与下一步；若需查询旧科研调用，按真实提供者权限及上述原会话线索查询，不从TaskRef猜runId或复制执行状态。
 6. 复用本线受控模型的普通新会话接续路径保存后续材料。模型只控制外部回复，内部库／任务／科研／worker不能用成功替身。来源不可用仍等用户决定；生产目录空、缺产品适配或缺真实提供者时I1保留未完成。
 
-本轮只交方案；不运行上述跨域组合、不声称I1已通过。主线需先决定D-I1入口及科研所属产品适配，完成公共schema、执行历史及runtime／kernel组合并同步本树，再安排实际验收。无需为I1定案科研综合流程，程序运行也不要求绑定任务。
+本轮已实施任务侧编排与UI，并在注入科研端口下验来源选择、过程指针及部分关联；没有运行上述真实科研／固定worker跨域组合，不声称I1通过。下一步由科研所属线交实际适配、主线按符号组合并验证，再同步消费者。无需为I1定案科研综合流程，程序运行也不要求绑定任务。

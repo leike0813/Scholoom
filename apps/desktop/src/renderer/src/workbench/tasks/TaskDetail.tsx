@@ -1,6 +1,6 @@
 import type { ContextItem } from '@scholoom/protocol';
 import type { TaskLink, TaskPort, TaskRead, TaskRef } from '@scholoom/protocol/projects';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useContextContribution } from '../context-contributions';
 import type { ResourceTarget } from '../resource-controller';
 import { TaskStatusBadge, taskErrorMessage } from './TaskList';
@@ -12,6 +12,7 @@ export interface TaskDetailProps {
   onOpenResource: (target: ResourceTarget) => void;
   onAppendContext?: (item: ContextItem) => void;
   onAssociate?: (entry: TaskRead) => void | Promise<void>;
+  renderGraphAction?: (entry: TaskRead, workItemId?: string) => ReactNode;
   revision?: number;
   viewId?: string;
 }
@@ -34,6 +35,7 @@ function ProjectTaskDetail({
   onOpenResource,
   onAppendContext,
   onAssociate,
+  renderGraphAction,
   revision = 0,
   viewId,
 }: TaskDetailProps) {
@@ -179,6 +181,7 @@ function ProjectTaskDetail({
           </button>
         ) : null}
       </div>
+      {read ? renderGraphAction?.(read, workItemId) : null}
       {busy ? <p role="status">正在读取任务入口…</p> : null}
       {error ? (
         <p className="task-error" role="alert">

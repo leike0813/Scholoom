@@ -1,6 +1,6 @@
 # 执行任务
 
-2026-10-25用户已授权实施及锁定依赖安装、隔离双宿主验收；本轮主线另授权快照消费、公共补丁准备及M2／I1有界方案，见design第7–8节。Git操作和真实用户数据未授权。W2资料复核已完成，其余实际提供者及跨域验收不因CLI ready而闭合；不把主线快照当共同dev已合入。
+2026-10-26用户恢复有界实施：HEAD77cd078包含0519904／b838402；本树正式源码和恢复验收证据取代旧等待同步条件。M2按独立change实施；I1采用任务详情单一动作和科研所属注入端口，实际提供者仍须独立组合。沿已有隔离测试许可，不安装新依赖、不写真实库、不推送／PR／归档；本轮交可审查补丁。下方既有完成项为历史成果，新范围见第7组。
 
 ```mermaid
 flowchart TD
@@ -15,7 +15,7 @@ flowchart TD
   G --> H
   W1[W1 库分类恢复提供者待交付] -.-> I[4.1 库引用提供者复核]
   W2[W2 已收到两份阅读design] --> J[4.2 阅读交互边界复核]
-  W3[W3 科研公共接线待同步] -.-> K[4.3 I1真实整合]
+  W3[W3 真实科研产品适配待交付] -.-> K[4.3 I1真实整合]
   I --> K
   D --> K
   G --> K
@@ -46,9 +46,9 @@ flowchart TD
 
 - [ ] 4.1 【W1调查已收到，实际库提供者仍缺】已消费固定Zotero10.0.5身份／关系、字段及插件保存／SQL／通知／固定键调查，见design第7节。题录／附件删除恢复、主题分析及共同来源身份仍等所属正式契约／实际提供者；不实现伪删除、无历史或恢复，不把notFound当删除分类。新增引用字段须先审查受影响范围。
 - [x] 4.2 【W2设计复核完成】分别读取用户快照中 `add-material-annotation-interactions/design.md` 与 `add-interactive-research-reports/design.md`，核对资源ref／basis、context、共同composer及正文保存触点。结论及精确路径见design第7节；不接管批注／报告协议，不合并两个change，不将设计到达称为实现接入。
-- [ ] 4.3 【I1实际整合仍开放】Graph目录／调用／查询与固定worker源码已收到；实际用户入口候选、真实组合及失败验收方案见design第8节。待D-I1入口确认、公共增量经dev验证并同步后接真实科研／库／任务／broker／worker／仓储；校准夹具不能当生产目录或后置综合流程，不拷私有实现假接通。
+- [ ] 4.3 【I1实际整合仍开放】Graph目录／调用／查询与固定worker源码已收到；任务单一入口已确认且公共基线已同步，第7组已交注入科研端口的局部实现。下一前置是科研所属实际human→host适配及科研／库／任务／broker／固定worker／仓储组合；校准夹具不能当生产目录或后置综合流程，不拷私有实现假接通。
 - [x] 4.4a 【任务契约正式交接及静态消费核对】以主线快照的本线task-contracts.ts／projects.ts正式交接tasks四操作、TaskRef三元组、可选workItemId、入口Evidence和部分关联语义。逐份核对科研、Agent、计算design及实际DTO：均可消费材料Evidence，但尚无完整任务字段；程序不要求绑定任务，session成果association不等于task links。
-- [ ] 4.4b 【实际消费接线未完成】由科研／Agent所属change确认需用的可选任务／工作项DTO并经公共组合同步，取得实际调用与结果核查证据后再闭合。计算首批继续可以无任务；不要求消费者整项完成，不从只读核对推出已接入。
+- [ ] 4.4b 【实际消费接线未完成】科研已选择项目侧组合TaskRef／workItemId并派生Evidence，不向科研schema增加任务字段；需科研实际适配消费及结果查询证据。Agent的可选任务引用由其所属change按实际需要接入，计算首批可以无任务；不从源码／设计核对推出已运行。
 
 ## 5. 整合与交付
 
@@ -57,12 +57,18 @@ flowchart TD
 
 ## 续做入口
 
-续做先读proposal、investigation、specs、design及已有delivery，对照代码和已勾选任务继续。4组按主线快照及实际提供者推进；下一步是主线审查并在dev接入公共补丁、用户同步消费者。CLI ready不消除未确认契约和真实整合前置。
+续做先读proposal、investigation、specs、design及已有delivery，对照代码和已勾选任务继续。4组按实际提供者推进；公共消费同步门已关闭，第7组交本轮局部切片，真实科研适配／固定worker／库和任务组合仍开放。CLI ready不消除真实整合前置。
 
 ## 6. 主线第二阶段公共对接准备
 
 - [x] 6.1 拆出不依赖任务的resource-contracts叶schema补丁；对共同基线protocol独立构建、三种入口导入顺序、原schema／操作／格式及Ajv／重导出身份核对，通过原真实资源行为定向14例。补丁不含image；阅读后续更新同一叶模块。
 - [x] 6.2 准备保留openWorkbenchWindow和createSession(projectId)的准确组合补丁；保留原下载／目录选择／desktop映射，不覆盖整文件。临时组合夹具类型检查及真实Browser／Electron两窗口同名项目回归2/2通过。
-- [x] 6.3 创建M2独立待审规划 `establish-trusted-file-edit-origins`，完成proposal／investigation／delta specs／design／tasks。明确CallContext事实、IPC精确来源缺口、保存临界区、旧历史未知、多指令、子委派、整次undo及有界查询；D1–D3待主线选择，未上线字段，无delivery。
+- [x] 6.3 2026-10-25创建M2独立规划 `establish-trusted-file-edit-origins`，完成proposal／investigation／delta specs／design／tasks，明确CallContext事实、IPC精确来源缺口及保存／undo／有界查询。当时止于实施前；后续D1–D3已由用户确认，实际实施与delivery由该独立change承接。
 - [x] 6.4 基于科研实际graph目录／调用／查询和固定worker，提出I1用户入口选项及真实组合、部分保存／任务关联冲突、新会话续接验收方案；生产目录仍空，D-I1与dev接入前停止，不实现后置综合Graph。
-- [ ] 6.5 【交回主线后】公共补丁在dev接入验证、用户同步消费者，再据已确认D1–D3／D-I1安排对应实施及I1。当前只有候选补丁和本地验证，没有dev接入或跨域运行结果。
+- [x] 6.5 【同步门已具备】主线已同步到77cd078，git确认0519904／b838402祖先；恢复前clean及共享／桌面／宿主构建、类型／架构／映射、内核16+4与双宿主等证据见`/tmp/scholoom-sync-recovery-wyn13R/recovery.md`、`synchronized.json`和本树日志。资源叶schema／执行历史／v6迁移／双窗口及图片叶模块保留；D1–D3及任务详情单入口已确认。该项只关闭公共消费同步门，不证明真实I1。
+
+## 7. 已同步后的任务科研图局部切片
+
+- [x] 7.1 实现task-graph-contracts同源声明及映射、TaskGraphs与Manual／Kernel薄注入；服务端从TaskRef／入口basis／workItemId／sourceLinkIds派生实际Evidence，保留人工身份，由科研所属端口启动。先保存调用指针process材料，再条件关联入口；分别返回call、资源创建和任务关联结果。真实项目／库／broker及注入科研端口定向通过，不增科研任务字段或run状态镜像。
+- [x] 7.2 既有任务详情接入单一运行动作，按需分页目录、工作项来源及配置；未保存正文拒绝启动，全请求及未知／部分结果跨切换刷新保留，完整确认后才允许独立新调用。先构建后双宿主8项原任务／空目录／草稿和4项注入科研端口的来源选择／过程指针／关联冲突均通过；首次测试夹具失败及替身边界见delivery，不称真实I1。
+- [x] 7.3 独立审查取材和部分保存，修复科研回执额外project/session覆盖并以两例回归闭合；相关构建／类型／架构／8份生成映射／OpenSpec／diff检查通过，更新原delivery并按符号交M2公共和I1独立补丁。4组实际提供者及整合仍开放，到本轮边界停止。

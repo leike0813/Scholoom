@@ -5,6 +5,8 @@ import type {
   ErrorInfo,
   FileLocation,
   ModelOption,
+  TaskGraphInputs,
+  TaskGraphOutputs,
   TaskLink,
   TaskPort,
   TaskRead,
@@ -103,6 +105,10 @@ export interface WorkbenchSession {
   projectId?: string;
   fileRevision?: number;
   taskPort?: TaskPort;
+  taskGraphs?: {
+    list: (input: TaskGraphInputs['tasks.graphs']) => Promise<TaskGraphOutputs['tasks.graphs']>;
+    run: (input: TaskGraphInputs['tasks.runGraph']) => Promise<TaskGraphOutputs['tasks.runGraph']>;
+  };
   taskRevision?: number;
   taskWatchError?: string;
   taskDraftKey?: string;

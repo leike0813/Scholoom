@@ -16,6 +16,7 @@ export * from './file-explorer-contracts.js';
 export * from './project-contracts.js';
 export * from './task-contracts.js';
 export { taskOperations as projectTaskOperations } from './task-contracts.js';
+export * from './task-graph-contracts.js';
 export * from './work-domains.js';
 
 import type { FromSchema } from 'json-schema-to-ts';
@@ -35,7 +36,14 @@ import type {
   Inputs as ExecutionInputs,
   Outputs as ExecutionOutputs,
 } from './project-execution-types.js';
-import type { editSchema, projectExecutionOperations } from './project-file-contracts.js';
+import {
+  type editSchema,
+  type fileChangeCursorSchema,
+  type fileChangeSchema,
+  type fileChangesResultSchema,
+  fileEditOriginSchema,
+  type projectExecutionOperations,
+} from './project-file-contracts.js';
 import type {
   Inputs as HarnessProjectInputs,
   Outputs as HarnessProjectOutputs,
@@ -56,12 +64,24 @@ import {
 } from './task-contracts.js';
 import type { projectTargetReadOperations } from './work-domains.js';
 
-export { editSchema, projectExecutionOperations } from './project-file-contracts.js';
+export {
+  editSchema,
+  fileChangeCursorSchema,
+  fileChangeOperations,
+  fileChangeSchema,
+  fileChangesResultSchema,
+  fileEditOriginSchema,
+  projectExecutionOperations,
+} from './project-file-contracts.js';
 
 export type Project = FromSchema<typeof projectSchema>;
 export type FileEntry = FromSchema<typeof fileEntrySchema>;
 export type FileContent = FromSchema<typeof fileSchema>;
 export type FileEdit = FromSchema<typeof editSchema>;
+export type FileEditOrigin = FromSchema<typeof fileEditOriginSchema>;
+export type FileChange = FromSchema<typeof fileChangeSchema>;
+export type FileChangeCursor = FromSchema<typeof fileChangeCursorSchema>;
+export type FileChangesResult = FromSchema<typeof fileChangesResultSchema>;
 export type FileLocation = FromSchema<typeof fileLocationSchema>;
 export type FileOperation = FromSchema<typeof fileOperationSchema>;
 export type Artifact = FromSchema<typeof artifactSchema>;
@@ -85,6 +105,7 @@ export type TaskPort = {
   ) => Promise<ProjectTaskOutputs[M]>;
 };
 export const isTaskMetadata = new Ajv().compile<TaskMetadata>(taskMetadataSchema);
+export const isFileEditOrigin = new Ajv().compile<FileEditOrigin>(fileEditOriginSchema);
 
 export type ProjectsInputs = {
   [M in keyof typeof projectsOperations]: FromSchema<(typeof projectsOperations)[M]['params']>;

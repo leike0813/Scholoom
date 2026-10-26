@@ -3,6 +3,8 @@ import type { FromSchema } from 'json-schema-to-ts';
 import type { projectHarnessOperations } from './project-contracts.js';
 
 export type Inputs = {
+  'files.changes': FromSchema<(typeof projectHarnessOperations)['files.changes']['params']>;
+  'files.edit': FromSchema<(typeof projectHarnessOperations)['files.edit']['params']>;
   'files.mkdir': FromSchema<(typeof projectHarnessOperations)['files.mkdir']['params']>;
   'files.operation': FromSchema<(typeof projectHarnessOperations)['files.operation']['params']>;
   'files.read': FromSchema<(typeof projectHarnessOperations)['files.read']['params']>;
@@ -25,6 +27,8 @@ export type Inputs = {
   'projects.list': FromSchema<(typeof projectHarnessOperations)['projects.list']['params']>;
 };
 export type Outputs = {
+  'files.changes': FromSchema<(typeof projectHarnessOperations)['files.changes']['result']>;
+  'files.edit': FromSchema<(typeof projectHarnessOperations)['files.edit']['result']>;
   'files.mkdir': FromSchema<(typeof projectHarnessOperations)['files.mkdir']['result']>;
   'files.operation': FromSchema<(typeof projectHarnessOperations)['files.operation']['result']>;
   'files.read': FromSchema<(typeof projectHarnessOperations)['files.read']['result']>;

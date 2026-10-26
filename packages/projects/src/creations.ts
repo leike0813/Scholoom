@@ -2,7 +2,7 @@ import { type BigIntStats, lstatSync, unlinkSync } from 'node:fs';
 import { lstat } from 'node:fs/promises';
 import { fileFingerprint } from '@scholoom/platform/node';
 import { OperationError } from '@scholoom/protocol/core';
-import type { FileEdit } from '@scholoom/protocol/projects';
+import type { FileEdit, FileEditOrigin } from '@scholoom/protocol/projects';
 import { eq } from 'drizzle-orm';
 import { byteBasis, type ProjectFileOwner, type ProjectFiles } from './files.js';
 import * as tables from './schema.js';
@@ -12,6 +12,7 @@ export type CreationOwner = {
   owner: string;
   sessionId?: string;
   runId?: string;
+  origin?: FileEditOrigin;
 };
 type Row = typeof tables.fileOperations.$inferSelect;
 interface CreationStore extends ProjectFileOwner {
@@ -148,6 +149,15 @@ export class ProjectCreations {
       )
         throw new OperationError('contentChanged', '原发布结果已变化。');
       this.store.check('write');
+      edit.afterEvidence = {
+        ref: { source: 'project', projectId: this.store.project.id, fileId },
+        basis: fileFingerprint(published),
+      };
+      this.store.db
+        .update(tables.edits)
+        .set({ value: edit })
+        .where(eq(tables.edits.id, edit.id))
+        .run();
       complete.details = {
         ...complete.details,
         creation: {

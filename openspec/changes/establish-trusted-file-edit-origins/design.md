@@ -2,7 +2,7 @@
 
 ## 变更总览
 
-本文件是M2的待审公共方案，**没有上线字段或实施授权**。引用[investigation](investigation.md)的真实调用链，复用projects深层保存模块、既有执行收据及原undo，接口只表达能够证明的事实。
+本文件为M2实施设计。2026-10-26用户关闭D1–D3并恢复本线实施：粗粒度可信来源、原整次FileEdit撤销、有界changes／edit与editId。HEAD77cd078已含0519904，来源见`/tmp/scholoom-sync-recovery-wyn13R/recovery.md`。复用projects保存模块和既有收据，精确工具token不实施。
 
 ```mermaid
 flowchart LR
@@ -19,7 +19,7 @@ flowchart LR
   Reader --> Save
 ```
 
-### 待主线决定的范围
+### 已确认范围
 
 | 决策 | 推荐及依据 | 替代／影响 |
 | --- | --- | --- |
@@ -27,22 +27,22 @@ flowchart LR
 | D2 局部undo粒度 | 采用既有“一次完整FileEdit”；保护完整after，新增revertsEditId | 差异块／选区撤销涉及映射、重复片段与重叠编辑，是新产品范围，另立设计后实施；不将其伪装成本次既有undo |
 | D3 查询及资源结果 | 采纳下述两个窄读取操作和项目资源结果的可选editId；manual resources.save继续返回原descriptor，可按实际输出依据核查所属修改 | 只扩FileEdit／原files.history也可先展示来源，但现路径式最近20条全文不支持可靠游标和缺口诊断，不能据此宣称负责Agent已取得完整变化 |
 
-D1–D3未确认前停止相关实施；下面是推荐方案的精确候选，不表示其他线已接受。
+D1采用粗粒度方案，D2采用整次编辑，D3采用有界查询和明确editId，均由本轮用户指令确认。下面字段在实施中按同源schema收敛；消费者是否已接入仍据实际结果判断。
 
 ## 方案与接口
 
 ### 来源与身份单一事实源
 
-候选声明集中在`protocol/src/project-file-contracts.ts`，从同一schema派生FileEdit及窄端口。所有字段只增加到结果／内部可信绑定，不加入普通公开保存参数：
+声明集中在`protocol/src/project-file-contracts.ts`，从同一schema派生FileEdit及窄端口。所有字段只增加到结果／内部可信绑定，不加入普通公开保存参数：
 
 | 候选字段 | 精确语义及提供者 |
 | --- | --- |
 | `FileEdit.origin?` | 缺省表示旧记录无法证明来源；不迁移猜测。新记录为下述human／system／execution／unknown之一 |
-| human | `{kind:'human',principalId}`，只由宿主实际product入口建立；连接身份不等于自然人实名 |
-| system | `{kind:'system',moduleId}`，内部适配已证明来源；外部程序改文件不能被自动标system |
-| execution | `{kind:'execution',sessionId,runId,instanceId,instructionContext,tool,delegation?}`。runId按现有含义记录，绝不由它推断实际父／子写入者 |
+| human | `{kind:'human',projectId,moduleId,principal:{kind:'human',id}}`，只由宿主实际调用身份建立；连接身份不等于自然人实名 |
+| system | `{kind:'system',projectId,moduleId,principal:{kind:'system',id}}`，内部适配已证明来源；外部程序改文件不能被自动标system |
+| execution | `{kind:'execution',projectId,moduleId,principal:{kind:'agent',id},sessionId,runId,instanceId,instructionContext,tool,delegation?}`。runId按现有含义记录，绝不由它推断实际父／子写入者 |
 | instructionContext | `{state:'observed',instructionIds:[...]}`或`{state:'unknown',reason:'notCaptured'|'recordUnavailable'}`；observed仅代表宿主确证交付给该推进的集合，不是因果或理由。最多100项，不从batch选一条。没有逐调用快照时为unknown，不能默认拿整个run当前集合 |
-| tool | `{state:'verified',receiptId}`或`{state:'unknown',reason:'notBound'|'notToolOperation'|'recordUnavailable'}`；receiptId是宿主持久收据的完整命名空间引用，不是任意provider callId。D1粗粒度阶段只输出unknown |
+| tool | 仅`{state:'unknown',reason:'notBound'|'notToolOperation'|'recordUnavailable'}`。精确作用域未实施，schema不接受verified／任意toolCallId |
 | delegation | 可选`{delegationId,parentInstanceId,parentRunId}`，宿主按childInstanceId核对实际delegations记录；child的session/run与父相同并不丢失child实例 |
 | unknown | `{kind:'unknown',reason}`，包括无法建立来源的内部保存；reason为结构化枚举，不用模型生成说明补证 |
 | `beforeEvidence?`、`afterEvidence?` | 原读取／实际发布后取得的ResourceEvidence；新建没有before，删除式创建撤销没有after。FileEdit.basis目前是byteBasis，不能直接转换为ResourceEvidence.basis；由所属文件实际stat取得后者 |
@@ -52,7 +52,7 @@ D1–D3未确认前停止相关实施；下面是推荐方案的精确候选，�
 
 ### 可信绑定与跨进程边界
 
-宿主在ManualApplication／KernelApplication的已验证CallContext处建立只读Origin，并在所属保存被受理时固定；projects独立组合只消费显式窄Origin参数，不依赖harness数据库。产品请求不能自行声明来源，执行上下文仍须核对项目、有效实例和信任。
+宿主在ManualApplication／KernelApplication的已验证CallContext处建立只读Origin，并在所属保存被受理时固定；projects独立组合只消费显式窄Origin参数，不依赖harness数据库。产品请求不能自行声明来源，执行上下文仍须核对项目、有效实例和信任。Kernel可注入可信`fileExecutionFacts`，核对project/session/run/instance完全一致后保留提供者的指令集合／委派链；本树尚无Agent私有委派提供者装配，默认instruction unknown且不补造delegation。绑定夹具只验seam，不称真实委派接入。
 
 如果选择D1精确分支：宿主工具中间件为已登记收据分配不透明作用域令牌；worker仅在该工具的异步链中转发令牌，新的execution.call在宿主核对实例、收据、仍有效的作用域及操作后还原来源。并发工具使用不同作用域，不能用进程全局“当前工具”。接收普通客户端origin、同run猜tool、把worker token直接当可信收据、在RPC结果回调补来源均不成立。作用域绑定尚无现成生产实现，需单独协议审查；未绑定请求只能记录粗粒度执行事实与unknown工具。
 
@@ -87,11 +87,11 @@ sequenceDiagram
 
 ### 有界查询、结果传播及undo
 
-- 候选`files.changes({projectId,fileId,afterEditId?,cursor?,limit?})`默认25、上限100，返回`{changes,nextCursor?,coverage}`。changes为摘要`{editId,fileId,createdAt,origin?,beforeEvidence?,afterEvidence?,revertsEditId?}`。cursor／nextCursor均为`{projectId,fileId,afterEditId?,throughEditId,beforeEditId}`：首次固定原锚点及已登记上界，后续按新到旧续页。带cursor时schema禁止再次提供顶层afterEditId，锚点只取cursor；要改锚点必须不带cursor重新开窗。提供者核对cursor所属项目／文件、上下界顺序及保留情况，窗口身份不匹配或已裁剪时明确失效，不能与新窗口拼页。不需要签名或新持久事务。
+- `files.changes({projectId,fileId,afterEditId?,cursor?,limit?})`默认25、上限100，返回`{changes,nextCursor?,coverage}`。changes为摘要`{editId,fileId,createdAt,origin?,beforeEvidence?,afterEvidence?,revertsEditId?}`。cursor／nextCursor为`{projectId,fileId,afterEditId?,anchor,fromEditId,throughEditId,beforeEditId}`：首次固定锚点状态、保留窗口最低记录及已登记上界，后续按新到旧续页。带cursor时schema禁止再次提供顶层afterEditId，锚点只取cursor；要改锚点必须不带cursor重新开窗。提供者核对所属项目／文件、上下界顺序及保留情况；即使through／before尚在，下界被裁剪也明确失效。开窗已缺失的锚点持续missing，可分页读取首屏固定范围；原matched锚点后续丢失则失效。不需要签名或新持久事务。
 - coverage为`{anchor:'notRequested'|'matched'|'missing',retention:'pruned'|'unknown',current:'matchesLatest'|'changedOrUnrecorded'|'unavailable'}`。新历史裁剪时在同事务的既有meta中保存所属fileId的裁剪标记；旧记录无标记只能unknown。锚点缺失不猜从未发生还是已裁剪。current比较的是文件当前强依据和最新已登记afterEvidence；只说明保留的领域记录，不承诺枚举所有外部写入。无任何历史时仍核对实际文件并返回空摘要及未知覆盖。
 - 候选`files.edit({projectId,fileId,editId})`返回单条原FileEdit，核对所属身份；正文仍受原大小及授权限制。实现前将上述分页窗口字段放入同一schema，并用旧history成本／裁剪行为核对，不新增无界全项目扫描。
 - `files.save`原FileEdit直接带关联；执行`ResourceSaveResult`和已确认项目创建结果拟增可选`editId`，仅在所属登记确认后设置。`ResourceDescriptor`不加入编辑事件身份。旧结果缺省不可猜；人工resources.save调用方可按当前强afterEvidence从changes核对候选，再以files.edit取明确信息。
-- `files.undo`保持现有editId整次语义；新增撤销origin及revertsEditId。创建撤销的记录也在原文件锁内，不能绕过后续内容保护。没有hunk参数，没有自动启动原Agent。
+- `files.undo`保持现有editId整次语义；新增撤销origin及revertsEditId。锁内核对稳定fileId、完整after及已有byteBasis，再以当前强依据保护发布；内部单文件改名的ctime变化不会误阻止撤销，实体／内容变更仍拒绝。创建撤销同样核对，并将新历史与缺失身份同事务；移走文件后登记失败为outcomeUnknown。没有hunk参数，没有自动启动原Agent。
 - 负责Agent通过新增只读工具消费当前授权项目的changes／edit，见到撤销后按实际用户新指令处理；未查询、已查询与实际采用不能混为一谈。本方案不持久化科研“已解决”状态，也不自动发送跨会话消息。子委派首批不开放任意文件历史；如确需读取，须沿精确材料版本和自身结果范围限制，不以同ref扩大授权。
 
 ## 文件变化
@@ -108,10 +108,10 @@ sequenceDiagram
 
 ## 验证与风险
 
-上述全部是实施后的计划，本轮没有跑M2新行为。最小样本：人工保存；同run双指令输出集合或unknown；两个并发工具不串来源；子实例保留parent映射；原创建查询不换来源；任务与资源保存沿同一记录；历史事务失败保留落盘文件且unknown；旧记录／裁剪／外部变更如实诊断；后续修改拒绝undo，安全undo形成独立edit。精确作用域分支另测伪造、跨实例、过期、重放及IPC回调，不得依赖同进程ALS测试通过。
+最小样本：人工保存、真实worker粗粒度来源及下一条指令查询人工更改；可信提供者seam中的多指令集合／四元组不符；原创建查询不换来源；任务与资源保存沿同一记录；历史事务失败保留落盘文件且unknown；旧记录／裁剪／外部变更如实诊断；内部改名后整次undo及后续修改拒绝。实际命令、首次失败与最终结果以delivery为准。精确工具令牌和真实委派提供者没有上线验证。
 
 只读来源不改变授权；涉及正文历史读取要复查项目及模型外发权限。保留原历史上限与单条正文界限，不因溯源保存全部模型输入或建立永久完整审计。独立审查直接核对实际回执、领域记录和保存故障，不以模型自述作预期。Linux本机通过不能替代三平台验收。
 
 ## 待办边界
 
-D1–D3及公共接入未获确认前，不实施或传播候选字段。M2不等于I5完成；阅读线后续消费、差异块撤销、科研意见状态机和完整历史审计均不在本轮。schema ready只表示规划工件存在，不是契约已批准。
+D1–D3已确认，公共基线已同步；本轮交提供者局部闭环和独立补丁。M2不等于I5完成；阅读线后续消费、Agent真实委派／逐推进事实提供者、差异块撤销、科研意见状态机和完整历史审计均保留后续边界。schema ready不代表真实跨域验收。

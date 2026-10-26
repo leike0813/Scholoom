@@ -6,6 +6,7 @@ import { projectSchema, projectsOperations, projectTaskOperations } from './proj
 import { researchOperations } from './research.js';
 import { resourceCreationOperations, resourceOperations } from './resources.js';
 import { array, count, flag, id, object, page } from './schema.js';
+import { taskGraphOperations } from './task-graph-contracts.js';
 import { workbenchContextOperations } from './workbench-context.js';
 
 const scope = {
@@ -50,6 +51,7 @@ export const businessSchemas = {
   ...modelsOperations,
   ...projectsOperations,
   ...projectTaskOperations,
+  ...taskGraphOperations,
   ...harnessOperations,
   ...libraryOperations,
   ...researchOperations,
