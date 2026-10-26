@@ -32,6 +32,10 @@ export function isContextItems(value: unknown): value is ContextItem[] {
       (item) =>
         (item.comment?.length ?? 0) <= contextLimits.commentUnits &&
         (item.kind !== 'text' || item.quote.length <= contextLimits.excerptUnits) &&
+        (item.kind !== 'text' ||
+          !item.location ||
+          !('kind' in item.location) ||
+          item.location.end > item.location.start) &&
         (item.kind !== 'object' || item.semantics.length <= contextLimits.excerptUnits),
     ) &&
     items.every(

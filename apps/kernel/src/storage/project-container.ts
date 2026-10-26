@@ -16,6 +16,114 @@ export async function initializeProjectContainer(
   internal: string,
 ): Promise<void> {
   const version = database.pragma('user_version', { simple: true }) as number;
+  if (version > 6) throw new Error('Newer database');
+  if (version < 5) await initializeDelegationContainer(database, internal);
+  // v5 has one meaning: the reviewed delegations migration, never the unpublished program-only draft.
+  database
+    .prepare(
+      'SELECT seq,id,session_id,parent_run_id,child_instance_id,value FROM delegations LIMIT 0',
+    )
+    .all();
+  if (
+    database
+      .prepare(
+        "SELECT name FROM sqlite_master WHERE type='index' AND tbl_name='delegations' AND name IN ('delegations_session','delegations_parent')",
+      )
+      .all().length !== 2
+  )
+    throw new Error('Invalid v5 delegation schema; preserve the original profile for inspection');
+  if (version === 6) {
+    database.prepare('SELECT id,created_at,value FROM program_runs LIMIT 0').all();
+    return;
+  }
+  if (version > 0) {
+    const source = join(internal, 'before-migration-v6.sqlite');
+    try {
+      const info = await lstat(source);
+      if (!info.isFile() || info.isSymbolicLink())
+        throw new Error('Unsafe program migration backup');
+      const saved = new Database(source, { readonly: true, fileMustExist: true });
+      try {
+        if (
+          saved.pragma('user_version', { simple: true }) !== 5 ||
+          saved.pragma('quick_check', { simple: true }) !== 'ok'
+        )
+          throw new Error('Invalid program migration backup');
+      } finally {
+        saved.close();
+      }
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+      const temporary = join(internal, `.migration-${randomUUID()}.sqlite`);
+      try {
+        await database.backup(temporary);
+        await chmod(temporary, 0o600);
+        await link(temporary, source);
+      } finally {
+        await unlink(temporary).catch(() => {});
+      }
+    }
+  }
+  database.transaction(() => {
+    database.exec(
+      'CREATE TABLE program_runs (id TEXT PRIMARY KEY NOT NULL, created_at TEXT NOT NULL, value TEXT NOT NULL); PRAGMA user_version = 6;',
+    );
+  })();
+}
+
+async function initializeDelegationContainer(
+  database: Database.Database,
+  internal: string,
+): Promise<void> {
+  const version = database.pragma('user_version', { simple: true }) as number;
+  if (version > 5) throw new Error('Newer database');
+  if (version === 5) return;
+  await initializeTrustContainer(database, internal);
+  if (version > 0) {
+    const source = join(internal, 'before-migration-v5.sqlite');
+    try {
+      const info = await lstat(source);
+      if (!info.isFile() || info.isSymbolicLink())
+        throw new Error('Unsafe delegation migration backup');
+      const saved = new Database(source, { readonly: true, fileMustExist: true });
+      try {
+        if (
+          saved.pragma('user_version', { simple: true }) !== 4 ||
+          saved.pragma('quick_check', { simple: true }) !== 'ok'
+        )
+          throw new Error('Invalid delegation migration backup');
+      } finally {
+        saved.close();
+      }
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+      const temporary = join(internal, `.migration-${randomUUID()}.sqlite`);
+      try {
+        await database.backup(temporary);
+        await chmod(temporary, 0o600);
+        await link(temporary, source);
+      } finally {
+        await unlink(temporary).catch(() => {});
+      }
+    }
+  }
+  database.transaction(() => {
+    database.exec(`CREATE TABLE delegations (
+      seq INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+      id TEXT NOT NULL UNIQUE, session_id TEXT NOT NULL,
+      parent_run_id TEXT NOT NULL, child_instance_id TEXT NOT NULL UNIQUE, value TEXT NOT NULL
+    );
+    CREATE INDEX delegations_session ON delegations(session_id, seq);
+    CREATE INDEX delegations_parent ON delegations(parent_run_id);
+    PRAGMA user_version = 5;`);
+  })();
+}
+
+async function initializeTrustContainer(
+  database: Database.Database,
+  internal: string,
+): Promise<void> {
+  const version = database.pragma('user_version', { simple: true }) as number;
   if (version > 4) throw new Error('Newer database');
   if (version === 4) return;
   await initializeLegacyContainer(database, internal);
