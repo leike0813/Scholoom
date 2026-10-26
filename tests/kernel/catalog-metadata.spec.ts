@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
 import {
+  catalogDateParts,
+  editCatalogDatePart,
   editCatalogField,
   moveCatalogCreator,
 } from '../../apps/desktop/src/renderer/src/workbench/library/catalog-metadata.js';
@@ -20,6 +22,50 @@ test('typed field edits preserve unknown CSL values and type-specific fields', (
   expect(book).toEqual({ ...before, title: '新题名', type: 'book' });
   expect(before.title).toBe('原题名');
   expect(editCatalogField(book, 'DOI', '')).toEqual(book);
+});
+
+test('simple CSL date edits preserve precision and leave complex dates and unrelated values intact', () => {
+  const original = {
+    title: '独立日期样本',
+    issued: { 'date-parts': [[2024, 2, 29]] },
+    accessed: { literal: '2026年秋', extension: { original: true } },
+    submitted: {
+      'date-parts': [
+        [2025, 1],
+        [2025, 3],
+      ],
+      circa: true,
+    },
+    extension: { retained: ['原值'] },
+  };
+  expect(catalogDateParts(original.issued)).toEqual([2024, 2, 29]);
+  for (const date of [
+    original.submitted,
+    { 'date-parts': [[2024, 2]], season: 1 },
+    { 'date-parts': [[2024, 2]], raw: '春' },
+    { 'date-parts': [[2024, 13]] },
+    { 'date-parts': [[-44]] },
+  ])
+    expect(catalogDateParts(date)).toBeUndefined();
+  const changed = editCatalogDatePart(original, 'issued', 2, '28');
+  expect(changed).toEqual({ ...original, issued: { 'date-parts': [[2024, 2, 28]] } });
+  expect(editCatalogDatePart(changed, 'issued', 1, '')).toEqual(changed);
+  expect(editCatalogDatePart(changed, 'issued', 1, '13')).toEqual(changed);
+  expect(editCatalogDatePart(original, 'submitted', 0, '2026')).toEqual(original);
+  const month = editCatalogDatePart(changed, 'issued', 2, '');
+  expect(month.issued).toEqual({ 'date-parts': [[2024, 2]] });
+  const year = editCatalogDatePart(month, 'issued', 1, '');
+  expect(year.issued).toEqual({ 'date-parts': [[2024]] });
+  const cleared = editCatalogDatePart(year, 'issued', 0, '');
+  expect(cleared).toEqual({
+    title: original.title,
+    accessed: original.accessed,
+    submitted: original.submitted,
+    extension: original.extension,
+  });
+  expect(editCatalogDatePart(cleared, 'issued', 0, '2026').issued).toEqual({
+    'date-parts': [[2026]],
+  });
 });
 
 test('creator role changes move the complete object and preserve order and name particles', () => {

@@ -28,8 +28,10 @@ export class WorkbenchContextStore {
       connection.snapshot = null;
       return;
     }
-    if (!isWorkbenchContextSnapshot(snapshot))
+    if (!isWorkbenchContextSnapshot(snapshot)) {
+      connection.snapshot = null;
       throw new OperationError('invalidRequest', '工作台上下文超出容量或不符合契约。');
+    }
     if (snapshot.revision <= connection.revision) return;
     connection.snapshot = structuredClone(snapshot);
     connection.revision = snapshot.revision;

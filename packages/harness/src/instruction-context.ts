@@ -5,6 +5,7 @@ import type {
   WorkbenchContextOutputs,
   WorkbenchSource,
 } from '@scholoom/protocol/harness';
+import type { LibraryModuleInputs, LibraryModuleOutputs } from '@scholoom/protocol/library';
 import type { ExecutionResourcePort, ResourceEvidence } from '@scholoom/protocol/resources';
 
 type SnapshotResult = Exclude<
@@ -12,6 +13,12 @@ type SnapshotResult = Exclude<
   { state: 'ambiguous' }
 >;
 export type ContextBridge = {
+  catalog?: (context: CallContext) => {
+    read: (
+      input: LibraryModuleInputs['library.selection'],
+    ) => Promise<LibraryModuleOutputs['library.selection']>;
+    check: (libraryId: string) => void;
+  };
   read: (
     source: WorkbenchSource | undefined,
     receiver: { projectId: string; sessionId: string },
@@ -71,6 +78,15 @@ export async function readInstructionContext(
   if (result.snapshot.selectedItems.some((id) => !evidenced.has(id)))
     throw new OperationError('unavailable', '选择条目的资源授权适配尚未接线。');
   await authorizeContextItems(bridge, context, result.snapshot.selections);
+  if (result.snapshot.catalogSelection) {
+    const catalog = bridge.catalog?.(context);
+    if (!catalog) throw new OperationError('unavailable', '题录选择提供者尚未接线。');
+    const selection = result.snapshot.catalogSelection;
+    catalog.check(selection.libraryId);
+    const verified = await catalog.read({ libraryId: selection.libraryId, items: selection.items });
+    catalog.check(selection.libraryId);
+    return { ...result, catalog: verified, instructionId: selected.instructionId };
+  }
   return { ...result, instructionId: selected.instructionId };
 }
 

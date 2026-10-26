@@ -4,7 +4,9 @@ import type {
   LibraryEntry,
   LibraryInputs,
   LibrarySource,
+  OriginalRecord,
   ReadingRecord,
+  RecordReceipt,
 } from '@scholoom/protocol/library';
 import { sql } from 'drizzle-orm';
 import { index, integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
@@ -22,6 +24,44 @@ export const libraryMeta = sqliteTable('meta', {
   key: text().primaryKey(),
   value: text().notNull(),
 });
+
+export const sourceInstances = sqliteTable('source_instances', {
+  id: text().primaryKey(),
+  requestId: text().notNull().unique(),
+  request: text().notNull(),
+  label: text().notNull(),
+});
+export const originalRecords = sqliteTable(
+  'original_records',
+  {
+    identity: text().primaryKey(),
+    sourceId: text().notNull(),
+    value: text({ mode: 'json' }).$type<OriginalRecord>().notNull(),
+  },
+  (t) => [index('original_source').on(t.sourceId, t.identity)],
+);
+export const citationKeys = sqliteTable('citation_keys', {
+  sourceId: text().primaryKey(),
+  normalized: text().notNull().unique(),
+  value: text().notNull(),
+  pinned: integer({ mode: 'boolean' }).notNull(),
+});
+export const recordOperations = sqliteTable('record_operations', {
+  requestId: text().primaryKey(),
+  request: text().notNull(),
+  value: text({ mode: 'json' }).$type<RecordReceipt>().notNull(),
+});
+export const recordHistory = sqliteTable(
+  'record_history',
+  {
+    seq: integer().primaryKey({ autoIncrement: true }),
+    sourceId: text().notNull(),
+    revision: integer().notNull(),
+    kind: text({ enum: ['original', 'key'] }).notNull(),
+    value: text({ mode: 'json' }).$type<unknown>(),
+  },
+  (t) => [index('record_history_source').on(t.sourceId, t.seq)],
+);
 export const sources = sqliteTable(
   'sources',
   {

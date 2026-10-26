@@ -371,6 +371,15 @@ export class ManualApplication {
     );
     this.registerProjectHandlers('manual', this.foundationHandlers);
     this.broker.register('library-internal', {
+      'library.selection': (input, context) => {
+        this.instructionResources(context).check([], true);
+        return this.library.selection(input);
+      },
+      'library.checkSelection': (input, context) => {
+        this.instructionResources(context).check([], true);
+        this.library.checkSelection(input);
+        return { ok: true };
+      },
       'library.check': ({ access }) => {
         this.library.check(access);
         return { ok: true };
@@ -984,6 +993,11 @@ export class ManualApplication {
     'library.status': async () => {
       return this.library.status();
     },
+    'library.createSourceInstance': async (input) => this.library.createSourceInstance(input),
+    'library.record': async (input) => this.library.record(input),
+    'library.recordHistory': async (input) => this.library.recordHistory(input),
+    'library.commitRecords': async (input) => this.library.commitRecords(input),
+    'library.commitResult': async (input) => this.library.commitResult(input),
     'library.grant': async (input) => {
       return this.library.grant(input);
     },

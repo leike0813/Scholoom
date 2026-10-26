@@ -1,6 +1,79 @@
 # 实际交付与交接
 
-## 第二阶段当前交接
+## 2026-10-26 round4：明确映射的B批编辑子范围
+
+主线已在`/tmp/scholoom-round4-acceptance-JCUBNw/acceptance.md`独立接收下文X1及原值／来源／键／事务首片。本轮完成新增子任务**4.1b／4.2b，当前16/22**；原4.1／4.2父任务、5.3、1.4及6.x仍开放，不称整个change或B批完成。HEAD仍为70be8bf，0519904祖先；全部原未提交成果保留。本轮没有同步、提交／推送／PR／归档、安装依赖或真实库写入。
+
+### 当前成果与文件
+
+- `packages/protocol/src/library-metadata.ts`沿唯一编辑目录补20个直接文本字段、17个唯一角色及适用CSL类型，总计32类型／35文本字段／21角色／4日期键。原四角色及开放metadata不收窄；既有非字符串值与不适用字段保留，不从CSL反猜原Zotero类型。来源、精确证据及未支持别名在investigation首节。
+- `CatalogItemForm.tsx`及`catalog-metadata.ts`沿同一完整JSON草稿提供新增角色、字段及简单单端点date-parts的年／年月／年月日编辑；已有日期不自动转换，清中间精度不会删除后续值。复杂日期只读核查并保留JSON入口，literal附属属性保留；创建者角色移动保留完整姓名对象。继续原ingest／update、revision及草稿保护，没有另一套原值权威、接口或迁移。
+- 扩展既有`tests/kernel/{catalog-metadata,literature-catalog}.spec.ts`及`tests/ui/library.spec.ts`；仅新增一个日期行为测试和一个双宿主场景，领域重启样本复用原用例。手动book录入原出版者／总页数／丛书编辑／数字日期→更正、完整姓名移到editor、切journal并录PMID→真实保存；合成原值／来源／固定键、未知嵌套和复杂日期不变，外部更正冲突保留草稿。内核真正关闭／重开领域库后再核对历史及权威，不以刷新页面代替领域重启。
+- 同步原design／investigation／delta spec／tasks及开发说明、文献UI分节，清理当前设计中的旧基线等待、未收到E1／R1及候选X1说明。下方分阶段历史记录保留其当时结果，当前状态以本节及tasks为准。变更总览已将X1连线改为真实已接入，右栏仍为待共同槽位。
+
+### 实际验证
+
+证据根`/tmp/scholoom-library-round4-LRNQ1I/`。Linux、Node24／现有锁定依赖；内部library、broker、JSON-RPC、Browser与真实Electron均真实，配置／项目／库均为隔离合成样本。此次路径无模型需求，既有会话夹具模型仍为受控响应，不新增科研质量结论。先完成共享和桌面构建，再冻结产物运行最终内核及UI，期间只更新规划／文档。
+
+| 命令／范围 | 实际结果／证据 |
+| --- | --- |
+| `pnpm --config.optimisticRepeatInstall=false build:shared`及`pnpm --config.optimisticRepeatInstall=false --filter @scholoom/desktop build` | 通过，`build-shared.log`／`build-desktop.log`；包括当前正式源码的protocol、library、harness及kernel。未安装依赖。 |
+| `node node_modules/typescript/bin/tsc --noEmit -p apps/desktop/tsconfig.json`及`-p tsconfig.tools.json` | 最终通过，`types-{desktop,tools}-final.log`（空日志／exit0）；共享类型随前述构建通过。 |
+| `node node_modules/@playwright/test/cli.js test --config playwright.kernel.config.ts tests/kernel/catalog-metadata.spec.ts tests/kernel/literature-catalog.spec.ts tests/kernel/library-records.spec.ts --output=test-results/library-round4-kernel-final` | **12/12，8.2秒**，`kernel-final.log`。简单日期／未知值／姓名顺序、真实领域修订／重启／历史、原值／来源／固定键及原子事务回归；没有重跑已接收的X1整套53项。 |
+| `SCHOOLOOM_UI_PORT=5725 SCHOOLOOM_UI_DATA_DIR=<证据根>/profile-first xvfb-run -a node node_modules/@playwright/test/cli.js test --config <证据根>/ui.config.mts tests/ui/library.spec.ts --grep 'manual typed fields' --workers=1` | **2/2，42.0秒**，`ui-first.log`／`ui-first/`。新场景首跑两宿主均通过。 |
+| 同上静态承载，改端口5727／profile-final／ui-final.config.mts，去掉grep运行完整`tests/ui/library.spec.ts --workers=1` | **10/10，2.5分钟**，`ui-final.log`／`ui-final/`。包含原有未知值、稳定选择／集合分页／列、会话草稿、多窗口及迟到保存／冲突。复用既有static-ui.mjs服务构建后的renderer，不启动开发服务器。 |
+| 6个变动源码／测试文件Biome、`node scripts/check-architecture.ts` | 通过，`lint-final.log`；13模块205文件0 findings／exceptions，`architecture.log`。 |
+| 生成器`--self-test`及`--patch`只读核对 | 通过，`generator-self-test.log`、`generated-dry-run.patch`、`generated-check.log`。6个输出映射经既有Biome格式化后与现源码一致，其余未输出变更；本轮未增加操作或修改生成映射。 |
+| 两change `openspec validate <name> --strict`、`openspec schema validate scholoom-dev`及diff | 校验与收尾结果见同目录`openspec-*.log`、`diff-check.log`及补丁检查。仅修改本change delta，不同步正式规格。 |
+
+最初helper探针`red.log`实际3项已通过，**没有发生本轮业务红灯，不声称红→绿**。构建完成前的中间内核12通过保留在`kernel.log`，最终依据为构建后`kernel-final.log`。首次Biome发现测试import排序，两处用apply_patch调整后6文件通过；未改测试超时、授权断言或分页逻辑。首次及最终日志全部保留为诊断工件。
+
+同一原生辅助Agent保持gpt-6.1-sol/high，仅拥有声明文件的确定性编辑及窄只读审查；主Agent决定范围、实现表单和验收。窄审查确认复杂日期不会进入数字编辑、局部日期模式不改已有值、姓名完整移动及新旧角色边界，无新增确证风险；审查未运行测试，以上实跑由主Agent完成。辅助Agent已关闭，两轮静态宿主退出，profile-first／profile-final内核status均stopped，5725／5727无监听；不操作他树进程。
+
+### 补丁、依赖及停止点
+
+本轮13文件的逐文件前像保存在`<证据根>/before/`，文件清单为`files.json`。`<证据根>/patches/`提供**仅相对本轮前像的增量**，不是包含round3所有既有成果的HEAD diff：0001公共编辑声明→0002表单／日期→0003回归及文档交接。完整依赖及应用检查见目录README和manifest；0003的record／commitRecords回归依赖已验收round3 authority首片。当前真实树已包含这些前置，未把临时载荷检查当作另一基线的构建验收。进入dev仍由主线按符号接入原round3公共提供者及UI后叠加本轮增量。
+
+剩余精确边界：别名／多对一字段、缺少显式映射的原主要角色、复杂日期及Extra逆转换，需精确utilities样本或必要领域决定；暂时保留原值，不猜填。现无阻塞本轮已闭合子范围的新产品决定。5.3待真实项目共同槽位，Windows既有CI阶段诊断及整体I6未关闭；生态HostCatalog、完整BBT事务、来源重绑定UI、创建／删除事务均不在本轮。没有Windows／macOS、全仓CI、真实科研质量新增通过结论。达到授权边界停止。
+
+## 2026-10-26 同步后恢复
+
+用户明确恢复；只读核对HEAD为`70be8bfcda5ab1453c20428f9eb3b367d90ed0b7`、0519904祖先、工作区clean。原成果及暂停前四份OpenSpec更新均保留。主线同步证据`/tmp/scholoom-sync-recovery-wyn13R/{recovery.md,synchronized.json}`报告本树构建、相关类型／架构／映射、内核11/11和UI4/4；这些是同步及已有切片验证，不是本轮X1／事务提供者完成。旧的等待用户手动同步和临时组合条件被恢复指令替代，后续只以当前正式源码为工作点。
+
+## 本轮X1实际交付
+
+本轮完成1.2、5.1、5.2，当前**14/20**；原4.1／4.2完整类型映射、5.3右栏、1.4 Windows及6.x整体交付仍开放，不称完整B批。未提交／推送／PR／归档，未安装依赖、写真实用户库或操作其他真实工作树。
+
+- `protocol/catalog-selection.ts`为同源DTO与结构／语义校验，workbench快照增加可选catalogSelection，工具结果增加可选catalog确认。100题录独立于16显式材料，完整快照仍64KiB；主选／范围／唯一身份／安全整数明确，无附件也可贡献，不造ResourceRef。
+- `LiteratureCatalog.selection`按请求身份仅读sourceId／revision，最多100次精确索引读取，不展开metadata／附件、不全库扫描；库身份及read/send在读取前后核对。观察修订保留，当前修订单列，变化为changed；任何缺项／撤权整体失败。
+- `ManualApplication`注册library.selection／checkSelection；`KernelApplication`将可信上下文绑定到窄broker读取及同步核查。保留现有资源权限、连接source及receiver。harness在返回工具结果前持久记录实际库身份及已用库标记，原会话不能悄悄切到新库；普通、registered Graph及共用模型的capability在排队前后、最终同步和恢复／重新准入沿同一授权复查。没有只在工具入口检查一次。
+- `ContextContributionProvider`独立发布catalog，LibraryTab从同一UUID选择及当前已加载范围贡献；切页／加载／清空及卸载沿原生命周期。Workbench仅新增活动library视图条件，库浏览不改变会话接收者。共享来源／历史、project公共v5→v6迁移、projectId与双窗口fixture、阅读位置／区域／草稿对象及资源叶schema均保留。
+- 原值／正式键／事务首片由独立change真实实施，见[其delivery](../define-library-zotero-record-authority/delivery.md)；不混成B批表单任务或声称生态真实接入。
+
+### 本轮实际验证
+
+先构建共享、protocol、library、harness、kernel及desktop；UI期间冻结源码与共享产物。Linux／现有锁定依赖／独立profile与合成库，真实库、broker、worker、JSON-RPC和双宿主，模型为既有loopback受控HTTP，未做真实科研质量验收。
+
+| 入口 | 结果与证据 |
+| --- | --- |
+| 共享／桌面构建；protocol／kernel／desktop／tools类型检查 | 最终通过。首次遗漏新增操作生成映射；随后模块映射泛型／宽调用联合触发TS实例化过深，采用逐操作FromSchema和窄broker端口修复，没有any兜底或放宽schema。构建／类型日志位于`/tmp/scholoom-library-round3-*.log`，精确命令见对应日志及authority delivery。 |
+| `catalog-context-contracts`、`library-context`及records／migration／原catalog／context-query／context-resources／registered-context组合 | **53/53，348.3秒，0 skipped／flaky**。`node node_modules/@playwright/test/cli.js test --config playwright.kernel.config.ts tests/kernel/{catalog-context-contracts,library-context,library-records,library-record-migration,literature-catalog,catalog-metadata,catalog-selection,context-query,context-resources,registered-context}.spec.ts --output=test-results/library-round3-final --reporter=json`；结果`/tmp/scholoom-library-round3-kernel-final.json`与stderr。 |
+| 新X1权限回归 | 真实100题录及17项、陈旧revision、跨库／notFound／撤权；实际工具取回后在模型队列等待期间撤权，及异步授权后最终同步准入撤权，后续HTTP均不发送；重启的新指令仍拒绝。定向**3/3**，`/tmp/scholoom-library-round3-admission.log`，也包含在最终53项中。 |
+| 新题录上下文双宿主 | **2/2，1.2分钟**，17条实际多选、分页后在工具调用时取得最新主选／范围、无附件、receiver不变；`/tmp/scholoom-library-round3-ui-first.log`，`test-results/ui-5721`。 |
+| 库与共同上下文双宿主回归 | **16/16，6.7分钟**：`SCHOOLOOM_UI_PORT=5723 SCHOOLOOM_UI_DATA_DIR=/tmp/scholoom-library-round3-ui-regression xvfb-run -a node node_modules/@playwright/test/cli.js test --config playwright.ui.config.ts tests/ui/library.spec.ts tests/ui/context-bridge.spec.ts --workers=1`。日志`/tmp/scholoom-library-round3-ui-regression.log`，工件ui-5723；保留显式材料、文本位置、模型读取、重载、迟到回执、稳定选择、列／导航、双窗口草稿及原类型化CSL。 |
+| 架构／生成器／lint／OpenSpec | architecture为13模块205文件0 findings／exceptions；生成器self-test及6份格式化映射一致性通过。相关24文件Biome最终通过，单条测试格式再次调整后专项通过；两change strict与diff通过，收尾再查新增文件。 |
+
+新测试首次红灯为旧构建缺少selection／catalog字段，证据`/tmp/scholoom-library-round3-red.log`。没有为基线CI失败加超时；本轮未出现新UI失败。临时测试／格式化payload和所有首次失败日志保留为诊断工件，不成为生产依赖。
+
+### 审查与公共补丁
+
+同一原生Agent保持gpt-6.1-sol/high，辅助仅拥有DTO／迁移夹具明确文件；权限架构、事务与最终验收由主Agent负责。最终独立只读复核未发现X1授权／恢复新确证风险，确认Graph与capability共用模型准入路径。其发现的candidate固定状态问题在另一个change修复并实际回归；静态审查不代替运行结果。
+
+`/tmp/scholoom-literature-round3-patches-EBWcGa/`：**0001-public-catalog-selection.patch → 0002-public-record-authority.patch**，独立公共提供者不依赖私有文献UI。0003-workbench-catalog-consumer.patch依赖0001与本线70be8bf既有UI。公共两片已对0519904受影响文件逐项应用检查；这只是补丁载荷检查，未建立另一源码组合或以其冒充当前树验证。实际构建／测试均在当前已同步树。完整依赖、拥有符号及限制见目录README。
+
+新公共X1与权威提供者尚待主线接入dev及真实消费者同步；不再重复等待本轮已完成的0519904基线同步。右栏、完整映射、来源重绑定UI、完整BBT／SQL／生态生产及Windows／macOS、分发、全仓CI、真实模型科研效果保持开放。达到本轮有界任务后停止，不自动展开下一阶段。
+
+## 第二阶段交接（2026-10-25历史记录）
 
 本轮依用户“主线验收及下一阶段协调”指令继续同树、同change，配置保持Codex／gpt-6.1-sol／high。正式消费主线 `/tmp/scholoom-phase2-handoff-VZS5mS/acceptance.md`、`coordination-plan.md`、manifest及源工件快照；没有操作他树或跨树发送消息。第一阶段局部范围主线接收，无确认本线缺陷。当前任务 **11/20**（含独立子任务），完整4.1／4.2和5.x／6.x仍开放。以下为本轮新增，后面的第一阶段记录保留为实际历史，不能以其当时的“未转交”覆盖本节。
 

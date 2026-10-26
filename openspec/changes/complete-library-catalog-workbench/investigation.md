@@ -1,5 +1,25 @@
 # 调查依据
 
+## 2026-10-26 round4续做事实
+
+当前HEAD为`70be8bfcda5ab1453c20428f9eb3b367d90ed0b7`，`0519904`（含b838402）已为祖先。实际同步证据在`/tmp/scholoom-sync-recovery-wyn13R/{recovery.md,synchronized.json}`；主线`/tmp/scholoom-round4-acceptance-JCUBNw/acceptance.md`独立接收本树X1及原值／来源／正式键／有界事务首片，未接入dev。以下第二阶段及共同起点均为历史调查，不能覆盖当前实现状态。本轮未访问其他真实工作树或读取／打断仍工作的research-task-workspace。
+
+本轮精确复用`/tmp/scholoom-phase2-handoff-VZS5mS/zotero-ecosystem/openspec/changes/connect-zotero-host-bbt/evidence/zotero-10.0.5-mapping.json`及同目录investigation。固定Zotero10.0.5、schema44 `70c3aa98627413d6a30dca955886eafbde085ce9`、utilities `1dd38e27edf81e9d9c4161c957b7efb7f5681ac3`；仅静态读取已正式交接的上游提取结果，未运行Zotero或生态HostCatalog。
+
+| 独立上游证据 | 闭合范围及限制 |
+| --- | --- |
+| csl.type有32个唯一值，broadcast／document／motion_picture／personal_communication含多种原类型 | 既有32类型目录已覆盖，类型控件只改metadata.type；原Zotero类型读library.record.originals，不从CSL反猜。 |
+| csl.fields中20个剩余唯一文本目标，结合itemTypes.fields及baseField得到适用CSL类型并集 | 增至35字段。代表样本book.originalPublisher→original-publisher、numPages→number-of-pages、journalArticle.PMID→PMID；不把并集反推成原类型身份或逆向写回。完整清单见design首节与唯一声明。 |
+| csl.names显式唯一目标17个，creatorTypes及itemTypes决定适用集合 | 增至21角色；seriesEditor→collection-editor、director→director、castMember→performer可明确声明。原四角色不收窄；不将原生performer误作castMember，不将缺少显式映射的inventor等13种原主要角色猜填author。姓名粒子及扩展对象完整保留，组内顺序不等于Zotero跨角色orderIndex。 |
+| 日期存在原字符串、partial／range、raw／circa／season等形状；filingDate→submitted只明确字段目标 | 增加CSL自身单端点date-parts的有限数字编辑，不自动解析filingDate或其他原字符串。复杂日期及附属属性保留，literal已有扩展属性沿原路径保留。数字只检查分量范围，不宣称历法校验／转换。 |
+| call-number／collection-title／dimensions／event-title／genre／medium／references／section及shortTitle双输出存在别名／多对一，Extra另经extraToCSL | 本轮不提供这些逆转换。未知／不支持值及开放metadata保留，正式键及固定状态继续由library权威承担，不在UI另造metadata协议。 |
+
+来源副本默认新实例／明确重绑定、正式键大小写不敏感冲突及有界多对象原子提交已有用户决议和本树真实首片，不再列为等待产品政策。完整生态事务和来源重绑定UI仍未交付；本轮不修改这些提供者，仅用真实record／commitRecords种入合成原值以检查表单隔离。
+
+分页误报已由主线实跑撤回：共同listPage的512KiB预算对40条约60KiB原值只返回8条／481791字节并给出nextOffset。本轮没有改分页。复用主线`verification-plan.json`及`literature-workbench/ui.config.mts`的本线验证范围，自己生成的静态承载配置位于`/tmp/scholoom-library-round4-LRNQ1I/`，读取本树构建产物及既有`/tmp/scholoom-sync-recovery-wyn13R/static-ui.mjs`。运行／首次探针及最终证据见delivery，不将读取设计当作真实提供者消费。
+
+当前只剩完整映射／复杂原值转换的精确证据、5.3真实项目右栏、1.4目标Windows诊断和整体6.x验收；X1以及0519904消费门已具备实际证据。原4.1／4.2父任务继续开放，局部4.1b／4.2b独立交付。
+
 ## 第二阶段正式交接与闭合范围
 
 2026-10-25 用户正式提供 `/tmp/scholoom-phase2-handoff-VZS5mS/`，允许只读消费包内其他线工件。`manifest.json`列明各源树共同基线`e3d58fc807827a78493dcd16e38de28c8d02766e`；本树未切分支、没有访问其他工作树实体或会话。`acceptance.md`接收本线2.1／2.2／3.1／3.2，未确认本线缺陷；主线实际重跑内核8/8、双宿主6/6，不把此局部结果当整个B批完成。`coordination-plan.md:180`起为本轮公共接入顺序依据。

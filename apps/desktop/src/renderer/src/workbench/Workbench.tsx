@@ -669,7 +669,13 @@ function WorkbenchContent({ session }: { session: WorkbenchSession }) {
       updateContextComment={session.updateContextComment}
       contextError={session.contextError}
       publishContext={session.publishContext}
-      activeViewId={activeResource ? activeGroupId : null}
+      activeViewId={
+        activeResource
+          ? activeGroupId
+          : activeGroup?.tabs.find((tab) => tab.id === activeGroup.activeId)?.kind === 'library'
+            ? 'library'
+            : null
+      }
       receiver={
         session.projectId && session.activeSessionId
           ? { projectId: session.projectId, sessionId: session.activeSessionId }

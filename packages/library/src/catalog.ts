@@ -10,17 +10,22 @@ import {
   type CslMetadata,
   type DocumentInputs,
   type DocumentOutputs,
+  isCatalogSelectionInput,
   isCslMetadata,
   type LibraryBackup,
   type LibraryBatch,
   type LibraryCollection,
   type LibraryEntry,
   type LibraryInputs,
+  type LibraryModuleInputs,
+  type LibraryModuleOutputs,
   type LibraryOutputs,
   type LibrarySource,
   type LibraryStatus,
   type ReadingAuthor,
   type ReadingRecord,
+  type RecordReceipt,
+  recordLimits,
   validateLibrary,
 } from '@scholoom/protocol/library';
 import type { ProjectMaterial, ProjectMaterialPort } from '@scholoom/protocol/projects';
@@ -115,19 +120,19 @@ export class LiteratureCatalog {
       database.pragma('busy_timeout = 1000');
       if (database.pragma('quick_check', { simple: true }) !== 'ok') throw new Error('corrupt');
       const version = Number(database.pragma('user_version', { simple: true }));
-      if (version > 3) throw new Error('newer schema');
-      if (version < 3) {
+      if (version > 4) throw new Error('newer schema');
+      if (version < 4) {
         if (stats)
           await database.backup(
             join(
               this.directory,
-              version < 2 ? 'before-migration.sqlite' : 'before-migration-v2.sqlite',
+              version < 2 ? 'before-migration.sqlite' : `before-migration-v${version}.sqlite`,
             ),
           );
         migrate(drizzle(database), {
           migrationsFolder: fileURLToPath(new URL('./migrations/', import.meta.url)),
         });
-        database.pragma('user_version = 3');
+        database.pragma('user_version = 4');
       }
       this.database = database;
       this.store = drizzle(database, { schema: tables });
@@ -174,6 +179,329 @@ export class LiteratureCatalog {
       ...JSON.parse(this.meta('grants') ?? '{}'),
       revision: Number(this.meta('revision') ?? 0),
     };
+  }
+  checkSelection(input: { libraryId: string }): void {
+    this.check('read');
+    this.check('send');
+    if (input.libraryId !== this.status().id)
+      throw new OperationError('instanceMismatch', '文献库身份已变化。');
+  }
+  private recordAccess(libraryId: string, write = false): void {
+    this.check('read');
+    if (write) this.check('write');
+    if (libraryId !== this.status().id)
+      throw new OperationError('instanceMismatch', '文献库身份已变化。');
+  }
+  createSourceInstance(
+    input: LibraryInputs['library.createSourceInstance'],
+  ): LibraryOutputs['library.createSourceInstance'] {
+    this.recordAccess(input.libraryId, true);
+    if (!validateLibrary('library.createSourceInstance', 'params', input))
+      throw new OperationError('invalidRequest', '来源实例请求无效。');
+    const before = this.db
+      .select()
+      .from(tables.sourceInstances)
+      .where(eq(tables.sourceInstances.requestId, input.requestId))
+      .get();
+    if (before) {
+      if (!isDeepStrictEqual(JSON.parse(before.request), input))
+        throw new OperationError('invalidRequest', '请求身份已用于其他内容。');
+      return { id: before.id, libraryId: input.libraryId, label: before.label };
+    }
+    const value = {
+      id: randomUUID(),
+      requestId: input.requestId,
+      request: JSON.stringify(input),
+      label: input.label,
+    };
+    this.db.insert(tables.sourceInstances).values(value).run();
+    this.changed();
+    return { id: value.id, libraryId: input.libraryId, label: value.label };
+  }
+  record(input: LibraryInputs['library.record']): LibraryOutputs['library.record'] {
+    this.recordAccess(input.libraryId);
+    const source = this.source(input.sourceId),
+      offset = input.offset ?? 0,
+      limit = input.limit ?? 25;
+    const key = this.db
+      .select()
+      .from(tables.citationKeys)
+      .where(eq(tables.citationKeys.sourceId, input.sourceId))
+      .get();
+    const rows = this.db
+      .select()
+      .from(tables.originalRecords)
+      .where(eq(tables.originalRecords.sourceId, input.sourceId))
+      .orderBy(asc(tables.originalRecords.identity))
+      .offset(offset)
+      .limit(limit + 1)
+      .all();
+    const page = listPage(
+      rows.map((row) => row.value),
+      offset,
+      limit,
+    );
+    return {
+      sourceId: source.id,
+      revision: source.revision,
+      citationKey: key ? { value: key.value, pinned: key.pinned } : null,
+      originals: page.rows,
+      ...(page.nextOffset === undefined ? {} : { nextOffset: page.nextOffset }),
+    };
+  }
+  recordHistory(
+    input: LibraryInputs['library.recordHistory'],
+  ): LibraryOutputs['library.recordHistory'] {
+    this.recordAccess(input.libraryId);
+    this.source(input.sourceId);
+    const offset = input.offset ?? 0,
+      limit = input.limit ?? 25;
+    const rows = this.db
+      .select()
+      .from(tables.recordHistory)
+      .where(eq(tables.recordHistory.sourceId, input.sourceId))
+      .orderBy(desc(tables.recordHistory.seq))
+      .offset(offset)
+      .limit(limit + 1)
+      .all();
+    const page = listPage(
+      rows.map(({ revision, kind, value }) => ({ revision, kind, value })),
+      offset,
+      limit,
+    );
+    return {
+      records: page.rows,
+      ...(page.nextOffset === undefined ? {} : { nextOffset: page.nextOffset }),
+    };
+  }
+  commitResult(
+    input: LibraryInputs['library.commitResult'],
+  ): LibraryOutputs['library.commitResult'] {
+    this.recordAccess(input.libraryId);
+    return (
+      this.db
+        .select()
+        .from(tables.recordOperations)
+        .where(eq(tables.recordOperations.requestId, input.requestId))
+        .get()?.value ?? { requestId: input.requestId, state: 'notFound' }
+    );
+  }
+  commitRecords(input: LibraryInputs['library.commitRecords']): RecordReceipt {
+    this.recordAccess(input.libraryId, true);
+    if (
+      !validateLibrary('library.commitRecords', 'params', input) ||
+      Buffer.byteLength(JSON.stringify(input)) > recordLimits.requestBytes
+    )
+      throw new OperationError('invalidRequest', '原子题录请求超出范围或字节上限。');
+    const previous = this.db
+      .select()
+      .from(tables.recordOperations)
+      .where(eq(tables.recordOperations.requestId, input.requestId))
+      .get();
+    if (previous) {
+      if (!isDeepStrictEqual(JSON.parse(previous.request), input))
+        throw new OperationError('invalidRequest', '请求身份已用于其他内容。');
+      return previous.value;
+    }
+    let receipt: RecordReceipt;
+    try {
+      receipt = this.db.transaction(() => {
+        this.recordAccess(input.libraryId, true);
+        if (new Set(input.changes.map((change) => change.sourceId)).size !== input.changes.length)
+          throw new OperationError('invalidRequest', '同一事务不能重复修改一个条目。');
+        const plans = input.changes.map((change) => {
+          const before = this.source(change.sourceId);
+          if (change.revision !== before.revision)
+            throw new OperationError('contentChanged', '题录已变化，请重新读取。');
+          if (change.metadata) this.validateMetadata(change.metadata);
+          const keyBefore = this.db
+            .select()
+            .from(tables.citationKeys)
+            .where(eq(tables.citationKeys.sourceId, before.id))
+            .get();
+          const preserve = change.key?.intent === 'candidate' && keyBefore !== undefined;
+          if (change.key && change.key.value === null && change.key.pinned)
+            throw new OperationError('invalidRequest', '空键不能固定。');
+          const keyAfter =
+            !change.key || preserve
+              ? keyBefore
+              : change.key.value === null
+                ? undefined
+                : {
+                    sourceId: before.id,
+                    value: change.key.value,
+                    normalized: change.key.value.normalize('NFC').toLowerCase(),
+                    pinned: change.key.intent === 'explicit' ? change.key.pinned : false,
+                  };
+          if (keyAfter && !keyAfter.value.trim())
+            throw new OperationError('invalidRequest', '正式键不能空白。');
+          let originalIdentity: string | undefined;
+          if (change.original) {
+            if (Buffer.byteLength(JSON.stringify(change.original)) > recordLimits.originalBytes)
+              throw new OperationError('resourceLimit', '单份原值超过字节上限。');
+            const { instanceId, libraryLocator, objectKey } = change.original.identity;
+            if (
+              !this.db
+                .select()
+                .from(tables.sourceInstances)
+                .where(eq(tables.sourceInstances.id, instanceId))
+                .get()
+            )
+              throw new OperationError('notFound', '来源实例未登记。');
+            originalIdentity = JSON.stringify([instanceId, libraryLocator, objectKey]);
+            const linked = this.db
+              .select()
+              .from(tables.originalRecords)
+              .where(eq(tables.originalRecords.identity, originalIdentity))
+              .get();
+            if (linked && linked.sourceId !== before.id)
+              throw new OperationError(
+                'targetAmbiguous',
+                '来源对象已关联其他条目，不能自动重绑定。',
+              );
+            const count =
+              this.db
+                .select({ count: sql<number>`count(*)` })
+                .from(tables.originalRecords)
+                .where(eq(tables.originalRecords.sourceId, before.id))
+                .get()?.count ?? 0;
+            if (!linked && count >= 100)
+              throw new OperationError('resourceLimit', '条目来源超过上限。');
+          }
+          return { change, before, keyBefore, keyAfter, preserve, originalIdentity };
+        });
+        const originalIdentities = plans.flatMap((plan) =>
+          plan.originalIdentity ? [plan.originalIdentity] : [],
+        );
+        if (new Set(originalIdentities).size !== originalIdentities.length)
+          throw new OperationError('targetAmbiguous', '同一来源对象不能在事务中关联多个条目。');
+        const finalKeys = new Set<string>();
+        for (const plan of plans)
+          if (plan.keyAfter) {
+            if (finalKeys.has(plan.keyAfter.normalized))
+              throw new OperationError('targetAmbiguous', '正式引用键冲突。');
+            finalKeys.add(plan.keyAfter.normalized);
+            const owner = this.db
+              .select()
+              .from(tables.citationKeys)
+              .where(eq(tables.citationKeys.normalized, plan.keyAfter.normalized))
+              .get();
+            if (
+              owner &&
+              owner.sourceId !== plan.before.id &&
+              !plans.some(
+                (item) =>
+                  item.before.id === owner.sourceId &&
+                  item.keyAfter?.normalized !== owner.normalized,
+              )
+            )
+              throw new OperationError('targetAmbiguous', '正式引用键冲突。');
+          }
+        // Remove changed keys together so valid atomic key exchanges do not hit intermediate conflicts.
+        for (const plan of plans)
+          if (plan.change.key && !plan.preserve)
+            this.db
+              .delete(tables.citationKeys)
+              .where(eq(tables.citationKeys.sourceId, plan.before.id))
+              .run();
+        const results = plans.map(
+          ({ change, before, keyBefore, keyAfter, preserve, originalIdentity }) => {
+            if (change.key && !preserve) {
+              this.db
+                .insert(tables.recordHistory)
+                .values({
+                  sourceId: before.id,
+                  revision: before.revision,
+                  kind: 'key',
+                  value: keyBefore ? { value: keyBefore.value, pinned: keyBefore.pinned } : null,
+                })
+                .run();
+              if (keyAfter) this.db.insert(tables.citationKeys).values(keyAfter).run();
+            }
+            if (change.original && originalIdentity) {
+              const previous = this.db
+                .select()
+                .from(tables.originalRecords)
+                .where(eq(tables.originalRecords.identity, originalIdentity))
+                .get();
+              this.db
+                .insert(tables.recordHistory)
+                .values({
+                  sourceId: before.id,
+                  revision: before.revision,
+                  kind: 'original',
+                  value: previous?.value ?? null,
+                })
+                .run();
+              this.db
+                .insert(tables.originalRecords)
+                .values({ identity: originalIdentity, sourceId: before.id, value: change.original })
+                .onConflictDoUpdate({
+                  target: tables.originalRecords.identity,
+                  set: { value: change.original },
+                })
+                .run();
+            }
+            this.remember(before);
+            const after = {
+              ...before,
+              ...(change.metadata
+                ? { metadata: change.metadata, metadataOrigin: 'provided' as const }
+                : {}),
+              revision: before.revision + 1,
+              updatedAt: timestamp(),
+            };
+            this.writeSource(after);
+            return {
+              sourceId: before.id,
+              revision: after.revision,
+              ...(change.key
+                ? { keyCandidate: preserve ? ('preserved' as const) : ('accepted' as const) }
+                : {}),
+            };
+          },
+        );
+        const value: RecordReceipt = { requestId: input.requestId, state: 'committed', results };
+        this.db
+          .insert(tables.recordOperations)
+          .values({ requestId: input.requestId, request: JSON.stringify(input), value })
+          .run();
+        this.putMeta('revision', String(this.status().revision + 1));
+        return value;
+      });
+    } catch (error) {
+      receipt = { requestId: input.requestId, state: 'rejected', error: failure(error) };
+      this.db
+        .insert(tables.recordOperations)
+        .values({ requestId: input.requestId, request: JSON.stringify(input), value: receipt })
+        .run();
+      return receipt;
+    }
+    this.dirty = true;
+    this.notify();
+    return receipt;
+  }
+  selection(
+    input: LibraryModuleInputs['library.selection'],
+  ): LibraryModuleOutputs['library.selection'] {
+    this.checkSelection(input);
+    if (!isCatalogSelectionInput(input))
+      throw new OperationError('invalidRequest', '题录选择不符合契约。');
+    const items = input.items.map((item) => {
+      const row = this.db
+        .select({ revision: sql<number>`json_extract(${tables.sources.value}, '$.revision')` })
+        .from(tables.sources)
+        .where(eq(tables.sources.id, item.sourceId))
+        .get();
+      if (!row) throw new OperationError('notFound', '所选题录不存在。');
+      return {
+        ...item,
+        currentRevision: row.revision,
+        state: item.observedRevision === row.revision ? ('current' as const) : ('changed' as const),
+      };
+    });
+    this.checkSelection(input);
+    return { libraryId: input.libraryId, libraryRevision: this.status().revision, items };
   }
   grant(input: LibraryInputs['library.grant']): LibraryStatus {
     this.putMeta('grants', JSON.stringify(input));

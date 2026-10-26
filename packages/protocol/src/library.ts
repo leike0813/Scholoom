@@ -1,27 +1,20 @@
 import { Ajv } from 'ajv';
 import type { FromSchema } from 'json-schema-to-ts';
+import { catalogSelectionOperations } from './catalog-selection.js';
 import type { CallArguments } from './core.js';
+import { cslMetadataSchema } from './library-metadata.js';
+import { libraryRecordOperations } from './library-records.js';
 import { array, count, flag, id, object, page, text } from './schema.js';
 
+export * from './catalog-selection.js';
 export {
   catalogEditorDates,
   catalogEditorFields,
   catalogEditorRoles,
   catalogEditorTypes,
+  cslMetadataSchema,
 } from './library-metadata.js';
-
-export const cslMetadataSchema = {
-  type: 'object',
-  properties: {
-    title: { type: 'string', minLength: 1, maxLength: 4096 },
-    type: { type: 'string', minLength: 1, maxLength: 200 },
-    DOI: { type: 'string', maxLength: 1024 },
-    URL: { type: 'string', maxLength: 4096 },
-    abstract: { type: 'string', maxLength: 32768 },
-  },
-  required: ['title'],
-  additionalProperties: true,
-} as const;
+export * from './library-records.js';
 
 export const strings = { type: 'array', items: id, maxItems: 100, uniqueItems: true } as const;
 
@@ -514,6 +507,7 @@ export const libraryImportProjectFilesSchema = object(
 );
 
 export const librarySchemas = {
+  ...libraryRecordOperations,
   'library.attachment': {
     semantics: { effect: 'read', returns: 'result', waitMs: 5000 },
     params: object({ attachmentId: id }, ['attachmentId']),
@@ -724,6 +718,7 @@ export const validateLibrary = (
 ): boolean => operationValidators.get(method)?.[kind](value) === true;
 
 export const libraryModuleOperations = {
+  ...catalogSelectionOperations,
   'library.check': {
     params: object({ access: { enum: ['read', 'write', 'send'] } }, ['access']),
     result: object({ ok: { const: true } }, ['ok']),
@@ -732,9 +727,17 @@ export const libraryModuleOperations = {
 } as const;
 export type LibraryModuleInputs = {
   'library.check': FromSchema<(typeof libraryModuleOperations)['library.check']['params']>;
+  'library.selection': FromSchema<(typeof libraryModuleOperations)['library.selection']['params']>;
+  'library.checkSelection': FromSchema<
+    (typeof libraryModuleOperations)['library.checkSelection']['params']
+  >;
 };
 export type LibraryModuleOutputs = {
   'library.check': FromSchema<(typeof libraryModuleOperations)['library.check']['result']>;
+  'library.selection': FromSchema<(typeof libraryModuleOperations)['library.selection']['result']>;
+  'library.checkSelection': FromSchema<
+    (typeof libraryModuleOperations)['library.checkSelection']['result']
+  >;
 };
 export const libraryToolMethods = [
   'library.list',

@@ -203,6 +203,36 @@ export class Harness {
     return location.path;
   }
   private initialized = new WeakSet<HarnessProject>();
+  private catalogContext(project: HarnessProject, sessionId: string, context: CallContext): void {
+    const libraryId = this.records(project)
+      .select()
+      .from(tables.meta)
+      .where(eq(tables.meta.key, `catalog-library-context:${sessionId}`))
+      .get()?.value;
+    if (!libraryId) return;
+    const catalog = this.contextBridge?.catalog?.(context);
+    if (!catalog) throw new OperationError('unavailable', '题录选择授权提供者不可用。');
+    catalog.check(libraryId);
+  }
+  private rememberCatalog(project: HarnessProject, sessionId: string, libraryId: string): void {
+    const records = this.records(project),
+      key = `catalog-library-context:${sessionId}`;
+    const previous = records
+      .select()
+      .from(tables.meta)
+      .where(eq(tables.meta.key, key))
+      .get()?.value;
+    if (previous && previous !== libraryId)
+      throw new OperationError('instanceMismatch', '会话已使用的文献库身份发生变化。');
+    records.transaction(() => {
+      records.insert(tables.meta).values({ key, value: libraryId }).onConflictDoNothing().run();
+      records
+        .insert(tables.meta)
+        .values({ key: `library-context:${sessionId}`, value: '1' })
+        .onConflictDoNothing()
+        .run();
+    });
+  }
   private released = new WeakSet<HarnessProject>();
   private active = new Map<string, Active>();
   private stopped = false;
@@ -1349,6 +1379,7 @@ export class Harness {
         ? await this.model.execution(
             async () => {
               this.checkExecutionContext(context);
+              this.catalogContext(project, run.sessionId, context);
               await this.port(project)['project.check']({ projectId: project.id, access: 'send' });
               await authorizeContextItems(
                 this.contextBridge,
@@ -1385,6 +1416,7 @@ export class Harness {
             run.modelConfig,
             () => {
               this.checkExecutionContext(context);
+              this.catalogContext(project, run.sessionId, context);
               const resources = this.contextBridge?.resources?.(context);
               if (!resources)
                 throw new OperationError('unavailable', '图资源同步授权提供者不可用。');
@@ -1627,6 +1659,8 @@ export class Harness {
         signal,
       });
       const authorizeModel = async () => {
+        this.checkExecutionContext(executionContext);
+        this.catalogContext(project, run.sessionId, executionContext);
         await this.port(project)['project.check']({ projectId: project.id, access: 'send' });
         await authorizeContextItems(this.contextBridge, executionContext, contextEvidence());
         if (
@@ -1641,6 +1675,8 @@ export class Harness {
         }
       };
       const model = await this.model.execution(authorizeModel, signal, run.modelConfig, () => {
+        this.checkExecutionContext(executionContext);
+        this.catalogContext(project, run.sessionId, executionContext);
         const currentTargets: string[] = JSON.parse(
           this.records(project)
             .select()
@@ -2281,7 +2317,11 @@ export class Harness {
                     fileContext,
                     this.contextBridge,
                   );
-                  if (result.state === 'available') rememberContext(result.snapshot.selections);
+                  if (result.state === 'available') {
+                    if (result.catalog)
+                      this.rememberCatalog(project, run.sessionId, result.catalog.libraryId);
+                    rememberContext(result.snapshot.selections);
+                  }
                   return JSON.stringify(result);
                 } catch (error) {
                   const info = failure(error);

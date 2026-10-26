@@ -8,6 +8,154 @@ import { createSession, expect, openWorkbenchWindow, test } from './fixture.js';
 import { rendererUrl } from './renderer-url.js';
 import { armRpcGate, installRpcGate, releaseRpcGate } from './rpc-gate.js';
 
+test('manual typed fields, creators and calendar parts preserve library originals and conflict drafts', async ({
+  uiPage,
+}) => {
+  test.setTimeout(90000);
+  const client = createKernelClient(
+    await runningKernel(process.env.SCHOOLOOM_UI_DATA_DIR as string),
+  );
+  const suffix = randomUUID().slice(0, 8),
+    title = `剩余题录-${suffix}`;
+  try {
+    await client.connect();
+    await client.call('library.grant', { read: true, write: true, send: false, autoBackup: false });
+    await uiPage.goto(rendererUrl);
+    await expect(uiPage.getByRole('status', { name: '连接状态' })).toContainText('已连接');
+    await createSession(uiPage);
+    await uiPage.getByRole('button', { name: '文献库', exact: true }).click();
+    const panel = uiPage.getByRole('region', { name: '文献库', exact: true });
+    await panel.getByRole('button', { name: '新建题录', exact: true }).click();
+    await panel.getByLabel('题名', { exact: true }).fill(title);
+    await panel.getByLabel('类型', { exact: true }).selectOption('book');
+    await panel.getByLabel('原出版者', { exact: true }).fill('原版出版社');
+    await panel.getByLabel('总页数', { exact: true }).fill('320');
+    await panel.getByLabel('发表日期表达', { exact: true }).selectOption('parts');
+    await panel.getByLabel('发表日期年', { exact: true }).fill('2026');
+    await panel.getByLabel('发表日期月', { exact: true }).fill('7');
+    await panel.getByLabel('发表日期日', { exact: true }).fill('23');
+    await panel.getByText('创建者', { exact: true }).first().click();
+    await panel.getByRole('button', { name: '添加丛书编辑', exact: true }).click();
+    await panel.getByLabel('丛书编辑1family', { exact: true }).fill('王');
+    await panel.getByLabel('丛书编辑1given', { exact: true }).fill('小明');
+    await panel.getByRole('button', { name: '创建题录', exact: true }).click();
+    await expect
+      .poll(async () => (await client.call('library.list', { query: title })).sources.length)
+      .toBe(1);
+    const created = (await client.call('library.list', { query: title })).sources[0];
+    if (!created) throw new Error('Missing manual record');
+    expect(created.metadata).toMatchObject({
+      type: 'book',
+      'original-publisher': '原版出版社',
+      'number-of-pages': '320',
+      issued: { 'date-parts': [[2026, 7, 23]] },
+      'collection-editor': [{ family: '王', given: '小明' }],
+    });
+    const libraryId = (await client.call('library.status', {})).id;
+    const instance = await client.call('library.createSourceInstance', {
+      libraryId,
+      requestId: randomUUID(),
+      label: '独立上游样本',
+    });
+    const original = {
+      identity: { instanceId: instance.id, libraryLocator: 'local', objectKey: `BOOK${suffix}` },
+      schemaVersion: '44',
+      itemType: 'book',
+      fields: { originalPublisher: '原版出版社', date: '2026年夏', extra: '未解释原行' },
+      creators: [{ creatorType: 'seriesEditor', firstName: '小明', lastName: '王', orderIndex: 0 }],
+      relations: {},
+    };
+    const creator = {
+      family: '王',
+      given: '小明',
+      'non-dropping-particle': 'de',
+      extension: { retained: true },
+    };
+    const metadata = {
+      ...created.metadata,
+      'collection-editor': [creator],
+      extension: { nested: ['未知值'] },
+      'original-date': { 'date-parts': [[1900], [1905]], circa: true },
+    };
+    expect(
+      await client.call('library.commitRecords', {
+        libraryId,
+        requestId: randomUUID(),
+        changes: [
+          {
+            sourceId: created.id,
+            revision: created.revision,
+            metadata,
+            original,
+            key: { value: `Pinned${suffix}`, pinned: true, intent: 'explicit' },
+          },
+        ],
+      }),
+    ).toMatchObject({ state: 'committed' });
+    await panel.getByLabel('查找题录', { exact: true }).fill(title);
+    await panel.getByRole('option', { name: `查看题录 ${title}`, exact: true }).click();
+    await panel.getByText('类型化题录', { exact: true }).click();
+    await panel.getByLabel('题录原出版者', { exact: true }).fill('更正出版者');
+    await panel.getByLabel('题录总页数', { exact: true }).fill('321');
+    await panel.getByLabel('题录发表日期日', { exact: true }).fill('24');
+    await panel
+      .getByRole('region', { name: '题录详情', exact: true })
+      .getByText('创建者', { exact: true })
+      .click();
+    await panel.getByLabel('题录丛书编辑1角色', { exact: true }).selectOption('editor');
+    await panel.getByLabel('题录类型', { exact: true }).selectOption('article-journal');
+    await panel.getByLabel('题录PubMed编号（PMID）', { exact: true }).fill('12345678');
+    const expected = {
+      ...metadata,
+      type: 'article-journal',
+      'original-publisher': '更正出版者',
+      'number-of-pages': '321',
+      issued: { 'date-parts': [[2026, 7, 24]] },
+      PMID: '12345678',
+      'collection-editor': [],
+      editor: [creator],
+    };
+    const json = panel.getByLabel('题录 CSL JSON', { exact: true });
+    await expect.poll(async () => JSON.parse(await json.inputValue())).toEqual(expected);
+    await panel.getByRole('button', { name: '保存题录更正', exact: true }).click();
+    await expect
+      .poll(async () => (await client.call('library.get', { sourceId: created.id })).metadata)
+      .toEqual(expected);
+    await expect
+      .poll(
+        async () =>
+          (await client.call('library.record', { libraryId, sourceId: created.id })).originals,
+      )
+      .toEqual([original]);
+    expect(
+      (await client.call('library.record', { libraryId, sourceId: created.id })).citationKey,
+    ).toEqual({ value: `Pinned${suffix}`, pinned: true });
+    await panel.getByLabel('题录题名', { exact: true }).fill(`${title}-未保存`);
+    const current = await client.call('library.get', { sourceId: created.id });
+    await client.call('library.update', {
+      sourceId: current.id,
+      revision: current.revision,
+      tags: current.tags,
+      collectionIds: current.collectionIds,
+      relatedIds: current.relatedIds,
+      metadata: { ...current.metadata, abstract: '外部更正' },
+    });
+    await panel.getByRole('button', { name: '保存题录更正', exact: true }).click();
+    await expect(panel.getByRole('alert')).toContainText('变化');
+    await expect(json).toHaveValue(/未保存/);
+    await uiPage.reload();
+    await uiPage.getByRole('button', { name: '文献库', exact: true }).click();
+    await panel.getByRole('option', { name: `查看题录 ${title}`, exact: true }).click();
+    await expect(json).toHaveValue(/未保存/);
+    expect((await client.call('library.get', { sourceId: created.id })).metadata).toEqual({
+      ...expected,
+      abstract: '外部更正',
+    });
+  } finally {
+    client.dispose();
+  }
+});
+
 test('typed CSL edits preserve unsupported values through save and reload', async ({ uiPage }) => {
   const client = createKernelClient(
     await runningKernel(process.env.SCHOOLOOM_UI_DATA_DIR as string),

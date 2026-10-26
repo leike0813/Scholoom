@@ -5,8 +5,13 @@ import {
   catalogEditorRoles,
   catalogEditorTypes,
 } from '@scholoom/protocol';
-import { type Ref, useId } from 'react';
-import { editCatalogField, moveCatalogCreator } from './catalog-metadata';
+import { type Ref, useId, useState } from 'react';
+import {
+  catalogDateParts,
+  editCatalogDatePart,
+  editCatalogField,
+  moveCatalogCreator,
+} from './catalog-metadata';
 
 const record = (value: unknown): value is Record<string, unknown> =>
   !!value && typeof value === 'object' && !Array.isArray(value);
@@ -23,6 +28,7 @@ export function CatalogItemForm({
   titleRef?: Ref<HTMLInputElement>;
 }) {
   const formId = useId();
+  const [dateModes, setDateModes] = useState<Record<string, 'literal' | 'parts'>>({});
   let metadata: CslMetadata;
   try {
     const parsed: unknown = JSON.parse(value);
@@ -100,35 +106,105 @@ export function CatalogItemForm({
       })}
       {catalogEditorDates.map(([key, label]) => {
         const date = metadata[key];
+        const parts = catalogDateParts(date);
         const editable =
           date === undefined ||
           (record(date) &&
             typeof date.literal === 'string' &&
             !('date-parts' in date) &&
             !('raw' in date));
-        if (!editable)
+        if (!editable && !parts)
           return (
             <p key={key}>
               {label}：{JSON.stringify(date)}（保留原值，可在JSON中编辑）
             </p>
           );
+        const mode = parts
+          ? 'parts'
+          : date === undefined
+            ? (dateModes[key] ?? 'literal')
+            : 'literal';
         return (
-          <label key={key}>
-            {label}原文
-            <input
-              aria-label={name(`${label}原文`)}
-              value={record(date) ? String(date.literal) : ''}
-              onChange={(event) =>
-                update(key, { ...(record(date) ? date : {}), literal: event.target.value })
-              }
-            />
-          </label>
+          <fieldset key={key}>
+            <legend>{label}</legend>
+            <label>
+              表达
+              <select
+                aria-label={name(`${label}表达`)}
+                value={mode}
+                disabled={date !== undefined}
+                onChange={(event) =>
+                  setDateModes((current) => ({
+                    ...current,
+                    [key]: event.target.value as 'literal' | 'parts',
+                  }))
+                }
+              >
+                <option value="literal">原文</option>
+                <option value="parts">年月日</option>
+              </select>
+            </label>
+            {mode === 'literal' ? (
+              <label>
+                {label}原文
+                <input
+                  aria-label={name(`${label}原文`)}
+                  value={record(date) ? String(date.literal) : ''}
+                  onChange={(event) => {
+                    if (!event.target.value && (!record(date) || Object.keys(date).length === 1))
+                      update(key, '');
+                    else
+                      update(key, { ...(record(date) ? date : {}), literal: event.target.value });
+                  }}
+                />
+              </label>
+            ) : (
+              ['年', '月', '日'].map((part, index) => (
+                <label key={part}>
+                  {part}
+                  <input
+                    type="number"
+                    min={1}
+                    max={index === 0 ? 9999 : index === 1 ? 12 : 31}
+                    step={1}
+                    aria-label={name(`${label}${part}`)}
+                    value={parts?.[index] ?? ''}
+                    disabled={index > (parts?.length ?? 0)}
+                    onChange={(event) =>
+                      onChange(
+                        JSON.stringify(
+                          editCatalogDatePart(metadata, key, index, event.target.value),
+                          null,
+                          2,
+                        ),
+                      )
+                    }
+                  />
+                </label>
+              ))
+            )}
+            <button
+              type="button"
+              className="btn btn-sm"
+              aria-label={name(`清除${label}`)}
+              disabled={date === undefined}
+              onClick={() => update(key, '')}
+            >
+              清除日期
+            </button>
+          </fieldset>
         );
       })}
       <details>
         <summary>创建者</summary>
-        {catalogEditorRoles.map(([role, label]) => {
+        {catalogEditorRoles.map(([role, label, types]) => {
           const creators = metadata[role];
+          if (types && !types.includes(type))
+            return creators === undefined ? null : (
+              <p key={role}>
+                {label}：{JSON.stringify(creators)}（保留原值，可在JSON中编辑）
+              </p>
+            );
           if (creators !== undefined && !Array.isArray(creators))
             return (
               <p key={role}>
@@ -186,15 +262,20 @@ export function CatalogItemForm({
                           )
                         }
                       >
-                        {catalogEditorRoles.map(([id, roleLabel]) => (
-                          <option
-                            key={id}
-                            value={id}
-                            disabled={metadata[id] !== undefined && !Array.isArray(metadata[id])}
-                          >
-                            {roleLabel}
-                          </option>
-                        ))}
+                        {catalogEditorRoles
+                          .filter(
+                            ([id, , roleTypes]) =>
+                              id === role || !roleTypes || roleTypes.includes(type),
+                          )
+                          .map(([id, roleLabel]) => (
+                            <option
+                              key={id}
+                              value={id}
+                              disabled={metadata[id] !== undefined && !Array.isArray(metadata[id])}
+                            >
+                              {roleLabel}
+                            </option>
+                          ))}
                       </select>
                     </label>
                     <div className="file-view-controls">

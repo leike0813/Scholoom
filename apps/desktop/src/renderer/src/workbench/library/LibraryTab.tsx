@@ -7,6 +7,7 @@ import type {
 } from '@scholoom/protocol';
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { AttachmentImport } from '../AttachmentsPanel';
+import { useContextContribution } from '../context-contributions';
 import { workbenchInstanceId } from '../context-drafts';
 import { draftKey, readDraft, subscribeDraft, writeDraft } from '../drafts';
 import { CatalogItemForm } from './CatalogItemForm';
@@ -103,6 +104,7 @@ function LibraryContents({
   revision: number;
   refresh: () => void;
 }) {
+  const { contributeSelection } = useContextContribution();
   const directory = client.getSnapshot().status?.dataDirectory ?? '';
   const [error, setError] = useState('');
 
@@ -276,6 +278,43 @@ function LibraryContents({
     revision,
   );
   const sources = readable && activeQuery === query.trim() ? (listRead.value?.sources ?? []) : [];
+  const catalogSelection = useMemo(
+    () => ({
+      libraryId: status.value.id,
+      range: {
+        query: activeQuery,
+        collectionId: collectionFilter || null,
+        tag: tagFilter.trim(),
+        offset,
+        limit: PAGE,
+      },
+      primarySourceId: selected.primaryId,
+      items: selected.selectedIds.flatMap((sourceId) => {
+        const source = sources.find((item) => item.id === sourceId);
+        return source ? [{ sourceId, observedRevision: source.revision }] : [];
+      }),
+    }),
+    [status.value.id, activeQuery, collectionFilter, tagFilter, offset, selected, sources],
+  );
+  useEffect(() => {
+    if (
+      !readable ||
+      !listRead.value ||
+      query.trim() !== activeQuery ||
+      catalogSelection.items.length !== selected.selectedIds.length
+    )
+      contributeSelection('library');
+    else contributeSelection('library', { selections: [], catalogSelection });
+  }, [
+    catalogSelection,
+    readable,
+    listRead.value,
+    query,
+    activeQuery,
+    selected.selectedIds.length,
+    contributeSelection,
+  ]);
+  useEffect(() => () => contributeSelection('library'), [contributeSelection]);
   useEffect(() => {
     if (!readable || (listRead.value && activeQuery === query.trim()))
       selection.reconcile(sources.map((source) => source.id));

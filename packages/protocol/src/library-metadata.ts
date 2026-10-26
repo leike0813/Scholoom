@@ -1,4 +1,16 @@
 // CSL names checked against Zotero 10.0.5 schema 44, commit 70c3aa98627413d6a30dca955886eafbde085ce9.
+export const cslMetadataSchema = {
+  type: 'object',
+  properties: {
+    title: { type: 'string', minLength: 1, maxLength: 4096 },
+    type: { type: 'string', minLength: 1, maxLength: 200 },
+    DOI: { type: 'string', maxLength: 1024 },
+    URL: { type: 'string', maxLength: 4096 },
+    abstract: { type: 'string', maxLength: 32768 },
+  },
+  required: ['title'],
+  additionalProperties: true,
+} as const;
 export const catalogEditorTypes = [
   ['article', '预印本／文章'],
   ['article-journal', '期刊论文'],
@@ -44,6 +56,31 @@ const publication = [
   'paper-conference',
 ];
 const books = ['book', 'chapter', 'entry-dictionary', 'entry-encyclopedia'];
+const catalogued = [
+  'article',
+  'article-journal',
+  'article-magazine',
+  'article-newspaper',
+  'book',
+  'broadcast',
+  'chapter',
+  'dataset',
+  'document',
+  'entry-dictionary',
+  'entry-encyclopedia',
+  'graphic',
+  'interview',
+  'manuscript',
+  'map',
+  'motion_picture',
+  'paper-conference',
+  'personal_communication',
+  'report',
+  'software',
+  'song',
+  'standard',
+  'thesis',
+];
 export const catalogEditorFields: readonly {
   key: string;
   label: string;
@@ -89,13 +126,90 @@ export const catalogEditorFields: readonly {
   { key: 'ISSN', label: 'ISSN', types: [...books, ...publication, 'report', 'thesis'] },
   { key: 'edition', label: '版次', types: [...books, 'standard'] },
   { key: 'version', label: '软件／数据版本', types: ['software', 'dataset', 'standard'] },
+  { key: 'archive', label: '存档机构', types: catalogued },
+  { key: 'archive_location', label: '存档位置', types: catalogued },
+  { key: 'source', label: '馆藏目录', types: catalogued },
+  {
+    key: 'authority',
+    label: '颁发／主管机构',
+    types: ['bill', 'hearing', 'legal_case', 'patent', 'standard'],
+  },
+  { key: 'chapter-number', label: '会期', types: ['bill', 'hearing', 'legislation'] },
+  {
+    key: 'collection-number',
+    label: '丛书编号',
+    types: ['article', ...books, 'paper-conference', 'report', 'thesis'],
+  },
+  {
+    key: 'event-place',
+    label: '活动地点',
+    types: ['graphic', 'paper-conference', 'personal_communication'],
+  },
+  { key: 'journalAbbreviation', label: '刊名缩写', types: ['article-journal'] },
+  { key: 'license', label: '版权／许可' },
+  {
+    key: 'number',
+    label: '编号',
+    types: [
+      'article',
+      'bill',
+      'broadcast',
+      'dataset',
+      'hearing',
+      'legal_case',
+      'legislation',
+      'manuscript',
+      'patent',
+      'report',
+      'standard',
+    ],
+  },
+  { key: 'number-of-pages', label: '总页数', types: ['book', 'manuscript', 'standard', 'thesis'] },
+  {
+    key: 'number-of-volumes',
+    label: '总卷数',
+    types: [...books, 'hearing', 'motion_picture', 'paper-conference', 'song'],
+  },
+  { key: 'original-publisher', label: '原出版者', types: ['book', 'chapter'] },
+  { key: 'original-publisher-place', label: '原出版地', types: ['book', 'chapter'] },
+  { key: 'part-number', label: '分部编号', types: ['article-journal', 'standard'] },
+  { key: 'part-title', label: '分部标题', types: ['article-journal', 'standard'] },
+  { key: 'PMID', label: 'PubMed编号（PMID）', types: ['article-journal'] },
+  { key: 'PMCID', label: 'PubMed Central编号（PMCID）', types: ['article-journal'] },
+  { key: 'scale', label: '比例尺', types: ['map'] },
+  { key: 'status', label: '法律／标准状态', types: ['patent', 'standard'] },
 ] as const;
 
-export const catalogEditorRoles = [
+export const catalogEditorRoles: readonly (readonly [
+  key: string,
+  label: string,
+  types?: readonly string[],
+])[] = [
   ['author', '作者'],
   ['editor', '编辑'],
   ['translator', '译者'],
   ['container-author', '书籍作者'],
+  ['chair', '会议主持人', ['speech']],
+  ['performer', '演出者', ['broadcast', 'motion_picture']],
+  ['composer', '作曲者', ['song']],
+  ['contributor', '贡献者'],
+  ['director', '导演', ['broadcast', 'motion_picture']],
+  ['executive-producer', '监制', ['broadcast', 'motion_picture']],
+  ['guest', '嘉宾', ['broadcast', 'motion_picture']],
+  ['interviewer', '采访者', ['interview']],
+  ['narrator', '旁白', ['broadcast', 'motion_picture']],
+  ['original-author', '原作者', ['song']],
+  ['organizer', '组织者', ['speech']],
+  ['producer', '制作人', ['broadcast', 'motion_picture']],
+  ['recipient', '收件人', ['personal_communication']],
+  [
+    'reviewed-author',
+    '被评著作作者',
+    ['article', 'article-journal', 'article-magazine', 'article-newspaper', 'document'],
+  ],
+  ['series-creator', '系列创作者', ['broadcast']],
+  ['collection-editor', '丛书编辑', [...books, 'map', 'paper-conference', 'report']],
+  ['script-writer', '编剧', ['broadcast', 'motion_picture']],
 ] as const;
 export const catalogEditorDates = [
   ['issued', '发表日期'],

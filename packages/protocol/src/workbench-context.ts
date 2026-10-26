@@ -1,3 +1,4 @@
+import { isCatalogSelection } from './catalog-selection.js';
 import { compileContract } from './core.js';
 import type { workbenchContextContracts } from './workbench-context-contracts.js';
 import {
@@ -46,9 +47,11 @@ export function isContextItems(value: unknown): value is ContextItem[] {
   );
 }
 export function isWorkbenchContextSnapshot(value: unknown): value is WorkbenchContextSnapshot {
+  if (!snapshotValidator(value)) return false;
+  const snapshot = value as WorkbenchContextSnapshot;
   return (
-    snapshotValidator(value) &&
-    bytes(value) <= contextLimits.bodyBytes &&
-    isContextItems((value as WorkbenchContextSnapshot).selections)
+    bytes(snapshot) <= contextLimits.bodyBytes &&
+    isContextItems(snapshot.selections) &&
+    (snapshot.catalogSelection === undefined || isCatalogSelection(snapshot.catalogSelection))
   );
 }
