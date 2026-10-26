@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { expect, test } from '@playwright/test';
 import { LiteratureCatalog } from '../../packages/library/dist/node.js';
+import { validateLibrary } from '../../packages/protocol/dist/library.js';
 
 async function fixture() {
   const root = await mkdtemp(join(tmpdir(), 'scholoom-catalog-'));
@@ -144,6 +145,61 @@ test('collections, tags and optimistic updates preserve other work and have boun
     f.catalog.grant({ read: false, write: false, send: false, autoBackup: false });
     expect(() => f.catalog.list({})).toThrow();
     expect(() => f.catalog.get(id)).toThrow();
+  } finally {
+    await f.close();
+  }
+});
+
+test('collection parent scopes paginate roots and direct children independently of identity order', async () => {
+  const f = await fixture();
+  try {
+    const ids = Array.from(
+      { length: 56 },
+      (_, index) => f.catalog.saveCollection({ name: `集合${index}` }).id,
+    ).sort();
+    const rootId = ids[55] as string,
+      childId = ids[0] as string,
+      grandchildId = ids[54] as string;
+    for (const id of ids.slice(0, 27)) {
+      f.catalog.saveCollection({ id, name: '子集合', parentId: rootId });
+    }
+    f.catalog.saveCollection({ id: grandchildId, name: '孙集合', parentId: childId });
+
+    const scopes = [
+      { input: {}, expectedIds: ids },
+      { input: { parentId: null }, expectedIds: [...ids.slice(27, 54), rootId] },
+      { input: { parentId: rootId }, expectedIds: ids.slice(0, 27) },
+      { input: { parentId: childId }, expectedIds: [grandchildId] },
+      { input: { parentId: grandchildId }, expectedIds: [] },
+      { input: { parentId: ids[1] as string }, expectedIds: [] },
+    ];
+    for (const { input, expectedIds } of scopes) {
+      expect(validateLibrary('library.collections', 'params', input)).toBe(true);
+      const first = f.catalog.collections(input);
+      expect(first.collections.map((collection) => collection.id)).toEqual(
+        expectedIds.slice(0, 25),
+      );
+      expect(first.nextOffset).toBe(expectedIds.length > 25 ? 25 : undefined);
+      const rest = f.catalog.collections({ ...input, offset: 25, limit: 100 });
+      expect(rest.collections.map((collection) => collection.id)).toEqual(expectedIds.slice(25));
+      expect(rest.nextOffset).toBeUndefined();
+    }
+    expect(f.catalog.collections({ parentId: rootId, offset: 100 })).toEqual({
+      collections: [],
+    });
+    for (const input of [
+      { parentId: '' },
+      { parentId: 1 },
+      { parentId: [] },
+      { parentId: null, offset: -1 },
+      { parentId: rootId, limit: 101 },
+    ]) {
+      expect(validateLibrary('library.collections', 'params', input)).toBe(false);
+    }
+    f.catalog.grant({ read: true, write: false, send: false, autoBackup: false });
+    expect(f.catalog.collections({ parentId: rootId, limit: 1 }).nextOffset).toBe(1);
+    f.catalog.grant({ read: false, write: true, send: true, autoBackup: false });
+    for (const { input } of scopes) expect(() => f.catalog.collections(input)).toThrow();
   } finally {
     await f.close();
   }

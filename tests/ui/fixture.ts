@@ -1,4 +1,4 @@
-import { basename, dirname } from 'node:path';
+import { basename, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   test as base,
@@ -92,12 +92,47 @@ export const test = base.extend<UiFixtures>({
 
 export { expect };
 
-export async function createSession(page: Page, projectName = '普通会话'): Promise<void> {
-  const selected = page.getByRole('button', { name: /^打开会话 /, pressed: true });
+export async function openWorkbenchWindow(page: Page): Promise<Page> {
+  const desktop = desktops.get(page);
+  if (!desktop) return page.context().newPage();
+  const opened = desktop.waitForEvent('window');
+  await desktop.evaluate(
+    ({ BrowserWindow }, { url, preload }) => {
+      const window = new BrowserWindow({
+        width: 1280,
+        height: 840,
+        webPreferences: {
+          preload,
+          sandbox: true,
+          contextIsolation: true,
+          nodeIntegration: false,
+        },
+      });
+      void window.loadURL(url);
+    },
+    { url: rendererUrl, preload: join(desktopPath, 'out/preload/index.cjs') },
+  );
+  const window = await opened;
+  desktops.set(window, desktop);
+  await window.waitForLoadState('domcontentloaded');
+  return window;
+}
+
+export async function createSession(
+  page: Page,
+  target: string | { projectId: string } = '普通会话',
+): Promise<void> {
+  const project =
+    typeof target === 'string'
+      ? page.locator('[data-project-id]').filter({
+          has: page.getByRole('button', { name: `在${target}中新建会话`, exact: true }),
+        })
+      : page.locator(`[data-project-id="${target.projectId}"]`);
+  const selected = project.getByRole('button', { name: /^打开会话 /, pressed: true });
   const previous = await selected.evaluateAll((rows) =>
     rows[0]?.closest('li')?.getAttribute('data-session-id'),
   );
-  await page.getByRole('button', { name: `在${projectName}中新建会话`, exact: true }).click();
+  await project.getByRole('button', { name: /^在.*中新建会话$/ }).click();
   await expect
     .poll(() =>
       selected.evaluateAll((rows, prior) => {
