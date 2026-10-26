@@ -637,6 +637,17 @@ function WorkbenchContent({ session }: { session: WorkbenchSession }) {
                 onOpenResource={openTaskResource}
               />
             )}
+            renderPrograms={session.programs}
+            onOpenPrograms={
+              session.programs
+                ? () =>
+                    openTab({
+                      id: `programs:${session.projectId}`,
+                      title: '项目程序运行',
+                      kind: 'programs',
+                    })
+                : undefined
+            }
             onView={(groupIndex, mode) => {
               taskNavigation.current++;
               const group = groupsRef.current[groupIndex];

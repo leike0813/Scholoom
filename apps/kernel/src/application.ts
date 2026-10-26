@@ -12,6 +12,7 @@ import {
 } from '@scholoom/harness/node';
 import { ModelAccess } from '@scholoom/models/execution';
 import { CredentialStore, ModelConfigStore } from '@scholoom/models/node';
+import { ProgramRecords } from '@scholoom/programs/node';
 import type {
   BusinessInputs,
   BusinessOutputs,
@@ -29,6 +30,7 @@ import type {
 } from '@scholoom/protocol';
 import type { CallContext } from '@scholoom/protocol/core';
 import { OperationError } from '@scholoom/protocol/core';
+import type { ProgramToolsPort } from '@scholoom/protocol/programs';
 import type {
   ResearchGraph,
   ResearchModuleInputs,
@@ -211,6 +213,27 @@ export class KernelApplication extends ManualApplication {
         ...(options.delegationRoles ? { roles: options.delegationRoles } : {}),
         resolveProfile: (id, context) =>
           this.modulePort(context, 'harness').call('models.resolveProfile', { id }),
+      },
+      {
+        port: (context) => {
+          const port = this.modulePort(context, 'harness');
+          const methods = {
+            'programs.environments': (input) => port.call('programs.environments', input),
+            'programs.environmentPlan': (input) => port.call('programs.environmentPlan', input),
+            'programs.environmentPlanStatus': (input) =>
+              port.call('programs.environmentPlanStatus', input),
+            'programs.environmentPrepare': (input) =>
+              port.call('programs.environmentPrepare', input),
+            'programs.start': (input) => port.call('programs.start', input),
+            'programs.run': (input) => port.call('programs.run', input),
+            'programs.runs': (input) => port.call('programs.runs', input),
+            'programs.logs': (input) => port.call('programs.logs', input),
+            'programs.cancel': (input) => port.call('programs.cancel', input),
+            'programs.reconcile': (input) => port.call('programs.reconcile', input),
+          } satisfies ProgramToolsPort;
+          return methods;
+        },
+        settle: (context) => this.programs.settleExecution(context),
       },
     );
     this.broker.register('runtime', this.handlers);
@@ -424,10 +447,12 @@ export class KernelApplication extends ManualApplication {
     for (const project of this.projects.all()) this.research.initialize(project.project.id);
   }
   protected override async projectOpened(): Promise<void> {
+    await super.projectOpened();
     await this.harness.initialize();
     for (const project of this.projects.all()) this.research.initialize(project.project.id);
   }
   protected override async projectReplacing(projectId: string): Promise<void> {
+    await super.projectReplacing(projectId);
     await this.harness.releaseProject(projectId);
     this.research.releaseProject(projectId);
   }
@@ -508,12 +533,15 @@ export class KernelApplication extends ManualApplication {
       };
       const harnessRecords = new HarnessRecords(internal);
       const researchRecords = new ResearchRecords(internal);
+      const programRecords = new ProgramRecords(internal);
       try {
         harnessRecords.restore(identity.id);
         researchRecords.restore(identity.id);
+        programRecords.restore(identity.id);
       } finally {
         harnessRecords.close();
         researchRecords.close();
+        programRecords.close();
       }
       const store = await this.projects.open(target);
       await this.harness.initialize();

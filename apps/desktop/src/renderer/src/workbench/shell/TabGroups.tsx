@@ -9,6 +9,7 @@ export type { TabGroupState, TabItem, TabKind } from '../tab-state';
 import { IconEdit, IconLibrary, IconPreview, IconReader, IconSettings, IconSplit } from './icons';
 
 const kindLabels: Record<TabKind, { title: string; description: string }> = {
+  programs: { title: '项目程序运行', description: '' },
   settings: { title: '设置', description: '' },
   task: { title: '研究任务', description: '' },
   library: { title: '文献库', description: '文献库界面将在后续变更接入，此页为框架占位。' },
@@ -18,6 +19,7 @@ const kindLabels: Record<TabKind, { title: string; description: string }> = {
 };
 
 const kindIcons: Record<TabKind, () => ReactNode> = {
+  programs: IconPreview,
   settings: IconSettings,
   task: IconEdit,
   library: IconLibrary,
@@ -78,6 +80,8 @@ export interface TabGroupsProps {
   renderSettings?: ReactNode;
   renderLibrary?: ReactNode | undefined;
   renderTask?: ((task: TaskRef, viewId: string) => ReactNode) | undefined;
+  renderPrograms?: ReactNode | undefined;
+  onOpenPrograms?: (() => void) | undefined;
   renderResource?:
     | ((
         target: ResourceTarget,
@@ -103,6 +107,8 @@ export function TabGroups({
   renderSettings,
   renderLibrary,
   renderTask,
+  renderPrograms,
+  onOpenPrograms,
   contextName,
   onOpenSettings,
 }: TabGroupsProps) {
@@ -114,6 +120,11 @@ export function TabGroups({
           {contextName ? `当前工作区：${contextName}。` : ''}
           从文件树或 Agent 会话打开材料后，会在这里以 tab 呈现。
         </p>
+        {onOpenPrograms ? (
+          <button type="button" className="btn" onClick={onOpenPrograms}>
+            项目程序运行
+          </button>
+        ) : null}
         {onOpenSettings ? (
           <div className="center-empty__actions">
             <button type="button" className="btn" onClick={onOpenSettings}>
@@ -173,6 +184,11 @@ export function TabGroups({
                 );
               })}
               <div className="tab-bar__spacer" />
+              {onOpenPrograms ? (
+                <button type="button" className="btn" onClick={onOpenPrograms}>
+                  项目程序运行
+                </button>
+              ) : null}
               <button
                 type="button"
                 className="icon-btn icon-btn--sm"
@@ -246,6 +262,8 @@ export function TabGroups({
                 )
               ) : active?.kind === 'task' && active.task && renderTask ? (
                 renderTask(active.task, group.id)
+              ) : active?.kind === 'programs' && renderPrograms ? (
+                renderPrograms
               ) : active?.kind === 'library' && renderLibrary ? (
                 renderLibrary
               ) : active?.kind === 'settings' ? (

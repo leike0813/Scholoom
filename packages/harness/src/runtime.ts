@@ -57,6 +57,7 @@ import {
   libraryToolMethods,
 } from '@scholoom/protocol/library';
 import type { ModelDefaults, ModelPreference, ModelProfile } from '@scholoom/protocol/models';
+import type { ProgramToolsPort } from '@scholoom/protocol/programs';
 import {
   type Artifact,
   type HarnessProjectPort,
@@ -102,6 +103,7 @@ import {
   contextItemContent,
   readInstructionContext,
 } from './instruction-context.js';
+import { programTools } from './program-tools.js';
 import { ProjectBackend } from './project-backend.js';
 import type { HarnessRecords } from './records.js';
 import { RemoteAgent } from './remote-agent.js';
@@ -498,6 +500,10 @@ export class Harness {
       roles?: readonly DelegationRole[];
       resolveProfile?: (id: string, context: CallContext) => Promise<ModelProfile>;
     } = {},
+    private readonly programs?: {
+      port(context: CallContext): ProgramToolsPort;
+      settle(context: CallContext): Promise<void>;
+    },
   ) {}
 
   async initialize(): Promise<void> {
@@ -2293,7 +2299,10 @@ export class Harness {
                 childrenController.abort(new Error('Parent execution stopped'));
             }
           },
-          onStop: () => update('exited'),
+          onStop: async () => {
+            await this.programs?.settle({ ...fileContext, instanceId: id });
+            update('exited');
+          },
         };
       };
       const { signal: _progressSignal, ...progressContext } = fileContext;
@@ -2712,6 +2721,19 @@ export class Harness {
                 }
               },
             })),
+            ...(this.programs ? programTools(this.programs.port(fileContext)) : []),
+            {
+              name: 'describe_program_material',
+              description:
+                '取得当前项目程序或输入文件的稳定资源引用及basis；材料发生变化后重新核查。',
+              schema: resourceOperations['resources.describe'].params,
+              func: async (input: ResourceInputs['resources.describe']) => {
+                this.checkExecutionContext(fileContext);
+                const resources = this.executionResources?.(fileContext);
+                if (!resources) throw new OperationError('unavailable', '资源读取端口不可用。');
+                return JSON.stringify(await resources.describe(input.locator));
+              },
+            },
             {
               name: 'read_context_resource',
               description:

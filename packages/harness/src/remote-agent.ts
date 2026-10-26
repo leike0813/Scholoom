@@ -498,7 +498,8 @@ export class RemoteAgent {
     peer.close();
     try {
       await this.options.onStop?.();
-    } catch {
+    } catch (error) {
+      if (error instanceof OperationError && error.code === 'outcomeUnknown') throw error;
       throw new OperationError('unavailable', '执行已停止，但退出登记保存失败。');
     }
     if (stoppingFailed) throw new OperationError('unavailable', '执行已停止，但撤权记录保存失败。');
