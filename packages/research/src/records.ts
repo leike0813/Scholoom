@@ -3,6 +3,7 @@ import Database from 'better-sqlite3';
 import { eq, sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/better-sqlite3';
 import * as schema from './schema.js';
+import { isMaterialAttempt } from './schema.js';
 
 export class ResearchRecords {
   private readonly database: Database.Database;
@@ -15,13 +16,27 @@ export class ResearchRecords {
   close(): void {
     this.database.close();
   }
-  restore(): void {
+  restore(projectId?: string): void {
     this.db.transaction((tx) => {
+      for (const row of tx.select().from(schema.attempts).all()) {
+        if (isMaterialAttempt(row.value)) continue;
+        tx.update(schema.attempts)
+          .set({
+            value: {
+              ...row.value,
+              projectId: projectId ?? row.value.projectId,
+              restoredFromProjectId: row.value.restoredFromProjectId ?? row.value.projectId,
+            },
+          })
+          .where(eq(schema.attempts.id, row.id))
+          .run();
+      }
       for (const row of tx
         .select()
         .from(schema.attempts)
         .where(sql`json_extract(${schema.attempts.value}, '$.state') = 'running'`)
-        .all())
+        .all()) {
+        if (!isMaterialAttempt(row.value)) continue;
         tx.update(schema.attempts)
           .set({
             value: {
@@ -34,6 +49,7 @@ export class ResearchRecords {
           })
           .where(eq(schema.attempts.id, row.id))
           .run();
+      }
     });
   }
 }

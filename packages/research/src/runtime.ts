@@ -11,6 +11,7 @@ import type { ResearchProjectPort } from '@scholoom/protocol/projects';
 import {
   isResearchRequest,
   type ResearchAttempt,
+  type ResearchGraph,
   type ResearchInputs,
   type ResearchModuleInputs,
   type ResearchOutputs,
@@ -18,8 +19,10 @@ import {
 } from '@scholoom/protocol/research';
 import { and, desc, sql } from 'drizzle-orm';
 import { ResearchContent } from './content.js';
+import { type ResearchGraphPorts, ResearchGraphRuntime } from './graph-runtime.js';
+import { ResearchGraphs } from './graphs.js';
 import type { ResearchRecords } from './records.js';
-import { attempts } from './schema.js';
+import { attempts, isMaterialAttempt } from './schema.js';
 
 type FileReference = ResearchAttempt['sources'][number];
 
@@ -36,11 +39,14 @@ export type ResearchPorts = {
   files: (context: CallContext) => ResearchProjectPort;
   session: ResearchSessionPort;
   execute: (execution: CapabilityExecution, context: CallContext) => Promise<void>;
+  graphs?: ResearchGraphPorts;
 };
 const now = () => new Date().toISOString();
 
 export class ResearchRuntime {
   readonly content = new ResearchContent();
+  readonly graphs: ResearchGraphs;
+  readonly graphCalls: ResearchGraphRuntime;
   private active = new Set<string>();
   private initialized = new Set<string>();
   private executing = new Map<
@@ -58,7 +64,17 @@ export class ResearchRuntime {
   constructor(
     private readonly notify: (projectId: string, sessionId: string) => void,
     private readonly ports: ResearchPorts,
-  ) {}
+    graphs: readonly ResearchGraph[] = [],
+  ) {
+    this.graphs = new ResearchGraphs(graphs);
+    this.graphCalls = new ResearchGraphRuntime(
+      this.graphs,
+      (projectId) => this.records(projectId),
+      ports.session,
+      ports.graphs,
+      notify,
+    );
+  }
 
   private records(projectId: string) {
     let records = this.repositories.get(projectId);
@@ -99,6 +115,7 @@ export class ResearchRuntime {
       .all();
     for (const row of rows) {
       const attempt = row.value;
+      if (!isMaterialAttempt(attempt)) continue;
       this.put(projectId, {
         ...attempt,
         state: 'interrupted',
@@ -121,6 +138,7 @@ export class ResearchRuntime {
       .where(
         and(
           sql`json_extract(${attempts.value}, '$.sessionId') = ${input.sessionId}`,
+          sql`json_extract(${attempts.value}, '$.kind') IS NULL`,
           input.invocationId
             ? sql`json_extract(${attempts.value}, '$.invocationId') = ${input.invocationId}`
             : undefined,
@@ -135,7 +153,10 @@ export class ResearchRuntime {
       .offset(offset)
       .all();
     return {
-      attempts: rows.slice(0, limit).map((row) => row.value),
+      attempts: rows
+        .slice(0, limit)
+        .map((row) => row.value)
+        .filter(isMaterialAttempt),
       ...(rows.length > limit ? { nextOffset: offset + limit } : {}),
     };
   }

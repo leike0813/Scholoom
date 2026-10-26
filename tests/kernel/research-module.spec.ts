@@ -5,12 +5,148 @@ import { join, resolve } from 'node:path';
 import { expect, test } from '@playwright/test';
 import { OperationError } from '../../packages/protocol/dist/core.js';
 import type { ResearchProjectPort } from '../../packages/protocol/dist/projects.js';
-import type { ResearchRequest } from '../../packages/protocol/dist/research.js';
-import { ResearchRecords, ResearchRuntime } from '../../packages/research/dist/node.js';
+import type {
+  ResearchGraph,
+  ResearchGraphCall,
+  ResearchRequest,
+} from '../../packages/protocol/dist/research.js';
+import {
+  assessGraphDelivery,
+  ResearchGraphs,
+  ResearchRecords,
+  ResearchRuntime,
+} from '../../packages/research/dist/node.js';
 
 const Database = createRequire(new URL('../../packages/research/package.json', import.meta.url))(
   'better-sqlite3',
 );
+
+const graph: ResearchGraph = {
+  definition: {
+    graphId: 'calibration',
+    version: '1',
+    stateFormatVersion: '1',
+    requiresModel: false,
+    configSchema: {
+      type: 'object',
+      properties: { goal: { type: 'string' } },
+      required: ['goal'],
+      additionalProperties: false,
+    },
+  },
+  name: 'Calibration',
+  description: 'Mechanism only',
+  source: 'builtin',
+  purpose: 'calibration',
+  resources: [{ nodeKey: 'read', resourceId: 'guidance', source: 'builtin' }],
+  delivery: { roles: ['report'] },
+};
+
+test('research graph discovery is bounded and selection validates the exact implementation', () => {
+  const catalog = new ResearchGraphs([
+    graph,
+    {
+      ...graph,
+      definition: { ...graph.definition, graphId: 'second' },
+    },
+  ]);
+  expect(catalog.discover({ limit: 1 })).toMatchObject({ descriptions: [graph], nextOffset: 1 });
+  expect(catalog.discover({ offset: 1, limit: 1 }).descriptions[0]?.definition.graphId).toBe(
+    'second',
+  );
+  expect(catalog.select('calibration', '1', { goal: 'check' })).toEqual(graph);
+  expect(() => catalog.select('calibration', 'missing', {})).toThrow(
+    expect.objectContaining({ code: 'notFound' }),
+  );
+  expect(() =>
+    catalog.select('calibration', '1', { goal: 'check', modulePath: '/tmp/code' }),
+  ).toThrow(expect.objectContaining({ code: 'invalidRequest' }));
+  expect(() => catalog.discover({ limit: 101 })).toThrow(
+    expect.objectContaining({ code: 'invalidRequest' }),
+  );
+  expect(() => new ResearchGraphs([graph, graph])).toThrow(
+    expect.objectContaining({ code: 'invalidRequest' }),
+  );
+  catalog.describe({ graphId: 'calibration', version: '1' }).definition.version = 'mutated';
+  expect(catalog.describe({ graphId: 'calibration', version: '1' }).definition.version).toBe('1');
+});
+
+test('graph delivery needs actual complete reads, current saved results and confirmed association', () => {
+  const input = {
+    ref: { source: 'project' as const, projectId: 'p', fileId: 'input' },
+    basis: 'input-v1',
+  };
+  const output = {
+    ref: { source: 'project' as const, projectId: 'p', fileId: 'output' },
+    basis: 'output-v1',
+    name: 'result.md',
+    format: 'text' as const,
+    capabilities: { read: true, write: true, render: true, readingRecords: false },
+  };
+  const read = {
+    ...input,
+    data: 'source',
+    offset: 0,
+    size: 6,
+    unit: 'utf16' as const,
+    truncated: false,
+  };
+  const result = {
+    resource: output,
+    association: { operationId: 'save', state: 'confirmed' as const },
+  };
+  const artifact = {
+    role: 'report',
+    result,
+    read: { ...read, ref: output.ref, basis: output.basis },
+  };
+  const progress = {
+    kind: 'graph.completed' as const,
+    attemptId: 'run',
+    evidence: { inputs: [input], reads: [input], results: [result] },
+  };
+  const check = (changes = {}) =>
+    assessGraphDelivery(graph, [input], progress, {
+      reads: [read],
+      artifacts: [artifact],
+      ...changes,
+    });
+  expect(check()).toMatchObject({
+    delivery: 'usable',
+    researchAssessment: 'notAssessed',
+    issues: [],
+  });
+  for (const reads of [
+    [],
+    [{ ...read, truncated: true }],
+    [{ ...read, offset: 6, data: '' }],
+    [{ ...read, basis: 'other' }],
+  ])
+    expect(check({ reads }).issues).toContainEqual(
+      expect.objectContaining({ code: 'inputNotRead' }),
+    );
+  expect(check({ artifacts: [] }).issues).toContainEqual(
+    expect.objectContaining({ code: 'artifactMissing' }),
+  );
+  expect(
+    check({
+      artifacts: [
+        {
+          ...artifact,
+          result: { ...result, association: { operationId: 'save', state: 'unknown' } },
+        },
+      ],
+    }).delivery,
+  ).toBe('incomplete');
+  expect(
+    assessGraphDelivery(
+      graph,
+      [input],
+      { ...progress, evidence: { ...progress.evidence, results: [] } },
+      { reads: [read], artifacts: [artifact] },
+    ).delivery,
+  ).toBe('incomplete');
+});
 
 test('research persists attempts with only its own table and replaceable ports', async () => {
   const root = await mkdtemp(join(tmpdir(), 'scholoom-research-module-'));
@@ -152,12 +288,42 @@ test('research persists attempts with only its own table and replaceable ports',
     expect(notifications).toBeGreaterThan(0);
     expect(sessionChecks).toBeGreaterThan(0);
 
+    runtime.releaseProject(projectId);
+    const mixed = new Database(join(root, 'project.sqlite'));
+    const graphCall: ResearchGraphCall = {
+      kind: 'graph',
+      id: 'graph-call',
+      projectId,
+      sessionId,
+      invocationId: 'invocation',
+      instructionId: 'instruction',
+      graphId: 'calibration',
+      version: '1',
+      config: { goal: 'check' },
+      text: 'Calibration',
+      materials: [
+        { ref: { source: 'project', projectId, fileId: 'input-file' }, basis: 'input-file-basis' },
+      ],
+      graph,
+      createdAt: '2026-10-25T00:00:00.000Z',
+    };
+    mixed
+      .prepare('INSERT INTO research_attempts (id, value) VALUES (?, ?)')
+      .run(graphCall.id, JSON.stringify(graphCall));
+    mixed.close();
+    runtime.initialize(projectId);
+    expect((await runtime.list({ projectId, sessionId })).attempts).toHaveLength(2);
     runtime.close();
     const check = new Database(join(root, 'project.sqlite'), { readonly: true });
     try {
       expect(check.prepare('SELECT count(*) AS count FROM research_attempts').get()).toEqual({
-        count: 2,
+        count: 3,
       });
+      expect(
+        JSON.parse(
+          check.prepare('SELECT value FROM research_attempts WHERE id = ?').get(graphCall.id).value,
+        ),
+      ).toEqual(graphCall);
     } finally {
       check.close();
     }

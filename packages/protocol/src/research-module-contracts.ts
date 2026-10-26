@@ -1,7 +1,20 @@
 import { fileReferenceSchema } from './project-file-contracts.js';
-import { researchAttemptSchema, researchRequestSchema } from './research-contracts.js';
+import {
+  researchAttemptSchema,
+  researchGraphStartSchema,
+  researchRequestSchema,
+} from './research-contracts.js';
 import { id, object, ok, text } from './schema.js';
 export const researchModuleOperations = {
+  'research.startGraph': {
+    params: researchGraphStartSchema,
+    result: object({ invocationId: id, instructionId: id, runId: id }, [
+      'invocationId',
+      'instructionId',
+      'runId',
+    ]),
+    semantics: { effect: 'write', returns: 'reference', waitMs: 5000 },
+  },
   'research.invoke': {
     params: researchRequestSchema,
     result: researchAttemptSchema,

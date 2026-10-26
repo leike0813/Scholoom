@@ -1,4 +1,11 @@
 export { ResearchContent } from './content.js';
+export {
+  assessGraphDelivery,
+  completeTextRead,
+  type GraphDeliveryChecks,
+} from './graph-delivery.js';
+export { graphArtifactOperation } from './graph-runtime.js';
+export { ResearchGraphs } from './graphs.js';
 export { ResearchRecords } from './records.js';
 export {
   type CapabilityExecution,

@@ -101,6 +101,9 @@ export type Inputs = {
   'provider.configure': FromSchema<(typeof businessSchemas)['provider.configure']['params']>;
   'provider.setDefaults': FromSchema<(typeof businessSchemas)['provider.setDefaults']['params']>;
   'research.attempts': FromSchema<(typeof businessSchemas)['research.attempts']['params']>;
+  'research.graph': FromSchema<(typeof businessSchemas)['research.graph']['params']>;
+  'research.graphCalls': FromSchema<(typeof businessSchemas)['research.graphCalls']['params']>;
+  'research.graphs': FromSchema<(typeof businessSchemas)['research.graphs']['params']>;
   'research.method': FromSchema<(typeof businessSchemas)['research.method']['params']>;
   'research.methods': FromSchema<(typeof businessSchemas)['research.methods']['params']>;
   'resources.cancel': FromSchema<(typeof businessSchemas)['resources.cancel']['params']>;
@@ -223,6 +226,9 @@ export type Outputs = {
   'provider.configure': FromSchema<(typeof businessSchemas)['provider.configure']['result']>;
   'provider.setDefaults': FromSchema<(typeof businessSchemas)['provider.setDefaults']['result']>;
   'research.attempts': FromSchema<(typeof businessSchemas)['research.attempts']['result']>;
+  'research.graph': FromSchema<(typeof businessSchemas)['research.graph']['result']>;
+  'research.graphCalls': FromSchema<(typeof businessSchemas)['research.graphCalls']['result']>;
+  'research.graphs': FromSchema<(typeof businessSchemas)['research.graphs']['result']>;
   'research.method': FromSchema<(typeof businessSchemas)['research.method']['result']>;
   'research.methods': FromSchema<(typeof businessSchemas)['research.methods']['result']>;
   'resources.cancel': FromSchema<(typeof businessSchemas)['resources.cancel']['result']>;

@@ -301,7 +301,11 @@ pnpm kernel cancel --project PROJECT_ID --session SESSION_ID
 
 工具详情返回稳定 `invocationId`、独立尝试、实际读取及保存文件、交付状态和缺项；`usable` 只表示本次报告实际保存、可读且输入已读取，科研充分性为 `notAssessed`。缺产物、失败或取消保留部分成果。明确重试前用 `read_research_attempts` 核查原记录，提供同一 `invocationId` 及原目标/输入；已有文件仍需读取后修改，不盲目重复未知效果。重启只将运行中尝试标为中断，不自动重跑。共同客户端的 `research.methods`、`research.method`、`research.attempts` 提供同一只读事实；尝试默认每页25、上限100条。
 
-方法内容与来源位于 `apps/kernel/src/research/builtin/`，随内核构建复制。首次仅加载内置的 JSON 形式 YAML 声明；用户/项目方法发现、派生和启用管理随 P5a，完整文献 Digest 随 P4c 接入共同能力入口。当前能力记录在项目数据库中，沿既有备份与独立副本恢复保存。
+材料分析内容与来源位于 `packages/research/src/builtin/`，随科研包构建复制，仍使用内置 JSON 形式 YAML 声明及既有能力入口。科研业务 Graph 采用源码注册，节点指导及资源随整体实现版本维护；用户／项目自定义 Graph 后置。当前能力记录在项目数据库中，沿既有备份与独立副本恢复保存。
+
+科研图通过 `research.graphs` 分页发现、`research.graph` 精确读取版本描述；`research.graphCalls` 按项目／会话及可选 invocationId 查询业务调用、真实执行与交付检查，默认每页25条、最多100条，响应最多512KiB。每项执行历史默认25条，`nextExecutionOffset` 可随指定调用的 `executionOffset` 继续读取。查询会按调用者当前资源权限核查材料与成果，保留实际依据和失败诊断，不启动执行或自动补关联；`usable` 不表示科研充分性已评估。恢复副本的旧资源引用保留原来源并提示核查，不自动访问原项目或重新开工。
+
+宿主内部 `research.startGraph` 接受稳定 invocationId／instructionId、精确图版本、开放配置及 ResourceEvidence，复用 `harness.startGraph`；普通消息仍沿 `session.send` 接续，取消沿原会话入口。`harness.executions` 只供已登记内部宿主消费，按 runId、instructionId 或 originInstructionId 三种明确选择器之一查询同会话历史；按原指令查询同时返回所属原消息，核对未知回执。来源由宿主建立，普通接续继承，显式新启动另起来源，不能凭相同配置推断调用关系。科研记录不复制运行状态、进程或 checkpoint。生产 Graph 集合仍为空，固定校准图仅在 `tests/fixtures/research-graph-worker` 的科研目录及 worker 同源装配；`research-graphs.spec.ts` 验证真实科研模块、broker、项目／库、首次成果、等待、取消和恢复，不能据此宣称真实综合流程或任务整合已交付。
 
 `pnpm test:kernel` 使用外部 HTTP 模型夹具，内部图、工具、文件和数据库均为真实实现。真实模型验收需显式运行 `SCHOOLOOM_LIVE_MODEL_TEST=1 pnpm test:kernel tests/kernel/minimax-live.spec.ts`，只使用隔离合成样本；默认测试不会使用真实 Key。该验证检查接线及可判定结果，不代表完整科研质量验收。
 

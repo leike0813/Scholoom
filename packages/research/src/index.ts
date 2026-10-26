@@ -1,5 +1,9 @@
 export type {
   ResearchAttempt,
+  ResearchGraph,
+  ResearchGraphCall,
+  ResearchGraphDelivery,
+  ResearchGraphStart,
   ResearchInput,
   ResearchInputs,
   ResearchMethod,

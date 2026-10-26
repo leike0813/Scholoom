@@ -3,10 +3,44 @@ import {
   graphResumeInputSchema,
   registeredGraphSchema,
 } from './graph-contracts.js';
-import { harnessSnapshotSchema, sessionSchema } from './harness-record-contracts.js';
+import {
+  harnessSnapshotSchema,
+  messageSchema,
+  runSchema,
+  sessionSchema,
+} from './harness-record-contracts.js';
 import { fileReferenceSchema } from './project-file-contracts.js';
-import { content, flag, id, object, ok, page, session } from './schema.js';
+import { array, content, count, flag, id, object, ok, page, session } from './schema.js';
 export const harnessModuleOperations = {
+  'harness.executions': {
+    params: {
+      ...object(
+        {
+          ...session,
+          runId: id,
+          instructionId: id,
+          originInstructionId: id,
+          offset: count,
+          limit: page,
+        },
+        ['projectId', 'sessionId'],
+      ),
+      oneOf: [
+        { required: ['runId'] },
+        { required: ['instructionId'] },
+        { required: ['originInstructionId'] },
+      ],
+    },
+    result: object(
+      {
+        runs: { ...array(runSchema), maxItems: 100 },
+        nextOffset: count,
+        instruction: messageSchema,
+      },
+      ['runs'],
+    ),
+    semantics: { effect: 'read', returns: 'result', waitMs: 5000 },
+  },
   'harness.startGraph': {
     params: object(
       { ...session, instructionId: id, text: content, execution: registeredGraphSchema },

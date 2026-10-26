@@ -26,7 +26,13 @@ import type {
 } from '@scholoom/protocol';
 import type { CallContext } from '@scholoom/protocol/core';
 import { OperationError } from '@scholoom/protocol/core';
-import type { ResearchProgressPort, ResearchToolsPort } from '@scholoom/protocol/research';
+import type {
+  ResearchGraph,
+  ResearchModuleInputs,
+  ResearchModuleOutputs,
+  ResearchProgressPort,
+  ResearchToolsPort,
+} from '@scholoom/protocol/research';
 import { ResearchRecords, ResearchRuntime } from '@scholoom/research/node';
 import { executionGraphs } from './execution-graphs.js';
 import { type FoundationMethod, ManualApplication } from './manual.js';
@@ -47,6 +53,7 @@ export class KernelApplication extends ManualApplication {
       environment?: NodeJS.ProcessEnv;
       contextResources?: ContextBridge['resources'];
       executionGraphs?: ExecutionGraphs;
+      researchGraphs?: readonly ResearchGraph[];
       workerEntry?: URL;
     } = {},
   ) {
@@ -72,7 +79,36 @@ export class KernelApplication extends ManualApplication {
         execute: async (input, context) => {
           await this.modulePort(context, 'research').call('harness.execute', input);
         },
+        graphs: {
+          start: (input) =>
+            this.modulePort(
+              {
+                moduleId: 'research',
+                role: 'host',
+                principal: { kind: 'system', id: 'research' },
+                projectId: input.projectId,
+                sessionId: input.sessionId,
+              },
+              'research',
+            ).call('harness.startGraph', input),
+          executions: (input) =>
+            this.modulePort(
+              {
+                moduleId: 'research',
+                role: 'host',
+                principal: { kind: 'system', id: 'research' },
+                projectId: input.projectId,
+                sessionId: input.sessionId,
+              },
+              'research',
+            ).call('harness.executions', input),
+          read: (input, context) =>
+            context.role === 'execution'
+              ? this.executionResources(context).read(input)
+              : this.modulePort(context, 'research').call('resources.read', input),
+        },
       },
+      options.researchGraphs,
     );
     this.harness = new Harness(
       this.harnessStorage(),
@@ -100,6 +136,17 @@ export class KernelApplication extends ManualApplication {
     );
     this.broker.register('runtime', this.handlers);
     this.broker.register('runtime-internal', {
+      'harness.executions': (input, context) => {
+        if (
+          context.role !== 'host' ||
+          context.principal.kind !== 'system' ||
+          (context.projectId && context.projectId !== input.projectId) ||
+          (context.sessionId && context.sessionId !== input.sessionId)
+        )
+          throw new OperationError('permissionDenied', '执行历史需要所属宿主查询。');
+        return this.harness.executions(input);
+      },
+      'research.startGraph': (input, context) => this.research.graphCalls.start(input, context),
       'harness.startGraph': (input, context) => {
         if (context.role !== 'host' || context.principal.kind !== 'system')
           throw new OperationError('permissionDenied', '图选择需要所属领域的宿主入口。');
@@ -162,6 +209,14 @@ export class KernelApplication extends ManualApplication {
       { moduleId: 'research', role: 'host', principal: { kind: 'system', id: 'source-graph' } },
       'research',
     ).call('harness.startGraph', input);
+  }
+  startResearchGraph(
+    input: ResearchModuleInputs['research.startGraph'],
+  ): Promise<ResearchModuleOutputs['research.startGraph']> {
+    return this.modulePort(
+      { moduleId: 'research', role: 'host', principal: { kind: 'system', id: 'research' } },
+      'research',
+    ).call('research.startGraph', input);
   }
   protected override checkInstructionContext(context: CallContext): void {
     if (
@@ -252,6 +307,9 @@ export class KernelApplication extends ManualApplication {
   researchTools(context: CallContext): ResearchToolsPort {
     const port = this.modulePort(context, 'harness');
     return {
+      'research.graphs': (input) => port.call('research.graphs', input),
+      'research.graph': (input) => port.call('research.graph', input),
+      'research.graphCalls': (input) => port.call('research.graphCalls', input),
       'research.methods': (input) => port.call('research.methods', input),
       'research.method': (input) => port.call('research.method', input),
       'research.attempts': (input) => port.call('research.attempts', input),
@@ -293,6 +351,9 @@ export class KernelApplication extends ManualApplication {
   }
 
   readonly handlers: Pick<Handlers<BusinessInputs, BusinessOutputs>, RuntimeMethod> = {
+    'research.graphs': (input) => this.research.graphs.discover(input),
+    'research.graph': (input) => this.research.graphs.describe(input),
+    'research.graphCalls': (input, context) => this.research.graphCalls.list(input, context),
     'research.methods': async () => {
       return this.research.content.discover();
     },
@@ -336,7 +397,7 @@ export class KernelApplication extends ManualApplication {
       const researchRecords = new ResearchRecords(internal);
       try {
         harnessRecords.restore(identity.id);
-        researchRecords.restore();
+        researchRecords.restore(identity.id);
       } finally {
         harnessRecords.close();
         researchRecords.close();
