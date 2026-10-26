@@ -65,3 +65,9 @@ git diff --check
 生产缺口为1.1b／1.2b：公开根入口及editor/node导出、resources.report注册及最终生成映射、HTML条件保存、真实项目／库read-send Adapter、报告声明来源在执行读取／模型前的复查。依赖和授权按所属模块权威接入，不借schema或替身认定具备。报告2.1 iframe／CSP／导航、2.2原子附加、3.x发布更新／草稿／等待、4.x双宿主完整I5均未展开；不以材料PDF或报告浏览代替。
 
 材料M1仍缺正文提交／新版本与unknown结果provider，M2仍缺可信FileEdit来源／撤销provider。本轮没有读取／打断活动research-task-workspace，没有新依赖、真实库写入、提交、推送、PR或归档。达到两个有界任务后停止；真实报告科研质量、全仓CI及Windows／macOS分发未验。
+
+## 主线验收：报告边界修复
+
+主线独立规格审查确认两项模块P2，尚未启用生产桥：共享子树可在容量检查前指数展开；UTF-8 BOM被入口TextDecoder移除，却令来源原始前缀漏认递归报告。主线小探针实际接受了BOM递归来源，19个不同节点被序列化为1835108字节；证据在`/tmp/scholoom-round5-acceptance-WBreMJ/report-boundary-repro.mjs`。
+
+保留原非JSON拒绝，序列化每个展开出现都扣除JSON字节数的保守下界预算，超限中止，再核对最终UTF-8实际字节；容量内共享引用及原64KiB边界保持。来源探测多读3字节，沿入口同一TextDecoder BOM语义判断前缀，原短分片核对保留。两项回归先针对旧dist运行，2失败：64MiB隔离子进程不能完成36层共享数据展开，BOM候选错误成功。修复后重建，schema／codec与资源模块组合70/70通过（3.9秒），日志`research-interaction/boundary-red.log`、`boundary-build.log`、`boundary-green.log`。四文件Biome与tools类型通过；只读追加审查未发现误拒合法容量或短分片问题，没有新增依赖、生产API、UI或权限。1.1a／1.2a的模块子范围保持，生产及整体任务继续开放。

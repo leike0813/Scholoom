@@ -1,3 +1,5 @@
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import { expect, test } from '@playwright/test';
 import {
   decodeReportHeader,
@@ -291,6 +293,25 @@ test('manifest rejects duplicate object identities, invalid source indexes and e
 
 const bridge = { version: 1, viewId: 'view', generation: 0, basis: 'report1' } as const;
 const select = { ...bridge, type: 'select', objectIds: ['plot'], request: 'Compare this result' };
+
+test('bridge rejects exponentially expanded shared data within a bounded process', async () => {
+  const moduleUrl = new URL('../../packages/protocol/dist/report-contracts.js', import.meta.url);
+  const script = `
+    import assert from 'node:assert/strict';
+    import { isReportBridgeMessage } from ${JSON.stringify(moduleUrl.href)};
+    const shared = { selected: true };
+    const message = { ...${JSON.stringify(bridge)}, type: 'state', browse: [shared, shared], draft: {}, dirty: false };
+    assert.equal(isReportBridgeMessage(message), true);
+    let browse = true;
+    for (let depth = 0; depth < 36; depth++) browse = [browse, browse];
+    assert.equal(isReportBridgeMessage({ ...message, browse }), false);
+  `;
+  await promisify(execFile)(
+    process.execPath,
+    ['--max-old-space-size=64', '--input-type=module', '-e', script],
+    { timeout: 10000, maxBuffer: 65536 },
+  );
+});
 
 test('bridge schemas accept only the declared message shapes and original ErrorInfo', () => {
   for (const message of [

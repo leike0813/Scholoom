@@ -141,6 +141,7 @@ for (const scenario of [
   'private path authority',
   'mixed version',
   'recursive report',
+  'recursive report BOM',
 ] as const) {
   test(`report candidate rejects ${scenario} and publishes no partial snapshot`, async () => {
     let content = html;
@@ -182,9 +183,9 @@ for (const scenario of [
         return describe(locator);
       };
     }
-    if (scenario === 'recursive report') {
+    if (scenario.startsWith('recursive report')) {
       paper.descriptor.format = 'html';
-      paper.bytes = Buffer.from(html);
+      paper.bytes = Buffer.from((scenario === 'recursive report BOM' ? '\uFEFF' : '') + html);
     }
     await expect(new ReportResources(f.ports).snapshot(entry, 'send')).rejects.toMatchObject({
       code:
@@ -192,7 +193,7 @@ for (const scenario of [
           ? 'notFound'
           : scenario === 'mixed version' || scenario.endsWith('change')
             ? 'contentChanged'
-            : scenario === 'recursive report'
+            : scenario.startsWith('recursive report')
               ? 'invalidRequest'
               : 'permissionDenied',
     });

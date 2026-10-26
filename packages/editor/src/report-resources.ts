@@ -140,8 +140,8 @@ export class ReportResources {
       const description = await this.verify(source);
       if (isDeepStrictEqual(source.ref, entry.ref)) throw denied();
       if (description.format === 'html') {
-        const head = await this.read(source, reportHeaderStart.length, true);
-        if (head.bytes.toString('utf8') === reportHeaderStart)
+        const head = await this.read(source, reportHeaderStart.length + 3, true);
+        if (new TextDecoder('utf-8').decode(head.bytes).startsWith(reportHeaderStart))
           throw new OperationError('invalidRequest', '报告来源不能递归引用报告。');
       }
     });

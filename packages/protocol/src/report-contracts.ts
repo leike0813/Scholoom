@@ -157,8 +157,17 @@ export function isReportBridgeMessage(value: unknown): value is ReportBridgeMess
       visited.add(item);
       for (const child of Object.values(item)) pending.push(child);
     }
+    let remaining: number = reportLimits.bridgeBytes;
+    const json = JSON.stringify(value, function (key, item) {
+      // Count every expanded occurrence before stringify can duplicate a shared subtree.
+      remaining -=
+        (Array.isArray(this) ? 0 : key.length) +
+        Math.max(1, typeof item === 'string' ? item.length : 1);
+      if (remaining < 0) throw new RangeError('Report bridge capacity exceeded');
+      return item;
+    });
     return (
-      bytes(value) <= reportLimits.bridgeBytes &&
+      new TextEncoder().encode(json).byteLength <= reportLimits.bridgeBytes &&
       ((value as ReportBridgeMessage).type !== 'select' ||
         (value as Extract<ReportBridgeMessage, { type: 'select' }>).request.length <=
           reportLimits.requestUnits)
