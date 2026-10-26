@@ -2,7 +2,7 @@
 
 ## 当前状态与成果
 
-2026-10-25，基线`e3d58fc807827a78493dcd16e38de28c8d02766e`。用户授权实施、锁定依赖及隔离UI验证；本轮进一步授权主线U1修复、只读消费正式交接快照、接口交接与公共方案准备。未授权提交、推送、PR、真实用户库或其他树操作。当前完成8/15项：1.1–3.3的局部实施与4.3的M3方案调查；4.1／4.2／4.4–4.6及完整5.1／5.2保持未完成。任务以[tasks](tasks.md)为准，调查／方案闭合不代表新提供者已接通，也不宣称整个change完成。
+2026-10-26，当前HEAD为`e71663b02a3444af0bda2091218dd09ebc0df638`，已只读核对0519904（含b838402）为祖先。用户恢复指令替代旧等待手动同步条件；本轮授权实施M3只读render提供者及实际消费者，并交可审查本地补丁。沿既有依赖和隔离UI授权，没有安装新依赖、触及真实用户库、同步其他树、提交／推送／PR或归档。原e3d58fc起点成果及同步检查点保留。当前完成9/15项：1.1–3.3、4.3及4.6；4.1／4.2／4.4／4.5和完整5.1／5.2保持未完成。任务以[tasks](tasks.md)为准，不宣称整个change或材料I5完成。
 
 已接入：
 
@@ -10,10 +10,11 @@
 - PDF／EPUB／HTML真实阅读器贡献当次选择；源码、可视编辑和Markdown轻预览贡献文字及实际表格／图片结构，原library阅读记录仍独立保存。
 - 项目与库PNG／JPEG／GIF／WebP共用图片视图，分片、身份、权限、字节／像素容量、键盘／指针区域及旋转／缩放均有边界；不提供图像语义推断或正文写回。
 - 项目文件历史复用`lineDiff`及原`files.undo`，实际保存与候选分别展示，未知执行者／理由不推断。首条真实阅读批注→共同composer→harness worker→项目保存→差异／撤销已在双宿主跑通。
+- M3新增只读render资源，以projectId/outputId和产物自身basis读取，保留生产job及实际输入；嵌入PDF直接选取、共同composer、实际worker字节／页解析、历史打开和刷新在两宿主通过。旧缺证据记录仍可预览／导出，不能附加。公共提供者及通用调用方与阅读器消费者分开交补丁，详见第三阶段。
 
-结构与实际链路沿[design总览](design.md#变更总览)，M1／M2虚线保持未接；嵌入排版产物没有伪造ResourceRef，仍等待M3。另一交互报告change未实施。
+结构与实际链路沿[design总览](design.md#变更总览)，M1／M2虚线保持未接；M3使用真实产物ResourceRef，没有伪造源码引用。另一交互报告change本轮未实施，未创建其delivery。
 
-## 实际验证
+## 第一阶段实际验证（历史）
 
 Linux，Node24.12.0，pnpm11.10.0；Quarto、latexmk为机器已有工具，外部模型仅现有loopback受控HTTP，未使用真实模型凭据。依赖按原锁文件安装，package.json和pnpm-lock.yaml无改动；Electron44.5.1运行时按已授权UI准备取得。配置、项目、库和结果均为隔离合成样本。
 
@@ -77,13 +78,13 @@ git diff --check
 
 - M1：生态Reader／sidecar／PDF字节及保存／SQL／通知／键保护调查已接收，关闭未收到调查。历史Reader写sidecar而非PDF、H1领域Adapter为替身，不能代替文献实际新材料版本、提交／未知结果查询及sidecar转换契约；4.1／4.4仍开放。
 - M2：项目快照提供CallContext／任务引用事实，未提供新FileEdit归因DTO；“关联字段草稿”不是执行归因。已交付可信执行者、指令集合、工具记录、局部撤销及变化查询的精确需求，等待项目／Agent确认。仍不显示推断的Agent作者／理由。
-- M3：本线已完成A显式导出、B新增只读render产物ref的比较；建议B须经公共契约审查。输出必须绑定自己的生产job和输入basis，不能借失败新job的basis解释旧lastSuccess。4.3只完成调查，4.6及完整I5仍待审查／实现。
+- M3：第三轮主线已采纳B新增只读render产物ref，4.6完成实际提供者和消费者验证。输出绑定自己的生产job和输入basis，不借失败新job解释旧lastSuccess。局部验证不关闭M1／M2或完整I5，公共dev接入仍由主线验收。
 
 继续执行时先读本记录和tasks，按所属提供者输入核对对应规格，再使用`openspec instructions apply --change add-material-annotation-interactions --json`。依赖和隔离UI验证授权继续有效；整合完成后才完成5.1／5.2并考虑归档。
 
 实际科研质量、三平台分发及macOS受管执行未验收。没有提交／推送／归档；当前记录是可续做交接，不是最终完成声明。
 
-## 第二阶段：U1修复与接口交接
+## 第二阶段：U1修复与接口交接（历史）
 
 主线正式输入为`/tmp/scholoom-phase2-handoff-VZS5mS/acceptance.md`及`coordination-plan.md`，manifest列七树来源／e3d58fc基线。本轮只读该包与本树；未操作其他树、发送跨树消息或新建Agent终端。继续使用已有原生子Agent，保持gpt-6.1-sol/high，分别只读核对生态输入及U1窄复核。
 
@@ -111,4 +112,94 @@ U1在`MarkdownPreview.tsx::selectedPreviewText`修复：仅遍历当前range相�
 
 两份补丁仅在临时源码夹具通过`git apply --check`，前者基于已转交项目两文件，后者基于e3d58fc对应文件。没有导入他域完整私有实现，没有声明dev构建／消费者整合通过；主线审查接入后再由用户同步。生成映射应从最终schema重生。
 
-达到本轮边界即停止。尚需主线审查：上述公共顺序及补丁、M3是否采用B新增只读产物ref或限定A导出范围、M2由项目／Agent提供的实际归因及消费契约。文献提交提供者未到时M1生产分支继续开放；不自动实现报告或下一阶段。
+第二阶段当时止于上述边界；其待审M3及同步门现由第三阶段正式输入替代。M2由项目／Agent提供实际归因及消费契约，文献提交提供者未到时M1生产分支继续开放；不自动实现报告或下一阶段。
+
+## 第三阶段：已同步本树的M3提供者与真实消费者
+
+### 实际输入与范围
+
+本轮任务来源为`/tmp/scholoom-round3-handoff-qefwKi/prompts/research-interaction.md`的“本线具体任务”，同时消费该包`acceptance.md`及`manifest.json`。用户明确恢复后，只读核对当前HEAD及0519904祖先关系，沿本树正式源码推进。主线同步／已有切片验证证据为`/tmp/scholoom-sync-recovery-wyn13R/recovery.md`、`synchronized.json`及逐树日志；原成果保全位置为同目录`research-interaction/files/`。主线报告的47＋6内核等结果属于同步验收，不冒称本轮新增测试；本轮结果另列如下。
+
+已消费资源叶schema／旧入口和ContextItem位置／区域／草稿编码，保留共享历史、v5→v6迁移及projectId／双窗口夹具。未复制他域私有实现，未建立临时运行组合，未退回旧资源声明。生态Reader／sidecar调查已收到，但实际文献材料提交提供者仍未具备；M1仅关闭调查缺失。M2等待项目可信粗粒度来源及整次FileEdit撤销，不显示推断作者、理由或单条指令归因。本轮没有实施交互报告。
+
+### 实现与公共符号
+
+| 提供者／消费位置 | 本轮实际行为 |
+| --- | --- |
+| `protocol/resource-contracts.ts::{resourceRefSchema,resourceLocatorSchema,renderInputSchema,resourceDescriptorSchema}`、`editor.ts::RenderOutput` | render定位为projectId/outputId；自身basis与生产输入ref/basis/依赖快照分别保存；Descriptor带jobId/input。旧输出可选字段保持历史可读；原resources入口重导出 |
+| `editor/runtime.ts::{resource,readResource,execute,savedRender}`、`resources.ts::readOutput` | 在发布后记录输出文件指纹和真实快照输入；核对生产记录、project绑定、读取前后指纹及目录范围；输出淘汰／替换／缺证据明确失败。lastSuccess沿原成功job；不新增写入权威 |
+| `protocol/resources.ts::ResourcePorts.render`、`editor/resource-access.ts::{renderPort,describe,read,document}`、`kernel/manual.ts`装配 | 注入editor窄端口，沿共同分片及parser读取实际PDF；同项目只读，targetRead和跨项目render拒绝；撤权后不能使用解析缓存绕过检查 |
+| `harness/runtime.ts`上下文授权及`read_context_resource/read_context_document`、`instruction-context.ts`端口 | 同项目render不误作外项目；共同工具读取真实字节和页解析，读取前后复查授权并保留原失败记录，不另建材料发送通道 |
+| `resource-controller.ts::{sameResourceRef,resourceKey,resourceSourceLabels}`、`tab-state.ts`、`project-ui.tsx` | 第三类source的身份、键、tab匹配、读取核对及标签；公共补丁只含通用适配，私有材料UI留消费者补丁 |
+| `RenderPane/PdfReader/ResourceView`、`MessageContent`→`session/business-session/Workbench/AgentOverlay` | 嵌入与共同打开共用真实PdfReader和ContextItem，历史重开不切接收会话；完整证据产物失败不降级取源码。旧缺证据输出用原RenderedPdf预览／导出，无附加入口 |
+| `ImageResourceView`及资源格式枚举／判断 | 保留实际项目／库图片路径及第三source穷尽适配；图片枚举随真实视图／harness字节验证交付，公共提供者补丁单独保留unsupported |
+
+设计图已加入editor产物→ResourceAccess与RenderPane→共同选择两条真实路径；规格补只读产物与旧记录场景，正式specs未改。schema派生映射无手工修改，最终六份生成输出格式化后与源码一致。
+
+### 实际验证与首轮失败
+
+环境仍为Linux／Node24.12.0／pnpm11.10.0，使用机器已有Quarto、latexmk及锁定依赖。先完成共享与桌面构建再测试，UI运行期间未重建共享产物。库、项目、输出均为fixture合成目录，外部模型仅受控loopback HTTP。
+
+| 检查 | 实际结果／证据 |
+| --- | --- |
+| 最终构建与类型 | shared通过：`/tmp/scholoom-m3-shared-final.log`；desktop build通过：`/tmp/scholoom-m3-build-final.log`；desktop／tools类型通过：`/tmp/scholoom-m3-types-final-2.log`、`/tmp/scholoom-m3-final-tools.log` |
+| editor提供者及真实harness授权 | 15/15：`/tmp/scholoom-m3-provider-final.log`、`test-results/m3-provider-final`。替换、错误basis、缺证据、淘汰、缓存／目录保护、只读、cross-project／targetRead及撤信任；真实内核、SQLite、编译器和parser，editor-runtime窄端口另有明确替身 |
+| 原生多文件LaTeX | 1/1：`/tmp/scholoom-m3-native.log`、`test-results/m3-native`。实际PDF字节和页文字、生产输入，改稿及依赖编译失败后旧资源及其basis/input保持不变 |
+| 既有资源／上下文回归 | 23/23：`/tmp/scholoom-m3-resource-regression.log`。context-instructions仅选身份验证／全部显式项持久化／同指令不变性3项，另覆盖public-contract-baseline、resource-access、resource-identity；不声称整个context-instructions文件全跑 |
+| 双宿主最终轮 | 8/8：`/tmp/scholoom-m3-ui-final.log`、`test-results/m3-ui-final`。两宿主各覆盖真实图片、旧依据投影、嵌入Quarto PDF→SDK真实拖选→composer／批注→实际worker字节及页读取→历史重开／刷新、原写作PDF预览导出 |
+| 架构及生成 | 13模块／201文件、0 findings／exceptions：`/tmp/scholoom-m3-architecture-final.log`；生成器自检及六份格式化映射一致性通过，无生成文件差异 |
+| 收尾 | 修改的TS／TSX Biome、两change OpenSpec strict、diff及新增文件空白检查通过；补丁按顺序在临时Git index应用并逐blob核对真实本树。临时index不是运行组合，未改真实staging；5641无监听，本轮子Agent已关闭 |
+
+主要复验命令如下；日志保留首次失败，重叠用例不相加为独立总数：
+
+```sh
+pnpm --config.optimisticRepeatInstall=false build:shared
+pnpm --filter @scholoom/desktop typecheck
+node node_modules/typescript/bin/tsc --noEmit -p tsconfig.tools.json
+pnpm --filter @scholoom/desktop build
+node node_modules/@playwright/test/cli.js test --config playwright.kernel.config.ts tests/kernel/editor-runtime.spec.ts tests/kernel/render-authorization.spec.ts --workers=1 --output test-results/m3-provider-final
+node node_modules/@playwright/test/cli.js test --config playwright.kernel.config.ts tests/kernel/editor.spec.ts --grep 'native multi-file LaTeX' --workers=1 --output test-results/m3-native
+SCHOOLOOM_UI_PORT=5641 xvfb-run -a node node_modules/@playwright/test/cli.js test --config playwright.ui.config.ts tests/ui/render-materials.spec.ts tests/ui/material-interactions.spec.ts tests/ui/writing-editor-pdf.spec.ts --grep 'embedded PDF|legacy PDF|project and library images|manual PDF' --workers=1 --output test-results/m3-ui-final
+pnpm check:architecture
+node packages/protocol/scripts/contract-types.mjs --self-test
+openspec validate add-material-annotation-interactions --strict
+openspec validate add-interactive-research-reports --strict
+git diff --check
+```
+
+首次tools检查在shared重建前读到旧dist，提示缺新方法；按构建顺序复验通过。首轮desktop类型发现openResource回调漏解构，已修复。首轮UI为2通过／2失败，`/tmp/scholoom-m3-ui-first.log`：新路径已走到实际选择／worker字节与解析，失败在tab可访问名包含关闭按钮而断言精确名称；按真实可访问名调整选择器后通过，没有增加时限。独立只读审查发现旧RenderOutput缺依据时预览被禁的P2，补原预览分支及代表性双宿主回归；编译检查另发现RenderedPdf导出缺失，恢复原组件后最终类型／构建／UI通过。最终窄审确认P2关闭、无新增已确认授权绕过；审查本身未运行测试。
+
+旧记录UI仅在WebSocket投影删除可选basis/input，PDF生成、字节读取和SDK仍真实；不等于旧版本完整磁盘迁移验收。新字节／parser测试及受控模型只验证机械链路，不评价科研内容。既有远端CI失败在本轮实际写作路径未复现，不据此宣称其根因已解决。生成器无help参数的一次诊断管道产生EPIPE，后续按真实自检入口通过，未修改生产逻辑。
+
+### 可审查补丁与接入顺序
+
+目录`/tmp/scholoom-m3-review-8gdlsT/`，`manifest.json`列文件及基线：
+
+1. `01-render-provider.patch`：以0519904为基线，17文件，含schema／editor／ResourceAccess／harness／装配、通用前端source调用方及必要内核测试。独立保留图片unsupported，不夹带阅读器UI；已有业务修改按符号接入，不能整文件覆盖。
+2. `02-material-readers-and-images.patch`：接在01之后，包含本线既有真实选择、U1、图片和本轮嵌入PDF／历史打开消费者及必要测试。该补丁含检查点已有成果；在完整本阅读树上不要重新应用。图片枚举及格式判断只在此补丁启用。
+3. `03-material-docs.patch`：本材料change原工件及UI／开发文档，保留开放任务，不携入报告实现或文献域工件。
+
+01／02在临时index从0519904顺序应用并逐blob与实际验证树核对，未创建临时runtime。构建／运行证据来自当前已同步树的真实组合；公共补丁单独进入dev后仍须主线独立构建、类型及定向测试，不把补丁可应用当作已接dev。资源叶与同源上下文前置已在0519904具备，不再重复交旧公共方案。schema生成入口／重导出保留，主线最终组合仍核对生成映射。临时source载荷仅用于补丁审查，不是产品运行依赖。
+
+### 停止点与剩余前置
+
+本轮4.6闭合，累计9/15；M1的4.1／4.4、M2的4.2／4.5及完整5.1／5.2仍开放。下一步先由主线接入上述公共切片并验证，再按用户调度同步消费者；本树不自动操作其他树。M2收到项目可信粗粒度来源／整次FileEdit撤销后再核对精确消费契约；M1待实际文献提交与版本／unknown结果提供者，不能以生态调查代替。报告manifest／codec、注入端口ReportResources及隔离夹具可独立续做，本轮未展开，也不将材料测试当作报告I5。
+
+达到用户授权的本轮有界任务后停止。未运行全仓CI、Windows／macOS分发或真实科研质量验收；没有推送、PR、归档、新依赖或真实库写入。
+
+## 第四轮：主线验收反馈与一次进程观察
+
+主线固定比较e71663b到本树工作区（含untracked），正式接受M3只读render及真实PDF选择／harness／权限／历史重开／图片消费者局部成果；没有新公共源码同步，也没有改本树HEAD。证据为`/tmp/scholoom-round4-acceptance-JCUBNw/acceptance.md`及本树子目录：主线构建／类型／架构／生成／strict通过，双宿主UI8通过；**内核首轮34通过1失败，失败项单独原时限复验1通过**。第三阶段表中的15/15等是本线先前实跑，不能替换本次主线首次结果，也不能合并宣称一次全绿。
+
+失败job在首个真实nativeTeX结束为unknown，尚未进入授权断言。首轮没有实际controller code/signal、stopped／scope状态或归属证据；只知controller exit时停止未确认。原240s测试／180s poll不变，主线复验19.1s通过；不能据此归因负载或超时。详细调用点与缺失证据见investigation第四轮。
+
+本轮在shared构建后只运行一次原测试，被动临时观察controller事件，未改平台源码或业务测试：
+
+```sh
+pnpm --config.optimisticRepeatInstall=false build:shared
+NODE_OPTIONS='--import=/tmp/scholoom-render-exit-observation-Xusye8/observe.mjs' node node_modules/@playwright/test/cli.js test --config playwright.kernel.config.ts tests/kernel/render-authorization.spec.ts --workers=1 --retries=0 --trace on --output /tmp/scholoom-render-exit-observation-Xusye8/results
+```
+
+结果1通过（20.1s）；观察脚本、`run.log`、`controller-events.jsonl`及trace保留在上述目录，不是产品依赖。5个本轮controller都记录ready身份、stopped消息及随后code0／signal null退出；首两个对应顺序上的两次nativeTeX render。没有直接记录scope状态管道，本轮通过不补齐历史缺失，原unknown根因仍开放。观察完成后不再运行同一用例，不加重试／超时，不以PID消失认定停止，不将unknown改完成或提前释放容量。
+
+下一步仅向主线交独立最小公共诊断方案：既有controller exit／native stop catch保留code/signal、instance身份、stopped是否收到、native最后状态和退出原因，复用现有IPC failure detail／诊断文本和过程测试，不扩业务ErrorInfo或另起框架；本树未实现平台行为变更。材料9/15保持，M1／M2及完整I5开放；报告模块实施归其独立change记录。本轮不读／打断活动项目树、不安装依赖或碰真实库。

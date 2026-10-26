@@ -237,6 +237,10 @@ export class ManualApplication {
         const port = this.modulePort(context, 'editor');
         return {
           ...(context.targetRead ? { target: this.projectTargetRead(context) } : {}),
+          render: {
+            describe: (locator) => this.editor.resource(locator, context),
+            read: (input) => this.editor.readResource(input, context),
+          },
           project: {
             'files.resolve': (input) => port.call('files.resolve', input),
             'files.read': (input) => port.call('files.read', input),
@@ -434,7 +438,8 @@ export class ManualApplication {
   private readonly instructionResourcePorts = new WeakMap<
     CallContext,
     {
-      port: Pick<ExecutionResourcePort, 'describe'> & Partial<Pick<ExecutionResourcePort, 'read'>>;
+      port: Pick<ExecutionResourcePort, 'describe'> &
+        Partial<Pick<ExecutionResourcePort, 'read' | 'document'>>;
       check: (items: readonly ResourceEvidence[], libraryUsed?: boolean) => void;
     }
   >();
@@ -648,6 +653,11 @@ export class ManualApplication {
           throw new OperationError('permissionDenied', '不能扩大目标读取范围。');
         this.library.check('read');
         this.library.check('send');
+      } else if (
+        ref.source === 'render' &&
+        (context.targetRead || ref.projectId !== context.projectId)
+      ) {
+        throw new OperationError('permissionDenied', '产物只允许所属项目读取。');
       } else if (context.targetRead) {
         if (write || context.targetRead.targetProjectId !== ref.projectId)
           throw new OperationError('permissionDenied', '目标资源只允许原范围读取。');

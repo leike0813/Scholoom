@@ -2,7 +2,7 @@
 
 ## 变更总览
 
-基于 [investigation](investigation.md)，可独立部分采用既有资源／上下文 seam。当前M1已消费生态调查、仍缺文献提交提供者，M2等待可靠归因／消费契约，M3由本线完成产物方案并待公共审查。真实材料选择与共同附加部分按现有资源能力和同版本位置实施，实际结果见delivery；受阻分支只保留候选和所需输入，不将整个change宣称已交付。
+基于 [investigation](investigation.md)，可独立部分采用既有资源／上下文 seam。当前M1已消费生态调查、仍缺文献提交提供者，M2等待可靠归因／消费契约。M3方案B已获采纳，并在已同步本树完成只读产物提供者和真实双宿主选择链路；实际结果见delivery。受阻分支只保留候选和所需输入，不将整个change宣称已交付。
 
 ```mermaid
 flowchart LR
@@ -16,6 +16,9 @@ flowchart LR
   A --> R[ResourceAccess]
   R --> P[projects 条件保存与历史]
   R --> L[library 读取与阅读记录]
+  E[editor 只读render产物及生产依据] --> R
+  E --> RV[RenderPane 真实PdfReader]
+  RV --> S
   P --> H
   L --> H
   M1[文献材料修订及提交 待输入] -.-> L
@@ -49,7 +52,7 @@ Markdown公式从同一TeX annotation生成一次摘录，表格语义沿同一�
 
 region 目标字段影响既有固定 provider、检查器、SDK编码及持久指令；变更时必须同步所有当前 region 构造者与消费者。历史无目标 region 保持可读且明确基准未知，不猜页号；不把其作为新格式选择输出。与另一报告 change 的对象项保持独立，其 object 不需要本次位置增量。
 
-完整排版选择需要实际产物身份。目前 RenderOutput 不是 ResourceRef，不能直接附源码ref加产物quote。可先将显式导出的真实项目PDF沿共同资源打开后选择；嵌入式 RenderedPdf 的直接贡献由本线负责，公共产物证据方案见末节M3，审查前不实施。首批任务明确区分这个缺口，不能把导出绕行称为原位预览接通。
+完整排版选择使用独立render ResourceRef，不能直接附源码ref加产物quote。嵌入RenderPane与共同打开均复用真实PdfReader；显式导出仍保留。缺少生产依据的旧产物保持原RenderedPdf预览／导出，明确禁用直接附加；不以当前稿件补证据。公共产物依据与只读范围见末节M3。
 
 ### 交互和保存
 
@@ -116,9 +119,11 @@ sequenceDiagram
 
 ## 待办边界
 
-M1、M2以及嵌入排版产物证据适配仍为明确前置。M1选项为由文献域提供新材料版本提交，或继续只读；不能在本线选择覆盖旧字节。M2优先扩展既有FileEdit与工具结果的关联，替代新建审查数据库；实际字段和消费方式交提供者确认。对应任务阻塞，已明确选择模块可独立实施。跨版本持续精确定位、图像语义推断、完整科研意见状态机、Mac受管执行和三平台发布不在本change范围。
+M1、M2仍为明确前置，M3局部实现及验证已闭合。M1选项为由文献域提供新材料版本提交，或继续只读；不能在本线选择覆盖旧字节。M2先消费项目提供的可信粗粒度来源与整次FileEdit撤销，实际字段和消费方式交提供者确认，不推断作者或理由。对应任务阻塞，已明确选择模块可独立实施。跨版本持续精确定位、图像语义推断、完整科研意见状态机、Mac受管执行和三平台发布不在本change范围。
 
 ## 主线第二阶段交接与公共增量
+
+2026-10-26实施更新：主线已采纳下述M3方案B，并完成e71663b同步（0519904为祖先）。本轮新增`source:render/projectId/outputId`只读资源。产物在发布后记录自己的文件basis及生产输入`{ref,basis,dependencies}`；旧记录缺证据不猜。`RenderOutput`可选basis/input保留旧预览可读，新的render资源必须具备证据。`ResourceDescriptor.render`提供jobId和input，最后成功产物沿自己的outputId/jobId读取。内部`ResourcePorts.render`由同属editor的runtime提供，宿主只装配，不新增存储权威或公开写入口；harness增加共同文档读取工具，字节和解析均沿ResourceAccess及原授权。首批只同项目PDF，不扩大跨项目产物权限。同步／历史提供者实际证据与本轮新增验证分别记录。
 
 本节消费用户正式转交的`/tmp/scholoom-phase2-handoff-VZS5mS/`，清单以该目录`manifest.json`为准，各树来源基线均为`e3d58fc807827a78493dcd16e38de28c8d02766e`。只读快照不等于代码进入本树或dev。主线验收`acceptance.md`的U1是本轮修复输入，`coordination-plan.md`“独立实施之后的公共对接阶段”规定先独立补充、dev接入验证、再由用户同步消费者。
 
@@ -156,20 +161,20 @@ M1、M2以及嵌入排版产物证据适配仍为明确前置。M1选项为由�
 
 最小联合验证为人工与Agent各一项保存、同路径并发两run、一次推进多指令、候选未发布、撤销和后续重叠编辑、重启查询；必须核对实际记录，不能只测试UI显示。现阶段MaterialChangeView继续显示执行者／理由未知，4.2／4.5保持开放。
 
-### M3：本线editor产物依据方案，待公共审查
+### M3：已采纳并实施的只读产物资源
 
-本线负责此方案及后续实现。源码依据：`protocol/editor.ts`的RenderOutput只有id/jobId/name/format/byteLength，RenderJob保留fileId、basis、dependencies及output／lastSuccess；`editor/runtime.ts::execute`在快照后固定输入basis并核查依赖再发布，`saved/output/export`按outputId读取不可变缓存；`RenderPane`用`job.output ?? job.lastSuccess`，RenderedPdf当前只有url。**失败新job的basis不能解释旧lastSuccess**，旧产物必须沿自己的jobId查询生产记录。缓存会淘汰，outputId不是永久存档承诺。
+原调查时RenderOutput只有id/jobId/name/format/byteLength，RenderJob保留fileId、basis、dependencies及output／lastSuccess。现实现新增可选basis/input，`editor/runtime.ts::execute`在输出发布后记录文件指纹与实际快照输入，原`saved/output/export`继续按outputId读取缓存。`RenderPane`以`job.output ?? job.lastSuccess`的outputId打开产物。**失败新job的basis不能解释旧lastSuccess**，旧产物沿自己的jobId及保存输入核查。缓存会淘汰，outputId不是永久存档承诺。
 
 | 选项 | 依据、成本与限制 |
 | --- | --- |
 | A 显式导出项目文件再打开 | 复用editor.export／原文件传输与project ResourceRef，不需新ref；导出文件的字节版本即选择依据。当前已有真实双宿主预览／导出证据。需要项目写权限和用户动作，不能完成嵌入预览直接附加，也不能凭导出名称宣称输入溯源 |
-| B 只读产物资源（建议公共审查） | 新增判别`source:render`、projectId、outputId的ResourceRef／Locator；产物basis为编辑器签发的不可变输出版本令牌，绝不使用源码basis。editor提供生产job的输入ResourceEvidence及依赖快照；能直接附加嵌入页，但需扩展共同资源与执行授权分派，不能本轮私自合入 |
+| B 只读产物资源（主线已采纳） | 新增判别`source:render`、projectId、outputId的ResourceRef／Locator；产物basis为编辑器保存的输出文件指纹，绝不使用源码basis。editor提供生产job的输入依据及依赖快照；共同资源与harness分派、实际字节／解析及嵌入页附加已随本线验证，公共增量独立交补丁 |
 | C 仅给ContextItem加outputId，仍附源码ref | 拒绝：资源重新读取、位置和版本会落到稿件，绕过共同资源身份事实源 |
 
-B的有界候选：首批只开放排版PDF、同项目只读，不新增产物写入／持久历史／跨项目取材能力。editor通过自身窄端口提供产物describe/read/pdfInfo/readPdfPage；共同ResourceAccess消费该端口，生产仍由宿主装配，不调用harness私有仓储。`RenderInputEvidence`候选含`jobId`、输入project ref＋basis及既有`dependencies[{path,basis}]`；依赖路径不冒充稳定资源身份，不承诺自动追溯手工粘贴的库来源。outputId的生产记录、产物文件和输入依据须匹配；旧记录缺证据时可保持原预览／导出，直接附加明确不可用，不取当前稿件补证据。
+B的实施范围为排版PDF、同项目只读，不新增产物写入／持久历史／跨项目取材能力。editor runtime通过`resource/readResource`提供描述与字节，`ResourcePorts.render`注入共同ResourceAccess；PDF解析继续由既有parser执行，生产由宿主装配，不调用harness私有仓储。`RenderOutput.input`由`renderInputSchema`定义输入project ref＋basis及`dependencies[{path,basis}]`，`ResourceDescriptor.render`返回jobId与input；依赖路径不冒充稳定资源身份，不承诺自动追溯手工粘贴的库来源。outputId的生产记录、产物文件和输入依据须匹配；旧记录缺证据时保持原预览／导出，直接附加明确不可用，不取当前稿件补证据。
 
 人工读取沿项目read；Agent实际取用和模型前仍要求相符工作域／项目信任及有效执行，不能凭浏览器已加载或旧缓存绕过撤权。产物分片沿原256KiB和现有容量；读取前后核对产物身份／依据，淘汰或生产记录缺失返回明确notFound／不可核查，不借最新同名输出回退。旧页显式项保留原outputId及原摘录。产物只读，阅读记录和库修订不随此方案获得权限。
 
 公共改动拥有者及审查集：本线`protocol/resource-contracts.ts`（在项目抽取接入之后扩展ref）、`resources.ts`的派生端口、`protocol/editor.ts`产物依据schema、`editor/runtime.ts`不可变依据保存及适配、`editor/resource-access.ts`分派；宿主仅装配该窄端口。随后分别适配context／harness的资源分派和RenderPane／RenderedPdf选择。须先列全所有project/library穷尽分支并由项目／Agent核对，不能只给协议加枚举而遗漏授权消费。
 
-拟验收测试：真实Quarto PDF带生产job输入basis；先成功V1再失败V2而选区仍引用V1；源码被替换／改名、输出淘汰、撤权和重启缺证据；原`editor-runtime`缓存／目录保护继续通过；两宿主从嵌入PDF明确附加、共同composer发送，真实harness重新读取同一产物。端口可替换的独立测试仅证明editor证据生成，不能代替上述生产接线。**本轮只交设计和测试边界，没有新增ref或产物提供者；4.3可结束方案调查，4.6仍等待B或A范围的明确审查结论。**
+验收复用`editor-runtime`的替换／淘汰／缓存／权限测试，真实原生LaTeX验证成功V1及改稿失败V2仍沿V1生产依据；真实KernelApplication验证harness读字节、页解析、只读、跨项目／targetRead拒绝和撤权。两宿主以真实Quarto PDF、SDK选择、共同composer、worker字节／页读取和历史打开／刷新验证生产接线；旧记录用例仅在协议投影删除可选依据，未伪造PDF或提供者。实际命令、首次失败和补丁拆分见delivery第三阶段。4.6完成，不据此关闭M1／M2或完整I5。

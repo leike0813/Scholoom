@@ -588,6 +588,7 @@ function WorkbenchContent({ session }: { session: WorkbenchSession }) {
               title={session.activeSessionTitle ?? activeSession?.title ?? 'Agent 会话'}
               messageKey={`${session.projectId ?? 'sample'}:${session.activeSessionId ?? ''}`}
               openFile={session.openMessageFile}
+              openResource={session.openMessageResource}
               context={session.executionContext}
               reset={session.reset ? reset : undefined}
               onCollapse={() => setAgentExpanded(false)}

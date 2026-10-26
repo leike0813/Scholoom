@@ -263,8 +263,38 @@ test('native multi-file LaTeX preserves last successful PDF after a failed compi
     );
     expect(first.state, first.log).toBe('completed');
     assert(first.output);
+    const ref = { source: 'render' as const, projectId, outputId: first.output.id };
+    const resource = await app.call('resources.describe', { locator: ref });
+    expect(resource).toMatchObject({
+      ref,
+      basis: first.output.basis,
+      format: 'pdf',
+      render: {
+        jobId: first.id,
+        input: { basis: first.basis, ref: { source: 'project', fileId: first.fileId } },
+      },
+      capabilities: { read: true, write: false, readingRecords: false, render: false },
+    });
+    const input = { ref, basis: resource.basis };
+    const raw = await app.call('resources.read', { ...input, encoding: 'base64' });
+    expect(Buffer.from(raw.data, 'base64').subarray(0, 5).toString()).toBe('%PDF-');
+    const page = await app.call('resources.document', {
+      ...input,
+      request: { method: 'readPdfPage', input: { pageIndex: 0 } },
+    });
+    expect('text' in page && page.text).toContain('42');
+    await expect(
+      app.call('resources.save', { ...input, content: 'replace PDF' }),
+    ).rejects.toMatchObject({ code: 'permissionDenied' });
+    await expect(
+      app.call('resources.read', { ...input, basis: 'wrong-output-basis', encoding: 'base64' }),
+    ).rejects.toMatchObject({ code: 'contentChanged' });
     expect(first.dependencies.map((item) => item.path)).toContain('chapter.tex');
     await writeFile(join(path, 'chapter.tex'), '\\UnknownCommand\n');
+    await writeFile(
+      join(path, 'main.tex'),
+      '\\documentclass{article}\n\\begin{document}\\input{chapters/a}\\end{document}\n% changed input\n',
+    );
     const failed = await completed(
       app,
       projectId,
@@ -278,6 +308,8 @@ test('native multi-file LaTeX preserves last successful PDF after a failed compi
     expect(failed.state).toBe('failed');
     expect(failed.output).toBeUndefined();
     expect(failed.lastSuccess?.id).toBe(first.output.id);
+    expect(failed.basis).not.toBe(first.basis);
+    expect(await app.call('resources.describe', { locator: ref })).toEqual(resource);
     expect((await bytes(app, projectId, first.output.id)).subarray(0, 5).toString()).toBe('%PDF-');
   } finally {
     await app.close();

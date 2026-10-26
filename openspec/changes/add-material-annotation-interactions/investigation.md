@@ -1,8 +1,8 @@
 # 调查依据
 
-## 当前事实与复用选择
+## 初始事实与复用选择（2026-10-25）
 
-调查日期 2026-10-25，源码固定为 `e3d58fc807827a78493dcd16e38de28c8d02766e`，初始工作区干净，无 `.codegraph/`。本轮证据为源码／测试定义／历史日志阅读，没有运行业务、UI、模型或编译。本树没有 `node_modules`，不安装依赖。
+初始调查源码为 `e3d58fc807827a78493dcd16e38de28c8d02766e`，当时工作区干净，无 `.codegraph/`、`node_modules`；以下初始表记录规划时阅读证据。后续获授权的实际实施与同步事实见末节及delivery，不将历史调查改写为当时已接线。
 
 ### 已有能力与差距
 
@@ -68,7 +68,7 @@ flowchart LR
 | --- | --- | --- |
 | M1 | 生态线 Zotero 10 Reader／PDF 写回、插件保存／SQL／通知及固定键保护证据；文献线材料修订／提交结果契约 | 生态调查已通过主线包收到并消费，证据级别见下节；仍缺实际文献提交提供者与sidecar转换契约，生产写回继续受阻 |
 | M2 | 项目线 FileEdit 与实际执行／指令的可靠关联字段；Agent 线既有文件变化／撤销线索的消费方式 | 已收到项目CallContext与任务接口快照，但未提供FileEdit归因DTO。design列精确消费者需求，等待项目／Agent确认可靠字段；不推断执行者、理由或已消费 |
-| M3 | 本线editor的RenderOutput与可供显式项使用的产物资源证据 | 本线已完成显式导出与新增只读render ref的方案／测试边界，待公共审查；不能将产物摘录贴到源码basis。方案调查完成不代表直接附加已实现 |
+| M3 | 本线editor的RenderOutput与可供显式项使用的产物资源证据 | 第三轮主线已采纳只读render ref；本树完成独立提供者及真实双宿主共同附加／harness字节与解析验证，4.6闭合。不能将产物摘录贴到源码basis，不能据此关闭整个材料change |
 
 区域坐标和格式贡献属于本线职责，可基于现有视图／schema 设计；不依赖 M1。材料缺失时保留原摘录，撤权时停止展示受保护缓存，不能把摘录当成当前许可。
 
@@ -86,8 +86,26 @@ flowchart LR
 
 M1只关闭“未收到生态阅读写回调查”，仍等待文献实际材料提交提供者：目标附件与预期旧materialVersionId、新字节的受控来源、稳定操作身份、真实新版本及结果查询、原版保留、冲突／撤权／未知结果、可信操作者；sidecar→共同记录的身份／修订／作者转换尚未定。它们不是BBT替身可以提供的事实，4.1／4.4继续开放。
 
-M3由本线editor负责，不存在需要等待的第八条开发线。本树RenderOutput的jobId可追查生产输入，最新失败job的basis不能用于旧lastSuccess。已完成显式导出与只读产物ref的比较、公共文件集和测试边界，见design的M3小节；新增ref方案待主线审查，尚无产物资源实施。
+第二阶段M3由本线editor完成显式导出与只读产物ref比较，不等待第八条editor线。第三阶段已按主线采纳的B实施；生产依据、失败新job与旧lastSuccess的隔离及实际验证见design的M3小节和delivery第三阶段。
+
+## 公共同步与第三阶段实际复核（2026-10-26）
+
+第三轮任务与验收输入为`/tmp/scholoom-round3-handoff-qefwKi/prompts/research-interaction.md`、`acceptance.md`和`manifest.json`。其旧未同步条件由用户恢复指令替代；主线同步证据位于`/tmp/scholoom-sync-recovery-wyn13R/recovery.md`、`synchronized.json`，保全快照为同目录`research-interaction/files/`。恢复后只读核对HEAD为`e71663b02a3444af0bda2091218dd09ebc0df638`，`git merge-base --is-ancestor 0519904 HEAD`成功；0519904含b838402。本轮使用正式本树源码，没有复制临时运行组合或自行操作其他树。
+
+资源叶schema／旧入口、位置／区域／草稿同源编码、共享来源／历史和迁移现已实际具备。前节“尚未进入本树”的快照结论仅记录第二阶段，不再是同步门。图片枚举与实际消费者随阅读器补丁一起交付，不能仅交协议开关。项目／文献私有提供者不因公共同步自动具备：M1仍缺实际提交／版本结果，M2等待可信粗粒度来源与整次FileEdit撤销，当前不展示推断作者或理由。
+
+新增M3提供者按outputId读取保存的生产job及实际输入快照，产物basis使用输出文件指纹。ResourceAccess的文档解析装载改用共同base64读取入口，harness通过`read_context_resource`及`read_context_document`消费实际字节／解析，所有source分支核对同项目和只读限制。旧缺证据产物保持原预览／导出，新的资源打开／附加明确不可用。实际合成样本与权限／失败边界见delivery，不据受控模型核对科研质量。
 
 ## 结论与承接
 
-真实格式贡献、共同发送、图片区域、已有结构对象及实际项目差异已完成局部实施，实际证据见delivery。M1等待文献提交提供者，M2等待可靠归因／消费契约，M3方案已形成但新增ref尚待审查；受影响的生产路径及完整I5保持开放。基础综合和独立报告change不以这些写回／归因前置为整体依赖。
+### 第四轮：首个nativeTeX的unknown有界诊断
+
+固定比较点仍为e71663b02a3444af0bda2091218dd09ebc0df638到工作区（含untracked）。输入为`/tmp/scholoom-round4-acceptance-JCUBNw/acceptance.md`、该包`research-interaction/kernel-check.log`、`kernel-auth-recheck.log`及`kernel-results/render-authorization-real--023f4-e-and-current-project-trust/trace.zip`。首次35项为34通过／1失败；失败位于第一个真实nativeTeX job，尚未创建会话／进入授权断言。测试240s、poll180s原值不变；trace中poll约1.862s即返回unknown，不是到达poll时限。主线在未变源码／构建下单项复验19.1s通过，不证明根因已修复。
+
+首轮trace和两份日志均缺controller exit code／signal、ready身份、stopped消息、native scope状态／状态管道P/R/E及其退出码；警告PID没有与controller／scope／TeX建立归属。`platform/processes.ts::ManagedNode`的exit listener在confirmed为false时拒绝stopped为outcomeUnknown；`runCommand`最后await worker.stop，原生stop失败可覆盖先前命令结果。`process-controller.ts::stop`只在原生scope退出0且无signal后才发送stopped。首轮文案唯一能确认的是controller exit时尚未收到停止确认，不能推出TeX是否启动、负载／超时或根PID消失即完整停止。`git diff 0519904 -- packages/platform`为空。
+
+本轮仅一次定向运行：先shared构建通过（`/tmp/scholoom-round4-diagnostic-build.log`），再用`/tmp/scholoom-render-exit-observation-Xusye8/observe.mjs`作为NODE_OPTIONS --import，对本树controller的fork、ready／stopped／failure IPC及exit／disconnect做被动JSONL观察；不改变controller参数、归属、stop、结果、reservation或时限，也不向原生子进程注入观察代码。命令和原始结果保存在该目录`run.log`、`controller-events.jsonl`及`results/`。单项1通过（20.1s），首次两个render controller分别为3331641／3332106，ready的执行身份为3331685／d7ffd329-4558-4559-aa1c-b8a832b0d733及3332135／3ed58756-4453-47f1-946d-7880d7e85c4c；两者均先收到stopped，再code0／signal null退出。全部5个本轮观察controller均如此；这只记录本轮成功退出，未复现首轮故障，也未直接观测native状态管道。
+
+达到最多一轮边界，不再循环跑。下一窄入口为platform `process-controller.ts`的native scope状态管道及stop catch、`processes.ts`的controller exit：先审查最小公共诊断增量，在既有failure reason/detail和outcomeUnknown诊断文本保留controller exit code/signal、instanceId／ready pid、是否收到stopped，以及native stop失败detail／最后P/R/E和scope exit状态；不要扩ErrorInfo DTO或另建日志框架。沿现有command／process测试验证正常stopped、scope非0／signal、controller提前退出时unknown及reservation仍未释放。该平台增量仅为待主线审核方案，本树未实施、不改变停止／容量保证。
+
+真实格式贡献、共同发送、图片区域、已有结构对象、实际项目差异及M3只读产物链路已完成局部实施，实际证据见delivery。M1等待文献提交提供者，M2等待可靠归因／消费契约；受影响的生产路径及完整I5保持开放。基础综合和独立报告change不以这些写回／归因前置为整体依赖。

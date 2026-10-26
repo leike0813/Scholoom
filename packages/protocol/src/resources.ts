@@ -246,6 +246,10 @@ export type ResourcePorts = {
   project: ResourceProjectPort;
   library: ResourceLibraryPort;
   target?: ProjectTargetReadPort;
+  render?: {
+    describe(locator: Extract<ResourceLocator, { source: 'render' }>): Promise<ResourceDescriptor>;
+    read(input: ResourceInputs['resources.read']): Promise<ResourceOutputs['resources.read']>;
+  };
 };
 export type ResourcePortFactory = (context: CallContext) => ResourcePorts;
 export type ReadingRecordPort = {

@@ -6,6 +6,7 @@ import type {
   ResourceInputs,
   ResourceLocator,
   ResourcePort,
+  ResourceRef,
 } from '@scholoom/protocol';
 export interface FileTarget {
   projectId: string;
@@ -32,11 +33,39 @@ export interface ReadingRecordAdapter {
   status(): Promise<{ read: boolean; write: boolean }>;
   subscribe(listener: () => void): () => void;
 }
+export const resourceSourceLabels: Record<ResourceRef['source'], string> = {
+  project: '项目材料',
+  library: '库材料',
+  render: '排版产物',
+};
+
+export function sameResourceRef(left: ResourceRef, right: ResourceRef): boolean {
+  if (left.source === 'project')
+    return (
+      right.source === 'project' &&
+      left.projectId === right.projectId &&
+      left.fileId === right.fileId
+    );
+  if (left.source === 'library')
+    return (
+      right.source === 'library' &&
+      left.attachmentId === right.attachmentId &&
+      left.materialVersionId === right.materialVersionId
+    );
+  return (
+    right.source === 'render' &&
+    left.projectId === right.projectId &&
+    left.outputId === right.outputId
+  );
+}
+
 export function resourceKey(target: ResourceTarget): string {
   const ref = target.locator;
   return ref.source === 'project'
     ? `${ref.projectId}:${ref.fileId ?? ref.path}`
-    : `reader:${ref.attachmentId}:${ref.materialVersionId}`;
+    : ref.source === 'render'
+      ? `render:${ref.projectId}:${ref.outputId}`
+      : `reader:${ref.attachmentId}:${ref.materialVersionId}`;
 }
 export function projectTarget(target: ResourceTarget): FileTarget | undefined {
   const ref = target.locator;

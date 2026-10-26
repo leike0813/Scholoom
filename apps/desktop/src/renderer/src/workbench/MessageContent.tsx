@@ -1,13 +1,15 @@
 import { useAuiState } from '@assistant-ui/react';
-import type { Artifact, Message } from '@scholoom/protocol';
+import type { Artifact, Message, ResourceRef } from '@scholoom/protocol';
 import { createContext, useContext, useState } from 'react';
 import { ContextItemLocation } from './ContextItemLocation';
 import { MarkdownText } from './MarkdownText';
+import { resourceSourceLabels } from './resource-controller';
 import type { WorkbenchSession } from './session';
 
 export const MessageFiles = createContext<{
   documentKey: string;
   openFile: WorkbenchSession['openMessageFile'];
+  openResource?: ((ref: ResourceRef) => Promise<void>) | undefined;
 }>({ documentKey: '', openFile: undefined });
 
 export function MessageArtifacts() {
@@ -93,7 +95,7 @@ export function MessageFacts() {
   const source = useAuiState((state) => state.message.metadata.custom.source) as
     | Message
     | undefined;
-  const { openFile, documentKey } = useContext(MessageFiles);
+  const { openFile, openResource, documentKey } = useContext(MessageFiles);
   const [feedback, setFeedback] = useState<{ key: string; message: string; error: boolean }>();
   if (!source || source.role === 'tool') return null;
   const copy = async () => {
@@ -157,8 +159,26 @@ export function MessageFacts() {
                   : item.kind}
               </span>
               <span>
-                {item.ref.source === 'project' ? '项目材料' : '库材料'} · {item.basis}
+                {resourceSourceLabels[item.ref.source]} · {item.basis}
               </span>
+              {item.ref.source === 'render' ? (
+                <button
+                  type="button"
+                  className="btn"
+                  disabled={!openResource}
+                  onClick={() => {
+                    void openResource?.(item.ref).catch((reason: unknown) =>
+                      setFeedback({
+                        key: documentKey,
+                        message: reason instanceof Error ? reason.message : '排版产物无法打开。',
+                        error: true,
+                      }),
+                    );
+                  }}
+                >
+                  打开排版产物
+                </button>
+              ) : null}
               {item.kind === 'text' ? <blockquote>{item.quote}</blockquote> : null}
               {item.kind === 'object' ? (
                 <p>

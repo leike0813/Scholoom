@@ -1,5 +1,5 @@
 import { errorInfoSchema } from './core.js';
-import { flag, id, object, text } from './schema.js';
+import { array, flag, id, object, text } from './schema.js';
 
 const projectRef = object({ source: { const: 'project' }, projectId: id, fileId: id }, [
   'source',
@@ -10,7 +10,20 @@ const libraryRef = object(
   { source: { const: 'library' }, attachmentId: id, materialVersionId: id },
   ['source', 'attachmentId', 'materialVersionId'],
 );
-export const resourceRefSchema = { anyOf: [projectRef, libraryRef] } as const;
+const renderRef = object({ source: { const: 'render' }, projectId: id, outputId: id }, [
+  'source',
+  'projectId',
+  'outputId',
+]);
+export const renderInputSchema = object(
+  {
+    ref: projectRef,
+    basis: id,
+    dependencies: array(object({ path: id, basis: text }, ['path', 'basis'])),
+  },
+  ['ref', 'basis', 'dependencies'],
+);
+export const resourceRefSchema = { anyOf: [projectRef, libraryRef, renderRef] } as const;
 export const resourceEvidenceSchema = object({ ref: resourceRefSchema, basis: id, role: id }, [
   'ref',
   'basis',
@@ -20,6 +33,7 @@ export const resourceLocatorSchema = {
     object({ ...projectRef.properties, path: id }, ['source', 'projectId', 'fileId']),
     object({ ...projectRef.properties, path: id }, ['source', 'projectId', 'path']),
     libraryRef,
+    renderRef,
   ],
 } as const;
 export const resourceDescriptorSchema = object(
@@ -29,6 +43,7 @@ export const resourceDescriptorSchema = object(
     path: text,
     basis: id,
     unavailableReason: text,
+    render: object({ jobId: id, input: renderInputSchema }, ['jobId', 'input']),
     format: { enum: ['text', 'pdf', 'epub', 'html', 'image', 'unsupported'] },
     capabilities: object({ read: flag, write: flag, readingRecords: flag, render: flag }, [
       'read',

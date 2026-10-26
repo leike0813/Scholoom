@@ -1,23 +1,13 @@
-import type { ContextItem, ResourceDescriptor, ResourceRef } from '@scholoom/protocol';
+import type { ContextItem, ResourceDescriptor } from '@scholoom/protocol';
 import { type PointerEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { useContextContribution } from './context-contributions';
-import type { WorkbenchResourcePort } from './resource-controller';
+import { sameResourceRef, type WorkbenchResourcePort } from './resource-controller';
 
 type Region = Extract<ContextItem, { kind: 'region' }>['region'];
 const fields = ['x', 'y', 'width', 'height'] as const;
 const fieldNames = { x: '区域横坐标', y: '区域纵坐标', width: '区域宽度', height: '区域高度' };
 const byteLimit = 8 * 1024 * 1024;
 const chunkLimit = 256 * 1024;
-
-function sameRef(left: ResourceRef, right: ResourceRef): boolean {
-  return left.source === 'project'
-    ? right.source === 'project' &&
-        left.projectId === right.projectId &&
-        left.fileId === right.fileId
-    : right.source === 'library' &&
-        left.attachmentId === right.attachmentId &&
-        left.materialVersionId === right.materialVersionId;
-}
 
 export function ImageResourceView({
   resource,
@@ -86,7 +76,7 @@ export function ImageResourceView({
         if (!mime) throw new Error('仅支持 PNG、JPEG、GIF 和 WebP 图片。');
         const fresh = await port.describe(resource.ref);
         if (!current()) return;
-        if (!sameRef(fresh.ref, resource.ref) || fresh.basis !== resource.basis)
+        if (!sameResourceRef(fresh.ref, resource.ref) || fresh.basis !== resource.basis)
           throw new Error('材料依据已变化，请重新打开资源。');
         if (!fresh.capabilities.read) throw new Error(fresh.unavailableReason || '无权读取图片。');
         setError('');
@@ -104,7 +94,7 @@ export function ImageResourceView({
             limit: chunkLimit,
           });
           if (!current()) return;
-          if (!sameRef(part.ref, resource.ref) || part.basis !== resource.basis)
+          if (!sameResourceRef(part.ref, resource.ref) || part.basis !== resource.basis)
             throw new Error('图片读取依据已变化，请重新打开资源。');
           if (part.size > byteLimit) throw new Error('图片超过 8 MiB 读取上限。');
           if (

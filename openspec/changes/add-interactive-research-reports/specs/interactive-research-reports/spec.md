@@ -6,6 +6,38 @@
 
 ## ADDED Requirements
 
+### Requirement: 同源有界报告头部与清单
+
+报告入口 SHALL 以`<!--scholoom-report-v1`及换行起始，JSON清单后用独立一行`-->`结束；清单字符串中的`<`、`>`、`-` SHALL 使用JSON Unicode转义，头部解码不解析后续HTML。清单version固定1，资源最多32项、来源100项、对象100项，清单JSON最多128KiB；对象身份在本版本唯一、semantics最多8192 UTF-16单元，sourceIndexes只能指向本清单来源。依赖复用本项目ResourceRef／basis及相对路径／mediaType，来源复用既有ResourceRef／basis，不另建报告身份或存储。未知字段、版本、HTML／SVG依赖及递归报告来源 SHALL 拒绝。
+
+#### Scenario: 头部与正文独立
+
+- **WHEN** 读取已保存HTML入口的约定清单头部
+- **THEN** 按版本、结构和容量核对JSON，不解析后续HTML；结束符须独占一行或位于文件末尾
+
+### Requirement: 完整报告快照核对身份与授权
+
+完整快照 SHALL 返回既有ResourceDescriptor及原清单；入口最多256KiB、单依赖8MiB、入口及依赖加载集最多32MiB，同时读取最多4项。路径解析与ref必须在核查前后指向同一对象；入口位置变化、依据变化、权限撤回、缺失或混合版本不得发布快照。人工读取及Agent外发分别沿所属read／send授权，模块测试的注入端口不授予生产权限。
+
+#### Scenario: 独立固定报告完整核查
+
+- **WHEN** 模块通过授权端口读取有界入口、声明依赖及来源
+- **THEN** 返回原入口身份／依据和完整清单，不解析HTML或建立新存储，前后核对所有依据及path-ref对应
+
+#### Scenario: 短分片、入口移动或来源撤权
+
+- **WHEN** 来源HTML头部跨多个短分片，入口同basis移动影响相对依赖，或任何声明来源已撤权
+- **THEN** 分片累计到所需前缀或真实EOF，拒绝递归报告、失效路径绑定或无权限候选，不返回部分成功快照
+
+### Requirement: 桥消息仅携带有界JSON
+
+桥消息 SHALL 带version、viewId、generation、basis，且只接受约定ready／state／select／restore／queued／error形状，不超过64KiB。select最多100个唯一对象身份及4096 UTF-16单元要求；state／restore仅携带JSON展示数据。校验不执行页面动作，不授予资源或接收者选择权。
+
+#### Scenario: 桥数据必须有界且属于JSON
+
+- **WHEN** 带version、viewId、generation、basis的页面桥消息进入schema校验
+- **THEN** 只接受约定ready／state／select／restore／queued／error形状和不超过64KiB的JSON数据，select只携带最多100个唯一对象身份及4096 UTF-16单元要求；非JSON值、伪造资源／接收者及额外字段被拒绝，schema不执行页面动作
+
 ### Requirement: 项目报告与显式资源依赖
 
 系统 SHALL 通过明确报告入口打开项目内 HTML 及显式本地资源清单，以稳定资源身份和实际内容依据核对入口及所有声明依赖。报告文件保存在所属项目，既有库材料可只读引用，页面不得自行解析任意路径、获取网络依赖或读取未声明文件。保存、更新及成果关联 SHALL 继续由所属领域管理，完整候选验证成功后才替换当前展示；依赖缺失、版本不符、权限撤回或保存部分成功须可辨，旧成果和草稿保留。普通 HTML 快照阅读及无脚本排版预览保持其原安全行为。

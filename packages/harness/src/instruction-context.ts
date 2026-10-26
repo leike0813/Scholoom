@@ -20,7 +20,8 @@ export type ContextBridge = {
     | Extract<SnapshotResult, { state: 'unavailable' }>;
   /** The owner checks current read/send grants, including after model admission waits. */
   resources?: (context: CallContext) => {
-    port: Pick<ExecutionResourcePort, 'describe'> & Partial<Pick<ExecutionResourcePort, 'read'>>;
+    port: Pick<ExecutionResourcePort, 'describe'> &
+      Partial<Pick<ExecutionResourcePort, 'read' | 'document'>>;
     check: (evidence: readonly ResourceEvidence[], libraryUsed?: boolean) => void;
   };
 };

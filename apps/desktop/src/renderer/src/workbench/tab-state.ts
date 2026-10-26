@@ -29,7 +29,7 @@ const tabId = (target: ResourceTarget, preview = false) =>
   `${resourceKey(target)}${preview ? ':preview' : ''}`;
 
 export function resourceTabKind(target: ResourceTarget): TabKind {
-  return readerKindForName(target.name) ? 'reader' : 'editor';
+  return target.locator.source === 'render' || readerKindForName(target.name) ? 'reader' : 'editor';
 }
 
 function sameResource(left: ResourceTarget | undefined, right: ResourceTarget): boolean {
@@ -39,6 +39,8 @@ function sameResource(left: ResourceTarget | undefined, right: ResourceTarget): 
   if (a.source !== b.source) return false;
   if (a.source === 'library' && b.source === 'library')
     return a.attachmentId === b.attachmentId && a.materialVersionId === b.materialVersionId;
+  if (a.source === 'render' && b.source === 'render')
+    return a.projectId === b.projectId && a.outputId === b.outputId;
   if (a.source === 'project' && b.source === 'project') {
     if (a.projectId !== b.projectId) return false;
     if (a.fileId && b.fileId) return a.fileId === b.fileId;

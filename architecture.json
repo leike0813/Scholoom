@@ -79,7 +79,8 @@
         "@scholoom/protocol/core",
         "@scholoom/protocol/editor",
         "@scholoom/protocol/projects",
-        "@scholoom/protocol/resources"
+        "@scholoom/protocol/resources",
+        "@scholoom/protocol/reports"
       ],
       "systemAdapters": [
         { "path": "src/resources.ts", "apis": ["fs", "fs/promises"] },

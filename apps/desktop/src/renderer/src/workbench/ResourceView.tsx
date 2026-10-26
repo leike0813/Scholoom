@@ -11,6 +11,7 @@ import {
   createResourcePort,
   type ReadingRecordAdapter,
   type ResourceTarget,
+  sameResourceRef,
 } from './resource-controller';
 import type { FileTarget } from './session';
 import type { FileViewMode } from './tab-state';
@@ -43,7 +44,7 @@ export function ResourceView({
   const changed = useRef(onChanged);
   changed.current = onChanged;
   useEffect(() => () => port.cancelPending(), [port]);
-  const readerKind = readerKindForName(target.name);
+  const readerKind = target.locator.source === 'render' ? 'pdf' : readerKindForName(target.name);
   const [loaded, setLoaded] = useState<{
     resource: ResourceDescriptor;
     records?: ReadingRecordAdapter;
@@ -62,6 +63,11 @@ export function ResourceView({
     setError('');
     void (async () => {
       const resource = await port.describe(target.locator);
+      if (
+        target.locator.source === 'render' &&
+        (resource.format !== 'pdf' || !sameResourceRef(resource.ref, target.locator))
+      )
+        throw new Error('排版产物身份或格式不匹配。');
       const ref = resource.ref;
       const records =
         ref.source === 'library'

@@ -5,6 +5,10 @@
   "license": "AGPL-3.0-only",
   "type": "module",
   "exports": {
+    "./reports": {
+      "types": "./dist/report-contracts.d.ts",
+      "import": "./dist/report-contracts.js"
+    },
     "./resources": {
       "types": "./dist/resources.d.ts",
       "import": "./dist/resources.js"

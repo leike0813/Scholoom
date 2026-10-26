@@ -3,6 +3,7 @@ import type { Effort } from '@scholoom/protocol';
 import type { ComponentProps, ReactNode } from 'react';
 import { ContextItemLocation } from '../ContextItemLocation';
 import { useContextContribution } from '../context-contributions';
+import { resourceSourceLabels } from '../resource-controller';
 import type { WorkbenchSession } from '../session';
 import { IconChevronDown, IconSend, IconTune } from './icons';
 import { Menu } from './menu';
@@ -34,7 +35,7 @@ export function InstructionContextItems() {
                     : '资源'}
             </summary>
             <p>
-              {item.ref.source === 'project' ? '项目材料' : '库材料'} · {item.basis}
+              {resourceSourceLabels[item.ref.source]} · {item.basis}
             </p>
             {item.kind === 'text' ? <blockquote>{item.quote}</blockquote> : null}
             {item.kind === 'object' ? <p>{item.semantics}</p> : null}

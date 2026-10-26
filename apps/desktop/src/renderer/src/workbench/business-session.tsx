@@ -618,6 +618,13 @@ export function useBusinessSession(
             client.call('files.resolve', { projectId: selection.projectId, fileIds }),
         }
       : {}),
+    openMessageResource: async (ref) => {
+      if (!client || phase !== 'connected') throw new Error('需连接内核。');
+      const selected = selectedRef.current;
+      const resource = await client.call('resources.describe', { locator: ref });
+      if (selected === selectedRef.current)
+        setResourceTarget({ locator: resource.ref, name: resource.name, openMode: 'permanent' });
+    },
     openMessageFile: async (path, fileId) => {
       if (!client || phase !== 'connected') throw new Error('内核未连接。');
       const selected = selectedRef.current;

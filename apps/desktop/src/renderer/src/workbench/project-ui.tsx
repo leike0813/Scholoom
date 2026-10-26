@@ -21,6 +21,7 @@ import {
   type ReadingRecordAdapter,
   type ResourceTarget,
   resourceKey,
+  sameResourceRef,
   type WorkbenchResourcePort,
 } from './resource-controller';
 import type { FileTarget } from './session';
@@ -167,9 +168,10 @@ export function FileEditor({
   ]);
   const contribute = context.contributeSelection;
   useEffect(() => {
+    if (mode === 'render') return;
     contribute(viewId, contextItem ? { selections: [contextItem] } : undefined);
     return () => contribute(viewId);
-  }, [contribute, viewId, contextItem]);
+  }, [contribute, viewId, contextItem, mode]);
   const unregisterFlush = useRef<(() => void) | undefined>(undefined);
   const registerFlush = useCallback(
     (next: (() => Promise<void>) | undefined) => {
@@ -212,16 +214,12 @@ export function FileEditor({
     if (before.format !== 'text') throw new Error('当前格式不支持源码查看。');
     const result = await port.read({ ref: before.ref, basis: before.basis, encoding: 'utf8' });
     const after = await port.describe(before.ref);
-    const identity = (ref: ResourceDescriptor['ref']) =>
-      ref.source === 'project'
-        ? `project:${ref.projectId}:${ref.fileId}`
-        : `library:${ref.attachmentId}:${ref.materialVersionId}`;
     if (
       before.basis !== after.basis ||
       !after.capabilities.read ||
-      identity(before.ref) !== identity(after.ref) ||
+      !sameResourceRef(before.ref, after.ref) ||
       result.basis !== before.basis ||
-      identity(result.ref) !== identity(before.ref)
+      !sameResourceRef(result.ref, before.ref)
     )
       throw new Error('资源内容已变化，请重新读取并核对。');
     const source: FileContent = {
@@ -511,6 +509,8 @@ export function FileEditor({
           target={{ ...project, path }}
           savedContent={value.source?.content ?? ''}
           dirty={value.content !== value.source?.content}
+          enabled={enabled && !accessRevoked}
+          viewId={viewId}
         />
       ) : projectWritable && (mode === 'visual' || value.visualRecovery) ? (
         <Suspense fallback={<p role="status">正在打开可视编辑器…</p>}>

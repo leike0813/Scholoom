@@ -33,5 +33,6 @@
 - [交互报告决定](../../../.scratch/scholoom-foundations/issues/45-interactive-research-reports.md)、[阅读交互 Q4–Q6](../../../.scratch/domain-development/issues/07-research-interaction-scope.md#answer)、[七线安排](../../../.scratch/domain-development/parallel-development-plan.md)。
 - 2026-10-25 用户仅授权本轮调查与两个独立 OpenSpec 的实施前规划，保持指定 Codex／gpt-6.1-sol／high 配置。
 - 同日用户通过规划问题明确回复“采纳该有界方案”，确认上述项目报告、资源清单、页面隔离与关闭后接续；联网报告及库／全局报告的新建权威不在首批。
-- 未授权业务实施、依赖安装、服务启动、真实用户数据、Git 写操作或跨树协调。该设计确认不改变本轮停止点。
+- 初始规划没有业务实施、依赖安装、服务启动、真实用户数据或Git写入授权；后续具体授权沿下列记录，不将设计确认本身当作实施授权。
 - 后续材料change已获得锁定依赖／隔离测试授权；本次主线进一步授权只读消费交接包、复核报告独立模块任务和公共补丁方案。报告业务实现仍未展开，原规划时期的限制不否定这些后续具体授权。
+- 第四轮用户直接授权manifest／snapshot／桥schema、有界头部codec及注入窄端口ReportResources和模块测试。止于可独立审查模块，不注册resources.report、不开放HTML写、不接UI／iframe或模型准入。无新公共源码同步；已有0519904可直接复用，业务完整接线仍开放。

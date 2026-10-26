@@ -16,7 +16,11 @@ import type { ResourceDescriptor } from '@scholoom/protocol/resources';
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useContextContribution } from './context-contributions';
 import { prepareReadingRecord, ReadingRecordsPanel } from './ReadingRecordsPanel';
-import type { ReadingRecordAdapter, WorkbenchResourcePort } from './resource-controller';
+import {
+  type ReadingRecordAdapter,
+  sameResourceRef,
+  type WorkbenchResourcePort,
+} from './resource-controller';
 
 const messageOf = (reason: unknown) =>
   reason instanceof Error ? reason.message : 'PDF读取未完成。';
@@ -124,12 +128,14 @@ export function PdfReader({
   records: recordAdapter,
   enabled,
   viewId: suppliedViewId,
+  ariaLabel,
 }: {
   resource: ResourceDescriptor;
   port: WorkbenchResourcePort;
   records?: ReadingRecordAdapter | undefined;
   enabled: boolean;
   viewId?: string | undefined;
+  ariaLabel?: string | undefined;
 }) {
   const [tick, setTick] = useState(0);
   const [grants, setGrants] = useState({ read: false });
@@ -198,7 +204,10 @@ export function PdfReader({
       .then(
         (fresh) => {
           if (!current) return;
-          if (fresh.basis !== resource.basis) throw new Error('材料依据已变化，请重新打开资源。');
+          if (!sameResourceRef(fresh.ref, resource.ref) || fresh.basis !== resource.basis)
+            throw new Error('材料依据已变化，请重新打开资源。');
+          if (fresh.ref.source === 'render' && !fresh.render)
+            throw new Error('排版产物缺少生产依据，无法直接附加选区。');
           setUnavailable(!fresh.capabilities.read);
           setError(fresh.unavailableReason ?? '');
           setGrants({ read: fresh.capabilities.read });
@@ -269,7 +278,12 @@ export function PdfReader({
           limit: 262144,
         });
         if (!current) return;
-        if (result.unit !== 'byte' || result.offset !== offset || result.basis !== resource.basis)
+        if (
+          !sameResourceRef(result.ref, resource.ref) ||
+          result.unit !== 'byte' ||
+          result.offset !== offset ||
+          result.basis !== resource.basis
+        )
           throw new Error('材料依据或读取位置已变化。');
         const bytes = Uint8Array.from(atob(result.data), (char) => char.charCodeAt(0));
         if (result.size > 134217728 || offset + bytes.length > result.size)
@@ -486,7 +500,7 @@ export function PdfReader({
     }
   };
   return (
-    <section className="pdf-reader" aria-label={`PDF 阅读 ${resource.name}`}>
+    <section className="pdf-reader" aria-label={ariaLabel ?? `PDF 阅读 ${resource.name}`}>
       {error ? (
         <p className="business-error" role="alert">
           {error}

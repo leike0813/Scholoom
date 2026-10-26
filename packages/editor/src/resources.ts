@@ -200,24 +200,58 @@ export async function readRecord<T>(path: string): Promise<T | undefined> {
     throw new OperationError('unavailable', '排版记录无法读取，请保留现场核查。');
   }
 }
-export async function readOutput(root: string, path: string, offset: number, limit: number) {
-  const canonicalRoot = await realpath(root);
-  const target = await realpath(resolve(canonicalRoot, path));
-  if (!target.startsWith(`${canonicalRoot}${sep}`))
-    throw new OperationError('permissionDenied', '产物资源越界。');
-  const handle = await open(target, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
+export async function readOutput(
+  root: string,
+  path: string,
+  offset: number,
+  limit: number,
+  expectedBasis?: string,
+) {
   try {
-    const info = await handle.stat();
-    if (!info.isFile()) throw new OperationError('invalidRequest', '产物不是普通文件。');
-    const buffer = Buffer.alloc(Math.min(limit, Math.max(0, info.size - offset)));
-    const { bytesRead } = await handle.read(buffer, 0, buffer.length, offset);
-    return {
-      base64: buffer.subarray(0, bytesRead).toString('base64'),
-      byteLength: info.size,
-      ...(offset + bytesRead < info.size ? { nextOffset: offset + bytesRead } : {}),
-    };
-  } finally {
-    await handle.close();
+    const canonicalRoot = await realpath(root);
+    const target = await realpath(resolve(canonicalRoot, path));
+    if (!target.startsWith(`${canonicalRoot}${sep}`))
+      throw new OperationError('permissionDenied', '产物资源越界。');
+    const before = await stat(target, { bigint: true });
+    const basis = fileFingerprint(before);
+    if (expectedBasis !== undefined && basis !== expectedBasis)
+      throw new OperationError('contentChanged', '排版产物读取依据不匹配。');
+    const handle = await open(target, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
+    try {
+      const info = await handle.stat({ bigint: true });
+      if (!info.isFile()) throw new OperationError('invalidRequest', '产物不是普通文件。');
+      const verify = async () => {
+        try {
+          if (
+            fileFingerprint(await handle.stat({ bigint: true })) !== basis ||
+            (await realpath(root)) !== canonicalRoot ||
+            (await realpath(resolve(canonicalRoot, path))) !== target ||
+            fileFingerprint(await stat(target, { bigint: true })) !== basis
+          )
+            throw new OperationError('contentChanged', '排版产物在读取时已变化。');
+        } catch (error) {
+          if (['ENOENT', 'ENOTDIR', 'ELOOP'].includes((error as NodeJS.ErrnoException).code ?? ''))
+            throw new OperationError('contentChanged', '排版产物路径在读取时已变化。');
+          throw error;
+        }
+      };
+      await verify();
+      const byteLength = Number(info.size);
+      const buffer = Buffer.alloc(Math.min(limit, Math.max(0, byteLength - offset)));
+      const { bytesRead } = await handle.read(buffer, 0, buffer.length, offset);
+      await verify();
+      return {
+        base64: buffer.subarray(0, bytesRead).toString('base64'),
+        byteLength,
+        ...(offset + bytesRead < byteLength ? { nextOffset: offset + bytesRead } : {}),
+      };
+    } finally {
+      await handle.close();
+    }
+  } catch (error) {
+    if (['ENOENT', 'ENOTDIR'].includes((error as NodeJS.ErrnoException).code ?? ''))
+      throw new OperationError('notFound', '排版产物已缺失或清理，请重新编译。');
+    throw error;
   }
 }
 
