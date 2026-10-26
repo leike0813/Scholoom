@@ -1,11 +1,279 @@
 import type { KernelClient } from '@scholoom/client';
-import type { Effort, Project, ProjectBackup, WorkbenchSnapshot } from '@scholoom/protocol';
-import { useCallback, useEffect, useState } from 'react';
+import type {
+  Effort,
+  ModelProfilesPage,
+  Project,
+  ProjectBackup,
+  ProviderStatus,
+  SaveModelProfile,
+  WorkbenchSnapshot,
+} from '@scholoom/protocol';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 type Call = KernelClient['call'];
 
 const messageOf = (error: unknown) =>
   error instanceof Error ? error.message : '操作未完成，请核对当前状态。';
+
+export function NamedModelProfiles({
+  call,
+  enabled,
+  provider,
+}: {
+  call: Call;
+  enabled: boolean;
+  provider: ProviderStatus | undefined;
+}) {
+  const [open, setOpen] = useState(false);
+  const [offset, setOffset] = useState(0);
+  const [page, setPage] = useState<ModelProfilesPage>();
+  const [reload, setReload] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const [listError, setListError] = useState('');
+  const [draft, setDraft] = useState<SaveModelProfile>();
+  const current = useRef({ draft, call, mounted: true });
+  current.current.draft = draft;
+  current.current.call = call;
+  const saving = useRef(false);
+  useEffect(() => {
+    current.current.mounted = true;
+    return () => {
+      current.current.mounted = false;
+    };
+  }, []);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: 显式刷新和保存成功后重新读取本页。
+  useEffect(() => {
+    if (!open || !enabled) return;
+    let active = true;
+    setLoading(true);
+    setListError('');
+    setPage(undefined);
+    void call('provider.profiles', { offset, limit: 25 })
+      .then(
+        (result) => {
+          if (active) setPage(result);
+        },
+        (reason) => {
+          if (active) setListError(messageOf(reason));
+        },
+      )
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [call, enabled, open, offset, reload]);
+  const model = provider?.models.find((option) => option.id === draft?.config.model);
+  const validEffort =
+    !draft?.config.effort ||
+    (model?.supportsEffort && provider?.efforts.includes(draft.config.effort));
+  const edit = (change: Partial<SaveModelProfile>) => {
+    setDraft((value) => (value ? { ...value, ...change } : value));
+  };
+  const mutate = async (remove: boolean) => {
+    if (!draft || !enabled || saving.current) return;
+    const submitted = draft;
+    saving.current = true;
+    setBusy(true);
+    setError('');
+    try {
+      if (remove) {
+        await call('provider.removeProfile', {
+          id: submitted.id,
+          expectedRevision: submitted.expectedRevision,
+        });
+        if (
+          current.current.mounted &&
+          current.current.call === call &&
+          current.current.draft === submitted
+        )
+          setDraft(undefined);
+      } else {
+        const saved = await call('provider.saveProfile', submitted);
+        if (
+          current.current.mounted &&
+          current.current.call === call &&
+          current.current.draft === submitted
+        )
+          setDraft({
+            id: saved.id,
+            name: saved.name,
+            expectedRevision: saved.revision,
+            config: saved.config,
+          });
+      }
+      if (current.current.mounted) setReload((value) => value + 1);
+    } catch (reason) {
+      if (
+        current.current.mounted &&
+        current.current.call === call &&
+        current.current.draft === submitted
+      )
+        setError(messageOf(reason));
+    } finally {
+      saving.current = false;
+      if (current.current.mounted) setBusy(false);
+    }
+  };
+  return (
+    <details onToggle={(event) => setOpen(event.currentTarget.open)}>
+      <summary>命名模型配置</summary>
+      <fieldset className="project-controls" disabled={!enabled || busy}>
+        <button
+          type="button"
+          className="btn"
+          onClick={() => {
+            setDraft({
+              id: crypto.randomUUID(),
+              name: '',
+              expectedRevision: 0,
+              config: { model: '' },
+            });
+            setError('');
+          }}
+        >
+          新建命名配置
+        </button>
+        <button
+          type="button"
+          className="btn"
+          disabled={loading}
+          onClick={() => setReload((value) => value + 1)}
+        >
+          刷新配置列表
+        </button>
+        {loading ? <p role="status">正在读取配置…</p> : null}
+        {listError ? <p role="alert">{listError}</p> : null}
+        {page?.profiles.length === 0 ? <p>暂无命名配置。</p> : null}
+        {page?.profiles.map((profile) => (
+          <button
+            type="button"
+            className="btn"
+            key={profile.id}
+            aria-label={`编辑命名配置 ${profile.name}`}
+            onClick={() => {
+              setDraft({
+                id: profile.id,
+                name: profile.name,
+                expectedRevision: profile.revision,
+                config: { ...profile.config },
+              });
+              setError('');
+            }}
+          >
+            {profile.name}
+          </button>
+        ))}
+        <button
+          type="button"
+          className="btn"
+          disabled={loading || offset === 0}
+          onClick={() => setOffset((value) => Math.max(0, value - 25))}
+        >
+          上一页配置
+        </button>
+        <button
+          type="button"
+          className="btn"
+          disabled={loading || page?.nextOffset === undefined}
+          onClick={() => {
+            if (page?.nextOffset !== undefined) setOffset(page.nextOffset);
+          }}
+        >
+          下一页配置
+        </button>
+        {draft ? (
+          <form
+            onSubmit={(event) => {
+              event.preventDefault();
+              if (model && validEffort && draft.name.trim()) void mutate(false);
+            }}
+          >
+            <p>
+              配置身份：{draft.id} · 修订 {draft.expectedRevision}
+            </p>
+            <label>
+              配置名称
+              <input
+                aria-label="配置名称"
+                maxLength={200}
+                value={draft.name}
+                onChange={(event) => edit({ name: event.target.value })}
+              />
+            </label>
+            <label>
+              配置模型
+              <select
+                aria-label="配置模型"
+                value={draft.config.model}
+                onChange={(event) =>
+                  edit({ config: { ...draft.config, model: event.target.value } })
+                }
+              >
+                <option value="">请选择模型</option>
+                {draft.config.model && !model ? (
+                  <option value={draft.config.model}>{draft.config.model}（目录未知）</option>
+                ) : null}
+                {(provider?.models ?? []).map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.id}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              配置推理强度
+              <select
+                aria-label="配置推理强度"
+                value={draft.config.effort ?? ''}
+                onChange={(event) =>
+                  edit({
+                    config: {
+                      model: draft.config.model,
+                      ...(event.target.value ? { effort: event.target.value as Effort } : {}),
+                    },
+                  })
+                }
+              >
+                <option value="">不指定</option>
+                {draft.config.effort && !provider?.efforts.includes(draft.config.effort) ? (
+                  <option value={draft.config.effort}>{draft.config.effort}（目录未知）</option>
+                ) : null}
+                {(provider?.efforts ?? []).map((effort) => (
+                  <option key={effort} value={effort} disabled={!model?.supportsEffort}>
+                    {effort}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {!model || !validEffort ? (
+              <p role="alert">请核对当前模型目录与推理强度；草稿已保留。</p>
+            ) : null}
+            <button
+              type="submit"
+              className="btn"
+              disabled={!model || !validEffort || !draft.name.trim()}
+            >
+              保存命名配置
+            </button>
+            <button
+              type="button"
+              className="btn"
+              disabled={draft.expectedRevision === 0}
+              onClick={() => void mutate(true)}
+            >
+              删除命名配置
+            </button>
+          </form>
+        ) : null}
+        {error ? <p role="alert">{error}</p> : null}
+      </fieldset>
+    </details>
+  );
+}
 
 /** 中间区设置页：模型设置（应用默认与凭据）与当前项目权限、备份。 */
 export function ProjectControls({
@@ -183,6 +451,7 @@ export function ProjectControls({
           保存凭据
         </button>
       </form>
+      <NamedModelProfiles call={call} enabled={enabled} provider={provider} />
     </details>
   );
   const archivedSection = project ? (

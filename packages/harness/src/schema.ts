@@ -1,4 +1,4 @@
-import type { Message, Run, Session } from '@scholoom/protocol/harness';
+import type { DelegationRecord, Message, Run, Session } from '@scholoom/protocol/harness';
 import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
 export const meta = sqliteTable('harness_meta', {
@@ -41,4 +41,12 @@ export const instances = sqliteTable('run_instances', {
   runId: text('run_id').notNull(),
   hostInstanceId: text('host_instance_id').notNull(),
   value: text({ mode: 'json' }).$type<RunInstance>().notNull(),
+});
+export const delegations = sqliteTable('delegations', {
+  seq: integer().primaryKey({ autoIncrement: true }),
+  id: text().notNull().unique(),
+  sessionId: text('session_id').notNull(),
+  parentRunId: text('parent_run_id').notNull(),
+  childInstanceId: text('child_instance_id').notNull().unique(),
+  value: text({ mode: 'json' }).$type<DelegationRecord>().notNull(),
 });

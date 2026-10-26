@@ -15,6 +15,7 @@ import type {
   BusinessInputs,
   BusinessOutputs,
   BusinessParams,
+  DelegationRole,
   HarnessModuleInputs,
   HarnessModuleOutputs,
   ResourceCreationInputs,
@@ -38,6 +39,7 @@ type RuntimeMethod = Exclude<
 export class KernelApplication extends ManualApplication {
   readonly credentials: CredentialStore;
   readonly models: ModelAccess;
+  readonly modelConfigs: ModelConfigStore;
   readonly harness: Harness;
   readonly research: ResearchRuntime;
   constructor(
@@ -48,6 +50,7 @@ export class KernelApplication extends ManualApplication {
       contextResources?: ContextBridge['resources'];
       executionGraphs?: ExecutionGraphs;
       workerEntry?: URL;
+      delegationRoles?: readonly DelegationRole[];
     } = {},
   ) {
     super(directory);
@@ -55,6 +58,7 @@ export class KernelApplication extends ManualApplication {
     process.env.LANGCHAIN_TRACING_V2 = 'false';
     this.credentials = new CredentialStore(join(directory, 'credentials'), options.environment);
     const configs = new ModelConfigStore(join(directory, 'credentials'));
+    this.modelConfigs = configs;
     this.models = new ModelAccess(this.credentials, configs, options.modelEndpoint);
     this.research = new ResearchRuntime(
       (projectId, sessionId) => {
@@ -97,6 +101,11 @@ export class KernelApplication extends ManualApplication {
         resources: options.contextResources ?? ((context) => this.instructionResources(context)),
       },
       (context) => this.executionResources(context),
+      {
+        ...(options.delegationRoles ? { roles: options.delegationRoles } : {}),
+        resolveProfile: (id, context) =>
+          this.modulePort(context, 'harness').call('models.resolveProfile', { id }),
+      },
     );
     this.broker.register('runtime', this.handlers);
     this.broker.register('runtime-internal', {
@@ -116,6 +125,11 @@ export class KernelApplication extends ManualApplication {
         );
       },
       'models.status': () => this.models.status(),
+      'models.resolveProfile': ({ id }) => configs.resolveProfile(id),
+      'harness.delegate': (input, context) => this.harness.delegate(input, context),
+      'harness.waitDelegation': (input, context) => this.harness.waitDelegation(input, context),
+      'harness.reportDelegation': (input, context) => this.harness.reportDelegation(input, context),
+      'harness.roles': () => this.harness.delegationRoles(),
       'harness.snapshot': (input) =>
         this.harness.snapshot(
           input.projectId,
@@ -321,6 +335,20 @@ export class KernelApplication extends ManualApplication {
       this.changed();
       return value;
     },
+    'provider.profiles': (input) => this.modelConfigs.profiles(input),
+    'provider.saveProfile': async (input) => {
+      const value = await this.modelConfigs.saveProfile(input);
+      this.changed();
+      return value;
+    },
+    'provider.removeProfile': async (input) => {
+      await this.modelConfigs.removeProfile(input);
+      this.changed();
+      return { ok: true };
+    },
+    'delegation.get': (input) => this.harness.getDelegation(input),
+    'delegation.list': (input) => this.harness.listDelegations(input),
+    'delegation.cancel': (input) => this.harness.cancelDelegation(input),
     'artifacts.reconcile': async (input) => {
       const p = input;
       return this.harness.reconcile(p.projectId, p.sessionId, p.runId, p.paths);

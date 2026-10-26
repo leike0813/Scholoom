@@ -16,6 +16,53 @@ export async function initializeProjectContainer(
   internal: string,
 ): Promise<void> {
   const version = database.pragma('user_version', { simple: true }) as number;
+  if (version > 5) throw new Error('Newer database');
+  if (version === 5) return;
+  if (version < 4) await initializeTrustContainer(database, internal);
+  if (version > 0) {
+    const source = join(internal, 'before-migration-v5.sqlite');
+    try {
+      const info = await lstat(source);
+      if (!info.isFile() || info.isSymbolicLink()) throw new Error('Unsafe migration backup');
+      const saved = new Database(source, { readonly: true, fileMustExist: true });
+      try {
+        if (
+          saved.pragma('user_version', { simple: true }) !== 4 ||
+          saved.pragma('quick_check', { simple: true }) !== 'ok'
+        )
+          throw new Error('Invalid delegation migration backup');
+      } finally {
+        saved.close();
+      }
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+      const temporary = join(internal, `.migration-${randomUUID()}.sqlite`);
+      try {
+        await database.backup(temporary);
+        await chmod(temporary, 0o600);
+        await link(temporary, source);
+      } finally {
+        await unlink(temporary).catch(() => {});
+      }
+    }
+  }
+  database.transaction(() => {
+    database.exec(`CREATE TABLE delegations (
+      seq INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+      id TEXT NOT NULL UNIQUE, session_id TEXT NOT NULL,
+      parent_run_id TEXT NOT NULL, child_instance_id TEXT NOT NULL UNIQUE, value TEXT NOT NULL
+    );
+    CREATE INDEX delegations_session ON delegations(session_id, seq);
+    CREATE INDEX delegations_parent ON delegations(parent_run_id);
+    PRAGMA user_version = 5;`);
+  })();
+}
+
+async function initializeTrustContainer(
+  database: Database.Database,
+  internal: string,
+): Promise<void> {
+  const version = database.pragma('user_version', { simple: true }) as number;
   if (version > 4) throw new Error('Newer database');
   if (version === 4) return;
   await initializeLegacyContainer(database, internal);

@@ -10,6 +10,7 @@ import {
 } from './harness-record-contracts.js';
 import { contextItemsSchema } from './workbench-context.js';
 
+export * from './delegation-contracts.js';
 export { harnessModuleOperations } from './harness-module-contracts.js';
 export {
   harnessSnapshotSchema,

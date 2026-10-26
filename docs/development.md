@@ -262,6 +262,16 @@ Agent 的 `read_workbench_context` 工具按本次推进已注入的指令查询
 
 本机 `credentials/` 保存 AES-256-GCM 密文、独立主密钥与模型默认配置，POSIX 目录／文件权限为 0700／0600，Windows 使用当前用户 ACL。系统不回读 Key，不通过静态服务、项目工具或普通诊断暴露它。主密钥同机自动解锁，不能抵御同权限进程；凭据或默认配置损坏时保留现场，不自动覆盖。
 
+模型设置中的“命名模型配置”在同一供应商内保存最多100项，列表每页25项。保存和移除按修订核对，冲突时保留编辑草稿；配置文件 `model-profiles.json` 位于私有凭据目录，损坏时保留原件。配置不含密钥。委派明确指定配置、角色默认配置、父执行实际配置按此顺序解析，显式缺失报错；受理后钉入身份、修订和实际模型，之后修改／删除配置不改变原执行。不同子模型与父执行共用32次根预算和原全局并发限制。
+
+### 有界 Agent 委派
+
+项目会话的父执行可用 `list_delegation_roles`、`delegate_agent`、`read_delegation`、`wait_delegation`、`cancel_delegation` 交接一个明确工作包。当前内置通用 `worker@1`，科研角色通过宿主源码 `delegationRoles` 注入；实际科研角色及任务关联整合仍待各自提供者。子执行使用独立受管进程，只接收工作包和所选角色指导；自己的 scratch 位于 `.scholoom/harness/sessions/<sessionId>/delegations/<delegationId>/scratch`。不导入父历史或 checkpoint，也不允许递归委派。父退出收尾未完成的子，局部取消只作用于该子；有限等待到期不取消。macOS 仍沿 `managedExecution` 明确不可用。
+
+材料以稳定 `ref/basis` 指定，输出为明确新路径或可修改资源；宿主落实父权限、角色、请求工具及领域授权的交集。实际成果仅取自领域保存／创建回执，子口述和 scratch 均不算成果。创建操作使用宿主生成且按委派隔离的领域身份。首次修改须精确匹配允许save输出的ref+basis，可读材料的其他版本不授予写权限。修改前持久保存写入意图，效果未核清时保持 `unknown`；先前成功回执不能掩盖后续未知修改。本委派已有保存回执时，后续修改须使用最近保存的 basis。重启只查询、核查原结果，不自动恢复或重放未知保存。
+
+展开会话中的委派工具记录，可查看角色、实际模型、状态、障碍、未完成项和实际成果并取消；成果沿共同资源入口打开，保留输入草稿。公共 `delegation.get/list/cancel` 按父会话查询或取消，列表默认25／最多100；展开行按事件有界刷新，不把子日志或完整工作包放入 snapshot。诊断从 `delegationId`、父 run／instance、子 instance／实际 PID、`run_instances` 停止状态、`reads`、`creations`、`writes` 与 `artifacts` 核对受理、进程、工具效果及刷新失败。停止未知继续保护项目释放，不能凭根 PID 消失认定安全。定向入口为 `tests/kernel/agent-delegation.spec.ts`、`delegation-races.spec.ts`、`model-profiles.spec.ts`、`tests/ui/agent-delegation.spec.ts`；实际覆盖与待验平台见[本变更交付记录](../openspec/changes/add-bounded-agent-delegation/delivery.md)。
+
 普通会话可直接聊天。项目以 `Project.trust` 的 `pending | trusted | restricted` 状态统一控制 Agent 对项目材料的读取、写入和模型外发；只有 `trusted` 项目允许这些操作。受限项目仍允许人工浏览和编辑。新建或显式添加时先询问信任、受限添加或取消；旧项目首次进入提示一次，之后受限项目普通重开不重复询问。设置中可授信或撤销信任；撤销阻止后续 Agent 操作，不取消在途调用、不回滚已保存内容，也不自动重启。新建会话、附加文件引用后发送，Agent 实际使用材料与成果来自工具记录。流式输出、追加指令的受理／消费、取消与继续均使用内核持久状态。关窗不取消工作；重启将未完成工作标为中断，用户明确继续后才核查 checkpoint 和当前文件。checkpoint 不可用时保留原记录，以新尝试接续；旧指令可由分页工具发现。
 
 普通会话归固定 `application` 工作域，`read_work_domain` 返回宿主确认的项目／会话身份。全局会话的普通项目文件接口仍拒绝读取和写入；临时资料使用本会话的 `/large_tool_results/`，实际目录由 `sessionScratch()` 隔离，不能访问其他会话或应用配置。临时资料缺失按 `context_incomplete` 诊断接续，不代表领域成果丢失，也不能用临时文件证明成果已交付。全局会话没有通用 Shell 或任意代码入口。

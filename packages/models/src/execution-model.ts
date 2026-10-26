@@ -2,8 +2,13 @@ import { ChatAnthropic } from '@langchain/anthropic';
 import type { ModelDescriptor } from '@scholoom/protocol/models';
 import { adaptiveThinking } from './catalog.js';
 
+export interface ModelBudget {
+  readonly consume: () => void;
+}
+
 export interface ModelExecution {
   descriptor: ModelDescriptor;
+  budget?: ModelBudget;
   acquire: () => Promise<string>;
   release: (leaseId: string) => void;
 }

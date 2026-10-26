@@ -1,3 +1,4 @@
+import { delegationInternalOperations } from './delegation-contracts.js';
 import {
   graphExecutionSchema,
   graphResumeInputSchema,
@@ -7,6 +8,7 @@ import { harnessSnapshotSchema, sessionSchema } from './harness-record-contracts
 import { fileReferenceSchema } from './project-file-contracts.js';
 import { content, flag, id, object, ok, page, session } from './schema.js';
 export const harnessModuleOperations = {
+  ...delegationInternalOperations,
   'harness.startGraph': {
     params: object(
       { ...session, instructionId: id, text: content, execution: registeredGraphSchema },

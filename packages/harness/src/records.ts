@@ -73,6 +73,27 @@ export class HarnessRecords {
 
   restore(projectId: string): void {
     this.db.transaction((tx) => {
+      for (const row of tx.select().from(schema.delegations).all()) {
+        const value = structuredClone(row.value);
+        const previousProjectId = value.projectId;
+        const rebind = (ref: { source: string; projectId?: string }) => {
+          if (ref.source === 'project' && ref.projectId === previousProjectId)
+            ref.projectId = projectId;
+        };
+        value.projectId = projectId;
+        for (const material of value.request.workPackage.materials) rebind(material.ref);
+        for (const output of value.request.workPackage.outputs)
+          if (output.kind === 'save') rebind(output.ref);
+        for (const item of value.reads) rebind(item.ref);
+        for (const item of value.writes) rebind(item.ref);
+        for (const item of value.report?.artifacts ?? []) rebind(item.ref);
+        for (const item of value.artifacts) rebind(item.resource.ref);
+        if (['accepted', 'running', 'cancelling'].includes(value.state)) {
+          value.state = 'interrupted';
+          value.resultState = 'unknown';
+        }
+        tx.update(schema.delegations).set({ value }).where(eq(schema.delegations.id, row.id)).run();
+      }
       for (const row of tx.select().from(schema.sessions).all()) {
         tx.update(schema.sessions)
           .set({

@@ -211,6 +211,7 @@
       ],
       "provides": [],
       "consumes": [
+        "models.resolveProfile",
         "files.list",
         "resources.describe",
         "resources.read",

@@ -7,7 +7,11 @@ import type { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { expect, test } from '@playwright/test';
-import { ModelAccess } from '../../packages/models/dist/execution.js';
+import {
+  createExecutionModel,
+  createModelBudget,
+  ModelAccess,
+} from '../../packages/models/dist/execution.js';
 import { CredentialStore, ModelConfigStore } from '../../packages/models/dist/node.js';
 import { OperationError } from '../../packages/protocol/dist/core.js';
 
@@ -132,6 +136,7 @@ test('final synchronous authorization rejects revocation during a queued request
       () => {
         if (!authorized) throw new OperationError('permissionDenied', 'revoked');
       },
+      first.budget,
     );
     const pending = queued.acquire();
     const rejected = expect(pending).rejects.toMatchObject({ code: 'permissionDenied' });
@@ -139,9 +144,90 @@ test('final synchronous authorization rejects revocation during a queued request
     authorized = false;
     first.release(lease);
     await rejected;
+    for (let index = 0; index < 31; index++) first.release(await first.acquire());
+    await expect(first.acquire()).rejects.toMatchObject({ code: 'resourceLimit' });
     const next = await model.execution();
     next.release(await next.acquire());
     expect(server.requests).toEqual([]);
+  } finally {
+    await server.close();
+    await cleanup();
+  }
+});
+
+test('different model descriptors, compression and safe retries consume the same root budget', async () => {
+  const server = await boundary([...Array<number>(29).fill(200), 503, 200]);
+  const { access: model, cleanup } = await access(server.url);
+  const signal = new AbortController().signal;
+  try {
+    const budget = createModelBudget();
+    const parent = await model.execution(undefined, signal, undefined, undefined, budget);
+    const child = await model.execution(
+      undefined,
+      signal,
+      { model: 'MiniMax-M2.7' },
+      undefined,
+      parent.budget,
+    );
+    const parentModel = createExecutionModel(parent.descriptor, signal, parent);
+    const childModel = createExecutionModel(child.descriptor, signal, child);
+    for (let index = 0; index < 29; index++) await parentModel.invoke('合成请求');
+    await childModel.invoke('合成子请求');
+    await parentModel.invoke('合成压缩请求');
+    expect(server.requests).toHaveLength(32);
+    expect(server.bodies[29]?.model).toBe('MiniMax-M2.7');
+    expect(server.bodies[30]?.model).toBe('MiniMax-M2.7');
+    expect(server.bodies[31]?.model).toBe(parent.descriptor.model);
+    const sibling = await model.execution(undefined, signal, undefined, undefined, budget);
+    for (const execution of [parent, child, sibling])
+      await expect(execution.acquire()).rejects.toMatchObject({ code: 'resourceLimit' });
+    expect(server.requests).toHaveLength(32);
+    const unrelated = await model.execution();
+    unrelated.release(await unrelated.acquire());
+  } finally {
+    await server.close();
+    await cleanup();
+  }
+});
+
+test('cancelling a queued child preserves the parent lease and charges only admitted requests', async () => {
+  const server = await boundary([200]);
+  const { access: model, cleanup } = await access(server.url);
+  const controller = new AbortController();
+  try {
+    const parent = await model.execution();
+    const lease = await parent.acquire();
+    const child = await model.execution(
+      undefined,
+      controller.signal,
+      { model: 'MiniMax-M2.7' },
+      undefined,
+      parent.budget,
+    );
+    const pending = child.acquire();
+    const cancelled = expect(pending).rejects.toThrow('synthetic cancellation');
+    child.release(lease);
+    let admitted = false;
+    const sibling = await model.execution(
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      parent.budget,
+    );
+    const waiting = sibling.acquire().then((id) => {
+      admitted = true;
+      return id;
+    });
+    controller.abort(new Error('synthetic cancellation'));
+    await cancelled;
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    expect(admitted).toBe(false);
+    parent.release(lease);
+    sibling.release(await waiting);
+    for (let index = 0; index < 30; index++) parent.release(await parent.acquire());
+    await expect(parent.acquire()).rejects.toMatchObject({ code: 'resourceLimit' });
+    expect(server.requests).toHaveLength(0);
   } finally {
     await server.close();
     await cleanup();
@@ -200,11 +286,23 @@ test('cancelling a held call releases the single shared slot', async () => {
   const controller = new AbortController();
   try {
     server.hold = true;
-    const held = (await model.create(undefined, controller.signal))
+    const parent = await model.execution();
+    const child = await model.execution(
+      undefined,
+      controller.signal,
+      { model: 'MiniMax-M2.7' },
+      undefined,
+      parent.budget,
+    );
+    const held = createExecutionModel(child.descriptor, controller.signal, child)
       .invoke('合成请求')
       .catch((value: unknown) => value);
     await expect.poll(() => server.requests.length).toBe(1);
-    const waiting = (await model.create()).invoke('合成请求');
+    const waiting = createExecutionModel(
+      parent.descriptor,
+      new AbortController().signal,
+      parent,
+    ).invoke('合成请求');
     await new Promise((resolve) => setTimeout(resolve, 250));
     expect(server.requests).toHaveLength(1);
     controller.abort(new Error('cancelled by test'));
@@ -213,6 +311,8 @@ test('cancelling a held call releases the single shared slot', async () => {
     const answered = await waiting;
     expect(answered.text).toContain(ANSWER);
     expect(server.requests).toHaveLength(2);
+    for (let index = 0; index < 30; index++) parent.release(await parent.acquire());
+    await expect(parent.acquire()).rejects.toMatchObject({ code: 'resourceLimit' });
   } finally {
     server.release();
     await server.close();

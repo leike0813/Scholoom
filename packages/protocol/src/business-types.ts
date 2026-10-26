@@ -4,6 +4,9 @@ import type { businessSchemas } from './operations.js';
 
 export type Inputs = {
   'artifacts.reconcile': FromSchema<(typeof businessSchemas)['artifacts.reconcile']['params']>;
+  'delegation.cancel': FromSchema<(typeof businessSchemas)['delegation.cancel']['params']>;
+  'delegation.get': FromSchema<(typeof businessSchemas)['delegation.get']['params']>;
+  'delegation.list': FromSchema<(typeof businessSchemas)['delegation.list']['params']>;
   'editor.cancel': FromSchema<(typeof businessSchemas)['editor.cancel']['params']>;
   'editor.convert': FromSchema<(typeof businessSchemas)['editor.convert']['params']>;
   'editor.export': FromSchema<(typeof businessSchemas)['editor.export']['params']>;
@@ -99,6 +102,11 @@ export type Inputs = {
   'project.open': FromSchema<(typeof businessSchemas)['project.open']['params']>;
   'project.restore': FromSchema<(typeof businessSchemas)['project.restore']['params']>;
   'provider.configure': FromSchema<(typeof businessSchemas)['provider.configure']['params']>;
+  'provider.profiles': FromSchema<(typeof businessSchemas)['provider.profiles']['params']>;
+  'provider.removeProfile': FromSchema<
+    (typeof businessSchemas)['provider.removeProfile']['params']
+  >;
+  'provider.saveProfile': FromSchema<(typeof businessSchemas)['provider.saveProfile']['params']>;
   'provider.setDefaults': FromSchema<(typeof businessSchemas)['provider.setDefaults']['params']>;
   'research.attempts': FromSchema<(typeof businessSchemas)['research.attempts']['params']>;
   'research.method': FromSchema<(typeof businessSchemas)['research.method']['params']>;
@@ -126,6 +134,9 @@ export type Inputs = {
 };
 export type Outputs = {
   'artifacts.reconcile': FromSchema<(typeof businessSchemas)['artifacts.reconcile']['result']>;
+  'delegation.cancel': FromSchema<(typeof businessSchemas)['delegation.cancel']['result']>;
+  'delegation.get': FromSchema<(typeof businessSchemas)['delegation.get']['result']>;
+  'delegation.list': FromSchema<(typeof businessSchemas)['delegation.list']['result']>;
   'editor.cancel': FromSchema<(typeof businessSchemas)['editor.cancel']['result']>;
   'editor.convert': FromSchema<(typeof businessSchemas)['editor.convert']['result']>;
   'editor.export': FromSchema<(typeof businessSchemas)['editor.export']['result']>;
@@ -221,6 +232,11 @@ export type Outputs = {
   'project.open': FromSchema<(typeof businessSchemas)['project.open']['result']>;
   'project.restore': FromSchema<(typeof businessSchemas)['project.restore']['result']>;
   'provider.configure': FromSchema<(typeof businessSchemas)['provider.configure']['result']>;
+  'provider.profiles': FromSchema<(typeof businessSchemas)['provider.profiles']['result']>;
+  'provider.removeProfile': FromSchema<
+    (typeof businessSchemas)['provider.removeProfile']['result']
+  >;
+  'provider.saveProfile': FromSchema<(typeof businessSchemas)['provider.saveProfile']['result']>;
   'provider.setDefaults': FromSchema<(typeof businessSchemas)['provider.setDefaults']['result']>;
   'research.attempts': FromSchema<(typeof businessSchemas)['research.attempts']['result']>;
   'research.method': FromSchema<(typeof businessSchemas)['research.method']['result']>;

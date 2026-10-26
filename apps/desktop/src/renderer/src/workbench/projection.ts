@@ -3,6 +3,7 @@ import type { Artifact, Message } from '@scholoom/protocol';
 
 /** 工具记录在界面中的呈现视图；形状由本模块投影，渲染组件只读这一层。 */
 export interface ToolCallView {
+  delegationId?: string;
   name: string;
   input: string;
   inputTruncated: boolean;
@@ -22,6 +23,7 @@ export function artifactStateLabel(artifact: Artifact): string {
 }
 
 type ToolCallArgs = {
+  delegationId: string;
   input: string;
   inputTruncated: boolean;
   state: Message['state'];
@@ -33,6 +35,7 @@ export function toolCallView(part: ToolCallPartLike): ToolCallView {
   const args = (part.args ?? {}) as Partial<ToolCallArgs>;
   const result = part.result as Partial<ToolCallResult> | undefined;
   const view: ToolCallView = {
+    ...(args.delegationId ? { delegationId: args.delegationId } : {}),
     name: part.toolName,
     input: args.input ?? '',
     inputTruncated: args.inputTruncated ?? false,
@@ -120,6 +123,7 @@ export function toThreadMessage(
           toolCallId: message.id,
           toolName: tool?.name ?? '项目工具',
           args: {
+            ...(tool?.delegationId ? { delegationId: tool.delegationId } : {}),
             input: tool?.input ?? '未记录',
             inputTruncated: tool?.inputTruncated ?? false,
             state: message.state,

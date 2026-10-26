@@ -39,6 +39,7 @@ export const messageSchema = object(
     state: { enum: ['accepted', 'consumed', 'streaming', 'complete', 'error', 'unknown'] },
     tool: object(
       {
+        delegationId: id,
         runId: id,
         name: id,
         input: { type: 'string', maxLength: 16384 },

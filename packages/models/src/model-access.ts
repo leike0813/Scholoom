@@ -2,7 +2,21 @@ import { OperationError } from '@scholoom/protocol/core';
 import type { ModelDefaults, ProviderStatus } from '@scholoom/protocol/models';
 import type { RunModelConfig } from './catalog.js';
 import { factoryDefaults, minimaxEfforts, minimaxEndpoint, minimaxModels } from './catalog.js';
-import { createExecutionModel, type ModelExecution } from './execution-model.js';
+import { createExecutionModel, type ModelBudget, type ModelExecution } from './execution-model.js';
+
+export function createModelBudget(): ModelBudget {
+  let requests = 0;
+  return {
+    consume: () => {
+      if (requests >= 32)
+        throw new OperationError(
+          'resourceLimit',
+          '本次推进达到 32 次模型请求上限；成果已保留，可显式继续。',
+        );
+      requests++;
+    },
+  };
+}
 
 interface CredentialAccess {
   get(): Promise<{ key: string; source: 'saved' | 'environment' }>;
@@ -70,15 +84,17 @@ export class ModelAccess {
     signal: AbortSignal = new AbortController().signal,
     config?: RunModelConfig,
     confirm: () => void = () => {},
+    budget: ModelBudget = createModelBudget(),
   ): Promise<ModelExecution> {
     const resolved = config ?? (await this.configs.load());
     const option = minimaxModels.find((item) => item.id === resolved.model);
     if (!option)
       throw new OperationError('invalidRequest', `模型 ${resolved.model} 不在当前模型目录。`);
     const { key } = await this.credentials.get();
-    let requests = 0;
+    let nextLease = 0;
     const leases = new Set<string>();
     return {
+      budget,
       descriptor: {
         model: option.id,
         ...(option.supportsEffort ? { effort: resolved.effort ?? factoryDefaults.effort } : {}),
@@ -93,18 +109,12 @@ export class ModelAccess {
           await authorize();
           signal.throwIfAborted();
           confirm();
+          budget.consume();
         } catch (error) {
           this.releaseSlot();
           throw error;
         }
-        if (++requests > 32) {
-          this.releaseSlot();
-          throw new OperationError(
-            'resourceLimit',
-            '本次推进达到 32 次模型请求上限；成果已保留，可显式继续。',
-          );
-        }
-        const lease = String(requests);
+        const lease = String(++nextLease);
         leases.add(lease);
         return lease;
       },
@@ -128,19 +138,13 @@ export class ModelAccess {
     authorize: () => void,
     handler: (signal: AbortSignal) => Promise<T>,
   ): Promise<T> {
-    let requests = 0;
+    const budget = createModelBudget();
     for (let attempt = 0; ; attempt++) {
       signal.throwIfAborted();
       await this.acquireSlot(signal, authorize);
-      if (++requests > 32) {
-        this.releaseSlot();
-        throw new OperationError(
-          'resourceLimit',
-          '本次推进达到 32 次模型请求上限；成果已保留，可显式继续。',
-        );
-      }
       let deferred = false;
       try {
+        budget.consume();
         const requestSignal = AbortSignal.any([signal, AbortSignal.timeout(180000)]);
         const result = await handler(requestSignal);
         if (result instanceof Response && result.body) {
