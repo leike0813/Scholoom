@@ -102,6 +102,7 @@ export const executionGraphOperations = {
             graph: registeredGraphSchema,
             model: modelDescriptorSchema,
             attemptId: id,
+            originInstructionId: id,
             checkpointRef: id,
             stateFormatVersion: id,
             checkpointPath: text,

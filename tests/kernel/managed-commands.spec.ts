@@ -8,57 +8,12 @@ import { fileURLToPath } from 'node:url';
 import { expect, test } from '@playwright/test';
 import { KernelApplication } from '../../apps/kernel/dist/application.js';
 import { type CommandWorkspace, ManagedCommands } from '../../apps/kernel/dist/commands.js';
+import { commandDeadline } from '../../packages/platform/dist/command-deadline.js';
 import { ManagedNode, ProcessAdmission } from '../../packages/platform/dist/node.js';
 import { type CallContext, OperationError } from '../../packages/protocol/dist/core.js';
 import type { PlatformCommandInput } from '../../packages/protocol/dist/platform.js';
+import { context, fixture, program, request } from '../managed-command-fixture.js';
 import { createModelServer } from '../model-server.js';
-
-const program = fileURLToPath(
-  new URL('../fixtures/domain-execution-worker/command.mjs', import.meta.url),
-);
-const context: CallContext = {
-  moduleId: 'editor',
-  role: 'product',
-  principal: { kind: 'human', id: 'local' },
-};
-const request = {
-  workspaceId: 'workspace',
-  executableId: 'node',
-  args: [program, 'echo'],
-  input: 'evidence 42',
-  timeoutMs: 5000,
-};
-
-async function fixture() {
-  const root = await mkdtemp(join(tmpdir(), 'scholoom-managed-command-'));
-  const processes = new ProcessAdmission(1, 2);
-  let allowed = true;
-  const workspace: CommandWorkspace = {
-    ownerModuleId: 'editor',
-    directory: root,
-    projectId: 'project',
-    executables: new Map([['node', process.execPath]]),
-  };
-  const commands = new ManagedCommands(
-    processes,
-    (id) => {
-      if (id !== 'workspace') throw new OperationError('permissionDenied', 'unknown workspace');
-      return workspace;
-    },
-    () => {
-      if (!allowed) throw new OperationError('permissionDenied', 'revoked');
-    },
-  );
-  return {
-    root,
-    workspace,
-    commands,
-    processes,
-    revoke: () => {
-      allowed = false;
-    },
-  };
-}
 
 test('host commands resolve identities and reject module, program and work-domain escalation before admission', async () => {
   const f = await fixture();
