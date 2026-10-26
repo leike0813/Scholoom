@@ -400,6 +400,10 @@
           "apis": ["http", "https", "net"]
         },
         {
+          "path": "src/host-connection.ts",
+          "apis": ["fs/promises"]
+        },
+        {
           "path": "src/storage/project-container.ts",
           "apis": ["fs", "fs/promises"]
         }
@@ -446,7 +450,11 @@
       "systemAdapters": [
         {
           "path": "src/main/**",
-          "apis": ["electron", "fs", "fs/promises", "process.env"]
+          "apis": ["electron", "fs", "fs/promises", "vm", "process.env"]
+        },
+        {
+          "path": "src/preload/**",
+          "apis": ["electron"]
         },
         {
           "path": "src/renderer/**",

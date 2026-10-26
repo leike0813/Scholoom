@@ -10,6 +10,8 @@ type Waiting = { start(): void; cancel(): void };
 /** Host-owned process slots include reservations; child work never waits behind its parent. */
 export class ProcessAdmission {
   private active = 0;
+  private readonly recovered = new Set<string>();
+  private readonly owners = new Set<string>();
   private readonly waiting: Waiting[] = [];
   constructor(
     private readonly limit: number = limits.processActive,
@@ -28,15 +30,24 @@ export class ProcessAdmission {
   }
   get status() {
     return {
-      active: this.active,
+      active: this.active + this.recovered.size,
       waiting: this.waiting.length,
       limit: this.limit,
       queueLimit: this.queueLimit,
     };
   }
 
-  reserve(wait = false): ProcessReservation {
-    if (this.active >= this.limit && (!wait || this.waiting.length >= this.queueLimit))
+  /** Recovery runs before admission; unknown scopes cannot expire in the ordinary wait queue. */
+  retainUnknown(instanceId: string): void {
+    if (!instanceId) throw new OperationError('invalidRequest', '恢复归属身份不能为空。');
+    if (this.owners.has(instanceId)) return;
+    this.recovered.add(instanceId);
+  }
+
+  reserve(wait = false, instanceId?: string): ProcessReservation {
+    if (instanceId && (this.owners.has(instanceId) || this.recovered.has(instanceId)))
+      throw new OperationError('invalidRequest', '执行归属已计入准入。');
+    if (this.status.active >= this.limit && (!wait || this.waiting.length >= this.queueLimit))
       throw new OperationError('resourceLimit', '执行进程容量不足；新工作尚未受理。');
     let acquired = false;
     let released = false;
@@ -55,6 +66,7 @@ export class ProcessAdmission {
         clearTimeout(timer);
         acquired = true;
         this.active++;
+        if (instanceId) this.owners.add(instanceId);
         resolve();
       },
       cancel: () => {
@@ -62,7 +74,7 @@ export class ProcessAdmission {
         reject(new OperationError('shuttingDown', '执行等待已取消。'));
       },
     };
-    if (this.active < this.limit) entry.start();
+    if (this.status.active < this.limit) entry.start();
     else {
       this.waiting.push(entry);
       timer = setTimeout(() => {
@@ -80,7 +92,8 @@ export class ProcessAdmission {
       released = true;
       if (acquired) {
         this.active--;
-        this.waiting.shift()?.start();
+        if (instanceId) this.owners.delete(instanceId);
+        if (this.status.active < this.limit) this.waiting.shift()?.start();
       } else {
         const index = this.waiting.indexOf(entry);
         if (index >= 0) this.waiting.splice(index, 1);

@@ -4,6 +4,7 @@ directories:
   output: ../../release/zotero-host
 files:
   - out/**
+  - resources/**
   - package.json
 asar: true
 npmRebuild: false

@@ -28,6 +28,7 @@ export async function runCommand(
     instanceId?: string;
     env?: Readonly<Record<string, string>>;
     observe?: (event: CommandEvent) => Promise<void>;
+    launchInput?: () => Promise<string>;
   } = {},
 ): Promise<CommandResult> {
   options.signal?.throwIfAborted();
@@ -105,7 +106,18 @@ export async function runCommand(
       options.signal?.addEventListener('abort', abort, { once: true });
       if (options.signal?.aborted) abort();
     });
-    void worker.send(request).catch(rejectResult);
+    void (async () => {
+      if (options.launchInput && request.input !== undefined)
+        throw new OperationError('invalidRequest', 'Host bootstrap conflicts with command input');
+      const input = await options.launchInput?.();
+      if (input !== undefined && Buffer.byteLength(input) > 8192)
+        throw new OperationError('tooLarge', 'Host bootstrap exceeds capacity');
+      if (options.launchInput) {
+        options.signal?.throwIfAborted();
+        await options.authorize?.();
+      }
+      await worker.send(input === undefined ? request : { ...request, input });
+    })().catch(rejectResult);
     return await result;
   } finally {
     clearDeadline();
