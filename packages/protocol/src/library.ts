@@ -3,6 +3,13 @@ import type { FromSchema } from 'json-schema-to-ts';
 import type { CallArguments } from './core.js';
 import { array, count, flag, id, object, page, text } from './schema.js';
 
+export {
+  catalogEditorDates,
+  catalogEditorFields,
+  catalogEditorRoles,
+  catalogEditorTypes,
+} from './library-metadata.js';
+
 export const cslMetadataSchema = {
   type: 'object',
   properties: {
@@ -621,7 +628,7 @@ export const librarySchemas = {
   },
   'library.collections': {
     semantics: { effect: 'read', returns: 'result', waitMs: 5000 },
-    params: object(libraryPage, []),
+    params: object({ ...libraryPage, parentId: { anyOf: [id, { type: 'null' }] } }, []),
     result: object({ collections: array(libraryCollectionSchema), nextOffset: count }, [
       'collections',
     ]),

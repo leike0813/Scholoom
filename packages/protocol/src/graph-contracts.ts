@@ -48,6 +48,7 @@ export const graphWaitSchema = object(
 );
 export const graphBindingSchema = object(
   {
+    originInstructionId: id,
     graphId: id,
     version: id,
     config: jsonObject,
