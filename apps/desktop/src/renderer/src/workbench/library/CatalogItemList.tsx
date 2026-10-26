@@ -2,8 +2,17 @@
  * 虚拟化条目列表
  */
 import type { LibrarySource } from '@scholoom/protocol';
-import { useCallback, useRef } from 'react';
+import {
+  type CSSProperties,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react';
+import { draftKey, readDraft, writeDraft } from '../drafts';
 import { useVirtualizedList } from '../useVirtualizedList';
+import { CatalogColumns, readCatalogColumns } from './CatalogColumns';
 import { CatalogItemRow } from './CatalogItemRow';
 import type { CatalogSelection } from './CatalogSelection';
 
@@ -12,11 +21,31 @@ const ROW_HEIGHT = 28;
 interface CatalogItemListProps {
   entries: LibrarySource[];
   selection: CatalogSelection;
-  onDoubleClick: (entry: LibrarySource) => void;
+  scope: string;
+  rangeKey: string;
 }
 
-export function CatalogItemList({ entries, selection, onDoubleClick }: CatalogItemListProps) {
+export function CatalogItemList({ entries, selection, scope, rangeKey }: CatalogItemListProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const selected = useSyncExternalStore(selection.subscribe, selection.getSnapshot);
+  const [columns, setColumns] = useState(() => readCatalogColumns(draftKey(scope, 'columns')));
+  const visibleIds = entries.map((entry) => entry.id);
+  const restoredRange = useRef<string | null>(null);
+  const scrollRange = entries.length ? rangeKey : null;
+  useEffect(() => {
+    restoredRange.current = null;
+    if (!scrollRange) return;
+    const container = containerRef.current;
+    if (!container) return;
+    container.scrollTop = Number(readDraft(draftKey(scrollRange, 'scroll'))) || 0;
+    const frame = requestAnimationFrame(() => {
+      restoredRange.current = scrollRange;
+    });
+    return () => {
+      cancelAnimationFrame(frame);
+      restoredRange.current = null;
+    };
+  }, [scrollRange]);
 
   const { visibleRange, offsetTop, scrollToIndex } = useVirtualizedList(entries.length, {
     rowHeight: ROW_HEIGHT,
@@ -30,45 +59,38 @@ export function CatalogItemList({ entries, selection, onDoubleClick }: CatalogIt
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       if (entries.length === 0) return;
-      const focused = Array.from(selection.selectedIndices)[0] ?? -1;
+      const focused = entries.findIndex((entry) => entry.id === selected.primaryId);
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'a') {
+        e.preventDefault();
+        selection.selectAll(visibleIds);
+        return;
+      }
+      let index: number;
 
       if (e.key === 'ArrowDown') {
         e.preventDefault();
-        const nextIndex = Math.min(focused + 1, entries.length - 1);
-        selection.clear();
-        selection.toggle(nextIndex);
-        scrollToIndex(nextIndex);
+        index = Math.min(focused + 1, entries.length - 1);
       } else if (e.key === 'ArrowUp') {
         e.preventDefault();
-        const prevIndex = Math.max(focused - 1, 0);
-        selection.clear();
-        selection.toggle(prevIndex);
-        scrollToIndex(prevIndex);
+        index = Math.max(focused - 1, 0);
       } else if (e.key === 'Home') {
         e.preventDefault();
-        selection.clear();
-        selection.toggle(0);
-        scrollToIndex(0);
+        index = 0;
       } else if (e.key === 'End') {
         e.preventDefault();
-        const lastIndex = entries.length - 1;
-        selection.clear();
-        selection.toggle(lastIndex);
-        scrollToIndex(lastIndex);
-      }
+        index = entries.length - 1;
+      } else return;
+      const entry = entries[index];
+      if (entry) selection.select(entry.id, { range: e.shiftKey }, visibleIds);
+      scrollToIndex(index);
     },
-    [entries.length, selection, scrollToIndex],
+    [entries, selected.primaryId, selection, scrollToIndex, visibleIds],
   );
 
   const handleSelect = (index: number, modifiers: { shift: boolean; ctrl: boolean }) => {
-    if (modifiers.shift) {
-      selection.shiftSelect(index);
-    } else if (modifiers.ctrl) {
-      selection.toggle(index);
-    } else {
-      selection.clear();
-      selection.toggle(index);
-    }
+    const entry = entries[index];
+    if (entry)
+      selection.select(entry.id, { range: modifiers.shift, toggle: modifiers.ctrl }, visibleIds);
   };
 
   const totalHeight = entries.length * ROW_HEIGHT;
@@ -76,43 +98,76 @@ export function CatalogItemList({ entries, selection, onDoubleClick }: CatalogIt
 
   return (
     <div className="catalog-item-list-container">
-      <div className="catalog-item-list-header">
-        <div className="catalog-cell catalog-cell-title">题名</div>
-        <div className="catalog-cell catalog-cell-creators">作者</div>
-        <div className="catalog-cell catalog-cell-date">年份</div>
-        <div className="catalog-cell catalog-cell-version">版本</div>
-        <div className="catalog-cell catalog-cell-attachment">附件</div>
-      </div>
+      <CatalogColumns
+        columns={columns}
+        onChange={(next) => {
+          setColumns(next);
+          writeDraft(draftKey(scope, 'columns'), JSON.stringify(next));
+        }}
+      />
+      <p role="status" aria-label="题录选择" className="catalog-selection-summary">
+        已选 {selected.selectedIds.filter((id) => visibleIds.includes(id)).length} 项
+        {selected.primaryId && visibleIds.includes(selected.primaryId)
+          ? ` · 主选 ${entries.find((entry) => entry.id === selected.primaryId)?.metadata.title}`
+          : ''}
+      </p>
       <div
-        ref={containerRef}
-        className="catalog-item-list-body"
-        role="listbox"
-        tabIndex={0}
-        aria-label="题录列表"
-        onKeyDown={handleKeyDown}
+        className="catalog-table-scroll"
+        style={
+          {
+            '--catalog-width': `calc(var(--space-unit) * ${columns.filter((column) => column.visible).reduce((sum, column) => sum + column.width, 6)})`,
+          } as CSSProperties
+        }
       >
-        <div style={{ position: 'relative', height: `${totalHeight}px` }}>
-          {visibleEntries.map((entry, i) => {
-            const index = startIndex + i;
-            const top = offsetTop(index);
-            return (
-              <CatalogItemRow
-                key={entry.id}
-                entry={entry}
-                index={index}
-                isSelected={selection.isSelected(index)}
-                style={{
-                  position: 'absolute',
-                  top: `${top}px`,
-                  left: 0,
-                  right: 0,
-                  height: `${ROW_HEIGHT}px`,
-                }}
-                onSelect={handleSelect}
-                onDoubleClick={onDoubleClick}
-              />
-            );
-          })}
+        <div className="catalog-item-list-header">
+          {columns
+            .filter((column) => column.visible)
+            .map((column) => (
+              <div
+                key={column.id}
+                className={`catalog-cell catalog-cell-${column.id}`}
+                style={{ flex: `0 0 calc(var(--space-unit) * ${column.width})` }}
+              >
+                {column.label}
+              </div>
+            ))}
+        </div>
+        <div
+          ref={containerRef}
+          className="catalog-item-list-body"
+          role="listbox"
+          tabIndex={0}
+          aria-label="题录列表"
+          aria-multiselectable="true"
+          onScroll={(event) => {
+            if (entries.length && restoredRange.current === rangeKey)
+              writeDraft(draftKey(rangeKey, 'scroll'), String(event.currentTarget.scrollTop));
+          }}
+          onKeyDown={handleKeyDown}
+        >
+          <div style={{ position: 'relative', height: `${totalHeight}px` }}>
+            {visibleEntries.map((entry, i) => {
+              const index = startIndex + i;
+              const top = offsetTop(index);
+              return (
+                <CatalogItemRow
+                  key={entry.id}
+                  entry={entry}
+                  index={index}
+                  isSelected={selected.selectedIds.includes(entry.id)}
+                  columns={columns}
+                  style={{
+                    position: 'absolute',
+                    top: `${top}px`,
+                    left: 0,
+                    right: 0,
+                    height: `${ROW_HEIGHT}px`,
+                  }}
+                  onSelect={handleSelect}
+                />
+              );
+            })}
+          </div>
         </div>
       </div>
     </div>

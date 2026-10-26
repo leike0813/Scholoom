@@ -129,6 +129,58 @@
   overflow: auto;
 }
 
+.catalog-table-scroll {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.catalog-table-scroll > .catalog-item-list-header,
+.catalog-table-scroll > .catalog-item-list-body {
+  width: var(--catalog-width);
+  min-width: 100%;
+}
+
+.catalog-column-settings,
+.catalog-selection-summary {
+  padding: var(--space-unit) calc(var(--space-unit) * 3);
+  margin: 0;
+  font-size: var(--font-size-control);
+}
+
+.catalog-column-setting,
+.collection-navigation-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-unit);
+}
+
+.catalog-column-setting input[type="number"] {
+  width: calc(var(--space-unit) * 16);
+}
+
+.collection-navigation {
+  flex: 0 1 calc(var(--space-unit) * 48);
+  min-width: calc(var(--space-unit) * 20);
+  overflow: auto;
+  background: var(--bg);
+  padding: var(--space-unit);
+  font-size: var(--font-size-control);
+}
+
+.collection-navigation-list {
+  list-style: none;
+  padding-left: calc(var(--space-unit) * 3);
+  margin: var(--space-unit) 0;
+}
+
+.collection-navigation [aria-current="page"] {
+  background: var(--surface-active);
+  font-weight: 600;
+}
+
 /* 条目行 */
 .catalog-item-row {
   display: flex;
