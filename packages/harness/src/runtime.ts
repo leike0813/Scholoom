@@ -34,6 +34,8 @@ import type {
   DelegationRequest,
   DelegationRole,
   HarnessInputs,
+  HarnessModuleInputs,
+  HarnessModuleOutputs,
   HarnessOutputs,
   HarnessSnapshot,
   InstructionContext,
@@ -44,6 +46,7 @@ import type {
 import {
   delegationInternalOperations,
   delegationReferenceSchema,
+  harnessModuleOperations,
   isContextItems,
   workbenchContextInternalOperations,
 } from '@scholoom/protocol/harness';
@@ -123,6 +126,7 @@ export type HarnessStorage = {
 const activeKey = (project: HarnessProject, sessionId: string) => `${project.id}:${sessionId}`;
 const now = () => new Date().toISOString();
 const historyPrefix = '/conversation_history/';
+const executionsContract = compileContract(harnessModuleOperations['harness.executions']);
 const settleTools = async (pending: Set<Promise<unknown>>) => {
   while (pending.size) await Promise.allSettled([...pending]);
 };
@@ -657,6 +661,77 @@ export class Harness {
     return this.session(this.projects.get(projectId), sessionId);
   }
 
+  async executions(
+    input: HarnessModuleInputs['harness.executions'],
+  ): Promise<HarnessModuleOutputs['harness.executions']> {
+    if (!executionsContract.params(input))
+      throw new OperationError('invalidRequest', '执行历史选择器或分页参数无效。');
+    const project = this.projects.get(input.projectId);
+    this.session(project, input.sessionId);
+    const records = this.records(project);
+    let runId = input.runId;
+    let instruction: Message | undefined;
+    if (input.instructionId) {
+      const accepted = records
+        .select({ runId: tables.instructions.runId, instruction: tables.messages.value })
+        .from(tables.instructions)
+        .leftJoin(
+          tables.messages,
+          and(
+            eq(tables.messages.id, tables.instructions.id),
+            eq(tables.messages.sessionId, tables.instructions.sessionId),
+          ),
+        )
+        .where(
+          and(
+            eq(tables.instructions.id, input.instructionId),
+            eq(tables.instructions.sessionId, input.sessionId),
+          ),
+        )
+        .get();
+      if (!accepted) return { runs: [] };
+      if (!accepted.instruction) throw new OperationError('unavailable', '原指令消息缺失。');
+      runId = accepted.runId;
+      instruction = accepted.instruction;
+    }
+    let result: HarnessModuleOutputs['harness.executions'] = {
+      runs: [],
+      ...(instruction ? { instruction } : {}),
+    };
+    if (Buffer.byteLength(JSON.stringify(result)) > 512 * 1024)
+      throw new OperationError('tooLarge', '执行历史响应超过查询容量。');
+    const offset = input.offset ?? 0;
+    const limit = input.limit ?? 25;
+    const rows = records
+      .select({ value: tables.runs.value })
+      .from(tables.runs)
+      .where(
+        and(
+          eq(tables.runs.sessionId, input.sessionId),
+          runId
+            ? eq(tables.runs.id, runId)
+            : sql`json_extract(${tables.runs.value}, '$.graph.originInstructionId') = ${input.originInstructionId}`,
+        ),
+      )
+      .orderBy(sql`json_extract(${tables.runs.value}, '$.attempt')`, tables.runs.id)
+      .limit(limit + 1)
+      .offset(offset)
+      .all();
+    for (const [index, row] of rows.slice(0, limit).entries()) {
+      const candidate = {
+        runs: [...result.runs, row.value],
+        ...(instruction ? { instruction } : {}),
+        ...(index + 1 < rows.length ? { nextOffset: offset + index + 1 } : {}),
+      };
+      if (Buffer.byteLength(JSON.stringify(candidate)) > 512 * 1024) {
+        if (!result.runs.length) throw new OperationError('tooLarge', '执行历史响应超过查询容量。');
+        return result;
+      }
+      result = candidate;
+    }
+    return result;
+  }
+
   private latestRun(project: HarnessProject, sessionId: string): Run | undefined {
     return this.records(project)
       .select()
@@ -713,6 +788,7 @@ export class Harness {
   private acceptedInstruction(
     project: HarnessProject,
     input: HarnessInputs['session.send'],
+    selection?: Extract<GraphExecution, { kind: 'registered' }>,
   ): HarnessOutputs['session.send'] | undefined {
     const previous = this.records(project)
       .select()
@@ -734,6 +810,21 @@ export class Harness {
         !isDeepStrictEqual(original.value.contextItems ?? [], input.contextItems ?? [])
       )
         throw new OperationError('invalidRequest', '指令身份已用于其他内容。');
+      if (selection) {
+        const accepted = this.records(project)
+          .select()
+          .from(tables.runs)
+          .where(eq(tables.runs.id, previous.runId))
+          .get()?.value.graph;
+        if (
+          !accepted ||
+          accepted.graphId !== selection.graphId ||
+          accepted.version !== selection.version ||
+          !isDeepStrictEqual(accepted.config, selection.config) ||
+          !isDeepStrictEqual(accepted.materials ?? [], selection.materials)
+        )
+          throw new OperationError('invalidRequest', '原指令已绑定另一图。');
+      }
       return { instructionId: previous.id, runId: previous.runId };
     }
     return undefined;
@@ -751,40 +842,24 @@ export class Harness {
     if (this.stopped) throw new OperationError('shuttingDown', '内核正在停止。');
     const project = this.projects.get(input.projectId);
     const session = this.session(project, input.sessionId);
-    const previous = this.acceptedInstruction(project, input);
-    if (previous) {
-      if (selection) {
-        const accepted = this.records(project)
-          .select()
-          .from(tables.runs)
-          .where(eq(tables.runs.id, previous.runId))
-          .get()?.value.graph;
-        if (
-          !accepted ||
-          accepted.graphId !== selection.graphId ||
-          accepted.version !== selection.version ||
-          !isDeepStrictEqual(accepted.config, selection.config) ||
-          !isDeepStrictEqual(accepted.materials ?? [], selection.materials)
-        )
-          throw new OperationError('invalidRequest', '原指令已绑定另一图。');
-      }
-      return previous;
-    }
+    const previous = this.acceptedInstruction(project, input, selection);
+    if (previous) return previous;
     ManagedNode.requireAvailable();
-    const prior = this.latestRun(project, input.sessionId);
+    let prior = this.latestRun(project, input.sessionId);
     if (prior?.graph && prior.state === 'waiting')
       await this.active.get(activeKey(project, session.id))?.done;
+    prior = this.latestRun(project, input.sessionId);
     if (selection && this.active.has(activeKey(project, session.id)))
       throw new OperationError('invalidRequest', '请先等待当前执行停止后选择新图。');
-    const registered =
+    const selectedGraph = (run: Run | undefined) =>
       selection ??
-      (prior?.graph
+      (run?.graph
         ? {
             kind: 'registered' as const,
-            graphId: prior.graph.graphId,
-            version: prior.graph.version,
-            config: prior.graph.config,
-            materials: prior.graph.materials ?? [],
+            graphId: run.graph.graphId,
+            version: run.graph.version,
+            config: run.graph.config,
+            materials: run.graph.materials ?? [],
             workDomain:
               project.id === 'application'
                 ? {
@@ -795,6 +870,7 @@ export class Harness {
                 : { kind: 'project' as const, projectId: project.id, sessionId: session.id },
           }
         : undefined);
+    let registered = selectedGraph(prior);
     let factory: ReturnType<ExecutionGraphs['resolve']> | undefined;
     if (registered) {
       if (
@@ -829,14 +905,19 @@ export class Harness {
         await this.port(project)['project.path']({ projectId: project.id, path });
       }
     } catch (error) {
-      const accepted = this.acceptedInstruction(project, input);
+      const accepted = this.acceptedInstruction(project, input, selection);
       if (accepted) return accepted;
       throw error;
     }
     let run = this.latestRun(project, input.sessionId);
+    registered = selectedGraph(run);
+    factory = registered ? this.graphs.resolve(registered) : undefined;
+    const replay = this.acceptedInstruction(project, input, selection);
+    if (replay) return replay;
     let busy = this.active.has(activeKey(project, input.sessionId));
-    let resuming = !busy && !!run && run.state !== 'completed';
-    const incompatible =
+    if (selection && busy)
+      throw new OperationError('invalidRequest', '请先等待当前执行停止后选择新图。');
+    const incompatible = () =>
       !!registered &&
       !!run &&
       (!run.graph ||
@@ -845,11 +926,15 @@ export class Harness {
         factory?.definition.stateFormatVersion !== run.graph.stateFormatVersion ||
         !isDeepStrictEqual(registered.materials, run.graph.materials ?? []) ||
         !isDeepStrictEqual(registered.config, run.graph.config));
-    if (registered && (incompatible || run?.state === 'cancelled')) resuming = false;
-    if (resuming && run) {
-      const { error: _error, ...continuing } = run;
-      run = { ...continuing, state: 'queued' };
-    }
+    const canResume = () =>
+      !selection &&
+      !busy &&
+      !!run &&
+      run.state !== 'completed' &&
+      !incompatible() &&
+      !(registered && run.state === 'cancelled');
+    let resuming = canResume();
+    let originInstructionId = selection ? input.instructionId : run?.graph?.originInstructionId;
     if (!busy && !resuming) {
       const modelConfig =
         registered && !factory?.definition.requiresModel
@@ -857,26 +942,35 @@ export class Harness {
           : await this.runConfig(session);
       busy = this.active.has(activeKey(project, input.sessionId));
       run = this.latestRun(project, input.sessionId);
-      resuming =
-        !busy &&
-        !!run &&
-        run.state !== 'completed' &&
-        !incompatible &&
-        !(registered && run.state === 'cancelled');
+      registered = selectedGraph(run);
+      factory = registered ? this.graphs.resolve(registered) : undefined;
+      const replay = this.acceptedInstruction(project, input, selection);
+      if (replay) return replay;
+      if (selection && busy)
+        throw new OperationError('invalidRequest', '请先等待当前执行停止后选择新图。');
+      resuming = canResume();
+      originInstructionId = selection ? input.instructionId : run?.graph?.originInstructionId;
       if (!busy && !resuming)
         run = {
           id: randomUUID(),
           sessionId: session.id,
           attempt: (run?.attempt ?? 0) + 1,
           state: 'queued',
-          ...(modelConfig ? { modelConfig } : {}),
+          ...(modelConfig && (!registered || factory?.definition.requiresModel)
+            ? { modelConfig }
+            : {}),
         };
+    }
+    if (resuming && run) {
+      const { error: _error, ...continuing } = run;
+      run = { ...continuing, state: 'queued' };
     }
     if (registered && factory && run && !busy) {
       const checkpointRef = resuming && run.graph ? run.graph.checkpointRef : run.id;
       run = {
         ...run,
         graph: {
+          ...(originInstructionId ? { originInstructionId } : {}),
           graphId: registered.graphId,
           version: registered.version,
           config: registered.config,
@@ -896,7 +990,7 @@ export class Harness {
     try {
       let replay: HarnessOutputs['session.send'] | undefined;
       this.records(project).transaction((tx) => {
-        replay = this.acceptedInstruction(project, input);
+        replay = this.acceptedInstruction(project, input, selection);
         if (replay) return;
         if (input.contextItems?.length) {
           const resources = this.contextBridge?.resources?.(admissionContext);
@@ -1409,6 +1503,9 @@ export class Harness {
         registered: {
           graph,
           attemptId: run.id,
+          ...(binding.originInstructionId
+            ? { originInstructionId: binding.originInstructionId }
+            : {}),
           stateFormatVersion: binding.stateFormatVersion,
           checkpointRef: binding.checkpointRef,
           checkpointPath: opened.path,

@@ -80,9 +80,11 @@ export function contextItemContent(item: ContextItem): string {
     item.kind === 'text'
       ? `${item.contentState === 'draft' ? '用户草稿摘录' : '所附摘录'}：${item.quote}`
       : item.kind === 'object'
-        ? `对象 ${item.name}（${item.providerId}/${item.objectId}）：${item.semantics}`
+        ? `${item.contentState === 'draft' ? '用户草稿对象' : '对象'} ${item.name}（${item.providerId}/${item.objectId}）：${item.semantics}`
         : item.kind === 'region'
-          ? `所选区域：${JSON.stringify(item.region)}`
+          ? `所选区域：${JSON.stringify(item.region)}；坐标基准：${item.target ? JSON.stringify(item.target) : '未记录，需重新核查'}`
           : '整份材料引用，请实际读取后使用。';
-  return `${reference}\n${content}${item.comment ? `\n用户批注：${item.comment}` : ''}`;
+  const location =
+    item.kind === 'text' && item.location ? `\n当次位置：${JSON.stringify(item.location)}` : '';
+  return `${reference}\n${content}${location}${item.comment ? `\n用户批注：${item.comment}` : ''}`;
 }

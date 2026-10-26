@@ -39,7 +39,7 @@ test('v4 delegation upgrade preserves trust and the protected source across reop
     f.db.pragma('user_version = 4');
     f.db.prepare('INSERT INTO meta(key,value) VALUES (?,?)').run('grants', grants);
     await initializeProjectContainer(f.db, f.root);
-    expect(f.db.pragma('user_version', { simple: true })).toBe(5);
+    expect(f.db.pragma('user_version', { simple: true })).toBe(6);
     expect(f.db.prepare("SELECT value FROM meta WHERE key='grants'").get()).toEqual({
       value: grants,
     });
@@ -81,7 +81,7 @@ test('failed v5 migration rolls back its table and preserves the v4 source for r
     const source = await readFile(join(f.root, 'before-migration-v5.sqlite'));
     f.db.exec('DROP INDEX delegations_session');
     await initializeProjectContainer(f.db, f.root);
-    expect(f.db.pragma('user_version', { simple: true })).toBe(5);
+    expect(f.db.pragma('user_version', { simple: true })).toBe(6);
     expect(await readFile(join(f.root, 'before-migration-v5.sqlite'))).toEqual(source);
   } finally {
     await f.close();
@@ -108,7 +108,21 @@ test('container upgrade preserves identities, full payloads and a readable v2 so
       .prepare('INSERT INTO messages(id,sessionId,value) VALUES (?,?,?)')
       .run('message', 'session', message);
     await initializeProjectContainer(f.db, f.root);
-    expect(f.db.pragma('user_version', { simple: true })).toBe(5);
+    expect(f.db.pragma('user_version', { simple: true })).toBe(6);
+    const beforePrograms = new Database(join(f.root, 'before-migration-v6.sqlite'), {
+      readonly: true,
+    });
+    try {
+      expect(beforePrograms.pragma('user_version', { simple: true })).toBe(5);
+      expect(
+        beforePrograms.prepare("SELECT name FROM sqlite_master WHERE name='program_runs'").get(),
+      ).toBeUndefined();
+      expect(
+        beforePrograms.prepare('SELECT value FROM messages WHERE id=?').get('message'),
+      ).toEqual({ value: message });
+    } finally {
+      beforePrograms.close();
+    }
     expect(f.db.prepare("SELECT key FROM meta WHERE key <> 'grants' ORDER BY key").all()).toEqual([
       { key: 'name' },
     ]);
@@ -159,7 +173,7 @@ test('invalid legacy identity rolls back all migration writes and preserves sour
       .prepare("UPDATE meta SET value=? WHERE key='research-attempt:expected'")
       .run('{"id":"expected"}');
     await initializeProjectContainer(f.db, f.root);
-    expect(f.db.pragma('user_version', { simple: true })).toBe(5);
+    expect(f.db.pragma('user_version', { simple: true })).toBe(6);
   } finally {
     await f.close();
   }
@@ -204,7 +218,7 @@ test('process termination inside the upgrade transaction reopens only v2 and ret
         source.close();
       }
       await initializeProjectContainer(reopened, f.root);
-      expect(reopened.pragma('user_version', { simple: true })).toBe(5);
+      expect(reopened.pragma('user_version', { simple: true })).toBe(6);
       expect(
         reopened.prepare("SELECT value FROM research_attempts WHERE id='attempt'").get(),
       ).toEqual({

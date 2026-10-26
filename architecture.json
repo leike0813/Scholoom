@@ -290,7 +290,8 @@
         "files.resolve",
         "session.check",
         "harness.execute",
-        "harness.startGraph"
+        "harness.startGraph",
+        "harness.executions"
       ]
     },
     {

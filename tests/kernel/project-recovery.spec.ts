@@ -101,7 +101,7 @@ for (const { legacy, failRestore } of [
         );
         try {
           old.exec(
-            "INSERT INTO meta SELECT 'research-attempt:' || id,value FROM research_attempts; DROP TABLE research_attempts; DROP TABLE harness_meta; DROP TABLE run_instances; DROP TABLE delegations; PRAGMA user_version=2;",
+            "INSERT INTO meta SELECT 'research-attempt:' || id,value FROM research_attempts; DROP TABLE research_attempts; DROP TABLE harness_meta; DROP TABLE run_instances; DROP TABLE program_runs; DROP TABLE delegations; PRAGMA user_version=2;",
           );
         } finally {
           old.close();
@@ -145,7 +145,7 @@ for (const { legacy, failRestore } of [
         );
         const restored = app.projects.get(copy.id);
         if (legacy) {
-          expect(restored.database.pragma('user_version', { simple: true })).toBe(5);
+          expect(restored.database.pragma('user_version', { simple: true })).toBe(6);
           const protectedSource = new Database(
             join(destination, '.scholoom', 'before-migration-v3.sqlite'),
             { readonly: true },
