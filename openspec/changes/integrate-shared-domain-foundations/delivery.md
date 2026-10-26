@@ -2,7 +2,7 @@
 
 ## 当前状态与成果
 
-2026-10-26，沿用户“验收工作并进行下一轮调度”及既有提交授权，公共源码已接入dev工作区；提交与七线派发沿tasks 2.3记录实际结果。七树正式输入为 `/tmp/scholoom-round3-handoff-qefwKi/manifest.json` 及逐树源码快照，均来自e3d58fc上的未提交成果。没有覆盖、同步或切换工作树，没有安装依赖或操作真实用户库。
+2026-10-26，沿用户“验收工作并进行下一轮调度”及既有提交授权，公共源码已接入dev，提交b838402并推送origin/dev；七线任务已派发。七树正式输入为 `/tmp/scholoom-round3-handoff-qefwKi/manifest.json` 及逐树源码快照，均来自e3d58fc上的未提交成果。没有覆盖、同步或切换Git工作树，没有安装依赖或操作真实用户库。
 
 已核对[设计图](design.md#变更总览)及命令时序：资源叶声明保持原导出对象；双窗口夹具同时保留projectId定位；命令观察和长时限进入原ManagedCommands；v5委派→v6程序表沿单一迁移链；ContextItem位置／区域／草稿对象经原编码路径；集合直接父范围及开放CSL声明不关闭未知metadata。执行历史由独立 [add-harness-execution-history](../add-harness-execution-history/delivery.md)维护，未复制其契约。
 
@@ -50,6 +50,8 @@ node node_modules/@playwright/test/cli.js test --config playwright.kernel.config
 
 ## 未完成事项与下一步
 
-公共提交和七线派发完成前，tasks 2.3保持开放；回执存本机交接包，不以“accepted”推定实现完成。用户手动同步各消费者后，再核对其业务接线；历史change的同步任务保持开放。各线本轮允许整理可审查本地提交／补丁，不自动merge／rebase／reset、不推送／开PR或归档。
+tasks 2.3已完成：公共代码b838402已推送，七份任务经orca-cli发送，均返回accepted:true及turn_started；配置经各既有终端实读为GPT-6.1-Sol high。原生审查已结束，没有等待下一轮工作完成。逐线prompt及回执在 `/tmp/scholoom-round3-handoff-qefwKi/prompts/`、`dispatch-receipts.json`。Orca空闲探测接口两次timeout，既有终端状态及屏幕确认done／空输入框后按既有终端投递，实际启动由回执证实；详情见同目录readiness-note.md，没有重复发送或新开Agent。
+
+本公共范围已交付，不据accepted推定下一轮实现完成。用户手动同步各消费者后，再核对其业务接线；历史change的同步任务保持开放。各线本轮允许整理可审查本地提交／补丁，不自动merge／rebase／reset、不推送／开PR或归档。本变更未同步正式规格或归档。
 
 用户已确认来源副本与正式键冲突政策，分别记录在领域决议，供文献／生态下一轮实施。本批不混入该新行为。Windows、macOS、分发包、真实模型科研质量及既有全仓CI失败未本轮复验；macOS受管执行仍明确不可用。临时快照、组合和日志保留为本机验收依据，不进入生产依赖。
