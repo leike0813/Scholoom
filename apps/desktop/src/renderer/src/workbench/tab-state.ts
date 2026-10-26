@@ -3,7 +3,14 @@ import { readerKindForName } from './reader-material.js';
 import { type ResourceTarget, resourceKey } from './resource-controller.js';
 import type { FileTarget } from './session.js';
 
-export type TabKind = 'library' | 'reader' | 'editor' | 'preview' | 'settings' | 'task' | 'programs';
+export type TabKind =
+  | 'library'
+  | 'reader'
+  | 'editor'
+  | 'preview'
+  | 'settings'
+  | 'task'
+  | 'programs';
 export type FileViewMode = 'source' | 'visual' | 'preview' | 'render';
 export interface TabItem {
   id: string;

@@ -1,7 +1,6 @@
 /// <reference lib="dom" />
 import assert from 'node:assert/strict';
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+import { mkdir, writeFile } from 'node:fs/promises';
 import { basename, join } from 'node:path';
 import { createKernelClient } from '../../packages/client/dist/index.js';
 import type { ResourceDescriptor } from '../../packages/protocol/dist/index.js';
@@ -15,7 +14,8 @@ test('legacy PDF metadata keeps the last successful preview without enabling att
   uiPage,
 }) => {
   test.setTimeout(120000);
-  const root = await mkdtemp(join(tmpdir(), 'scholoom-render-legacy-'));
+  const root = test.info().outputPath(`legacy-${test.info().project.name}`);
+  await mkdir(root, { recursive: true });
   await writeFile(join(root, 'legacy.qmd'), 'Legacy evidence 73.\n');
   // Only the public output metadata is downgraded; PDF generation and byte reads stay real.
   await uiPage.addInitScript(() => {
@@ -50,37 +50,34 @@ test('legacy PDF metadata keeps the last successful preview without enabling att
       return Reflect.apply(add, this, [type, wrapped, options]);
     } as typeof WebSocket.prototype.addEventListener;
   });
-  try {
-    await uiPage.goto(rendererUrl);
-    await expect(uiPage.getByRole('status', { name: '连接状态' })).toContainText('已连接');
-    await addProject(uiPage, root);
-    await createSession(uiPage, basename(root));
-    await uiPage.getByRole('treeitem', { name: '打开文件 legacy.qmd', exact: true }).dblclick();
-    await uiPage.getByRole('button', { name: '完整排版', exact: true }).click();
-    const render = uiPage.getByRole('region', { name: '完整排版预览', exact: true });
-    await render.getByLabel('预览格式', { exact: true }).selectOption('pdf');
-    const pdf = render.getByRole('region', { name: '排版 PDF', exact: true });
-    await expect(pdf.locator('img[src^="blob:"]').first()).toBeVisible({ timeout: 60000 });
-    expect(await uiPage.evaluate(() => Reflect.get(window, '__legacyOutputSeen'))).toBe(true);
-    await expect(render.getByText(/历史产物.*预览.*导出/)).toBeVisible();
-    await expect(pdf.getByRole('button', { name: /附加第/ })).toHaveCount(0);
-    await writeFile(join(root, 'legacy.qmd'), '---\ntitle: [broken\n---\nFailed input.\n');
-    await render.getByRole('button', { name: '重新编译', exact: true }).click();
-    await expect(render.getByRole('status', { name: '排版状态' })).toContainText('失败', {
-      timeout: 30000,
-    });
-    await expect(pdf.locator('img[src^="blob:"]').first()).toBeVisible();
-    await expect(pdf.getByRole('button', { name: /附加第/ })).toHaveCount(0);
-  } finally {
-    await rm(root, { recursive: true, force: true });
-  }
+  await uiPage.goto(rendererUrl);
+  await expect(uiPage.getByRole('status', { name: '连接状态' })).toContainText('已连接');
+  await addProject(uiPage, root);
+  await createSession(uiPage, basename(root));
+  await uiPage.getByRole('treeitem', { name: '打开文件 legacy.qmd', exact: true }).dblclick();
+  await uiPage.getByRole('button', { name: '完整排版', exact: true }).click();
+  const render = uiPage.getByRole('region', { name: '完整排版预览', exact: true });
+  await render.getByLabel('预览格式', { exact: true }).selectOption('pdf');
+  const pdf = render.getByRole('region', { name: '排版 PDF', exact: true });
+  await expect(pdf.locator('img[src^="blob:"]').first()).toBeVisible({ timeout: 60000 });
+  expect(await uiPage.evaluate(() => Reflect.get(window, '__legacyOutputSeen'))).toBe(true);
+  await expect(render.getByText(/历史产物.*预览.*导出/)).toBeVisible();
+  await expect(pdf.getByRole('button', { name: /附加第/ })).toHaveCount(0);
+  await writeFile(join(root, 'legacy.qmd'), '---\ntitle: [broken\n---\nFailed input.\n');
+  await render.getByRole('button', { name: '重新编译', exact: true }).click();
+  await expect(render.getByRole('status', { name: '排版状态' })).toContainText('失败', {
+    timeout: 30000,
+  });
+  await expect(pdf.locator('img[src^="blob:"]').first()).toBeVisible();
+  await expect(pdf.getByRole('button', { name: /附加第/ })).toHaveCount(0);
 });
 
 test('embedded PDF selection keeps its own render identity through composer, actual harness bytes and parsing', async ({
   uiPage,
 }, info) => {
   test.setTimeout(180000);
-  const root = await mkdtemp(join(tmpdir(), 'scholoom-render-material-'));
+  const root = test.info().outputPath(`render-material-${test.info().project.name}`);
+  await mkdir(root, { recursive: true });
   await writeFile(join(root, 'paper.qmd'), 'Render evidence 73.\n');
   let resource: ResourceDescriptor | undefined;
   uiPage.on('websocket', (socket) =>
@@ -244,6 +241,5 @@ test('embedded PDF selection keeps its own render identity through composer, act
     client.dispose();
     await stop();
     await model.close();
-    await rm(root, { recursive: true, force: true });
   }
 });

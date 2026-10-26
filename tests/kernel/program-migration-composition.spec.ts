@@ -1,21 +1,12 @@
 import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
-import { pathToFileURL } from 'node:url';
 import { expect, test } from '@playwright/test';
 import { initializeProjectContainer } from '../../apps/kernel/dist/storage/project-container.js';
+import { HarnessRecords } from '../../packages/harness/dist/records.js';
 import { ProgramRecords } from '../../packages/programs/dist/node.js';
 import { Database, delegation, evidence, fixture, grants } from '../project-migration-fixture.js';
 
-test('the handed-off Agent restore and programs restore independently rebind a database copy', async () => {
-  const modulePath = process.env.SCHOOLOOM_AGENT_RECORDS_MODULE;
-  test.skip(
-    !modulePath,
-    'explicit Agent records snapshot adapter required; migration-only tests remain active',
-  );
-  if (!modulePath) return;
-  const { HarnessRecords } = (await import(pathToFileURL(modulePath).href)) as {
-    HarnessRecords: new (directory: string) => { restore(projectId: string): void; close(): void };
-  };
+test('the actual Agent restore and programs restore independently rebind a database copy', async () => {
   const f = await fixture(5);
   try {
     await initializeProjectContainer(f.db, f.root);

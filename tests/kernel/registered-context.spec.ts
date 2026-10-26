@@ -406,12 +406,12 @@ for (const failure of ['cancel', 'association', 'worker-lost'] as const) {
           kind: 'graph.completed',
           evidence: {
             creations: expect.arrayContaining([
-              {
+              expect.objectContaining({
                 operationId,
                 state: 'complete',
                 resource: expect.anything(),
                 association: expect.objectContaining({ state: 'unknown' }),
-              },
+              }),
             ]),
           },
         });

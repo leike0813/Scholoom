@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { basename, join } from 'node:path';
 import type { Locator, Page } from '@playwright/test';
@@ -345,7 +345,8 @@ test('selected project text reaches the model as an explicit attachment and pers
   uiPage,
 }) => {
   test.setTimeout(120000);
-  const project = await mkdtemp(join(tmpdir(), 'scholoom-context-ui-'));
+  const project = test.info().outputPath(`context-${test.info().project.name}`);
+  await mkdir(project, { recursive: true });
   await writeFile(join(project, 'context.txt'), `${EXCERPT}\n`);
   const comment = '用户批注：只用于核实附加摘录。';
   let reread: { ref: ContextItem['ref']; basis: string } | undefined;
@@ -458,12 +459,12 @@ test('selected project text reaches the model as an explicit attachment and pers
     model?.release();
     await stop();
     await model?.close();
-    await rm(project, { recursive: true, force: true });
   }
 });
 test('a late send receipt keeps context added or commented after the send', async ({ uiPage }) => {
   test.setTimeout(90000);
-  const project = await mkdtemp(join(tmpdir(), 'scholoom-context-late-ui-'));
+  const project = test.info().outputPath(`context-late-${test.info().project.name}`);
+  await mkdir(project, { recursive: true });
   await writeFile(join(project, 'late.txt'), `${EXCERPT}\n`);
   const originalComment = '发送时的批注';
   const laterComment = '回执前补充的批注';
@@ -524,6 +525,5 @@ test('a late send receipt keeps context added or commented after the send', asyn
     client.dispose();
     await stop();
     await model.close();
-    await rm(project, { recursive: true, force: true });
   }
 });

@@ -1,6 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+import { mkdir, readFile } from 'node:fs/promises';
 import { basename, join } from 'node:path';
 import { createKernelClient } from '../../packages/client/dist/index.js';
 import type { DelegationRequest } from '../../packages/protocol/dist/index.js';
@@ -15,7 +14,8 @@ for (const cancel of [false, true]) {
     uiPage,
   }) => {
     test.setTimeout(120000);
-    const root = await mkdtemp(join(tmpdir(), 'scholoom-delegation-ui-'));
+    const root = test.info().outputPath('projects');
+    await mkdir(root, { recursive: true });
     const path = join(root, `delegation-${randomUUID().slice(0, 8)}`);
     const work: DelegationRequest = {
       delegationId: randomUUID(),
@@ -82,7 +82,6 @@ for (const cancel of [false, true]) {
       client.dispose();
       await stop();
       await model.close();
-      await rm(root, { recursive: true });
     }
   });
 }

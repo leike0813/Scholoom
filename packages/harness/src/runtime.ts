@@ -94,8 +94,8 @@ import {
   prepareScratch,
   sessionScratch,
 } from './checkpoint-files.js';
-import { createFileChangeTools } from './file-change-tools.js';
 import { configuredDelegationRoles, Delegations, defaultDelegationRole } from './delegations.js';
+import { createFileChangeTools } from './file-change-tools.js';
 import { ExecutionGraphs } from './graph-registry.js';
 import {
   authorizeContextItems,
