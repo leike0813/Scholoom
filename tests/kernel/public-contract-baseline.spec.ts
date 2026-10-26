@@ -200,6 +200,25 @@ test('context contracts preserve selections and bound aggregate data and normali
     region: { x: 0.5, y: 0.5, width: 0.5, height: 0.5 },
   };
   expect(isContextItems([region])).toBe(true);
+  expect(isContextItems([{ ...region, target: { kind: 'image' } }])).toBe(true);
+  expect(
+    isContextItems([{ ...region, target: { kind: 'pdf', pageIndex: 0, width: 600, height: 800 } }]),
+  ).toBe(true);
+  expect(isContextItems([{ ...region, target: { kind: 'pdf', pageIndex: -1 } }])).toBe(false);
+  expect(
+    isContextItems([
+      { ...contextItem, location: { pageIndex: 0, rects: [{ x: 1, y: 2, width: 3, height: 4 }] } },
+    ]),
+  ).toBe(true);
+  const location = {
+    kind: 'text',
+    normalizationVersion: 1,
+    sectionId: 'chapter',
+    start: 2,
+    end: 8,
+  };
+  expect(isContextItems([{ ...contextItem, location }])).toBe(true);
+  expect(isContextItems([{ ...contextItem, location: { ...location, end: 1 } }])).toBe(false);
   expect(isContextItems([{ ...region, region: { ...region.region, width: 0.6 } }])).toBe(false);
   const snapshot = {
     revision: 1,
