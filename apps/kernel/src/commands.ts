@@ -23,6 +23,7 @@ export type CommandWorkspace = {
   env?: Readonly<Record<string, string>>;
   beforeLaunch?: () => Promise<void>;
   authorizationContext?: () => CallContext;
+  launchInput?: (commandInstanceId: string) => Promise<string>;
 };
 const contract = compileContract(platformCommandOperations['platform.command']);
 
@@ -75,6 +76,7 @@ export class ManagedCommands {
         executable,
         env: workspace.env,
         beforeLaunch: workspace.beforeLaunch,
+        launchInput: workspace.launchInput,
       };
     };
     const initial = check();
@@ -84,7 +86,8 @@ export class ManagedCommands {
       if (
         current.directory !== initial.directory ||
         current.projectId !== initial.projectId ||
-        current.executable !== initial.executable
+        current.executable !== initial.executable ||
+        current.launchInput !== initial.launchInput
       )
         throw new OperationError('permissionDenied', '命令工作空间已变化。');
       return current;
@@ -109,8 +112,11 @@ export class ManagedCommands {
       : controller.signal;
     const caller = { ...context, signal };
     const confirm = this.prepare(input, caller);
-    const reservation = this.processes.reserve(context.principal.kind !== 'agent');
     const commandInstanceId = crypto.randomUUID();
+    const reservation = this.processes.reserve(
+      context.principal.kind !== 'agent',
+      commandInstanceId,
+    );
     let attempted = false;
     let observationRejected = false;
     const notify = async (event: Parameters<typeof observe>[0]) => {
@@ -153,6 +159,9 @@ export class ManagedCommands {
             instanceId: commandInstanceId,
             ...(current.env ? { env: current.env } : {}),
             observe: notify,
+            ...(current.launchInput
+              ? { launchInput: current.launchInput.bind(undefined, commandInstanceId) }
+              : {}),
           },
         );
       } catch (error) {

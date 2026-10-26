@@ -18,7 +18,7 @@
 
 共享包与内核构建为 ESM；Electron main/preload 构建为 CJS。根 `pnpm build` 按工作区依赖顺序构建。`pnpm typecheck` 先生成共享包声明，确保刚安装的工作区也能解析共享接口。
 
-Electron 工作台和 CLI 共用独立 Node 内核，浏览器开发入口经同一客户端连接。关闭或退出工作台只关闭界面；兼容宿主尚未接入内核监督或共同文献。其私有 `ZoteroHost` 模块已支持固定 BBT 原包及隔离 Adapter 验证，产品默认入口仍只加载外壳，见下文独立验收。
+Electron 工作台和 CLI 共用独立 Node 内核，浏览器开发入口经同一客户端连接。关闭或退出工作台只关闭界面；兼容宿主已提供可独立装配的认证监督Module及固定原包样本验证，共同文献仍未接线。产品默认入口仍只加载外壳，见下文独立验收。
 
 协议 schema 是 DTO 的事实源，类型从 schema 推导；客户端和内核使用 Ajv 校验消息、认证、状态及引导结果。连接状态不代表研究指令已经可执行。
 
@@ -80,13 +80,13 @@ Agent、能力子执行与 PDF 共用宿主持有的进程容量，默认活动 
 | Agent | 沿 `HarnessStorage`、领域端口及私有 worker 入口组合；参考 `harness-module.spec.ts`、`execution-isolation.spec.ts`，外部模型复用 `tests/model-server.ts` 的 loopback 受控响应 |
 | 科研计算 | 参考 `managed-commands.spec.ts` 的 `ManagedCommands(processes, resolveWorkspace, authorize)`；私有工作空间声明 ownerModuleId、directory、projectId、executables，真实宿主用例覆写 `commandWorkspace` 登记固定 Node。环境选择和业务运行记录由计算域实现 |
 | 阅读交互 | 沿共同资源和 editor 端口接入，参考 `resource-access.spec.ts`、`editor-runtime.spec.ts` 及 `tests/ui/resource-opening.spec.ts`；UI 使用共同 renderer URL 配置 |
-| Zotero 生态 | `tests/smoke/entrypoints.spec.ts` 验证默认外壳；`zotero-host.spec.ts` 验证真实 Electron、原 BBT／Worker 与明确的合成 Adapter。共同身份、正式键、提交查询及长驻监督尚未接线；生产不可用 |
+| Zotero 生态 | `host-connection.spec.ts`验证公共认证监督；`zotero-host-supervision.spec.ts`组合真实受管Electron／原BBT与显式样本Adapter；smoke验证原包及默认外壳。共同身份、正式键和提交查询仍未接线，生产不可用 |
 
 表中内核用例位于 `tests/kernel/`，UI 与宿主外壳用例分别在 `tests/ui/`、`tests/smoke/`。窄端口内存替身受 TypeScript 检查，跨 broker／IPC 的输入输出继续经过原同源 schema；资源、文件及仓储的真实组合使用所属提供者，不用成功替身代替。
 
 七线公共接入沿 `integrate-shared-domain-foundations`：资源声明已抽到 `protocol/resource-contracts.ts`，原 `resources` 导出保留；ContextItem 可携带当次位置、区域基准及草稿对象标识。图片格式和排版产物仍须所属视图／提供者接线，不能仅凭声明启用。集合查询支持 `parentId: null` 的根范围、明确父身份的直接子范围及未指定时的原扁平分页，CSL 编辑声明不封闭合法 metadata。
 
-`ManagedCommands.start/cancel` 使用宿主登记的工作区和有界观察端口，启动意图先确认，输出分片确认后放行，`started` 不代表应用 ready；日志、退出和 `stopped` 分别核对，观察失败保留原占用。有限长时限由 `command-deadline` 分段，null 无总期限。定向入口为 `command-observation.spec.ts`、`managed-commands.spec.ts`；长驻 Electron 的应用握手仍由后续生态监督接口提供。
+`ManagedCommands.start/cancel` 使用宿主登记的工作区和有界观察端口，启动意图先确认，输出分片确认后放行，`started` 不代表应用 ready；日志、退出和 `stopped` 分别核对，观察失败保留原占用。有限长时限由 `command-deadline` 分段，null 无总期限。宿主私有`launchInput`只经有界stdin供应并在发送前再次核对授权，产品参数不能颁发凭据。`HostConnection`复用此机制提供独立认证listener／双向RPC／应用ready及正常shutdown；消费端口在装配时注入，不依赖programs或BBT业务。定向入口为`host-connection.spec.ts`、`command-observation.spec.ts`、`managed-commands.spec.ts`。
 
 项目容器统一为 v4→v5 委派结构→v6 程序运行结构，各步保留保护源副本并事务推进。旧未发布 program-only v5 明确拒绝且保留现场，不自动改写；领域记录恢复钩子等实际模块合入后组合。相关回归为 `project-container.spec.ts`、`project-migration-chain.spec.ts`、`project-recovery.spec.ts`。这些结构已准备不代表领域业务或界面已交付。
 
@@ -114,13 +114,15 @@ SCHOOLOOM_UI_PORT=5343 node node_modules/@playwright/test/cli.js test --config p
 pnpm --filter @scholoom/zotero-host build
 SCHOOLOOM_BBT_XPI=/absolute/path/zotero-better-bibtex-9.0.68.xpi xvfb-run -a node node_modules/@playwright/test/cli.js test --config playwright.config.ts tests/smoke/zotero-host.spec.ts --output test-results/zotero-host
 node node_modules/@playwright/test/cli.js test --config playwright.kernel.config.ts tests/kernel/zotero-host-scope.spec.ts
+node node_modules/@playwright/test/cli.js test --config playwright.kernel.config.ts tests/kernel/host-connection.spec.ts
+SCHOOLOOM_BBT_XPI=/absolute/path/zotero-better-bibtex-9.0.68.xpi node node_modules/@playwright/test/cli.js test --config playwright.kernel.config.ts tests/kernel/zotero-host-supervision.spec.ts
 ```
 
 第一组需要现有 `unzip`、Electron及Linux图形会话／Xvfb；有图形会话可省去 `xvfb-run -a`。资产未指定时用例明确跳过。每轮创建独立临时profile及SQLite样本，运行真实原bootstrap、主包、Worker、IndexedDB和两个translator，核对包及执行成员不变；数据库Adapter只在 `tests/fixtures/zotero-host`，没有产品库路径。默认显式补键，保留已有键；缓存失效反例、正常通知、重启、版本失败、启动取消、迟到保存、卡住的renderer与悬空链接分别核查。
 
-`ZoteroHost.status()` 返回版本、真实运行时、阶段及有界诊断，`production.available`保持false；`closed/localResourcesClosed`仅指本模块的插件、计时器及窗口资源收尾，不是整个进程树退出确认。未知操作仍需核查，完成后可再次close。相同profile不同时启动两个host；该私有Module只接受宿主注入的可信Adapter和固定资源，不向用户开放任意插件、路径或程序入口。
+`ZoteroHost.status()`返回版本、阶段、有界脱敏诊断及结构化`pluginErrors`；原包吞下shutdown任务错误时保持unknown。Electron不提供Gecko profiling，profiler状态明确inactive。`closed/localResourcesClosed`不是OS进程树确认；公共监督另核对`pluginClosed/scopeStopped/unresolved`，`production.available`保持false。相同profile不同时启动两个host；该私有Module只接受可信Adapter和固定资源，不开放任意插件、路径或程序入口。
 
-第二组仅在Linux运行：复用现有受管命令和原生归属，实际创建Electron renderer与忙Worker再取消并核对退出。夹具通过已有Xvfb启动，`--no-sandbox`只用于该固定测试命令，结果不证明Chromium产品sandbox或分发保证。它证明有界命令承载可复用，不表示已具备长驻host的ready／身份／回环WS及正常关闭协议；Windows尚未实跑，macOS保持不可用。完整状态及下一步沿 `connect-zotero-host-bbt` 的tasks／delivery。
+归属与原包监督组合仅在Linux运行。前者实际创建renderer／忙Worker再取消；后者通过真实准入、stdin认证、双向WS、原包补键及两格式导出，分别核对正常关闭和注入错误后原生已停但插件unknown。Xvfb／`--no-sandbox`仅用于固定测试，不证明产品sandbox或分发。公共监督记录读写同限，坏记录保留，未知scope经`ProcessAdmission.retainUnknown`幂等占用；已确认scope停止时仅保护不明profile。装配者持有kernel配置锁，不按旧PID自行清除恢复门。Windows未跑，macOS保持不可用；任务及证据见同一change的tasks／delivery。
 
 ## 共同资源打开
 

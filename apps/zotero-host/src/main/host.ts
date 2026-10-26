@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import vm from 'node:vm';
 import versions from '../../resources/versions.json';
-import { createEnvironment, type HostCatalog } from './environment';
+import { createEnvironment, type HostCatalog, type PluginTask } from './environment';
 import { createWorkers } from './workers';
 
 type State =
@@ -46,6 +46,7 @@ export class ZoteroHost {
   private state: State = 'idle';
   private stage = 'notStarted';
   private readonly diagnostics: string[] = [];
+  private readonly pluginErrors: (PluginTask & { message: string })[] = [];
   private environment: ReturnType<typeof createEnvironment> | undefined;
   private workers: Awaited<ReturnType<typeof createWorkers>> | undefined;
   private readonly active = new Set<Promise<unknown>>();
@@ -68,11 +69,12 @@ export class ZoteroHost {
         chromium: process.versions.chrome,
       },
       diagnostics: [...this.diagnostics],
+      pluginErrors: this.pluginErrors.map((error) => ({ ...error })),
       production: { available: false as const, missing: [...missing] },
     };
   }
 
-  private diagnostic = (message: string) => {
+  private diagnostic = (message: string, task?: PluginTask) => {
     for (const key of [
       'packageDirectory',
       'profileDirectory',
@@ -82,8 +84,14 @@ export class ZoteroHost {
     ] as const) {
       message = message.replaceAll(this.options[key], `<${key}>`);
     }
-    this.diagnostics.push(message.slice(0, 512));
+    message = message.slice(0, 512);
+    this.diagnostics.push(message);
     if (this.diagnostics.length > 32) this.diagnostics.shift();
+    if (task) {
+      this.pluginErrors.push({ ...task, message });
+      if (this.pluginErrors.length > 32) this.pluginErrors.shift();
+      if (task.phase === 'shutdown') this.shutdownUnconfirmed = true;
+    }
   };
 
   private track<T>(promise: Promise<T>): Promise<T> {
@@ -251,6 +259,8 @@ export class ZoteroHost {
       if (typeof environment?.context.shutdown === 'function') {
         const before = environment.failures.length;
         await deadline(this.track(environment.context.shutdown({}, 4)), 5_000);
+        if (this.shutdownUnconfirmed)
+          throw new Error('Original plugin shutdown reported a failure');
         if (environment.failures.length !== before)
           throw new Error(environment.failures.slice(before).join('\n'));
       }

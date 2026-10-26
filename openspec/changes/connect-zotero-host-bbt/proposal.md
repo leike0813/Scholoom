@@ -2,7 +2,7 @@
 
 ## Why
 
-当前兼容宿主只有隐藏 Chromium 窗口，尚未装载插件或连接共同文献权威。历史原型已证明指定 BBT 原包可在 Node＋Chromium 中完成有限的引用键及导出链路，但样本存储、事务通知和身份映射不能直接用于产品。七线并行需要先获得固定 Zotero 10 的身份、字段、关系及插件保存证据，再独立建设宿主与 BBT 首个闭环，避免文献域固化有损映射，或因插件缓存形成第二份正式引用键。
+变更起点的兼容宿主只有隐藏 Chromium 窗口，尚未装载插件或连接共同文献权威。历史原型证明指定 BBT 原包可在 Node＋Chromium 中完成有限的引用键及导出链路，但样本存储、事务通知和身份映射不能直接用于产品。七线并行需要先获得固定 Zotero 10 的身份、字段、关系及插件保存证据，再独立建设宿主与 BBT 首个闭环，避免文献域固化有损映射，或因插件缓存形成第二份正式引用键。当前独立成果与仍缺提供者以delivery为准。
 
 ## What Changes
 
@@ -30,5 +30,5 @@
 
 - 用户指定起点 `e3d58fc807827a78493dcd16e38de28c8d02766e`、Codex／`gpt-6.1-sol`／high，首次仅授权调查规划；随后明确“实现该change”，授权按本方案实施。用户另行允许按锁文件安装依赖并准备Electron；没有升级依赖版本。
 - [并行计划](../../../.scratch/domain-development/parallel-development-plan.md)的生态小节、公共文件归属及 I6；[生态职责 #08](../../../.scratch/domain-development/issues/08-zotero-ecosystem-constraints.md#answer)、[原包兼容 #05](../../../.scratch/scholoom-foundations/issues/05-zotero-compatibility-policy.md#answer)、[宿主选择 #16](../../../.scratch/scholoom-foundations/issues/16-zotero-host-prototype.md#answer)。Node＋Chromium 路线及原包不修改已定，不重新选 Gecko。
-- 沿 [scholoom-dev 阶段约定](../../schemas/scholoom-dev/README.md)执行apply，实际成果与未完成前置进入同一delivery。实施授权不解除investigation中的跨线语义前置，不扩大到真实用户库、提交／推送／PR、开发服务器或跨工作树操作。
-- 树内尚无阅读交互线的两份活动设计，仅核对其既定边界，不替对方创建工件或声称收到结论。
+- 沿 [scholoom-dev 阶段约定](../../schemas/scholoom-dev/README.md)执行apply，实际成果与未完成前置进入同一delivery。2026-10-26用户明确恢复已同步本树，并授权本轮独立认证监督、私有启动供应及原包shutdown修复，允许本地可审查补丁；不扩大到真实用户库、推送／PR、归档、依赖安装、开发服务器或他树操作。
+- 阅读线两份design已由主线正式交接并分别核对，不替对方创建工件；来源副本、正式键冲突及有界多对象原子提交政策已定，实际文献提供者仍是前置。

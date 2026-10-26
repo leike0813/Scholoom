@@ -45,9 +45,42 @@ test('original BBT starts and closes with an empty injected catalog', async () =
     });
     expect(started.state).toBe('ready');
     expect(started.production.available).toBe(false);
-    expect((await app.evaluate(() => Reflect.get(globalThis, 'fixture').host.close())).state).toBe(
-      'closed',
+    const stopped = await app.evaluate(() => Reflect.get(globalThis, 'fixture').host.close());
+    await writeFile(test.info().outputPath('host-close.json'), JSON.stringify(stopped, null, 2));
+    expect(stopped.state).toBe('closed');
+    expect(
+      stopped.pluginErrors.filter((error: { phase: string }) => error.phase === 'shutdown'),
+    ).toEqual([]);
+  } finally {
+    await app.close();
+  }
+});
+
+test('original BBT shutdown task errors remain observable after local cleanup and retry', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'scholoom-bbt-shutdown-error-'));
+  const app = await sample(directory);
+  try {
+    await app.evaluate(
+      (_electron, profile) => {
+        Reflect.get(globalThis, 'fixture').catalog.zotero.Notifier.unregisterObserver = () => {
+          throw new Error(`Synthetic notifier release failure: ${profile}`);
+        };
+      },
+      join(directory, 'profile'),
     );
+    const stopped = await app.evaluate(() => Reflect.get(globalThis, 'fixture').host.close());
+    await writeFile(test.info().outputPath('host-close.json'), JSON.stringify(stopped, null, 2));
+    expect(stopped.state).toBe('unknown');
+    expect(stopped.pluginErrors).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ phase: 'shutdown', task: 'done', message: expect.any(String) }),
+      ]),
+    );
+    expect(JSON.stringify(stopped.pluginErrors)).not.toContain(directory);
+    expect(await app.evaluate(() => Reflect.get(globalThis, 'fixture').host.close())).toEqual(
+      stopped,
+    );
+    expect(await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().length)).toBe(0);
   } finally {
     await app.close();
   }

@@ -336,6 +336,10 @@
           "apis": ["http", "https", "net"]
         },
         {
+          "path": "src/host-connection.ts",
+          "apis": ["fs/promises"]
+        },
+        {
           "path": "src/storage/project-container.ts",
           "apis": ["fs", "fs/promises"]
         }

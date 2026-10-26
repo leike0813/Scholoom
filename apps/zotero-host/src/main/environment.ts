@@ -35,6 +35,7 @@ export type Bootstrap = vm.Context & {
   startup(data: object, reason: number): Promise<void>;
   shutdown(data: object, reason: number): Promise<void>;
 };
+export type PluginTask = { phase: 'startup' | 'shutdown'; task: string };
 
 export function within(root: string, filename: string): string {
   const target = resolve(filename);
@@ -61,7 +62,7 @@ export function createEnvironment(options: {
   dateFormats: string;
   catalog: HostCatalog;
   ChromeWorker: unknown;
-  diagnostic(message: string): void;
+  diagnostic(message: string, task?: PluginTask): void;
 }) {
   const packageDirectory = realpathSync(options.packageDirectory);
   const profile = realpathSync(options.profileDirectory);
@@ -226,7 +227,16 @@ export function createEnvironment(options: {
     initializationPromise: Promise.resolve(),
     unlockPromise: Promise.resolve(),
     debug: (message: string) => {
-      if (message.startsWith('{error:')) options.diagnostic(message);
+      if (!message.startsWith('{error:')) return;
+      // The fixed release's logger envelope carries phase/task independently of error prose.
+      const scope =
+        /^\{error:\s*(startup|shutdown):\s*\[([^\]+]+)(?:\+\d+)?\]better-bibtex:\}/.exec(message);
+      const phase = scope?.[1];
+      const task = scope?.[2];
+      options.diagnostic(
+        message,
+        task && (phase === 'startup' || phase === 'shutdown') ? { phase, task } : undefined,
+      );
     },
     logError: (error: unknown) => options.diagnostic(String(error)),
     Debug: { storing: false, enabled: false },
@@ -330,6 +340,8 @@ export function createEnvironment(options: {
   const interfaces = new Proxy({}, { get: (_, name) => name });
   const Services = {
     appinfo: { OS: process.platform === 'win32' ? 'WINNT' : 'Linux' },
+    // Electron has no Gecko profiler session; profiling operations remain unsupported.
+    profiler: { IsActive: () => false },
     io: { newURI: (spec: string) => ({ spec }) },
     prefs: {
       getBranch: (prefix: string) => branch(prefix),

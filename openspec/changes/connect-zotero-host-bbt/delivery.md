@@ -1,6 +1,87 @@
 # 实际交付与交接
 
-## 当前状态与成果
+## 第四轮验收E1修复
+
+2026-10-26，主线`/tmp/scholoom-round4-acceptance-JCUBNw/acceptance.md`及`host-callback-repro.mts/.log`确认P2：外层300ms超时后丢失仍活跃callback，2000ms关闭可误报完整closed。本节E1是验收问题编号，不关闭文献E1–E3／E6。当前HEAD仍为`eaf38be1ac2d350120805859175fc82cf9c36927`，0519904已在树内；只针对前轮已有工作区做增量，没有同步、回滚或覆盖既有成果。
+
+### 根因与本轮改动
+
+已搜索全部HostConnection／connectHost装配、callback／inflight／call／stop／close路径：公共main客户端在外层超时／失联后不替内核取消已受理provider；旧call finally直接删entry，而stop只等entry.work，因此RPC结束后丢失完成跟踪及操作名额。
+
+`apps/kernel/src/host-connection.ts`复用原entry.work：给调用者的work仍按原预算返回或拒绝；entry.work改为原请求结束后继续等待已受理callback的drained，finally只关接受闸门，真正drain后才删entry。status增加pendingCallbacks，完整closed另要求inflight为空。请求错误仍向调用方报告，写入unresolved不由drain清除；scopeStopped只确认OS归属，不代替callback完成。
+
+关闭仍按原有界预算核对drained；未结束则unknown、保留内部操作名额／必要未决事实和profile保护。回调之后完成会释放内部操作容量，但不会抹去关闭超时或写效果unknown；依赖均完成且正常shutdown有依据时可正常closed。不新增生命周期Module，不修改platform command／admission、原包、时限、文献provider或生产装配。
+
+测试仅扩展`host-connection.spec.ts`三例和固定host的一个只读fire-and-forget夹具入口：读／写超时仍保留活跃回调；64条只读回调持续占用容量，完成后可继续操作并正常关闭。现有关闭竞态、取消、失联及写回调早返回用例继续运行；超时和失联均走同一finally／drain路径，不扩展重复矩阵。
+
+### 红绿证据与实际验证
+
+证据根目录`/tmp/scholoom-ecosystem-round4-8fMisa/`。Linux，既有Node24.12.0／Electron44.5.1、未修改BBT9.0.68，隔离profile和合成catalog。真实固定host、ManagedCommands、原生归属、认证WS；仅callback provider用gate替身，不证明真实文献事务或用户库行为。
+
+- `red.log`／`test-results/host-callback-round4-red`：旧实现**1失败／2通过**，只读外层超时后callbackFinished=false仍closed，精确复现主线根因。
+- 首次容量夹具`capacity-red.log`只受理45/64：peer控制响应优先导致部分callback未先受理。固定夹具让已发送callback先交付后返回外层结果，未延长时限；`capacity-red-confirmed.log`随后确认旧实现会接收第65条无callback操作，违反容量约束。两份失败日志分别保留。
+- 修复后kernel定向 **26/26，38.2秒**（host-connection＋zotero-host-supervision）；补充断言写入未知关联仍保留后，三项回归再次 **3/3，13.2秒**。日志`kernel-green.log`、`final-regressions.log`，trace分别在`test-results/host-callback-round4-green`与`host-callback-round4-final-regressions`。
+- 原包smoke **10/10，43.3秒**，`smoke.log`／`test-results/host-callback-round4-smoke`。正常／错误shutdown、late-save、flush、Worker原回归保留。
+
+本轮命令先完成`pnpm --config.optimisticRepeatInstall=false --filter @scholoom/kernel --filter @scholoom/zotero-host build`再测试，测试期间未重建产物。包typecheck同样带该pnpm配置；tools tsc、定向Biome、architecture **13模块／205文件／0 findings／0 exceptions**、生成器self-test通过。raw生成的6处原有换行差异经格式化与当前映射一致（`mapping-check.json`），未改生成文件。没有改platform command，因此未重复其专用矩阵。
+
+只读辅助审查因所选gpt-6.1-sol模型容量不足未运行，记录真实错误`Selected model is at capacity`；没有声称取得新独立审查结论。主方逐项核对调用点、首失败及实跑结果；保持指定主配置，不操作其他树，特别未访问或打断research-task-workspace。
+
+### 可审查增量与停止边界
+
+`/tmp/scholoom-ecosystem-round4-8fMisa/callback-drain-fix.patch`只含本轮六个文件：监督实现、测试、固定夹具、design／tasks／本delivery。它以该目录`before/`保存的本轮起点为前态，依赖现有第三轮公共监督及OpenSpec工件；不是全部eaf38be到当前的总差异，不能直接用于缺少前轮源码的裸0519904。`patch-manifest.json`记录依赖与验证，不替换第三轮补丁或历史证据。
+
+本轮R4.1完成，当前9/18；只交回验收E1修复及最小复验，待主线复核，不宣布完整关闭保证无条件接收、I6或整个change完成。E1–E3／E6、真实provider／HostCatalog、生产装配、Windows／macOS与全仓CI继续开放。未安装依赖、启动开发服务器、写真实库、改原BBT或其他树；未提交／推送／PR／归档／reset。
+
+## 第三轮独立监督与原包修复
+
+2026-10-26，用户在同步修复后明确恢复。本树恢复HEAD为`eaf38be1ac2d350120805859175fc82cf9c36927`，只读验证`0519904`／`b838402`均为祖先，恢复时clean。同步证据消费 `/tmp/scholoom-sync-recovery-wyn13R/{recovery.md,synchronized.json}`；主线本树13项内核／9项原包结果只作为同步及既有切片验证，本轮不冒领为新监督结果。直接使用本树正式公共源码，没有再复制临时基线、同步其他树或重做研究。
+
+本轮R3.1–R3.4完成，当前**8/17，整change及I6未完成**。公共监督不依赖programs、BBT或文献；原包接线通过明确样本Adapter独立校准。没有安装依赖、写真实用户库、启动常驻开发服务、提交／推送／PR／归档或改Git历史。保留共享历史／来源、统一v5→v6、资源叶schema、projectId／多窗口及既有图片相关工件，未整文件覆盖公共装配。
+
+### 实际文件与符号
+
+| 切片 | 本轮变化与完成依据 |
+| --- | --- |
+| 公共私有启动供应 | `apps/kernel/src/commands.ts`的CommandWorkspace／prepare／start增加launchInput；`platform/command.ts`在有界stdin发送前重新授权，不改变普通execute。commandInstanceId贯通准入与启动，凭据不进argv/env或监督文件 |
+| 公共生命周期／客户端 | 新`protocol/src/host.ts`与`client/src/host.ts`及子路径导出集中声明／校验私有host消息，复用RpcPeer；不登记为产品业务或引入第二套RPC。新`kernel/src/host-connection.ts`提供独立认证listener、scope ready、操作／回调资格、正常关闭及未知恢复。`architecture.json`仅增加该受控文件的fs/promises权限 |
+| 公共恢复占用 | `platform/admission.ts`的retainUnknown按原command身份幂等计入；reserve可绑定owner。即使现容量满，未知scope仍保留，且同内核已有原reservation不重复计数。原生停止／归属后端未改；scope确已停而插件未知时仅保护profile |
+| 原包修复 | `environment.ts`明确Gecko profiler inactive，profiling操作不支持；固定9.0.68日志信封中的phase/task结构化进入`host.status().pluginErrors`，shutdown任务错误使unknown且重试不能抹掉。原包及执行成员未修改 |
+| 调用方与必要回归 | `host-connection.spec.ts`＋`fixed-host.mjs`验证纯公共Module；`zotero-host-supervision.spec.ts`＋`managed-bbt.cjs`组合真实受管Electron／原包／Worker／双向调用与正常／错误关闭。原smoke补关闭诊断，开发说明更新真实入口和限制 |
+
+公共操作只在独立peer内部注册；产品businessSchemas／harness工具和CLI没有新增成功替身，生成映射不拼接。原调用principal／作用域由内核绑定，回调authorize必须核对本次操作及对象；读操作不可升级写回调。写关联同步保留，原结果到达就关闭handle受理闸门，已经受理的回调继续参与结果／关闭等待。未知效果只保存关联，不成为文献提交权威。
+
+### 本轮实际验证与首失败
+
+Linux，运行器Node24.12.0，Electron44.5.1，既有锁定依赖和原9.0.68资产。全部先构建再测试；测试期间未重建所消费产物。
+
+| 命令／操作 | 结果／证据 |
+| --- | --- |
+| `pnpm --filter @scholoom/protocol --filter @scholoom/platform --filter @scholoom/client --filter @scholoom/kernel build`；审查修复后再构建platform／kernel | 通过；原生process-scope构建及kernel迁移／architecture资源复制沿原脚本 |
+| host build／host typecheck；`tsc --noEmit -p tsconfig.tools.json` | 通过。host验证由辅助实现者独立运行，主方对新增监督及所有tools再次核对 |
+| `SCHOOLOOM_BBT_XPI=/tmp/scholoom-zotero-bbt-assets/zotero-better-bibtex-9.0.68.xpi node node_modules/@playwright/test/cli.js test --config playwright.kernel.config.ts tests/kernel/{host-connection,zotero-host-supervision,zotero-host-scope,managed-commands,command-observation,platform-command-contracts,process-admission,rpc}.spec.ts --output test-results/host-round3-reviewed` | **56/56，1.1分钟**；实际使用shell展开前等价的8个明确文件参数。日志`/tmp/scholoom-ecosystem-round3-Ky7fg8/kernel-reviewed.log`；正常及故障的`supervision.json`在输出目录 |
+| 原包smoke（原9项＋关闭吞错） | **10/10，43.2秒**。`/tmp/scholoom-profiler-shutdown-LlzaJ2/{first-failure.log,final-smoke.log,green-results/}`保留红绿证据：修复前注入原包释放失败仍closed，修复后unknown且有结构化关闭错误；正常关闭无shutdown任务错误 |
+| 类型／Biome／架构／生成器 | 定向源码与测试Biome无诊断；13模块／205文件，0 findings／0 exceptions；generator self-test通过。raw生成有6处既有换行差异，Biome格式化后与当前映射逐字节一致，未顺带改映射，依据`generated-format-diff.patch` |
+
+首次启动供应回归实际失败：子进程stdin为空；trace在`test-results/host-connection-red`。公共固定host首次10/10，审查扩展后56项最终通过。原包监督首次组合为16通过／2失败（`test-results/host-supervision-round3`）；原因是Electron夹具用固定argv下标误取带运行参数的位置，profile尚未创建。改为从尾部读取可信固定参数后2/2、5.9秒（`bbt-supervision-second`）；最终使用显式XPI并每轮解包到隔离目录，完整56项再次通过。没有放宽生产／测试时限。
+
+正常受管原包结果为`closed, pluginClosed=true, scopeStopped=true`；注入Notifier释放错误后为`unknown, pluginClosed=false, scopeStopped=true`，原生占用已释放而profile仍保护。固定样本通过真实补键和两格式导出，生产仍false。Xvfb／`--no-sandbox`仅在固定测试命令使用，非产品分发／sandbox保证。DBus环境诊断保留，不把非插件shutdown的系统stderr一概当业务失败。
+
+模拟边界：固定host的业务callback及身份是显式测试输入；原包的catalog为H1合成SQLite／有限SQL视图，数字ID／关系不作生产承诺。WS、stdin、受管命令、Electron／Chromium、原包及两个translator、SQLite／文件均真实；没有调用真实library提交、harness、模型、用户库、外部导出或Reader。
+
+独立只读审查发现并处理9项局部风险：重复操作ID的异步登记、读取handle升级写回调、已受理／迟到回调未纳入等待、abort清理泄漏、启动关闭竞态、坏恢复证据被清理覆盖、满容量恢复漏计及同内核重复计数。必要回归验证调用方可见行为；专项复核未发现剩余具体问题。审查者未执行测试，最终实跑由主方完成，整change最终审查仍未关闭。
+
+### 补丁、依赖与剩余前置
+
+本轮交回 `/tmp/scholoom-ecosystem-round3-Ky7fg8/` 下三份补丁和`patch-manifest.json`：`public-supervision.patch`为公共源码／调用方／测试；`bbt-lifecycle.patch`为本线原包修复及实际组合；`planning-docs.patch`为同change与开发说明。没有本地提交。公共切片不依赖programs或本线BBT私有文件；私有增量依赖当前树已有H1成果及公共切片，不是完整H1迁入包。
+
+三份补丁对当前工作区的reverse／check通过，未实际应用或回滚；公共补丁另在以`0519904`生成的临时索引上`git apply --cached --check`通过（`public-base-check.json`），没有复制公共源码、改实际index或工作树。收尾OpenSpec strict／schema、本地链接、tracked及新增文件空白检查通过，apply确认8完成／9未完成。原包五个实际执行成员与固定XPI逐字节一致。
+
+接入顺序为已同步`0519904`公共基础 → 本轮公共监督切片并构建／定向验证 → 既有H1＋本轮原包增量 → 文献E1–E3实际provider后另做共同装配／I6。补丁检查不代表已经合入dev或同步其他消费者。
+
+来源恢复／复制默认新实例、显式确认才重绑；正式键同库大小写不敏感冲突、不改名／覆盖固定键；**有界多对象原子提交及稳定查询已定，不再待选逐条方案**。等待的是文献正式schema／provider、E6删除恢复及生产授权；材料sidecar／新PDF字节仍由对应提供者承接。Windows／macOS、分发、真实用户库、外部接口、迁入、自动导出及完整CI没有新增通过结论。到本轮独立切片交回停止，不自动展开下一阶段。
+
+## 前两轮状态与成果（历史记录）
 
 2026-10-25，按用户“实现该change”及随后允许锁文件安装／Electron准备的授权，完成独立H1阶段；**整个change尚未完成，I6真实共同库接线仍受阻**。任务进度以[tasks](tasks.md)为准；没有提交、推送、PR、归档或同步正式规格。
 
@@ -82,9 +163,9 @@ scope测试通过Xvfb并仅对固定夹具使用 `--no-sandbox`，不能作为�
 
 ## 未完成事项与下一步
 
-1. E1–E3的文献B批设计及实际schema已消费，但所需提供者仍缺。共同来源实例及复制政策／原字段载体、正式键固定及冲突规则归文献决定；E3的A（共同有界多Item原子提交）与B（只开放显式逐条补键及准确部分结果）需文献／主线确认。两者均需要稳定结果查询，不据本轮反例自行选择B。
-2. E4公共候选已成，需主线核对独立host listener或共享server分派、私有stdin供应Interface、监督记录及重启unknown归属。先P0公共接入／同步再P1/P2；长驻ready／可信身份／双向WS／正常shutdown／其他平台仍未实接，新发现的原包吞shutdown错误保持待修。完整停止不以runCommand有界测试或localResourcesClosed代替。
+1. E1–E3政策已定，所需真实来源／原字段／正式键／有界多对象原子提交及稳定查询提供者仍缺，不再等待相反A/B编号的范围选择；不以H1 SQLite或公共开放CSL代替。
+2. E4独立认证监督及原包shutdown修复已在本树Linux校准，公共／私有补丁交回；共同产品装配、其他平台与实际dev接入仍开放。完整停止继续分别核对插件与原生scope，不以局部closed代替。
 3. E5两份设计交接已闭合，材料新字节／sidecar共同记录转换未闭合；BBT样本不等报告，不实施Reader或茉莉花。E6题录／附件删除恢复仍缺，status明确生产不可用；不执行迁入／自动导出／外部接口／真实用户库路径。
-4. 完整I6、整体审查及最终delivery任务保持未完成，不归档或声称整个change已交付。既有CI基线未复跑／修复，未把尚未诊断失败归因于超时，也未将本机结果称全仓绿色。
+4. 完整I6、整体审查及最终delivery任务保持未完成，不归档或声称整个change已交付。本轮未重跑全仓CI，主线已关闭问题及同步定向结果与本轮结果分别记录，不把未诊断失败归因于超时或称全仓绿色。
 
 继续沿当前 `tasks.md`／`delivery.md`，不需要用户重述已给出的实施及锁文件安装授权；需要的是实际跨线接口结果和必要架构输入，不是再次批准同样动作。
