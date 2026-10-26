@@ -1,9 +1,9 @@
-import type { ProgramsPort } from '@scholoom/protocol/programs';
+import type { ProgramToolsPort } from '@scholoom/protocol/programs';
 import { programsOperations } from '@scholoom/protocol/programs';
 import { z } from 'zod';
 
 /** Tools use the same project operations as the manual workbench. */
-export function programTools(port: ProgramsPort) {
+export function programTools(port: ProgramToolsPort) {
   return [
     {
       name: 'list_program_environments',

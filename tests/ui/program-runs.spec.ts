@@ -1,6 +1,6 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { addProject, expect, test } from './fixture.js';
+import { addProject, expect, openWorkbenchWindow, test } from './fixture.js';
 import { rendererUrl } from './renderer-url.js';
 
 test('manual program tab runs a real calculation and opens its actual project output', async ({
@@ -61,8 +61,27 @@ test('manual program tab runs a real calculation and opens its actual project ou
   await uiPage.getByRole('button', { name: '关闭 项目程序运行', exact: true }).click();
   await uiPage.getByRole('button', { name: '项目程序运行', exact: true }).click();
   await expect(detail.getByText('运行中', { exact: true })).toBeVisible();
-  await detail.getByRole('button', { name: '取消运行', exact: true }).click();
-  await expect(detail.getByText('已取消', { exact: true })).toBeVisible();
+  const observer = await openWorkbenchWindow(uiPage);
+  try {
+    await observer.goto(rendererUrl, { waitUntil: 'domcontentloaded' });
+    await expect(observer.getByRole('status', { name: '连接状态' })).toContainText('已连接');
+    await observer.getByRole('button', { name: `管理项目 ${projectName}`, exact: true }).click();
+    await observer
+      .getByRole('menu', { name: `管理项目 ${projectName}`, exact: true })
+      .getByRole('button', { name: '打开项目', exact: true })
+      .click();
+    await observer.getByRole('button', { name: '项目程序运行', exact: true }).click();
+    const observed = observer.getByRole('region', { name: '所选运行详情', exact: true });
+    await expect(observed.getByText('运行中', { exact: true })).toBeVisible();
+    await expect(observed.getByRole('heading', { level: 3 })).toHaveText(
+      await detail.getByRole('heading', { level: 3 }).innerText(),
+    );
+    await observed.getByRole('button', { name: '取消运行', exact: true }).click();
+    await expect(observed.getByText('已取消', { exact: true })).toBeVisible();
+    await expect(detail.getByText('已取消', { exact: true })).toBeVisible();
+  } finally {
+    await observer.close();
+  }
   const screenshot = test.info().outputPath('program-runs.png');
   await panel.screenshot({ path: screenshot });
   await test.info().attach('program-runs', { path: screenshot, contentType: 'image/png' });

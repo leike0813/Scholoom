@@ -417,6 +417,10 @@ export type ProgramsOutputs = {
 export type ProgramsPort = {
   [M in keyof ProgramsInputs]: (input: ProgramsInputs[M]) => Promise<ProgramsOutputs[M]>;
 };
+export type ProgramToolsPort = Omit<
+  ProgramsPort,
+  'programs.registerEnvironment' | 'programs.authorizeEnvironment' | 'programs.handoff'
+>;
 export type ProgramsInternalInputs = {
   'programs.commandEvent': FromSchema<
     (typeof programsInternalOperations)['programs.commandEvent']['params']

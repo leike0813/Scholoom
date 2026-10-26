@@ -169,6 +169,8 @@ macOS 完整能力恢复另立变更：Darwin 不支持 kqueue 自动后代跟�
 
 后台移交先核对资格、保存人类授权，再同步接管；backgroundOwner.state区分authorized／active／failed，完成收据写入失败单列outcomeUnknown。环境配置读写均限4MiB，活动项为回执及恢复诊断预留元数据容量；容量不足不丢弃原计划、授权或可用状态。准备先保存意图再派发，回执不明按原操作身份核查，拒绝重复准备。旧近上限配置可先恢复查询并保留原文件，未腾出容量前新写明确tooLarge。程序时限以单调时钟分段调度，超过原生timer的2147483647ms边界仍等待完整时限，null无总期限。
 
+KernelApplication为harness仅装配同源 `ProgramToolsPort`，不传人工登记、批准环境或后台移交入口；这些动作继续由人类产品端口承担，broker和领域层分别核对权限。普通程序 `started` 只表示启动，退出码与完整 `stopped` 分别记录；环境ready由环境模块确认，应用级ready监督另由生态提供。程序运行tab已在当前树消费公共基线，任务／委派私有业务尚未合入；联合tab／两域业务恢复不由公共表结构或补丁上下文检查代替验收。
+
 诊断先区分发送、受理、环境检查、准入／启动、执行、停止与结果刷新；读取 run 的phase/error/stop/exit、环境计划及实际输出依据。内核定向入口：`program-runs.spec.ts`、`program-runtime.spec.ts`、`program-environments.spec.ts`、`managed-commands.spec.ts`；双宿主入口 `tests/ui/program-runs.spec.ts`。实际覆盖与跨线未决见[本变更交付](../openspec/changes/add-project-program-runs/delivery.md)。
 
 ## 内核配置与生命周期

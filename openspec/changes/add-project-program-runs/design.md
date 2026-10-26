@@ -212,6 +212,16 @@ runtime合并还须保留Agent的instanceLifecycle.onStopping中childrenControll
 
 ## 待办边界
 
+### 公共同步后本轮消费（2026-10-26）
+
+主线同步提交91615d5已包含0519904及b838402，恢复时本树干净。当前源码实际消费公共ManagedCommands.start及长时限、Graph来源／执行历史、统一v6迁移；不再重发迁移或搭建/tmp源码组合。ManualApplication继续独占程序登记、workspace、观察落盘和归属恢复，KernelApplication组合ProgramRecords.restore，Harness经工具所需的最窄Programs工具端口调用，人工登记／批准／移交仍留产品入口。started只表示进程已启动，exit记录退出，stopped确认完整归属收尾；环境ready须通过环境模块检查，不将任一命令started当应用ready，生态E4另行负责。
+
+本轮以真实内核测试补强人工／Agent同一运行、日志和输出，失效／只读／全局拒绝，以及宿主丢失后原unknown统一占用和恢复副本无控制资格。UI沿已有组件和token，不新增布局。正式任务快照来自 `/tmp/scholoom-round3-handoff-qefwKi/research-task-workspace/`，只准备programs共享符号兼容补丁；本树尚无TaskRef／任务组件实际提供者，真实联合tab验收保持开放，不复制任务私有实现。本轮本地验证仅当前树，补丁上下文核对不算跨域运行结果。
+
+`ProgramToolsPort`由ProgramsPort排除registerEnvironment／authorizeEnvironment／handoff三个人工操作，harness构造器、工具adapter及KernelApplication装配共用此投影；broker消费清单和领域身份检查仍各自执行。人类产品端口不变。真实Agent回归核对最后一次read_program_run／read_program_logs的HTTP工具结果与人工查询一致，不以“模型调用过工具名”代替结果验证。真实宿主恢复用例核对统一名额保持1，副本historical及控制身份清除、源记录不变；UI第二窗口核对同一运行身份并取消，原窗口实际刷新取消事实。
+
+交回目录 `/tmp/scholoom-project-execution-round3-NCqJgg/` 的06补丁只给任务正式快照的五个共享文件叠加programs；保留task TabKind／tab.task／renderTask(TaskRef,group.id)，沿任务已有openTab使打开程序也撤销迟到任务导航。normalizeLegacyTab白名单同时保留task／programs。05补丁只给Agent正式快照的runtime／application叠加programs：保留delegationOptions原位置，programs追加其后，保留根／子工具分离、childrenController.abort、settleTools和childrenUnsettled，业务restore仍顺序组合。两份均仅上下文检查，未在本树启用他域业务或作生产联合验收；公共Graph来源／历史、统一v6均沿现有基线保留。
+
 - 主线已正式提供两份阅读design、TaskRef和Agent源码快照；消费精确路径及共享符号核对见下节。它们没有进入本树真实提供者，报告／批注／任务关联保持范围外；共享宿主、工具、tab与恢复最终合并仍待dev接入，不能以阅读设计冒充实际整合。
 - 项目任务引用、科研Graph、任意依赖发现、自动安装工具本体、Conda完整发现／激活、editor迁移、终端／Notebook、SSH与完整macOS后端均不在首批。新增需求回到各自有界change，不把未接入代码放进本轮必需路径。
 - 首批保守unknown可能长期占用容量，这是停止保证的真实限制；不得以计划闭合为由伪造可重新取得原生归属。需要更强自动恢复时另审原生证明机制。

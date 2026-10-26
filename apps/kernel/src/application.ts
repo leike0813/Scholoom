@@ -27,7 +27,7 @@ import type {
 } from '@scholoom/protocol';
 import type { CallContext } from '@scholoom/protocol/core';
 import { OperationError } from '@scholoom/protocol/core';
-import type { ProgramsPort } from '@scholoom/protocol/programs';
+import type { ProgramToolsPort } from '@scholoom/protocol/programs';
 import type { ResearchProgressPort, ResearchToolsPort } from '@scholoom/protocol/research';
 import { ResearchRecords, ResearchRuntime } from '@scholoom/research/node';
 import { executionGraphs } from './execution-graphs.js';
@@ -104,13 +104,9 @@ export class KernelApplication extends ManualApplication {
           const port = this.modulePort(context, 'harness');
           const methods = {
             'programs.environments': (input) => port.call('programs.environments', input),
-            'programs.registerEnvironment': (input) =>
-              port.call('programs.registerEnvironment', input),
             'programs.environmentPlan': (input) => port.call('programs.environmentPlan', input),
             'programs.environmentPlanStatus': (input) =>
               port.call('programs.environmentPlanStatus', input),
-            'programs.authorizeEnvironment': (input) =>
-              port.call('programs.authorizeEnvironment', input),
             'programs.environmentPrepare': (input) =>
               port.call('programs.environmentPrepare', input),
             'programs.start': (input) => port.call('programs.start', input),
@@ -118,9 +114,8 @@ export class KernelApplication extends ManualApplication {
             'programs.runs': (input) => port.call('programs.runs', input),
             'programs.logs': (input) => port.call('programs.logs', input),
             'programs.cancel': (input) => port.call('programs.cancel', input),
-            'programs.handoff': (input) => port.call('programs.handoff', input),
             'programs.reconcile': (input) => port.call('programs.reconcile', input),
-          } satisfies ProgramsPort;
+          } satisfies ProgramToolsPort;
           return methods;
         },
         settle: (context) => this.programs.settleExecution(context),

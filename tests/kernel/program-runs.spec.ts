@@ -9,9 +9,27 @@ import { expect, test } from '@playwright/test';
 import { KernelApplication } from '../../apps/kernel/dist/application.js';
 import { ManualApplication } from '../../apps/kernel/dist/manual.js';
 import { ProgramRecords } from '../../packages/programs/dist/node.js';
-import { OperationError } from '../../packages/protocol/dist/core.js';
+import { type CallContext, OperationError } from '../../packages/protocol/dist/core.js';
+import type { ProgramsInputs } from '../../packages/protocol/dist/programs.js';
 import { createModelServer } from '../model-server.js';
 import { executable, localWheelProject } from '../program-environment-fixture.js';
+
+class ProgramApplication extends KernelApplication {
+  context: CallContext | undefined;
+  override projectTargetRead(context: CallContext) {
+    this.context = context;
+    return super.projectTargetRead(context);
+  }
+  startProgram(input: ProgramsInputs['programs.start'], context: CallContext) {
+    return this.modulePort(context, 'harness').call('programs.start', input);
+  }
+  handoffProgram(input: ProgramsInputs['programs.handoff'], context: CallContext) {
+    return this.modulePort(context, 'harness').call('programs.handoff', input);
+  }
+  get capacity() {
+    return this.processes.status;
+  }
+}
 
 async function fixture(source: string) {
   const root = await mkdtemp(join(tmpdir(), 'scholoom-program-case-'));
@@ -313,13 +331,21 @@ test('host loss retains unknown ownership and independent backup restore never c
   const exit = once(child, 'exit');
   child.kill('SIGKILL');
   await exit;
-  const app = new KernelApplication(profile);
+  const app = new ProgramApplication(profile);
   try {
     await app.initialize();
     expect(await app.call('programs.run', identity)).toMatchObject({
       state: 'unknown',
       stop: 'unknown',
     });
+    expect(app.capacity.active).toBe(1);
+    const originalRecords = new ProgramRecords(app.projects.get(identity.projectId).internal);
+    let original: ReturnType<ProgramRecords['get']>;
+    try {
+      original = originalRecords.get(identity.programRunId);
+    } finally {
+      originalRecords.close();
+    }
     await expect(
       app.call('programs.start', { ...f.input, operationId: randomUUID() }),
     ).rejects.toMatchObject({ code: 'outcomeUnknown' });
@@ -336,6 +362,26 @@ test('host loss retains unknown ownership and independent backup restore never c
       }),
     ).toMatchObject({ state: 'interrupted', stop: 'unknown' });
     expect((await app.call('programs.run', identity)).state).toBe('unknown');
+    const copyRecords = new ProgramRecords(app.projects.get(restored.id).internal);
+    try {
+      expect(copyRecords.get(identity.programRunId)).toMatchObject({ historical: true });
+      expect(copyRecords.get(identity.programRunId).commandInstanceId).toBeUndefined();
+      expect(copyRecords.get(identity.programRunId).hostInstanceId).toBeUndefined();
+    } finally {
+      copyRecords.close();
+    }
+    await app.call('programs.cancel', {
+      projectId: restored.id,
+      programRunId: identity.programRunId,
+    });
+    await app.call('project.open', { path: f.project.path });
+    expect(app.capacity.active).toBe(1);
+    const records = new ProgramRecords(app.projects.get(identity.projectId).internal);
+    try {
+      expect(records.get(identity.programRunId)).toEqual(original);
+    } finally {
+      records.close();
+    }
   } finally {
     await app.close();
     await rm(f.root, { recursive: true });
@@ -346,22 +392,42 @@ test('Agent tools and the manual API query the same real program run', async () 
   const root = await mkdtemp(join(tmpdir(), 'scholoom-program-agent-'));
   let request: Parameters<KernelApplication['programs']['start']>[0] | undefined;
   let readyToFinish = false;
+  let finalReadRequested = false;
   const model = await createModelServer({
     respond: ({ calls }) => {
       if (!request) return { text: '等待程序配置。' };
       if (!calls.includes('start_project_program'))
         return { tool: { name: 'start_project_program', input: request } };
-      if (!readyToFinish)
+      if (!readyToFinish) {
+        model.hold = true;
         return {
           tool: {
             name: 'read_program_run',
             input: { projectId: request.projectId, operationId: request.operationId },
           },
         };
+      }
+      if (!finalReadRequested) {
+        finalReadRequested = true;
+        return {
+          tool: {
+            name: 'read_program_run',
+            input: { projectId: request.projectId, operationId: request.operationId },
+          },
+        };
+      }
+      if (!calls.includes('read_program_logs'))
+        return {
+          tool: {
+            name: 'read_program_logs',
+            input: { projectId: request.projectId, programRunId: programRunId },
+          },
+        };
       return { text: '程序已完成并保留实际结果。' };
     },
   });
-  const app = new KernelApplication(join(root, 'profile'), {
+  let programRunId = '';
+  const app = new ProgramApplication(join(root, 'profile'), {
     modelEndpoint: model.url,
     environment: { MINIMAX_CN_API_KEY: 'synthetic' },
   });
@@ -373,7 +439,7 @@ test('Agent tools and the manual API query the same real program run', async () 
     });
     await writeFile(
       join(project.path, 'program.mjs'),
-      `import {writeFileSync} from 'node:fs'; writeFileSync('agent.csv','value\\n12\\n');`,
+      `import {writeFileSync} from 'node:fs'; console.log('result 12'); writeFileSync('agent.csv','value\\n12\\n');`,
     );
     const entry = await app.call('resources.describe', {
       locator: { source: 'project', projectId: project.id, path: 'program.mjs' },
@@ -406,6 +472,7 @@ test('Agent tools and the manual API query the same real program run', async () 
       (item) => item.operationId === request?.operationId,
     );
     assert(run);
+    programRunId = run.programRunId;
     expect(run?.origin?.sessionId).toBe(session.id);
     await expect
       .poll(
@@ -419,9 +486,76 @@ test('Agent tools and the manual API query the same real program run', async () 
         { timeout: 20_000 },
       )
       .toBe('completed');
+    const context = app.context;
+    assert(context);
+    for (const [caller, code] of [
+      [{ ...context, instanceId: randomUUID() }, 'instanceMismatch'],
+      [
+        { ...context, targetRead: { targetProjectId: project.id, access: 'read' } },
+        'permissionDenied',
+      ],
+      [
+        {
+          ...context,
+          projectId: 'application',
+          workDomain: { kind: 'application', projectId: 'application', sessionId: session.id },
+        },
+        'permissionDenied',
+      ],
+    ] as const)
+      await expect(
+        app.startProgram({ ...request, operationId: randomUUID() }, caller),
+      ).rejects.toMatchObject({ code });
+    expect((await app.call('programs.runs', { projectId: project.id })).runs).toHaveLength(1);
+    await expect(
+      app.handoffProgram({ projectId: project.id, programRunId }, context),
+    ).rejects.toMatchObject({ code: 'permissionDenied' });
     readyToFinish = true;
+    model.release();
+    await expect
+      .poll(
+        async () =>
+          (await app.snapshot({ projectId: project.id, sessionId: session.id })).run?.state,
+        { timeout: 20_000 },
+      )
+      .toBe('completed');
+    const body = model.requests.at(-1);
+    const blocks = (
+      (body?.messages ?? []) as {
+        content?: {
+          type: string;
+          id?: string;
+          name?: string;
+          tool_use_id?: string;
+          content?: string;
+        }[];
+      }[]
+    ).flatMap((message) => (Array.isArray(message.content) ? message.content : []));
+    const results = (name: string) => {
+      const ids = new Set(
+        blocks
+          .filter((block) => block.type === 'tool_use' && block.name === name)
+          .map((block) => block.id),
+      );
+      return blocks
+        .filter((block) => block.type === 'tool_result' && ids.has(block.tool_use_id))
+        .map((block) => JSON.parse(block.content ?? 'null'));
+    };
+    const manualRun = await app.call('programs.run', { projectId: project.id, programRunId });
+    expect(results('read_program_run').at(-1)).toMatchObject({
+      programRunId,
+      state: manualRun.state,
+      stop: manualRun.stop,
+      outputs: manualRun.outputs,
+    });
+    expect(results('read_program_logs').at(-1)).toEqual(
+      await app.call('programs.logs', { projectId: project.id, programRunId }),
+    );
+    const tools = ((body?.tools ?? []) as { name: string }[]).map((tool) => tool.name);
+    expect(tools).toContain('start_project_program');
     expect(await readFile(join(project.path, 'agent.csv'), 'utf8')).toBe('value\n12\n');
   } finally {
+    model.release();
     await app.close();
     await model.close();
     await rm(root, { recursive: true });

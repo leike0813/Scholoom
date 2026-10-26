@@ -2,7 +2,9 @@
 
 ## 当前状态与成果
 
-2026-10-26，继续原树与同一change。主线C1—C3反例属实，本轮已修复并复验，公共迁移与command补丁已准备交回。tasks当前20/23；4.2实际共享宿主／tab接入、5.2历史CI／Windows诊断、6.2整个change最终交付仍开放。未提交、推送、PR、归档、启用新平台或操作其他工作树。本阶段结果以文末“第二阶段整改与公共交回”为准；等待主线复核与dev接入，不把局部通过当作整项接收。
+2026-10-26，继续原树与同一change。主线已复验关闭C1—C3，将公共切片接入dev，并完成本树安全同步；本轮已明确恢复。当前HEAD为91615d58719f792dba8f9c311e9f13350de1c42f，0519904（含b838402）为祖先，恢复只读核对工作区干净。原成果保留于本地WIP检查点及 `/tmp/scholoom-sync-recovery-wyn13R/project-execution/files/`，本轮唯一源码工作点为当前树，不再制作临时源码组合。第8组记录同步后的实际消费；任务／委派私有提供者合入、历史CI／Windows和整个change最终交付仍按实际条件开放。
+
+同步证据：`/tmp/scholoom-sync-recovery-wyn13R/recovery.md`、`synchronized.json`及本线构建／测试日志。主线在本树先构建后验收内核65项及双宿主2项通过；这是同步与已有切片证据，不替代本轮新变化验收。公共命令观察／长时限、Graph来源／执行历史及v5 delegations→v6 program_runs已真实同步，旧公共patch仅为历史工件，不再次交付为新增量。用户允许本地补丁／提交；继续禁止推送、PR、归档、新依赖、真实库和常驻开发服务器。
 
 ### 首轮实施记录（保留历史证据）
 
@@ -139,3 +141,52 @@ command观察只能证明有界输出、归属、取消和完整收尾。started
 达到用户本次C1—C3和迁移准备交回边界后停止。后续dev接入和新契约分支由主线复核／确认后开展，不自动展开下一阶段。
 
 最终收尾补记：apply核对20/23。根lint退出0（442文件、75 warnings／35 infos、无error），工具tsc退出0；新增及受影响检查保留根既有诊断，没有为本轮清理无关测试。strict首次因两个Requirement正文过长告警失败，已按行为拆开，`/tmp/project-execution-phase2-openspec-before-final.log`保留原结果；最终OpenSpec strict／scholoom-dev schema及git diff检查通过，新增文件逐一检查空白、工件本地链接／围栏通过，Mermaid仅人工核对未渲染。schema派生业务映射一致，正式openspec/specs未修改。5361／9361均无监听，本轮UI夹具及原生审查代理已收尾；补丁、隔离profile与验证副本按上述用途保留。
+
+## 第三轮：同步公共基线后的实际消费（2026-10-26）
+
+### 实际范围和同步事实
+
+用户明确恢复原有界任务，取代旧的等待手动同步条件。只读确认HEAD为91615d58719f792dba8f9c311e9f13350de1c42f、0519904为祖先，恢复时git status干净；本轮没有自行merge／rebase／reset／切分支。同步证据见开头及 /tmp/scholoom-sync-recovery-wyn13R/{recovery.md,synchronized.json}。C1—C3由主线复验关闭，统一v6、原v2恢复夹具及公共Graph来源／历史均保留。没有为已同步公共基线制作/tmp源码组合或再次交付旧公共补丁。
+
+本轮新增变化为：同源ProgramToolsPort从ProgramsPort排除三个人工操作，harness工具adapter／构造器及KernelApplication装配只持有该端口；原有人工产品端口、broker清单和领域检查保留。ManualApplication的程序／环境登记、workspace、command观察持久确认和启动前重验已实际消费公共实现；KernelApplication在父实例exited前等待本域settle，并在project.restore组合本域钩子。没有第二套运行、授权或容量权威。
+
+完成判据1／3／4／5／6本轮新增证据分别是：Agent HTTP工具结果与人工programRunId／详情／日志／输出相同；失效实例、目标只读、全局范围及Agent自行移交被拒绝；原unknown保持一个统一名额，副本historical且不持有command／host控制身份，取消副本和重开源项目不改原记录；实际CSV可由工作台打开，两个窗口读取同一运行并从第二窗口取消，第一窗口刷新已取消事实。判据2沿既有环境能力回归，离线本地wheel／tomllib实际工具检查通过；没有公网准备结论。design图和状态含义核对一致：started只表示进程启动，exit不是完整stopped，环境ready须环境检查，生态E4应用监督不由runCommand代替。
+
+### 实际输入与仍缺提供者
+
+本轮正式输入为 /tmp/scholoom-round3-handoff-qefwKi/{acceptance.md,manifest.json,prompts/project-execution.md}，旧的未同步描述已由恢复指令覆盖。此前两份阅读design、TaskRef及Agent快照消费结论继续保留，未把设计当实际提供者。新增精确核对如下：
+
+| 路径（相对上述交接根） | 消费结果及证据边界 |
+| --- | --- |
+| research-task-workspace/packages/protocol/src/task-contracts.ts | TaskRef仍为projectId／taskId／fileId；workItemId不是programRunId。首批程序不强制关联任务 |
+| research-task-workspace/apps/desktop/src/renderer/src/workbench/{tab-state.ts,session.ts,Workbench.tsx,business-session.tsx,shell/TabGroups.tsx} | 06补丁保留任务类型、TaskPanel／TaskList、renderTask(TaskRef,group.id)、已有导航代际，同时叠加programs插槽。打开程序沿原openTab撤销迟到任务导航；归一化白名单同时保留task／programs。只做上下文检查 |
+| agent-delegation/packages/harness/src/runtime.ts及apps/kernel/src/application.ts | 05补丁保留delegationOptions原位置，programs追加其后；只给根工具添加programs，保留子工具限制、childrenController.abort、settleTools／childrenUnsettled，顺序组合ProgramRecords.restore。只做上下文检查 |
+
+当前树没有TaskRef／TaskPort／tasks.*和真实TaskPanel／TaskList／任务宿主，也没有Agent私有delegationOptions／delegations仓储业务钩子。右栏简化tasks列表不算任务提供者；公共delegations表不算委派业务恢复。8.4真实任务tab联合消费保持开放，05／06不能替代其实际构建与联合验收。原阅读报告、批注、Notebook／远程／全局shell和环境类型均未扩大。
+
+### 实际验证和首次失败
+
+Linux／Node24.12.0，全部合成项目、隔离profile和输出；真实broker／SQLite／命令进程／原生归属／资源打开／浏览器及Electron。外部模型为loopback受控HTTP，故障时序沿既有有界端口注入，不代表真实模型科研质量或物理磁盘故障。先完成构建再测试；全部测试结束前未重建共享产物。
+
+| 命令／操作 | 结果与证据 |
+| --- | --- |
+| pnpm --filter @scholoom/kernel... build；pnpm --filter @scholoom/desktop build | 通过。/tmp/project-execution-round3-build.log、/tmp/project-execution-round3-desktop-build.log；未安装新依赖 |
+| pnpm -r typecheck；node node_modules/typescript/bin/tsc --noEmit -p tsconfig.tools.json | 通过。/tmp/project-execution-round3-typecheck.log、/tmp/project-execution-round3-tools.log；首次工具检查同样通过 |
+| program-runs中Agent同一事实／host-loss两项定向 | 2/2通过，/tmp/project-execution-round3-focused-first.log；之后因新增Agent自行移交拒绝断言，随下述完整受影响集合再验 |
+| node node_modules/@playwright/test/cli.js test --config playwright.kernel.config.ts tests/kernel/{program-runs,program-runtime,program-environments,command-observation,project-migration-chain,project-recovery,execution-history}.spec.ts --output test-results/program-round3-kernel | **73/73通过**，1.5m。/tmp/project-execution-round3-kernel-first.log；保留C1后台授权／取消竞态、C2容量与恢复、C3长时限和观察确认、输出／取消后代、v4→v5→v6保护／重试、恢复副本及公共历史。旧可选外部Agent仓储适配用例未在本轮运行，不冒充业务组合通过 |
+| 程序双宿主静态夹具 | **2/2通过**，52.7s，每项含两个真实窗口。命令以xvfb-run -a、SCHOOLOOM_TEST_ROOT=本树、SCHOOLOOM_UI_PORT=5361、SCHOOLOOM_UI_DATA_DIR=/tmp/scholoom-project-execution-round3-NCqJgg/ui-final-profile运行Playwright，--config /tmp/scholoom-project-execution-round3-NCqJgg/ui.config.mts tests/ui/program-runs.spec.ts --output /tmp/scholoom-project-execution-round3-NCqJgg/ui-final-results。/tmp/project-execution-round3-ui-final.log |
+| 首次双宿主失败 | 新断言getByRole(heading)同时匹配运行／输出／日志三个标题，均已进入第二窗口。限定运行标题level:3后原时限复验，不改生产逻辑或时限。首次日志 /tmp/project-execution-round3-ui-first.log，原trace在/tmp/scholoom-project-execution-round3-NCqJgg/ui-results/，最终结果单独保存 |
+| 架构／生成／格式 | architecture为14模块／206文件、0 findings／0豁免；/tmp/project-execution-round3-architecture.log。原生成器self-test及business-types／harness-module-types规范化生成一致性通过，/tmp/project-execution-round3-generation.log。受影响6份源码Biome通过；首次格式／隐式any提示已修正，保留/tmp/project-execution-round3-biome-first.log |
+| OpenSpec／diff | add-project-program-runs --strict及scholoom-dev schema通过；git diff --check通过。正式规格未同步、未归档；Mermaid人工核对，未重新渲染 |
+
+静态HTTP承载复用主线 /tmp/scholoom-sync-recovery-wyn13R/static-ui.mjs 和原kernelBootstrap中间件，只服务本树已构建renderer；没有启动Vite dev或常驻开发服务。测试夹具关闭所属内核／窗口，结束5361无监听。临时profile、首次失败trace、结果和补丁作为交接证据保留，不删除、不作生产依赖。
+
+### 审查、补丁和续做
+
+原生辅助Curie只读核对任务五个共享符号；Wegener（gpt-6.1-sol/high）独立只读审查本轮diff及周边授权／恢复／UI实现，未发现确证缺陷。两者未写入、构建或代跑验收；主代理核对实际结果后接受本轮已完成局部成果。没有新Agent终端、常驻协调Agent或DAG。
+
+交回 /tmp/scholoom-project-execution-round3-NCqJgg/README.md、manifest.json及01—08补丁。01领域实现／同源契约／登记／生成映射及测试，02自有UI，03内核／harness共享符号，04工作台共享符号，07本change和开发说明，均为公共0519904后的累计业务差异；在当前树仅反向git apply --check，未应用或回滚。05是Agent正式快照下03的替代上下文，06是任务正式快照下04的替代上下文，均git apply --check通过；patch-contexts只存7个共享文件前后文本，没有完整临时源码组合或运行。08只用于从同步HEAD查看本轮增量，不与累计补丁重复应用。精确依赖与文件清单见README／manifest，未重发公共command／deadline／迁移代码。
+
+本轮tasks为25/28：4.2程序实际tab、8.1／8.2／8.3／8.5完成；8.4等待真实任务提供者，5.2历史CI／Windows诊断及6.2整个change最终交付继续开放。主线后续须在正式接入任务／委派业务时按符号组合并验联合路径，不把05／06上下文检查认作完成I1—I6或整个change。原始CI根因、Windows／macOS分发、全仓CI、真实科研质量、公网registry均无本轮新增通过结论。
+
+达到本轮有界交回后停止；本轮未提交、推送、PR、归档、安装新依赖或操作真实用户库／其他真实树。现有原成果及文献4份工件保持保留，不自动展开下一阶段。

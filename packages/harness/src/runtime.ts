@@ -50,7 +50,7 @@ import {
   libraryToolMethods,
 } from '@scholoom/protocol/library';
 import type { ModelDefaults, ModelPreference } from '@scholoom/protocol/models';
-import type { ProgramsPort } from '@scholoom/protocol/programs';
+import type { ProgramToolsPort } from '@scholoom/protocol/programs';
 import {
   type Artifact,
   type HarnessProjectPort,
@@ -362,7 +362,7 @@ export class Harness {
     private readonly contextBridge?: ContextBridge,
     private readonly executionResources?: (context: CallContext) => ExecutionResourcePort,
     private readonly programs?: {
-      port(context: CallContext): ProgramsPort;
+      port(context: CallContext): ProgramToolsPort;
       settle(context: CallContext): Promise<void>;
     },
   ) {}
