@@ -1,15 +1,68 @@
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { createKernelClient } from '../../packages/client/dist/index.js';
+import { runningKernel } from '../kernel-fixture.js';
 import { addProject, expect, test } from './fixture.js';
 import { rendererUrl } from './renderer-url.js';
 
 test('manual PDF previews and exports use saved Quarto and native multi-file TeX', async ({
   uiPage,
-}) => {
+}, info) => {
   test.setTimeout(240000);
   const root = await mkdtemp(join(tmpdir(), 'scholoom-writing-pdf-ui-'));
+  let currentPath = '';
+  const requests = new Map<string | number, { path: string; method: string; params: unknown }>();
+  const diagnostics: unknown[] = [];
+  const phases = new Map<string, unknown>();
+  let tools: unknown;
+  const client = createKernelClient(
+    await runningKernel(process.env.SCHOOLOOM_UI_DATA_DIR as string),
+  );
+  const record = (value: unknown) => {
+    diagnostics.push(value);
+    if (diagnostics.length > 100) diagnostics.shift();
+  };
+  uiPage.on('websocket', (socket) => {
+    socket.on('framesent', ({ payload }) => {
+      const frame = JSON.parse(String(payload));
+      if (
+        [
+          'editor.tools',
+          'editor.render',
+          'editor.job',
+          'editor.output',
+          'resources.describe',
+          'resources.read',
+        ].includes(frame.method)
+      ) {
+        requests.set(frame.id, { path: currentPath, method: frame.method, params: frame.params });
+        record({ request: requests.get(frame.id) });
+      }
+    });
+    socket.on('framereceived', ({ payload }) => {
+      const frame = JSON.parse(String(payload));
+      const request = requests.get(frame.id);
+      if (request) {
+        const result = frame.result;
+        const entry = {
+          request,
+          result:
+            result && typeof result === 'object'
+              ? { ...result, base64: undefined, data: undefined }
+              : result,
+          error: frame.error,
+        };
+        record(entry);
+        phases.set(`${request.path}:${request.method}`, entry);
+        requests.delete(frame.id);
+      }
+    });
+  });
+  uiPage.on('pageerror', (error) => record({ path: currentPath, rendererError: error.message }));
   try {
+    await client.connect();
+    tools = await client.call('editor.tools', {});
     const project = join(root, 'project');
     await uiPage.goto(rendererUrl);
     await expect(uiPage.getByRole('status', { name: '连接状态' })).toContainText('已连接');
@@ -36,6 +89,7 @@ test('manual PDF previews and exports use saved Quarto and native multi-file TeX
       ['paper.qmd', 'quarto.pdf'],
       ['main.tex', 'native.pdf'],
     ] as const) {
+      currentPath = path;
       await uiPage.getByRole('treeitem', { name: `打开文件 ${path}`, exact: true }).dblclick();
       await uiPage.getByRole('button', { name: '完整排版', exact: true }).click();
       if (path.endsWith('.qmd'))
@@ -55,6 +109,26 @@ test('manual PDF previews and exports use saved Quarto and native multi-file TeX
       await dialog.getByRole('button', { name: '关闭导出稿件', exact: true }).click();
     }
   } finally {
+    client.dispose();
+    const diagnosticsPath = info.outputPath('pdf-preview-diagnostics.json');
+    await writeFile(
+      diagnosticsPath,
+      JSON.stringify(
+        {
+          path: currentPath,
+          tools,
+          phases: [...phases.values()],
+          diagnostics,
+          pending: [...requests.values()],
+        },
+        null,
+        2,
+      ),
+    );
+    await info.attach('pdf-preview-diagnostics', {
+      path: diagnosticsPath,
+      contentType: 'application/json',
+    });
     await rm(root, { recursive: true, force: true });
   }
 });

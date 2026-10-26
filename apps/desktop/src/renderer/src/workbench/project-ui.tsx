@@ -7,13 +7,14 @@ import type {
   ResourceRef,
 } from '@scholoom/protocol';
 import { lazy, Suspense, useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
+import type { ContentSelection } from './content-selection';
 import { useContextContribution } from './context-contributions';
 import { draftKey } from './drafts';
 import { RenderPane } from './editor/RenderPane';
 import { SourceEditor } from './editor/SourceEditor';
 import { fileDocument, useFileDocument } from './file-document';
-import { lineDiff } from './line-diff';
 import { MarkdownPreview } from './MarkdownPreview';
+import { ContentDiff, MaterialChangeView } from './MaterialChangeView';
 import { ReadingRecordsPanel } from './ReadingRecordsPanel';
 import {
   projectTarget,
@@ -116,9 +117,9 @@ export function FileEditor({
   const instanceId = useId();
   const viewId = editorViewId ?? instanceId;
   const context = useContextContribution();
-  const [sourceSelection, setSourceSelection] = useState<
-    { quote: string } | { error: 'tooLarge' } | null
-  >(null);
+  const [sourceSelection, setSourceSelection] = useState<ContentSelection | null>(null);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: 模式或文稿切换使旧视图选择失效。
+  useEffect(() => setSourceSelection(null), [mode, document]);
   const contextItem = useMemo<ContextItem | undefined>(() => {
     if (
       !enabled ||
@@ -126,19 +127,31 @@ export function FileEditor({
       !descriptor?.capabilities.read ||
       accessRevoked ||
       (sourceSelection && 'error' in sourceSelection) ||
-      mode !== 'source' ||
+      mode === 'render' ||
       value.visualRecovery
     )
       return undefined;
-    const base = { itemId: crypto.randomUUID(), ref: descriptor.ref, basis: descriptor.basis };
-    return sourceSelection && 'quote' in sourceSelection
-      ? {
-          ...base,
-          kind: 'text',
-          quote: sourceSelection.quote,
-          contentState: value.content === value.source?.content ? 'saved' : 'draft',
-        }
-      : { ...base, kind: 'resource' };
+    const base = {
+      itemId: crypto.randomUUID(),
+      ref: descriptor.ref,
+      basis: value.source?.basis ?? descriptor.basis,
+    };
+    const contentState =
+      value.content !== value.source?.content ||
+      value.conversionOwner ||
+      sourceSelection?.contentState === 'draft'
+        ? 'draft'
+        : 'saved';
+    return sourceSelection && 'kind' in sourceSelection && sourceSelection.kind === 'object'
+      ? { ...sourceSelection, ...base, contentState }
+      : sourceSelection && 'quote' in sourceSelection
+        ? {
+            ...base,
+            kind: 'text',
+            quote: sourceSelection.quote,
+            contentState,
+          }
+        : { ...base, kind: 'resource' };
   }, [
     enabled,
     descriptorMatches,
@@ -149,6 +162,8 @@ export function FileEditor({
     value.visualRecovery,
     value.content,
     value.source?.content,
+    value.source?.basis,
+    value.conversionOwner,
   ]);
   const contribute = context.contributeSelection;
   useEffect(() => {
@@ -366,10 +381,6 @@ export function FileEditor({
     if (window.scholoomDesktop) void window.scholoomDesktop.openExternal(url);
     else window.open(url, '_blank', 'noopener,noreferrer');
   }, []);
-  const differences = useMemo(
-    () => lineDiff(value.source?.content ?? '', value.content),
-    [value.source?.content, value.content],
-  );
   const renderable = writable && descriptorMatches && !!descriptor?.capabilities.render;
   return (
     <section className="file-editor" aria-label={`编辑 ${path}`}>
@@ -425,13 +436,13 @@ export function FileEditor({
           <button
             type="button"
             className="btn"
-            disabled={contextItem?.kind !== 'text'}
+            disabled={contextItem?.kind !== 'text' && contextItem?.kind !== 'object'}
             onClick={() => {
-              if (contextItem?.kind === 'text')
+              if (contextItem?.kind === 'text' || contextItem?.kind === 'object')
                 context.appendContextItem({ ...contextItem, itemId: crypto.randomUUID() });
             }}
           >
-            附加选区
+            {contextItem?.kind === 'object' ? '附加对象' : '附加选区'}
           </button>
           <button
             type="button"
@@ -449,11 +460,16 @@ export function FileEditor({
           >
             附加资源
           </button>
-          {contextItem?.kind === 'text' && contextItem.contentState === 'draft' ? (
-            <span>草稿摘录</span>
+          {(contextItem?.kind === 'text' || contextItem?.kind === 'object') &&
+          contextItem.contentState === 'draft' ? (
+            <span>{contextItem.kind === 'object' ? '草稿对象' : '草稿摘录'}</span>
           ) : null}
           {sourceSelection && 'error' in sourceSelection ? (
-            <p role="alert">选区超出附加容量，请缩小选择。</p>
+            <p role="alert">
+              {sourceSelection.error === 'partialFormula'
+                ? '选区包含部分公式，请重新选择完整公式。'
+                : '选区超出附加容量，请缩小选择。'}
+            </p>
           ) : null}
         </div>
       ) : null}
@@ -482,6 +498,7 @@ export function FileEditor({
               readResource={resource}
               openFile={openFile}
               openExternal={external}
+              onSelection={setSourceSelection}
             />
           </>
         ) : (
@@ -528,6 +545,7 @@ export function FileEditor({
               dirtyCallback.current?.();
             }}
             onError={(error) => document.update({ error })}
+            onSelection={setSourceSelection}
           />
         </Suspense>
       ) : (
@@ -540,7 +558,11 @@ export function FileEditor({
             readOnly={readOnly}
             autoFocus={resourceTarget.openMode !== 'preview'}
             onSave={save}
-            onSelection={setSourceSelection}
+            onSelection={(selection) =>
+              setSourceSelection(
+                selection && 'quote' in selection ? { kind: 'text', ...selection } : selection,
+              )
+            }
             onChange={(content) => {
               if (readOnly) return;
               document.update({ content }, true);
@@ -549,48 +571,27 @@ export function FileEditor({
           />
           <details>
             <summary>查看差异</summary>
-            {differences ? (
-              <pre>
-                {differences.map((row, index) => (
-                  // biome-ignore lint/suspicious/noArrayIndexKey: 只读差异行无状态，相同内容可出现多次。
-                  <div key={`${index}-${row.kind}`} className={`diff-${row.kind}`}>
-                    {row.kind === 'add' ? '+ ' : row.kind === 'remove' ? '- ' : '  '}
-                    {row.text}
-                  </div>
-                ))}
-              </pre>
-            ) : (
-              <>
-                <pre>{value.source?.content}</pre>
-                <pre>{value.content}</pre>
-              </>
-            )}
+            <ContentDiff before={value.source?.content ?? ''} after={value.content} />
           </details>
-          {projectWritable
-            ? edits.map((edit) => (
-                <details key={edit.id}>
-                  <summary>{edit.createdAt}</summary>
-                  <pre>{edit.before}</pre>
-                  <pre>{edit.after}</pre>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (!project) return;
-                      void client
-                        .call('files.undo', { projectId: project.projectId, editId: edit.id })
-                        .then(
-                          () => reload(true),
-                          (error) => document.update({ error: String(error) }),
-                        );
-                    }}
-                  >
-                    撤销此修改
-                  </button>
-                </details>
-              ))
-            : null}
         </>
       )}
+      {projectWritable && !accessRevoked
+        ? edits.map((edit) => (
+            <MaterialChangeView
+              key={edit.id}
+              edit={edit}
+              onUndo={() => {
+                if (!project) return;
+                void client
+                  .call('files.undo', { projectId: project.projectId, editId: edit.id })
+                  .then(
+                    () => reload(true),
+                    (error) => document.update({ error: String(error) }),
+                  );
+              }}
+            />
+          ))
+        : null}
       {records ? (
         <details>
           <summary>共同阅读记录</summary>

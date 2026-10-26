@@ -11,9 +11,10 @@ import {
   type SelectionPlugin,
   ZoomMode,
 } from '@embedpdf/react-pdf-viewer';
-import type { ReadingRecord } from '@scholoom/protocol';
+import { type ContextItem, isContextItems, type ReadingRecord } from '@scholoom/protocol';
 import type { ResourceDescriptor } from '@scholoom/protocol/resources';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
+import { useContextContribution } from './context-contributions';
 import { prepareReadingRecord, ReadingRecordsPanel } from './ReadingRecordsPanel';
 import type { ReadingRecordAdapter, WorkbenchResourcePort } from './resource-controller';
 
@@ -122,11 +123,13 @@ export function PdfReader({
   port,
   records: recordAdapter,
   enabled,
+  viewId: suppliedViewId,
 }: {
   resource: ResourceDescriptor;
   port: WorkbenchResourcePort;
   records?: ReadingRecordAdapter | undefined;
   enabled: boolean;
+  viewId?: string | undefined;
 }) {
   const [tick, setTick] = useState(0);
   const [grants, setGrants] = useState({ read: false });
@@ -143,6 +146,36 @@ export function PdfReader({
   const resourceKey = JSON.stringify([resource.ref, resource.basis]);
   const [authorizedKey, setAuthorizedKey] = useState('');
   const active = enabled && grants.read && authorizedKey === resourceKey;
+  const context = useContextContribution();
+  const instanceId = useId();
+  const viewId = suppliedViewId ?? instanceId;
+  const contextItems = useMemo<ContextItem[]>(
+    () =>
+      active && url
+        ? selections.map((selection) => ({
+            kind: 'text',
+            itemId: crypto.randomUUID(),
+            ref: resource.ref,
+            basis: resource.basis,
+            quote: selection.quote,
+            contentState: 'saved',
+            location: { pageIndex: selection.pageIndex, rects: selection.rects },
+          }))
+        : [],
+    [active, url, selections, resource],
+  );
+  const selectionValid = isContextItems(contextItems);
+  const contribute = context.contributeSelection;
+  useEffect(() => {
+    contribute(
+      viewId,
+      selectionValid && contextItems.length ? { selections: contextItems } : undefined,
+    );
+    return () => contribute(viewId);
+  }, [contribute, viewId, contextItems, selectionValid]);
+  useEffect(() => {
+    if (!active) setSelections([]);
+  }, [active]);
   useEffect(
     () =>
       port.subscribe(() => {
@@ -469,35 +502,60 @@ export function PdfReader({
           </p>
         )}
       </div>
-      {recordAdapter && resource.capabilities.readingRecords ? (
+      {(context.available && contextItems.length) ||
+      (recordAdapter && resource.capabilities.readingRecords) ? (
         <div className="file-view-controls">
-          <button
-            type="button"
-            className="btn"
-            disabled={!active || !recordWrite || !url || unavailable}
-            onClick={() =>
-              prepare({ kind: 'bookmark', quote: '', location: { pageIndex: page - 1 } })
-            }
-          >
-            标记第 {page} 页书签
-          </button>
-          {selections.map((selection) => (
-            <button
-              type="button"
-              className="btn"
-              key={selection.pageIndex}
-              disabled={!active || !recordWrite || unavailable}
-              onClick={() =>
-                prepare({
-                  kind: 'highlight',
-                  quote: selection.quote,
-                  location: { pageIndex: selection.pageIndex, rects: selection.rects },
-                })
-              }
-            >
-              保留第 {selection.pageIndex + 1} 页选区
-            </button>
-          ))}
+          {context.available
+            ? contextItems.map((item) => (
+                <button
+                  key={item.itemId}
+                  type="button"
+                  className="btn"
+                  disabled={!selectionValid}
+                  onClick={() =>
+                    context.appendContextItem({ ...item, itemId: crypto.randomUUID() })
+                  }
+                >
+                  附加第{' '}
+                  {item.kind === 'text' && item.location && 'pageIndex' in item.location
+                    ? item.location.pageIndex + 1
+                    : ''}{' '}
+                  页选区
+                </button>
+              ))
+            : null}
+          {!selectionValid ? <p role="alert">选区超出附加容量，请缩小选择。</p> : null}
+          {recordAdapter && resource.capabilities.readingRecords ? (
+            <>
+              <button
+                type="button"
+                className="btn"
+                disabled={!active || !recordWrite || !url || unavailable}
+                onClick={() =>
+                  prepare({ kind: 'bookmark', quote: '', location: { pageIndex: page - 1 } })
+                }
+              >
+                标记第 {page} 页书签
+              </button>
+              {selections.map((selection) => (
+                <button
+                  type="button"
+                  className="btn"
+                  key={selection.pageIndex}
+                  disabled={!active || !recordWrite || unavailable}
+                  onClick={() =>
+                    prepare({
+                      kind: 'highlight',
+                      quote: selection.quote,
+                      location: { pageIndex: selection.pageIndex, rects: selection.rects },
+                    })
+                  }
+                >
+                  保留第 {selection.pageIndex + 1} 页选区
+                </button>
+              ))}
+            </>
+          ) : null}
         </div>
       ) : null}
       {recordAdapter && resource.capabilities.readingRecords ? (

@@ -12,6 +12,7 @@ import {
   useState,
 } from 'react';
 import { jsx, jsxs } from 'react/jsx-runtime';
+import { boundedSelection, type ContentSelection, selectionText } from './content-selection';
 import { assetTarget, linkTarget } from './markdown-paths';
 import { acquireMarkdownQueue, type MarkdownQueueHandle } from './markdown-queue';
 import type { PreviewNode } from './markdown-render';
@@ -98,8 +99,124 @@ interface PreviewValue {
 }
 
 const PreviewContext = createContext<PreviewValue | null>(null);
+const ObjectSelectionContext = createContext<((node: PreviewNode) => void) | null>(null);
 
-function PreviewAnchor({ href, children, ...rest }: ComponentPropsWithoutRef<'a'>) {
+function* selectedPreviewText(node: Node, range: Range): Generator<string> {
+  let separator = '';
+  let started = false;
+  function* visit(current: Node): Generator<string> {
+    if (!range.intersectsNode(current)) return;
+    const element = current instanceof Element ? current : undefined;
+    if (element?.matches('button, .markdown-image')) return;
+    if (element?.tagName === 'BR') {
+      separator += '\n';
+      return;
+    }
+    if (element?.tagName === 'TR') {
+      let first = true;
+      for (const cell of element.children) {
+        if (!cell.matches('td, th') || !range.intersectsNode(cell)) continue;
+        if (started && separator) yield separator;
+        separator = '';
+        if (!first) yield '\t';
+        started = true;
+        yield* visit(cell);
+        first = false;
+      }
+      if (!first) separator = '\n';
+      return;
+    }
+    const block = element?.matches(
+      'p, h1, h2, h3, h4, h5, h6, pre, blockquote, li, dt, dd, div, section, table, thead, tbody, tfoot, tr, caption',
+    );
+    if (block) separator ||= '\n';
+    const text = element?.classList.contains('katex')
+      ? (element.querySelector('annotation[encoding="application/x-tex"]')?.textContent ?? '')
+      : current.nodeType === Node.TEXT_NODE
+        ? (current.textContent ?? '').slice(
+            current === range.startContainer ? range.startOffset : 0,
+            current === range.endContainer ? range.endOffset : undefined,
+          )
+        : undefined;
+    if (text !== undefined) {
+      if (text) {
+        if (started && separator) yield separator;
+        yield text;
+        started = true;
+        separator = '';
+      }
+    } else {
+      for (const child of current.childNodes) yield* visit(child);
+    }
+    if (block) separator = '\n';
+  }
+  yield* visit(node);
+}
+
+function texAnnotation(node: PreviewNode): PreviewNode | undefined {
+  if (node.tagName === 'annotation' && node.properties?.encoding === 'application/x-tex')
+    return node;
+  for (const child of node.children ?? []) {
+    const annotation = texAnnotation(child);
+    if (annotation) return annotation;
+  }
+  return undefined;
+}
+
+function* previewObjectText(node: PreviewNode): Generator<string> {
+  if (node.type === 'text') yield node.value ?? '';
+  else if (
+    Array.isArray(node.properties?.className) &&
+    node.properties.className.includes('katex')
+  ) {
+    const annotation = texAnnotation(node);
+    if (annotation) yield* previewObjectText(annotation);
+  } else if (node.tagName === 'img') {
+    yield `图片\n${node.properties?.src ?? ''}\n${node.properties?.title ?? ''}\n${node.properties?.alt ?? ''}`;
+  } else {
+    for (const child of node.children ?? []) yield* previewObjectText(child);
+    if (node.tagName === 'td' || node.tagName === 'th') yield '\t';
+    if (node.tagName === 'tr' || node.tagName === 'caption') yield '\n';
+  }
+}
+
+function ObjectSelectionButton({ node }: { node: PreviewNode | undefined }) {
+  const select = useContext(ObjectSelectionContext);
+  if (!select || !node) return null;
+  return (
+    <button
+      className="btn"
+      type="button"
+      onClick={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        select(node);
+      }}
+    >
+      {node.tagName === 'table' ? '选择表格' : '选择图片'}
+    </button>
+  );
+}
+
+function PreviewTable({
+  node,
+  children,
+  ...rest
+}: ComponentPropsWithoutRef<'table'> & { node?: PreviewNode }) {
+  return (
+    <div>
+      <ObjectSelectionButton node={node} />
+      <table {...rest}>{children}</table>
+    </div>
+  );
+}
+
+function PreviewAnchor({
+  href,
+  children,
+  node: _node,
+  ...rest
+}: ComponentPropsWithoutRef<'a'> & { node?: PreviewNode }) {
   const preview = useContext(PreviewContext);
   const target =
     preview && typeof href === 'string' ? linkTarget(preview.basePath, href) : undefined;
@@ -124,7 +241,12 @@ function PreviewAnchor({ href, children, ...rest }: ComponentPropsWithoutRef<'a'
   );
 }
 
-function PreviewImage({ src, alt, ...rest }: ComponentPropsWithoutRef<'img'>) {
+function PreviewImage({
+  src,
+  alt,
+  node,
+  ...rest
+}: ComponentPropsWithoutRef<'img'> & { node?: PreviewNode }) {
   const preview = useContext(PreviewContext);
   const host = useRef<HTMLSpanElement>(null);
   const [loaded, setLoaded] = useState<{
@@ -189,6 +311,7 @@ function PreviewImage({ src, alt, ...rest }: ComponentPropsWithoutRef<'img'>) {
   if (!preview || !path)
     return (
       <span className="markdown-image" ref={host}>
+        <ObjectSelectionButton node={node} />
         <span className="markdown-image-note">
           {target?.kind === 'remote' ? '远端图片未加载' : '图片未加载：仅支持项目内相对路径'}
           {alt ? ` · ${alt}` : ''}
@@ -197,6 +320,7 @@ function PreviewImage({ src, alt, ...rest }: ComponentPropsWithoutRef<'img'>) {
     );
   return (
     <span className="markdown-image" ref={host}>
+      <ObjectSelectionButton node={node} />
       {url ? (
         <img {...rest} alt={alt ?? ''} src={url} />
       ) : (
@@ -208,12 +332,13 @@ function PreviewImage({ src, alt, ...rest }: ComponentPropsWithoutRef<'img'>) {
   );
 }
 
-const components = { a: PreviewAnchor, img: PreviewImage };
+const components = { a: PreviewAnchor, img: PreviewImage, table: PreviewTable };
 
 interface PreviewState {
   tree: PreviewNode | undefined;
   error: string | undefined;
   busy: boolean;
+  source?: { content: string; documentKey: string };
 }
 
 export interface MarkdownPreviewProps {
@@ -224,6 +349,7 @@ export interface MarkdownPreviewProps {
   readResource: (path: string) => Promise<{ mimeType: string; data: string }>;
   openFile: (path: string) => void;
   openExternal: (url: string) => void;
+  onSelection?: ((selection: ContentSelection | null) => void) | undefined;
 }
 
 export function MarkdownPreview({
@@ -234,6 +360,7 @@ export function MarkdownPreview({
   readResource,
   openFile,
   openExternal,
+  onSelection,
 }: MarkdownPreviewProps) {
   const [preview, setPreview] = useState<PreviewState>({
     tree: undefined,
@@ -241,13 +368,41 @@ export function MarkdownPreview({
     busy: true,
   });
   const host = useRef<HTMLDivElement>(null);
+  const textRange = useRef<Range | null>(null);
   const queue = useRef<MarkdownQueueHandle | null>(null);
   const requestedKey = useRef(documentKey);
   // 回调经 ref 转发，父组件传内联箭头函数也不会让资源状态和已加载图片反复重建。
-  const handlers = useRef({ readResource, openFile, openExternal });
+  const handlers = useRef({ readResource, openFile, openExternal, onSelection });
   useEffect(() => {
-    handlers.current = { readResource, openFile, openExternal };
+    handlers.current = { readResource, openFile, openExternal, onSelection };
   });
+
+  useEffect(() => {
+    const document = host.current?.ownerDocument;
+    if (!document) return;
+    const clearInvalidText = () => {
+      const previous = textRange.current;
+      if (!previous) return;
+      const selection = document.getSelection();
+      const element = host.current;
+      const range = selection?.rangeCount ? selection.getRangeAt(0) : null;
+      if (
+        !selection ||
+        selection.isCollapsed ||
+        !range ||
+        !element ||
+        !element.contains(selection.anchorNode) ||
+        !element.contains(selection.focusNode) ||
+        range.compareBoundaryPoints(Range.START_TO_START, previous) !== 0 ||
+        range.compareBoundaryPoints(Range.END_TO_END, previous) !== 0
+      ) {
+        textRange.current = null;
+        handlers.current.onSelection?.(null);
+      }
+    };
+    document.addEventListener('selectionchange', clearInvalidText);
+    return () => document.removeEventListener('selectionchange', clearInvalidText);
+  }, []);
 
   // 文档或资源修订变化即换一份资源状态，旧缓存与 blob URL 随旧实例释放。
   // biome-ignore lint/correctness/useExhaustiveDependencies: 资源修订变化时重建资源状态。
@@ -256,6 +411,8 @@ export function MarkdownPreview({
     [documentKey, resourceRevision],
   );
   useEffect(() => {
+    textRange.current = null;
+    handlers.current.onSelection?.(null);
     resources.resume();
     return () => resources.dispose();
   }, [resources]);
@@ -288,10 +445,15 @@ export function MarkdownPreview({
     handle.request(content, (result) => {
       setPreview((current) =>
         'tree' in result
-          ? { tree: result.tree, error: undefined, busy: false }
-          : { tree: current.tree, error: result.error, busy: false },
+          ? { tree: result.tree, source: { content, documentKey }, error: undefined, busy: false }
+          : { ...current, error: result.error, busy: false },
       );
     });
+    return () => {
+      handle.clear();
+      textRange.current = null;
+      handlers.current.onSelection?.(null);
+    };
   }, [content, documentKey]);
 
   const value = useMemo<PreviewValue>(
@@ -322,6 +484,7 @@ export function MarkdownPreview({
               jsx,
               jsxs,
               components,
+              passNode: true,
             })
           : null,
         error: undefined,
@@ -330,6 +493,89 @@ export function MarkdownPreview({
       return { body: null, error: error instanceof Error ? error.message : '预览转换失败' };
     }
   }, [preview.tree]);
+
+  // Object identities belong only to this rendered tree, never to a future revision.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: 每棵实际展示树使用独立身份。
+  const objects = useMemo(
+    () => ({ prefix: crypto.randomUUID(), ids: new WeakMap<PreviewNode, string>(), count: 0 }),
+    [preview.tree],
+  );
+  const selectable =
+    !preview.busy &&
+    !preview.error &&
+    !rendered.error &&
+    preview.source?.content === content &&
+    preview.source.documentKey === documentKey;
+  const selectObject = (node: PreviewNode) => {
+    if (!selectable) return;
+    textRange.current = null;
+    const semantics = selectionText(previewObjectText(node));
+    let objectId = objects.ids.get(node);
+    if (!objectId) {
+      objectId = `${objects.prefix}:${++objects.count}`;
+      objects.ids.set(node, objectId);
+    }
+    const properties = node.properties;
+    const name = node.tagName === 'table' ? '表格' : properties?.title || properties?.alt || '图片';
+    handlers.current.onSelection?.(
+      semantics === null
+        ? { error: 'tooLarge' }
+        : boundedSelection({
+            kind: 'object',
+            providerId: 'markdown',
+            objectId,
+            name: String(name),
+            semantics,
+          }),
+    );
+  };
+  const captureText = (target: EventTarget) => {
+    if (target instanceof Element && target.closest('button')) return;
+    if (!onSelection) return;
+    textRange.current = null;
+    const selection = window.getSelection();
+    const element = host.current;
+    if (
+      !selectable ||
+      !element ||
+      !selection ||
+      selection.isCollapsed ||
+      !element.contains(selection.anchorNode) ||
+      !element.contains(selection.focusNode)
+    ) {
+      onSelection(null);
+      return;
+    }
+    const range = selection.getRangeAt(0);
+    const root = range.commonAncestorContainer;
+    if (root.parentElement?.closest('button, .markdown-image')) {
+      onSelection(null);
+      return;
+    }
+    // A partially intersected formula contains at least one selection endpoint.
+    for (const boundary of [range.startContainer, range.endContainer]) {
+      const formula = (boundary instanceof Element ? boundary : boundary.parentElement)?.closest(
+        '.katex',
+      );
+      if (!formula || !element.contains(formula)) continue;
+      const contents = formula.ownerDocument.createRange();
+      contents.selectNodeContents(formula);
+      if (
+        range.compareBoundaryPoints(Range.START_TO_START, contents) > 0 ||
+        range.compareBoundaryPoints(Range.END_TO_END, contents) < 0
+      ) {
+        textRange.current = range.cloneRange();
+        onSelection({ error: 'partialFormula' });
+        return;
+      }
+    }
+    const formula = (root instanceof Element ? root : root.parentElement)?.closest('.katex');
+    const quote = selectionText(
+      selectedPreviewText(formula && element.contains(formula) ? formula : root, range),
+    );
+    if (quote !== '') textRange.current = range.cloneRange();
+    onSelection(quote === null ? { error: 'tooLarge' } : quote ? { kind: 'text', quote } : null);
+  };
 
   const status = preview.busy
     ? preview.tree
@@ -346,8 +592,17 @@ export function MarkdownPreview({
       <p className="preview-status" role="status">
         {status}
       </p>
-      <div className="markdown-preview-body" ref={host}>
-        <PreviewContext.Provider value={value}>{rendered.body}</PreviewContext.Provider>
+      <div
+        className="markdown-preview-body"
+        ref={host}
+        onPointerUpCapture={(event) => captureText(event.target)}
+        onKeyUpCapture={(event) => captureText(event.target)}
+      >
+        <PreviewContext.Provider value={value}>
+          <ObjectSelectionContext.Provider value={onSelection && selectable ? selectObject : null}>
+            {rendered.body}
+          </ObjectSelectionContext.Provider>
+        </PreviewContext.Provider>
       </div>
     </section>
   );

@@ -2,6 +2,7 @@ import type { KernelClient } from '@scholoom/client';
 import type { ResourceDescriptor } from '@scholoom/protocol';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { DocumentReader } from './DocumentReader';
+import { ImageResourceView } from './ImageResourceView';
 import { PdfReader } from './PdfReader';
 import { FileEditor } from './project-ui';
 import { readerKindForName } from './reader-material';
@@ -108,14 +109,23 @@ export function ResourceView({
     );
   if (error) return <p role="alert">{error}</p>;
   if (!loaded) return <p role="status">{enabled ? '正在打开资源…' : '需连接内核。'}</p>;
-  return readerKind === 'pdf' ? (
-    <PdfReader resource={loaded.resource} port={port} records={loaded.records} enabled={enabled} />
+  return readerKind === 'image' ? (
+    <ImageResourceView resource={loaded.resource} port={port} enabled={enabled} viewId={viewId} />
+  ) : readerKind === 'pdf' ? (
+    <PdfReader
+      resource={loaded.resource}
+      port={port}
+      records={loaded.records}
+      enabled={enabled}
+      viewId={viewId}
+    />
   ) : (
     <DocumentReader
       resource={loaded.resource}
       port={port}
       records={loaded.records}
       enabled={enabled}
+      viewId={viewId}
     />
   );
 }

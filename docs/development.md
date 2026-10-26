@@ -100,7 +100,7 @@ SCHOOLOOM_UI_PORT=5343 node node_modules/@playwright/test/cli.js test --config p
 
 ## 共同资源打开
 
-文件树、消息文件链接和文献附件均进入 `resource-controller.ts` 的资源引用及工作台 `renderResource`，由 `ResourceView` 选择同一文本、PDF 或 EPUB／HTML 组件。库 tab 和库附件跨项目保留，项目切换恢复各自文件组及草稿；资源导航不切换 Agent 会话或项目信任。
+文件树、消息文件链接和文献附件均进入 `resource-controller.ts` 的资源引用及工作台 `renderResource`，由 `ResourceView` 选择同一文本、PDF、EPUB／HTML或栅格图片组件。图片限PNG／JPEG／GIF／WebP、8MiB及解码后1600万像素，沿原资源分片和身份／权限核对，不提供正文写回。库 tab 和库附件跨项目保留，项目切换恢复各自文件组及草稿；资源导航不切换 Agent 会话或项目信任。
 
 公共 `resources.describe/read/document/save` 由 editor 的 `ResourceAccess` 经窄端口组合项目与库权威，`ManualApplication` 可在无模型、无 harness 时使用。项目引用使用稳定 fileId，库引用包含附件和材料版本；响应不含 nativePath。UTF-8 文字读取位置以 UTF-16 为单位，base64 以字节为单位，单片最多 256 KiB。项目字节读取绑定内容依据并在读取前后复查；正文保存复用原项目条件保存和文件身份保护。库正文只读，阅读记录仍保存到原库。
 
@@ -226,7 +226,11 @@ EPUB 2／3 重排版与单文件 HTML 快照复用 reader tab 和共同记录。
 
 认证 WebSocket 连接各自拥有当前快照，`workbench.context.publish` 只更新本连接；旧 revision 忽略，清空和断线释放快照。普通 `application.call` 和 CLI 不带窗口来源，不能通过业务参数指定来源连接。`session.send` 已将可信来源保存为消息的可选 `source`；重试保留原来源，重启后的旧关联不可重新激活。
 
-资源视图通过 `workbench/context-contributions.tsx` 的 `useContextContribution()` 贡献纯数据，生命周期沿视图释放。例如已有合法资源 `ref/basis` 的领域组件可调用 `contributeSelection(viewId, { selections: [item] })`，卸载时调用 `contributeSelection(viewId)`；`item` 使用 protocol 的 `ContextItem`，资源、文字、归一化区域和有结构对象共用 `isContextItems`／`isWorkbenchContextSnapshot` 容量校验。只贡献自己已加载的对象，不扫描其他视图或全库。普通选择只发布实时线索，明确按钮才调用 `appendContextItem(item)` 加入共同草稿，不自行发送指令。文本源码视图已接入，固定区域／对象提供者由组件测试验证；PDF／EPUB 精细选择仍沿后续阅读交互工作接入。
+资源视图通过 `workbench/context-contributions.tsx` 的 `useContextContribution()` 贡献纯数据，生命周期沿视图释放。例如已有合法资源 `ref/basis` 的领域组件可调用 `contributeSelection(viewId, { selections: [item] })`，卸载时调用 `contributeSelection(viewId)`；`item` 使用 protocol 的 `ContextItem`，资源、文字、归一化区域和有结构对象共用 `isContextItems`／`isWorkbenchContextSnapshot` 容量校验。只贡献自己已加载的对象，不扫描其他视图或全库。普通选择只发布实时线索，明确按钮才调用 `appendContextItem(item)` 加入共同草稿，不自行发送指令。
+
+源码、PDF、EPUB／HTML、可视正文与轻量Markdown预览接入同一贡献端口。PDF的`text.location`复用同版本页／矩形，文档复用章节及规范化UTF-16位置；图片`region.target`指明整图，区域经旋转／缩放换回图像内容坐标。结构对象只采用当前真实编辑或预览结构，`object.contentState`标明尚未保存的内容。历史无位置／目标字段仍可读且不猜基准；嵌入排版产物的直接附加仍等待独立产物证据契约。共同阅读记录继续保存到library，不因附加选区创建记录或取得附件正文写入权。
+
+定向检查为`tests/kernel/image-selection.spec.ts`、`content-selection.spec.ts`、`public-contract-baseline.spec.ts`和`context-instructions.spec.ts`，真实双宿主闭环为`tests/ui/material-interactions.spec.ts`与原PDF／文档阅读用例。Markdown完整公式只附加一份TeX，部分公式选择以`partialFormula`拒绝整次附加；清空原生文字选择会清理实时贡献，已明确附加项及阅读记录草稿独立保留。`MaterialChangeView`复用文件历史和有界`lineDiff`，不从时间或路径推断执行者。写作PDF用例在`pdf-preview-diagnostics.json`保存工具可用性、稿件路径／basis、编译受理／状态／日志／产物读取和renderer错误，保留各阶段摘要及最近100条事件，不保存正文或产物base64；未复现旧CI失败不表示其根因已修复。实际结果和待输入边界见[材料交互交付记录](../openspec/changes/add-material-annotation-interactions/delivery.md)。
 
 `WorkbenchSession` 的 `contextItems`、`appendContextItem`、`removeContextItem`、`updateContextComment` 供会话来源接入；dock／overlay 共用同一检查和批注入口。输入、材料、显式项和 pending 按工作台实例、配置、项目、会话保存；刷新沿窗口身份恢复，新窗口独立。旧草稿可明确复制到空目标，原值保留；迟到回执只移除原指令中未被继续修改的项。
 

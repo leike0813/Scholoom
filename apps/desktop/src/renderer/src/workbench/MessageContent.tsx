@@ -1,6 +1,7 @@
 import { useAuiState } from '@assistant-ui/react';
 import type { Artifact, Message } from '@scholoom/protocol';
 import { createContext, useContext, useState } from 'react';
+import { ContextItemLocation } from './ContextItemLocation';
 import { MarkdownText } from './MarkdownText';
 import type { WorkbenchSession } from './session';
 
@@ -149,7 +150,11 @@ export function MessageFacts() {
           {source.contextItems.map((item) => (
             <div key={item.itemId}>
               <span>
-                {item.kind === 'text' && item.contentState === 'draft' ? '草稿摘录' : item.kind}
+                {(item.kind === 'text' || item.kind === 'object') && item.contentState === 'draft'
+                  ? item.kind === 'text'
+                    ? '草稿摘录'
+                    : '草稿对象'
+                  : item.kind}
               </span>
               <span>
                 {item.ref.source === 'project' ? '项目材料' : '库材料'} · {item.basis}
@@ -160,12 +165,7 @@ export function MessageFacts() {
                   {item.name}：{item.semantics}
                 </p>
               ) : null}
-              {item.kind === 'region' ? (
-                <p>
-                  区域：{Math.round(item.region.x * 100)}%，{Math.round(item.region.y * 100)}%；
-                  {Math.round(item.region.width * 100)}% × {Math.round(item.region.height * 100)}%
-                </p>
-              ) : null}
+              <ContextItemLocation item={item} />
               {item.comment ? <p>{item.comment}</p> : null}
             </div>
           ))}

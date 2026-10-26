@@ -9,9 +9,11 @@ import {
 } from '@scholoom/editor/visual';
 import '@scholoom/editor/visual.css';
 import type { KernelClient } from '@scholoom/client';
+import { contextLimits } from '@scholoom/protocol';
 import katex from 'katex';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import 'katex/dist/katex.min.css';
+import { boundedSelection, type ContentSelection, selectionText } from '../content-selection';
 import { Dialog } from '../shell/dialog';
 import {
   createDialogAdapter,
@@ -36,6 +38,38 @@ export interface VisualEditorProps {
   onPending: (pending: boolean) => void;
   registerFlush: (flush: (() => Promise<void>) | undefined) => void;
   onSave: () => void | Promise<void>;
+  onSelection?: ((selection: ContentSelection | null) => void) | undefined;
+}
+
+type VisualSelection = NonNullable<typeof DispatchEvent.dummy>['selection'];
+type VisualNode = NonNullable<typeof DispatchEvent.dummy>['doc'];
+
+function selectedTable(selection: VisualSelection | null) {
+  if (!selection) return null;
+  const { $from } = selection;
+  const node = 'node' in selection ? $from.nodeAfter : null;
+  if (node && (node.type.name === 'table' || node.type.name === 'table_container'))
+    return { node, position: $from.pos };
+  for (let depth = $from.depth; depth > 0; depth--) {
+    if ($from.node(depth).type.name === 'table_container')
+      return { node: $from.node(depth), position: $from.before(depth) };
+  }
+  for (let depth = $from.depth; depth > 0; depth--) {
+    if ($from.node(depth).type.name === 'table')
+      return { node: $from.node(depth), position: $from.before(depth) };
+  }
+  return null;
+}
+
+function* visualObjectText(node: VisualNode): Generator<string> {
+  if (node.isText) {
+    yield node.text ?? '';
+    return;
+  }
+  if (node.type.name === 'image' || node.type.name === 'figure')
+    yield `图片\n${node.attrs.src ?? ''}\n${node.attrs.title ?? ''}\n${node.attrs.caption ?? ''}\n${node.attrs.id ?? ''}`;
+  for (let index = 0; index < node.childCount; index++) yield* visualObjectText(node.child(index));
+  if (node.isBlock) yield '\n';
 }
 
 type Command = ReturnType<Editor['commands']>[number];
@@ -271,14 +305,42 @@ export function VisualEditor(props: VisualEditorProps) {
   const readOnlyRef = useRef(props.readOnly);
   const callbacks = useRef(props);
   const requestedContent = useRef(props.content);
+  const selectionRef = useRef<VisualSelection | null>(null);
   const loadPromise = useRef<Promise<void> | null>(null);
   const [commands, setCommands] = useState<Command[]>([]);
+  const [objectScope] = useState(() => crypto.randomUUID());
   const [blocked, setBlocked] = useState(false);
   const [dialog, setDialog] = useState<DialogRequest | null>(null);
   const [status, setStatus] = useState('');
   const [, refreshTools] = useState(0);
   callbacks.current = props;
   readOnlyRef.current = props.readOnly;
+
+  const clearSelection = useCallback(() => {
+    selectionRef.current = null;
+    callbacks.current.onSelection?.(null);
+  }, []);
+
+  const selectObject = useCallback(
+    (node: VisualNode, position: number) => {
+      if (loadingRef.current || blockedRef.current) return;
+      const semantics = selectionText(visualObjectText(node));
+      const image = node.type.name === 'image' || node.type.name === 'figure';
+      callbacks.current.onSelection?.(
+        semantics === null
+          ? { error: 'tooLarge' }
+          : boundedSelection({
+              kind: 'object',
+              providerId: 'visual',
+              objectId: `${objectScope}:${instanceVersion.current}:${docVersion.current}:${position}`,
+              name: image ? node.attrs.title || node.attrs.caption || '图片' : '表格',
+              semantics,
+              ...(dirtyRef.current || pendingRef.current ? { contentState: 'draft' as const } : {}),
+            }),
+      );
+    },
+    [objectScope],
+  );
 
   const showDialog = useCallback(
     (
@@ -416,6 +478,7 @@ export function VisualEditor(props: VisualEditorProps) {
           pendingRef.current = true;
           continue;
         }
+        target.onSelection?.(null);
         if (result.code !== contentRef.current) {
           contentRef.current = result.code;
           target.onChange(result.code);
@@ -433,6 +496,7 @@ export function VisualEditor(props: VisualEditorProps) {
         completed = true;
       })
       .catch((error: unknown) => {
+        target.onSelection?.(null);
         target.onError(error instanceof Error ? error.message : '可视编辑内容转换失败。');
         throw error;
       })
@@ -475,6 +539,7 @@ export function VisualEditor(props: VisualEditorProps) {
 
   const applyExternalContent = useCallback(
     (instance: Editor, content: string) => {
+      clearSelection();
       requestedContent.current = content;
       if (dirtyRef.current) {
         setStatus('外部内容已更新；保留当前编辑，请保存或切回源码核对。');
@@ -484,6 +549,7 @@ export function VisualEditor(props: VisualEditorProps) {
       const lifecycle = instanceVersion.current;
       const task = (async () => {
         loadingRef.current = true;
+        docVersion.current++;
         instance.refreshEditable();
         try {
           while (
@@ -523,7 +589,7 @@ export function VisualEditor(props: VisualEditorProps) {
       })();
       loadPromise.current = task;
     },
-    [recoverDraft],
+    [recoverDraft, clearSelection],
   );
 
   useEffect(() => {
@@ -535,6 +601,7 @@ export function VisualEditor(props: VisualEditorProps) {
   useEffect(() => {
     const host = mount.current;
     if (!host) return;
+    clearSelection();
     const lifecycle = ++instanceVersion.current;
     let disposed = false;
     let disposeEvent: (() => void) | undefined;
@@ -686,6 +753,38 @@ export function VisualEditor(props: VisualEditorProps) {
               toolsFrame.current = undefined;
               if (!disposed) refreshTools((value) => value + 1);
             });
+          if (loadingRef.current || blockedRef.current || !transaction) {
+            clearSelection();
+            return;
+          }
+          if (transaction.docChanged) clearSelection();
+          selectionRef.current = transaction.selection;
+          if (
+            !transaction.docChanged &&
+            transaction.selectionSet &&
+            callbacks.current.onSelection
+          ) {
+            const selection = transaction.selection;
+            const node = 'node' in selection ? selection.$from.nodeAfter : null;
+            if (node && (node.type.name === 'image' || node.type.name === 'figure'))
+              selectObject(node, selection.from);
+            else {
+              const { from, to } = instance.getSelection();
+              callbacks.current.onSelection(
+                from === to
+                  ? null
+                  : to - from > contextLimits.excerptUnits
+                    ? { error: 'tooLarge' }
+                    : boundedSelection({
+                        kind: 'text',
+                        quote: instance.getSelectedText(),
+                        ...(dirtyRef.current || pendingRef.current
+                          ? { contentState: 'draft' as const }
+                          : {}),
+                      }),
+              );
+            }
+          }
           if (
             !transaction?.docChanged ||
             loadingRef.current ||
@@ -705,6 +804,7 @@ export function VisualEditor(props: VisualEditorProps) {
       })
       .catch((error: unknown) => {
         if (!disposed) {
+          clearSelection();
           blockedRef.current = true;
           setBlocked(true);
           editorRef.current?.refreshEditable();
@@ -714,6 +814,7 @@ export function VisualEditor(props: VisualEditorProps) {
         }
       });
     return () => {
+      clearSelection();
       disposed = true;
       instanceVersion.current++;
       if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -739,7 +840,18 @@ export function VisualEditor(props: VisualEditorProps) {
         for (const url of liveUrls) URL.revokeObjectURL(url);
       }
     };
-  }, [props.client, props.projectId, props.path, showDialog, ask, flush, getDraft, recoverDraft]);
+  }, [
+    props.client,
+    props.projectId,
+    props.path,
+    showDialog,
+    ask,
+    flush,
+    getDraft,
+    recoverDraft,
+    clearSelection,
+    selectObject,
+  ]);
 
   useEffect(() => {
     const checkpoint = () => {
@@ -757,6 +869,7 @@ export function VisualEditor(props: VisualEditorProps) {
   useEffect(() => {
     const instance = editorRef.current;
     if (props.content === contentRef.current) return;
+    clearSelection();
     requestedContent.current = props.content;
     if (dirtyRef.current) {
       setStatus('外部内容已更新；保留当前编辑，请保存或切回源码核对。');
@@ -765,7 +878,7 @@ export function VisualEditor(props: VisualEditorProps) {
     if (loadingRef.current) return;
     if (instance) applyExternalContent(instance, props.content);
     else contentRef.current = props.content;
-  }, [props.content, applyExternalContent]);
+  }, [props.content, applyExternalContent, clearSelection]);
 
   useEffect(() => {
     const instance = editorRef.current;
@@ -812,6 +925,19 @@ export function VisualEditor(props: VisualEditorProps) {
       }}
     >
       <div className="visual-editor-tools" role="toolbar" aria-label="编辑工具">
+        {props.onSelection && (
+          <button
+            className="btn"
+            type="button"
+            disabled={blocked || loadingRef.current || !selectedTable(selectionRef.current)}
+            onClick={() => {
+              const table = selectedTable(selectionRef.current);
+              if (table) selectObject(table.node, table.position);
+            }}
+          >
+            选择当前表格
+          </button>
+        )}
         {format.map((group) => {
           return (
             <fieldset

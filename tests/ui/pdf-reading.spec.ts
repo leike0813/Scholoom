@@ -88,6 +88,15 @@ test('local PDF reader shares selected highlights, bookmarks and notes through t
       steps: 12,
     });
     await uiPage.mouse.up();
+    await reader.getByRole('button', { name: '附加第 1 页选区', exact: true }).click();
+    const context = uiPage
+      .locator('.agent-dock')
+      .getByRole('region', { name: '附加上下文', exact: true });
+    await context.getByLabel('查看附加上下文', { exact: true }).click();
+    await context.locator('details.menu details summary').click();
+    await expect(context.getByRole('blockquote')).toContainText('Scholoom PDF evidence 42');
+    await expect(context).toContainText('原版本第 1 页');
+    await context.getByLabel('上下文批注 1', { exact: true }).press('Escape');
     await reader.getByRole('button', { name: '保留第 1 页选区', exact: true }).click();
     await records.getByRole('textbox', { name: '新文献笔记', exact: true }).fill('用户高亮说明');
     await records.getByRole('button', { name: '保存高亮', exact: true }).click();

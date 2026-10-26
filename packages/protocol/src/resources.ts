@@ -41,7 +41,7 @@ export const resourceDescriptorSchema = object(
     path: text,
     basis: id,
     unavailableReason: text,
-    format: { enum: ['text', 'pdf', 'epub', 'html', 'unsupported'] },
+    format: { enum: ['text', 'pdf', 'epub', 'html', 'image', 'unsupported'] },
     capabilities: object({ read: flag, write: flag, readingRecords: flag, render: flag }, [
       'read',
       'write',
@@ -248,8 +248,8 @@ export function resourceFormatForName(name: string): ResourceDescriptor['format'
   if (/\.pdf$/i.test(name)) return 'pdf';
   if (/\.epub$/i.test(name)) return 'epub';
   if (/\.html?$/i.test(name)) return 'html';
-  if (/\.(png|jpe?g|gif|webp|zip|docx?|xlsx?|pptx?|exe|so|dll|wasm)$/i.test(name))
-    return 'unsupported';
+  if (/\.(png|jpe?g|gif|webp)$/i.test(name)) return 'image';
+  if (/\.(zip|docx?|xlsx?|pptx?|exe|so|dll|wasm)$/i.test(name)) return 'unsupported';
   return 'text';
 }
 export type ResourceInputs = {
