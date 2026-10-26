@@ -2,6 +2,38 @@
 
 ## ADDED Requirements
 
+### Requirement: 可信人工科研图请求
+
+系统 SHALL 提供唯一的人工产品图请求入口research.requestGraph，复用已注册图的精确身份、版本、开放配置、projectId/sessionId、原invocationId/instructionId、材料ref/basis及文字目标，返回真实invocationId/instructionId/runId。产品参数 SHALL 不能指定可信角色、工作域、worker入口或任意代码；仅由宿主绑定的product/human调用可申请，执行Agent与system内部身份不得借该入口提权。内部research.startGraph SHALL 保持host/system限制。
+
+#### Scenario: 人工连接请求并确认固定图
+
+- **WHEN** 可信产品连接请求已静态注入的固定图并提交有效材料依据
+- **THEN** 宿主经原内部broker入口启动真实执行并保留连接来源，读取材料、首次保存成果及等待，新输入仍从普通session.send进入
+
+### Requirement: 人工图请求的受理复核
+
+请求 SHALL 核对所属真实会话、项目当前信任及材料read/send权限、精确图配置和当前材料版本；预检不替代执行时再次检查。新调用 SHALL 只使用没有未完成推进的会话，不能取消或覆盖既有等待。相同输入的并发补交 SHALL 复用原受理；不同请求争用同会话须明确拒绝且不得排队新开工。同身份异参、恢复副本及未知回执继续沿原科研记录和harness事实核查。
+
+#### Scenario: 忙碌会话与伪造身份
+
+- **WHEN** 新调用选择已有未完成推进的会话，或载荷／调用方试图自行声明可信身份、代码入口或任务字段
+- **THEN** 请求明确拒绝，原等待／成果保持，不启动替代执行；原调用的同输入补交仍核对原受理
+
+#### Scenario: 材料变化或撤权
+
+- **WHEN** 请求的材料身份、basis或read/send授权不再匹配
+- **THEN** 在新业务受理前报告所属结构化诊断，不以当前同名材料或预检结果替代原引用；执行期间变化仍沿真实资源检查处理
+
+### Requirement: 项目编排保持任务权威
+
+TaskRef/workItemId、任务入口依据、sourceLinkIds和过程材料 SHALL 归项目编排；科研启动与调用记录不增加任务字段。项目服务端须先按任务文件核对选项再将明确的ResourceEvidence交给该入口。仅科研产品请求组合通过 SHALL 不能视为实际任务详情动作、任务链接保存或完整I1验收。
+
+#### Scenario: 任务侧选择材料与保存调用引用
+
+- **WHEN** 项目编排核对任务入口依据与所选来源，并取得科研真实回执
+- **THEN** 来源按明确ResourceEvidence交接，调用引用进入所属任务过程材料；科研记录不补造任务状态，完整I1仍以实际用户入口组合验收
+
 ### Requirement: 内建科研图的发现与开放配置
 
 系统 SHALL 提供有界的源码内建科研图发现及按 graphId 与整体实现版本的精确描述，返回来源、用途、配置约束、交付约定和所属节点资源标识。节点指导、模板与检查素材 SHALL 随整体实现版本追溯，不建立独立 Method 实体或提示词发布生命周期。发现或读取资源 SHALL 不启动执行、不建立研究任务、不扩大材料访问权限。

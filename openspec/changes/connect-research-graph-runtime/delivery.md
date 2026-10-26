@@ -2,7 +2,7 @@
 
 ## 当前状态与成果
 
-2026-10-25，本 change 首轮实施与本线独立验收的14项任务已完成，本轮追加4项消费核对已完成，实际结果见末节。共同源码基线仍为 `e3d58fc807827a78493dcd16e38de28c8d02766e`，未提交、推送、建立PR、同步正式规格或归档。用户在初始规划后明确要求实施，选择G1方案A，并授权 `pnpm install --frozen-lockfile`；仅安装锁定的既有依赖，锁文件和依赖声明未改。
+2026-10-26，本树已依用户追加授权同步至281277777f88aa068c948512f084f0d05150776e，0519904（含b838402）为祖先，恢复时clean。首轮14项及前轮4项成果完整保留；本轮新增7.1–7.4为可信人工请求及可组合补丁，结果见末节。下文早期e3d58fc基线、安装授权和验证日志为历史证据，本轮未安装依赖或操作其他树，也未新增提交、推送、PR、正式规格同步或归档。
 
 已核对 [design](design.md) 的模块图和时序图；实际路径是科研入口 → broker → harness → 受管worker → 项目／库资源，执行权威继续归harness。对应proposal完成判据：
 
@@ -84,3 +84,63 @@ node node_modules/@playwright/test/cli.js test --config playwright.kernel.config
 主线可按design中的7步装配清单推进I1，但须先确认有限产品请求及调用关联落点：优先评审方案A（项目侧组合，TaskRef／workItemId及调用引用留在任务／过程材料，科研schema不增加字段），方案B为科研记录增加可选同源TaskRef／workItemId并另立有界规格。两案均不能把host-only research.startGraph直接开放给客户端；操作归属、所选sourceLinkIds与入口basis核对须明确后再实施。该分支本轮仅设计，未自行选定新跨模块契约。
 
 真实科研角色及综合流程仍待用户恢复设计；可继续通用worker的机械I3验收，不能从校准图推导科研角色已具备。公共dev接入和Agent组合门由公共change的tasks 4.1保持开放。本轮止于补丁、消费核对和上述真实资源证据，不同步规格、不归档或进入科研质量验收。
+
+## 2026-10-26 同步恢复后的人工请求实施
+
+本轮已按明确恢复指令从本树正式源码继续，未再复制临时组合。恢复起点HEAD为281277777f88aa068c948512f084f0d05150776e，0519904（含b838402）为祖先；恢复前clean。同步与原17项切片通过证据为 /tmp/scholoom-sync-recovery-wyn13R/recovery.md、synchronized.json及本树日志。本轮没有覆盖既有WIP、文献工件、公共来源／历史、统一迁移或ContextItem叶schema；没有新提交或同步其他树。
+
+### 已实现入口与精确消费契约
+
+唯一人工操作为 research.requestGraph，params与ResearchGraphStart同源：
+
+- 必填projectId、sessionId、invocationId、instructionId、graphId、version、config、materials、text；materials为1–10份ResourceEvidence，text为1–32768字符，config必须通过所选源码图schema。
+- 返回真实 {invocationId,instructionId,runId}。原身份／原输入的并发补交复用受理及持久回执，异参拒绝。已恢复副本在资源预检前明确unavailable。
+- 只接受broker绑定的product/human及其已绑定范围；角色、workDomain、worker入口、TaskRef或任意额外载荷字段均不能提权。research.startGraph仍为host/system内部操作，ResearchToolsPort明确不包含人工请求，不向执行Agent新增该工具。
+- 使用真实session、图目录及instructionResources核对origin信任、目标读取、库read/send、实际ref/basis和read能力；实际worker继续核查版本／资格。新请求不得抢占queued/running/cancelling/waiting，不取消旧推进、不自动新建会话。
+- 经过内部research.startGraph → harness.startGraph → 原受管worker；原workbenchSource从宿主上下文保留至初始指令。图描述／executionGraphs／worker仍同源测试注入，生产集合为空。
+
+项目侧已定方案A，不再等待同一产品方向重复定案。本线提供上述唯一调用；项目线拥有服务端TaskRef/workItemId、任务entry basis与sourceLinkIds核对，薄挂载任务详情动作，并将回执及必要依据写入任务process材料、以任务新basis条件保存结果链接。科研schema／记录不加任务字段，不另开第二个启动入口。完整字段及双方文件符号归属见design的“恢复后的实施决定”。
+
+### 最终受理与独立公共补充
+
+独立复核发现预检后的await窗口仍可能撤权或被普通消息形成的waiting抢占；本轮创建独立 guard-harness-admission 公共增量。Harness.send只增加可选同步admit参数及原事务内一次调用；科研私有WeakMap以宿主新建signal绑定权限／当前会话检查，内部broker保持signal身份，finally释放标记。旧host、历史查询、来源及checkpoint权威不改。
+
+公共与私有补丁分开，公共提供者不依赖科研业务字段；公共独立测试只使用已存在的domain-execution-worker和原资源端口。其实际验证与复审见 ../guard-harness-admission/delivery.md。本线恢复副本问题另在request授权前检查本域restored标记，避免先访问旧材料引用。
+
+### 实际验证和保留的首次失败
+
+本次只使用本树已有依赖，Linux／Node24／pnpm11.10.0。先完成共享构建，再运行固定产物；包和tools类型检查为无emit，测试运行中没有重建共享产物。
+
+| 操作 | 结果与原始证据 |
+| --- | --- |
+| pnpm --config.optimisticRepeatInstall=false build:shared | 通过；/tmp/scholoom-research-request-build-final.log |
+| pnpm --config.optimisticRepeatInstall=false -r typecheck；node node_modules/typescript/bin/tsc --noEmit -p tsconfig.tools.json | 全包与tools通过；/tmp/scholoom-research-request-types-final.log |
+| 6文件kernel组合，见下方命令 | 47/47通过，4.1分钟；/tmp/scholoom-research-request-final.log |
+| architecture、生成器self-test及格式归一化映射核对 | 13模块／200文件，0 findings／exceptions；派生映射一致 |
+| 改动源码Biome、3个本线change的OpenSpec strict、diff空白检查 | 通过；只验证本次范围，不声称全仓CI |
+
+固定组合命令：
+
+    node node_modules/@playwright/test/cli.js test --config playwright.kernel.config.ts \
+      tests/kernel/harness-admission.spec.ts tests/kernel/research-graphs.spec.ts \
+      tests/kernel/research-module.spec.ts tests/kernel/execution-history.spec.ts \
+      tests/kernel/research-capabilities.spec.ts tests/kernel/registered-graph.spec.ts \
+      --output test-results/research-request-final
+
+47项包括公共admission1、历史6、原注册图14、旧材料分析11、科研图12、科研模块3。科研测试已改从真实connectProduct请求，覆盖项目／库取材、首次成果、等待普通确认、取消、重启、丢回执与部分保存；同输入并发、伪造上下文／额外参数、精确版本／配置、材料basis、撤权、归档和两项最终受理竞态均有实际结果。恢复副本还核对请求不描述旧资源。未安装任务提供者或用成功替身冒充任务I1。
+
+最初未重建产物时，新产品操作未注册而返回permissionDenied，保留 /tmp/scholoom-research-request-red.log；首次已构建组合29通过／1失败，恢复副本错误返回permissionDenied，保留 /tmp/scholoom-research-request-tests.log。修复前两项最终受理探针都错误返回成功run，保留 /tmp/scholoom-research-admission-red.log；只延迟真实project.check返回，未改业务权限或伪造成功结果。修复后上述47项通过，没有增加生产或测试时限。
+
+独立只读审查Agent（gpt-6.1-sol／high）发现并复核关闭两项P2：最终同步admit在重放之后且新写入之前，无await窗口；私有signal不能由公共schema伪造；恢复标记与source传播正确。复审没有运行构建／测试，最终实跑由父Agent核对。所有合成profile、项目、库、输出各用唯一临时目录，fixture关闭其app／worker；无真实Key／用户库或常驻开发服务器。
+
+### 可审查补丁与停止边界
+
+交接目录为 /tmp/scholoom-research-request-handoff-DNDj0C/，包含：
+
+1. 0001-guard-harness-admission.patch：两行通用harness变化、公共独立测试及该change的7个工件。
+2. 0002-connect-research-request.patch：本轮科研协议、派生映射、窄适配、kernel注册／source传递、实际消费测试、开发约定和原tasks／delivery更新；不含公共runtime或新公共测试的重复补丁。
+3. manifest.json及build.log、types.log、kernel.log、red-api.log、first-integration.log、red-final-admission.log：相对2812777的完整文件归属及首次／最终结果。
+
+只生成补丁和只读git apply --check／reverse --check核对，没有新建工作树、复制其他线私有实现或应用到dev。顺序为公共补充→科研私有补丁→项目线消费同一research.requestGraph并组合任务详情／process材料。共享符号只改Harness.send的可选受理检查、application科研graph ports／内部handler、researchOperations／派生business映射；没有修改公共历史、迁移、TaskRef schema、Workbench/tab或阅读图片消费者。
+
+本轮已定有界适配完成。仍需项目真实提供者、任务服务端选项核对、详情动作和过程／结果链接保存的实际组合，才可验收完整I1。真实综合Graph、科研模型角色、I2、自定义Graph继续后置；没有编造synthesizer／reviewer或新增Method。没有新增UI／双宿主、Windows／macOS、分发包、全仓CI或真实科研质量通过结论，不自动开展下一阶段、归档、推送或PR。

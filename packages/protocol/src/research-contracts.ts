@@ -151,6 +151,11 @@ export const researchGraphCallSchema = object(
   ['kind', 'id', ...researchGraphStartSchema.required, 'graph', 'createdAt'],
 );
 
+export const researchGraphReceiptSchema = object(
+  { invocationId: id, instructionId: id, runId: id },
+  ['invocationId', 'instructionId', 'runId'],
+);
+
 export const researchGraphDeliverySchema = object(
   {
     delivery: { enum: ['pending', 'usable', 'incomplete'] },
@@ -180,6 +185,11 @@ export const researchGraphDeliverySchema = object(
 );
 
 export const researchOperations = {
+  'research.requestGraph': {
+    semantics: { effect: 'write', returns: 'reference', waitMs: 5000 },
+    params: researchGraphStartSchema,
+    result: researchGraphReceiptSchema,
+  },
   'research.graphs': {
     semantics: { effect: 'read', returns: 'result', waitMs: 5000 },
     params: object({ offset: count, limit: page }, []),

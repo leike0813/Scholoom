@@ -86,6 +86,15 @@ async function fixture(withLibrary = false) {
   }
 }
 
+async function requestGraph(app: KernelApplication, input: ResearchGraphStart) {
+  const product = app.connectProduct();
+  try {
+    return await product.call('research.requestGraph', input);
+  } finally {
+    product.close();
+  }
+}
+
 async function graphCall(app: KernelApplication, input: ResearchGraphStart) {
   const result = await app.call('research.graphCalls', {
     projectId: input.projectId,
@@ -139,19 +148,21 @@ test('research graph reads project and managed library text, waits and delivers 
       { materials: [] },
       { modulePath: '/untrusted/worker.mjs' },
     ])
-      await expect(
-        app.startResearchGraph({ ...f.input, ...changed } as never),
-      ).rejects.toMatchObject({
+      await expect(requestGraph(app, { ...f.input, ...changed } as never)).rejects.toMatchObject({
         code: 'invalidRequest',
       });
 
     const [receipt, replay] = await Promise.all([
-      app.startResearchGraph(f.input),
-      app.startResearchGraph(f.input),
+      requestGraph(app, f.input),
+      requestGraph(app, f.input),
     ]);
     expect(replay).toEqual(receipt);
+    expect(
+      (await app.snapshot(f.scope)).messages.find((item) => item.id === f.input.instructionId)
+        ?.source,
+    ).toBeDefined();
     await expect(
-      app.startResearchGraph({ ...f.input, invocationId: randomUUID() }),
+      requestGraph(app, { ...f.input, invocationId: randomUUID() }),
     ).rejects.toMatchObject({ code: 'invalidRequest' });
     expect(await app.call('research.attempts', f.scope)).toEqual({ attempts: [] });
     await waitFor(app, f.input, 'waiting');
@@ -175,9 +186,9 @@ test('research graph reads project and managed library text, waits and delivers 
     app = new KernelApplication(f.profile, f.options);
     await app.initialize();
     expect((await graphCall(app, f.input)).executions).toEqual(waiting.executions);
-    expect(await app.startResearchGraph(f.input)).toEqual(receipt);
+    expect(await requestGraph(app, f.input)).toEqual(receipt);
     await expect(
-      app.startResearchGraph({ ...f.input, config: { ...f.input.config, goal: 'changed goal' } }),
+      requestGraph(app, { ...f.input, config: { ...f.input.config, goal: 'changed goal' } }),
     ).rejects.toMatchObject({ code: 'invalidRequest' });
 
     const unmatched = {
@@ -242,7 +253,7 @@ test('research graph reads project and managed library text, waits and delivers 
     } finally {
       checkpoint.database.close();
     }
-    expect(await app.startResearchGraph(f.input)).toEqual(receipt);
+    expect(await requestGraph(app, f.input)).toEqual(receipt);
     expect(await readFile(join(f.project.path, 'report.md'), 'utf8')).toBe(bytes);
     expect((await stat(join(f.project.path, 'report.md'), { bigint: true })).ino).toBe(
       identity.ino,
@@ -255,7 +266,7 @@ test('research graph reads project and managed library text, waits and delivers 
       instructionId: randomUUID(),
       config: { ...f.input.config, outputPath: 'second-report.md' },
     };
-    const second = await app.startResearchGraph(independent);
+    const second = await requestGraph(app, independent);
     await waitFor(app, independent, 'waiting');
     expect(second.runId).not.toBe(receipt.runId);
     expect((await graphCall(app, f.input)).executions).toEqual(completed.executions);
@@ -287,12 +298,229 @@ test('research graph reads project and managed library text, waits and delivers 
       check: { delivery: 'incomplete' },
     });
     expect(copy.error?.code).toBe('unavailable');
-    await expect(app.startResearchGraph(copyInput)).rejects.toMatchObject({ code: 'unavailable' });
+    const describe = app.resources.describe.bind(app.resources);
+    let described = 0;
+    app.resources.describe = async (...args) => {
+      described++;
+      return describe(...args);
+    };
+    try {
+      await expect(requestGraph(app, copyInput)).rejects.toMatchObject({ code: 'unavailable' });
+      expect(described).toBe(0);
+    } finally {
+      app.resources.describe = describe;
+    }
     expect(await readFile(join(restored.path, 'report.md'), 'utf8')).toBe(bytes);
   } finally {
     await app.close();
   }
 });
+
+test('human graph requests reject untrusted context, payloads and stale authority before recording intent', async () => {
+  const f = await fixture(true);
+  try {
+    for (const context of [
+      { role: 'execution' as const, principal: { kind: 'agent' as const, id: 'agent' } },
+      { role: 'host' as const, principal: { kind: 'system' as const, id: 'host' } },
+      {
+        role: 'product' as const,
+        principal: { kind: 'human' as const, id: 'local' },
+        projectId: 'other',
+      },
+      {
+        role: 'product' as const,
+        principal: { kind: 'human' as const, id: 'local' },
+        sessionId: 'other',
+      },
+    ])
+      expect(() =>
+        f.app.research.graphCalls.request(f.input, { moduleId: 'research', ...context }),
+      ).toThrow(expect.objectContaining({ code: 'permissionDenied' }));
+    for (const extra of [
+      { role: 'host' },
+      { workDomain: { kind: 'project', ...f.scope } },
+      { workerEntry: '/tmp/worker.mjs' },
+      { task: { projectId: f.project.id, taskId: 'task', fileId: 'file' } },
+      { config: { outputPath: 'report.md', goal: 'check', code: 'arbitrary' } },
+    ])
+      await expect(requestGraph(f.app, { ...f.input, ...extra } as never)).rejects.toMatchObject({
+        code: 'invalidRequest',
+      });
+    await expect(requestGraph(f.app, { ...f.input, version: 'missing' })).rejects.toMatchObject({
+      code: 'notFound',
+    });
+    await expect(
+      requestGraph(f.app, {
+        ...f.input,
+        materials: f.input.materials.map((m) => ({ ...m, basis: 'stale' })),
+      }),
+    ).rejects.toMatchObject({ code: 'contentChanged' });
+    await f.app.call('project.grant', {
+      projectId: f.project.id,
+      trust: 'restricted',
+      autoBackup: false,
+    });
+    await expect(requestGraph(f.app, f.input)).rejects.toMatchObject({ code: 'permissionDenied' });
+    await f.app.call('project.grant', {
+      projectId: f.project.id,
+      trust: 'trusted',
+      autoBackup: false,
+    });
+    await f.app.call('library.grant', { read: true, write: true, send: false, autoBackup: false });
+    await expect(requestGraph(f.app, f.input)).rejects.toMatchObject({ code: 'permissionDenied' });
+    await f.app.call('library.grant', { read: true, write: true, send: true, autoBackup: false });
+    await f.app.call('session.archive', { ...f.scope, archived: true });
+    await expect(requestGraph(f.app, f.input)).rejects.toMatchObject({ code: 'invalidRequest' });
+    expect((await f.app.call('research.graphCalls', f.scope)).calls).toEqual([]);
+    await expect(stat(join(f.project.path, 'report.md'))).rejects.toMatchObject({ code: 'ENOENT' });
+  } finally {
+    await f.app.close();
+  }
+});
+
+test('human graph admission rechecks revocation after waiting and refuses a competing request', async () => {
+  const f = await fixture();
+  let release = () => {};
+  let entered = () => {};
+  const held = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const observed = new Promise<void>((resolve) => {
+    entered = resolve;
+  });
+  const describe = f.app.resources.describe.bind(f.app.resources);
+  let first = true;
+  f.app.resources.describe = async (...args) => {
+    const result = await describe(...args);
+    if (first) {
+      first = false;
+      entered();
+      await held;
+    }
+    return result;
+  };
+  let pending: ReturnType<typeof requestGraph> | undefined;
+  try {
+    pending = requestGraph(f.app, f.input);
+    const rejected = expect(pending).rejects.toMatchObject({ code: 'permissionDenied' });
+    await observed;
+    await expect(
+      requestGraph(f.app, { ...f.input, invocationId: randomUUID(), instructionId: randomUUID() }),
+    ).rejects.toMatchObject({ code: 'invalidRequest' });
+    await f.app.call('project.grant', {
+      projectId: f.project.id,
+      trust: 'restricted',
+      autoBackup: false,
+    });
+    release();
+    await rejected;
+    expect((await f.app.call('research.graphCalls', f.scope)).calls).toEqual([]);
+    await f.app.call('project.grant', {
+      projectId: f.project.id,
+      trust: 'trusted',
+      autoBackup: false,
+    });
+    const [a, b] = await Promise.all([requestGraph(f.app, f.input), requestGraph(f.app, f.input)]);
+    expect(a).toEqual(b);
+    await waitFor(f.app, f.input, 'waiting');
+    await expect(
+      requestGraph(f.app, { ...f.input, invocationId: randomUUID(), instructionId: randomUUID() }),
+    ).rejects.toMatchObject({ code: 'invalidRequest' });
+    expect((await graphCall(f.app, f.input)).executions).toHaveLength(1);
+    expect((await f.app.call('research.graphCalls', f.scope)).calls).toHaveLength(1);
+  } finally {
+    release();
+    await pending?.catch(() => {});
+    await f.app.close();
+  }
+});
+
+for (const boundary of ['revoke', 'waiting'] as const) {
+  test(`human graph final admission protects ${boundary} after the host check waits`, async () => {
+    const f = await fixture(boundary === 'revoke');
+    let release = () => {};
+    let entered = () => {};
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const observed = new Promise<void>((resolve) => {
+      entered = resolve;
+    });
+    let pending: ReturnType<typeof requestGraph> | undefined;
+    try {
+      if (boundary === 'waiting') {
+        await requestGraph(f.app, f.input);
+        await waitFor(f.app, f.input, 'waiting');
+        await f.app.call('session.send', {
+          ...f.scope,
+          instructionId: randomUUID(),
+          text: '{"confirm":true}',
+          materials: [],
+        });
+        await waitFor(f.app, f.input, 'completed');
+      }
+      const project = f.app.harnessProject.bind(f.app);
+      let first = true;
+      f.app.harnessProject = (context) => {
+        const port = project(context);
+        return {
+          ...port,
+          'project.check': async (input) => {
+            const result = await port['project.check'](input);
+            if (first && input.access === 'send') {
+              first = false;
+              entered();
+              await gate;
+            }
+            return result;
+          },
+        };
+      };
+      const input = {
+        ...f.input,
+        invocationId: randomUUID(),
+        instructionId: randomUUID(),
+        config: { ...f.input.config, outputPath: 'new-report.md' },
+      };
+      pending = requestGraph(f.app, input);
+      const rejected = expect(pending).rejects.toMatchObject({
+        code: boundary === 'revoke' ? 'permissionDenied' : 'invalidRequest',
+      });
+      await observed;
+      let ordinary: { runId: string } | undefined;
+      if (boundary === 'revoke')
+        await f.app.call('library.grant', {
+          read: true,
+          write: true,
+          send: false,
+          autoBackup: false,
+        });
+      else {
+        ordinary = await f.app.call('session.send', {
+          ...f.scope,
+          instructionId: randomUUID(),
+          text: 'Continue calibration.',
+          materials: [],
+        });
+        await waitFor(f.app, f.input, 'waiting');
+      }
+      release();
+      await rejected;
+      const snapshot = await f.app.snapshot(f.scope);
+      expect(snapshot.messages.some((item) => item.id === input.instructionId)).toBe(false);
+      expect((await graphCall(f.app, input)).executions).toHaveLength(0);
+      if (ordinary) expect(snapshot.run).toMatchObject({ id: ordinary.runId, state: 'waiting' });
+      else expect(snapshot.run).toBeUndefined();
+      await expect(stat(join(f.project.path, 'new-report.md'))).rejects.toMatchObject({
+        code: 'ENOENT',
+      });
+    } finally {
+      release();
+      await pending?.catch(() => {});
+      await f.app.close();
+    }
+  });
+}
 
 test('research replay rejects changed text from an instruction already accepted by harness', async () => {
   const f = await fixture();
@@ -311,7 +539,7 @@ test('research replay rejects changed text from an instruction already accepted 
       },
     });
     await waitFor(f.app, f.input, 'waiting');
-    await expect(f.app.startResearchGraph({ ...f.input, text: 'B' })).rejects.toMatchObject({
+    await expect(requestGraph(f.app, { ...f.input, text: 'B' })).rejects.toMatchObject({
       code: 'invalidRequest',
     });
     expect(await graphCall(f.app, f.input)).toMatchObject({
@@ -331,7 +559,7 @@ test('an unknown creation remains incomplete until its original owner reconciles
     store.database.exec(
       "CREATE TRIGGER reject_creation BEFORE INSERT ON file_references BEGIN SELECT RAISE(ABORT, 'synthetic registration failure'); END",
     );
-    await f.app.startResearchGraph(f.input);
+    await requestGraph(f.app, f.input);
     await waitFor(f.app, f.input, 'failed');
     const original = await graphCall(f.app, f.input);
     expect(original.executions[0]).toMatchObject({
@@ -385,7 +613,7 @@ test('cancelling an accepted save preserves its original receipt and execution q
     };
   };
   try {
-    const receipt = await f.app.startResearchGraph(f.input);
+    const receipt = await requestGraph(f.app, f.input);
     await expect.poll(() => published, { timeout: 20000 }).toBe(true);
     const bytes = await readFile(join(f.project.path, 'report.md'), 'utf8');
     const cancelled = f.app.call('session.cancel', f.scope);
@@ -425,10 +653,10 @@ for (const boundary of ['association', 'revoke', 'cancel', 'receipt'] as const) 
           "CREATE TRIGGER lose_research_receipt BEFORE UPDATE ON research_attempts WHEN json_extract(NEW.value, '$.kind') = 'graph' BEGIN SELECT RAISE(ABORT, 'synthetic lost receipt'); END",
         );
       if (boundary === 'receipt')
-        await expect(app.startResearchGraph(f.input)).rejects.toMatchObject({
+        await expect(requestGraph(app, f.input)).rejects.toMatchObject({
           code: 'outcomeUnknown',
         });
-      else await app.startResearchGraph(f.input);
+      else await requestGraph(app, f.input);
       await waitFor(app, f.input, boundary === 'association' ? 'failed' : 'waiting');
       const original = await graphCall(app, f.input);
       const execution = original.executions[0];
@@ -518,7 +746,7 @@ for (const boundary of ['association', 'revoke', 'cancel', 'receipt'] as const) 
           resource: creation.resource,
         });
       } else if (boundary === 'receipt') {
-        expect(await app.startResearchGraph(f.input)).toMatchObject({
+        expect(await requestGraph(app, f.input)).toMatchObject({
           invocationId: f.input.invocationId,
           instructionId: f.input.instructionId,
           runId: execution.run.id,

@@ -313,6 +313,8 @@ pnpm kernel cancel --project PROJECT_ID --session SESSION_ID
 
 科研图通过 `research.graphs` 分页发现、`research.graph` 精确读取版本描述；`research.graphCalls` 按项目／会话及可选 invocationId 查询业务调用、真实执行与交付检查，默认每页25条、最多100条，响应最多512KiB。每项执行历史默认25条，`nextExecutionOffset` 可随指定调用的 `executionOffset` 继续读取。查询会按调用者当前资源权限核查材料与成果，保留实际依据和失败诊断，不启动执行或自动补关联；`usable` 不表示科研充分性已评估。恢复副本的旧资源引用保留原来源并提示核查，不自动访问原项目或重新开工。
 
+人工产品请求通过唯一的 `research.requestGraph` 提交：`{projectId,sessionId,invocationId,instructionId,graphId,version,config,materials,text}`，返回 `{invocationId,instructionId,runId}`。仅接受宿主绑定的product/human身份；图、开放配置、会话、read/send权限及材料ref/basis均复核。相同输入补交复用受理，不同请求不能抢占现有等待；worker继续即时授权。最终受理检查在harness指令／run事务写入前同步执行，检查闭包不进入RPC载荷。内部 `research.startGraph` 仍仅供host/system，执行Agent工具没有人工启动操作。TaskRef/workItemId、任务entry basis和sourceLinkIds归项目服务端编排，确认后只交本操作的明确材料；任务详情动作与process材料整合仍由项目线验收。默认目录为空，校准图只由测试静态注入。
+
 宿主内部 `research.startGraph` 接受稳定 invocationId／instructionId、精确图版本、开放配置及 ResourceEvidence，复用 `harness.startGraph`；普通消息仍沿 `session.send` 接续，取消沿原会话入口。`harness.executions` 只供已登记内部宿主消费，按 runId、instructionId 或 originInstructionId 三种明确选择器之一查询同会话历史；按原指令查询同时返回所属原消息，核对未知回执。来源由宿主建立，普通接续继承，显式新启动另起来源，不能凭相同配置推断调用关系。科研记录不复制运行状态、进程或 checkpoint。生产 Graph 集合仍为空，固定校准图仅在 `tests/fixtures/research-graph-worker` 的科研目录及 worker 同源装配；`research-graphs.spec.ts` 验证真实科研模块、broker、项目／库、首次成果、等待、取消和恢复，不能据此宣称真实综合流程或任务整合已交付。
 
 `pnpm test:kernel` 使用外部 HTTP 模型夹具，内部图、工具、文件和数据库均为真实实现。真实模型验收需显式运行 `SCHOOLOOM_LIVE_MODEL_TEST=1 pnpm test:kernel tests/kernel/minimax-live.spec.ts`，只使用隔离合成样本；默认测试不会使用真实 Key。该验证检查接线及可判定结果，不代表完整科研质量验收。

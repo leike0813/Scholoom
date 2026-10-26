@@ -81,3 +81,9 @@ node node_modules/@playwright/test/cli.js test --config playwright.kernel.config
 Agent组合保留公共harnessModuleOperations和delegationInternalOperations，runtime同时消费执行历史及委派身份；从最终schema生成映射。history、真实委派、A1授权回归及harness模块组合24/24通过，日志 `/tmp/scholoom-round3-history-agent-tests.log`。独立只读复核共享符号未见遗漏。Agent私有实现未随此次公共接入进入dev；这证明兼容组合，不代表消费者已同步或I3业务完成。
 
 tasks 4.1已完成，用户同步及消费者核对分为4.2保持开放。Linux隔离样本，不含真实模型、Windows／macOS或分发包验收；本change不归档。
+
+## 2026-10-26 消费同步已完成
+
+用户明确追加授权主线同步验证后恢复，取代此前等待手动同步的条件。本树HEAD为281277777f88aa068c948512f084f0d05150776e，0519904（含b838402）已是祖先，恢复前git clean；恢复后已只读核对。证据为/tmp/scholoom-sync-recovery-wyn13R/{recovery.md,synchronized.json}及本树日志：共享／桌面／宿主构建、包与tools类型、architecture、映射核对和原17项内核通过。tasks 4.2闭合，本轮不重做公共历史。
+
+当前人工请求工作另归connect-research-graph-runtime，新增最终受理回调另归guard-harness-admission；本线没有自行同步其他树或开展新的dev组合。同步与局部回归不能作为完整I1／I3、真实科研质量或Windows／macOS验收。

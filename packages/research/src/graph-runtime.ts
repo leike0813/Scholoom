@@ -25,6 +25,7 @@ import { attempts } from './schema.js';
 export type ResearchGraphPorts = {
   start(
     input: HarnessModuleInputs['harness.startGraph'],
+    context?: CallContext,
   ): Promise<HarnessModuleOutputs['harness.startGraph']>;
   executions(
     input: HarnessModuleInputs['harness.executions'],
@@ -33,9 +34,18 @@ export type ResearchGraphPorts = {
     input: ResourceInputs['resources.read'],
     context: CallContext,
   ): Promise<ResourceOutputs['resources.read']>;
+  request?: {
+    authorize(input: ResearchGraphStart, context: CallContext): Promise<() => void>;
+    start(
+      input: ResearchGraphStart,
+      context: CallContext,
+      check: () => void,
+    ): Promise<ResearchOutputs['research.requestGraph']>;
+  };
 };
 const startContract = compileContract(researchModuleOperations['research.startGraph']);
 const queryContract = compileContract(researchOperations['research.graphCalls']);
+const requestContract = compileContract(researchOperations['research.requestGraph']);
 // Creation identities must also fit the project's filesystem-safe operation namespace.
 export const graphArtifactOperation = (originInstructionId: string, role: string) =>
   `graph_${createHash('sha256')
@@ -43,6 +53,13 @@ export const graphArtifactOperation = (originInstructionId: string, role: string
     .digest('hex')}`;
 
 export class ResearchGraphRuntime {
+  private readonly requests = new Map<
+    string,
+    {
+      input: ResearchGraphStart;
+      result: Promise<ResearchOutputs['research.requestGraph']>;
+    }
+  >();
   constructor(
     private readonly catalog: ResearchGraphs,
     private readonly records: (projectId: string) => ResearchRecords['db'],
@@ -50,6 +67,68 @@ export class ResearchGraphRuntime {
     private readonly ports: ResearchGraphPorts | undefined,
     private readonly notify: (projectId: string, sessionId: string) => void,
   ) {}
+
+  request(
+    input: ResearchGraphStart,
+    context: CallContext,
+  ): Promise<ResearchOutputs['research.requestGraph']> {
+    if (context.role !== 'product' || context.principal.kind !== 'human')
+      throw new OperationError('permissionDenied', '科研图请求需要可信人工入口。');
+    if (!requestContract.params(input))
+      throw new OperationError('invalidRequest', '科研图请求输入无效。');
+    if (
+      (context.projectId && context.projectId !== input.projectId) ||
+      (context.sessionId && context.sessionId !== input.sessionId)
+    )
+      throw new OperationError('permissionDenied', '科研图请求不属于当前范围。');
+    const ports = this.ports;
+    const request = ports?.request;
+    if (!ports || !request) throw new OperationError('unavailable', '科研图人工请求端口未装配。');
+    input = structuredClone(input);
+    this.catalog.select(input.graphId, input.version, input.config);
+    const key = JSON.stringify([input.projectId, input.sessionId]);
+    const pending = this.requests.get(key);
+    if (pending) {
+      if (!isDeepStrictEqual(pending.input, input))
+        throw new OperationError('invalidRequest', '当前会话正在受理另一科研请求。');
+      return pending.result;
+    }
+    const result = (async () => {
+      context.signal?.throwIfAborted();
+      await this.session({ projectId: input.projectId, sessionId: input.sessionId });
+      const prior = this.records(input.projectId)
+        .select()
+        .from(attempts)
+        .where(eq(attempts.id, graphArtifactOperation(input.invocationId, 'call')))
+        .get()?.value;
+      if (prior && 'kind' in prior && prior.restoredFromProjectId)
+        throw new OperationError('unavailable', '恢复副本需要核查材料与成果后发起新调用。');
+      const check = await request.authorize(input, context);
+      const accepted = await ports.executions({
+        projectId: input.projectId,
+        sessionId: input.sessionId,
+        instructionId: input.instructionId,
+        limit: 1,
+      });
+      const session = await this.session({
+        projectId: input.projectId,
+        sessionId: input.sessionId,
+      });
+      if (session.archived) throw new OperationError('invalidRequest', '会话已归档。');
+      if (
+        ['queued', 'running', 'cancelling', 'waiting'].includes(session.state) &&
+        accepted.runs[0]?.graph?.originInstructionId !== input.instructionId
+      )
+        throw new OperationError('invalidRequest', '请先选择没有未完成推进的会话。');
+      context.signal?.throwIfAborted();
+      check();
+      return request.start(input, context, check);
+    })();
+    this.requests.set(key, { input, result });
+    return result.finally(() => {
+      if (this.requests.get(key)?.result === result) this.requests.delete(key);
+    });
+  }
 
   async start(
     input: ResearchGraphStart,
@@ -129,23 +208,26 @@ export class ResearchGraphRuntime {
       throw new OperationError('outcomeUnknown', '原执行记录当前无法核查。');
     let receipt: { instructionId: string; runId: string };
     try {
-      receipt = await this.ports.start({
-        projectId: input.projectId,
-        sessionId: input.sessionId,
-        instructionId: input.instructionId,
-        text: input.text,
-        execution: {
-          kind: 'registered',
-          graphId: input.graphId,
-          version: input.version,
-          config: input.config,
-          materials: input.materials,
-          workDomain:
-            input.projectId === 'application'
-              ? { kind: 'application', projectId: 'application', sessionId: input.sessionId }
-              : { kind: 'project', projectId: input.projectId, sessionId: input.sessionId },
+      receipt = await this.ports.start(
+        {
+          projectId: input.projectId,
+          sessionId: input.sessionId,
+          instructionId: input.instructionId,
+          text: input.text,
+          execution: {
+            kind: 'registered',
+            graphId: input.graphId,
+            version: input.version,
+            config: input.config,
+            materials: input.materials,
+            workDomain:
+              input.projectId === 'application'
+                ? { kind: 'application', projectId: 'application', sessionId: input.sessionId }
+                : { kind: 'project', projectId: input.projectId, sessionId: input.sessionId },
+          },
         },
-      });
+        context,
+      );
     } catch (error) {
       try {
         db.update(attempts)

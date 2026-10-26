@@ -6,6 +6,8 @@
 
 ## What Changes
 
+- 恢复后的本轮新增唯一人工产品操作research.requestGraph，复用原启动参数／回执及host-only内部入口；项目侧组合任务，科研记录不增加任务字段。最终受理条件通过独立guard-harness-admission公共增量复核，不重做历史查询。
+
 - 在现有科研域增加内建图的有界发现、精确解析、开放配置与整体版本描述；节点素材随图版本维护，不建立 Method 实体或独立提示词版本系统。
 - 从科研模块经现有内部 `harness.startGraph` 接入固定图，宿主与 worker 使用同一静态注册；固定图只用于机制校准，不默认成为真实科研能力。
 - 科研业务记录关联真实 harness 尝试，保留调用身份、配置、实际材料与成果、交付缺项；运行状态、实例、等待及 checkpoint 仍归 harness。历史查询消费独立公共变更 `add-harness-execution-history` 已实现的 `harness.executions` 与宿主来源 `originInstructionId`。

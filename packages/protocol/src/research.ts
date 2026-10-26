@@ -21,7 +21,7 @@ type CompleteModule<T extends Record<keyof typeof researchModuleOperations, unkn
 export type ResearchModuleInputs = CompleteModule<ModuleInputs>;
 export type ResearchModuleOutputs = CompleteModule<ModuleOutputs>;
 export type ResearchToolsPort = {
-  [M in keyof ResearchInputs | 'research.invoke']: (
+  [M in Exclude<keyof ResearchInputs, 'research.requestGraph'> | 'research.invoke']: (
     input: M extends keyof ResearchInputs
       ? ResearchInputs[M]
       : ResearchModuleInputs['research.invoke'],

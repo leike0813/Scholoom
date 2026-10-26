@@ -2,7 +2,7 @@
 
 ## 变更总览
 
-状态：2026-10-25 用户已授权实施并选择 G1 方案 A，本树按锁文件安装既有依赖已完成。独立变更 `add-harness-execution-history` 已实现公共查询及宿主来源，科研接入已完成本线独立验收，实际结果见 [delivery](delivery.md)。未收到的任务／阅读输入继续保持边界，G3、I1、I5 未据此验收。
+状态：本树已同步至281277777f88aa068c948512f084f0d05150776e，0519904（含b838402）为祖先。公共历史消费门已闭合；本轮实现唯一人工请求research.requestGraph及最终准入守卫，实际结果见delivery。任务提供者与任务详情／process材料整合尚未进入本树，I1／I2／I3／I5不据此验收。
 
 ```mermaid
 flowchart TB
@@ -178,6 +178,22 @@ I1 由项目线负责真实任务材料与固定图接入，本线交付图入�
 
 ## 正式快照消费与I1装配
 
+### 2026-10-26 恢复后的实施决定
+
+用户已确认项目侧组合方案A并授权本轮科研人工适配；前次两案比较及“尚待产品入口定案”属于交接历史，不再作为等待条件。本树HEAD为281277777f88aa068c948512f084f0d05150776e，0519904（含b838402）为祖先，恢复时clean。同步证据为/tmp/scholoom-sync-recovery-wyn13R/{recovery.md,synchronized.json}；后续只从本树正式源码实施，不建立临时组合或重做公共历史。
+
+唯一产品操作确定为 `research.requestGraph`。参数完全复用ResearchGraphStart：projectId、sessionId、invocationId、instructionId、graphId、version、config、materials、text；返回 `{invocationId,instructionId,runId}`。科研GraphStart／GraphCall不增加TaskRef、workItemId、entry basis或sourceLinkIds；这些字段由项目服务端的任务编排核对，得到明确材料后调用本操作，并把真实回执引用写入任务process材料。项目不能另外开放图启动RPC、把host字段交renderer或绕过该适配直接调用底层harness.startGraph。
+
+本线写集：research-contracts.ts的该操作及派生business-types；ResearchGraphRuntime的人工准入及其窄端口；application.ts内科研graph ports与唯一handler、内部source传递；architecture的真实消费；research-graphs测试及科研开发说明。项目线写集：TaskRef/tasks的任务入口basis、workItem/sourceLinkIds核对、任务详情单一动作和process文件／结果链接保存。TaskRef提供者尚未安装到本树，科研单独验收不冒充任务前置已复核，真实I1继续由项目线组合。
+
+人工准入仅接受broker绑定的product/human身份并核对已绑定project/session范围；复制载荷后按图目录、真实session和当前资源核查。应用适配复用instructionResources的宿主私有准入资格，核对origin信任、目标读取及库read/send，逐个describe核对ref/basis和read能力，再由可信宿主调用内部research.startGraph；来源workbenchSource沿内部上下文传入harness，不从参数接受。每次实际worker读写仍落实当前资格。
+
+同会话仅允许一个在受理请求；同输入共享该受理Promise，不同输入明确拒绝，不建队列或执行状态副本。依据真实session状态及原instruction查询，拒绝新请求抢占queued/running/cancelling/waiting；原启动身份的补交交由既有持久科研／harness幂等核查。锁只覆盖受理过程，实际执行／checkpoint仍归harness。失败在受理前不新建科研意图；受理后的未知结果沿原身份查询。
+
+为覆盖预检后的await窗口，依赖独立公共增量 `guard-harness-admission`：Harness.send在原事务中先处理已受理重放，再执行可信宿主同步admit，之后才写指令／run。application用宿主新建AbortSignal与私有WeakMap绑定权限检查及当前session未完成状态检查；signal身份沿内部broker保留，客户端不能通过schema提供检查函数或标记。回执返回后释放该临时标记；不保存执行状态副本，不改变旧host显式选图语义。材料版本由预检describe与实际读取的强basis继续验证；恢复副本先查本域标记，在任何旧资源预检前拒绝。
+
+测试seam已经由本轮任务授权：静态注入description／executionGraphs／worker，经真实产品连接与broker申请、普通消息确认、取消和重启查询；没有新增UI布局、Graph生产注册或角色。复用现有fixture扩充稳定授权与竞态风险，不复制driver矩阵。旧材料分析继续回归。
+
 本轮输入根为 `/tmp/scholoom-phase2-handoff-VZS5mS/`，manifest.json标明各树共同基线 `e3d58fc807827a78493dcd16e38de28c8d02766e`。以下T、R、A分别是该根下 `research-task-workspace/`、`research-interaction/`、`agent-delegation/`，均为主线授权的只读快照，不是实际其他工作树。acceptance.md接收本线独立范围并报告17项定向通过；coordination-plan.md将I1交项目线、真实科研流程留待讨论。本树没有导入这些领域私有实现。
 
 ### 任务与材料映射
@@ -206,9 +222,9 @@ I1 由项目线负责真实任务材料与固定图接入，本线交付图入�
 6. 成果fileId与basis取实际complete creation／结果；同项目产物转task result链接，过程材料转process链接。重读任务再条件保存，保存冲突不能重生成成果。新会话从任务文件和process材料取得原调用引用，继续查询真实执行，不依赖旧会话聊天正文。
 7. I1由项目线最终从真实产品入口核对启动、取材、首次保存、等待确认、任务关联部分失败和新会话接续。内部broker／worker／仓储必须真实；本线mechanism样例不能替代该整合或真实综合质量验收。
 
-### 仍需主线确认的最小契约
+### 前轮候选契约（本轮已确定项目侧组合）
 
-消费字段已明确；**任务到可信科研启动的有限产品操作及调用关联落点尚未定案**，本轮停止此分支，不新增操作或DTO。
+以下保留前轮候选依据；本轮用户已确定方案A，产品操作及实际实现以本节开头的“恢复后的实施决定”为准。原未定案状态不再阻塞可信人工适配。
 
 - 方案A（优先评审）：项目侧组合已有tasks、resources和科研宿主Adapter，TaskRef／workItemId留在任务编排端；原invocation／instruction／run引用保存为任务process材料，图调用schema保持现状。理由是任务归属与任务链接已有文件权威，固定图不依赖任务模型。过程材料只记录来源引用和必要工作依据，不复制harness执行状态。
 - 方案B：科研启动／记录增加可选TaskRef与workItemId，引用项目提供者的同源schema；需要新的有界规格及接线验收，适合明确要求按任务反查科研调用时采用。目前没有该查询需求的已确认契约，不能仅为对接而先加字段。

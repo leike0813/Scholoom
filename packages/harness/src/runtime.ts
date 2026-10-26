@@ -760,6 +760,7 @@ export class Harness {
     input: HarnessInputs['session.send'],
     source?: CallContext['workbenchSource'],
     selection?: Extract<GraphExecution, { kind: 'registered' }>,
+    admit?: () => void,
   ): Promise<{ instructionId: string; runId: string }> {
     if (input.contextItems && !isContextItems(input.contextItems))
       throw new OperationError('invalidRequest', '显式上下文项不符合容量及结构约定。');
@@ -918,6 +919,7 @@ export class Harness {
       this.records(project).transaction((tx) => {
         replay = this.acceptedInstruction(project, input, selection);
         if (replay) return;
+        admit?.();
         if (input.contextItems?.length) {
           const resources = this.contextBridge?.resources?.(admissionContext);
           if (!resources) throw new OperationError('unavailable', '执行资源授权适配尚未接线。');

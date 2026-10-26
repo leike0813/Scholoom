@@ -106,6 +106,7 @@ export type Inputs = {
   'research.graphs': FromSchema<(typeof businessSchemas)['research.graphs']['params']>;
   'research.method': FromSchema<(typeof businessSchemas)['research.method']['params']>;
   'research.methods': FromSchema<(typeof businessSchemas)['research.methods']['params']>;
+  'research.requestGraph': FromSchema<(typeof businessSchemas)['research.requestGraph']['params']>;
   'resources.cancel': FromSchema<(typeof businessSchemas)['resources.cancel']['params']>;
   'resources.create': FromSchema<(typeof businessSchemas)['resources.create']['params']>;
   'resources.creation': FromSchema<(typeof businessSchemas)['resources.creation']['params']>;
@@ -231,6 +232,7 @@ export type Outputs = {
   'research.graphs': FromSchema<(typeof businessSchemas)['research.graphs']['result']>;
   'research.method': FromSchema<(typeof businessSchemas)['research.method']['result']>;
   'research.methods': FromSchema<(typeof businessSchemas)['research.methods']['result']>;
+  'research.requestGraph': FromSchema<(typeof businessSchemas)['research.requestGraph']['result']>;
   'resources.cancel': FromSchema<(typeof businessSchemas)['resources.cancel']['result']>;
   'resources.create': FromSchema<(typeof businessSchemas)['resources.create']['result']>;
   'resources.creation': FromSchema<(typeof businessSchemas)['resources.creation']['result']>;
