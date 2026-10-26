@@ -35,10 +35,11 @@ test('user invokes a declared research capability and opens its checked report',
       .getByRole('textbox', { name: '研究指令' })
       .fill('MODEL_RESEARCH 用材料分析方法处理 input.md 并保存 analysis.md');
     await uiPage.getByRole('button', { name: '发送指令' }).click();
-    await expect
-      .poll(() => readFile(join(project, 'analysis.md'), 'utf8').catch(() => ''))
-      .toContain('42');
-    await expect(uiPage.getByRole('status', { name: '执行状态' })).toContainText('执行完成');
+    // Parent/child cold startup is execution work; check the file only after its completion.
+    await expect(uiPage.getByRole('status', { name: '执行状态' })).toContainText('执行完成', {
+      timeout: 20000,
+    });
+    expect(await readFile(join(project, 'analysis.md'), 'utf8')).toContain('42');
     await expect(
       uiPage.getByRole('button', { name: '打开成果 analysis.md', exact: true }),
     ).toHaveCount(0);
@@ -115,7 +116,7 @@ test('user configures, edits safely and receives a real persisted Agent result',
     await uiPage.getByRole('button', { name: '重新读取', exact: true }).click();
     await expect(uiPage.getByRole('alert')).toHaveCount(0);
     await editor.fill('# 输入\n\n外部修改。用户补充。\n');
-    await armRpcGate(uiPage, 'files.save');
+    await armRpcGate(uiPage, 'resources.save');
     await uiPage.getByRole('button', { name: '保存文件', exact: true }).click();
     await editor.fill('# 输入\n\n保存期间的新编辑。\n');
     await releaseRpcGate(uiPage);
@@ -208,9 +209,10 @@ test('user configures, edits safely and receives a real persisted Agent result',
     await uiPage.reload();
     await expect(uiPage.getByText(/分析已保存到 result.md/)).toBeVisible();
     await armRpcGate(uiPage, 'session.create');
-    await createSession(uiPage, basename(project));
+    const creating = createSession(uiPage, basename(project));
     await expect(uiPage.getByRole('textbox', { name: '研究指令' })).toBeDisabled();
     await releaseRpcGate(uiPage);
+    await creating;
     await uiPage
       .getByRole('textbox', { name: '研究指令' })
       .fill('MODEL_FIXTURE 保留已有 result.md');

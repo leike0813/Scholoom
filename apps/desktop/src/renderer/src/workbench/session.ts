@@ -1,10 +1,12 @@
 import type { ExternalStoreAdapter, ThreadMessageLike } from '@assistant-ui/react';
 import type {
   ContextItem,
+  DelegationRecord,
   Effort,
   ErrorInfo,
   FileLocation,
   ModelOption,
+  ResourceDescriptor,
   TaskGraphInputs,
   TaskGraphOutputs,
   TaskLink,
@@ -71,6 +73,12 @@ export interface WorkbenchNotice {
 }
 
 export interface WorkbenchSession {
+  delegations?: {
+    revision: number;
+    get: (id: string) => Promise<DelegationRecord>;
+    cancel: (id: string) => Promise<DelegationRecord>;
+    open: (resource: ResourceDescriptor) => void;
+  };
   status: KernelPhase | 'sample';
   connection?: WorkbenchConnection;
   /** 用户显式附加、随下一条指令发送的上下文；与实时选择快照分别表达。 */

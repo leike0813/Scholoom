@@ -28,6 +28,11 @@ import { compileContract, OperationError } from '@scholoom/protocol/core';
 import type { GraphExecution, GraphProgress, GraphResumeInput } from '@scholoom/protocol/execution';
 import type {
   CapabilityExecution,
+  DelegationInputs,
+  DelegationRecord,
+  DelegationReport,
+  DelegationRequest,
+  DelegationRole,
   HarnessInputs,
   HarnessModuleInputs,
   HarnessModuleOutputs,
@@ -39,6 +44,8 @@ import type {
   Session,
 } from '@scholoom/protocol/harness';
 import {
+  delegationInternalOperations,
+  delegationReferenceSchema,
   harnessModuleOperations,
   isContextItems,
   workbenchContextInternalOperations,
@@ -49,7 +56,7 @@ import {
   libraryOperations,
   libraryToolMethods,
 } from '@scholoom/protocol/library';
-import type { ModelDefaults, ModelPreference } from '@scholoom/protocol/models';
+import type { ModelDefaults, ModelPreference, ModelProfile } from '@scholoom/protocol/models';
 import {
   type Artifact,
   type HarnessProjectPort,
@@ -72,7 +79,7 @@ import type {
   ResourceRef,
   ResourceSaveResult,
 } from '@scholoom/protocol/resources';
-import { resourceOperations } from '@scholoom/protocol/resources';
+import { resourceCreationOperations, resourceOperations } from '@scholoom/protocol/resources';
 import type Database from 'better-sqlite3';
 import { CompositeBackend, FilesystemBackend, registerHarnessProfile } from 'deepagents';
 import { and, desc, eq, gt, lt, or, sql } from 'drizzle-orm';
@@ -87,6 +94,7 @@ import {
   sessionScratch,
 } from './checkpoint-files.js';
 import { createFileChangeTools } from './file-change-tools.js';
+import { configuredDelegationRoles, Delegations, defaultDelegationRole } from './delegations.js';
 import { ExecutionGraphs } from './graph-registry.js';
 import {
   authorizeContextItems,
@@ -158,6 +166,118 @@ const visibleText = (message: BaseMessage): string =>
         .join('');
 
 export class Harness {
+  private readonly delegationManagers = new WeakMap<HarnessProject, Delegations>();
+  private delegationManager(project: HarnessProject): Delegations {
+    let manager = this.delegationManagers.get(project);
+    if (!manager) {
+      manager = new Delegations(
+        this.records(project),
+        project.id,
+        this.delegationOptions.roles ?? [],
+        (sessionId) => this.notify(project.id, sessionId),
+      );
+      this.delegationManagers.set(project, manager);
+    }
+    return manager;
+  }
+  delegationRoles() {
+    return { roles: configuredDelegationRoles(this.delegationOptions.roles ?? []) };
+  }
+  delegate(input: DelegationRequest, context: CallContext) {
+    this.checkExecutionContext(context);
+    return this.delegationManager(this.projects.get(context.projectId!)).delegate(input, context);
+  }
+  getDelegation(
+    input: DelegationInputs['delegation.get'],
+    context?: CallContext,
+  ): DelegationRecord {
+    this.getSession(input.projectId, input.sessionId);
+    if (context) {
+      this.checkExecutionContext(context);
+      if (context.projectId !== input.projectId || context.sessionId !== input.sessionId)
+        throw new OperationError('permissionDenied', '委派不属于当前会话。');
+    }
+    return this.delegationManager(this.projects.get(input.projectId)).get(
+      input.sessionId,
+      input.delegationId,
+    );
+  }
+  listDelegations(input: DelegationInputs['delegation.list']) {
+    this.getSession(input.projectId, input.sessionId);
+    return this.delegationManager(this.projects.get(input.projectId)).list(input);
+  }
+  cancelDelegation(input: DelegationInputs['delegation.cancel'], context?: CallContext) {
+    this.getDelegation(input, context);
+    return this.delegationManager(this.projects.get(input.projectId)).cancel(
+      input.sessionId,
+      input.delegationId,
+      context,
+    );
+  }
+  waitDelegation(input: { delegationId: string; waitMs?: number }, context: CallContext) {
+    this.checkExecutionContext(context);
+    return this.delegationManager(this.projects.get(context.projectId!)).wait(
+      input.delegationId,
+      context,
+      input.waitMs,
+    );
+  }
+  reportDelegation(input: DelegationReport, context: CallContext) {
+    this.checkExecutionContext(context);
+    this.delegationManager(this.projects.get(context.projectId!)).report(context, input);
+    return { ok: true as const };
+  }
+  executionFacts(context: CallContext): HarnessModuleOutputs['harness.executionFacts'] {
+    if (context.role !== 'execution' || context.principal.kind !== 'agent')
+      throw new OperationError('permissionDenied', '执行事实需要宿主绑定的Agent上下文。');
+    const { projectId, sessionId, runId, instanceId } = context;
+    if (!projectId || !sessionId || !runId || !instanceId) return { state: 'unknown' };
+    if (context.principal.id !== sessionId)
+      throw new OperationError('permissionDenied', '执行主体与所属会话不匹配。');
+    try {
+      this.checkExecutionContext(context);
+    } catch (error) {
+      if (error instanceof OperationError && ['instanceMismatch', 'notFound'].includes(error.code))
+        return { state: 'unknown' };
+      throw error;
+    }
+    const records = this.records(this.projects.get(projectId));
+    const instance = records
+      .select()
+      .from(tables.instances)
+      .where(eq(tables.instances.id, instanceId))
+      .get()!.value;
+    const record = records
+      .select()
+      .from(tables.delegations)
+      .where(eq(tables.delegations.childInstanceId, instanceId))
+      .get()?.value;
+    return {
+      state: 'verified',
+      principal: { kind: 'agent', id: context.principal.id },
+      projectId,
+      sessionId,
+      runId,
+      instanceId,
+      delegation: !instance.parentInstanceId
+        ? { state: 'none' }
+        : record &&
+            record.childInstanceId === instanceId &&
+            record.projectId === projectId &&
+            record.sessionId === sessionId &&
+            record.parentRunId === runId &&
+            record.parentInstanceId === instance.parentInstanceId
+          ? {
+              state: 'verified',
+              delegationId: record.id,
+              parentInstanceId: record.parentInstanceId,
+              parentRunId: record.parentRunId,
+            }
+          : { state: 'unknown' },
+      instructionContext: { state: 'unknown', reason: 'notCaptured' },
+      tool: { state: 'unknown', reason: 'notBound' },
+    };
+  }
   private readonly hostInstanceId = randomUUID();
   private readonly repositories = new Map<string, HarnessRecords>();
   private repository(project: HarnessProject) {
@@ -374,12 +494,17 @@ export class Harness {
     private readonly contextBridge?: ContextBridge,
     private readonly executionResources?: (context: CallContext) => ExecutionResourcePort,
     private readonly taskPort?: (context: CallContext) => TaskPort,
+    private readonly delegationOptions: {
+      roles?: readonly DelegationRole[];
+      resolveProfile?: (id: string, context: CallContext) => Promise<ModelProfile>;
+    } = {},
   ) {}
 
   async initialize(): Promise<void> {
     for (const project of this.projects.all()) {
       if (this.initialized.has(project)) continue;
       this.initialized.add(project);
+      this.delegationManager(project).initialize();
       const directory = join(project.internal, 'pending-artifacts');
       await privateDirectory(directory);
       for (const entry of (await readdir(directory)).slice(0, 100)) {
@@ -1992,17 +2117,22 @@ export class Harness {
           return result;
         },
       });
-      const createToolMiddleware = (namespace: string, pending: Set<Promise<unknown>>) =>
+      const createToolMiddleware = (
+        namespace: string,
+        pending: Set<Promise<unknown>>,
+        toolSignal = signal,
+        delegationId?: string,
+      ) =>
         createMiddleware({
           name: 'ScholoomToolReceipts',
           wrapToolCall: (request, handler) => {
             const done = (async () => {
-              signal.throwIfAborted();
+              toolSignal.throwIfAborted();
               await this.port(project)['project.check']({
                 projectId: project.id,
                 access: 'send',
               });
-              signal.throwIfAborted();
+              toolSignal.throwIfAborted();
               const callId = request.toolCall.id;
               const key = `tool:${namespace}:${callId}`;
               const input = toolPreview(JSON.stringify(request.toolCall.args));
@@ -2011,6 +2141,17 @@ export class Harness {
                 name: request.toolCall.name,
                 input: input.text,
                 inputTruncated: input.truncated,
+                ...(delegationId
+                  ? { delegationId }
+                  : typeof request.toolCall.args.delegationId === 'string' &&
+                      [
+                        'delegate_agent',
+                        'read_delegation',
+                        'wait_delegation',
+                        'cancel_delegation',
+                      ].includes(request.toolCall.name)
+                    ? { delegationId: request.toolCall.args.delegationId }
+                    : {}),
               };
               const message: Message = {
                 id: key,
@@ -2076,7 +2217,7 @@ export class Harness {
                 this.putMessage(project, {
                   ...message,
                   state:
-                    signal.aborted ||
+                    toolSignal.aborted ||
                     (error instanceof OperationError && error.code === 'outcomeUnknown')
                       ? 'unknown'
                       : 'error',
@@ -2154,6 +2295,240 @@ export class Harness {
         };
       };
       const { signal: _progressSignal, ...progressContext } = fileContext;
+      const delegations = this.delegationManager(project);
+      delegations.bind({
+        context: { ...fileContext, signal: childSignal },
+        modelConfig: run.modelConfig ?? {
+          model: model.descriptor.model,
+          ...(model.descriptor.effort ? { effort: model.descriptor.effort } : {}),
+        },
+        tools: defaultDelegationRole.tools,
+        check: () => this.checkExecutionContext(fileContext),
+        authorize: async (request) => {
+          await this.port(project)['project.check']({ projectId: project.id, access: 'send' });
+          await authorizeContextItems(
+            this.contextBridge,
+            fileContext,
+            request.workPackage.materials,
+          );
+          this.contextBridge?.resources?.(fileContext).check(request.workPackage.materials);
+        },
+        reserve: () => {
+          ManagedNode.requireAvailable();
+          return this.processes.reserve();
+        },
+        resolveProfile: async (id) => {
+          if (!this.delegationOptions.resolveProfile)
+            throw new OperationError('unavailable', '命名模型提供者尚未接入。');
+          return this.delegationOptions.resolveProfile(id, fileContext);
+        },
+        launch: async (record, childReservation, delegationSignal) => {
+          const childInstanceId = record.childInstanceId!;
+          const childContext: CallContext = {
+            ...fileContext,
+            instanceId: childInstanceId,
+            signal: delegationSignal,
+          };
+          const check = () => this.checkExecutionContext(childContext);
+          const evidence = () => {
+            const current = delegations.get(run.sessionId, record.id);
+            return [...current.request.workPackage.materials, ...current.reads];
+          };
+          const authorize = async () => {
+            check();
+            await this.port(project)['project.check']({ projectId: project.id, access: 'send' });
+            await authorizeContextItems(this.contextBridge, childContext, evidence());
+            check();
+          };
+          const confirm = () => {
+            check();
+            const resources = this.contextBridge?.resources?.(childContext);
+            if (!resources && evidence().length)
+              throw new OperationError('unavailable', '材料授权提供者不可用。');
+            resources?.check(evidence());
+          };
+          const childModel = await this.model.execution(
+            authorize,
+            delegationSignal,
+            record.modelConfig,
+            confirm,
+            model.budget,
+          );
+          const childScratch = join(
+            project.internal,
+            'harness',
+            'sessions',
+            encodeURIComponent(run.sessionId),
+            'delegations',
+            record.id,
+            'scratch',
+          );
+          await prepareScratch(childScratch, join(project.internal, 'scratch'), false);
+          const rawBackend = new FilesystemBackend({ rootDir: childScratch, virtualMode: true });
+          const guarded = (enabled: boolean) =>
+            new Proxy(rawBackend, {
+              get(target, property, receiver) {
+                const value = Reflect.get(target, property, receiver);
+                if (typeof value !== 'function') return value;
+                return async (...args: unknown[]) => {
+                  check();
+                  if (!enabled) {
+                    const error = {
+                      code: 'permissionDenied' as const,
+                      message: '该文件工具不在委派范围；使用明确资源工具。',
+                    };
+                    const context = toolContext.getStore();
+                    if (context) context.error = error;
+                    if (property === 'uploadFiles' || property === 'downloadFiles')
+                      return (args[0] as Array<string | [string, unknown]>).map((item) => ({
+                        path: typeof item === 'string' ? item : item[0],
+                        error: 'permission_denied',
+                      }));
+                    return { error: `${error.code}: ${error.message}` };
+                  }
+                  const result = await value.apply(target, args);
+                  if (result?.error) {
+                    const context = toolContext.getStore();
+                    if (context) context.error = { code: 'unavailable', message: result.error };
+                  }
+                  return result;
+                };
+              },
+            });
+          const childTools = new Set<Promise<unknown>>();
+          if (!this.executionResources)
+            throw new OperationError('unavailable', '执行资源提供者不可用。');
+          let resourcePort: ExecutionResourcePort | undefined;
+          const resources = () =>
+            (resourcePort ??= delegations.resources(
+              childContext,
+              this.executionResources!(childContext),
+              check,
+              (item) => this.recordResourceUse(childContext, item.ref),
+            ));
+          const call = (handler: (input: never) => Promise<unknown>) => async (input: never) => {
+            try {
+              return JSON.stringify(await handler(input));
+            } catch (error) {
+              const info = failure(error);
+              const context = toolContext.getStore();
+              if (context) context.error = info;
+              return JSON.stringify({ error: info });
+            }
+          };
+          const tools = [
+            {
+              permission: 'resource.read',
+              name: 'read_context_resource',
+              description: '按工作包明确资源和原basis分片读取。',
+              schema: resourceOperations['resources.read'].params,
+              func: call((input) => resources().read(input)),
+            },
+            {
+              permission: 'resource.describe',
+              name: 'describe_delegation_resource',
+              description: '核对工作包已登记资源，不按新路径发现材料。',
+              schema: resourceOperations['resources.describe'].params,
+              func: call((input: ResourceInputs['resources.describe']) =>
+                resources().describe(input.locator),
+              ),
+            },
+            {
+              permission: 'resource.document',
+              name: 'read_delegation_document',
+              description: '按工作包明确材料依据读取解析正文，使用共同文档请求。',
+              schema: resourceOperations['resources.document'].params,
+              func: call((input: ResourceInputs['resources.document']) =>
+                resources().document(input, input.request.method, input.request.input as never),
+              ),
+            },
+            {
+              permission: 'resource.create',
+              name: 'create_delegation_resource',
+              description:
+                '仅在明确输出路径新建实际成果。使用稳定operationId，未知先核查，返回实际resource和关联状态。',
+              schema: resourceCreationOperations['resources.create'].params,
+              func: call((input) => resources().create(input)),
+            },
+            {
+              permission: 'resource.creation',
+              name: 'check_delegation_creation',
+              description: '核查本委派原创建结果，不重写文件。',
+              schema: resourceCreationOperations['resources.creation'].params,
+              func: call((input) => resources().creation(input)),
+            },
+            {
+              permission: 'resource.save',
+              name: 'save_delegation_resource',
+              description: '仅修改明确授予修订职责的输出资源，带读取basis。',
+              schema: resourceOperations['resources.save'].params,
+              func: call((input) => resources().save(input)),
+            },
+          ].filter((tool) =>
+            record.tools.includes(tool.permission as (typeof record.tools)[number]),
+          );
+          const lifecycle = instanceLifecycle(childInstanceId, instanceId);
+          const child = new RemoteAgent({
+            ...(this.workerEntry ? { workerEntry: this.workerEntry } : {}),
+            model: childModel,
+            signal: delegationSignal,
+            instanceId: childInstanceId,
+            reservation: childReservation,
+            ...lifecycle,
+            onStart: (owned) => {
+              lifecycle.onStart(owned);
+              const parentProcessId = this.records(project)
+                .select()
+                .from(tables.instances)
+                .where(eq(tables.instances.id, instanceId))
+                .get()?.value.processId;
+              delegations.started(run.sessionId, record.id, owned.identity?.pid, parentProcessId);
+            },
+            backend: trackBackend(
+              new CompositeBackend(guarded(false), {
+                '/large_tool_results/': guarded(record.tools.includes('scratch')),
+                [historyPrefix]: guarded(record.tools.includes('scratch')),
+              }),
+              childTools,
+            ),
+            resources,
+            middleware: [
+              createToolMiddleware(
+                `${run.id}:delegation:${record.id}`,
+                childTools,
+                delegationSignal,
+                record.id,
+              ),
+            ],
+            systemPrompt: `${record.role.guidance}\n你是独立子执行，只处理明确工作包，不委派、不创建任务。实际成果必须经资源工具保存，再用report_delegation提交发现、真实成果引用、未完成项和障碍。SDK文件工具仅可用自己的/large_tool_results/临时区，临时文件不算成果。`,
+            tools: [
+              ...tools,
+              {
+                name: 'report_delegation',
+                description: '提交结构化工作报告，只列真实保存资源；执行结束后由父核对。',
+                schema: delegationInternalOperations['harness.reportDelegation'].params,
+                func: call(async (input: DelegationReport) =>
+                  this.reportDelegation(input, childContext),
+                ),
+              },
+            ],
+          });
+          try {
+            await child.invoke(
+              { messages: [new HumanMessage(JSON.stringify(record.request.workPackage))] },
+              { signal: delegationSignal, recursionLimit: 1000 },
+            );
+          } catch (error) {
+            if (error instanceof OperationError && error.code === 'outcomeUnknown') {
+              childOutcomeUnknown = true;
+              rememberUnconfirmed(childInstanceId, instanceId);
+            }
+            throw error;
+          } finally {
+            await settleTools(childTools);
+          }
+        },
+      });
       const progress = this.researchProgress(progressContext);
       this.capabilityExecutors.set(run.id, {
         context: fileContext,
@@ -2279,6 +2654,62 @@ export class Harness {
                   },
                 })
               : []),
+            {
+              name: 'list_delegation_roles',
+              description: '发现宿主注册的角色、版本、指导和工具范围；不执行模型。',
+              schema: delegationInternalOperations['harness.roles'].params,
+              func: async () => JSON.stringify(this.delegationRoles()),
+            },
+            {
+              name: 'delegate_agent',
+              description:
+                '委派一次明确有界工作包。提供稳定delegationId、角色版本、目标、原材料ref/basis、输出和检查要求；返回后用wait/read核查，不把子结束当交付。独立初审只提供原始材料与标准。',
+              schema: delegationInternalOperations['harness.delegate'].params,
+              func: async (input: DelegationRequest) => {
+                try {
+                  return JSON.stringify(await this.delegate(input, fileContext));
+                } catch (error) {
+                  const info = failure(error);
+                  const context = toolContext.getStore();
+                  if (context) context.error = info;
+                  return JSON.stringify({ error: info });
+                }
+              },
+            },
+            ...(['read', 'wait', 'cancel'] as const).map((action) => ({
+              name: `${action}_delegation`,
+              description:
+                action === 'wait'
+                  ? '有限等待所属委派；到期不取消。'
+                  : action === 'cancel'
+                    ? '请求停止自己委派的子执行；查询实际收尾状态。'
+                    : '核查本会话委派的实际结果、成果和未完成项，不重跑。',
+              schema:
+                action === 'wait'
+                  ? delegationInternalOperations['harness.waitDelegation'].params
+                  : delegationReferenceSchema,
+              func: async (input: { delegationId: string; waitMs?: number }) => {
+                try {
+                  const ref = {
+                    projectId: project.id,
+                    sessionId: run.sessionId,
+                    delegationId: input.delegationId,
+                  };
+                  return JSON.stringify(
+                    action === 'wait'
+                      ? await this.waitDelegation(input, fileContext)
+                      : action === 'cancel'
+                        ? this.cancelDelegation(ref, fileContext)
+                        : this.getDelegation(ref, fileContext),
+                  );
+                } catch (error) {
+                  const info = failure(error);
+                  const context = toolContext.getStore();
+                  if (context) context.error = info;
+                  return JSON.stringify({ error: info });
+                }
+              },
+            })),
             {
               name: 'read_context_resource',
               description:
@@ -2892,10 +3323,16 @@ export class Harness {
           .run();
       }
       await settleTools(inFlightTools);
+      await this.delegationManager(project).stopParent(instanceId);
       if (childrenUnsettled())
         throw new OperationError('outcomeUnknown', '能力子执行尚未确认停止。');
       this.setRun(project, { ...run, state: 'completed', remoteOutcome: 'completed' });
     } catch (error) {
+      await this.delegationManager(project)
+        .stopParent(instanceId)
+        .catch(() => {
+          childOutcomeUnknown = true;
+        });
       await settleTools(inFlightTools);
       if (rootRequested && error instanceof OperationError && error.code === 'outcomeUnknown')
         rememberUnconfirmed(instanceId);

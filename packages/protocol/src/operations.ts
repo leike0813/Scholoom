@@ -1,3 +1,4 @@
+import { delegationOperations } from './delegation-contracts.js';
 import { editorOperations } from './editor.js';
 import { harnessOperations, harnessSnapshotSchema } from './harness.js';
 import { libraryOperations } from './library.js';
@@ -44,6 +45,7 @@ export const changeSchema = object(
 );
 
 export const businessSchemas = {
+  ...delegationOperations,
   ...workbenchContextOperations,
   ...resourceCreationOperations,
   ...resourceOperations,

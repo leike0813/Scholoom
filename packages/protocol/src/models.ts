@@ -1,6 +1,6 @@
 import type { FromSchema } from 'json-schema-to-ts';
 import { compileContract } from './core.js';
-import { array, flag, id, object, ok, text } from './schema.js';
+import { array, count, flag, id, object, ok, page, text } from './schema.js';
 
 export const effortSchema = { enum: ['low', 'medium', 'high', 'xhigh', 'max'] } as const;
 
@@ -8,6 +8,32 @@ export const modelOptionSchema = object({ id, supportsEffort: flag }, ['id', 'su
 
 export const modelPreferenceSchema = object({ model: id, effort: effortSchema }, []);
 export const runModelConfigSchema = object({ model: id, effort: effortSchema }, ['model']);
+export const modelProfileSchema = object(
+  {
+    id,
+    name: { type: 'string', minLength: 1, maxLength: 200 },
+    revision: count,
+    provider: { const: 'minimax-cn-m-plan' },
+    config: runModelConfigSchema,
+  },
+  ['id', 'name', 'revision', 'provider', 'config'],
+);
+export const saveModelProfileSchema = object(
+  {
+    id,
+    name: modelProfileSchema.properties.name,
+    expectedRevision: count,
+    config: runModelConfigSchema,
+  },
+  ['id', 'name', 'expectedRevision', 'config'],
+);
+export const modelProfilesPageSchema = object(
+  { profiles: { ...array(modelProfileSchema), maxItems: 100 }, nextOffset: count },
+  ['profiles'],
+);
+export type ModelProfile = FromSchema<typeof modelProfileSchema>;
+export type SaveModelProfile = FromSchema<typeof saveModelProfileSchema>;
+export type ModelProfilesPage = FromSchema<typeof modelProfilesPageSchema>;
 
 export const providerSchema = object(
   {
@@ -24,6 +50,21 @@ export const providerSchema = object(
 );
 
 export const modelsOperations = {
+  'provider.profiles': {
+    params: object({ offset: count, limit: page }, []),
+    result: modelProfilesPageSchema,
+    semantics: { effect: 'read', returns: 'result', waitMs: 5000 },
+  },
+  'provider.saveProfile': {
+    params: saveModelProfileSchema,
+    result: modelProfileSchema,
+    semantics: { effect: 'write', returns: 'result', waitMs: 5000 },
+  },
+  'provider.removeProfile': {
+    params: object({ id, expectedRevision: count }, ['id', 'expectedRevision']),
+    result: ok,
+    semantics: { effect: 'write', returns: 'result', waitMs: 5000 },
+  },
   'provider.configure': {
     semantics: { effect: 'write', returns: 'result', waitMs: 5000 },
     params: object({ apiKey: { type: 'string', minLength: 1, maxLength: 4096 } }, ['apiKey']),
@@ -38,6 +79,11 @@ export const modelsOperations = {
 
 export type Effort = FromSchema<typeof effortSchema>;
 export const modelsModuleOperations = {
+  'models.resolveProfile': {
+    params: object({ id }, ['id']),
+    result: modelProfileSchema,
+    semantics: { effect: 'read', returns: 'result', waitMs: 5000 },
+  },
   'models.status': {
     params: object({}, []),
     result: providerSchema,
@@ -45,9 +91,15 @@ export const modelsModuleOperations = {
   },
 } as const;
 export type ModelsModuleInputs = {
+  'models.resolveProfile': FromSchema<
+    (typeof modelsModuleOperations)['models.resolveProfile']['params']
+  >;
   'models.status': FromSchema<(typeof modelsModuleOperations)['models.status']['params']>;
 };
 export type ModelsModuleOutputs = {
+  'models.resolveProfile': FromSchema<
+    (typeof modelsModuleOperations)['models.resolveProfile']['result']
+  >;
   'models.status': FromSchema<(typeof modelsModuleOperations)['models.status']['result']>;
 };
 export type ModelOption = FromSchema<typeof modelOptionSchema>;

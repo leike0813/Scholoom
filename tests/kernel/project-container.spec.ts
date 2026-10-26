@@ -32,6 +32,62 @@ async function legacy() {
   };
 }
 
+test('v4 delegation upgrade preserves trust and the protected source across reopen', async () => {
+  const f = await legacy();
+  const grants = JSON.stringify({ trust: 'trusted', autoBackup: false });
+  try {
+    f.db.pragma('user_version = 4');
+    f.db.prepare('INSERT INTO meta(key,value) VALUES (?,?)').run('grants', grants);
+    await initializeProjectContainer(f.db, f.root);
+    expect(f.db.pragma('user_version', { simple: true })).toBe(6);
+    expect(f.db.prepare("SELECT value FROM meta WHERE key='grants'").get()).toEqual({
+      value: grants,
+    });
+    const source = new Database(join(f.root, 'before-migration-v5.sqlite'), { readonly: true });
+    try {
+      expect(source.pragma('user_version', { simple: true })).toBe(4);
+      expect(source.prepare("SELECT value FROM meta WHERE key='grants'").get()).toEqual({
+        value: grants,
+      });
+    } finally {
+      source.close();
+    }
+    f.db
+      .prepare(
+        'INSERT INTO delegations(id,session_id,parent_run_id,child_instance_id,value) VALUES (?,?,?,?,?)',
+      )
+      .run('delegation', 'session', 'run', 'child', '{"retained":true}');
+    await initializeProjectContainer(f.db, f.root);
+    expect(f.db.prepare('SELECT value FROM delegations WHERE id=?').get('delegation')).toEqual({
+      value: '{"retained":true}',
+    });
+  } finally {
+    await f.close();
+  }
+});
+
+test('failed v5 migration rolls back its table and preserves the v4 source for retry', async () => {
+  const f = await legacy();
+  try {
+    f.db.pragma('user_version = 4');
+    f.db.exec(
+      'CREATE TABLE collision(id TEXT); CREATE INDEX delegations_session ON collision(id);',
+    );
+    await expect(initializeProjectContainer(f.db, f.root)).rejects.toThrow();
+    expect(f.db.pragma('user_version', { simple: true })).toBe(4);
+    expect(
+      f.db.prepare("SELECT name FROM sqlite_master WHERE name='delegations'").get(),
+    ).toBeUndefined();
+    const source = await readFile(join(f.root, 'before-migration-v5.sqlite'));
+    f.db.exec('DROP INDEX delegations_session');
+    await initializeProjectContainer(f.db, f.root);
+    expect(f.db.pragma('user_version', { simple: true })).toBe(6);
+    expect(await readFile(join(f.root, 'before-migration-v5.sqlite'))).toEqual(source);
+  } finally {
+    await f.close();
+  }
+});
+
 test('container upgrade preserves identities, full payloads and a readable v2 source', async () => {
   const f = await legacy();
   try {

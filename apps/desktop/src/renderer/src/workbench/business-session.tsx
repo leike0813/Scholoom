@@ -8,6 +8,7 @@ import type {
   ContextItem,
   Effort,
   Message,
+  ResourceDescriptor,
   WorkbenchContextSnapshot,
   WorkbenchSnapshot,
 } from '@scholoom/protocol';
@@ -133,6 +134,56 @@ export function useBusinessSession(
   const selectedRef = useRef(selection);
   selectedRef.current = selection;
   const lifecycle = useRef(0);
+  const delegationConnection = useRef({ client, phase, epoch: 0 });
+  if (
+    delegationConnection.current.client !== client ||
+    delegationConnection.current.phase !== phase
+  )
+    delegationConnection.current = { client, phase, epoch: delegationConnection.current.epoch + 1 };
+  const [delegationRevision, setDelegationRevision] = useState(0);
+  useEffect(() => {
+    if (!client || phase !== 'connected') return;
+    return client.subscribeChanges((change) => {
+      if (
+        change.resync ||
+        (change.projectId === selection.projectId && change.sessionId === selection.sessionId)
+      )
+        setDelegationRevision((value) => value + 1);
+    });
+  }, [client, phase, selection]);
+  const delegationAccess = useMemo(() => {
+    if (!client || phase !== 'connected' || !selection.sessionId) return undefined;
+    const selected = selection;
+    const generation = delegationConnection.current.epoch;
+    const ensureCurrent = () => {
+      if (selectedRef.current !== selected || delegationConnection.current.epoch !== generation)
+        throw new Error('当前会话已改变，请重新读取委派。');
+    };
+    const request = async (
+      method: 'delegation.get' | 'delegation.cancel',
+      delegationId: string,
+    ) => {
+      ensureCurrent();
+      const record = await client.call(method, { ...selected, delegationId });
+      ensureCurrent();
+      if (
+        record.projectId !== selected.projectId ||
+        record.sessionId !== selected.sessionId ||
+        record.id !== delegationId
+      )
+        throw new Error('委派归属不匹配，请重新读取。');
+      return record;
+    };
+    return {
+      get: (id: string) => request('delegation.get', id),
+      cancel: (id: string) => request('delegation.cancel', id),
+      open: (resource: ResourceDescriptor) => {
+        if (selectedRef.current !== selected || delegationConnection.current.epoch !== generation)
+          return;
+        setResourceTarget({ locator: resource.ref, name: resource.name });
+      },
+    };
+  }, [client, phase, selection]);
   const knownProjects = useRef<WorkbenchSnapshot['projects']>([]);
   if (received) knownProjects.current = received.value.projects;
   const navigationKey = JSON.stringify(
@@ -534,6 +585,9 @@ export function useBusinessSession(
     });
   };
   return {
+    ...(delegationAccess
+      ? { delegations: { ...delegationAccess, revision: delegationRevision } }
+      : {}),
     contextItems,
     publishContext,
     contextError: contextReadError || contextError,

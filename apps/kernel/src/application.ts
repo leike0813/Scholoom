@@ -15,6 +15,7 @@ import type {
   BusinessInputs,
   BusinessOutputs,
   BusinessParams,
+  DelegationRole,
   HarnessModuleInputs,
   HarnessModuleOutputs,
   ResourceCreationInputs,
@@ -39,6 +40,7 @@ type RuntimeMethod = Exclude<
 export class KernelApplication extends ManualApplication {
   readonly credentials: CredentialStore;
   readonly models: ModelAccess;
+  readonly modelConfigs: ModelConfigStore;
   readonly harness: Harness;
   readonly research: ResearchRuntime;
   private readonly originFacts:
@@ -54,6 +56,7 @@ export class KernelApplication extends ManualApplication {
       workerEntry?: URL;
       fileExecutionFacts?: (context: CallContext) => FileExecutionFacts | undefined;
       taskResearch?: TaskResearchPort;
+      delegationRoles?: readonly DelegationRole[];
     } = {},
   ) {
     super(directory, options.taskResearch);
@@ -62,6 +65,7 @@ export class KernelApplication extends ManualApplication {
     process.env.LANGCHAIN_TRACING_V2 = 'false';
     this.credentials = new CredentialStore(join(directory, 'credentials'), options.environment);
     const configs = new ModelConfigStore(join(directory, 'credentials'));
+    this.modelConfigs = configs;
     this.models = new ModelAccess(this.credentials, configs, options.modelEndpoint);
     this.research = new ResearchRuntime(
       (projectId, sessionId) => {
@@ -105,9 +109,15 @@ export class KernelApplication extends ManualApplication {
       },
       (context) => this.executionResources(context),
       (context) => this.projectTasks(context),
+      {
+        ...(options.delegationRoles ? { roles: options.delegationRoles } : {}),
+        resolveProfile: (id, context) =>
+          this.modulePort(context, 'harness').call('models.resolveProfile', { id }),
+      },
     );
     this.broker.register('runtime', this.handlers);
     this.broker.register('runtime-internal', {
+      'harness.executionFacts': (_input, context) => this.harness.executionFacts(context),
       'harness.executions': (input, context) => {
         if (
           context.role !== 'host' ||
@@ -134,6 +144,11 @@ export class KernelApplication extends ManualApplication {
         );
       },
       'models.status': () => this.models.status(),
+      'models.resolveProfile': ({ id }) => configs.resolveProfile(id),
+      'harness.delegate': (input, context) => this.harness.delegate(input, context),
+      'harness.waitDelegation': (input, context) => this.harness.waitDelegation(input, context),
+      'harness.reportDelegation': (input, context) => this.harness.reportDelegation(input, context),
+      'harness.roles': () => this.harness.delegationRoles(),
       'harness.snapshot': (input) =>
         this.harness.snapshot(
           input.projectId,
@@ -252,6 +267,12 @@ export class KernelApplication extends ManualApplication {
     if (context.role === 'execution') this.checkExecutionContext(context);
     return { resource, association };
   }
+  executionFacts(context: CallContext): Promise<HarnessModuleOutputs['harness.executionFacts']> {
+    // The broker rejects cancelled calls before dispatch; no execution can be verified then.
+    if (context.signal?.aborted) return Promise.resolve({ state: 'unknown' });
+    return this.modulePort(context, 'kernel').call('harness.executionFacts', {});
+  }
+
   harnessStorage(): HarnessStorage {
     const resources = new Map<string, HarnessProject>();
     const get = (id: string): HarnessProject => {
@@ -345,6 +366,20 @@ export class KernelApplication extends ManualApplication {
       this.changed();
       return value;
     },
+    'provider.profiles': (input) => this.modelConfigs.profiles(input),
+    'provider.saveProfile': async (input) => {
+      const value = await this.modelConfigs.saveProfile(input);
+      this.changed();
+      return value;
+    },
+    'provider.removeProfile': async (input) => {
+      await this.modelConfigs.removeProfile(input);
+      this.changed();
+      return { ok: true };
+    },
+    'delegation.get': (input) => this.harness.getDelegation(input),
+    'delegation.list': (input) => this.harness.listDelegations(input),
+    'delegation.cancel': (input) => this.harness.cancelDelegation(input),
     'artifacts.reconcile': async (input) => {
       const p = input;
       return this.harness.reconcile(p.projectId, p.sessionId, p.runId, p.paths);

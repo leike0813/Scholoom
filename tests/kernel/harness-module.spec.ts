@@ -48,6 +48,11 @@ test('harness owns its sessions through native storage and narrow replaceable po
       host_instance_id TEXT NOT NULL,
       value TEXT NOT NULL
     );
+    CREATE TABLE delegations (
+      seq INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+      id TEXT NOT NULL UNIQUE, session_id TEXT NOT NULL, parent_run_id TEXT NOT NULL,
+      child_instance_id TEXT NOT NULL UNIQUE, value TEXT NOT NULL
+    );
   `);
   database.close();
 

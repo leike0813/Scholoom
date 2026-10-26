@@ -1,3 +1,4 @@
+import { delegationInternalOperations } from './delegation-contracts.js';
 import {
   graphExecutionSchema,
   graphResumeInputSchema,
@@ -11,7 +12,61 @@ import {
 } from './harness-record-contracts.js';
 import { fileReferenceSchema } from './project-file-contracts.js';
 import { array, content, count, flag, id, object, ok, page, session } from './schema.js';
+
+const executionFactsSchema = {
+  anyOf: [
+    object({ state: { const: 'unknown' } }, ['state']),
+    object(
+      {
+        state: { const: 'verified' },
+        principal: object({ kind: { const: 'agent' }, id }, ['kind', 'id']),
+        ...session,
+        runId: id,
+        instanceId: id,
+        delegation: {
+          anyOf: [
+            object({ state: { enum: ['none', 'unknown'] } }, ['state']),
+            object(
+              {
+                state: { const: 'verified' },
+                delegationId: id,
+                parentInstanceId: id,
+                parentRunId: id,
+              },
+              ['state', 'delegationId', 'parentInstanceId', 'parentRunId'],
+            ),
+          ],
+        },
+        instructionContext: object(
+          { state: { const: 'unknown' }, reason: { const: 'notCaptured' } },
+          ['state', 'reason'],
+        ),
+        tool: object({ state: { const: 'unknown' }, reason: { const: 'notBound' } }, [
+          'state',
+          'reason',
+        ]),
+      },
+      [
+        'state',
+        'principal',
+        'projectId',
+        'sessionId',
+        'runId',
+        'instanceId',
+        'delegation',
+        'instructionContext',
+        'tool',
+      ],
+    ),
+  ],
+} as const;
 export const harnessModuleOperations = {
+  ...delegationInternalOperations,
+  'harness.executionFacts': {
+    params: object({}, []),
+    result: executionFactsSchema,
+    semantics: { effect: 'read', returns: 'result', waitMs: 5000 },
+  },
   'harness.executions': {
     params: {
       ...object(

@@ -20,6 +20,7 @@ import { ActivityPane, ActivityRail, type ThemeMode } from './shell/ActivityPane
 import { AgentDock } from './shell/AgentDock';
 import { AgentOverlay } from './shell/AgentOverlay';
 import { AuxiliaryPane, AuxiliaryRail } from './shell/AuxiliaryPane';
+import { DelegationContext } from './shell/DelegationCall';
 import { PaneHandle } from './shell/PaneHandle';
 import { StatusBar } from './shell/StatusBar';
 import { type TabGroupState, TabGroups, type TabItem } from './shell/TabGroups';
@@ -770,7 +771,7 @@ function WorkbenchContent({ session }: { session: WorkbenchSession }) {
           : null
       }
     >
-      {content}
+      <DelegationContext.Provider value={session.delegations}>{content}</DelegationContext.Provider>
     </ContextContributionProvider>
   );
 }
