@@ -10,6 +10,7 @@
 | `packages/harness` | 会话仓储、执行监督、工具收据、checkpoint 和受管执行桥 | `/execution` 运行实际图及 SDK；项目、文献、科研端口可独立替换 |
 | `packages/research` | 方法内容、尝试、实际读取与交付检查 | 仅访问自身表，生产经 broker 使用领域与 harness 契约 |
 | `packages/editor` | 人工科研写作的开放格式转换、受管排版与产物 | `ManualApplication` 独立装配，不加载 harness、会话或模型；行为以当前 editor OpenSpec 为准 |
+| `packages/programs` | 项目程序环境、计划授权、持久运行、日志及输出观察 | 人工与 Agent 共用同源契约，运行机制复用 platform，记录仅访问自有表 |
 | `packages/models`、`packages/platform`、`packages/broker` | 模型及凭据、资源与进程机制、能力路由及共同 RPC | 具体迁入及验收范围见当前 change |
 | `apps/desktop` | Electron main、sandbox preload、React renderer | 人类工作台，经共同客户端调用内核 |
 | `apps/zotero-host` | 独立 Electron main 与隐藏 Chromium 页面 | 固定 Zotero 10 基线的通用兼容层与选定插件适配 |
@@ -76,7 +77,7 @@ Agent、能力子执行与 PDF 共用宿主持有的进程容量，默认活动 
 | 项目 | 沿 `HarnessProjectPort`／`ProjectFilePort` 取用项目能力；`project-backend.spec.ts` 提供窄端口替身，`resource-creation.spec.ts` 验证真实 `resources.create/creation` 的首次创建与原操作核查 |
 | 科研方法 | 宿主与 worker 共用 `ExecutionGraphs` 的定义及工厂；照 `registered-graph.spec.ts` 向测试 `KernelApplication` 注入 `executionGraphs/workerEntry`，引用同一 `graphs.mjs`，等待输入按声明 schema 适配；`research-module.spec.ts` 独立检查方法仓储 |
 | Agent | 沿 `HarnessStorage`、领域端口及私有 worker 入口组合；参考 `harness-module.spec.ts`、`execution-isolation.spec.ts`，外部模型复用 `tests/model-server.ts` 的 loopback 受控响应 |
-| 科研计算 | 参考 `managed-commands.spec.ts` 的 `ManagedCommands(processes, resolveWorkspace, authorize)`；私有工作空间声明 ownerModuleId、directory、projectId、executables，真实宿主用例覆写 `commandWorkspace` 登记固定 Node。环境选择和业务运行记录由计算域实现 |
+| 科研计算 | `ProgramRuns`／`ProgramEnvironments` 在 ManualApplication 装配；`program-runs.spec.ts` 验证真实 Node／Python、运行记录与输出，`program-environments.spec.ts` 以相同端口替换执行和记录依赖；共同命令机制参考 `managed-commands.spec.ts` |
 | 阅读交互 | 沿共同资源和 editor 端口接入，参考 `resource-access.spec.ts`、`editor-runtime.spec.ts` 及 `tests/ui/resource-opening.spec.ts`；UI 使用共同 renderer URL 配置 |
 | Zotero 生态 | 沿兼容宿主入口及共同 broker 接入；`tests/smoke/entrypoints.spec.ts` 验证真实宿主外壳，插件身份、SQL 和 BBT 生产接线另按所属契约验收 |
 
@@ -120,7 +121,7 @@ SCHOOLOOM_UI_PORT=5343 node node_modules/@playwright/test/cli.js test --config p
 
 写作能力由 `packages/editor` 提供，人工工作台经 `ManualApplication` 和共同 broker 调用；该组合不装配 harness、会话或模型。当前机器核对到 Quarto 1.9.37、配套 Pandoc 3.8.3、latexmk 4.87 和 MiKTeX；这些版本不代表其他机器或分发包已具备相同工具，产品可用性通过 `editor.tools` 查询。
 
-`apps/kernel/src/commands.ts` 的 `ManagedCommands` 统一解析宿主私有工作空间和程序登记，管理进程准入、排队后再次授权及实际停止。editor 实际消费内部 `platform.command`，`platform.editorCommand` 保留为同一实现的薄适配。生产工作空间仅由 editor 提供，限 Quarto／latexmk，不开放客户端指定本机目录或程序。全局工作域及目标只读范围不获命令权限；Agent 必须具有相符 principal／session／项目工作域，宿主在排队前后核对 harness 当前运行实例和项目授权。人工排版可独立于 harness。命令失败和停止未知继续由 editor 保留原工作空间、诊断及最后成功预览。
+`apps/kernel/src/commands.ts` 的 `ManagedCommands` 统一解析宿主私有工作空间和程序登记，管理进程准入、排队后再次授权及实际停止。editor 实际消费内部 `platform.command`，`platform.editorCommand` 保留为同一实现的薄适配；programs 经内部 `platform.programStart/programCancel` 使用同一执行核心。editor 工作空间限 Quarto／latexmk，programs 仅使用宿主登记的环境及项目路径，不开放客户端任意指定本机目录或程序。全局工作域及目标只读范围不获命令权限；Agent 必须具有相符 principal／session／项目工作域，宿主在排队前后核对 harness 当前运行实例和项目授权。人工排版可独立于 harness。命令失败和停止未知继续由 editor 保留原工作空间、诊断及最后成功预览。
 
 `tests/kernel/managed-commands.spec.ts` 的机制用例使用固定工作空间及授权替身；broker 用例在隔离真实 KernelApplication／活动执行中使用宿主源码登记的固定 Node 程序，核对排队撤权、取消、失效实例及全局范围拒绝。进程树、输出边界和控制丢失沿原真实进程用例，`process-admission.spec.ts` 另核对未确认停止保留占用。实际结果见[领域交接交付](../openspec/changes/archive/2026-10-24-establish-domain-execution-handoffs/delivery.md)。
 
@@ -141,6 +142,26 @@ macOS 完整能力恢复另立变更：Darwin 不支持 kqueue 自动后代跟�
 产物缓存按项目限制为 256 MiB／64 份；单个产物最多 128 MiB、单文件最多 64 MiB、资源最多 1000 个。已有稿件按替换后的净占用准入，提交余量最多 128 MiB／1 份，切换成功后回收可淘汰旧版。缓存保护最后成功产物、最近 5 分钟读取的产物及导出；受保护的暂留产物仍计入后续准入，历史收据保留，过期产物查询返回 `notFound`。
 
 相关验证入口为 `pnpm build`、`pnpm test:kernel tests/kernel/editor.spec.ts tests/kernel/editor-runtime.spec.ts tests/kernel/editor-source.spec.ts` 和 `pnpm test:ui tests/ui/writing-editor.spec.ts tests/ui/writing-editor-recovery.spec.ts tests/ui/writing-editor-pdf.spec.ts tests/ui/file-workbench.spec.ts`。`test:ui` 使用项目既有 Chromium 与真实 Electron 双宿主场景，覆盖学术内容往返、待转换草稿恢复、QMD／多文件 TeX PDF 预览及导出；文件工作台场景核对共享草稿、冲突、结构变化、主题与长稿输入性能。BibTeX 题名沿 Pandoc 的书目语义转换，需要保留大小写的题名使用花括号保护，例如 `title={{Independent Evidence}}`。独立组件与实际内核产物验证另有对应测试；各层实际结果及平台边界见交付记录。
+
+## 项目程序运行
+
+项目中间区“项目程序运行”提供环境选择、运行、日志、取消与实际输出打开，人工路径不要求模型或会话。仅运行用户信任的代码；当前执行保证是受管进程归属，不能拦截可信代码所有文件和网络访问。Agent 只能在当前可信项目启动，默认随父执行停止；用户对正在运行的程序逐次点击“移交后台”后由宿主接管，关闭 tab 不取消后台。当前 macOS 禁止新受管执行，保留历史与输出查询。
+
+| 环境 | 支持与保护 |
+| --- | --- |
+| Node | 内核实际 Node，JS／MJS 入口；不自动启用 TS／加载器 |
+| 已有 Python／Conda | 人工登记绝对解释器路径，经受管版本探测保存身份收据；不猜测环境名、不 activate 或修改原环境。使用前复核解释器是否被替换 |
+| uv 受管 Python | 已有 uv、Python 3.11+ 与项目根 `pyproject.toml`／`uv.lock`；标准库 tomllib 检查锁定来源和 wheel hash。仅接受能核对的 registry wheel／项目内 wheel，禁源码构建、git、editable／目录依赖；不能解释的声明明确拒绝 |
+
+环境检查不安装依赖。先形成计划（解释器、声明依据、私有目标、依赖、来源、网络及实际动作），人工授权后才准备。`uv sync` 使用 locked／no-build／no-config／no-python-downloads，显式私有 `UV_PROJECT_ENVIRONMENT`／cache；无网络来源时 offline。不修改项目 lock／`.venv`、已有解释器／Conda；工具本体及 Python 自动下载不支持。部分准备目录保留供诊断，失败不标 ready。已支持 registry 计划和显式联网范围；本轮只验收离线本地 wheel 安装，未实跑公网下载。
+
+`programs.start` 以稳定 operationId 受理，回执不明时按原身份查询／补交，不另启重复程序。`programs.run/runs/logs` 分开提供执行、完整停止、退出及输出观察：退出0不证明结果完整，缺失／变化／部分文件仍独立呈现。日志最多保留1MiB，单次读取默认64KiB，有截断游标；程序输出持续排空，界面仅刷新当前项目和所选运行。工具等待为5秒，程序期限单独配置，长计算可无总期限，无日志不等于失败。
+
+运行写入项目 `program_runs`；公共容器链明确为v4→v5 delegations→v6 program_runs，每步保护原版本并在事务内建表／推进版本，保留授权和两域历史。旧未发布的program-only v5隔离profile不属于这条支持入口，保留原件供明确转换或重新建隔离样本，不按表猜历史或删除数据。环境及授权保存应用私有 `programs/environments.json`，不随项目备份复制机器配置。重启核查启动／停止收据，不重跑；无完整停止证据保留 unknown 和统一占用，核查按钮仅更新实际输出，不按PID消失消除未知。独立恢复副本保留历史但不控制原进程；真实两域宿主接线仍须先合入Agent仓储增量。
+
+后台移交先核对资格、保存人类授权，再同步接管；backgroundOwner.state区分authorized／active／failed，完成收据写入失败单列outcomeUnknown。环境配置读写均限4MiB，活动项为回执及恢复诊断预留元数据容量；容量不足不丢弃原计划、授权或可用状态。准备先保存意图再派发，回执不明按原操作身份核查，拒绝重复准备。旧近上限配置可先恢复查询并保留原文件，未腾出容量前新写明确tooLarge。程序时限以单调时钟分段调度，超过原生timer的2147483647ms边界仍等待完整时限，null无总期限。
+
+诊断先区分发送、受理、环境检查、准入／启动、执行、停止与结果刷新；读取 run 的phase/error/stop/exit、环境计划及实际输出依据。内核定向入口：`program-runs.spec.ts`、`program-runtime.spec.ts`、`program-environments.spec.ts`、`managed-commands.spec.ts`；双宿主入口 `tests/ui/program-runs.spec.ts`。实际覆盖与跨线未决见[本变更交付](../openspec/changes/add-project-program-runs/delivery.md)。
 
 ## 内核配置与生命周期
 

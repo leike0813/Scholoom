@@ -19,6 +19,7 @@
     "start": "node dist/cli.js"
   },
   "dependencies": {
+    "@scholoom/programs": "workspace:*",
     "@scholoom/editor": "workspace:*",
     "@scholoom/harness": "workspace:*",
     "@scholoom/research": "workspace:*",

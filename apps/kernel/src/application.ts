@@ -11,6 +11,7 @@ import {
 } from '@scholoom/harness/node';
 import { ModelAccess } from '@scholoom/models/execution';
 import { CredentialStore, ModelConfigStore } from '@scholoom/models/node';
+import { ProgramRecords } from '@scholoom/programs/node';
 import type {
   BusinessInputs,
   BusinessOutputs,
@@ -26,6 +27,7 @@ import type {
 } from '@scholoom/protocol';
 import type { CallContext } from '@scholoom/protocol/core';
 import { OperationError } from '@scholoom/protocol/core';
+import type { ProgramsPort } from '@scholoom/protocol/programs';
 import type { ResearchProgressPort, ResearchToolsPort } from '@scholoom/protocol/research';
 import { ResearchRecords, ResearchRuntime } from '@scholoom/research/node';
 import { executionGraphs } from './execution-graphs.js';
@@ -97,6 +99,32 @@ export class KernelApplication extends ManualApplication {
         resources: options.contextResources ?? ((context) => this.instructionResources(context)),
       },
       (context) => this.executionResources(context),
+      {
+        port: (context) => {
+          const port = this.modulePort(context, 'harness');
+          const methods = {
+            'programs.environments': (input) => port.call('programs.environments', input),
+            'programs.registerEnvironment': (input) =>
+              port.call('programs.registerEnvironment', input),
+            'programs.environmentPlan': (input) => port.call('programs.environmentPlan', input),
+            'programs.environmentPlanStatus': (input) =>
+              port.call('programs.environmentPlanStatus', input),
+            'programs.authorizeEnvironment': (input) =>
+              port.call('programs.authorizeEnvironment', input),
+            'programs.environmentPrepare': (input) =>
+              port.call('programs.environmentPrepare', input),
+            'programs.start': (input) => port.call('programs.start', input),
+            'programs.run': (input) => port.call('programs.run', input),
+            'programs.runs': (input) => port.call('programs.runs', input),
+            'programs.logs': (input) => port.call('programs.logs', input),
+            'programs.cancel': (input) => port.call('programs.cancel', input),
+            'programs.handoff': (input) => port.call('programs.handoff', input),
+            'programs.reconcile': (input) => port.call('programs.reconcile', input),
+          } satisfies ProgramsPort;
+          return methods;
+        },
+        settle: (context) => this.programs.settleExecution(context),
+      },
     );
     this.broker.register('runtime', this.handlers);
     this.broker.register('runtime-internal', {
@@ -268,10 +296,12 @@ export class KernelApplication extends ManualApplication {
     for (const project of this.projects.all()) this.research.initialize(project.project.id);
   }
   protected override async projectOpened(): Promise<void> {
+    await super.projectOpened();
     await this.harness.initialize();
     for (const project of this.projects.all()) this.research.initialize(project.project.id);
   }
   protected override async projectReplacing(projectId: string): Promise<void> {
+    await super.projectReplacing(projectId);
     await this.harness.releaseProject(projectId);
     this.research.releaseProject(projectId);
   }
@@ -334,12 +364,15 @@ export class KernelApplication extends ManualApplication {
       };
       const harnessRecords = new HarnessRecords(internal);
       const researchRecords = new ResearchRecords(internal);
+      const programRecords = new ProgramRecords(internal);
       try {
         harnessRecords.restore(identity.id);
         researchRecords.restore();
+        programRecords.restore(identity.id);
       } finally {
         harnessRecords.close();
         researchRecords.close();
+        programRecords.close();
       }
       const store = await this.projects.open(target);
       await this.harness.initialize();

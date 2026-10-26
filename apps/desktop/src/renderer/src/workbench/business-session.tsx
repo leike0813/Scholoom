@@ -28,6 +28,7 @@ import { FileExplorer } from './file-explorer/Explorer';
 import { LibraryTab } from './library/LibraryTab';
 import { ProjectOnboardingDialog } from './ProjectOnboarding';
 import { ProjectTrustDialog } from './ProjectTrustDialog';
+import { ProgramRunsTab } from './programs/ProgramRunsTab';
 import { ProjectControls } from './project-ui';
 import { artifactStateLabel, toThreadMessages } from './projection';
 import { ResourceView } from './ResourceView';
@@ -536,6 +537,22 @@ export function useBusinessSession(
         items.map((item) => (item.itemId === itemId ? { ...item, comment } : item)),
       ),
     projectId: selection.projectId,
+    ...(client && project && project.id !== 'application'
+      ? {
+          programs: (
+            <ProgramRunsTab
+              client={client}
+              projectId={project.id}
+              directory={directory}
+              enabled={phase === 'connected'}
+              canExecute={!executionUnavailable}
+              onOpenResource={(target) => {
+                setResourceTarget(target);
+              }}
+            />
+          ),
+        }
+      : {}),
     ...(session ? { activeSessionTitle: session.title } : {}),
     ...(client
       ? {

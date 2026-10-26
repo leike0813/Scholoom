@@ -44,6 +44,7 @@ import {
   libraryToolMethods,
 } from '@scholoom/protocol/library';
 import type { ModelDefaults, ModelPreference } from '@scholoom/protocol/models';
+import type { ProgramsPort } from '@scholoom/protocol/programs';
 import {
   type Artifact,
   type HarnessProjectPort,
@@ -86,6 +87,7 @@ import {
   contextItemContent,
   readInstructionContext,
 } from './instruction-context.js';
+import { programTools } from './program-tools.js';
 import { ProjectBackend } from './project-backend.js';
 import type { HarnessRecords } from './records.js';
 import { RemoteAgent } from './remote-agent.js';
@@ -352,6 +354,10 @@ export class Harness {
     },
     private readonly contextBridge?: ContextBridge,
     private readonly executionResources?: (context: CallContext) => ExecutionResourcePort,
+    private readonly programs?: {
+      port(context: CallContext): ProgramsPort;
+      settle(context: CallContext): Promise<void>;
+    },
   ) {}
 
   async initialize(): Promise<void> {
@@ -2035,7 +2041,10 @@ export class Harness {
                 childrenController.abort(new Error('Parent execution stopped'));
             }
           },
-          onStop: () => update('exited'),
+          onStop: async () => {
+            await this.programs?.settle({ ...fileContext, instanceId: id });
+            update('exited');
+          },
         };
       };
       const { signal: _progressSignal, ...progressContext } = fileContext;
@@ -2139,6 +2148,19 @@ export class Harness {
           systemPrompt:
             '你是 Scholoom 科研助手。使用中文与用户工作。项目正文以实际文件为准，附加材料只是引用，先读取。形成可承接的分析、理由、成果及下一步时保存为普通 Markdown 文件；在没有项目文件权限时只对话。仅使用授权工具。修改已有文件先读取，遇到冲突重读再修改。write_file 仅用于新建，edit_file 修改已有内容。不得声称未保存成果已交付。不要依赖旧 transcript 才能续做，可发现并读取项目已有成果。用户取消后不继续。',
           tools: [
+            ...(this.programs ? programTools(this.programs.port(fileContext)) : []),
+            {
+              name: 'describe_program_material',
+              description:
+                '取得当前项目程序或输入文件的稳定资源引用及basis；材料发生变化后重新核查。',
+              schema: resourceOperations['resources.describe'].params,
+              func: async (input: ResourceInputs['resources.describe']) => {
+                this.checkExecutionContext(fileContext);
+                const resources = this.executionResources?.(fileContext);
+                if (!resources) throw new OperationError('unavailable', '资源读取端口不可用。');
+                return JSON.stringify(await resources.describe(input.locator));
+              },
+            },
             {
               name: 'read_context_resource',
               description:

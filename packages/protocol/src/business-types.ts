@@ -88,6 +88,29 @@ export type Inputs = {
   >;
   'library.status': FromSchema<(typeof businessSchemas)['library.status']['params']>;
   'library.update': FromSchema<(typeof businessSchemas)['library.update']['params']>;
+  'programs.authorizeEnvironment': FromSchema<
+    (typeof businessSchemas)['programs.authorizeEnvironment']['params']
+  >;
+  'programs.cancel': FromSchema<(typeof businessSchemas)['programs.cancel']['params']>;
+  'programs.environmentPlan': FromSchema<
+    (typeof businessSchemas)['programs.environmentPlan']['params']
+  >;
+  'programs.environmentPlanStatus': FromSchema<
+    (typeof businessSchemas)['programs.environmentPlanStatus']['params']
+  >;
+  'programs.environmentPrepare': FromSchema<
+    (typeof businessSchemas)['programs.environmentPrepare']['params']
+  >;
+  'programs.environments': FromSchema<(typeof businessSchemas)['programs.environments']['params']>;
+  'programs.handoff': FromSchema<(typeof businessSchemas)['programs.handoff']['params']>;
+  'programs.logs': FromSchema<(typeof businessSchemas)['programs.logs']['params']>;
+  'programs.reconcile': FromSchema<(typeof businessSchemas)['programs.reconcile']['params']>;
+  'programs.registerEnvironment': FromSchema<
+    (typeof businessSchemas)['programs.registerEnvironment']['params']
+  >;
+  'programs.run': FromSchema<(typeof businessSchemas)['programs.run']['params']>;
+  'programs.runs': FromSchema<(typeof businessSchemas)['programs.runs']['params']>;
+  'programs.start': FromSchema<(typeof businessSchemas)['programs.start']['params']>;
   'project.backup': FromSchema<(typeof businessSchemas)['project.backup']['params']>;
   'project.backups': FromSchema<(typeof businessSchemas)['project.backups']['params']>;
   'project.browseDirectories': FromSchema<
@@ -210,6 +233,29 @@ export type Outputs = {
   >;
   'library.status': FromSchema<(typeof businessSchemas)['library.status']['result']>;
   'library.update': FromSchema<(typeof businessSchemas)['library.update']['result']>;
+  'programs.authorizeEnvironment': FromSchema<
+    (typeof businessSchemas)['programs.authorizeEnvironment']['result']
+  >;
+  'programs.cancel': FromSchema<(typeof businessSchemas)['programs.cancel']['result']>;
+  'programs.environmentPlan': FromSchema<
+    (typeof businessSchemas)['programs.environmentPlan']['result']
+  >;
+  'programs.environmentPlanStatus': FromSchema<
+    (typeof businessSchemas)['programs.environmentPlanStatus']['result']
+  >;
+  'programs.environmentPrepare': FromSchema<
+    (typeof businessSchemas)['programs.environmentPrepare']['result']
+  >;
+  'programs.environments': FromSchema<(typeof businessSchemas)['programs.environments']['result']>;
+  'programs.handoff': FromSchema<(typeof businessSchemas)['programs.handoff']['result']>;
+  'programs.logs': FromSchema<(typeof businessSchemas)['programs.logs']['result']>;
+  'programs.reconcile': FromSchema<(typeof businessSchemas)['programs.reconcile']['result']>;
+  'programs.registerEnvironment': FromSchema<
+    (typeof businessSchemas)['programs.registerEnvironment']['result']
+  >;
+  'programs.run': FromSchema<(typeof businessSchemas)['programs.run']['result']>;
+  'programs.runs': FromSchema<(typeof businessSchemas)['programs.runs']['result']>;
+  'programs.start': FromSchema<(typeof businessSchemas)['programs.start']['result']>;
   'project.backup': FromSchema<(typeof businessSchemas)['project.backup']['result']>;
   'project.backups': FromSchema<(typeof businessSchemas)['project.backups']['result']>;
   'project.browseDirectories': FromSchema<

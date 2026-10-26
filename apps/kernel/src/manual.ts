@@ -1,9 +1,10 @@
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { readFileSync, statSync } from 'node:fs';
+import { join, posix } from 'node:path';
 import { Broker, type Handlers } from '@scholoom/broker';
 import { EditorRuntime, ResourceAccess } from '@scholoom/editor/node';
 import { LiteratureCatalog, MaterialReading } from '@scholoom/library/node';
-import { ProcessAdmission } from '@scholoom/platform/node';
+import { ManagedNode, ProcessAdmission } from '@scholoom/platform/node';
+import { ProgramEnvironments, ProgramRecords, ProgramRuns } from '@scholoom/programs/node';
 import {
   DirectoryBrowser,
   FileTransfers,
@@ -58,8 +59,17 @@ import {
 import {
   type PlatformCommandInput,
   type PlatformCommandResult,
+  type PlatformProgramInputs,
+  type PlatformProgramOutputs,
   platformCommandOperations,
+  platformProgramOperations,
 } from '@scholoom/protocol/platform';
+import {
+  type ProgramsInputs,
+  type ProgramsInternalInputs,
+  type ProgramsInternalOutputs,
+  programsInternalOperations,
+} from '@scholoom/protocol/programs';
 import {
   type HarnessProjectPort,
   type ProjectExecutionInputs,
@@ -90,6 +100,8 @@ import { initializeProjectContainer } from './storage/project-container.js';
 import { WorkbenchContextStore } from './workbench-context.js';
 
 const applicationSchemas: typeof editorPlatformOperations &
+  typeof platformProgramOperations &
+  typeof programsInternalOperations &
   typeof platformCommandOperations &
   typeof businessSchemas &
   typeof projectMaterialOperations &
@@ -101,6 +113,8 @@ const applicationSchemas: typeof editorPlatformOperations &
   typeof modelsModuleOperations &
   typeof projectTargetReadOperations = {
   ...editorPlatformOperations,
+  ...platformProgramOperations,
+  ...programsInternalOperations,
   ...platformCommandOperations,
   ...businessSchemas,
   ...projectMaterialOperations,
@@ -115,7 +129,9 @@ const applicationSchemas: typeof editorPlatformOperations &
 type ApplicationInputs = BusinessInputs & {
   'platform.editorCommand': EditorCommandInput;
   'platform.command': PlatformCommandInput;
-} & ProjectMaterialInputs &
+} & PlatformProgramInputs &
+  ProgramsInternalInputs &
+  ProjectMaterialInputs &
   ProjectExecutionInputs &
   HarnessModuleInputs &
   ResearchModuleInputs &
@@ -126,7 +142,9 @@ type ApplicationInputs = BusinessInputs & {
 type ApplicationOutputs = BusinessOutputs & {
   'platform.editorCommand': EditorCommandResult;
   'platform.command': PlatformCommandResult;
-} & ProjectMaterialOutputs &
+} & PlatformProgramOutputs &
+  ProgramsInternalOutputs &
+  ProjectMaterialOutputs &
   ProjectExecutionOutputs &
   HarnessModuleOutputs &
   ResearchModuleOutputs &
@@ -143,6 +161,7 @@ const materialMethods = Object.keys(projectMaterialOperations).filter(
   (method): method is keyof ProjectMaterialInputs => libraryConsumes.includes(method),
 );
 export type FoundationMethod =
+  | keyof ProgramsInputs
   | keyof ResourceInputs
   | keyof ResourceCreationInputs
   | keyof EditorInputs
@@ -153,6 +172,17 @@ export class ManualApplication {
   readonly workbenchContexts = new WorkbenchContextStore();
   readonly resources: ResourceAccess;
   readonly editor: EditorRuntime;
+  readonly programs: ProgramRuns;
+  readonly programEnvironments: ProgramEnvironments;
+  private readonly commandRunner: ManagedCommands;
+  private readonly programWorkspaces = new Map<string, CommandWorkspace>();
+  private readonly programControls = new Map<
+    string,
+    { controller: AbortController; context: CallContext; detach: () => void }
+  >();
+  private readonly unknownPrograms = new Set<string>();
+  private programStartupProblem: OperationError | undefined;
+  private readonly hostInstanceId = crypto.randomUUID();
   readonly projects: Projects;
   readonly library: LiteratureCatalog;
   readonly transfers: FileTransfers;
@@ -173,7 +203,7 @@ export class ManualApplication {
     { moduleId: 'product', principal: { kind: 'human', id: 'local' }, role: 'product' },
     Object.keys(businessSchemas) as BusinessMethod[],
   );
-  constructor(directory: string) {
+  constructor(private readonly directory: string) {
     this.broker.register('workbench-context', {
       'workbench.context.publish': ({ snapshot }, context) => {
         this.workbenchContexts.publish(context.workbenchSource, snapshot);
@@ -218,8 +248,40 @@ export class ManualApplication {
         if (workspace.projectId) this.projects.get(workspace.projectId).check('read');
       },
     );
+    this.commandRunner = commands;
     this.registerProjectHandlers('command-platform', {
       'platform.command': (input, context) => commands.execute(input, context),
+      'platform.programStart': (input, context) => {
+        let seq = 0;
+        return commands.start(
+          input,
+          context,
+          async (event, commandInstanceId) => {
+            const port = this.modulePort(
+              {
+                moduleId: 'kernel',
+                role: 'host',
+                principal: { kind: 'system', id: this.hostInstanceId },
+              },
+              'kernel',
+            );
+            await port.call('programs.commandEvent', {
+              programRunId: input.workspaceId,
+              hostInstanceId: this.hostInstanceId,
+              commandInstanceId,
+              seq: seq++,
+              event,
+            });
+            if (event.kind === 'stopped') {
+              this.programControls.get(input.workspaceId)?.detach();
+              this.programControls.delete(input.workspaceId);
+              this.programWorkspaces.delete(input.workspaceId);
+            }
+          },
+          (error) => this.programs.observationFailed(input.workspaceId, error),
+        );
+      },
+      'platform.programCancel': (input, context) => commands.cancel(input, context),
       'platform.editorCommand': ({ tool, ...input }, context) =>
         commands.execute({ ...input, executableId: tool }, context),
     });
@@ -376,10 +438,251 @@ export class ManualApplication {
         return { ok: true };
       },
     });
+    this.programs = new ProgramRuns({
+      records: (id) => new ProgramRecords(this.projects.get(id).internal),
+      check: (id, context, write) => this.programAccess(id, context, write),
+      available: () => {
+        if (this.programStartupProblem) throw this.programStartupProblem;
+        ManagedNode.requireAvailable();
+      },
+      describe: async (evidence, context) => {
+        const descriptor = await this.modulePort(context, 'programs').call('resources.describe', {
+          locator: evidence.ref,
+        });
+        if (descriptor.basis !== evidence.basis)
+          throw new OperationError('contentChanged', '程序材料依据已变化。');
+        return descriptor;
+      },
+      output: (projectId, path, context) =>
+        this.modulePort(context, 'programs').call('resources.describe', {
+          locator: { source: 'project', projectId, path },
+        }),
+      mkdir: async (projectId, path, context) => {
+        let current = '';
+        for (const part of path.split('/')) {
+          current = current ? `${current}/${part}` : part;
+          try {
+            await this.modulePort(context, 'programs').call('files.mkdir', {
+              projectId,
+              operationId: crypto.randomUUID(),
+              path: current,
+            });
+          } catch (error) {
+            if (!(error instanceof OperationError) || error.code !== 'contentChanged') throw error;
+          }
+        }
+      },
+      environment: (id, environmentId) => this.programEnvironments.resolve(id, environmentId),
+      launch: async (run, executable, args, cwd, timeoutMs, env, context) => {
+        const controller = new AbortController();
+        const stop = () =>
+          controller.abort(
+            context.signal?.reason ?? new OperationError('shuttingDown', '父执行已停止。'),
+          );
+        const parent = context.principal.kind === 'agent' ? context.signal : undefined;
+        parent?.addEventListener('abort', stop, { once: true });
+        if (parent?.aborted) stop();
+        const control = {
+          controller,
+          context: { ...context, signal: controller.signal },
+          detach: () => parent?.removeEventListener('abort', stop),
+        };
+        this.programControls.set(run.programRunId, control);
+        const port = this.modulePort(control.context, 'programs');
+        const location = await port.call('project.path', { projectId: run.projectId, path: cwd });
+        const directory = location;
+        const identity = statSync(directory, { bigint: true });
+        const source = this.projects.get(run.projectId);
+        this.programWorkspaces.set(run.programRunId, {
+          ownerModuleId: 'programs',
+          projectId: run.projectId,
+          directory,
+          executables: new Map([[run.command?.executableId ?? 'program', executable]]),
+          ...(env ? { env } : {}),
+          authorizationContext: () => control.context,
+          beforeLaunch: async () => {
+            await this.programAccess(run.projectId, control.context, true);
+            if (run.kind === 'program' && run.environmentId)
+              await this.programEnvironments.validate(
+                run.projectId,
+                run.environmentId,
+                control.context,
+              );
+            if (this.projects.get(run.projectId) !== source)
+              throw new OperationError('instanceMismatch', '项目实例已变化。');
+            const now = statSync(directory, { bigint: true });
+            if (now.dev !== identity.dev || now.ino !== identity.ino)
+              throw new OperationError('contentChanged', '程序工作目录已变化。');
+            for (const item of [run.code, ...(run.inputs ?? [])]) {
+              if (!item) continue;
+              const descriptor = await this.modulePort(control.context, 'programs').call(
+                'resources.describe',
+                { locator: item.ref },
+              );
+              if (descriptor.basis !== item.basis)
+                throw new OperationError('contentChanged', '程序材料在等待期间已变化。');
+              if (
+                item === run.code &&
+                descriptor.path !== posix.normalize(posix.join(cwd, args[0] ?? ''))
+              )
+                throw new OperationError(
+                  'contentChanged',
+                  '程序入口位置已变化，请重新读取后运行。',
+                );
+            }
+          },
+        });
+        try {
+          const accepted = await port.call('platform.programStart', {
+            workspaceId: run.programRunId,
+            executableId: run.command?.executableId ?? 'program',
+            args,
+            timeoutMs,
+          });
+          return accepted.commandInstanceId;
+        } catch (error) {
+          control.detach();
+          this.programControls.delete(run.programRunId);
+          this.programWorkspaces.delete(run.programRunId);
+          throw error;
+        }
+      },
+      cancel: async (_projectId, runId, commandInstanceId, context) => {
+        await this.modulePort(context, 'programs').call('platform.programCancel', {
+          workspaceId: runId,
+          commandInstanceId,
+        });
+      },
+      changed: (projectId, runId) => this.programChanged(projectId, runId),
+      retainUnknown: (id) => {
+        if (this.unknownPrograms.has(id)) return;
+        this.unknownPrograms.add(id);
+        if (this.processes.status.active < this.processes.status.limit) {
+          const lease = this.processes.reserve();
+          lease.retainUntil(new Promise<void>(() => {}));
+          lease.release();
+        }
+      },
+      prepareHandoff: (id, context) => {
+        const control = this.programControls.get(id);
+        if (!control) throw new OperationError('instanceMismatch', '没有可移交的活动程序。');
+        const check = () => {
+          if (this.programControls.get(id) !== control)
+            throw new OperationError('instanceMismatch', '程序控制已变化。');
+          control.controller.signal.throwIfAborted();
+        };
+        check();
+        const next = { ...context, signal: control.controller.signal };
+        return () => {
+          check();
+          control.detach();
+          control.context = next;
+        };
+      },
+    });
+    this.programEnvironments = new ProgramEnvironments(join(directory, 'programs'), {
+      check: (id, context) => this.programAccess(id, context),
+      describe: async (evidence, context) => {
+        const descriptor = await this.modulePort(context, 'programs').call('resources.describe', {
+          locator: evidence.ref,
+        });
+        if (
+          descriptor.basis !== evidence.basis ||
+          !descriptor.path ||
+          descriptor.ref.source !== 'project'
+        )
+          throw new OperationError('contentChanged', '环境声明依据已变化。');
+        const path = await this.modulePort(context, 'programs').call('project.path', {
+          projectId: descriptor.ref.projectId,
+          path: descriptor.path,
+        });
+        return { path, relativePath: descriptor.path, basis: descriptor.basis };
+      },
+      launch: (input, context) => this.programs.launch(input, context),
+      wait: (id, runId, context) => this.programs.wait(id, runId, context),
+      logs: async (id, runId, context) => {
+        let next = 0;
+        let content = '';
+        for (;;) {
+          const page = await this.programs.logs(
+            { projectId: id, programRunId: runId, after: next },
+            context,
+          );
+          if (page.truncatedBefore > 0 || page.error)
+            throw new OperationError('tooLarge', '环境检查输出不完整。');
+          content += page.entries
+            .filter((entry) => entry.stream === 'stdout')
+            .map((entry) => entry.text)
+            .join('');
+          if (!page.entries.length) break;
+          next = page.next;
+        }
+        return content;
+      },
+    });
+    this.registerProjectHandlers('programs', {
+      'programs.start': (input, context) => this.programs.start(input, context),
+      'programs.run': (input, context) => this.programs.run(input, context),
+      'programs.runs': (input, context) => this.programs.list(input, context),
+      'programs.logs': (input, context) => this.programs.logs(input, context),
+      'programs.cancel': (input, context) => this.programs.cancel(input, context),
+      'programs.handoff': (input, context) => this.programs.handoff(input, context),
+      'programs.reconcile': (input, context) => this.programs.reconcile(input, context),
+      'programs.environments': (input, context) => this.programEnvironments.list(input, context),
+      'programs.registerEnvironment': (input, context) =>
+        this.programEnvironments.register(input, context),
+      'programs.environmentPlan': (input, context) => this.programEnvironments.plan(input, context),
+      'programs.environmentPlanStatus': (input, context) =>
+        this.programEnvironments.planStatus(input, context),
+      'programs.authorizeEnvironment': (input, context) =>
+        this.programEnvironments.authorize(input, context),
+      'programs.environmentPrepare': (input, context) =>
+        this.programEnvironments.prepare(input, context),
+    });
+    this.broker.register('program-observer', {
+      'programs.commandEvent': (input, context) => {
+        if (
+          context.moduleId !== 'kernel' ||
+          context.role !== 'host' ||
+          context.principal.kind !== 'system' ||
+          context.principal.id !== this.hostInstanceId
+        )
+          throw new OperationError('permissionDenied', '无效程序观察来源。');
+        return this.programs.event(input);
+      },
+    });
   }
   async initialize(): Promise<void> {
     await this.library.initialize();
     await this.projects.initialize();
+    try {
+      const registered: unknown = JSON.parse(
+        readFileSync(join(this.directory, 'projects.json'), 'utf8'),
+      );
+      if (
+        !Array.isArray(registered) ||
+        registered.some(
+          (path) =>
+            typeof path !== 'string' ||
+            !this.projects.all().some((store) => store.project.path === path),
+        )
+      )
+        throw new OperationError('outcomeUnknown', '已登记项目无法全部核查，程序归属仍需确认。');
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+        this.programStartupProblem = new OperationError(
+          'outcomeUnknown',
+          '已登记项目无法完整核查；执行容量保留，需恢复可读后重启核查。',
+        );
+        while (this.processes.status.active < this.processes.status.limit) {
+          const retained = this.processes.reserve();
+          retained.retainUntil(new Promise<void>(() => {}));
+          retained.release();
+        }
+      }
+    }
+    this.programs.initialize(this.projects.all().map((store) => store.project.id));
+    await this.programEnvironments.initialize();
   }
   private registerProjectHandlers<K extends keyof ApplicationInputs>(
     owner: string,
@@ -411,12 +714,18 @@ export class ManualApplication {
       action,
     );
   }
-  protected async projectOpened(): Promise<void> {}
-  protected async projectReplacing(_projectId: string): Promise<void> {}
+  protected async projectOpened(): Promise<void> {
+    this.programs.initialize(this.projects.all().map((store) => store.project.id));
+  }
+  protected async projectReplacing(projectId: string): Promise<void> {
+    await this.programs.releaseProject(projectId);
+  }
   protected checkExecutionContext(_context: CallContext): void {
     throw new OperationError('unavailable', '当前组合没有执行实例提供者。');
   }
   protected commandWorkspace(workspaceId: string): CommandWorkspace {
+    const program = this.programWorkspaces.get(workspaceId);
+    if (program) return program;
     return {
       ...this.editor.commandWorkspace(workspaceId),
       ownerModuleId: 'editor',
@@ -629,7 +938,7 @@ export class ManualApplication {
         throw new OperationError('permissionDenied', '指令受理检查不提供资源写入。');
       if (
         (context.role !== 'execution' && !this.isInstructionAdmission(context)) ||
-        context.moduleId !== 'harness' ||
+        !['harness', 'programs'].includes(context.moduleId) ||
         context.principal.kind !== 'agent' ||
         context.principal.id !== context.sessionId ||
         !context.projectId ||
@@ -821,9 +1130,38 @@ export class ManualApplication {
     for (const listener of this.listeners) listener(change);
   }
 
+  private programChanged(projectId: string, runId: string) {
+    const change: WorkbenchChange = {
+      revision: ++this.revision,
+      projectId,
+      resync: false,
+      programsChanged: true,
+      programRunIds: [runId],
+    };
+    for (const listener of this.listeners) listener(change);
+  }
+  private async programAccess(projectId: string, context: CallContext, write = false) {
+    if (projectId === 'application' || context.targetRead)
+      throw new OperationError('permissionDenied', '当前范围不允许程序访问。');
+    context.signal?.throwIfAborted();
+    if (context.principal.kind === 'agent') {
+      if (
+        context.workDomain?.kind !== 'project' ||
+        context.projectId !== projectId ||
+        context.workDomain.projectId !== projectId ||
+        context.principal.id !== context.sessionId
+      )
+        throw new OperationError('permissionDenied', '程序不属于当前项目工作域。');
+      this.checkExecutionContext(context);
+    }
+    await this.projects.withAccess(context, () =>
+      this.projects.get(projectId).check(write ? 'write' : 'read'),
+    );
+  }
+
   private readonly foundationHandlers: Pick<
     Handlers<BusinessInputs, BusinessOutputs>,
-    FoundationMethod
+    Exclude<FoundationMethod, keyof ProgramsInputs>
   > = {
     'resources.create': (input, context) =>
       this.resourceOperation(
@@ -1043,6 +1381,7 @@ export class ManualApplication {
       return store.project;
     },
     'project.forget': async (input) => {
+      this.programs.assertIdle(input.projectId);
       await this.projects.forget(input.projectId);
       this.changed();
       return { ok: true };
@@ -1180,6 +1519,8 @@ export class ManualApplication {
     return this.broker.available(Object.keys(businessSchemas) as BusinessMethod[]);
   }
   async close(): Promise<void> {
+    await this.commandRunner.close();
+    await this.programs.close();
     await this.resourceReading.close();
     await this.editor.close();
     this.fileWatches.close();

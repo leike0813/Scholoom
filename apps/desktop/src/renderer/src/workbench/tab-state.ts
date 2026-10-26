@@ -3,7 +3,7 @@ import { readerKindForName } from './reader-material.js';
 import { type ResourceTarget, resourceKey } from './resource-controller.js';
 import type { FileTarget } from './session.js';
 
-export type TabKind = 'library' | 'reader' | 'editor' | 'preview' | 'settings';
+export type TabKind = 'library' | 'reader' | 'editor' | 'preview' | 'settings' | 'programs';
 export type FileViewMode = 'source' | 'visual' | 'preview' | 'render';
 export interface TabItem {
   id: string;
@@ -151,7 +151,7 @@ export function normalizeLegacyTab(value: unknown): TabItem | undefined {
     };
   }
   if (resource) return { ...rest, resource } as unknown as TabItem;
-  if (['library', 'reader', 'editor', 'preview', 'settings'].includes(String(tab.kind)))
+  if (['library', 'reader', 'editor', 'preview', 'settings', 'programs'].includes(String(tab.kind)))
     return tab as unknown as TabItem;
   return undefined;
 }

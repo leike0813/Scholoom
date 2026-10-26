@@ -25,6 +25,10 @@
       "types": "./dist/projects.d.ts",
       "import": "./dist/projects.js"
     },
+    "./programs": {
+      "types": "./dist/programs.d.ts",
+      "import": "./dist/programs.js"
+    },
     "./harness": {
       "types": "./dist/harness.d.ts",
       "import": "./dist/harness.js"

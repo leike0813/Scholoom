@@ -200,6 +200,7 @@
         "@scholoom/protocol/models",
         "@scholoom/protocol/projects",
         "@scholoom/protocol/research",
+        "@scholoom/protocol/programs",
         "@scholoom/protocol/library",
         "@scholoom/models"
       ],
@@ -212,6 +213,16 @@
       "provides": [],
       "consumes": [
         "files.list",
+        "programs.environments",
+        "programs.start",
+        "programs.run",
+        "programs.runs",
+        "programs.logs",
+        "programs.cancel",
+        "programs.reconcile",
+        "programs.environmentPlan",
+        "programs.environmentPlanStatus",
+        "programs.environmentPrepare",
         "resources.describe",
         "resources.read",
         "resources.document",
@@ -268,6 +279,30 @@
       ]
     },
     {
+      "name": "programs",
+      "package": "@scholoom/programs",
+      "root": "packages/programs",
+      "sourceRoot": "src",
+      "allows": [
+        "@scholoom/platform/node",
+        "@scholoom/protocol/core",
+        "@scholoom/protocol/programs",
+        "@scholoom/protocol/resources"
+      ],
+      "systemAdapters": [
+        { "path": "src/records.ts", "apis": [] },
+        { "path": "src/environments.ts", "apis": ["fs", "fs/promises", "process.env"] }
+      ],
+      "provides": [],
+      "consumes": [
+        "resources.describe",
+        "project.path",
+        "files.mkdir",
+        "platform.programStart",
+        "platform.programCancel"
+      ]
+    },
+    {
       "name": "research",
       "package": "@scholoom/research",
       "root": "packages/research",
@@ -299,6 +334,7 @@
       "sourceRoot": "src",
       "allows": [
         "@scholoom/harness/node",
+        "@scholoom/programs/node",
         "@scholoom/editor/node",
         "@scholoom/research/node",
         "@scholoom/broker",
@@ -340,7 +376,13 @@
         }
       ],
       "provides": [],
-      "consumes": ["models.status", "projects.list", "project.fileRevision", "harness.snapshot"]
+      "consumes": [
+        "models.status",
+        "projects.list",
+        "project.fileRevision",
+        "harness.snapshot",
+        "programs.commandEvent"
+      ]
     },
     {
       "name": "desktop",

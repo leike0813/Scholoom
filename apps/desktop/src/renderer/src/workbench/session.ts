@@ -123,6 +123,7 @@ export interface WorkbenchSession {
   flushResource?: (target: ResourceTarget) => Promise<void>;
   /** 共同文献库 tab 内容；缺省时该 tab 呈现占位。 */
   library?: ReactNode;
+  programs?: ReactNode;
   createSession?: () => void;
   cancel?: (() => void) | undefined;
   loadEarlier?: (() => void) | undefined;

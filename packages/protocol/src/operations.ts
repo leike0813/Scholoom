@@ -2,6 +2,7 @@ import { editorOperations } from './editor.js';
 import { harnessOperations, harnessSnapshotSchema } from './harness.js';
 import { libraryOperations } from './library.js';
 import { modelsOperations, providerSchema } from './models.js';
+import { programsOperations } from './programs.js';
 import { projectSchema, projectsOperations } from './projects.js';
 import { researchOperations } from './research.js';
 import { resourceCreationOperations, resourceOperations } from './resources.js';
@@ -37,6 +38,8 @@ export const changeSchema = object(
     sessionsChanged: flag,
     sessionProjectIds: { type: 'array', items: id, maxItems: 101, uniqueItems: true },
     libraryChanged: flag,
+    programsChanged: flag,
+    programRunIds: { type: 'array', items: id, maxItems: 100, uniqueItems: true },
     filePaths: { type: 'array', items: { type: 'string' }, maxItems: 100 },
   },
   ['revision', 'resync'],
@@ -47,6 +50,7 @@ export const businessSchemas = {
   ...resourceCreationOperations,
   ...resourceOperations,
   ...editorOperations,
+  ...programsOperations,
   ...modelsOperations,
   ...projectsOperations,
   ...harnessOperations,

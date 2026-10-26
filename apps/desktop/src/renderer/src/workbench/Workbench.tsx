@@ -569,6 +569,17 @@ function WorkbenchContent({ session }: { session: WorkbenchSession }) {
             onPin={pinTab}
             renderSettings={session.controls}
             renderLibrary={session.library}
+            renderPrograms={session.programs}
+            onOpenPrograms={
+              session.programs
+                ? () =>
+                    openTab({
+                      id: `programs:${session.projectId}`,
+                      title: '项目程序运行',
+                      kind: 'programs',
+                    })
+                : undefined
+            }
             onView={(groupIndex, mode) => {
               const group = groupsRef.current[groupIndex];
               const target = group?.tabs.find((tab) => tab.id === group.activeId)?.resource;

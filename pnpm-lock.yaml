@@ -196,6 +196,9 @@ importers:
       '@scholoom/platform':
         specifier: workspace:*
         version: link:../../packages/platform
+      '@scholoom/programs':
+        specifier: workspace:*
+        version: link:../../packages/programs
       '@scholoom/projects':
         specifier: workspace:*
         version: link:../../packages/projects
@@ -646,6 +649,22 @@ importers:
       '@scholoom/protocol':
         specifier: workspace:*
         version: link:../protocol
+
+  packages/programs:
+    dependencies:
+      '@scholoom/platform':
+        specifier: workspace:*
+        version: link:../platform
+      '@scholoom/protocol':
+        specifier: workspace:*
+        version: link:../protocol
+      better-sqlite3:
+        specifier: 12.11.1
+        version: 12.11.1
+    devDependencies:
+      '@types/better-sqlite3':
+        specifier: 7.6.13
+        version: 7.6.13
 
   packages/projects:
     dependencies:
