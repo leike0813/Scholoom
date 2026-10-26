@@ -3,6 +3,11 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { expect, test } from '@playwright/test';
+import {
+  editCatalogDatePart,
+  editCatalogField,
+  moveCatalogCreator,
+} from '../../apps/desktop/src/renderer/src/workbench/library/catalog-metadata.js';
 import { LiteratureCatalog } from '../../packages/library/dist/node.js';
 import { validateLibrary } from '../../packages/protocol/dist/library.js';
 
@@ -247,6 +252,97 @@ test('automatic backup remembers unprotected writes across restart', async () =>
       expect(await reopened.backups()).toHaveLength(0);
       await reopened.autoBackup();
       expect(await reopened.backups()).toHaveLength(1);
+    } finally {
+      await reopened.close();
+    }
+  } finally {
+    await rm(f.root, { recursive: true });
+  }
+});
+
+test('typed CSL changes retain original extensions and history across authority restart', async () => {
+  const f = await fixture();
+  const metadata = {
+    title: '原题名',
+    type: 'book',
+    volume: 12,
+    issued: { 'date-parts': [[2024, 2, 29]] },
+    'original-date': { 'date-parts': [[1900], [1905]], circa: true },
+    note: 'Extra原文',
+    'citation-key': 'ExistingKey',
+    extension: { nested: ['保留'] },
+    author: [{ family: '王', given: '小明', 'non-dropping-particle': 'de' }, { literal: '研究所' }],
+  };
+  try {
+    const batch = await ingest(f.catalog, metadata);
+    const id = batch.entries[0]?.sourceId as string;
+    const source = f.catalog.get(id);
+    const libraryId = f.catalog.status().id;
+    const instance = f.catalog.createSourceInstance({
+      libraryId,
+      requestId: randomUUID(),
+      label: '独立原值样本',
+    });
+    const original = {
+      identity: { instanceId: instance.id, libraryLocator: 'local', objectKey: 'BOOK0001' },
+      schemaVersion: '44',
+      itemType: 'book',
+      fields: { originalPublisher: '原出版者', date: '2024年春', extra: '未知原行' },
+      creators: [{ creatorType: 'seriesEditor', firstName: '小明', lastName: '王', orderIndex: 0 }],
+      relations: {},
+    };
+    expect(
+      f.catalog.commitRecords({
+        libraryId,
+        requestId: randomUUID(),
+        changes: [
+          {
+            sourceId: id,
+            revision: source.revision,
+            original,
+            key: { value: 'PreservedBook', pinned: true, intent: 'explicit' },
+          },
+        ],
+      }).state,
+    ).toBe('committed');
+    const current = f.catalog.get(id);
+    const changed = moveCatalogCreator(
+      editCatalogDatePart(
+        editCatalogField(
+          editCatalogField(metadata, 'title', '新题名'),
+          'original-publisher',
+          '更正出版者',
+        ),
+        'issued',
+        2,
+        '28',
+      ),
+      'author',
+      0,
+      'collection-editor',
+    );
+    f.catalog.update({ ...current, sourceId: id, metadata: changed });
+    await f.catalog.close();
+    const reopened = new LiteratureCatalog(join(f.root, 'profile'), () => {});
+    try {
+      await reopened.initialize();
+      expect(reopened.get(id).metadata).toEqual({
+        ...metadata,
+        title: '新题名',
+        'original-publisher': '更正出版者',
+        issued: { 'date-parts': [[2024, 2, 28]] },
+        author: [metadata.author[1]],
+        'collection-editor': [metadata.author[0]],
+      });
+      expect(reopened.record({ libraryId, sourceId: id })).toMatchObject({
+        originals: [original],
+        citationKey: { value: 'PreservedBook', pinned: true },
+      });
+      expect(
+        reopened
+          .history({ sourceId: id })
+          .sources.some((revision) => revision.metadata.title === '原题名'),
+      ).toBe(true);
     } finally {
       await reopened.close();
     }

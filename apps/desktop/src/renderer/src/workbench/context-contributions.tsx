@@ -1,4 +1,5 @@
 import {
+  type CatalogSelection,
   type ContextItem,
   contextLimits,
   isContextItems,
@@ -18,6 +19,7 @@ import {
 } from 'react';
 
 export interface ContextSelection {
+  catalogSelection?: CatalogSelection;
   selectedItems?: readonly string[];
   selections: readonly ContextItem[];
 }
@@ -65,7 +67,8 @@ function selectedIds(selection: ContextSelection): string[] {
 function sameSelection(left: ContextSelection, right: ContextSelection): boolean {
   return (
     JSON.stringify(selectedIds(left)) === JSON.stringify(selectedIds(right)) &&
-    JSON.stringify(left.selections) === JSON.stringify(right.selections)
+    JSON.stringify(left.selections) === JSON.stringify(right.selections) &&
+    JSON.stringify(left.catalogSelection) === JSON.stringify(right.catalogSelection)
   );
 }
 
@@ -100,13 +103,23 @@ export function ContextContributionProvider({
     const ids = selection ? selectedIds(selection) : [];
     const signature =
       activeViewId && selection
-        ? JSON.stringify([activeViewId, receiverKey, ids, selection.selections])
+        ? JSON.stringify([
+            activeViewId,
+            receiverKey,
+            ids,
+            selection.selections,
+            selection.catalogSelection,
+          ])
         : JSON.stringify([activeViewId, receiverKey]);
     const publisherChanged = publisher.current !== publishContext;
     publisher.current = publishContext;
     if (!publisherChanged && published.current === signature) return;
     published.current = signature;
-    if (!activeViewId || !selection || (!ids.length && !selection.selections.length)) {
+    if (
+      !activeViewId ||
+      !selection ||
+      (!ids.length && !selection.selections.length && !selection.catalogSelection)
+    ) {
       send(null);
       return;
     }
@@ -116,6 +129,7 @@ export function ContextContributionProvider({
       viewId: activeViewId,
       selectedItems: ids,
       selections: [...selection.selections],
+      ...(selection.catalogSelection ? { catalogSelection: selection.catalogSelection } : {}),
     };
     if (!isContextItems(snapshot.selections) || !isWorkbenchContextSnapshot(snapshot)) {
       setSelectionError('当前选择超出容量或不符合契约，未发布。');

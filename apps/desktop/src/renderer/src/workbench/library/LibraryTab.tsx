@@ -3,16 +3,21 @@ import type {
   CslMetadata,
   LibraryAttachment,
   LibraryBatch,
-  LibrarySource,
   LibraryStatus,
 } from '@scholoom/protocol';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { AttachmentImport } from '../AttachmentsPanel';
-import { draftKey, readDraft, writeDraft } from '../drafts';
+import { useContextContribution } from '../context-contributions';
+import { workbenchInstanceId } from '../context-drafts';
+import { draftKey, readDraft, subscribeDraft, writeDraft } from '../drafts';
+import { CatalogItemForm } from './CatalogItemForm';
 import { CatalogItemList } from './CatalogItemList';
 import { CatalogItemPane } from './CatalogItemPane';
 import { CatalogSelection } from './CatalogSelection';
+import { CollectionNavigation } from './CollectionNavigation';
 import { LibraryToolbar } from './LibraryToolbar';
+import { librarySaves, readLibraryNavigation, readLibrarySelection } from './library-state';
+import { useLibraryRead as useRead } from './useLibraryRead';
 
 const PAGE = 25;
 /** 与协议 library.ingest.json 的上限一致；按字节核对多字节文本。 */
@@ -43,51 +48,64 @@ const messageOf = (error: unknown) =>
   error instanceof Error ? error.message : '操作未完成，请核对当前状态。';
 const bytesOf = (text: string): number => new TextEncoder().encode(text).length;
 
-/**
- * 读取结果与请求键绑定：键变化后的迟到结果不写入界面。
- * tick 只触发重读，键不变时保留上一次结果，避免库变化使输入短暂失效。
- */
-function useRead<T>(
-  key: string,
-  load: (() => Promise<T>) | undefined,
-  tick = 0,
-): { value: T | undefined; error: string } {
-  const [received, setReceived] = useState<{ key: string; value?: T; error?: string }>();
-  const loader = useRef(load);
-  loader.current = load;
-  // biome-ignore lint/correctness/useExhaustiveDependencies: tick 显式刷新同一有界对象，保留其当前画面。
-  useEffect(() => {
-    const run = loader.current;
-    if (!run) return;
-    let active = true;
-    void run().then(
-      (value) => {
-        if (active) setReceived({ key, value });
-      },
-      (reason) => {
-        if (active) setReceived({ key, error: messageOf(reason) });
-      },
-    );
-    return () => {
-      active = false;
-    };
-  }, [key, tick]);
-  if (received !== undefined && received.key === key)
-    return { value: received.value, error: received.error ?? '' };
-  return { value: undefined, error: '' };
-}
-
-export function LibraryTab({
-  client,
-  enabled,
-  onOpenResource,
-}: {
+interface LibraryTabProps {
   client: KernelClient;
   enabled: boolean;
   onOpenResource?: ((material: LibraryAttachment) => void) | undefined;
-}) {
-  const directory = client.getSnapshot().status?.dataDirectory ?? '';
+}
+
+export function LibraryTab(props: LibraryTabProps) {
   const [revision, setRevision] = useState(0);
+  const { client, enabled } = props;
+  const refresh = useCallback(() => setRevision((value) => value + 1), []);
+  useEffect(
+    () =>
+      client.subscribeChanges((change) => {
+        if (change.libraryChanged === true) refresh();
+      }),
+    [client, refresh],
+  );
+  const status = useRead<LibraryStatus>(
+    `status:${enabled}`,
+    enabled ? () => client.call('library.status', {}) : undefined,
+    revision,
+  );
+  if (!status.value)
+    return (
+      <section className="library-tab" aria-label="文献库">
+        <p role={status.error ? 'alert' : 'status'}>{status.error || '正在读取文献库…'}</p>
+      </section>
+    );
+  const directory = client.getSnapshot().status?.dataDirectory ?? '';
+  const scope = draftKey(directory, workbenchInstanceId(), 'library', status.value.id);
+  return (
+    <LibraryContents
+      key={scope}
+      {...props}
+      scope={scope}
+      status={{ value: status.value, error: status.error }}
+      revision={revision}
+      refresh={refresh}
+    />
+  );
+}
+
+function LibraryContents({
+  client,
+  enabled,
+  onOpenResource,
+  scope,
+  status,
+  revision,
+  refresh,
+}: LibraryTabProps & {
+  scope: string;
+  status: { value: LibraryStatus; error: string };
+  revision: number;
+  refresh: () => void;
+}) {
+  const { contributeSelection } = useContextContribution();
+  const directory = client.getSnapshot().status?.dataDirectory ?? '';
   const [error, setError] = useState('');
 
   const [grants, setGrants] = useState({ read: true, write: false, send: false, autoBackup: true });
@@ -99,30 +117,43 @@ export function LibraryTab({
   const [destination, setDestination] = useState('');
   const [restored, setRestored] = useState('');
 
-  const [query, setQuery] = useState('');
-  const [activeQuery, setActiveQuery] = useState('');
-  const [collectionFilter, setCollectionFilter] = useState('');
-  const [tagFilter, setTagFilter] = useState('');
+  const [navigation] = useState(() => readLibraryNavigation(draftKey(scope, 'navigation')));
+  const [query, setQuery] = useState(navigation.query);
+  const [activeQuery, setActiveQuery] = useState(navigation.query.trim());
+  const [collectionFilter, setCollectionFilter] = useState(navigation.collectionId);
+  const [tagFilter, setTagFilter] = useState(navigation.tag);
   const [collectionOffsets, setCollectionOffsets] = useState<number[]>([0]);
   const collectionOffset = collectionOffsets.at(-1) ?? 0;
-  const [offsets, setOffsets] = useState<number[]>([0]);
+  const [offsets, setOffsets] = useState<number[]>(navigation.offsets);
   const offset = offsets.at(-1) ?? 0;
 
-  const [selectedId, setSelectedId] = useState('');
-  const sourcesRef = useRef<LibrarySource[]>([]);
-  const [selection] = useState(
-    () =>
-      new CatalogSelection((indices) => {
-        const index = [...indices][0];
-        setSelectedId(index === undefined ? '' : (sourcesRef.current[index]?.id ?? ''));
-      }),
+  const rangeKey = draftKey(
+    scope,
+    'range',
+    activeQuery,
+    collectionFilter,
+    tagFilter,
+    String(offset),
   );
+  const selection = useMemo(() => new CatalogSelection(readLibrarySelection(rangeKey)), [rangeKey]);
+  const selected = useSyncExternalStore(selection.subscribe, selection.getSnapshot);
+  const selectedId = selected.primaryId ?? '';
   const manualForm = useRef<HTMLDetailsElement>(null);
   const titleInput = useRef<HTMLInputElement>(null);
   const [editId, setEditId] = useState('');
   const [editRevision, setEditRevision] = useState(0);
   const [dirty, setDirty] = useState(false);
-  const [saving, setSaving] = useState(false);
+  const savingKey = draftKey(scope, 'saving', selectedId);
+  const saving = useSyncExternalStore(librarySaves.subscribe, () => librarySaves.has(savingKey));
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+  const [objectError, setObjectError] = useState('');
+  const [confirmReload, setConfirmReload] = useState(false);
   const [metadataText, setMetadataText] = useState('');
   const [tagsText, setTagsText] = useState('');
   const [chosenCollections, setChosenCollections] = useState<readonly string[]>([]);
@@ -131,8 +162,8 @@ export function LibraryTab({
   const [historyOffsets, setHistoryOffsets] = useState<number[]>([0]);
   const historyOffset = historyOffsets.at(-1) ?? 0;
 
-  const [title, setTitle] = useState('');
-  const [doi, setDoi] = useState('');
+  const [newMetadataText, setNewMetadataText] = useState('{"title":""}');
+  const newMetadata = JSON.parse(newMetadataText) as CslMetadata;
   const [version, setVersion] = useState('published');
   const [importText, setImportText] = useState('');
   const [importVersion, setImportVersion] = useState('published');
@@ -147,10 +178,10 @@ export function LibraryTab({
   const entryOffset = entryOffsets.at(-1) ?? 0;
   const [poll, setPoll] = useState(0);
 
-  const importDraft = draftKey(directory, 'library', 'import');
+  const importDraft = draftKey(scope, 'import');
   const metadataDraft = useCallback(
-    (sourceId: string) => draftKey(directory, 'library', 'metadata', sourceId),
-    [directory],
+    (sourceId: string) => draftKey(scope, 'metadata', sourceId),
+    [scope],
   );
   const editSnapshot = JSON.stringify({
     id: editId,
@@ -164,16 +195,41 @@ export function LibraryTab({
   currentEdit.current = { id: editId, snapshot: editSnapshot };
   const currentSelection = useRef(selectedId);
   currentSelection.current = selectedId;
-  const refresh = () => setRevision((value) => value + 1);
-
-  // 库变化只重读当前范围；未保存的更正由 dirty 保护。
   useEffect(
     () =>
-      client.subscribeChanges((change) => {
-        if (change.libraryChanged === true) setRevision((value) => value + 1);
+      subscribeDraft(metadataDraft(selectedId), () => {
+        if (currentEdit.current.id !== selectedId) return;
+        const stored = readDraft(metadataDraft(selectedId));
+        if (!stored) {
+          setDirty(false);
+          return;
+        }
+        try {
+          const draft = JSON.parse(stored);
+          if (Number.isInteger(draft.revision))
+            setEditRevision((current) => Math.max(current, draft.revision));
+        } catch {
+          /* An invalid draft remains available for recovery. */
+        }
       }),
-    [client],
+    [metadataDraft, selectedId],
   );
+  useEffect(() => {
+    const key = draftKey(scope, 'error', selectedId);
+    setObjectError(readDraft(key));
+    setConfirmReload(false);
+    return subscribeDraft(key, () => setObjectError(readDraft(key)));
+  }, [scope, selectedId]);
+  useEffect(
+    () => selection.subscribe(() => writeDraft(rangeKey, JSON.stringify(selection.getSnapshot()))),
+    [selection, rangeKey],
+  );
+  useEffect(() => {
+    writeDraft(
+      draftKey(scope, 'navigation'),
+      JSON.stringify({ query, collectionId: collectionFilter, tag: tagFilter, offsets }),
+    );
+  }, [scope, query, collectionFilter, tagFilter, offsets]);
 
   useEffect(() => {
     setImportText(readDraft(importDraft));
@@ -184,11 +240,6 @@ export function LibraryTab({
     return () => clearTimeout(timer);
   }, [query]);
 
-  const status = useRead<LibraryStatus>(
-    `status:${enabled}`,
-    enabled ? () => client.call('library.status', {}) : undefined,
-    revision,
-  );
   const readable = enabled && status.value?.read === true;
   const writable = enabled && status.value?.write === true;
 
@@ -226,12 +277,55 @@ export function LibraryTab({
       : undefined,
     revision,
   );
-  const sources = readable ? (listRead.value?.sources ?? []) : [];
-  sourcesRef.current = sources;
+  const sources = readable && activeQuery === query.trim() ? (listRead.value?.sources ?? []) : [];
+  const catalogSelection = useMemo(
+    () => ({
+      libraryId: status.value.id,
+      range: {
+        query: activeQuery,
+        collectionId: collectionFilter || null,
+        tag: tagFilter.trim(),
+        offset,
+        limit: PAGE,
+      },
+      primarySourceId: selected.primaryId,
+      items: selected.selectedIds.flatMap((sourceId) => {
+        const source = sources.find((item) => item.id === sourceId);
+        return source ? [{ sourceId, observedRevision: source.revision }] : [];
+      }),
+    }),
+    [status.value.id, activeQuery, collectionFilter, tagFilter, offset, selected, sources],
+  );
+  useEffect(() => {
+    if (
+      !readable ||
+      !listRead.value ||
+      query.trim() !== activeQuery ||
+      catalogSelection.items.length !== selected.selectedIds.length
+    )
+      contributeSelection('library');
+    else contributeSelection('library', { selections: [], catalogSelection });
+  }, [
+    catalogSelection,
+    readable,
+    listRead.value,
+    query,
+    activeQuery,
+    selected.selectedIds.length,
+    contributeSelection,
+  ]);
+  useEffect(() => () => contributeSelection('library'), [contributeSelection]);
+  useEffect(() => {
+    if (!readable || (listRead.value && activeQuery === query.trim()))
+      selection.reconcile(sources.map((source) => source.id));
+  }, [readable, listRead.value, activeQuery, query, selection, sources]);
+  const visibleSelectedId = sources.some((source) => source.id === selectedId) ? selectedId : '';
 
   const detailRead = useRead(
-    `get:${readable}:${selectedId}`,
-    readable && selectedId ? () => client.call('library.get', { sourceId: selectedId }) : undefined,
+    `get:${readable}:${visibleSelectedId}`,
+    readable && visibleSelectedId
+      ? () => client.call('library.get', { sourceId: visibleSelectedId })
+      : undefined,
     revision,
   );
   const detail = readable ? detailRead.value : undefined;
@@ -378,11 +472,9 @@ export function LibraryTab({
 
   const createRecord = () =>
     run(async () => {
-      const metadata: Record<string, unknown> = { title: title.trim() };
-      if (doi.trim()) metadata.DOI = doi.trim();
+      const metadata = { ...newMetadata, title: newMetadata.title.trim() };
       await ingest(JSON.stringify([metadata]), version.trim(), 'workbench-manual');
-      setTitle('');
-      setDoi('');
+      setNewMetadataText('{"title":""}');
     });
 
   const importRecords = () =>
@@ -410,65 +502,78 @@ export function LibraryTab({
       refresh();
     });
 
-  const saveDetail = () =>
-    run(async () => {
-      if (!detail || saving) return;
-      setSaving(true);
+  const saveDetail = async () => {
+    if (!detail || saving) return;
+    if (librarySaves.has(savingKey)) return;
+    librarySaves.set(savingKey, true);
+    const errorKey = draftKey(scope, 'error', detail.id);
+    writeDraft(errorKey, '');
+    setObjectError('');
+    try {
+      const submitted = currentEdit.current;
+      let metadata: CslMetadata;
       try {
-        const submitted = currentEdit.current;
-        let metadata: CslMetadata;
-        try {
-          metadata = JSON.parse(metadataText) as CslMetadata;
-        } catch {
-          throw new Error('题录 JSON 无法解析，草稿已保留。');
-        }
-        const updated = await client.call('library.update', {
-          sourceId: detail.id,
-          revision: editRevision,
-          metadata,
-          tags: [
-            ...new Set(
-              tagsText
-                .split(',')
-                .map((tag) => tag.trim())
-                .filter(Boolean),
-            ),
-          ],
-          collectionIds: [...chosenCollections],
-          relatedIds: [...chosenRelated],
-        });
-        const key = metadataDraft(detail.id);
-        try {
-          const draft = JSON.parse(readDraft(key) || 'null');
-          if (draft?.revision === editRevision) {
-            const same =
-              draft.metadataText === metadataText &&
-              draft.tagsText === tagsText &&
-              JSON.stringify(draft.chosenCollections) === JSON.stringify(chosenCollections) &&
-              JSON.stringify(draft.chosenRelated) === JSON.stringify(chosenRelated);
-            writeDraft(key, same ? '' : JSON.stringify({ ...draft, revision: updated.revision }));
-          }
-        } catch {
-          /* Preserve an unreadable local draft for explicit recovery. */
-        }
-        if (currentSelection.current === detail.id && currentEdit.current.id === detail.id) {
-          setEditRevision((current) => (current === editRevision ? updated.revision : current));
-          if (currentEdit.current.snapshot === submitted.snapshot) {
-            writeDraft(metadataDraft(detail.id), '');
-            setDirty(false);
-          }
-        }
-        refresh();
-      } finally {
-        setSaving(false);
+        metadata = JSON.parse(metadataText) as CslMetadata;
+      } catch {
+        throw new Error('题录 JSON 无法解析，草稿已保留。');
       }
-    });
+      const updated = await client.call('library.update', {
+        sourceId: detail.id,
+        revision: editRevision,
+        metadata,
+        tags: [
+          ...new Set(
+            tagsText
+              .split(',')
+              .map((tag) => tag.trim())
+              .filter(Boolean),
+          ),
+        ],
+        collectionIds: [...chosenCollections],
+        relatedIds: [...chosenRelated],
+      });
+      const key = metadataDraft(detail.id);
+      try {
+        const draft = JSON.parse(readDraft(key) || 'null');
+        if (draft?.revision === editRevision) {
+          const same =
+            draft.metadataText === metadataText &&
+            draft.tagsText === tagsText &&
+            JSON.stringify(draft.chosenCollections) === JSON.stringify(chosenCollections) &&
+            JSON.stringify(draft.chosenRelated) === JSON.stringify(chosenRelated);
+          writeDraft(key, same ? '' : JSON.stringify({ ...draft, revision: updated.revision }));
+        }
+      } catch {
+        /* Preserve an unreadable local draft for explicit recovery. */
+      }
+      if (
+        mounted.current &&
+        currentSelection.current === detail.id &&
+        currentEdit.current.id === detail.id
+      ) {
+        setEditRevision((current) => (current === editRevision ? updated.revision : current));
+        if (currentEdit.current.snapshot === submitted.snapshot) {
+          setDirty(false);
+        }
+      }
+      refresh();
+    } catch (reason) {
+      const message = messageOf(reason);
+      writeDraft(errorKey, message);
+      if (mounted.current && currentSelection.current === detail.id) setObjectError(message);
+    } finally {
+      librarySaves.set(savingKey, false);
+    }
+  };
 
   const reloadDetail = () => {
     if (!detail) return;
     writeDraft(metadataDraft(detail.id), '');
     setEditRevision(0);
     setDirty(false);
+    setConfirmReload(false);
+    writeDraft(draftKey(scope, 'error', detail.id), '');
+    setObjectError('');
     refresh();
   };
 
@@ -648,23 +753,12 @@ export function LibraryTab({
         <fieldset className="project-controls" disabled={!enabled}>
           <details ref={manualForm}>
             <summary>手动建项</summary>
-            <label>
-              题名
-              <input
-                ref={titleInput}
-                aria-label="题名"
-                value={title}
-                onChange={(event) => setTitle(event.target.value)}
-              />
-            </label>
-            <label>
-              DOI
-              <input
-                aria-label="DOI"
-                value={doi}
-                onChange={(event) => setDoi(event.target.value)}
-              />
-            </label>
+            <CatalogItemForm
+              value={newMetadataText}
+              onChange={setNewMetadataText}
+              prefix=""
+              titleRef={titleInput}
+            />
             <label>
               版本标签
               <input
@@ -677,7 +771,7 @@ export function LibraryTab({
             <button
               type="button"
               className="btn"
-              disabled={!writable || !title.trim()}
+              disabled={!writable || !newMetadata.title.trim()}
               onClick={() => void createRecord()}
             >
               创建题录
@@ -686,6 +780,20 @@ export function LibraryTab({
 
           <details>
             <summary>CSL JSON 导入</summary>
+            {!importText && readDraft(draftKey(directory, 'library', 'import')) && (
+              <button
+                type="button"
+                className="btn"
+                onClick={() => {
+                  if (readDraft(importDraft)) return;
+                  const legacy = readDraft(draftKey(directory, 'library', 'import'));
+                  writeDraft(importDraft, legacy);
+                  setImportText(legacy);
+                }}
+              >
+                恢复旧导入草稿
+              </button>
+            )}
             <label>
               CSL JSON 文本
               <textarea
@@ -924,11 +1032,23 @@ export function LibraryTab({
         </fieldset>
       </div>
       <div className="library-content">
+        <CollectionNavigation
+          client={client}
+          scope={scope}
+          enabled={readable}
+          revision={revision}
+          selectedId={collectionFilter}
+          onSelect={(id) => {
+            setCollectionFilter(id);
+            setOffsets([0]);
+          }}
+        />
         <div className="library-list-pane">
           <CatalogItemList
             entries={sources}
             selection={selection}
-            onDoubleClick={(entry) => setSelectedId(entry.id)}
+            scope={scope}
+            rangeKey={rangeKey}
           />
         </div>
         <div className="library-detail-pane">
@@ -954,6 +1074,38 @@ export function LibraryTab({
                 )}
                 {detail ? (
                   <fieldset className="project-controls" disabled={!enabled}>
+                    {objectError && (
+                      <p className="business-error" role="alert">
+                        {objectError}
+                      </p>
+                    )}
+                    {!dirty && readDraft(draftKey(directory, 'library', 'metadata', detail.id)) && (
+                      <button
+                        type="button"
+                        className="btn"
+                        onClick={() => {
+                          if (readDraft(metadataDraft(detail.id))) return;
+                          writeDraft(
+                            metadataDraft(detail.id),
+                            readDraft(draftKey(directory, 'library', 'metadata', detail.id)),
+                          );
+                          setEditRevision(0);
+                          refresh();
+                        }}
+                      >
+                        恢复旧题录草稿
+                      </button>
+                    )}
+                    <details>
+                      <summary>类型化题录</summary>
+                      <CatalogItemForm
+                        value={metadataText}
+                        onChange={(value) => {
+                          setMetadataText(value);
+                          setDirty(true);
+                        }}
+                      />
+                    </details>
                     <label>
                       CSL JSON 题录
                       <textarea
@@ -1024,7 +1176,7 @@ export function LibraryTab({
                         type="button"
                         className="btn"
                         disabled={!readable || saving}
-                        onClick={reloadDetail}
+                        onClick={() => (dirty ? setConfirmReload(true) : reloadDetail())}
                       >
                         重新读取题录
                       </button>
@@ -1037,6 +1189,21 @@ export function LibraryTab({
                         {historyOpen ? '收起历史' : '查看历史'}
                       </button>
                     </div>
+                    {confirmReload && (
+                      <div role="alertdialog" aria-label="确认丢弃题录草稿">
+                        <p>重新读取会丢弃当前更正，可先复制上方草稿。</p>
+                        <button type="button" className="btn" onClick={reloadDetail}>
+                          丢弃并重新读取
+                        </button>
+                        <button
+                          type="button"
+                          className="btn"
+                          onClick={() => setConfirmReload(false)}
+                        >
+                          保留草稿
+                        </button>
+                      </div>
+                    )}
                     {historyOpen ? (
                       <>
                         {historyRead.error ? (

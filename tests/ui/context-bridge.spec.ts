@@ -19,6 +19,100 @@ import { armRpcGate, installRpcGate, releaseRpcGate } from './rpc-gate.js';
 
 const EXCERPT = 'Context bridge saved excerpt 73.';
 
+test('catalog multiselection publishes independently and real tool follows pagination without changing receiver', async ({
+  uiPage,
+}) => {
+  test.setTimeout(90000);
+  const directory = process.env.SCHOOLOOM_UI_DATA_DIR as string;
+  const prefix = `catalog-context-${randomUUID().slice(0, 8)}`;
+  const publications: WorkbenchContextSnapshot[] = [];
+  uiPage.on('websocket', (socket) =>
+    socket.on('framesent', ({ payload }) => {
+      const request = JSON.parse(String(payload));
+      if (request.method === 'workbench.context.publish' && request.params?.snapshot)
+        publications.push(request.params.snapshot);
+    }),
+  );
+  const model = await createModelServer({
+    respond: ({ calls }) =>
+      calls.includes('read_workbench_context')
+        ? { text: '题录选择已核对' }
+        : { tool: { name: 'read_workbench_context', input: {} } },
+  });
+  const stop = await startModelKernel(directory, model.url);
+  const client = createKernelClient(await runningKernel(directory));
+  await client.connect();
+  try {
+    await client.call('library.grant', { read: true, write: true, send: true, autoBackup: false });
+    const batch = await client.call('library.ingest', {
+      batchId: randomUUID(),
+      version: 'unspecified',
+      origin: 'synthetic',
+      json: JSON.stringify(Array.from({ length: 30 }, (_, i) => ({ title: `${prefix}-${i}` }))),
+    });
+    await expect
+      .poll(async () => (await client.call('library.batch', { batchId: batch.id })).batch.state)
+      .toBe('completed');
+    const sources = (await client.call('library.list', { query: prefix, limit: 25 })).sources;
+    await uiPage.goto(rendererUrl);
+    await expect(uiPage.getByRole('status', { name: '连接状态' })).toContainText('已连接');
+    await configureModel(uiPage);
+    const before = (await client.call('session.list', { projectId: 'application' })).sessions.map(
+      (s) => s.id,
+    );
+    await createSession(uiPage);
+    const session = (await client.call('session.list', { projectId: 'application' })).sessions.find(
+      (s) => !before.includes(s.id),
+    );
+    assert(session);
+    const scope = { projectId: 'application', sessionId: session.id };
+    await uiPage.getByRole('button', { name: '文献库', exact: true }).click();
+    const panel = uiPage.getByRole('region', { name: '文献库', exact: true });
+    await panel.getByLabel('查找题录', { exact: true }).fill(prefix);
+    for (const [index, source] of sources.slice(0, 17).entries())
+      await panel
+        .getByRole('option', { name: `查看题录 ${source.metadata.title}`, exact: true })
+        .click(index ? { modifiers: ['ControlOrMeta'] } : {});
+    await expect.poll(() => publications.at(-1)?.catalogSelection?.items.length).toBe(17);
+    expect(publications.at(-1)?.selections).toEqual([]);
+    expect(publications.at(-1)?.receiver).toEqual(scope);
+    model.hold = true;
+    await uiPage
+      .getByRole('textbox', { name: '研究指令', exact: true })
+      .fill('MODEL_CHAT current catalog');
+    await uiPage.getByRole('button', { name: '发送指令', exact: true }).click();
+    await expect.poll(() => model.requests.length).toBe(1);
+    await panel.getByRole('button', { name: '下一页题录', exact: true }).click();
+    const next = (await client.call('library.list', { query: prefix, offset: 25, limit: 25 }))
+      .sources[0];
+    assert(next);
+    await panel
+      .getByRole('option', { name: `查看题录 ${next.metadata.title}`, exact: true })
+      .click();
+    await expect.poll(() => publications.at(-1)?.catalogSelection?.primarySourceId).toBe(next.id);
+    expect(publications.at(-1)?.receiver).toEqual(scope);
+    model.release();
+    await expect
+      .poll(async () => (await client.call('workbench.snapshot', scope)).run?.state, {
+        timeout: 20000,
+      })
+      .toBe('completed');
+    const output = (await client.call('workbench.snapshot', scope)).messages.find(
+      (m) => m.tool?.name === 'read_workbench_context',
+    )?.tool?.output;
+    expect(JSON.parse(output ?? '{}')).toMatchObject({
+      state: 'available',
+      catalog: { items: [{ sourceId: next.id, state: 'current' }] },
+      snapshot: { catalogSelection: { range: { offset: 25 }, primarySourceId: next.id } },
+    });
+  } finally {
+    model.release();
+    client.dispose();
+    await stop();
+    await model.close();
+  }
+});
+
 test('a global composer keeps explicit library material while the tool reads the changed selection and a trusted project', async ({
   uiPage,
 }, info) => {

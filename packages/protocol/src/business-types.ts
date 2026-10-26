@@ -46,6 +46,11 @@ export type Inputs = {
   'library.batch': FromSchema<(typeof businessSchemas)['library.batch']['params']>;
   'library.batches': FromSchema<(typeof businessSchemas)['library.batches']['params']>;
   'library.collections': FromSchema<(typeof businessSchemas)['library.collections']['params']>;
+  'library.commitRecords': FromSchema<(typeof businessSchemas)['library.commitRecords']['params']>;
+  'library.commitResult': FromSchema<(typeof businessSchemas)['library.commitResult']['params']>;
+  'library.createSourceInstance': FromSchema<
+    (typeof businessSchemas)['library.createSourceInstance']['params']
+  >;
   'library.documentInfo': FromSchema<(typeof businessSchemas)['library.documentInfo']['params']>;
   'library.get': FromSchema<(typeof businessSchemas)['library.get']['params']>;
   'library.grant': FromSchema<(typeof businessSchemas)['library.grant']['params']>;
@@ -74,6 +79,8 @@ export type Inputs = {
   'library.readingRecords': FromSchema<
     (typeof businessSchemas)['library.readingRecords']['params']
   >;
+  'library.record': FromSchema<(typeof businessSchemas)['library.record']['params']>;
+  'library.recordHistory': FromSchema<(typeof businessSchemas)['library.recordHistory']['params']>;
   'library.relocateAttachment': FromSchema<
     (typeof businessSchemas)['library.relocateAttachment']['params']
   >;
@@ -211,6 +218,11 @@ export type Outputs = {
   'library.batch': FromSchema<(typeof businessSchemas)['library.batch']['result']>;
   'library.batches': FromSchema<(typeof businessSchemas)['library.batches']['result']>;
   'library.collections': FromSchema<(typeof businessSchemas)['library.collections']['result']>;
+  'library.commitRecords': FromSchema<(typeof businessSchemas)['library.commitRecords']['result']>;
+  'library.commitResult': FromSchema<(typeof businessSchemas)['library.commitResult']['result']>;
+  'library.createSourceInstance': FromSchema<
+    (typeof businessSchemas)['library.createSourceInstance']['result']
+  >;
   'library.documentInfo': FromSchema<(typeof businessSchemas)['library.documentInfo']['result']>;
   'library.get': FromSchema<(typeof businessSchemas)['library.get']['result']>;
   'library.grant': FromSchema<(typeof businessSchemas)['library.grant']['result']>;
@@ -239,6 +251,8 @@ export type Outputs = {
   'library.readingRecords': FromSchema<
     (typeof businessSchemas)['library.readingRecords']['result']
   >;
+  'library.record': FromSchema<(typeof businessSchemas)['library.record']['result']>;
+  'library.recordHistory': FromSchema<(typeof businessSchemas)['library.recordHistory']['result']>;
   'library.relocateAttachment': FromSchema<
     (typeof businessSchemas)['library.relocateAttachment']['result']
   >;

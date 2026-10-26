@@ -2,6 +2,7 @@
  * 条目行组件
  */
 import type { LibrarySource } from '@scholoom/protocol';
+import type { CatalogColumn } from './CatalogColumns';
 
 interface CatalogItemRowProps {
   entry: LibrarySource;
@@ -9,7 +10,7 @@ interface CatalogItemRowProps {
   isSelected: boolean;
   style: React.CSSProperties;
   onSelect: (index: number, modifiers: { shift: boolean; ctrl: boolean }) => void;
-  onDoubleClick: (entry: LibrarySource) => void;
+  columns: CatalogColumn[];
 }
 
 export function CatalogItemRow({
@@ -18,17 +19,13 @@ export function CatalogItemRow({
   isSelected,
   style,
   onSelect,
-  onDoubleClick,
+  columns,
 }: CatalogItemRowProps) {
   const handleClick = (e: React.MouseEvent) => {
     onSelect(index, {
       shift: e.shiftKey,
       ctrl: e.ctrlKey || e.metaKey,
     });
-  };
-
-  const handleDoubleClick = () => {
-    onDoubleClick(entry);
   };
 
   const creators =
@@ -54,33 +51,41 @@ export function CatalogItemRow({
 
   const candidateNote = entry.metadataOrigin === 'filename' ? ' · 待核对（文件名）' : '';
 
+  const values = {
+    title: `${entry.metadata.title}${candidateNote}`,
+    creators,
+    date: String(date),
+    version: entry.version,
+    attachment: attachmentStatus,
+  };
+
   return (
     <div
       className={`catalog-item-row ${isSelected ? 'selected' : ''}`}
       style={style}
       onClick={handleClick}
-      onDoubleClick={handleDoubleClick}
       onKeyDown={(event) => {
         if (event.key !== 'Enter' && event.key !== ' ') return;
         event.preventDefault();
         onSelect(index, { shift: event.shiftKey, ctrl: event.ctrlKey || event.metaKey });
-        if (event.key === 'Enter') onDoubleClick(entry);
       }}
       role="option"
       tabIndex={0}
       aria-selected={isSelected}
       aria-label={`查看题录 ${entry.metadata?.title || '(无标题)'}`}
     >
-      <div className="catalog-cell catalog-cell-title" title={entry.metadata?.title}>
-        {entry.metadata?.title || '(无标题)'}
-        {candidateNote}
-      </div>
-      <div className="catalog-cell catalog-cell-creators" title={creators}>
-        {creators}
-      </div>
-      <div className="catalog-cell catalog-cell-date">{date}</div>
-      <div className="catalog-cell catalog-cell-version">{entry.version}</div>
-      <div className="catalog-cell catalog-cell-attachment">{attachmentStatus}</div>
+      {columns
+        .filter((column) => column.visible)
+        .map((column) => (
+          <div
+            key={column.id}
+            className={`catalog-cell catalog-cell-${column.id}`}
+            title={values[column.id]}
+            style={{ flex: `0 0 calc(var(--space-unit) * ${column.width})` }}
+          >
+            {values[column.id]}
+          </div>
+        ))}
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import type { FromSchema } from 'json-schema-to-ts';
+import { catalogSelectionSchema, verifiedCatalogSelectionSchema } from './catalog-selection.js';
 import { readingIndex, readingLocationSchema } from './library.js';
 import { resourceEvidenceSchema } from './resources.js';
 import { array, content, count, id, object, ok, text } from './schema.js';
@@ -119,6 +120,7 @@ export const workbenchContextSnapshotSchema = object(
       uniqueItems: true,
     },
     selections: contextItemsSchema,
+    catalogSelection: catalogSelectionSchema,
   },
   ['revision', 'receiver', 'viewId', 'selectedItems', 'selections'],
 );
@@ -141,6 +143,7 @@ export const workbenchContextInternalOperations = {
             state: { const: 'available' },
             instructionId: id,
             snapshot: workbenchContextSnapshotSchema,
+            catalog: verifiedCatalogSelectionSchema,
           },
           ['state', 'instructionId', 'snapshot'],
         ),

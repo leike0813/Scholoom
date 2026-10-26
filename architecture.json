@@ -264,6 +264,8 @@
         "research.invoke",
         "research.progress",
         "library.check",
+        "library.selection",
+        "library.checkSelection",
         "library.list",
         "library.get",
         "library.ingest",

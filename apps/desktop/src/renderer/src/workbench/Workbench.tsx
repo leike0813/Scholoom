@@ -774,7 +774,9 @@ function WorkbenchContent({ session }: { session: WorkbenchSession }) {
         activeResource ||
         activeGroup?.tabs.find((tab) => tab.id === activeGroup.activeId)?.kind === 'task'
           ? activeGroupId
-          : null
+          : activeGroup?.tabs.find((tab) => tab.id === activeGroup.activeId)?.kind === 'library'
+            ? 'library'
+            : null
       }
       receiver={
         session.projectId && session.activeSessionId

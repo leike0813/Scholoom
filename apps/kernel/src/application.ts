@@ -206,6 +206,16 @@ export class KernelApplication extends ManualApplication {
       {
         read: (source, receiver) => this.workbenchContexts.read(source, receiver),
         resources: options.contextResources ?? ((context) => this.instructionResources(context)),
+        catalog: (context) => ({
+          read: (input) =>
+            this.broker
+              .consumer({ ...context, moduleId: 'harness' }, ['library.selection'])
+              .call('library.selection', input),
+          check: (libraryId) => {
+            this.instructionResources(context).check([], true);
+            this.library.checkSelection({ libraryId });
+          },
+        }),
       },
       (context) => this.executionResources(context),
       (context) => this.projectTasks(context),
