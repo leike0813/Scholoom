@@ -197,6 +197,8 @@ sequenceDiagram
 
 ## 主线第二阶段公共对接
 
+以下保留第二阶段的输入与候选。当前同步状态以文末“同步恢复后的本轮范围”为准；统一v6／history及资源叶已进入本树，不再执行下面旧的迁移版本或同步候选。
+
 本节消费用户正式转交的`/tmp/scholoom-phase2-handoff-VZS5mS`（下称S），不是读取其他工作树。S/manifest.json确认七线基线均为`e3d58fc807827a78493dcd16e38de28c8d02766e`，快照仅含改动／未跟踪工件。S/acceptance.md的A1与I-MIGRATION优先于前阶段独立通过结论；S/coordination-plan.md的“独立实施之后的公共对接阶段”规定组合迁移由计算线负责。本轮不改迁移入口或版本。
 
 ### 已收到的提供者事实
@@ -232,3 +234,17 @@ sequenceDiagram
 计算组合至少覆盖新库、原公共v4、两种局部v5（只有delegations或program_runs），保留旧数据和信任、两表及索引约束、受保护副本、失败重试、恢复副本；具体版本链由计算统一设计后主线复核，不以version相等或CREATE IF NOT EXISTS代替验证。恢复时本线仅重绑原本属自身项目的工作包材料／save输出、reads、writes、报告及实际成果ref，外项目／库ref保持原对象；live委派转interrupted/unknown，不授予旧实例执行资格。组合测试还需核对程序historical、命令宿主身份清除、科研GraphCall来源及所有close责任。
 
 公共资源叶schema先由项目提供者接入，保留resources原重导出；本线继续消费原ResourceEvidence，不复制叶声明。阅读图片枚举／格式判断在该叶增量之后组合；不会因为本线能打开报告文件就宣称交互报告实现。公共补丁文件、适用前提与实测范围记录在delivery；dev组合及用户同步消费者后才进入真实I3。
+
+## 同步恢复后的本轮范围
+
+实际HEAD为2cb6aed4d0f3034ca2d1426858a64a0039e51ede，0519904（含b838402）已是祖先，启动时clean。用户已明确恢复，原等待同步条件失效。主线恢复记录`/tmp/scholoom-sync-recovery-wyn13R/{recovery.md,synchronized.json}`及本树日志提供先构建后34/34内核证据。直接使用本树正式源码，保留harness.executions／Graph来源、统一v5→v6、资源叶、projectId和双窗口基础，不再复制隔离组合或改迁移。
+
+本轮新增内部`harness.executionFacts`，输入为关闭额外字段的空对象，唯一身份来自宿主绑定的CallContext。KernelApplication提供同名窄适配方法，经kernel实际消费声明／broker注册调用；不注册public业务操作、不加入模型工具，不接收runId或principal等替代参数。
+
+当前有效execution／agent上下文返回`{state:'verified',principal,projectId,sessionId,runId,instanceId,delegation,instructionContext,tool}`。复用checkExecutionContext核对当前run、宿主、整条实际父实例链及资格；principal必须为agent且id等于绑定session。delegation为`{state:'none'}`（实例确实无父）、`{state:'verified',delegationId,parentInstanceId,parentRunId}`（delegations的child、parent、project、session、run全部一致）或`{state:'unknown'}`。最多返回一条直接委派关系，不读全会话消息／成果或构造因果图。instructionContext固定`{state:'unknown',reason:'notCaptured'}`，tool固定`{state:'unknown',reason:'notBound'}`；不从当前指令集合选作者。
+
+缺少／失效的执行身份返回`{state:'unknown'}`；非execution或principal不匹配拒绝permissionDenied。保存提供者在实际操作受理时取得快照；执行退出／取消／宿主重启后旧上下文不再被认证，不能用历史查询重新赋予资格。公共harness.executions继续只负责持久Run／来源查询，两者不替代授权。无需新表、迁移或存储principal副本；项目M2消费实际CallContext和该查询快照，在自己的FileEdit事务保存已证明来源，当前本树不修改FileEdit契约／保存临界区。
+
+任务可选：真实项目TaskPort未进入本树，不复制其私有实现、不添加必填TaskRef。现有工作包可交接任务入口的ResourceEvidence，父在任务提供者就绪后补原links；本轮只保留已核对TaskRef／workItemId语义与接口接线说明。实际科研角色仍未交付，通用worker及固定图只作机制验收。
+
+验证复用真实资源保存端口：父读子成果、子首次创建时分别取得实际CallContext并经kernel/broker查询，核对不同实例和匹配委派链；错误实例／退出／重启为unknown，伪造参数及非执行主体拒绝。保留A1、首次创建范围、父退出／取消、恢复和history原测试；不触碰ToolCall／tab布局。公共事实端口补丁与相对0519904的完整委派领域切片分别导出，包含同源映射、注册／消费和必要测试，不提交或同步其他树。

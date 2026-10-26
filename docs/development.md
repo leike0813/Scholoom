@@ -276,6 +276,8 @@ Agent 的 `read_workbench_context` 工具按本次推进已注入的指令查询
 
 项目会话的父执行可用 `list_delegation_roles`、`delegate_agent`、`read_delegation`、`wait_delegation`、`cancel_delegation` 交接一个明确工作包。当前内置通用 `worker@1`，科研角色通过宿主源码 `delegationRoles` 注入；实际科研角色及任务关联整合仍待各自提供者。子执行使用独立受管进程，只接收工作包和所选角色指导；自己的 scratch 位于 `.scholoom/harness/sessions/<sessionId>/delegations/<delegationId>/scratch`。不导入父历史或 checkpoint，也不允许递归委派。父退出收尾未完成的子，局部取消只作用于该子；有限等待到期不取消。macOS 仍沿 `managedExecution` 明确不可用。
 
+内部 `harness.executionFacts({})` 由宿主 `KernelApplication.executionFacts(context)` 适配消费，只使用实际CallContext核对当前Agent的principal／project/session/run/instance及持久委派父子关系，不接受模型自报身份、不进入公共操作或模型工具。根返回无父委派，匹配的子返回delegationId及父run／instance，无法匹配的关系为unknown；instructionContext与tool始终明确unknown。已取消或退出／重启后的旧上下文返回unknown，不能用持久history重新授权；权限身份不匹配拒绝。项目M2在实际保存受理时取该快照，FileEdit权威仍由项目维护，当前本线不推断精确工具／指令作者。
+
 材料以稳定 `ref/basis` 指定，输出为明确新路径或可修改资源；宿主落实父权限、角色、请求工具及领域授权的交集。实际成果仅取自领域保存／创建回执，子口述和 scratch 均不算成果。创建操作使用宿主生成且按委派隔离的领域身份。首次修改须精确匹配允许save输出的ref+basis，可读材料的其他版本不授予写权限。修改前持久保存写入意图，效果未核清时保持 `unknown`；先前成功回执不能掩盖后续未知修改。本委派已有保存回执时，后续修改须使用最近保存的 basis。重启只查询、核查原结果，不自动恢复或重放未知保存。
 
 展开会话中的委派工具记录，可查看角色、实际模型、状态、障碍、未完成项和实际成果并取消；成果沿共同资源入口打开，保留输入草稿。公共 `delegation.get/list/cancel` 按父会话查询或取消，列表默认25／最多100；展开行按事件有界刷新，不把子日志或完整工作包放入 snapshot。诊断从 `delegationId`、父 run／instance、子 instance／实际 PID、`run_instances` 停止状态、`reads`、`creations`、`writes` 与 `artifacts` 核对受理、进程、工具效果及刷新失败。停止未知继续保护项目释放，不能凭根 PID 消失认定安全。定向入口为 `tests/kernel/agent-delegation.spec.ts`、`delegation-races.spec.ts`、`model-profiles.spec.ts`、`tests/ui/agent-delegation.spec.ts`；实际覆盖与待验平台见[本变更交付记录](../openspec/changes/add-bounded-agent-delegation/delivery.md)。

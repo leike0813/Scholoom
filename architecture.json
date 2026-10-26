@@ -342,7 +342,13 @@
         }
       ],
       "provides": [],
-      "consumes": ["models.status", "projects.list", "project.fileRevision", "harness.snapshot"]
+      "consumes": [
+        "models.status",
+        "projects.list",
+        "project.fileRevision",
+        "harness.snapshot",
+        "harness.executionFacts"
+      ]
     },
     {
       "name": "desktop",

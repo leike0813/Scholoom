@@ -224,6 +224,57 @@ export class Harness {
     this.delegationManager(this.projects.get(context.projectId!)).report(context, input);
     return { ok: true as const };
   }
+  executionFacts(context: CallContext): HarnessModuleOutputs['harness.executionFacts'] {
+    if (context.role !== 'execution' || context.principal.kind !== 'agent')
+      throw new OperationError('permissionDenied', '执行事实需要宿主绑定的Agent上下文。');
+    const { projectId, sessionId, runId, instanceId } = context;
+    if (!projectId || !sessionId || !runId || !instanceId) return { state: 'unknown' };
+    if (context.principal.id !== sessionId)
+      throw new OperationError('permissionDenied', '执行主体与所属会话不匹配。');
+    try {
+      this.checkExecutionContext(context);
+    } catch (error) {
+      if (error instanceof OperationError && ['instanceMismatch', 'notFound'].includes(error.code))
+        return { state: 'unknown' };
+      throw error;
+    }
+    const records = this.records(this.projects.get(projectId));
+    const instance = records
+      .select()
+      .from(tables.instances)
+      .where(eq(tables.instances.id, instanceId))
+      .get()!.value;
+    const record = records
+      .select()
+      .from(tables.delegations)
+      .where(eq(tables.delegations.childInstanceId, instanceId))
+      .get()?.value;
+    return {
+      state: 'verified',
+      principal: { kind: 'agent', id: context.principal.id },
+      projectId,
+      sessionId,
+      runId,
+      instanceId,
+      delegation: !instance.parentInstanceId
+        ? { state: 'none' }
+        : record &&
+            record.childInstanceId === instanceId &&
+            record.projectId === projectId &&
+            record.sessionId === sessionId &&
+            record.parentRunId === runId &&
+            record.parentInstanceId === instance.parentInstanceId
+          ? {
+              state: 'verified',
+              delegationId: record.id,
+              parentInstanceId: record.parentInstanceId,
+              parentRunId: record.parentRunId,
+            }
+          : { state: 'unknown' },
+      instructionContext: { state: 'unknown', reason: 'notCaptured' },
+      tool: { state: 'unknown', reason: 'notBound' },
+    };
+  }
   private readonly hostInstanceId = randomUUID();
   private readonly repositories = new Map<string, HarnessRecords>();
   private repository(project: HarnessProject) {

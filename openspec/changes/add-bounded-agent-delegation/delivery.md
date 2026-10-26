@@ -2,7 +2,7 @@
 
 ## 当前状态与成果
 
-本线独立实施后，主线第二阶段审查发现A1，原通过结果不足以接受该授权阶段。本轮已沿真实受理链复现并修复，完成最小复验和公共对接准备，待主线接收修复；跨线／目标平台仍未完成，不可归档。下列第一阶段实跑保留原时间／范围，第二阶段追加结果见文末。用户授权仍不包括安装依赖、开发服务器、真实库、提交、推送或PR。开发Agent保持Codex／gpt-6.1-sol／high，未新开Agent终端，产品命名模型仍使用既有MiniMax目录。
+当前为公共同步后的实际领域接入切片。A1已由主线复验关闭；同步提交2cb6aed包含0519904／b838402，启动clean且祖先核对通过，已取消旧等待同步条件。下文保留第一／第二阶段原始验证，恢复后本轮实跑及交接见文末。用户允许可审查本地提交或补丁，本轮选择补丁；仍不安装依赖、启动常驻开发服务器、操作真实库、推送／PR或归档。开发Agent保持Codex／gpt-6.1-sol／high，未新开Agent终端，产品命名模型仍使用既有MiniMax目录。
 
 | proposal判据 | 实际成果与接受边界 |
 | --- | --- |
@@ -70,7 +70,7 @@
 
 ## 未完成事项与下一步
 
-任务以[tasks](tasks.md)为准，当前16/20（原13/18，第二阶段关闭5.1并完成8.1／8.2）。未完成：4.2 Windows原失败阶段诊断、4.3目标平台验证、6.1真实角色与公共提供者接入、6.2 I3真实整合。任务接口及阅读设计已正式转交，不能继续要求用户重复提供；尚缺实际科研角色及dev组合后的提供者，不代其他线定案。
+任务以[tasks](tasks.md)为准，本轮新增第9组。公共同步／history消费门已有实际证据，不再等待同一公共方案。仍开放4.2 Windows原失败阶段、4.3目标平台、6.1真实科研角色／任务提供者及6.2业务I3；当前本树没有真实TaskPort／科研角色，不能把通用worker或已读快照当业务接通。
 
 已核对快照路径及公共符号见design末节；下一步先由主线选择构造器组合／任务关联范围，计算提交统一迁移方案并经dev验证、用户同步消费者，再沿实际角色提供者执行I3。Windows保留原全组条件，按worker／ACL辅助进程分类取阶段证据；macOS仍声明受管不可用，人工／分发路径待目标实测。跨会话通信、advisor、递归、后台移交及子checkpoint自动恢复均未实现。
 
@@ -121,3 +121,50 @@ lifecycle原日志6879对应stop后四路start，不是子数量断言；缺四�
 最终复核：格式化后当前harness构建及A1定向**1/1通过**（10秒场景，命令总18.2秒），日志见补丁包a1-final.log；测试工具类型检查、最小Biome error、OpenSpec strict／schema、architecture（13模块／197文件、0问题／0豁免）、git diff及本轮改动／未跟踪工件空白检查通过。apply确认16/20、剩余4.2／4.3／6.1／6.2。与正式Agent快照比较，本轮只改两个业务／回归源文件及本change四份工件、开发说明，共7文件；其余原有未提交成果保留。
 
 本阶段到此停止。主线需决定构造器尾参方案与任务关联消费范围，并接收计算统一迁移方案；科研需提供实际角色及原材料／标准。未做跨会话通信、advisor、递归、Git提交／推送／PR或归档。
+
+## 同步恢复后的实际领域切片
+
+2026-10-26恢复指令已取代旧的“等待用户手动同步”条件。实际HEAD=`2cb6aed4d0f3034ca2d1426858a64a0039e51ede`，只读`git merge-base --is-ancestor 0519904 HEAD`成功，开始时git status为空；0519904包含b838402。源码只使用本树正式状态，未创建／复用/tmp业务组合、未自行同步其他树。原WIP检查点和主线恢复备份均保留。
+
+同步证据为`/tmp/scholoom-sync-recovery-wyn13R/recovery.md`、`synchronized.json`和本树子目录的`build-check.log`、`tools-typecheck.log`、`kernel-check.log`。主线先构建及类型／架构／生成映射检查后，本树内核34/34通过；其中原history、统一v6迁移与恢复已验证。全七树203/203、UI16/16、BBT9/9是该恢复记录的外部证据，本轮不把它们重复计算为新的本线科研成果。当前history与委派同时存在，资源叶、Graph来源、双窗口基础未回退；`project-container.ts`及迁移版本本轮没有修改。
+
+### 新增公共执行事实端口
+
+`harness-module-contracts.ts`增加内部`harness.executionFacts({})`及关闭额外字段的结果schema；从最终schema生成`harness-module-types.ts`，原harness.executions及来源字段保留。`Harness.executionFacts(context)`只核对宿主实际CallContext、当前run／host及完整运行实例链，principal必须为agent且匹配session；按child_instance_id精确读取并核对JSON的child、project、session、parentRun和parentInstance。根实例返回无父委派，不能核实的子关系为unknown。返回固定有界身份信息，不读完整消息／模型历史／成果，不推断instructionContext／tool，二者明确unknown。
+
+KernelApplication注册同源内部handler，并以`executionFacts(context)`经kernel消费声明／broker调用；实际资源提供者可在操作受理时取快照。已取消的context在broker分发前就返回无身份unknown，避免查询变成一次被取消的操作；退出、旧实例或重启同样不重新认证。非执行主体／不匹配principal拒绝，参数不能携带替代instance。没有公开业务操作或模型工具，没有新增principal副本、FileEdit表／迁移，也没有接管项目M2的保存权威。
+
+新测试`tests/kernel/execution-facts.spec.ts`通过真实父子worker的资源read／create获取原CallContext，kernel／broker／harness／SQLite均为正式实现，仅外部模型用既有合成HTTP夹具。验证父与子不同实例、实际持久委派映射、无公开入口、错误实例／缺身份／错误run／已取消为unknown、非执行主体及伪造参数拒绝。测试在退出后去掉旧context的signal，再验证旧身份和重启查询为unknown，避免只因AbortSignal已取消而误认为已验证重启保护；原成果保留且查询无新模型请求。测试保存端口仅作观察包装，真实文件保存未替换。
+
+独立原生辅助Agent继承gpt-6.1-sol／high，只读核对实际范围和新查询，最新复核未发现阻断性的授权扩大或来源不实。它未改源码、构建或代跑测试；本线核验实际运行结果。精确工具／指令作用域仍属后续阶段。
+
+### 构建、首次失败与最终结果
+
+保持先构建后测试、运行期间不重建共享产物。使用既有依赖的直接Node入口，无安装、下载、真实用户库或开发服务器。
+
+- 首次`test-results/execution-facts-red`失败：新宿主查询尚不存在，观察端口失败导致报告缺失；保留原trace。首次harness构建另发现principal展开未收窄为agent的TypeScript错误，改为输出已校验的agent身份字段后通过。
+- `test-results/execution-facts-green`暴露构建资产不完整：单独tsc不复制architecture.json，dist仍无新消费声明。按现有kernel官方build步骤复制迁移资产／architecture后，`execution-facts-policy-build`进一步定位到broker对已取消signal的分发前拒绝。现适配器对已取消只返回unknown，未改变broker取消保护，未放宽时限。以上失败工件均保留。
+- protocol、harness、kernel顺序构建通过；kernel复制原storage/migrations及architecture.json。新查询单项在`test-results/execution-facts-cancel-check` **1/1通过**。
+- 最终组合命令：`node node_modules/@playwright/test/cli.js test --config playwright.kernel.config.ts tests/kernel/execution-facts.spec.ts tests/kernel/agent-delegation.spec.ts tests/kernel/delegation-races.spec.ts tests/kernel/execution-history.spec.ts tests/kernel/project-recovery.spec.ts tests/kernel/resource-creation.spec.ts --output=test-results/agent-resumed-integration`，**31/31通过（3.0分钟）**。覆盖真实父子读回、A1、兄弟首次创建、权限交集、父完成／局部取消／停止未知、保存与关联未知、重启／恢复及公共history选择／来源／并发重放。
+- `tsc --noEmit -p tsconfig.tools.json`、生成器self-test及harness最终schema／格式化映射逐字比对通过；architecture为13模块／200文件、0问题／0豁免。修改源码Biome error级检查通过。最终OpenSpec及diff状态见收尾复核。
+
+本轮不改会话布局、ToolCall或任务／程序tab，不新增UI项；原双宿主证据沿此前交付及主线恢复，不声称本轮重跑。Windows原失败仍缺目标环境和阶段证据，不调生产期限；macOS受管不可用、真实模型／科研质量、分发包及全仓CI没有新增结论。
+
+### 可独立接入的补丁与剩余前置
+
+本轮选择补丁交接，不创建本地提交。补丁包为`/tmp/scholoom-agent-integrated-nxognP/`，仅源码差异与审查／校验工件，没有新的源码组合或运行依赖：
+
+| 文件 | 基线／完整性 |
+| --- | --- |
+| `01-agent-domain.patch` | 0519904→同步HEAD 2cb6aed，包含此前已验收的完整委派／命名模型／ToolCall领域切片及原必要测试；不包含新的事实端口 |
+| `02-execution-facts-public.patch` | 2cb6aed→本轮公共增量，含内部schema／生成映射、runtime、kernel注册／调用适配、architecture消费和新实际调用测试；依赖01提供的委派仓储，不假装空公共基线已拥有完整委派提供者 |
+| `03-delivery-docs.patch` | 本轮所属规格、设计、任务／交付和运行文档；history消费同步门按实际证据关闭 |
+| `agent-complete-from-0519904.patch` | 上述最终合成差异，供当前dev未接委派业务时使用；与前三份是替代接入方式，不能叠加重复应用 |
+
+所有补丁以共同基线精确生成，保留实际注册、调用方、同源派生类型及测试。不包含新的物理迁移、programs／任务私有实现、包安装或真实数据。接入顺序为0519904→01→02→03，或直接完整补丁；dev有后续共享符号修改时逐符号核对，不能整文件覆盖。具体校验记录及文件清单在包内README／manifest。
+
+历史change本树4.2消费同步门已依据主线恢复清单及本轮实际history组合关闭，不重新起草同一公共方案。任务引用仍可选，真实TaskPort和科研委派角色未进入本树；父可沿原ResourceEvidence交接材料，不引入强制TaskRef、伪造角色或凭通用worker宣布I3。项目M2未来可消费实际context和上述快照；其FileEdit来源持久化／精确作用域不在本线实施。
+
+达到本轮有界任务后停止，保留未完成的Windows／目标平台、实际角色／任务关联及业务I3；不自动同步、推送、PR或归档。
+
+收尾复核：本change 19/23，剩余4.2／4.3／6.1／6.2；history本树消费门已关闭。两个change定向strict、scholoom-dev schema、kernel及tools无输出类型检查、生成器／映射、architecture、Biome error与13份本轮文件的空白／冲突标记检查均通过。完整补丁在0519904的独立临时索引正向check通过，增量及完整补丁当前树反向check通过；未修改真实索引／HEAD、未实际应用或建立源码组合。迁移、资源叶、Graph来源与双窗口fixture相对0519904无差异；当前HEAD仍为2cb6aed，没有本轮新提交。

@@ -5,6 +5,9 @@ import type { harnessModuleOperations } from './harness-module-contracts.js';
 export type Inputs = {
   'harness.delegate': FromSchema<(typeof harnessModuleOperations)['harness.delegate']['params']>;
   'harness.execute': FromSchema<(typeof harnessModuleOperations)['harness.execute']['params']>;
+  'harness.executionFacts': FromSchema<
+    (typeof harnessModuleOperations)['harness.executionFacts']['params']
+  >;
   'harness.executions': FromSchema<
     (typeof harnessModuleOperations)['harness.executions']['params']
   >;
@@ -24,6 +27,9 @@ export type Inputs = {
 export type Outputs = {
   'harness.delegate': FromSchema<(typeof harnessModuleOperations)['harness.delegate']['result']>;
   'harness.execute': FromSchema<(typeof harnessModuleOperations)['harness.execute']['result']>;
+  'harness.executionFacts': FromSchema<
+    (typeof harnessModuleOperations)['harness.executionFacts']['result']
+  >;
   'harness.executions': FromSchema<
     (typeof harnessModuleOperations)['harness.executions']['result']
   >;

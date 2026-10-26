@@ -109,6 +109,7 @@ export class KernelApplication extends ManualApplication {
     );
     this.broker.register('runtime', this.handlers);
     this.broker.register('runtime-internal', {
+      'harness.executionFacts': (_input, context) => this.harness.executionFacts(context),
       'harness.executions': (input, context) => {
         if (
           context.role !== 'host' ||
@@ -252,6 +253,12 @@ export class KernelApplication extends ManualApplication {
     if (context.role === 'execution') this.checkExecutionContext(context);
     return { resource, association };
   }
+  executionFacts(context: CallContext): Promise<HarnessModuleOutputs['harness.executionFacts']> {
+    // The broker rejects cancelled calls before dispatch; no execution can be verified then.
+    if (context.signal?.aborted) return Promise.resolve({ state: 'unknown' });
+    return this.modulePort(context, 'kernel').call('harness.executionFacts', {});
+  }
+
   harnessStorage(): HarnessStorage {
     const resources = new Map<string, HarnessProject>();
     const get = (id: string): HarnessProject => {

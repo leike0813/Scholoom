@@ -125,3 +125,15 @@ stateDiagram-v2
 #### Scenario: 查看其他会话并取消旧子
 - **WHEN** 委派查询或取消回执在用户切到另一会话后返回
 - **THEN** 只更新原委派事实，不能覆盖新会话内容或取消新会话执行
+
+### Requirement: 可证明的执行事实供领域消费
+
+系统 SHALL 提供有界内部查询，从宿主实际CallContext核对当前Agent的principal、project/session/run/instance及持久委派关系；不接收调用参数中的替代身份，不向模型或公共产品入口开放。查询 SHALL 复用当前执行资格检查，不授予新权限。根实例可确证无父委派；子实例仅在delegations与实际父实例、run、session一致时返回委派身份，否则明确unknown。失效执行与重启后的旧上下文 SHALL 为unknown，不从历史配置或同run推断作者。instructionContext及精确tool来源在本阶段 SHALL 明确unknown，不生成候选作者；领域在实际操作受理时保存其取得的事实，harness不另存FileEdit权威。
+
+#### Scenario: 父子保存使用各自实际实例
+- **WHEN** 根执行和通用委派子通过真实资源端口保存，所属宿主以各自实际CallContext查询
+- **THEN** 返回各自已核对的实例，只有子得到匹配的delegationId／parentInstanceId／parentRunId，instructionContext和tool均为unknown
+
+#### Scenario: 迟到或错误的执行上下文
+- **WHEN** 原上下文已退出、取消、重启，或传入的实例不属于该session/run
+- **THEN** 无法核实的事实返回unknown，查询不恢复执行、不扩大权限、不把旧委派链赋给新实例
