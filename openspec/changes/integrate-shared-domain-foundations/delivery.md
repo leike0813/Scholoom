@@ -67,3 +67,17 @@ tasks 2.3已完成：公共代码b838402已推送，七份任务经orca-cli发�
 同步提交：文献70be8bf、项目77cd078、科研2812777、Agent 2cb6aed、计算91615d5、阅读e71663b、生态eaf38be。提交完成时七树均clean且0519904为祖先；没有reset／rebase、切分支、覆盖已有成果或推送工作树分支。完整命令、逐树日志、检查点及文件保全记录在同目录recovery.md、synchronized.json、source-preservation.json和各树子目录。恢复回执沿tasks 2.5实际记录，恢复前不再允许依赖旧基线实施。
 
 七份恢复指令现已全部accepted及turn_started，回执为同目录resume-receipts.json；各自明确本树同步提交、实际测试及原有界任务，撤销旧“等待用户手动同步”条件，不重复新建Agent。用户本轮无需再手动同步公共代码。恢复后Agent可产生新的正常改动，同步完成时clean不代表后续一直clean。本主线收尾提交只补交付文档，不改变0519904公共代码基线；不要求七树为该回执文档再做一轮同步。
+
+## 后续共同消费复验
+
+七域成果已保全、建立本地检查点并逐线合入dev，共同源码基线为 `1026796d854b8f568c3e819f13268a9638980bc1`，已推送。对应业务成果和剩余任务仍归各自change；本节只记录共同消费验证，不扩大原公共变更范围或据此归档。下一轮职责与共享符号分工见[并行开发计划](../../../.scratch/domain-development/parallel-development-plan.md)。证据根目录为 `/tmp/scholoom-round5-acceptance-WBreMJ/`，原树验收、命令、日志和独立审查见 `acceptance.md`。
+
+主线完整构建、类型检查、架构检查（14模块247文件、0 findings）、生成映射及13个相关change定向strict通过。共同内核首轮209项中207通过、1失败、1跳过：新增合法editId触发旧完整对象断言，改为保留必要字段的部分匹配后原项1/1通过；恢复组合移除旧快照adapter条件，直接消费真实HarnessRecords，原跳过项1/1通过。209个不同用例分别有通过证据，不记为一次209/209。双宿主首轮22通过14失败，最小对照证明测试删除仍登记项目会触发既有未知恢复及容量保护；仅修正三份UI夹具的项目生命周期和用例名称，保留合成项目至共享配置退役，未放宽生产保护。相同整组复验36/36通过，见 `main-ui-recheck/result.json`；测试目录约定已进入开发说明。
+
+Standards独立审查未发现确证新增缺陷；Spec独立审查发现报告共享JSON子树在容量检查前指数展开、UTF8 BOM来源漏认递归报告两项P2。两项均先实际复现失败，再由主线修复，报告模块70/70通过；两位审查者追加复核确认闭合。报告仍仅为独立模块，未注册生产操作或开放HTML写入／iframe。历史TeX首次unknown的根因仍未定位，下一轮由计算线补最小退出诊断，停止与容量判据保持。
+
+七树已逐一快进至同一共同源码基线，同步完成时全部clean，没有reset、rebase或覆盖成果。新programs包仅补现有同版本依赖和本树workspace链接，没有下载或升级；检查点、逐线合并、文件保全及同步结果见 `checkpoints.json`、`source-preservation.json`、`synchronized.json`。
+
+同步后七树分别完整构建、包类型、架构和生成器self-test全部通过；各树定向内核共80/80通过（项目5、Agent1、文献3、阅读45、计算1、生态24、科研1），命令与结果见 `sync-build-results.json`、`sync-kernel-results.json`。构建完成后才测试，没有在测试期间重建同树产物。随后再次核对唯一Codex终端、GPT-6.1-Sol/high、空输入及共同HEAD，才发送下一轮prompt。七份均取得 `accepted:true` 和 `turn_started`，见 `prompts/`、`dispatch-receipts.json`；六条实施线已启动，科研图运行时只接收验收及等待指令，不重复项目线I1。Orca卡片同步更新，无后台协调轮询或等待实现结束。
+
+本节收尾提交仅记录验证和实际派发，七树已验证源码仍以 `1026796` 为基线，无需为回执文档再同步。用户本轮无需手动同步。完整change、I1／I3／I5／I6及真实科研质量仍按各自未完成任务续做；未增加全仓CI或Windows／macOS分发通过结论，macOS受管执行继续明确不可用。
