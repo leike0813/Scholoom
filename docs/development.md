@@ -98,6 +98,20 @@ SCHOOLOOM_UI_PORT=5343 node node_modules/@playwright/test/cli.js test --config p
 
 `pnpm dev:desktop` 使用 electron-vite；`pnpm dev:browser` 使用同一 React renderer。浏览器入口没有 Electron bridge，界面业务功能经共同客户端实现。
 
+## 文件研究任务
+
+项目任务由 `packages/projects` 的 `ProjectTasks` 提供，人和 Agent 共用 `tasks.list/read/create/save`。入口是公开 `tasks/` 下的 `*.task.md`：`---` 包围标准 JSON 元信息，后接开放 Markdown 正文。元信息契约以 `packages/protocol/src/task-contracts.ts` 为准；正文保存目标、当前完成条件、约束、进展、障碍和下一步，长计划、比较过程和成果独立成文并在入口引用。当前入口编辑上限为256 KiB UTF-8字节，未创建任务时查询不创建目录。
+
+`TaskRef` 包含 projectId、taskId、入口 fileId；路径不替代身份。发现默认每页扫描25项、上限100项，原目录页可能包含非任务文件，因此任务不足一页仍可能返回nextOffset；分页版本只说明目录项，读取和保存仍核对实际入口。损坏、重复、超限及未知格式分别返回诊断，不能回退到另一份正文。入口及关系只以文件为权威，没有任务正文表。
+
+任务通过右侧任务面板创建和发现，详情在中间标签打开，正文沿共同编辑器保存。研究状态为进行中、待处理、已完成，与执行状态分别表达；任务选择不改变会话接收者，明确附加入口才进入共同指令。关联现有材料只编辑引用字段，提交前检查入口未保存草稿，并沿原强依据条件保存；失败保留材料与候选，不覆盖入口。任务内部项目材料只记录本地fileId，独立恢复副本在副本中核对；库材料记录附件及材料版本指针，正文仍由库提供。
+
+首次创建必须使用稳定operationId；创建未知时通过 `resources.creation` 查询原操作，不另建任务或重写成果。Agent工具为 `list_research_tasks`、`read_research_task`、`create_research_task`、`save_research_task` 及 `read_task_creation`，沿当前可信工作域、实例和项目信任；人工组合无需会话或模型。全局及跨项目任务材料继续经已有目标只读文件入口读取，任务操作不授予目标登记／写入权。
+
+诊断沿TaskRef、入口basis、原创建operationId、ErrorInfo及既有工具记录核查。来源读取异常保留原引用与项目材料；需要用户决定时Agent询问并等待，缺库删除历史提供者时明确不可用，不将missing或notFound冒充删除事实，不用替代材料回填。完整主题知识、删除恢复和科研固定图整合仍等待所属线实际提供者，见 `openspec/changes/establish-file-backed-research-tasks/` 的tasks与delivery。
+
+定向检查：`tests/kernel/research-tasks.spec.ts`（文件任务／人工组合／恢复）、`task-tools.spec.ts`（工具范围）、`research-task-agent.spec.ts`（真实内部执行与受控模型接续）、双宿主 `tests/ui/research-tasks.spec.ts`。构建与UI仍须分开，隔离配置及临时服务只收尾本轮归属。
+
 ## 共同资源打开
 
 文件树、消息文件链接和文献附件均进入 `resource-controller.ts` 的资源引用及工作台 `renderResource`，由 `ResourceView` 选择同一文本、PDF 或 EPUB／HTML 组件。库 tab 和库附件跨项目保留，项目切换恢复各自文件组及草稿；资源导航不切换 Agent 会话或项目信任。

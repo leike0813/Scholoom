@@ -97,6 +97,7 @@ export class KernelApplication extends ManualApplication {
         resources: options.contextResources ?? ((context) => this.instructionResources(context)),
       },
       (context) => this.executionResources(context),
+      (context) => this.projectTasks(context),
     );
     this.broker.register('runtime', this.handlers);
     this.broker.register('runtime-internal', {

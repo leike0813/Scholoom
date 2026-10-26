@@ -3,13 +3,14 @@ import { join } from 'node:path';
 import { Broker, type Handlers } from '@scholoom/broker';
 import { EditorRuntime, ResourceAccess } from '@scholoom/editor/node';
 import { LiteratureCatalog, MaterialReading } from '@scholoom/library/node';
-import { ProcessAdmission } from '@scholoom/platform/node';
+import { failure, ProcessAdmission } from '@scholoom/platform/node';
 import {
   DirectoryBrowser,
   FileTransfers,
   ProjectFileWatches,
   Projects,
   ProjectTargetReader,
+  ProjectTasks,
 } from '@scholoom/projects/node';
 import {
   type BusinessInputs,
@@ -73,11 +74,13 @@ import {
   type ProjectTargetReadInputs,
   type ProjectTargetReadOutputs,
   type ProjectTargetReadPort,
+  type ProjectTaskInputs,
   projectExecutionOperations,
   projectHarnessOperations,
   projectMaterialOperations,
   projectTargetReadOperations,
   type ResearchProjectPort,
+  type TaskPort,
 } from '@scholoom/protocol/projects';
 import {
   type ResearchModuleInputs,
@@ -145,6 +148,7 @@ const materialMethods = Object.keys(projectMaterialOperations).filter(
 export type FoundationMethod =
   | keyof ResourceInputs
   | keyof ResourceCreationInputs
+  | keyof ProjectTaskInputs
   | keyof EditorInputs
   | Exclude<keyof ProjectsInputs, 'project.restore' | 'artifacts.reconcile'>
   | keyof LibraryInputs;
@@ -799,6 +803,20 @@ export class ManualApplication {
       'project.saveFile': (input) => port.call('project.saveFile', input),
     };
   }
+  projectTasks(context: CallContext): TaskPort {
+    const port = this.modulePort(context, 'harness');
+    return {
+      list: (input) => port.call('tasks.list', input),
+      read: (input) => port.call('tasks.read', input),
+      create: (input) => port.call('tasks.create', input),
+      save: (input) => port.call('tasks.save', input),
+    };
+  }
+  private taskOwner(projectId: string, context: CallContext): ProjectTasks {
+    if (context.targetRead)
+      throw new OperationError('permissionDenied', '目标项目任务请经只读文件入口核查。');
+    return new ProjectTasks(this.projects.get(projectId));
+  }
   subscribe(listener: (change: WorkbenchChange) => void): () => void {
     this.listeners.add(listener);
     return () => {
@@ -825,6 +843,62 @@ export class ManualApplication {
     Handlers<BusinessInputs, BusinessOutputs>,
     FoundationMethod
   > = {
+    'tasks.list': (input, context) =>
+      this.resourceOperation(
+        context,
+        { source: 'project', projectId: input.projectId },
+        false,
+        () => this.taskOwner(input.projectId, context).list(input),
+      ),
+    'tasks.read': (input, context) =>
+      this.resourceOperation(
+        context,
+        { source: 'project', projectId: input.task.projectId },
+        false,
+        () => this.taskOwner(input.task.projectId, context).read(input.task),
+      ),
+    'tasks.create': (input, context) =>
+      this.resourceOperation(
+        context,
+        { source: 'project', projectId: input.projectId },
+        true,
+        async () => {
+          try {
+            await this.taskOwner(input.projectId, context).create(input, {
+              operationId: input.operationId,
+              owner: this.creationOwner(context),
+              ...(context.sessionId ? { sessionId: context.sessionId } : {}),
+              ...(context.runId ? { runId: context.runId } : {}),
+            });
+          } catch (error) {
+            if (!(error instanceof OperationError) || error.code !== 'outcomeUnknown') throw error;
+            if (
+              !this.projects
+                .get(input.projectId)
+                .creations.find(input.operationId, this.creationOwner(context))
+            )
+              return {
+                operationId: input.operationId,
+                state: 'failed' as const,
+                error: failure(error),
+              };
+            return { operationId: input.operationId, state: 'unknown' as const };
+          }
+          this.changed(input.projectId);
+          return this.resourceCreation(input, context);
+        },
+      ),
+    'tasks.save': (input, context) =>
+      this.resourceOperation(
+        context,
+        { source: 'project', projectId: input.task.projectId },
+        true,
+        async () => {
+          const result = await this.taskOwner(input.task.projectId, context).save(input);
+          this.changed(input.task.projectId);
+          return result;
+        },
+      ),
     'resources.create': (input, context) =>
       this.resourceOperation(
         context,

@@ -3,4 +3,5 @@ export { ProjectFileWatches } from './file-watch.js';
 export { imageMime, ProjectFiles } from './files.js';
 export { ProjectTargetReader } from './readonly-access.js';
 export { type ContainerInitializer, ProjectStore, Projects, within } from './store.js';
+export { ProjectTasks } from './tasks.js';
 export { FileTransfers } from './transfers.js';

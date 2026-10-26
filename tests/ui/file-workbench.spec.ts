@@ -16,6 +16,10 @@ test('project files share draft preview and survive directory rename, trash and 
   const root = await mkdtemp(join(tmpdir(), 'scholoom-file-ui-'));
   const model = await createModelServer();
   const stop = await startModelKernel(process.env.SCHOOLOOM_UI_DATA_DIR as string, model.url);
+  const client = createKernelClient(
+    await runningKernel(process.env.SCHOOLOOM_UI_DATA_DIR as string),
+  );
+  await client.connect();
   const project = join(root, 'project');
   const errors: string[] = [];
   const external: string[] = [];
@@ -28,9 +32,11 @@ test('project files share draft preview and survive directory rename, trash and 
     await uiPage.goto(rendererUrl);
     await expect(uiPage.getByRole('status', { name: '连接状态' })).toContainText('已连接');
     await addProject(uiPage, project, { mode: 'create' });
+    const { id: projectId } = await client.call('project.open', { path: project });
+    const projectGroup = uiPage.locator(`[data-project-id="${projectId}"]`);
     await mkdir(join(project, 'recovered'));
     await expect(
-      uiPage.getByRole('button', { name: 'project，已展开', exact: true }),
+      projectGroup.getByRole('button', { name: 'project，已展开', exact: true }),
     ).toBeVisible();
     await uiPage.getByRole('button', { name: '设置', exact: true }).click();
     await uiPage.getByText('模型设置', { exact: true }).click();
@@ -98,7 +104,7 @@ test('project files share draft preview and survive directory rename, trash and 
     await uiPage.getByRole('button', { name: '切换主题', exact: true }).click();
     await uiPage.getByRole('button', { name: '切换主题', exact: true }).click();
     await uiPage.screenshot({ path: info.outputPath('file-preview-dark.png') });
-    await createSession(uiPage, 'project');
+    await createSession(uiPage, { projectId });
     model.hold = true;
     await uiPage.getByRole('textbox', { name: '研究指令' }).fill('MODEL_CHAT MODEL_HOLD');
     await uiPage.getByRole('button', { name: '发送指令', exact: true }).click();
@@ -201,7 +207,7 @@ test('project files share draft preview and survive directory rename, trash and 
     await expect
       .poll(() => readFile(join(project, 'recovered', 'draft.md'), 'utf8'))
       .toContain('Unsaved latest paragraph');
-    await uiPage.getByLabel('管理项目 project', { exact: true }).click();
+    await projectGroup.getByLabel('管理项目 project', { exact: true }).click();
     const projectMenu = uiPage.getByRole('menu', { name: '管理项目 project', exact: true });
     await expect(projectMenu.getByRole('textbox')).toHaveCount(0);
     await uiPage.getByRole('button', { name: '从侧栏移除', exact: true }).click();
@@ -217,7 +223,7 @@ test('project files share draft preview and survive directory rename, trash and 
     ).toBeVisible();
     await addProject(uiPage, project);
     await expect(
-      uiPage.getByRole('button', { name: 'project，已展开', exact: true }),
+      projectGroup.getByRole('button', { name: 'project，已展开', exact: true }),
     ).toBeVisible();
     await expect(
       uiPage.getByRole('textbox', { name: '文件内容 recovered/draft.md', exact: true }),
@@ -225,6 +231,7 @@ test('project files share draft preview and survive directory rename, trash and 
     await expect(preview).toContainText('Unsaved latest paragraph');
     expect(errors).toEqual([]);
   } finally {
+    client.dispose();
     await stop();
     await model.close();
     await rm(root, { recursive: true });
@@ -236,10 +243,10 @@ test('resident project sessions switch files and preserve each project draft', a
 }) => {
   test.setTimeout(90000);
   const root = await mkdtemp(join(tmpdir(), 'scholoom-multi-project-ui-'));
-  const alpha = join(root, 'alpha');
-  const beta = join(root, 'beta');
-  await mkdir(alpha);
-  await mkdir(beta);
+  const alpha = join(root, 'first', 'alpha');
+  const beta = join(root, 'second', 'alpha');
+  await mkdir(alpha, { recursive: true });
+  await mkdir(beta, { recursive: true });
   await writeFile(join(alpha, 'alpha.md'), 'Alpha saved content');
   await writeFile(join(beta, 'beta.md'), 'Beta saved content');
   const model = await createModelServer();
@@ -259,20 +266,30 @@ test('resident project sessions switch files and preserve each project draft', a
     await expect(uiPage.getByRole('status', { name: '连接状态' })).toContainText('已连接');
     await addProject(uiPage, alpha);
     await addProject(uiPage, beta);
-    const alphaSession = uiPage.getByRole('button', {
+    const alphaGroup = uiPage.locator(`[data-project-id="${first.id}"]`);
+    const betaGroup = uiPage.locator(`[data-project-id="${second.id}"]`);
+    const alphaSession = alphaGroup.getByRole('button', {
       name: '打开会话 Alpha session',
       exact: true,
     });
-    const betaSession = uiPage.getByRole('button', { name: '打开会话 Beta session', exact: true });
+    const betaSession = betaGroup.getByRole('button', {
+      name: '打开会话 Beta session',
+      exact: true,
+    });
     await expect(alphaSession).toBeVisible();
     await expect(betaSession).toBeVisible();
     await expect(uiPage.getByRole('button', { name: '新建会话', exact: true })).toHaveCount(0);
     await expect(uiPage.getByRole('button', { name: '开始新会话', exact: true })).toHaveCount(0);
+    const alphaCreate = alphaGroup.getByRole('button', {
+      name: '在alpha中新建会话',
+      exact: true,
+    });
     await armRpcGate(uiPage, 'session.create');
-    await createSession(uiPage, 'alpha');
-    const alphaCreate = uiPage.getByRole('button', { name: '在alpha中新建会话', exact: true });
+    await alphaCreate.click();
+    await uiPage.waitForFunction(() => !!Reflect.get(globalThis, '__scholoomRpcGate').held);
     await expect(alphaCreate).toBeDisabled();
     await betaSession.click();
+    await expect(betaSession).toHaveAttribute('aria-pressed', 'true');
     await releaseRpcGate(uiPage);
     await expect
       .poll(
@@ -282,18 +299,19 @@ test('resident project sessions switch files and preserve each project draft', a
     await expect(betaSession).toHaveAttribute('aria-pressed', 'true');
     expect((await client.call('session.list', { projectId: second.id })).sessions).toHaveLength(1);
     await expect(alphaCreate).toBeEnabled();
-    await createSession(uiPage, 'alpha');
+    await createSession(uiPage, { projectId: first.id });
     await expect(uiPage.getByLabel('执行上下文')).toContainText('项目：alpha');
     await expect
       .poll(
         async () => (await client.call('session.list', { projectId: first.id })).sessions.length,
       )
       .toBe(3);
-    const alphaProject = uiPage.getByRole('button', { name: /^alpha，/ });
+    expect((await client.call('session.list', { projectId: second.id })).sessions).toHaveLength(1);
+    const alphaProject = alphaGroup.getByRole('button', { name: /^alpha，/ });
     await alphaProject.click();
     await expect(alphaProject).toHaveAttribute('aria-expanded', 'false');
     await alphaProject.click();
-    const menuButton = uiPage.getByRole('button', { name: '管理项目 alpha', exact: true });
+    const menuButton = alphaGroup.getByRole('button', { name: '管理项目 alpha', exact: true });
     await menuButton.click();
     const menu = uiPage.getByRole('menu', { name: '管理项目 alpha', exact: true });
     await expect(menu).toContainText(alpha);
@@ -478,12 +496,17 @@ test('restricted project allows manual file editing and disables instruction sen
 }) => {
   const root = await mkdtemp(join(tmpdir(), 'scholoom-restricted-project-ui-'));
   const project = join(root, 'restricted');
+  const client = createKernelClient(
+    await runningKernel(process.env.SCHOOLOOM_UI_DATA_DIR as string),
+  );
+  await client.connect();
   await mkdir(project);
   await writeFile(join(project, 'notes.md'), 'Manual content');
   try {
     await uiPage.goto(rendererUrl);
     await expect(uiPage.getByRole('status', { name: '连接状态' })).toContainText('已连接');
     await addProject(uiPage, project, { trust: 'restricted' });
+    const { id: projectId } = await client.call('project.open', { path: project });
     await uiPage.getByRole('treeitem', { name: '打开文件 notes.md', exact: true }).dblclick();
     const editor = uiPage.getByRole('textbox', { name: '文件内容 notes.md', exact: true });
     await expect(editor).toContainText('Manual content');
@@ -492,9 +515,10 @@ test('restricted project allows manual file editing and disables instruction sen
     await expect
       .poll(() => readFile(join(project, 'notes.md'), 'utf8'))
       .toBe('Manual edit remains available');
-    await createSession(uiPage, 'restricted');
+    await createSession(uiPage, { projectId });
     await expect(uiPage.getByRole('button', { name: '发送指令', exact: true })).toBeDisabled();
   } finally {
+    client.dispose();
     await rm(root, { recursive: true, force: true });
   }
 });

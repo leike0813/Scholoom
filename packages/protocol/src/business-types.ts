@@ -118,6 +118,10 @@ export type Inputs = {
   'session.rename': FromSchema<(typeof businessSchemas)['session.rename']['params']>;
   'session.search': FromSchema<(typeof businessSchemas)['session.search']['params']>;
   'session.send': FromSchema<(typeof businessSchemas)['session.send']['params']>;
+  'tasks.create': FromSchema<(typeof businessSchemas)['tasks.create']['params']>;
+  'tasks.list': FromSchema<(typeof businessSchemas)['tasks.list']['params']>;
+  'tasks.read': FromSchema<(typeof businessSchemas)['tasks.read']['params']>;
+  'tasks.save': FromSchema<(typeof businessSchemas)['tasks.save']['params']>;
   'workbench.context.publish': FromSchema<
     (typeof businessSchemas)['workbench.context.publish']['params']
   >;
@@ -240,6 +244,10 @@ export type Outputs = {
   'session.rename': FromSchema<(typeof businessSchemas)['session.rename']['result']>;
   'session.search': FromSchema<(typeof businessSchemas)['session.search']['result']>;
   'session.send': FromSchema<(typeof businessSchemas)['session.send']['result']>;
+  'tasks.create': FromSchema<(typeof businessSchemas)['tasks.create']['result']>;
+  'tasks.list': FromSchema<(typeof businessSchemas)['tasks.list']['result']>;
+  'tasks.read': FromSchema<(typeof businessSchemas)['tasks.read']['result']>;
+  'tasks.save': FromSchema<(typeof businessSchemas)['tasks.save']['result']>;
   'workbench.context.publish': FromSchema<
     (typeof businessSchemas)['workbench.context.publish']['result']
   >;

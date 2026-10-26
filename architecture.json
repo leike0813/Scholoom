@@ -180,7 +180,15 @@
         { "path": "src/file-watch.ts", "apis": ["fs", "fs/promises"] },
         { "path": "src/directory-browser.ts", "apis": ["fs/promises", "os"] }
       ],
-      "provides": ["project.checkRead", "project.material", "project.readTarget"],
+      "provides": [
+        "project.checkRead",
+        "project.material",
+        "project.readTarget",
+        "tasks.list",
+        "tasks.read",
+        "tasks.create",
+        "tasks.save"
+      ],
       "consumes": []
     },
     {
@@ -212,6 +220,10 @@
       "provides": [],
       "consumes": [
         "files.list",
+        "tasks.list",
+        "tasks.read",
+        "tasks.create",
+        "tasks.save",
         "resources.describe",
         "resources.read",
         "resources.document",

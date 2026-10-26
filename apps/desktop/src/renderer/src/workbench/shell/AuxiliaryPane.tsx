@@ -1,6 +1,7 @@
 import type { CSSProperties, ReactNode } from 'react';
 import { useState } from 'react';
 import type { FileNode, TaskSummary } from '../session';
+import { TaskStatusBadge } from '../tasks/TaskList';
 import { IconChevronLeft, IconChevronRight, IconFolder, IconPaperclip, IconTasks } from './icons';
 
 function TreeNode({ node, depth }: { node: FileNode; depth: number }) {
@@ -20,19 +21,6 @@ function TreeNode({ node, depth }: { node: FileNode; depth: number }) {
   );
 }
 
-function TaskStatusPill({ status }: { status: TaskSummary['status'] }) {
-  switch (status) {
-    case 'running':
-      return <span className="pill pill--run">进行中</span>;
-    case 'awaiting':
-      return <span className="pill pill--await">待审批</span>;
-    case 'done':
-      return <span className="pill pill--done">已完成</span>;
-    default:
-      return <span className="pill pill--idle">未开始</span>;
-  }
-}
-
 export interface AuxiliaryPaneProps {
   fileTree: readonly FileNode[];
   tasks: readonly TaskSummary[];
@@ -41,6 +29,7 @@ export interface AuxiliaryPaneProps {
   toggleMaterial: (name: string) => void;
   onCollapse: () => void;
   fileNavigator?: ReactNode;
+  taskNavigator?: ReactNode;
 }
 
 export function AuxiliaryPane({
@@ -51,6 +40,7 @@ export function AuxiliaryPane({
   toggleMaterial,
   onCollapse,
   fileNavigator,
+  taskNavigator,
 }: AuxiliaryPaneProps) {
   type TabId = 'files' | 'materials' | 'tasks';
   const [activeTab, setActiveTab] = useState<TabId>('files');
@@ -145,21 +135,21 @@ export function AuxiliaryPane({
         {activeTab === 'tasks' && (
           <section className="pane" aria-label="任务" id="tab-tasks">
             <div className="pane__body">
-              {tasks.length === 0 ? (
-                <p className="empty-hint">暂无任务</p>
-              ) : (
-                <ul className="task-list">
-                  {tasks.map((task) => (
-                    <li key={task.id} className="task">
-                      <TaskStatusPill status={task.status} />
-                      <span className="task__title" title={task.title}>
-                        {task.title}
-                      </span>
-                      <span className="task__time">{task.updatedAt}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
+              {taskNavigator ??
+                (tasks.length === 0 ? (
+                  <p className="empty-hint">暂无任务</p>
+                ) : (
+                  <ul className="task-list">
+                    {tasks.map((task) => (
+                      <li key={task.task.fileId} className="task">
+                        <TaskStatusBadge status={task.status} />
+                        <span className="task__title" title={task.title}>
+                          {task.title}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                ))}
             </div>
           </section>
         )}

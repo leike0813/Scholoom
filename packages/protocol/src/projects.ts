@@ -1,3 +1,4 @@
+import { Ajv } from 'ajv';
 import type {
   artifactSchema,
   backupSchema,
@@ -13,6 +14,8 @@ import type {
 
 export * from './file-explorer-contracts.js';
 export * from './project-contracts.js';
+export * from './task-contracts.js';
+export { taskOperations as projectTaskOperations } from './task-contracts.js';
 export * from './work-domains.js';
 
 import type { FromSchema } from 'json-schema-to-ts';
@@ -41,6 +44,16 @@ import type {
   Inputs as TargetReadInputs,
   Outputs as TargetReadOutputs,
 } from './project-target-read-types.js';
+import {
+  type taskLinkSchema,
+  taskMetadataSchema,
+  type taskOperations,
+  type taskReadSchema,
+  type taskRefSchema,
+  type taskStatusSchema,
+  type taskSummarySchema,
+  type taskWorkItemSchema,
+} from './task-contracts.js';
 import type { projectTargetReadOperations } from './work-domains.js';
 
 export { editSchema, projectExecutionOperations } from './project-file-contracts.js';
@@ -53,6 +66,26 @@ export type FileLocation = FromSchema<typeof fileLocationSchema>;
 export type FileOperation = FromSchema<typeof fileOperationSchema>;
 export type Artifact = FromSchema<typeof artifactSchema>;
 export type ProjectBackup = FromSchema<typeof backupSchema>;
+export type TaskMetadata = FromSchema<typeof taskMetadataSchema>;
+export type TaskRef = FromSchema<typeof taskRefSchema>;
+export type TaskStatus = FromSchema<typeof taskStatusSchema>;
+export type TaskWorkItem = FromSchema<typeof taskWorkItemSchema>;
+export type TaskLink = FromSchema<typeof taskLinkSchema>;
+export type TaskSummary = FromSchema<typeof taskSummarySchema>;
+export type TaskRead = FromSchema<typeof taskReadSchema>;
+export type ProjectTaskInputs = {
+  [M in keyof typeof taskOperations]: FromSchema<(typeof taskOperations)[M]['params']>;
+};
+export type ProjectTaskOutputs = {
+  [M in keyof typeof taskOperations]: FromSchema<(typeof taskOperations)[M]['result']>;
+};
+export type TaskPort = {
+  [M in keyof ProjectTaskInputs as M extends `tasks.${infer Name}` ? Name : never]: (
+    input: ProjectTaskInputs[M],
+  ) => Promise<ProjectTaskOutputs[M]>;
+};
+export const isTaskMetadata = new Ajv().compile<TaskMetadata>(taskMetadataSchema);
+
 export type ProjectsInputs = {
   [M in keyof typeof projectsOperations]: FromSchema<(typeof projectsOperations)[M]['params']>;
 };
