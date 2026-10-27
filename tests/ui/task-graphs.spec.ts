@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
-import { mkdir, mkdtemp } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { Page } from '@playwright/test';
 import { createKernelClient } from '../../packages/client/dist/index.js';
@@ -10,10 +9,9 @@ import { runningKernel } from '../kernel-fixture.js';
 import { addProject, createSession, expect, test } from './fixture.js';
 import { rendererUrl } from './renderer-url.js';
 
-async function openTask(page: Page) {
-  const root = await mkdtemp(join(tmpdir(), 'scholoom-task-graph-ui-'));
+async function openTask(page: Page, root: string) {
   const path = join(root, 'project');
-  await mkdir(path);
+  await mkdir(path, { recursive: true });
   const client = createKernelClient(
     await runningKernel(process.env.SCHOOLOOM_UI_DATA_DIR as string),
   );
@@ -56,8 +54,8 @@ async function openTask(page: Page) {
 
 test('the real task graph empty directory preserves form drafts and refuses unsaved entry edits in both hosts', async ({
   uiPage,
-}) => {
-  const f = await openTask(uiPage);
+}, info) => {
+  const f = await openTask(uiPage, info.outputPath('i1'));
   try {
     await f.detail.getByRole('button', { name: '运行科研图', exact: true }).click();
     const form = f.detail.getByRole('form', { name: '运行科研图', exact: true });
@@ -98,8 +96,8 @@ test('the real task graph empty directory preserves form drafts and refuses unsa
 
 test('a static saved unknown request keeps its original identities across session switch and reload without replaying', async ({
   uiPage,
-}) => {
-  const f = await openTask(uiPage);
+}, info) => {
+  const f = await openTask(uiPage, info.outputPath('i1'));
   try {
     await f.detail.getByRole('button', { name: '运行科研图', exact: true }).click();
     const selected = uiPage.getByRole('button', { name: /^打开会话 /, pressed: true });

@@ -6,10 +6,10 @@ import type {
   TaskRead,
   TaskRef,
 } from '@scholoom/protocol';
-import { isErrorInfo, validateBusiness } from '@scholoom/protocol';
+import { isErrorInfo, taskGraphInputOperation, validateBusiness } from '@scholoom/protocol';
 import { useCallback, useEffect, useId, useRef, useState, useSyncExternalStore } from 'react';
 import { readDraft, subscribeDraft, writeDraft } from '../drafts';
-import type { ResourceTarget } from '../resource-controller';
+import { type ResourceTarget, sameResourceRef } from '../resource-controller';
 import type { WorkbenchSession } from '../session';
 import { taskErrorMessage } from './TaskList';
 
@@ -31,6 +31,9 @@ function matches(result: RunResult, input: RunInput): boolean {
     result.call.sessionId === input.sessionId &&
     result.call.invocationId === input.invocationId &&
     result.call.instructionId === input.instructionId &&
+    (!result.inputSnapshot ||
+      (result.inputSnapshot.operationId === taskGraphInputOperation(input.processOperationId) &&
+        result.inputSnapshot.resource.ref.projectId === input.task.projectId)) &&
     result.process.operationId === input.processOperationId &&
     (!('resource' in result.process) ||
       !result.process.resource ||
@@ -116,6 +119,15 @@ export function TaskGraphAction({
   const [loading, setLoading] = useState(false);
   const [listError, setListError] = useState('');
   const [error, setError] = useState('');
+  const [inputContent, setInputContent] = useState<string>();
+  const [inputBusy, setInputBusy] = useState(false);
+  const inputRead = useRef(0);
+  useEffect(
+    () => () => {
+      inputRead.current++;
+    },
+    [],
+  );
   const generation = useRef(0);
   const flight = useRef(false);
   const id = useId();
@@ -170,7 +182,9 @@ export function TaskGraphAction({
   const targetSessionId = attempt?.input.sessionId ?? session.activeSessionId;
   const sources = (entry.metadata.links ?? []).filter(
     (link) =>
-      link.role === 'source' && (link.workItemId === undefined || link.workItemId === sourceScope),
+      link.role === 'source' &&
+      (link.workItemId === undefined || link.workItemId === sourceScope) &&
+      !(link.target.kind === 'project-file' && link.target.fileId === entry.task.fileId),
   );
   const selected = JSON.stringify([draft.graphId, draft.version]);
   const listed = page?.graphs.some(
@@ -391,7 +405,7 @@ export function TaskGraphAction({
               </label>
             ))}
             {!sources.length ? (
-              <p className="task-muted">当前范围没有来源链接，将包含任务入口。</p>
+              <p className="task-muted">当前范围没有来源链接，将包含本次入口快照。</p>
             ) : null}
           </fieldset>
           {draft.invalid || error ? (
@@ -420,6 +434,45 @@ export function TaskGraphAction({
                 <section aria-label="科研图调用结果">
                   <p role="status">科研调用已确认。</p>
                   <p className="task-reference">调用引用：{JSON.stringify(attempt.result.call)}</p>
+                  {attempt.result.inputSnapshot ? (
+                    <>
+                      <p>调用输入：已保存为历史快照</p>
+                      <button
+                        type="button"
+                        className="btn"
+                        disabled={inputBusy || !port}
+                        onClick={async () => {
+                          const snapshot = attempt.result?.inputSnapshot;
+                          if (!snapshot || !port) return;
+                          const current = ++inputRead.current;
+                          setInputContent(undefined);
+                          setError('');
+                          setInputBusy(true);
+                          try {
+                            const value = await port.readInput(snapshot.resource);
+                            if (
+                              value.basis !== snapshot.resource.basis ||
+                              !sameResourceRef(value.ref, snapshot.resource.ref) ||
+                              value.nextOffset !== undefined
+                            )
+                              throw new Error('历史输入身份、版本或完整性无法核对。');
+                            if (current === inputRead.current) setInputContent(value.data);
+                          } catch (reason) {
+                            if (current === inputRead.current) setError(taskErrorMessage(reason));
+                          } finally {
+                            if (current === inputRead.current) setInputBusy(false);
+                          }
+                        }}
+                      >
+                        打开调用输入
+                      </button>
+                      {inputContent !== undefined ? (
+                        <section aria-label="本次调用输入">
+                          <pre className="task-body task-reference">{inputContent}</pre>
+                        </section>
+                      ) : null}
+                    </>
+                  ) : null}
                   <p>
                     过程文件：
                     {
@@ -491,6 +544,9 @@ export function TaskGraphAction({
                   className="btn"
                   onClick={() => {
                     const { attempt: _attempt, ...editable } = draft;
+                    inputRead.current++;
+                    setInputContent(undefined);
+                    setInputBusy(false);
                     store(editable);
                     setError('');
                   }}

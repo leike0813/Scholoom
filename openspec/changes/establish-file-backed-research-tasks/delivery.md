@@ -2,7 +2,7 @@
 
 ## 当前状态与成果
 
-2026-10-26最新状态：已恢复至77cd078（含0519904／b838402），本轮M2提供者及任务侧科研图动作已局部交付。最新验证、补丁和待接入项见末节“公共已同步后的有界实施”；下方2026-10-25及第二阶段记录保留当时证据，不再表示当前HEAD或同步状态。真实I1仍开放。
+2026-10-27最新状态：在共同HEAD `1026796d854b8f568c3e819f13268a9638980bc1` 完成任务侧真实I1机械组合，默认科研broker、真实库／项目／固定worker及新会话接续已有实际证据。详见末节“共同实现后的真实I1机械组合”。生产图目录仍空，校准图仅测试注入；4.1完整库分类／恢复及4.4c可选跨域消费保持开放，不代表整个change交付完成。下方旧阶段结果和补丁仅保留历史证据，旧同步门及缺科研提供者的描述不再适用于当前树，不再应用旧/tmp补丁。
 
 2026-10-25，文件任务核心已实施并独立验收；第一阶段为9/13项，第二阶段增量和最新15/19进度见末节。当前仍是局部交付，I1未验收，不能归档。用户先要求“实现该change”，随后允许锁定依赖及隔离双宿主验收，本轮又明确授权主线快照消费、公共补丁及M2／I1规划。未提交、推送或创建PR，未读写真实用户库，未操作其他真实工作树。HEAD仍为`e3d58fc807827a78493dcd16e38de28c8d02766e`。
 
@@ -66,7 +66,7 @@
 
 其他实跑失败均已诊断：首次目录创建后未注册监听，改为公开list确认目录存在后复用useFileWatch；真实Agent工具在执行实例建立前过早取得资源端口，改为调用时延迟取得。UI还有冷导航、编辑器完整路径、tab关闭按钮合成可访问名、空状态及刷新后默认文件面板的定位问题，按实际语义修正测试。迟到创建的测试沿原收据受理／完成顺序等待，notFound仅表示尚未登记，不吞其他错误，也不把并发目录变化当产品失败。截图复核后详情正文提取也支持BOM，避免将元信息展示为研究正文。未通过放宽原expect／生产超时掩盖失败；长UI场景的总预算与既有file-workbench多步骤场景一致。
 
-## 未完成事项与下一步
+## 历史：首轮未完成事项与下一步
 
 以[tasks](tasks.md)复选框为进度事实源。当前未完成为4.1、4.3、4.4b和6.5；W2两设计复核及4.4a静态交接已完成。W1–W4快照消费及仍缺提供者见[investigation](investigation.md#等待输入与明确阻塞范围)与design第7–8节。快照是主线正式输入，不能当dev已接入。
 
@@ -122,7 +122,7 @@ I1实际目录／调用／查询及固定worker事实已消费，产品入口选
 
 当前tasks为15/19；M2为0/6实施任务，CLI ready仅表示工件存在。到公共候选与消费侧核对交回即停止，不提交／推送／PR／归档，不启用新范围或操作真实数据。完整CI、目标平台分发与真实科研质量没有新增验收结论。
 
-## 公共已同步后的有界实施（2026-10-26）
+## 历史：77cd078公共同步后的有界实施（2026-10-26）
 
 ### 当前成果与消费证据
 
@@ -166,3 +166,51 @@ M2来源、保存临界区、整次undo及完整窗口独立审查修复三项P2
 可审查工件在`/tmp/scholoom-research-task-round3/`：先`001-trusted-file-edit-origins.patch`（M2公共来源／查询／保存传播、循环依赖叶修正、必要调用方与测试），再`002-task-graph-action.patch`（任务契约／编排／UI、薄挂载、必要映射与验收）。混合公共文件按符号拆分，不整文件覆盖其他域能力；manifest列精确归属。两补丁在临时index及临时object目录按序验证可应用，重建的每份改动与当前树逐字节一致；没有修改本树index／HEAD或声称公共M2已独立接入dev。日志`/tmp/scholoom-round3-patch-verification.log`。详细依赖顺序见该目录README。
 
 本轮到有界任务及补丁交回停止。主线下一步审查／接入M2公共增量并验证，再同步阅读／Agent消费者；科研线交实际human→host适配及固定worker／库／任务组合后安排真实I1。精确工具token另列后续，库删除恢复／主题分析仍等实际提供者。本树不推送／PR／归档、不同步其他树、不安装依赖、不写真实用户库；无未收尾的本轮UI服务或辅助Agent。完整CI、Windows／macOS和真实科研质量未新增验收。
+
+## 共同实现后的真实I1机械组合（2026-10-26至27）
+
+### 成果及真实消费
+
+用户已授权本轮直接实施并选择“独立调用输入快照”。只读核对当前HEAD为1026796，0519904已为祖先；主线同步证据为`/tmp/scholoom-round5-acceptance-WBreMJ/{acceptance.md,synchronized.json}`。本轮唯一源码工作点是本树，没有复制其他域私有实现、再次同步或应用旧累计补丁。
+
+默认装配已接通：`ManualApplication.taskResearchPort/taskGraphs`保留无harness组合及显式端口；`KernelApplication.taskResearchPort`经broker调用现有`research.graphs/requestGraph`，保留原context，由科研所属人工窄适配完成human→host。architecture仅新增projects对这两操作的实际消费。共享构造器、根工具、v6／restore、programs／委派、图片消费者、FileEdit来源hook与保存调用点均无本轮改动。
+
+正式消费源码为当前树`packages/research/src`的目录／请求／查询提供者、`apps/kernel/src/application.ts`既有`research.requestGraph`注册及`research.graphCalls.request`适配、`packages/harness`的registered执行、`packages/library`及原资源提供者。实际试验复用`tests/fixtures/research-graph-worker/{graphs.mjs,worker.mjs}`静态注册；共享准备在`tests/task-graph-integration-fixture.ts`，导入真实托管库材料并创建实际项目／任务／来源。没有TaskResearchPort成功替身或synthetic runId进入I1正例。
+
+首次真实worker复现`contentChanged`：任务保存process链接先改变入口basis，冷worker按旧入口读取即失败，reads为空。按用户选择，TaskGraphs先以`<processOperationId>_input`保存独立输入，确认后重读原入口，再将快照和所选来源的真实Evidence交科研。快照记录原TaskRef／basis、目标session、工作项、invocation／instruction、入口正文和来源指针；库正文不复制，任务入口自身不能另选为live来源。process保留原调用五元组及快照Evidence，任务最后按原basis条件关联；不镜像run状态。
+
+同源增量集中于`protocol/task-graph-contracts.ts`，新增快照schema／派生操作helper及可选inputSnapshot结果；原结果仍合法。TaskGraphAction核对回执归属，历史输入沿business-session的有界resources.read保持原ref/basis并只读显示，外部改写明确拒绝。调用未知保留原请求，过程／任务部分成功分别呈现，不重跑补关联。
+
+完成判据6在**固定图机械范围**已具备实际依据：用户从任务详情选择工作项、两个来源、图及开放配置，真实worker读取项目和库，首次保存report.md并等待；共同composer的精确confirm接续同一run，交付检查usable／科研notAssessed。调用指针、输入及成果实际持久化。任务关联冲突时保留人工新正文和原成果，只补关联；丢失一次RPC回执后刷新保留原身份，不再次启动。另一条真实普通会话通过工具发现任务、读取入口／指针／快照／报告并保存followup.md，不导入旧私聊transcript，不重建或重跑原科研调用。上述范围更新tasks的4.3、4.4b和第8组，不关闭4.1或其他域的可选消费。
+
+### 验证及模拟边界
+
+环境仍为Linux／Node24.12.0／pnpm11.10.0／Playwright1.63.0／Electron44.5.1。仅已有依赖、隔离端口5721及每轮独立profile／项目／库／输出；项目均保留在结果目录至所属配置退役。所有日志及工件根为`/tmp/scholoom-i1-round6/`。先构建后测试，测试期间没有重建产物。pnpm均带`--config.optimisticRepeatInstall=false`。
+
+| 实际入口／命令 | 结果与证据（下列相对日志均在工件根） |
+| --- | --- |
+| `pnpm ... build:shared`；`pnpm ... --filter @scholoom/desktop build` | 共享及桌面构建通过，`shared-build-final.log`、`desktop-build-final.log`；后续仅测试断言／格式和文档收尾，无生产行为改动 |
+| `node node_modules/@playwright/test/cli.js test --config playwright.kernel.config.ts`，选择task-graph-orchestration、task-graph-integration、task-graph-continuation、research-graphs、research-tasks、task-tools | **44/44，2.4分钟**，`kernel-final.log`及`kernel-final/`；含真实取材、错误主体、项目信任、库read/send撤权、错误会话、忙／等待拒绝、容量、快照unknown不启动及过程／关联部分失败 |
+| 同kernel入口，断言／lint整理后重跑三份task-graph测试 | **19/19，57.8秒**，`kernel-lint-recheck.log`；测试准备改用test.info，显式断言替代非空断言，不改产品时限 |
+| `SCHOOLOOM_TEST_ROOT=$PWD SCHOOLOOM_UI_PORT=5721 SCHOOLOOM_UI_DATA_DIR=<独立目录> node node_modules/@playwright/test/cli.js test --config /tmp/scholoom-i1-round6/playwright.ui.config.ts` | 配置只承载已构建UI，复用`/tmp/scholoom-sync-recovery-wyn13R/static-ui.mjs`。原task-graphs两场景双宿主**4/4**通过，`ui-second.log`；真实task-graph-launch三场景双宿主最终**6/6，2.5分钟**，`ui-third.log`及`ui-third/`。各宿主完整、冲突、丢回执均经用户动作，不启动开发服务器 |
+| `tsc --noEmit -p tsconfig.tools.json`；桌面typecheck | 通过，`tools-last.log`、`desktop-type-final.log`；相关共享包随build完成编译检查 |
+| `node scripts/check-architecture.ts` | 14模块／247文件，**0 findings**，`architecture-final.log` |
+| `node packages/protocol/scripts/contract-types.mjs --self-test`及`--patch`核对 | 通过；8份映射按最终schema核对，7份raw差异仅Biome格式，1份原样一致；生成映射无需源码改动，`contracts.patch`、`generated-maps.log` |
+| 改动源码／测试／architecture的`biome check` | 14文件通过、无诊断，`lint-final.log`；首次lint的空解构、非空断言及格式错误保留在`lint-first.log`并已修正 |
+| `openspec validate establish-file-backed-research-tasks --strict`、`openspec schema validate scholoom-dev` | 通过，`openspec-final.log`；最终状态及diff／补丁核对见本节收尾记录 |
+
+I1校准Graph及其节点是真实源码图，由构造参数注入；外部模型只在普通会话接续测试受控，固定图UI用例确认模型请求为0。传输丢回执、SQLite登记失败和保存锁是明确故障注入；它们没有代替内部broker／worker／仓储或领域授权。九来源加快照实际读取10份，十来源加快照拒绝，两个请求使用独立三种身份；任务选择上限100不代表Graph容量。已实际查看Electron关联冲突截图，六个UI场景均保存`task-graph-i1.png`。
+
+### 首次失败、审查与停止边界
+
+保留`first-real-worker.log`的真实入口basis竞争红例。首轮快照kernel16/18的两个断言错误是reads不返回role、以及SQLite拒绝触发器仍在时过早查询原收据，修正后17/18；其余一例等待模型首请求遇冷启动，改为核对真实已准入run再检查busy，单例通过，最终批次全部通过。原失败profile中的interrupted／remoteOutcome unknown仍保留，**没有宣称修复未知停止的系统根因**，没有降低未知停止保护或延长生产超时。
+
+UI首次`ui-first.log`因/tmp配置未声明ESM而未启动测试，补临时package.json后运行。`ui-second.log`为5/10：Browser完整例在外部篡改输入后与文件刷新交错，冲突夹具等待worker冷启动导致正常5秒RPC unknown；Electron三例在初始loadURL完成前reload而ERR_ABORTED。调整为篡改后刷新恢复原尝试、科研实际受理后立即改任务／释放process锁、等待初始URL后reload，原产物／原时限下`ui-third.log`六例全部通过；旧unknown场景仍独立保留通过，没有把unknown当已拒绝重放。
+
+独立只读审查发现并复核三项风险：历史输入不能重新describe当前版本；入口不能作为live来源重复选择；容量测试必须使用独立请求身份以免重放保护造成假阳性。已分别修正在任务历史读取、领域校验及夹具，最终真实内核和双宿主回归覆盖。新会话辅助用例由同树Agent编写，父端审阅并实际运行；两位辅助Agent均已关闭，没有跨树消息或常驻协调。
+
+本轮到I1机械组合及可审查补丁交回即停。4.1完整删除分类／恢复、主题知识及4.4c可选Agent任务消费仍缺相应实际提供者或验收；生产Graph目录继续空，不发明科研角色、综合流程或后置业务节点。全仓CI、Windows／macOS、发布及真实模型科研质量均未本轮验收。M2来源实现不在本轮写集，不从任务I1结果推出其新提供者已接通。无新产品决策待猜定案；剩余项交主线另行调度。
+
+收尾：OpenSpec strict首次因新增Requirement过长发出警告，已按启动、快照及历史读取拆分，语义不变；首轮见`openspec-first.log`，最终strict及schema均通过。apply为**25/27、ready**，仅4.1／4.4c未勾选，不归档。tracked及3份untracked的diff空白检查通过，HEAD与真实index未变；端口5721已释放，所属Kernel／Electron／HTTP句柄已关闭，两位辅助Agent已关闭。
+
+本轮可审查补丁为`/tmp/scholoom-i1-round6/001-real-task-graph-i1.patch`，基线1026796；精确文件及sha256见同目录`manifest.json`，操作／消费说明见`README.md`。仅17份tracked及3份新测试／夹具，共20文件；已在临时index／object目录核对基线可应用，并反向check匹配本树，未修改真实index或HEAD，证据`patch-verification.log`。本轮只有这一增量，直接依赖现已接入的1026796科研／库／公共代码，**不依赖旧round3补丁**。公共文件按符号审查：Kernel／Manual的TaskResearchPort hook与默认装配、WorkbenchSession.taskGraphs.readInput及useBusinessSession的同一端口、architecture的两个projects消费；其余根工具／构造参数／来源hook／迁移和他域生命周期保留。没有本地提交、推送、PR、归档或额外同步。

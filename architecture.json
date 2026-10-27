@@ -194,7 +194,14 @@
         "tasks.graphs",
         "tasks.runGraph"
       ],
-      "consumes": ["tasks.read", "tasks.save", "resources.describe", "resources.create"]
+      "consumes": [
+        "tasks.read",
+        "tasks.save",
+        "resources.describe",
+        "resources.create",
+        "research.graphs",
+        "research.requestGraph"
+      ]
     },
     {
       "name": "harness",

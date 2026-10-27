@@ -1233,6 +1233,9 @@ export class ManualApplication {
       throw new OperationError('permissionDenied', '目标项目任务请经只读文件入口核查。');
     return new ProjectTasks(this.projects.get(projectId));
   }
+  protected taskResearchPort(): TaskResearchPort | undefined {
+    return this.taskResearch;
+  }
   private taskGraphs(context: CallContext): TaskGraphs {
     const port = this.modulePort(context, 'projects');
     return new TaskGraphs(
@@ -1244,7 +1247,7 @@ export class ManualApplication {
         describe: (locator) => port.call('resources.describe', { locator }),
         create: (input) => port.call('resources.create', input),
       },
-      this.taskResearch ?? {
+      this.taskResearchPort() ?? {
         graphs: async () => ({ graphs: [], unavailableReason: '科研图启动提供者尚未接入。' }),
         start: async () => {
           throw new OperationError('unavailable', '科研图启动提供者尚未接入。');

@@ -1,10 +1,12 @@
 import { failure } from '@scholoom/platform/node';
 import { type CallContext, compileContract, OperationError } from '@scholoom/protocol/core';
 import {
+  type TaskGraphInputSnapshot,
   type TaskGraphInputs,
   type TaskGraphOutputs,
   type TaskPort,
   type TaskResearchPort,
+  taskGraphInputOperation,
   taskGraphOperations,
 } from '@scholoom/protocol/projects';
 import type {
@@ -73,7 +75,7 @@ export class TaskGraphs {
       throw new OperationError('targetAmbiguous', '过程材料身份已被任务引用占用。');
     if (links.length >= 100) throw new OperationError('tooLarge', '任务材料引用已达到上限。');
 
-    const materials: ResourceEvidence[] = [read.entry];
+    const sources: TaskGraphInputSnapshot['sources'] = [];
     for (const linkId of input.sourceLinkIds) {
       const link = links.find((candidate) => candidate.id === linkId);
       if (!link) throw new OperationError('notFound', '所选任务来源不存在。');
@@ -82,6 +84,11 @@ export class TaskGraphs {
         (link.workItemId !== undefined && link.workItemId !== workItemId)
       )
         throw new OperationError('invalidRequest', '所选材料不是当前工作项的来源。');
+      if (link.target.kind === 'project-file' && link.target.fileId === task.fileId)
+        throw new OperationError(
+          'invalidRequest',
+          '任务入口已由调用输入快照承载，不能重复选择为实时来源。',
+        );
       const locator =
         link.target.kind === 'project-file'
           ? { source: 'project' as const, projectId: task.projectId, fileId: link.target.fileId }
@@ -98,26 +105,76 @@ export class TaskGraphs {
           'unavailable',
           resource.unavailableReason ?? '任务来源当前不可读。',
         );
-      materials.push({ ref: resource.ref, basis: resource.basis, role: 'source' });
+      sources.push({
+        linkId,
+        evidence: { ref: resource.ref, basis: resource.basis, role: 'source' },
+      });
     }
     const fresh = await this.tasks.read({ task });
     if (fresh.entry.basis !== basis)
       throw new OperationError('contentChanged', '核查来源期间任务入口已变化。');
 
-    const started = await this.research.start(
-      {
-        projectId: task.projectId,
-        sessionId: input.sessionId,
-        invocationId: input.invocationId,
-        instructionId: input.instructionId,
-        graphId: input.graphId,
-        version: input.version,
-        config: input.config,
-        materials,
-        text: read.content,
-      },
-      context,
-    );
+    const inputOperationId = taskGraphInputOperation(processOperationId);
+    const captured: TaskGraphInputSnapshot = {
+      kind: 'research-task-graph-input',
+      formatVersion: 1,
+      task,
+      entry: read.entry,
+      content: read.content,
+      sessionId: input.sessionId,
+      invocationId: input.invocationId,
+      instructionId: input.instructionId,
+      sources,
+      ...(workItemId === undefined ? {} : { workItemId }),
+    };
+    const inputSnapshot = await this.resources.create({
+      projectId: task.projectId,
+      operationId: inputOperationId,
+      path: `tasks/${processOperationId}.graph-input.md`,
+      content: `${JSON.stringify(captured, null, 2)}\n`,
+    });
+    if (inputSnapshot.state !== 'complete')
+      throw new OperationError(
+        inputSnapshot.state === 'failed' ? inputSnapshot.error.code : 'outcomeUnknown',
+        `输入快照尚未确认，请核查原创建操作 ${inputOperationId}。`,
+      );
+    if (
+      inputSnapshot.operationId !== inputOperationId ||
+      inputSnapshot.resource.ref.projectId !== task.projectId
+    )
+      throw new OperationError('outcomeUnknown', '输入快照回执不属于原请求，请核查原创建操作。');
+    if ((await this.tasks.read({ task })).entry.basis !== basis)
+      throw new OperationError(
+        'contentChanged',
+        `输入快照已保存（${inputOperationId}），但原入口已变化，请重读。`,
+      );
+    const snapshotEvidence: ResourceEvidence = {
+      ref: inputSnapshot.resource.ref,
+      basis: inputSnapshot.resource.basis,
+      role: 'task-input',
+    };
+    let started: Awaited<ReturnType<TaskResearchPort['start']>>;
+    try {
+      started = await this.research.start(
+        {
+          projectId: task.projectId,
+          sessionId: input.sessionId,
+          invocationId: input.invocationId,
+          instructionId: input.instructionId,
+          graphId: input.graphId,
+          version: input.version,
+          config: input.config,
+          materials: [snapshotEvidence, ...sources.map((source) => source.evidence)],
+          text: read.content,
+        },
+        context,
+      );
+    } catch (error) {
+      throw new OperationError(
+        error instanceof OperationError ? error.code : 'outcomeUnknown',
+        `输入快照已保存（${inputOperationId}）；${failure(error).message}`.slice(0, 512),
+      );
+    }
     if (
       !started ||
       typeof started !== 'object' ||
@@ -142,7 +199,7 @@ export class TaskGraphs {
         projectId: task.projectId,
         operationId: processOperationId,
         path: `tasks/${processOperationId}.graph-call.md`,
-        content: `${JSON.stringify(call, null, 2)}\n`,
+        content: `${JSON.stringify({ ...call, inputSnapshot: snapshotEvidence }, null, 2)}\n`,
       });
     } catch (error) {
       const info = failure(error);
@@ -156,7 +213,7 @@ export class TaskGraphs {
       };
     }
     if (process.state !== 'complete')
-      return { call, process, taskAssociation: { state: 'pending' } };
+      return { call, inputSnapshot, process, taskAssociation: { state: 'pending' } };
 
     const metadata = {
       ...read.metadata,
@@ -178,11 +235,12 @@ export class TaskGraphs {
     );
     try {
       await this.tasks.save({ task, basis, content });
-      return { call, process, taskAssociation: { state: 'confirmed' } };
+      return { call, inputSnapshot, process, taskAssociation: { state: 'confirmed' } };
     } catch (error) {
       const info = failure(error);
       return {
         call,
+        inputSnapshot,
         process,
         taskAssociation: {
           state:

@@ -186,7 +186,7 @@ Linux／Windows受管执行沿现有能力，macOS可独立验证人工任务文
 
 - W1调查资料已收到；完整库引用分类、主题／分析知识及恢复仍等文献实际提供者。本线不建立库身份、引用键或删除历史字段。
 - W2两份design已分别复核，保持两change独立；不认定报告、材料写回或M2已接通。
-- W3／W4设计及源码已收到；实际DTO、用户启动入口及I1仍待审查与共同基线接入，不恢复后置综合Graph讨论。
+- W3／W4源码已随1026796进入本树；真实任务科研图机械组合沿第8节验收，可选委派任务消费仍归其所属change，不恢复后置综合Graph讨论。
 - 自定义入口目录、任意深度全盘发现、自动抽取研究决定／证据图、任务自动排程和跨项目写入没有本次需求，不增加选项或预留抽象。
 
 实施授权来自用户本轮“实现该change”及后续锁定依赖／隔离验收许可；不包含真实用户库、提交／推送／PR或归档。
@@ -230,7 +230,25 @@ M2独立规划为[establish-trusted-file-edit-origins](../establish-trusted-file
 
 ## 8. I1用户入口与真实组合验收方案
 
-### 2026-10-26 已确认实施范围与同步事实
+### 1026796共同实现后的本轮切片
+
+用户本轮授权真实I1机械组合。当前HEAD为1026796d854b8f568c3e819f13268a9638980bc1，工作区clean；主线共同接入／同步证据为`/tmp/scholoom-round5-acceptance-WBreMJ/{acceptance.md,synchronized.json}`。旧77cd078补丁只作历史证据，不再应用；科研、库、固定worker及任务实现均在本树，不再等待源码交接。
+
+默认装配只新增ManualApplication受保护的TaskResearchPort获取hook，显式注入优先，人工独立组合保持不可用默认值。KernelApplication默认经所属projects消费端口调用`research.graphs`并投影description的name／definition／nextOffset，start原样转交`research.requestGraph`。保留原human/product、project/session、workbenchSource及signal；human→host、信任／read/send、配置与空闲会话、去重均由现有科研适配负责。architecture仅新增这两个真实消费，不改Graph schema、FileEdit来源hook、harness.executionFacts、委派或programs。
+
+测试接点沿既有tasks.runGraph及任务详情用户动作，科研校准图仅通过构造参数注册。复用真实库导入、资源提供者、broker、受管worker和过程创建／任务保存；替身仅限外部模型和明确的故障／并发门控。已登记项目与profile保存在用例结果目录，配置退役前不删除。先build再test，双宿主复用已构建静态承载，不在运行期间重建。
+
+首个实际运行复现入口版本交错：process链接已写入任务，固定worker随后按旧入口basis读取，graph.failed/contentChanged且reads为空，证据`/tmp/scholoom-i1-round6/first-real-worker.log`。用户明确选择独立调用输入快照，拒绝放宽版本检查或去掉入口依据。
+
+TaskGraphs核对入口和来源后，通过已有resources.create保存`tasks/<processOperationId>.graph-input.md`，稳定操作身份由同源helper派生为`<processOperationId>_input`（原ID上限96，派生仍在原创建限额内）。snapshot JSON由项目唯一schema描述：kind／formatVersion、原TaskRef、入口ResourceEvidence、可选workItemId、目标session及原invocation/instruction、所选source的linkId及Evidence、原入口完整content。它是本次调用历史输入，不能作为可更新的任务权威；库材料只留指针，不复制正文。快照不被本模块后续改写，仍按普通资源强basis核验，外部改动照常拒绝。
+
+快照创建完整确认且原入口重读仍匹配后才启动科研，Graph材料首项改为快照的真实Evidence（role=task-input），后接所选来源，容量仍为实际research的1–10项。原可变入口保留在快照中的来源依据，不作为需要再次读取的旧版本live材料。任务text仍来自原已核对正文。快照创建unknown保留原派生操作且不启动；科研拒绝／unknown时保留快照及原请求，不回滚或另起调用。快照保存不是科研已受理的证明。
+
+成功／部分保存结果增加可选`inputSnapshot`，只表示已完整确认的原资源创建结果；旧结果无此字段仍有效。实际process JSON继续保留原call五元组，并增加快照Evidence，让新会话沿任务process链接读回本次输入。任务仍只增加一条process链接，不新建反向表或状态副本。UI分别提供调用记录与历史输入打开入口，核对快照操作身份／项目；unknown、冲突、部分成功及原invocation/instruction/processOperation身份保留，不重跑补关联。Graph schema、科研模块和来源hook不变。
+
+独立审查后补强：任务入口自己不能另选为live source，在任何快照准备／启动前拒绝，UI不重复列出。历史输入经任务UI现有client的resources.read按回执ref/basis及256KiB界限读取，在详情只读呈现并核对完整性；不经重新describe的当前版本替代，也不扩共享ResourceTarget或阅读Module。请求代次保护迟到读取及清空，快照被外部改写时显示原错误，不缓存另一版本。容量回归使用各自独立三种请求身份，并以九来源加快照实际受理、十来源加快照实际拒绝证明没有被重放保护提前截断。
+
+### 历史：77cd078局部切片（当前默认装配及快照以本节首段为准）
 
 本轮用户明确选择任务详情单一“运行科研图”动作，取代下文历史D-I1待审分支。恢复HEAD为77cd078，0519904及b838402均已为祖先；资源叶schema、执行历史和Graph来源、v6迁移、双窗口fixture及图片枚举已在本树正式源码，证据为`/tmp/scholoom-sync-recovery-wyn13R/recovery.md`。旧公共补丁无需重新起草或复制。恢复验证只证明已有切片，不证明I1。
 
@@ -242,7 +260,7 @@ M2独立规划为[establish-trusted-file-edit-origins](../establish-trusted-file
 
 新增／修改到达点：protocol操作聚合及生成映射、projects导出、kernel Manual／Kernel构造注入与handlers、architecture的明确消费、WorkbenchSession及任务详情表单、UI设计和定向测试。先构建再测；最小验收覆盖真实任务／项目／库取材配合注入科研端口、来源变化／越权、入口冲突、过程创建与关联部分失败，以及双宿主空目录／表单行为。注入端口不叫真实科研或固定worker组合通过。下文保留原真实组合测试定义，待实际科研提供者接入再执行。
 
-### 现有事实与需要主线选择的入口
+### 历史：快照阶段事实与入口选择
 
 科研快照已有`research.graphs`、`research.graph`及`research.graphCalls({projectId,sessionId,invocationId?})`。`KernelApplication.startResearchGraph`／内部`research.startGraph`要求可信host/system并返回`{invocationId,instructionId,runId}`；底层startGraph绕过科研调用记录，不能代替它。默认researchGraphs及本树executionGraphs均为空；现有模型invoke_research_capability是旧能力，不是Graph用户启动入口。
 
