@@ -1170,7 +1170,10 @@ export class ManualApplication {
     _ref: ResourceRef | { source: 'project'; projectId: string },
   ): void {}
   protected reportUsed(_context: CallContext, _evidence: readonly ResourceEvidence[]): void {}
-  protected checkReportContext(_context: CallContext): void {}
+  protected checkReportContext(
+    _context: CallContext,
+    _evidence: readonly ResourceEvidence[],
+  ): void {}
 
   private reportResources(context: CallContext): ReportResources {
     const scope = (locator: ResourceLocator): CallContext => {
@@ -1199,6 +1202,7 @@ export class ManualApplication {
         );
       },
       authorize: async (evidence) => {
+        this.checkReportContext(context, evidence);
         for (const item of evidence) {
           const scoped = scope(item.ref);
           await this.resourceOperation(scoped, item.ref, false, async () => {
@@ -1216,7 +1220,7 @@ export class ManualApplication {
     entry: ResourceEvidence,
     context: CallContext,
   ): Promise<BusinessOutputs['resources.report']> {
-    this.checkReportContext(context);
+    this.checkReportContext(context, [entry]);
     const snapshot = await this.reportResources(context).snapshot(
       entry,
       context.role === 'execution' || this.isInstructionAdmission(context) ? 'send' : 'read',

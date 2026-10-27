@@ -1,6 +1,6 @@
 # 执行任务
 
-当前共同源码4b13183已包含已验收模块和边界修复。第六轮直接授权1.1b／1.2b生产资源操作、HTML条件保存和来源准入，具体写集见design“第六轮接入”。只勾实际验收子项；页面运行及2.x／3.x保持开放。
+当前共同源码8a2f0ce已包含主线验收的报告资源及旧摘录／save／undo授权修复。本轮仅实施1.2b.2的真实委派报告展开，具体调用链及持久权威见design“第八轮：委派报告来源”。不重做普通根接入，不应用旧补丁；跨项目、旧报告版本Adapter及页面运行保持开放。
 
 ```mermaid
 flowchart TD
@@ -19,8 +19,9 @@ flowchart TD
 - [x] 1.1a 本轮：protocol/report-contracts同源manifest／snapshot／桥schema及容量／跨字段校验，editor/report-codec有界头部解析和转义编码；必要protocol叶导出／架构声明，不注册操作、不扩ResourceRef。以独立固定样本验证格式、UTF-16／字节边界及额外字段拒绝；先构建再模块测试。
 - [x] 1.1b 生产接入：UI设计报告分节、公开根导出及resources.report注册、HTML条件保存、派生映射；真实ManualApplication验证保存重开、同内容替换拒绝、只读目标和库权限不扩大。
 - [x] 1.2a 本轮：editor/report-resources的注入窄端口ReportResources深模块，复用共同describe/read及相对路径解析；核对入口／依赖／来源、path-ref一致、前后basis、read/send、容量、撤权和混合版本拒绝。测试adapter可替换，不新建存储／DTO，手工粘贴来源不作完整溯源承诺。
-- [x] 1.2b.1 本轮可验收：真实项目／库授权Adapter及editor公开入口，Manual及普通根执行的报告describe/read和模型准入复用声明来源授权，经真实broker及所属存储验证queue／final／restart；委派和target报告在展开前、旧报告历史正文在返回前明确不可用。
-- [ ] 1.2b.2 待主线安全接口审查：复用唯一委派材料白名单逐项核对展开集合及子模型最终同步准入；目标报告的声明来源授权组合、旧报告历史版本的授权Adapter待定。当前历史消费者明确不可用，保留摘要及普通材料。不复制delegations私有实现或新增历史权威，不因1.2b.1通过勾本项。
+- [x] 1.2b.1 已验收：真实项目／库授权Adapter及editor公开入口，Manual及普通根执行的报告describe/read和模型准入复用声明来源授权，经真实broker及所属存储验证queue／final／restart；target和旧报告历史正文继续不可用，委派沿1.2b.2a推进。
+- [x] 1.2b.2a 本轮：从Delegations.resources提取唯一checkReadable，普通describe/read/document及报告入口／展开Evidence复用；成功展开的来源沿现有Evidence仓储按子实例保存，子模型queue／最终同步准入核查范围与领域read/send，session记录继续保护父及重启。真实父子worker／库／报告验证全部允许、缺项／旧basis／撤权拒绝、取消及恢复，不把声明核查记为实际正文read。
+- [ ] 1.2b.2b 保持开放：目标报告的声明来源授权组合、旧报告历史版本Adapter。旧报告历史及目标报告继续明确不可用，保留摘要与普通材料；不因委派子片完成关闭完整1.2b.2或I5。
 
 ## 2. 页面内浏览与共同动作
 

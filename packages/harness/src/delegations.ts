@@ -371,6 +371,26 @@ export class Delegations {
     );
     this.put({ ...record, artifacts: [...artifacts, saved], resultState: 'partial' });
   }
+  checkReadable(context: CallContext, ref: ResourceRef, basis?: string): void {
+    const record = this.child(context);
+    if (
+      context.signal?.aborted ||
+      !this.active.has(record.id) ||
+      !['accepted', 'running'].includes(record.state)
+    )
+      throw new OperationError('instanceMismatch', '委派读取资格已失效。');
+    const evidence: ResourceEvidence[] = [
+      ...record.request.workPackage.materials,
+      ...record.artifacts.map((item) => ({ ref: item.resource.ref, basis: item.resource.basis })),
+      ...record.request.workPackage.outputs.filter((output) => output.kind === 'save'),
+    ];
+    if (
+      !evidence.some(
+        (item) => sameRef(item.ref, ref) && (basis === undefined || item.basis === basis),
+      )
+    )
+      throw new OperationError('permissionDenied', '材料或版本不在委派范围。');
+  }
   resources(
     context: CallContext,
     port: ExecutionResourcePort,
@@ -384,20 +404,6 @@ export class Delegations {
         throw new OperationError('permissionDenied', '工具不在委派范围。');
       return record;
     };
-    const readable = (ref: ResourceRef, basis?: string) => {
-      const record = this.child(context);
-      const evidence: ResourceEvidence[] = [
-        ...record.request.workPackage.materials,
-        ...record.artifacts.map((item) => ({ ref: item.resource.ref, basis: item.resource.basis })),
-        ...record.request.workPackage.outputs.filter((output) => output.kind === 'save'),
-      ];
-      if (
-        !evidence.some(
-          (item) => sameRef(item.ref, ref) && (basis === undefined || item.basis === basis),
-        )
-      )
-        throw new OperationError('permissionDenied', '材料或版本不在委派范围。');
-    };
     const read = (evidence: ResourceEvidence) => {
       this.read(context, evidence);
       used(evidence);
@@ -407,15 +413,15 @@ export class Delegations {
         allowed('resource.describe');
         if (locator.source === 'project' && !('fileId' in locator))
           throw new OperationError('permissionDenied', '委派读取需要稳定文件身份。');
-        readable(locator as ResourceRef);
+        this.checkReadable(context, locator as ResourceRef);
         const resource = await port.describe(locator);
         check();
-        readable(resource.ref, resource.basis);
+        this.checkReadable(context, resource.ref, resource.basis);
         return resource;
       },
       read: async (input) => {
         allowed('resource.read');
-        readable(input.ref, input.basis);
+        this.checkReadable(context, input.ref, input.basis);
         const result = await port.read(input);
         check();
         read({ ref: input.ref, basis: input.basis });
@@ -423,7 +429,7 @@ export class Delegations {
       },
       document: async (resource, method, input) => {
         allowed('resource.document');
-        readable(resource.ref, resource.basis);
+        this.checkReadable(context, resource.ref, resource.basis);
         const result = await port.document(resource, method, input);
         check();
         read(resource);

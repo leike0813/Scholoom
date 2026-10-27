@@ -384,11 +384,12 @@ export class KernelApplication extends ManualApplication {
     if (context.role === 'host') this.checkInstructionContext(context);
     this.harness.recordReportUse(context, evidence);
   }
-  protected override checkReportContext(context: CallContext): void {
+  protected override checkReportContext(
+    context: CallContext,
+    evidence: readonly ResourceEvidence[],
+  ): void {
     if (context.role !== 'execution') return;
-    const facts = this.harness.executionFacts(context);
-    if (facts.state !== 'verified' || facts.delegation.state !== 'none')
-      throw new OperationError('unavailable', '委派报告展开来源授权尚未接通。');
+    this.harness.checkReportContext(context, evidence);
   }
   protected override async executionFileFacts(
     context: CallContext,

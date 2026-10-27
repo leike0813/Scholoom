@@ -147,6 +147,18 @@ sequenceDiagram
 
 ## 第二阶段接口交接与下一批范围
 
+### 第八轮：委派报告来源（8a2f0ce）
+
+主线已合入并验收普通根报告、真实M2及旧摘录／save／undo授权保护。本轮仅1.2b.2a：写集为`harness/delegations.ts::checkReadable/resources`、`runtime.ts::checkReportContext/recordReportUse/instructionEvidence`及子模型evidence／confirm、`kernel/application.ts`及`manual.ts`报告hook，和所属测试。无协议DTO或存储表变更，无UI／iframe／页面运行；不改父子调度、工具白名单、FileEdit、TaskPort或其他根工具。
+
+调用链为共同报告describe／read → ReportResources有界入口及清单 → 宿主报告hook → Harness核对实际executionFacts → Delegations.checkReadable逐一核入口／依赖／声明来源ref及basis。checkReadable只使用原workPackage.materials、实际artifacts和outputs.save的同一个可读集合，原resources.describe/read/document改调该方法；取消、失活子身份仍拒绝。报告清单不扩大该集合，父有权不等于子有权。整批核对先于来源／依赖正文读取，最后授权核对也复用此方法。
+
+成功完整snapshot才经原recordReportUse保存实际核准的ResourceEvidence。原session instruction-resource-context继续用于父和重启复查；同一仓储／序列化方法增加按session＋childInstance的使用记录键，子模型只合并本实例的报告使用事实，不消费父的全部Evidence。该记录不是可读集合，也不复制委派材料表；每次使用及准入仍向Delegations唯一规则核查。原delegation.reads只记录原资源工具实际read／document结果，不把来源describe或声明当作子阅读全文。
+
+子模型异步授权读取本工作包、实际reads及本实例报告Evidence，复查真实库read/send、项目授权及原basis语义；排队后的最终同步confirm读取最新同一记录，先检查活动子／唯一可读范围，再经原resources.check复核全部来源。父仍沿原session记录独立准入。重启不重放子工作包、不复活旧context；持久session来源仍阻止撤权后的新模型请求，实例使用事实留作原记录核查。目标报告和旧报告版本仍不可用，不用当前普通HTML替换旧版本来源。
+
+最小验收复用独立手写报告与外部模型loopback夹具：真实父子worker／库／broker／文件，全部Evidence获准才取用，漏来源／旧basis在展开前拒绝；撤权分别放在后续模型队列与最终同步边界，重启仍拒绝并保持实际read记录。普通委派、根报告、旧历史／目标拒绝回归；先构建再测试，不重复无改动UI，不给unknown／停止／容量或平台时限加例外。跨域语义不明时保留受阻分支并交回，不据CLI完成关闭整change。
+
 ### 第六轮接入：1.1b／1.2b写集和验收
 
 共同源码为4b13183，已包含manifest／codec／ReportResources及两项边界修复；不再等待公共同步。本轮公开`resources.report`，身份仍为`{ref,basis}`，返回原ReportSnapshot，不增加ResourceRef类别。写集为protocol的resources／index及生成映射、editor的node导出和ResourceAccess项目HTML条件保存、architecture中报告操作、kernel的manual／application报告装配，以及harness/runtime中仅报告来源记录符号。保留既有构造参数、工具、来源记录与所有领域恢复。

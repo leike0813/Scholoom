@@ -393,15 +393,32 @@ export class Harness {
       .onConflictDoUpdate({ target: tables.meta.key, set: { value } })
       .run();
   }
+  checkReportContext(context: CallContext, evidence: readonly ResourceEvidence[]) {
+    const facts = this.executionFacts(context);
+    if (facts.state !== 'verified' || facts.delegation.state === 'unknown')
+      throw new OperationError('unavailable', '报告来源缺少可信执行范围。');
+    if (facts.delegation.state === 'verified') {
+      const delegations = this.delegationManager(this.projects.get(facts.projectId));
+      for (const item of evidence) delegations.checkReadable(context, item.ref, item.basis);
+    }
+    return facts;
+  }
   recordReportUse(context: CallContext, evidence: readonly ResourceEvidence[]): void {
+    let childInstanceId: string | undefined;
     if (context.role === 'host') {
       const resources = this.contextBridge?.resources?.(context);
       if (!resources) throw new OperationError('unavailable', '报告来源授权提供者不可用。');
       resources.check(evidence);
-    } else this.checkExecutionContext(context);
+    } else {
+      const facts = this.checkReportContext(context, evidence);
+      if (facts.delegation.state === 'verified') childInstanceId = facts.instanceId;
+    }
     if (!context.projectId || !context.sessionId)
       throw new OperationError('instanceMismatch', '报告来源缺少执行归属。');
-    this.instructionEvidence(this.projects.get(context.projectId), context.sessionId, evidence);
+    const project = this.projects.get(context.projectId);
+    if (childInstanceId)
+      this.instructionEvidence(project, context.sessionId, evidence, childInstanceId);
+    this.instructionEvidence(project, context.sessionId, evidence);
     if (context.role === 'execution')
       for (const item of evidence) this.recordResourceUse(context, item.ref);
   }
@@ -409,8 +426,11 @@ export class Harness {
     project: HarnessProject,
     sessionId: string,
     items: readonly ResourceEvidence[] = [],
+    instanceId?: string,
   ): ResourceEvidence[] {
-    const key = `instruction-resource-context:${sessionId}`;
+    const key = instanceId
+      ? `instruction-report-context:${sessionId}:${instanceId}`
+      : `instruction-resource-context:${sessionId}`;
     const evidence = new Map<string, ResourceEvidence>(
       (
         JSON.parse(
@@ -2392,18 +2412,22 @@ export class Harness {
             signal: delegationSignal,
           };
           const check = () => this.checkExecutionContext(childContext);
+          const reports = () =>
+            this.instructionEvidence(project, run.sessionId, [], childInstanceId);
           const evidence = () => {
             const current = delegations.get(run.sessionId, record.id);
-            return [...current.request.workPackage.materials, ...current.reads];
+            return [...current.request.workPackage.materials, ...current.reads, ...reports()];
           };
           const authorize = async () => {
             check();
+            this.checkReportContext(childContext, reports());
             await this.port(project)['project.check']({ projectId: project.id, access: 'send' });
             await authorizeContextItems(this.contextBridge, childContext, evidence());
             check();
           };
           const confirm = () => {
             check();
+            this.checkReportContext(childContext, reports());
             const resources = this.contextBridge?.resources?.(childContext);
             if (!resources && evidence().length)
               throw new OperationError('unavailable', '材料授权提供者不可用。');
