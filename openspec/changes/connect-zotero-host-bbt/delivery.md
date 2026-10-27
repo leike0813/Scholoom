@@ -1,6 +1,44 @@
 # 实际交付与交接
 
-## 当前状态：共同库期刊切片
+## 当前状态：CSL／原值差异规划
+
+2026-10-27，本树HEAD已核对为`4b13183f7489d3cae12fd0a7d1a9e83fb33d7384`，起始clean，实际同步／构建／本树持续外发P1复验由用户交接的`/tmp/scholoom-round6-acceptance-dXuzCA/`四份验收／同步JSON及本树日志提供。普通期刊真实切片和P1已接收，本轮没有返工或回退；没有应用旧patch、等待同步或操作其他树。
+
+本轮**只调查和规划**，没有新生产实现。修改限本change的investigation/design/specs/tasks、已有delivery及隔离证据。已形成可审查推荐A＋B1与D1–D3决定项，见[design本轮节](design.md#csl更正与原值导出差异的待决方案4b13183)；产品默认导出／用户确认身份、独立原值更正或一次明确双表达更正、下一片字段／来源范围仍待用户选择。没有把推荐写成已批准自动双写，也没有新增库权威或修改元数据表单。R6实际状态以tasks为准，原3.x／E5／E6／整体I6不因此完成。
+
+### 实际调查与证据
+
+完整结果与源码定位见[investigation当前节](investigation.md#当前调查csl更正与原值导出的差异4b13183)、[隔离证据README](evidence/csl-original-4b13183/README.md)和[observations.json](evidence/csl-original-4b13183/observations.json)。复用已接收普通期刊样本配方，新建`/tmp/scholoom-csl-original-AUctoW`，没有打开用户库或更改旧样本库。两个正式键固定，原值含日期、跨角色完整creator顺序和Extra未知行。
+
+| 本轮操作／检查 | 实际结果及边界 |
+| --- | --- |
+| `node_modules/.bin/tsc -p apps/kernel/tsconfig.json` | 0退出；仅重建既有ignored产物，日志`/tmp/scholoom-zotero-r6-kernel-build.log` |
+| host目录`../../node_modules/.bin/electron-vite build` | 0退出；日志`/tmp/scholoom-zotero-r6-host-build.log`。沿已有Node24／Electron44.5.1／BBT9.0.68，未安装或下载依赖 |
+| `node openspec/changes/connect-zotero-host-bbt/evidence/csl-original-probe.mjs` | 首次0退出，8次两格式实际导出完成，日志`/tmp/scholoom-zotero-r6-probe-first.log`。构建完成后才运行，运行期间不重建 |
+| CSL题名更正 | A revision 2→3，CSL新值可读；原值／键／pinned和原值历史不变，两格式仍与baseline相同 |
+| CSL日期／作者歧义更正 | B revision 2→3，2025–2026日期范围／circa、机构名／粒子／suffix及译者分组可读；原date及creator全序保持，两格式仍为原值 |
+| 显式original题名对照 | A revision 3→4，只有所选原值题名更正，原值历史多一条，原Extra及固定键不变；两格式出现新题名；共同commitResult与实际receipt相同 |
+| 归属及数据保护 | 最终scopeStopped=true、pluginClosed=true、unresolved=[]；app已close，隔离库、profile和输出保留，没有登记额外研究项目。原XPI仅核对manifest并解包，未改成员 |
+
+内部KernelApplication、library／broker／SQLite、认证WS、ManagedCommands、OS归属、Electron和BBT Worker均真实；样本内容／来源实例为合成输入，没有内部provider／SQL替身，没有外部模型调用。原包的title case和Extra的pubstate输出是观察值，不能拿文本字面不等作为陈旧门禁。本轮只证明当前双表达行为及一个显式原值对照，不是CSL逆映射／生产同步或真实科研质量验收。
+
+没有新的首次运行失败；CSL更正后导出未跟随是**预期调查反例**，并非被修复的生产缺陷，不能写成“自动同步修复通过”。此前主线已验P1不在本轮重跑。收尾`node --check`、四阶段读回／8份文本及共同依据一致性断言、38个本地Markdown文件链接检查、OpenSpec strict及`git diff --check`通过；新增图人工核对图文，未做渲染器验收。Biome按项目配置排除了OpenSpec工件，首次命令返回no files processed，未将它计作lint通过；语法和实际运行由前述检查证明。当前16/26仅增加三项调查规划成果。
+
+### 契约核对与仍缺的提供者
+
+只读辅助Agent（gpt-6.1-sol/high）梳理表单／共同provider，主Agent抽查关键事实：`library.update`只改CSL等共同题录，`commitRecords`可分别显式提交metadata/original/key且共同CAS、历史和稳定回执已有。分离要求的准确来源是已接收`define-library-zotero-record-authority`的delta，而非假称它已归档进`openspec/specs`。原值upsert是完整对象替换，日期／姓名／跨角色顺序没有唯一逆映射；历史查询不等于已提供历史回退、原值删除或操作者审计。
+
+推荐A首片的已有原值提交不缺新存储provider，当前等待的是D1–D3产品选择、明确人工意图及单一草稿入口归属。D1若强制人工确认，可信确认provider目前不存在；B2的CSL导出映射、C2的来源版本／合并、完整单对象恢复也未交付，不能拿读过设计当已接入。具体schema／事务／冲突／通知／恢复及文件符号依赖已列design，生态不替文献创建映射权威或改生产表。
+
+### CI基线与停点
+
+已读取最新`6b22d60 / Checks40315429083`原始日志和平台清单：Linux内核689/9/16、Windows628/49/30分别为通过／失败／跳过，macOS入口3通过／1失败。Windows失联回归期望outcomeUnknown而实际unavailable需按受理阶段诊断；本轮不把它归因于超时、不更改生命周期或计关闭。其他context-session／文献／生命周期失败及其分工见investigation和主线计划，本轮没有重跑全仓或目标平台。
+
+到本次可决策规划交回处停止：先请主线／用户确认D1–D3，再拆获准实现子范围。现有持续外发授权、正式键、来源副本新实例规则和真实用户库禁用保持。没有新生产代码、UI、依赖安装／下载、开发服务器、提交／push／PR／归档或跨树操作。
+
+本轮规划增量为`/tmp/scholoom-zotero-r6-handoff-tR2Jiq/planning.patch`，基线4b13183；同目录manifest列出16份仅本change的工件、构建／调查／校验日志及仍缺选择。完整反向`git apply --check`通过，不自动应用到其他树。复现脚本和必要读回／导出证据已留在本change，不依赖临时包作为唯一事实源。
+
+## 前轮状态（已接收）：共同库期刊切片
 
 2026-10-27，基线 `1026796d854b8f568c3e819f13268a9638980bc1`，起始工作区干净。用户直接授权本轮最多100条普通期刊隔离接线；未同步／等待文献实际提供者条件已失效。下文第三／四轮及更早待办为历史证据，不是当前阻塞。当前任务13/22，仅R5.1–R5.4本片完成；整个change、3.x完整条件、I6、生产启用和跨平台未关闭。
 

@@ -1,5 +1,78 @@
 # 实现设计
 
+## CSL更正与原值导出差异的待决方案（4b13183）
+
+**本节是供主线／用户决策的规划，不是已批准的新产品政策或本轮生产实现。** 当前基线`4b13183`已接收真实普通期刊切片及持续外发授权P1。当前差异、四阶段实跑和固定资源依据集中在[investigation当前节](investigation.md#当前调查csl更正与原值导出的差异4b13183)和[隔离证据](evidence/csl-original-4b13183/README.md)。本轮不修改library、zotero协议／host、harness或表单，也不重做监督方案。
+
+### 问题及不能越过的契约
+
+`library.update`更正CSL后，source与record的共同revision都递增；原值和正式键按既定契约保持。当前BBT投影只取原值，且每次操作有新profile，因此新revision配旧原值文本是可重复的表达差异，不是缓存假保存。现有“更正标题后刷新”用例明确更正的是original，不证明CSL表单自动同步。不得为了让两份文本一致而在普通CSL保存后偷偷写原值、猜类型、重建日期／creator顺序或把CSL note写入Extra。
+
+同样不能通过字面比较导出文本来判“陈旧”：BBT进行title case、日期／角色排版、Extra解释。后续差异提示应比较**共同保存的两种表达及明确字段语义**，将不能比较的值保持待核查；source revision只作CAS／读取依据，不当一致性标记。
+
+### 三条路线及真实接口影响
+
+| 路线 | 用户可观察行为（均待确认） | 可复用接口／新增影响 | 代价与风险 |
+| --- | --- | --- | --- |
+| A．共同库显式更正所选原值 | 普通CSL保存仍只改CSL。另一个明确动作选择来源原值、字段及准确替换值，预览未选内容保留，再提交；导出随后采用所选原值 | 已有`library.record`＋`library.get`读取；`commitRecords({requestId,libraryId,changes:[{sourceId,revision,original}]})`一次提交；省略metadata/key时不改它们。首片只更正已有、唯一、受支持原值，可不新增持久provider | 最小、符合现契约。必须完整读取目标原值后保留未选字段；不是从CSL恢复历史来源。当前无产品原值编辑入口、也无单对象历史恢复动作 |
+| B1．导出明确选择原值表达／处理差异 | 明确说明原BBT导出的是哪一份原值；与CSL存在可比较差异时，由用户确认仍采用该原值，或转A更正后再导出。是否强制确认／阻止默认导出是D1 | 生态`zotero.export`需候选expression选择／结果依据；kernel通过broker读CSL和record且核对同一revision；原包和共同存储不变。既有HostConnection及P1登记保持 | 能避免“新revision代表新CSL已导出”的误解，但必须承认差异不必然表示原值错误；不能增加隐式全库对账或新的库来源表 |
+| B2．新增CSL表达导出 | 用户选择“按当前CSL导出”，输出必须确实采用该表达，并明确不能表达的值 | 现有Item只消费original，不能把CSL直接传进去即称支持。需要文献域确认的有界映射／缺口契约、生态临时投影及新的返回依据；不持久写原值 | 题名覆盖不等于完整CSL导出。日期、跨角色顺序、机构名、粒子／suffix及Extra指令须逐项决定；混用未选原值补空会产生未声明的第三种表达。本轮不推荐先做 |
+| C1．显式一次共同更正两个表达 | 用户在同一确认中逐项选择CSL和特定原值的具体改动，原子提交两个明确对象；普通CSL保存不变 | 现有`commitRecords`可显式携带metadata＋original；共同source revision、100条／256KiB及稳定requestId复用，无需另建库。调用方需保存选定字段意图与预览，不把“输入含CSL”解释为双写授权 | 原子能力已存在，但不提供字段意义的一致性证明。与A相比确认界面／草稿更复杂，须文献域单一草稿消费，不能生态另存一份CSL草稿 |
+| C2．来源修订自动联动／同步 | 后续来源更新与共同更正按基线、来源版本和冲突决议联动 | 目前原值只有共同revision，没有上游对象修订、每字段基线或三方合并契约；需文献共同schema／provider新增来源版本、明确冲突和恢复，生态只消费 | 最大范围，容易覆盖后续更正。`source.version`是发表版本，不能充当外部来源修订；不得在本change偷偷引入自动双写或来源重绑定 |
+
+**推荐先A＋B1**，从已有唯一schema44期刊原值的**显式题名更正**做下一片；DOI／URL等字符串可列为后续可验证子范围，不因字段名对应就宣布已支持。D1／D2确定之前不实施新行为。B2和C2保留为可选后续方向，不能把它们写成已经拒绝或已经批准；C1若用户更重视一次显式共同更正，可替代A的交互形态，复用同一事务。
+
+```mermaid
+flowchart TD
+  Save[现有CSL保存 library.update] --> CSL[共同metadata及revision更新]
+  Save --> Keep[未显式选择的original和正式键保留]
+  Record[现有library.record] --> Raw[选定original的Item及SQL派生视图]
+  Raw --> BBT[未修改BBT Worker导出]
+  Choose[拟议B1 明确表达与差异确认 待D1] -.-> Record
+  Edit[拟议A 所选原值字段预览 待D2] -.-> Commit[现有commitRecords 明确original及CAS]
+  Commit --> Record
+  CSL -.-> Choose
+```
+
+### D1–D3：需要用户确定的选择
+
+1. **D1，CSL更正后原BBT导出的默认处理。** 推荐：存在已确定字段差异或不能比较的字段时，要求显式确认采用所选原值，或先更正原值；没有确认时不产生该次新导出。替代：保持原值导出并清楚标明表达、但不强制确认；或一律阻止差异条目，直到显式更正。若目标是默认跟随CSL，应明确选择B2，并另定其映射范围，不能由实现者推定。是否允许用户确认原值后继续导出，直接影响“阻止陈旧”的定义。
+2. **D2，更正意图由哪个动作表达。** 推荐A：独立的“更正所选原值”，普通CSL保存保持现状。替代C1：一次明确确认中分别勾选两个表达的改动，同一共同事务提交。两者都不授权普通CSL保存自动双写，不把用户只改题名解释为允许改日期／作者／Extra。
+3. **D3，下一片字段及来源选择范围。** 推荐仅“已有唯一schema44期刊原值＋题名准确字符串”，日期／作者歧义交用户给准确原字符串／完整目标creator位置或另选来源，多原值继续unavailable。若要纳入日期／作者或多来源，须先批准具体形态与选择规则及真实往返验收，不能默认首个原值或从角色组重建全局顺序。
+
+这些是产品选择，本文给推荐而不替用户定案。既有来源副本默认新实例、正式键保护及E6生产限制没有新选择。
+
+### 候选Interface及模块职责（未实施）
+
+深层Module应隐藏“有界读取→选定表达／字段→CAS提交或导出→结果核查”的细节，复用共同库权威；不再加同步仓储、后台对账进程或持久来源反向表。
+
+- **读取及差异依据：** 对选中最多100条，经broker读取`library.get`和`library.record`，两者revision必须相同；遇竞争返回contentChanged并保留草稿，不能无限重读。原值仅取实际identity选中的有界页，发现多值／nextOffset时按已定范围拒绝或进入未来明确选择，不扫描整库。差异只展示已知字段的原值与CSL值；日期／角色等不可唯一比较者显示待核查，不能格式化后假称相等。
+- **候选导出字段：** 在`zotero.export.sources[]`讨论增加`expression: {kind: 'zotero-original', identity: {instanceId, libraryLocator, objectKey}, schemaVersion: '44'}`，并在结果sources中回传同一表达及共同revision/key/pinned；D1若选择强制确认，再定义基于该revision和所选表达的一次性用户确认，不用一个无版本的`force: true`跳过核对。此字段仅是候选DTO，当前公开schema没有该字段，本轮不改它。B2需另一明确kind及文献提供的映射契约，不能冒充original。
+- **确认身份的实际前置：** 当前没有“差异导出用户确认”provider。D1若要求人工确认，候选窄入口由可信product调用身份登记libraryId、sourceId/revision、original identity、format及所选表达，Agent只消费该选择引用，不能以`confirmed: true`自报人类意图；重启或依据改变后重新确认，不把它做成库来源表。D1还需明确Agent是否可依据用户已明确的指令选择表达，还是每次必须独立人工确认。具体人工入口与harness承接由主线确认，未到位时相应分支不可实施，不能假称已有通用审批可复用。
+- **显式原值更正：** 使用当前完整OriginalRecord和准确新字符串构造同identity的新对象，省略未选metadata/key；不从CSL全对象重建原值。A首片可直接复用commitRecords的显式original语义；若要结构化记录“改了哪些字段、谁确认、采用哪个来源”，由文献域评审共同字段意图／审计增量，不能藏在生态私有台账。
+- **事务及冲突：** source revision同时保护CSL／原值／键，一次有界请求共同提交，任一CAS、来源绑定、权限或键冲突全部拒绝。原值按identity整体upsert，不是字段patch；调用方必须保留完整未选内容。C1提交两个表达时也只调用一次共同事务，不以连续update＋commitRecords模拟原子性。正式键／pinned继续省略并保持，不让原包重新命名。
+- **未知与通知：** 仍用原requestId查commitResult，不因最新值“看起来一样”就判提交或重放。共同提交确认后才重建SQL／Item和BBT缓存；通知／刷新失败保留committed及原因，禁止用旧缓存报告新表达已导出。当前通知不是持久逐对象投递接口；不为新界面假定已有细粒度事件或断线补发。
+- **恢复：** 旧原值可从recordHistory核查，但没有独立原值版本／原子历史回退／删除原值接口，首次添加旧值可能为null，历史条目也不单列操作者、requestId或目标identity。首片已有原值的补偿更正可先展示明确旧对象，再以**当前**revision新建一次显式commit；不能回放旧requestId、回滚数据库或把独立副本备份恢复当作单条undo。若产品要求原子“恢复之前原值”及审计，应先由文献提供精确恢复契约，E6不因此完成。
+- **授权与装配：** 人工仍按read/write，导出按read/send，Agent保持可信执行上下文和持续库外发登记。新的比较／导出成功结果若含库内容，继续经既有rememberCatalog，不造ResourceRef或来源表；主线P1不可回退。完整读取和最终交付前再核同一身份、revision、read/send及所选表达。
+- **UI约束：** 若批准界面，沿`docs/ui-design/README.md:124/180`的当前文献详情、单一草稿及辅助页签，选择来自当前LibraryTab状态，保存沿同一共同接口。字段差异与确认贴近所选条目，沿语义token；不另建工作台或第二份CSL草稿，不通过DOM或全库投影取值。本轮不设计／实现新布局。
+
+### 所有权与依赖顺序
+
+| 责任方／文件符号 | 后续可能增量，须D1–D3后授权 |
+| --- | --- |
+| 文献：`protocol/library-records.ts`、`LiteratureCatalog.record/commitRecords/recordHistory`及其共同表单草稿 | 共同原值／字段意图／审计与恢复权威；确认现有完整original提交是否足够，必要时先提供有界公共增量。不由生态改库表或再建映射权威 |
+| 生态：`protocol/zotero.ts`、`ZoteroOperations.run`、`JournalCatalog`、`managed.ts` | 显式表达DTO、差异的私有消费及目标原值投影；使用真实library端口，不复制provider。首片仍唯一原值，保持原包及生命周期不变 |
+| 共同装配的生态符号：`manual.ts`、`application.ts`、`architecture.json`、business生成映射、`zoteroTools` | 只登记所需`library.get`等消费及薄入口，保留全部根工具、构造参数、恢复和P1持续授权；根据最终schema生成，不整文件覆盖 |
+| 文献／工作台所有者 | 经主线授权后接详情的明确选择／预览及单一草稿；生态只交消费者需求，不改本轮元数据表单 |
+
+依赖为：用户选择D1–D3 → 文献核对现有provider及必要公共字段意图／恢复契约 → 有界公共增量独立验证并按主线同步 → 生态私有投影／入口 → 真实共同库／原包联合验收。A的现有原值提交并不需要等待新存储实现；需要等待的是用户意图／导出政策和界面归属确认。B2/C2额外的映射／来源修订provider未交付，不能假装已接入。
+
+### 最小后续验收及诊断
+
+优先扩展现有`tests/kernel/zotero-host.spec.ts`，以本轮probe的两个样本为独立预期：CSL-only更正保留原值及固定键；D1所选策略在人工和真实harness一致；明确original题名后两格式采用新值，未选日期／creator顺序／Extra／身份保持；日期范围／机构名／多原值不给隐式选择。再各保留一个CAS冲突、受理后撤权、共同提交回执未知及通知失败代表例，读取实际库回执／revision／文本，复用既有监督及P1回归，不复制整套H1矩阵。
+
+若新增原值编辑UI才补对应双宿主人工入口，内部broker／仓储／worker／文件真实，外部模型可控；若选B2，必须另验所选表达实际字段，不能只检查导出不为空。诊断区分CSL保存、显式原值提交、用户未选择表达、权限拒绝、原包执行和结果刷新，不用延时或格式化文本消除差异。本轮没有这些新实现或新增生产通过结论。
+
 ## 第四轮回调收尾修复
 
 主线验收`/tmp/scholoom-round4-acceptance-JCUBNw/acceptance.md`的E1是回调收尾缺陷，非文献来源E1。外层RPC结束只决定调用者等待结果，不能证明已受理callback结束。旧call finally删除inflight，stop快照只剩未结束的外层work，故只读请求300ms超时后，回调仍挂起也可错误closed。

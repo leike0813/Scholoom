@@ -1,5 +1,58 @@
 # 调查依据
 
+## 当前调查：CSL更正与原值／导出的差异（4b13183）
+
+2026-10-27，仅调查和规划。当前HEAD为`4b13183f7489d3cae12fd0a7d1a9e83fb33d7384`，开始时clean；主线已接收普通期刊最多100条共同库／原BBT切片及持续外发授权P1。同步、构建、复验依据为`/tmp/scholoom-round6-acceptance-dXuzCA/{acceptance.md,synchronized.json,sync-build-results.json,sync-kernel-results.json}`中本树条目。本轮不应用历史patch，不重做宿主选型／H1／P1，不改生产实现。下文早期“尚无提供者”等判断是历史上下文，已由真实接入替代。
+
+### 当前事实与契约定位
+
+已接收的共同契约位于[`define-library-zotero-record-authority`的delta](../define-library-zotero-record-authority/specs/literature-catalog/spec.md#requirement-来源原值与题录投影分离)，明确“仅更正CSL SHALL 不覆盖未明确修改的原值”；该change尚未归档同步为`openspec/specs`中的新条文，不能因目录状态否定已接收契约，也不能擅自同步正式规格。当前[正式题录规格](../../specs/literature-catalog/spec.md#requirement-有界整理与授权更正)仍约束授权、修订拒绝和历史保留。
+
+源码路径与实际行为：
+
+| 路径 | 当前实际行为及证据 |
+| --- | --- |
+| `LibraryTab.saveDetail`（`apps/desktop/src/renderer/src/workbench/library/LibraryTab.tsx:523`）→ `LiteratureCatalog.update`（`packages/library/src/catalog.ts:616`） | 表单和JSON共用一个metadata草稿，提交CSL、标签／集合／关联与revision；整体替换CSL并增加共同revision，不写originalRecords、citationKeys或原值历史 |
+| `library.record`（`catalog.ts:221`） | 返回同一source的当前revision、正式键／pinned和有界原值页；revision不是原值独立版本，也不代表CSL与原值相同 |
+| `ZoteroOperations.run`（`apps/kernel/src/zotero.ts:103`）→ `JournalCatalog.refresh/getCreators/toJSON`（`apps/zotero-host/src/main/journal-catalog.ts:48/293/329`） | 只读取record中的唯一schema44期刊原值；SQL字段来自original.fields、作者来自原数组；citationKey覆盖自共同正式键，不读CSL metadata来自动覆盖 |
+| `ZoteroHost.export`（`apps/zotero-host/src/main/host.ts:243`） | 未改动BBT9.0.68的Translators／Worker实际生成文本；当前revision/key复查保护读取依据，不能证明CSL表达已被采用 |
+| `commitRecords`（`catalog.ts:289/421`） | `metadata`、`original`、`key`分别显式可选；原值按完整身份整体upsert。可以在一次共同事务中明确提交两个表达，但没有“CSL保存自动双写”的契约 |
+| `zoteroTools`／`rememberCatalog` | 成功结果已复用共同会话库身份登记，下一次模型准入及重启继续核read/send。主线P1红／绿已接收，本轮不返工或另造ResourceRef |
+
+### 隔离实跑与差异
+
+可重复脚本为[`evidence/csl-original-probe.mjs`](evidence/csl-original-probe.mjs)。复用已接收`tests/kernel/zotero-host.spec.ts`的普通期刊样本配方，在新目录`/tmp/scholoom-csl-original-AUctoW`重建两个合成条目；未打开旧样本配置或真实库。使用真实KernelApplication、library／broker、SQLite、认证WS、ManagedCommands／OS归属、Electron和原BBT Worker；没有模块替身、假SQL或模型请求。构建先于脚本，首次运行成功，8次实际导出后scopeStopped/pluginClosed均true、unresolved为空。保留原配置及所有结果。
+
+完整可审查读回及输入／回执在[`observations.json`](evidence/csl-original-4b13183/observations.json)，两格式文本及复现说明在[证据目录](evidence/csl-original-4b13183/README.md)。A沿既有英文题名样本；B原值creators顺序为author Chen → translator Li → author Wang → editor Kim，日期为`2024-03-14`，Extra含未知行、CNKICite及Status原文；两个正式键均固定。
+
+| 操作阶段 | A/B共同revision | 原值与原值历史 | 原BBT实际文本 |
+| --- | --- | --- | --- |
+| baseline | 2/2 | 各一份原值；各2条原值／键历史 | 两格式原题名、2024日期、Chen/Wang作者、Li译者及Kim编辑可查 |
+| 只更正A的CSL题名 | 3/2 | 两份原值逐字段不变；原值／键历史仍2/2 | BibTeX和BibLaTeX均与baseline逐字节相同，仍是旧题名 |
+| 只更正B的CSL日期／作者组 | 3/3 | 原date字符串、跨角色原顺序、Extra及来源身份不变，历史仍2/2 | 两格式仍与baseline相同；没有采用CSL的2025–2026范围／circa、机构作者、粒子／suffix或新译者 |
+| 显式提交A原值题名对照 | 4/3 | 只更正所选original.fields.title；A历史增至3，B仍2 | 两格式均出现新题名；共同正式键／pinned始终不变，B的歧义差异仍存在 |
+
+共同CSL更正本身按当前契约成功，不能把上述差异归咎为保存失败或缓存未刷新。每次原包导出使用新profile，因而此反例独立于旧缓存。基线BBT会做title case，故“输出字符串与CSL不逐字相同”也不能单独作为陈旧判据。样本BibLaTeX还输出`pubstate = {raw-only}`，该值出现在原Extra的Status行；直接把CSL字段覆盖到Item并不能证明得到完整的“CSL导出”。
+
+### 可确定的显式操作与不能推断的值
+
+| 值／操作 | 可证明的最小范围 | 必须保留的差异／待确认输入 |
+| --- | --- | --- |
+| 已选schema44 journalArticle的title、DOI、URL→url字符串 | 用户明确选择目标原值和字段后，可逐字写入明确的新字符串；完整read-modify-commit保留未选字段 | 这是显式更正，不是还原原始来源。不同标点／DOI前缀是否规范化不自动决定；此次实跑只验证题名，不宣称其他字段已验收 |
+| 日期 | 用户直接给定目标原date字符串时可以原样存储 | CSL literal不是Zotero原date；date-parts范围、季节、circa、精度与时区没有唯一原文。不得把格式化为ISO、截断端点或写入Extra当无损逆映射 |
+| 作者姓名、机构、角色及顺序 | 已知目标原creator索引／完整原对象且用户只改明确姓名属性时，可以保留其他属性和位置 | CSL按角色分组丢失跨角色交错次序；literal／family-given、中文拆名、粒子和suffix没有唯一fieldMode／firstName／lastName。仅同角色排序不授权重排完整原数组 |
+| 原类型、来源及关系 | 读取并保留现有itemType、schemaVersion、identity、relations | 不从CSL type倒猜原类型；多原值不得默认首条，不按key／路径重绑定来源；当前journalOriginal对多原值或复杂关系明确unavailable |
+| Extra／未知字段 | 未选字段整体保留，含未知行、CNKICite、Status和别名 | CSL note不是raw Extra。不能用CSL清空、合并或替换Extra；显式Extra编辑、解析及原包效果须另定范围 |
+| 正式键／pinned | 共同权威不变，原值更正请求省略key | 不从CSL扩展键、日期／作者变化或BBT重算结果覆写正式键 |
+
+实现方案和需用户选择项见[design本轮节](design.md#csl更正与原值导出差异的待决方案4b13183)，本轮只提交推荐，不批准自动同步。
+
+### 最新CI输入（替代旧374项基线）
+
+当前实际基线是[`6b22d60 / Checks 40315429083`](https://github.com/leike0813/Scholoom/actions/runs/40315429083)：Linux内核689通过／9失败／16跳过；Windows628通过／49失败／30跳过；macOS入口3通过／1失败，另有不可用校准2通过。原始日志及清单来自用户提供的`/tmp/scholoom-round6-acceptance-dXuzCA/ci-baseline-failures.log`、`ci-baseline-summary.json`。
+
+本线相关Windows `host-connection.spec.ts:159`（原日志3806–3830附近）期望outcomeUnknown、实际unavailable；它是失联／受理阶段待诊断，不是“超时不够”。本轮Linux原值差异实验不复现该平台场景、不修改监督判据、不计关闭。Windows文献整合／附件及双平台context-session失败仍归所属消费路径；macOS关闭重连和其他全仓失败也不由本轮局部成功消除。没有下载额外artifact、触发CI或跑全套。
+
 ## 第三轮已确认输入
 
 2026-10-26恢复时只读确认HEAD `eaf38be1ac2d350120805859175fc82cf9c36927`，`0519904`／`b838402`均为祖先，工作区clean；主线同步说明 `/tmp/scholoom-sync-recovery-wyn13R/recovery.md`记录本树内核13/13、原包9/9和先构建后验证。它们是同步／旧切片证据，非本轮新监督的验收；本轮直接使用当前源码，不再组合/tmp公共代码。
@@ -174,7 +227,7 @@ flowchart LR
 
 实线分别来自当前源码和上面明确标为历史的原型；两个系统之间没有已实现桥接。
 
-### CI 基线：已观察失败，不推定根因
+### 历史CI基线：已由当前40315429083基线替代
 
 并行计划指定 [`55d020c / Checks 40100596838`](https://github.com/leike0813/Scholoom/actions/runs/40100596838)：Linux UI 101通过／9失败／2跳过；Windows完整内核374通过／15失败／12跳过；macOS仅既定降级范围通过。主 Agent 读取 `/tmp/scholoom-next-parallel-baseline-failures.log`，相关原始断言为：
 
