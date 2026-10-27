@@ -1,0 +1,1382 @@
+{
+  "baseline": "4b13183f7489d3cae12fd0a7d1a9e83fb33d7384",
+  "node": "24.12.0",
+  "platform": "linux",
+  "directory": "/tmp/scholoom-csl-original-AUctoW",
+  "xpi": {
+    "path": "/tmp/scholoom-zotero-bbt-assets/zotero-better-bibtex-9.0.68.xpi",
+    "version": "9.0.68",
+    "source": "apps/zotero-host/resources/versions.json"
+  },
+  "recipe": "tests/kernel/zotero-host.spec.ts ordinary journal inputs, reconstructed in a fresh isolated library",
+  "simulated": [
+    "synthetic bibliographic content and source instance"
+  ],
+  "real": [
+    "KernelApplication",
+    "library",
+    "broker",
+    "SQLite",
+    "authenticated WS",
+    "ManagedCommands",
+    "Electron",
+    "BBT original Worker translators"
+  ],
+  "comparison": [
+    {
+      "stage": "baseline",
+      "revisions": [
+        {
+          "source": 2,
+          "record": 2
+        },
+        {
+          "source": 2,
+          "record": 2
+        }
+      ],
+      "originalEqualsBaseline": [
+        true,
+        true
+      ],
+      "recordHistoryEntries": [
+        2,
+        2
+      ],
+      "keysEqualBaseline": true,
+      "exportTextEqualsBaseline": {
+        "bibtex": true,
+        "biblatex": true
+      }
+    },
+    {
+      "stage": "title-only",
+      "revisions": [
+        {
+          "source": 3,
+          "record": 3
+        },
+        {
+          "source": 2,
+          "record": 2
+        }
+      ],
+      "originalEqualsBaseline": [
+        true,
+        true
+      ],
+      "recordHistoryEntries": [
+        2,
+        2
+      ],
+      "keysEqualBaseline": true,
+      "exportTextEqualsBaseline": {
+        "bibtex": true,
+        "biblatex": true
+      }
+    },
+    {
+      "stage": "date-authors-only",
+      "revisions": [
+        {
+          "source": 3,
+          "record": 3
+        },
+        {
+          "source": 3,
+          "record": 3
+        }
+      ],
+      "originalEqualsBaseline": [
+        true,
+        true
+      ],
+      "recordHistoryEntries": [
+        2,
+        2
+      ],
+      "keysEqualBaseline": true,
+      "exportTextEqualsBaseline": {
+        "bibtex": true,
+        "biblatex": true
+      }
+    },
+    {
+      "stage": "explicit-original-title",
+      "revisions": [
+        {
+          "source": 4,
+          "record": 4
+        },
+        {
+          "source": 3,
+          "record": 3
+        }
+      ],
+      "originalEqualsBaseline": [
+        false,
+        true
+      ],
+      "recordHistoryEntries": [
+        3,
+        2
+      ],
+      "keysEqualBaseline": true,
+      "exportTextEqualsBaseline": {
+        "bibtex": false,
+        "biblatex": false
+      }
+    }
+  ],
+  "operations": [
+    {
+      "method": "library.commitRecords",
+      "input": {
+        "libraryId": "d69e6e63-e2f8-49bc-a668-1beaad4ea310",
+        "requestId": "e5a52e1c-fb1e-4338-a3b2-0bcd30664c8c",
+        "changes": [
+          {
+            "sourceId": "8db88873-943e-481e-80cd-5ba1b14e193d",
+            "revision": 1,
+            "original": {
+              "identity": {
+                "instanceId": "557461ac-eed0-471c-a8f9-204ec85b6aae",
+                "libraryLocator": "isolated-journals",
+                "objectKey": "CSL00001"
+              },
+              "schemaVersion": "44",
+              "itemType": "journalArticle",
+              "fields": {
+                "title": "Research agents and reproducible literature workflows",
+                "date": "2026",
+                "publicationTitle": "Prototype Research",
+                "extra": "Private provenance: keep exactly\nCNKICite: RAW-CNKICITE\nStatus: raw-only"
+              },
+              "creators": [
+                {
+                  "creatorType": "author",
+                  "firstName": "Ada",
+                  "lastName": "Chen"
+                }
+              ],
+              "relations": {}
+            },
+            "key": {
+              "value": "ScholoomTitle2026",
+              "pinned": true,
+              "intent": "explicit"
+            }
+          },
+          {
+            "sourceId": "bb23f949-a0f0-4633-8253-9a220437493e",
+            "revision": 1,
+            "original": {
+              "identity": {
+                "instanceId": "557461ac-eed0-471c-a8f9-204ec85b6aae",
+                "libraryLocator": "isolated-journals",
+                "objectKey": "CSL00002"
+              },
+              "schemaVersion": "44",
+              "itemType": "journalArticle",
+              "fields": {
+                "title": "Chronology and ordered creators in journal sources",
+                "date": "2024-03-14",
+                "publicationTitle": "Prototype Research",
+                "extra": "Private provenance: keep exactly\nCNKICite: RAW-CNKICITE\nStatus: raw-only"
+              },
+              "creators": [
+                {
+                  "creatorType": "author",
+                  "firstName": "Ada",
+                  "lastName": "Chen"
+                },
+                {
+                  "creatorType": "translator",
+                  "firstName": "Ming",
+                  "lastName": "Li"
+                },
+                {
+                  "creatorType": "author",
+                  "firstName": "Grace",
+                  "lastName": "Wang"
+                },
+                {
+                  "creatorType": "editor",
+                  "firstName": "Alex",
+                  "lastName": "Kim"
+                }
+              ],
+              "relations": {}
+            },
+            "key": {
+              "value": "ScholoomChronology2024",
+              "pinned": true,
+              "intent": "explicit"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "method": "library.update",
+      "input": {
+        "sourceId": "8db88873-943e-481e-80cd-5ba1b14e193d",
+        "revision": 2,
+        "metadata": {
+          "type": "article-journal",
+          "issued": {
+            "date-parts": [
+              [
+                2026
+              ]
+            ]
+          },
+          "author": [
+            {
+              "given": "Ada",
+              "family": "Chen"
+            }
+          ],
+          "container-title": "Prototype Research",
+          "title": "Corrected title in the common catalog only"
+        },
+        "tags": [],
+        "collectionIds": [],
+        "relatedIds": []
+      }
+    },
+    {
+      "method": "library.update",
+      "input": {
+        "sourceId": "bb23f949-a0f0-4633-8253-9a220437493e",
+        "revision": 2,
+        "metadata": {
+          "type": "article-journal",
+          "issued": {
+            "date-parts": [
+              [
+                2025,
+                9
+              ],
+              [
+                2026,
+                2
+              ]
+            ],
+            "circa": true
+          },
+          "author": [
+            {
+              "literal": "Interdisciplinary Research Consortium"
+            },
+            {
+              "given": "Grace",
+              "family": "Wang",
+              "dropping-particle": "van",
+              "suffix": "Jr."
+            }
+          ],
+          "translator": [
+            {
+              "literal": "翻译研究工作组"
+            }
+          ],
+          "editor": [
+            {
+              "given": "Alex",
+              "family": "Kim"
+            }
+          ],
+          "container-title": "Prototype Research",
+          "title": "Chronology and ordered creators in journal sources"
+        },
+        "tags": [],
+        "collectionIds": [],
+        "relatedIds": []
+      }
+    },
+    {
+      "method": "library.commitRecords",
+      "input": {
+        "libraryId": "d69e6e63-e2f8-49bc-a668-1beaad4ea310",
+        "requestId": "6c9903af-3b69-4b7a-bc13-8396b9046c38",
+        "changes": [
+          {
+            "sourceId": "8db88873-943e-481e-80cd-5ba1b14e193d",
+            "revision": 3,
+            "original": {
+              "identity": {
+                "instanceId": "557461ac-eed0-471c-a8f9-204ec85b6aae",
+                "libraryLocator": "isolated-journals",
+                "objectKey": "CSL00001"
+              },
+              "schemaVersion": "44",
+              "itemType": "journalArticle",
+              "fields": {
+                "title": "Corrected title in the common catalog only",
+                "date": "2026",
+                "publicationTitle": "Prototype Research",
+                "extra": "Private provenance: keep exactly\nCNKICite: RAW-CNKICITE\nStatus: raw-only"
+              },
+              "creators": [
+                {
+                  "creatorType": "author",
+                  "firstName": "Ada",
+                  "lastName": "Chen"
+                }
+              ],
+              "relations": {}
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "receipts": [
+    {
+      "requestId": "e5a52e1c-fb1e-4338-a3b2-0bcd30664c8c",
+      "state": "committed",
+      "results": [
+        {
+          "sourceId": "8db88873-943e-481e-80cd-5ba1b14e193d",
+          "revision": 2,
+          "keyCandidate": "accepted"
+        },
+        {
+          "sourceId": "bb23f949-a0f0-4633-8253-9a220437493e",
+          "revision": 2,
+          "keyCandidate": "accepted"
+        }
+      ]
+    },
+    {
+      "requestId": "6c9903af-3b69-4b7a-bc13-8396b9046c38",
+      "state": "committed",
+      "results": [
+        {
+          "sourceId": "8db88873-943e-481e-80cd-5ba1b14e193d",
+          "revision": 4
+        }
+      ]
+    }
+  ],
+  "stages": [
+    {
+      "name": "baseline",
+      "readback": [
+        {
+          "source": {
+            "id": "8db88873-943e-481e-80cd-5ba1b14e193d",
+            "metadata": {
+              "type": "article-journal",
+              "issued": {
+                "date-parts": [
+                  [
+                    2026
+                  ]
+                ]
+              },
+              "author": [
+                {
+                  "given": "Ada",
+                  "family": "Chen"
+                }
+              ],
+              "container-title": "Prototype Research",
+              "title": "Research agents and reproducible literature workflows"
+            },
+            "metadataOrigin": "provided",
+            "version": "published",
+            "revision": 2,
+            "tags": [],
+            "collectionIds": [],
+            "relatedIds": [],
+            "origins": [
+              "synthetic accepted journal fixture"
+            ],
+            "createdAt": "2026-10-27T01:35:11.127Z",
+            "updatedAt": "2026-10-27T01:35:11.187Z",
+            "attachmentState": "unavailable",
+            "analysisState": "notGenerated"
+          },
+          "record": {
+            "sourceId": "8db88873-943e-481e-80cd-5ba1b14e193d",
+            "revision": 2,
+            "citationKey": {
+              "value": "ScholoomTitle2026",
+              "pinned": true
+            },
+            "originals": [
+              {
+                "identity": {
+                  "instanceId": "557461ac-eed0-471c-a8f9-204ec85b6aae",
+                  "libraryLocator": "isolated-journals",
+                  "objectKey": "CSL00001"
+                },
+                "schemaVersion": "44",
+                "itemType": "journalArticle",
+                "fields": {
+                  "title": "Research agents and reproducible literature workflows",
+                  "date": "2026",
+                  "publicationTitle": "Prototype Research",
+                  "extra": "Private provenance: keep exactly\nCNKICite: RAW-CNKICITE\nStatus: raw-only"
+                },
+                "creators": [
+                  {
+                    "creatorType": "author",
+                    "firstName": "Ada",
+                    "lastName": "Chen"
+                  }
+                ],
+                "relations": {}
+              }
+            ]
+          },
+          "sourceHistoryRevisions": [
+            1
+          ],
+          "recordHistory": [
+            {
+              "revision": 1,
+              "kind": "original",
+              "value": null
+            },
+            {
+              "revision": 1,
+              "kind": "key",
+              "value": null
+            }
+          ]
+        },
+        {
+          "source": {
+            "id": "bb23f949-a0f0-4633-8253-9a220437493e",
+            "metadata": {
+              "type": "article-journal",
+              "issued": {
+                "date-parts": [
+                  [
+                    2024,
+                    3,
+                    14
+                  ]
+                ]
+              },
+              "author": [
+                {
+                  "given": "Ada",
+                  "family": "Chen"
+                },
+                {
+                  "given": "Grace",
+                  "family": "Wang"
+                }
+              ],
+              "translator": [
+                {
+                  "given": "Ming",
+                  "family": "Li"
+                }
+              ],
+              "editor": [
+                {
+                  "given": "Alex",
+                  "family": "Kim"
+                }
+              ],
+              "container-title": "Prototype Research",
+              "title": "Chronology and ordered creators in journal sources"
+            },
+            "metadataOrigin": "provided",
+            "version": "published",
+            "revision": 2,
+            "tags": [],
+            "collectionIds": [],
+            "relatedIds": [],
+            "origins": [
+              "synthetic accepted journal fixture"
+            ],
+            "createdAt": "2026-10-27T01:35:11.149Z",
+            "updatedAt": "2026-10-27T01:35:11.189Z",
+            "attachmentState": "unavailable",
+            "analysisState": "notGenerated"
+          },
+          "record": {
+            "sourceId": "bb23f949-a0f0-4633-8253-9a220437493e",
+            "revision": 2,
+            "citationKey": {
+              "value": "ScholoomChronology2024",
+              "pinned": true
+            },
+            "originals": [
+              {
+                "identity": {
+                  "instanceId": "557461ac-eed0-471c-a8f9-204ec85b6aae",
+                  "libraryLocator": "isolated-journals",
+                  "objectKey": "CSL00002"
+                },
+                "schemaVersion": "44",
+                "itemType": "journalArticle",
+                "fields": {
+                  "title": "Chronology and ordered creators in journal sources",
+                  "date": "2024-03-14",
+                  "publicationTitle": "Prototype Research",
+                  "extra": "Private provenance: keep exactly\nCNKICite: RAW-CNKICITE\nStatus: raw-only"
+                },
+                "creators": [
+                  {
+                    "creatorType": "author",
+                    "firstName": "Ada",
+                    "lastName": "Chen"
+                  },
+                  {
+                    "creatorType": "translator",
+                    "firstName": "Ming",
+                    "lastName": "Li"
+                  },
+                  {
+                    "creatorType": "author",
+                    "firstName": "Grace",
+                    "lastName": "Wang"
+                  },
+                  {
+                    "creatorType": "editor",
+                    "firstName": "Alex",
+                    "lastName": "Kim"
+                  }
+                ],
+                "relations": {}
+              }
+            ]
+          },
+          "sourceHistoryRevisions": [
+            1
+          ],
+          "recordHistory": [
+            {
+              "revision": 1,
+              "kind": "original",
+              "value": null
+            },
+            {
+              "revision": 1,
+              "kind": "key",
+              "value": null
+            }
+          ]
+        }
+      ],
+      "exportBasis": {
+        "bibtex": [
+          {
+            "sourceId": "8db88873-943e-481e-80cd-5ba1b14e193d",
+            "revision": 2,
+            "citationKey": {
+              "value": "ScholoomTitle2026",
+              "pinned": true
+            }
+          },
+          {
+            "sourceId": "bb23f949-a0f0-4633-8253-9a220437493e",
+            "revision": 2,
+            "citationKey": {
+              "value": "ScholoomChronology2024",
+              "pinned": true
+            }
+          }
+        ],
+        "biblatex": [
+          {
+            "sourceId": "8db88873-943e-481e-80cd-5ba1b14e193d",
+            "revision": 2,
+            "citationKey": {
+              "value": "ScholoomTitle2026",
+              "pinned": true
+            }
+          },
+          {
+            "sourceId": "bb23f949-a0f0-4633-8253-9a220437493e",
+            "revision": 2,
+            "citationKey": {
+              "value": "ScholoomChronology2024",
+              "pinned": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "title-only",
+      "readback": [
+        {
+          "source": {
+            "id": "8db88873-943e-481e-80cd-5ba1b14e193d",
+            "metadata": {
+              "type": "article-journal",
+              "issued": {
+                "date-parts": [
+                  [
+                    2026
+                  ]
+                ]
+              },
+              "author": [
+                {
+                  "given": "Ada",
+                  "family": "Chen"
+                }
+              ],
+              "container-title": "Prototype Research",
+              "title": "Corrected title in the common catalog only"
+            },
+            "metadataOrigin": "provided",
+            "version": "published",
+            "revision": 3,
+            "tags": [],
+            "collectionIds": [],
+            "relatedIds": [],
+            "origins": [
+              "synthetic accepted journal fixture"
+            ],
+            "createdAt": "2026-10-27T01:35:11.127Z",
+            "updatedAt": "2026-10-27T01:35:15.370Z",
+            "attachmentState": "unavailable",
+            "analysisState": "notGenerated"
+          },
+          "record": {
+            "sourceId": "8db88873-943e-481e-80cd-5ba1b14e193d",
+            "revision": 3,
+            "citationKey": {
+              "value": "ScholoomTitle2026",
+              "pinned": true
+            },
+            "originals": [
+              {
+                "identity": {
+                  "instanceId": "557461ac-eed0-471c-a8f9-204ec85b6aae",
+                  "libraryLocator": "isolated-journals",
+                  "objectKey": "CSL00001"
+                },
+                "schemaVersion": "44",
+                "itemType": "journalArticle",
+                "fields": {
+                  "title": "Research agents and reproducible literature workflows",
+                  "date": "2026",
+                  "publicationTitle": "Prototype Research",
+                  "extra": "Private provenance: keep exactly\nCNKICite: RAW-CNKICITE\nStatus: raw-only"
+                },
+                "creators": [
+                  {
+                    "creatorType": "author",
+                    "firstName": "Ada",
+                    "lastName": "Chen"
+                  }
+                ],
+                "relations": {}
+              }
+            ]
+          },
+          "sourceHistoryRevisions": [
+            2,
+            1
+          ],
+          "recordHistory": [
+            {
+              "revision": 1,
+              "kind": "original",
+              "value": null
+            },
+            {
+              "revision": 1,
+              "kind": "key",
+              "value": null
+            }
+          ]
+        },
+        {
+          "source": {
+            "id": "bb23f949-a0f0-4633-8253-9a220437493e",
+            "metadata": {
+              "type": "article-journal",
+              "issued": {
+                "date-parts": [
+                  [
+                    2024,
+                    3,
+                    14
+                  ]
+                ]
+              },
+              "author": [
+                {
+                  "given": "Ada",
+                  "family": "Chen"
+                },
+                {
+                  "given": "Grace",
+                  "family": "Wang"
+                }
+              ],
+              "translator": [
+                {
+                  "given": "Ming",
+                  "family": "Li"
+                }
+              ],
+              "editor": [
+                {
+                  "given": "Alex",
+                  "family": "Kim"
+                }
+              ],
+              "container-title": "Prototype Research",
+              "title": "Chronology and ordered creators in journal sources"
+            },
+            "metadataOrigin": "provided",
+            "version": "published",
+            "revision": 2,
+            "tags": [],
+            "collectionIds": [],
+            "relatedIds": [],
+            "origins": [
+              "synthetic accepted journal fixture"
+            ],
+            "createdAt": "2026-10-27T01:35:11.149Z",
+            "updatedAt": "2026-10-27T01:35:11.189Z",
+            "attachmentState": "unavailable",
+            "analysisState": "notGenerated"
+          },
+          "record": {
+            "sourceId": "bb23f949-a0f0-4633-8253-9a220437493e",
+            "revision": 2,
+            "citationKey": {
+              "value": "ScholoomChronology2024",
+              "pinned": true
+            },
+            "originals": [
+              {
+                "identity": {
+                  "instanceId": "557461ac-eed0-471c-a8f9-204ec85b6aae",
+                  "libraryLocator": "isolated-journals",
+                  "objectKey": "CSL00002"
+                },
+                "schemaVersion": "44",
+                "itemType": "journalArticle",
+                "fields": {
+                  "title": "Chronology and ordered creators in journal sources",
+                  "date": "2024-03-14",
+                  "publicationTitle": "Prototype Research",
+                  "extra": "Private provenance: keep exactly\nCNKICite: RAW-CNKICITE\nStatus: raw-only"
+                },
+                "creators": [
+                  {
+                    "creatorType": "author",
+                    "firstName": "Ada",
+                    "lastName": "Chen"
+                  },
+                  {
+                    "creatorType": "translator",
+                    "firstName": "Ming",
+                    "lastName": "Li"
+                  },
+                  {
+                    "creatorType": "author",
+                    "firstName": "Grace",
+                    "lastName": "Wang"
+                  },
+                  {
+                    "creatorType": "editor",
+                    "firstName": "Alex",
+                    "lastName": "Kim"
+                  }
+                ],
+                "relations": {}
+              }
+            ]
+          },
+          "sourceHistoryRevisions": [
+            1
+          ],
+          "recordHistory": [
+            {
+              "revision": 1,
+              "kind": "original",
+              "value": null
+            },
+            {
+              "revision": 1,
+              "kind": "key",
+              "value": null
+            }
+          ]
+        }
+      ],
+      "exportBasis": {
+        "bibtex": [
+          {
+            "sourceId": "8db88873-943e-481e-80cd-5ba1b14e193d",
+            "revision": 3,
+            "citationKey": {
+              "value": "ScholoomTitle2026",
+              "pinned": true
+            }
+          },
+          {
+            "sourceId": "bb23f949-a0f0-4633-8253-9a220437493e",
+            "revision": 2,
+            "citationKey": {
+              "value": "ScholoomChronology2024",
+              "pinned": true
+            }
+          }
+        ],
+        "biblatex": [
+          {
+            "sourceId": "8db88873-943e-481e-80cd-5ba1b14e193d",
+            "revision": 3,
+            "citationKey": {
+              "value": "ScholoomTitle2026",
+              "pinned": true
+            }
+          },
+          {
+            "sourceId": "bb23f949-a0f0-4633-8253-9a220437493e",
+            "revision": 2,
+            "citationKey": {
+              "value": "ScholoomChronology2024",
+              "pinned": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "date-authors-only",
+      "readback": [
+        {
+          "source": {
+            "id": "8db88873-943e-481e-80cd-5ba1b14e193d",
+            "metadata": {
+              "type": "article-journal",
+              "issued": {
+                "date-parts": [
+                  [
+                    2026
+                  ]
+                ]
+              },
+              "author": [
+                {
+                  "given": "Ada",
+                  "family": "Chen"
+                }
+              ],
+              "container-title": "Prototype Research",
+              "title": "Corrected title in the common catalog only"
+            },
+            "metadataOrigin": "provided",
+            "version": "published",
+            "revision": 3,
+            "tags": [],
+            "collectionIds": [],
+            "relatedIds": [],
+            "origins": [
+              "synthetic accepted journal fixture"
+            ],
+            "createdAt": "2026-10-27T01:35:11.127Z",
+            "updatedAt": "2026-10-27T01:35:15.370Z",
+            "attachmentState": "unavailable",
+            "analysisState": "notGenerated"
+          },
+          "record": {
+            "sourceId": "8db88873-943e-481e-80cd-5ba1b14e193d",
+            "revision": 3,
+            "citationKey": {
+              "value": "ScholoomTitle2026",
+              "pinned": true
+            },
+            "originals": [
+              {
+                "identity": {
+                  "instanceId": "557461ac-eed0-471c-a8f9-204ec85b6aae",
+                  "libraryLocator": "isolated-journals",
+                  "objectKey": "CSL00001"
+                },
+                "schemaVersion": "44",
+                "itemType": "journalArticle",
+                "fields": {
+                  "title": "Research agents and reproducible literature workflows",
+                  "date": "2026",
+                  "publicationTitle": "Prototype Research",
+                  "extra": "Private provenance: keep exactly\nCNKICite: RAW-CNKICITE\nStatus: raw-only"
+                },
+                "creators": [
+                  {
+                    "creatorType": "author",
+                    "firstName": "Ada",
+                    "lastName": "Chen"
+                  }
+                ],
+                "relations": {}
+              }
+            ]
+          },
+          "sourceHistoryRevisions": [
+            2,
+            1
+          ],
+          "recordHistory": [
+            {
+              "revision": 1,
+              "kind": "original",
+              "value": null
+            },
+            {
+              "revision": 1,
+              "kind": "key",
+              "value": null
+            }
+          ]
+        },
+        {
+          "source": {
+            "id": "bb23f949-a0f0-4633-8253-9a220437493e",
+            "metadata": {
+              "type": "article-journal",
+              "issued": {
+                "date-parts": [
+                  [
+                    2025,
+                    9
+                  ],
+                  [
+                    2026,
+                    2
+                  ]
+                ],
+                "circa": true
+              },
+              "author": [
+                {
+                  "literal": "Interdisciplinary Research Consortium"
+                },
+                {
+                  "given": "Grace",
+                  "family": "Wang",
+                  "dropping-particle": "van",
+                  "suffix": "Jr."
+                }
+              ],
+              "translator": [
+                {
+                  "literal": "翻译研究工作组"
+                }
+              ],
+              "editor": [
+                {
+                  "given": "Alex",
+                  "family": "Kim"
+                }
+              ],
+              "container-title": "Prototype Research",
+              "title": "Chronology and ordered creators in journal sources"
+            },
+            "metadataOrigin": "provided",
+            "version": "published",
+            "revision": 3,
+            "tags": [],
+            "collectionIds": [],
+            "relatedIds": [],
+            "origins": [
+              "synthetic accepted journal fixture"
+            ],
+            "createdAt": "2026-10-27T01:35:11.149Z",
+            "updatedAt": "2026-10-27T01:35:19.632Z",
+            "attachmentState": "unavailable",
+            "analysisState": "notGenerated"
+          },
+          "record": {
+            "sourceId": "bb23f949-a0f0-4633-8253-9a220437493e",
+            "revision": 3,
+            "citationKey": {
+              "value": "ScholoomChronology2024",
+              "pinned": true
+            },
+            "originals": [
+              {
+                "identity": {
+                  "instanceId": "557461ac-eed0-471c-a8f9-204ec85b6aae",
+                  "libraryLocator": "isolated-journals",
+                  "objectKey": "CSL00002"
+                },
+                "schemaVersion": "44",
+                "itemType": "journalArticle",
+                "fields": {
+                  "title": "Chronology and ordered creators in journal sources",
+                  "date": "2024-03-14",
+                  "publicationTitle": "Prototype Research",
+                  "extra": "Private provenance: keep exactly\nCNKICite: RAW-CNKICITE\nStatus: raw-only"
+                },
+                "creators": [
+                  {
+                    "creatorType": "author",
+                    "firstName": "Ada",
+                    "lastName": "Chen"
+                  },
+                  {
+                    "creatorType": "translator",
+                    "firstName": "Ming",
+                    "lastName": "Li"
+                  },
+                  {
+                    "creatorType": "author",
+                    "firstName": "Grace",
+                    "lastName": "Wang"
+                  },
+                  {
+                    "creatorType": "editor",
+                    "firstName": "Alex",
+                    "lastName": "Kim"
+                  }
+                ],
+                "relations": {}
+              }
+            ]
+          },
+          "sourceHistoryRevisions": [
+            2,
+            1
+          ],
+          "recordHistory": [
+            {
+              "revision": 1,
+              "kind": "original",
+              "value": null
+            },
+            {
+              "revision": 1,
+              "kind": "key",
+              "value": null
+            }
+          ]
+        }
+      ],
+      "exportBasis": {
+        "bibtex": [
+          {
+            "sourceId": "8db88873-943e-481e-80cd-5ba1b14e193d",
+            "revision": 3,
+            "citationKey": {
+              "value": "ScholoomTitle2026",
+              "pinned": true
+            }
+          },
+          {
+            "sourceId": "bb23f949-a0f0-4633-8253-9a220437493e",
+            "revision": 3,
+            "citationKey": {
+              "value": "ScholoomChronology2024",
+              "pinned": true
+            }
+          }
+        ],
+        "biblatex": [
+          {
+            "sourceId": "8db88873-943e-481e-80cd-5ba1b14e193d",
+            "revision": 3,
+            "citationKey": {
+              "value": "ScholoomTitle2026",
+              "pinned": true
+            }
+          },
+          {
+            "sourceId": "bb23f949-a0f0-4633-8253-9a220437493e",
+            "revision": 3,
+            "citationKey": {
+              "value": "ScholoomChronology2024",
+              "pinned": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "explicit-original-title",
+      "readback": [
+        {
+          "source": {
+            "id": "8db88873-943e-481e-80cd-5ba1b14e193d",
+            "metadata": {
+              "type": "article-journal",
+              "issued": {
+                "date-parts": [
+                  [
+                    2026
+                  ]
+                ]
+              },
+              "author": [
+                {
+                  "given": "Ada",
+                  "family": "Chen"
+                }
+              ],
+              "container-title": "Prototype Research",
+              "title": "Corrected title in the common catalog only"
+            },
+            "metadataOrigin": "provided",
+            "version": "published",
+            "revision": 4,
+            "tags": [],
+            "collectionIds": [],
+            "relatedIds": [],
+            "origins": [
+              "synthetic accepted journal fixture"
+            ],
+            "createdAt": "2026-10-27T01:35:11.127Z",
+            "updatedAt": "2026-10-27T01:35:24.041Z",
+            "attachmentState": "unavailable",
+            "analysisState": "notGenerated"
+          },
+          "record": {
+            "sourceId": "8db88873-943e-481e-80cd-5ba1b14e193d",
+            "revision": 4,
+            "citationKey": {
+              "value": "ScholoomTitle2026",
+              "pinned": true
+            },
+            "originals": [
+              {
+                "identity": {
+                  "instanceId": "557461ac-eed0-471c-a8f9-204ec85b6aae",
+                  "libraryLocator": "isolated-journals",
+                  "objectKey": "CSL00001"
+                },
+                "schemaVersion": "44",
+                "itemType": "journalArticle",
+                "fields": {
+                  "title": "Corrected title in the common catalog only",
+                  "date": "2026",
+                  "publicationTitle": "Prototype Research",
+                  "extra": "Private provenance: keep exactly\nCNKICite: RAW-CNKICITE\nStatus: raw-only"
+                },
+                "creators": [
+                  {
+                    "creatorType": "author",
+                    "firstName": "Ada",
+                    "lastName": "Chen"
+                  }
+                ],
+                "relations": {}
+              }
+            ]
+          },
+          "sourceHistoryRevisions": [
+            3,
+            2,
+            1
+          ],
+          "recordHistory": [
+            {
+              "revision": 3,
+              "kind": "original",
+              "value": {
+                "identity": {
+                  "instanceId": "557461ac-eed0-471c-a8f9-204ec85b6aae",
+                  "libraryLocator": "isolated-journals",
+                  "objectKey": "CSL00001"
+                },
+                "schemaVersion": "44",
+                "itemType": "journalArticle",
+                "fields": {
+                  "title": "Research agents and reproducible literature workflows",
+                  "date": "2026",
+                  "publicationTitle": "Prototype Research",
+                  "extra": "Private provenance: keep exactly\nCNKICite: RAW-CNKICITE\nStatus: raw-only"
+                },
+                "creators": [
+                  {
+                    "creatorType": "author",
+                    "firstName": "Ada",
+                    "lastName": "Chen"
+                  }
+                ],
+                "relations": {}
+              }
+            },
+            {
+              "revision": 1,
+              "kind": "original",
+              "value": null
+            },
+            {
+              "revision": 1,
+              "kind": "key",
+              "value": null
+            }
+          ]
+        },
+        {
+          "source": {
+            "id": "bb23f949-a0f0-4633-8253-9a220437493e",
+            "metadata": {
+              "type": "article-journal",
+              "issued": {
+                "date-parts": [
+                  [
+                    2025,
+                    9
+                  ],
+                  [
+                    2026,
+                    2
+                  ]
+                ],
+                "circa": true
+              },
+              "author": [
+                {
+                  "literal": "Interdisciplinary Research Consortium"
+                },
+                {
+                  "given": "Grace",
+                  "family": "Wang",
+                  "dropping-particle": "van",
+                  "suffix": "Jr."
+                }
+              ],
+              "translator": [
+                {
+                  "literal": "翻译研究工作组"
+                }
+              ],
+              "editor": [
+                {
+                  "given": "Alex",
+                  "family": "Kim"
+                }
+              ],
+              "container-title": "Prototype Research",
+              "title": "Chronology and ordered creators in journal sources"
+            },
+            "metadataOrigin": "provided",
+            "version": "published",
+            "revision": 3,
+            "tags": [],
+            "collectionIds": [],
+            "relatedIds": [],
+            "origins": [
+              "synthetic accepted journal fixture"
+            ],
+            "createdAt": "2026-10-27T01:35:11.149Z",
+            "updatedAt": "2026-10-27T01:35:19.632Z",
+            "attachmentState": "unavailable",
+            "analysisState": "notGenerated"
+          },
+          "record": {
+            "sourceId": "bb23f949-a0f0-4633-8253-9a220437493e",
+            "revision": 3,
+            "citationKey": {
+              "value": "ScholoomChronology2024",
+              "pinned": true
+            },
+            "originals": [
+              {
+                "identity": {
+                  "instanceId": "557461ac-eed0-471c-a8f9-204ec85b6aae",
+                  "libraryLocator": "isolated-journals",
+                  "objectKey": "CSL00002"
+                },
+                "schemaVersion": "44",
+                "itemType": "journalArticle",
+                "fields": {
+                  "title": "Chronology and ordered creators in journal sources",
+                  "date": "2024-03-14",
+                  "publicationTitle": "Prototype Research",
+                  "extra": "Private provenance: keep exactly\nCNKICite: RAW-CNKICITE\nStatus: raw-only"
+                },
+                "creators": [
+                  {
+                    "creatorType": "author",
+                    "firstName": "Ada",
+                    "lastName": "Chen"
+                  },
+                  {
+                    "creatorType": "translator",
+                    "firstName": "Ming",
+                    "lastName": "Li"
+                  },
+                  {
+                    "creatorType": "author",
+                    "firstName": "Grace",
+                    "lastName": "Wang"
+                  },
+                  {
+                    "creatorType": "editor",
+                    "firstName": "Alex",
+                    "lastName": "Kim"
+                  }
+                ],
+                "relations": {}
+              }
+            ]
+          },
+          "sourceHistoryRevisions": [
+            2,
+            1
+          ],
+          "recordHistory": [
+            {
+              "revision": 1,
+              "kind": "original",
+              "value": null
+            },
+            {
+              "revision": 1,
+              "kind": "key",
+              "value": null
+            }
+          ]
+        }
+      ],
+      "exportBasis": {
+        "bibtex": [
+          {
+            "sourceId": "8db88873-943e-481e-80cd-5ba1b14e193d",
+            "revision": 4,
+            "citationKey": {
+              "value": "ScholoomTitle2026",
+              "pinned": true
+            }
+          },
+          {
+            "sourceId": "bb23f949-a0f0-4633-8253-9a220437493e",
+            "revision": 3,
+            "citationKey": {
+              "value": "ScholoomChronology2024",
+              "pinned": true
+            }
+          }
+        ],
+        "biblatex": [
+          {
+            "sourceId": "8db88873-943e-481e-80cd-5ba1b14e193d",
+            "revision": 4,
+            "citationKey": {
+              "value": "ScholoomTitle2026",
+              "pinned": true
+            }
+          },
+          {
+            "sourceId": "bb23f949-a0f0-4633-8253-9a220437493e",
+            "revision": 3,
+            "citationKey": {
+              "value": "ScholoomChronology2024",
+              "pinned": true
+            }
+          }
+        ]
+      }
+    }
+  ]
+}
