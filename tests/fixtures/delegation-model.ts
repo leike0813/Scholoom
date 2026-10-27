@@ -1,4 +1,5 @@
 import type { DelegationRequest, ResourceEvidence } from '../../packages/protocol/dist/index.js';
+import type { TaskRead, TaskRef } from '../../packages/protocol/dist/projects.js';
 import { createModelServer, type ModelServer } from '../model-server.js';
 
 function output(body: Record<string, unknown>, name: string): Record<string, any> | undefined {
@@ -38,13 +39,27 @@ export async function delegationModel(
     repeat?: boolean;
     conflict?: boolean;
     beforeChild?: () => void;
+    parentSave?: boolean;
+    task?: {
+      ref: TaskRef;
+      workItemId: string;
+      gate?: 'material' | 'link';
+      pause?: () => Promise<void>;
+    };
   } = {},
 ): Promise<ModelServer> {
   let heldChild = false;
+  let heldTask = false;
   const model = await createModelServer({
-    respond: ({ user, calls }) => {
+    respond: async ({ user, calls }) => {
       const body = model.requests.at(-1)!;
       if (user.includes('PARENT_DELEGATION')) {
+        if (options.task && !calls.includes('read_research_task'))
+          return { tool: { name: 'read_research_task', input: { task: options.task.ref } } };
+        if (options.task && !calls.includes('delegate_agent')) {
+          const read = output(body, 'read_research_task') as TaskRead;
+          request.workPackage.materials = [read.entry];
+        }
         if (!calls.includes('delegate_agent'))
           return { tool: { name: 'delegate_agent', input: request } };
         if (
@@ -83,9 +98,60 @@ export async function delegationModel(
             },
           };
         }
+        if (options.parentSave && !calls.includes('write_file'))
+          return {
+            tool: {
+              name: 'write_file',
+              input: { file_path: 'parent.md', content: 'Parent checked the saved report.' },
+            },
+          };
+        if (options.task && waited.delegation?.artifacts?.length) {
+          if (calls.filter((name) => name === 'read_research_task').length < 2)
+            return { tool: { name: 'read_research_task', input: { task: options.task.ref } } };
+          if (!calls.includes('save_research_task')) {
+            const read = output(body, 'read_research_task') as TaskRead;
+            const resource = waited.delegation.artifacts[0].resource;
+            const metadata = {
+              ...read.metadata,
+              links: [
+                ...(read.metadata.links ?? []),
+                {
+                  id: 'delegated-result',
+                  role: 'result',
+                  workItemId: options.task.workItemId,
+                  target: { kind: 'project-file', fileId: resource.ref.fileId },
+                  basis: resource.basis,
+                },
+              ],
+            };
+            if (options.task.gate === 'link' && !heldTask) {
+              heldTask = true;
+              await options.task.pause?.();
+            }
+            return {
+              tool: {
+                name: 'save_research_task',
+                input: {
+                  task: read.task,
+                  basis: read.entry.basis,
+                  content: read.content.replace(
+                    /^\uFEFF?---\r?\n[\s\S]*?\r?\n---/,
+                    `---\n${JSON.stringify(metadata)}\n---`,
+                  ),
+                },
+              },
+            };
+          }
+          if (output(body, 'save_research_task')?.error)
+            return { text: 'Saved report remains; task association unfinished after conflict.' };
+        }
         return { text: 'Parent checked the actual delegation outcome.' };
       }
       if (user.includes('CHILD_DELEGATION')) {
+        if (options.task?.gate === 'material' && !heldTask) {
+          heldTask = true;
+          await options.task.pause?.();
+        }
         if (!calls.length) options.beforeChild?.();
         if (options.childHold && !heldChild) {
           heldChild = true;

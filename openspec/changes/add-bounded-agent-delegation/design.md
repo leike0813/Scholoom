@@ -1,5 +1,15 @@
 # 实现设计
 
+## 共同领域接入后的A/B有界切片
+
+本节取代下文历史阶段的未同步/TaskPort缺失与构造器候选说明。1026796共同基线已包含七域正式源码；主线同步证据为`/tmp/scholoom-round5-acceptance-WBreMJ/{acceptance.md,synchronized.json}`。只修改本树，不重放旧patch。科研角色/guidance与真实质量仍未设计，不以worker代替。
+
+A：复用ManualApplication的FileExecutionFacts窄端口，返回值允许同步或Promise；fileOrigin及其project.saveFile、files.save/undo、resources.create、tasks.create/save调用点在进入原projects保存前await。Kernel默认经原executionFacts/broker查询，仅把verified且匹配的project/session/run/instance与verified委派关系映射为既有FileEditOrigin；指令/工具未知不推断。等待后再次checkExecutionContext，projects的withAccess授权及原锁/CAS继续负责撤权、身份、发布与事务；不在SQLite事务等待，不另造schema/来源表。同步注入夹具继续验接口，实际父子FileEdit验证默认装配，二者分开。
+
+B：父沿现有TaskPort读取TaskRef/入口basis，入口及明确材料作为ResourceEvidence交原worker。子只读这些材料、创建指定成果并report；父重读入口，使用原tasks.save整份候选关联result/workItemId。无需DelegationRequest字段或新增角色/权限。材料变化拒绝旧依据，关联冲突保留成果供重读后续接，取消保留已保存成果与未完成关联；不自动重放或创建任务。内部broker、项目/委派仓储、worker、文件真实，仅外部模型HTTP受控。
+
+写集限定kernel executionFileFacts/originFacts/fileOrigin及上述await调用点，现有execution-facts/file-edit-origins测试和必要TaskPort委派测试；不改TaskResearchPort默认装配、构造器尾参、根工具、迁移/restore、tab、资源叶或其他域规格。复用现有双宿主委派正例，不新增UI语义。构建后顺序验证，运行中不重建，首次失败保留；任务及delivery记录本轮实际结果。
+
 ## 变更总览
 
 本文件记录实施设计，调查依据见 [investigation](investigation.md)，完成目标见 [proposal](proposal.md)，实际验证与剩余项见 [delivery](delivery.md)。深层模块设计采用 codebase-design：`Delegations` 把可靠受理、权限求交、子进程、结果和收尾集中在小 Interface 后面；真实资源端口与测试 Adapter 是已有可替换 seam，不增加万能调度层。
@@ -19,7 +29,7 @@ flowchart LR
   F -->|真实保存及关联回执| H
   H -->|持久结果 / 实际引用| P
   H -->|所属会话有界失效通知| UI
-  Q[科研角色指导 / 项目任务关联] -.->|等待所属线提供，不是首批通用前置| H
+  Q[科研角色指导] -.->|仍待所属线提供| H
 ```
 
 不把科研 ability attempt 改名为 delegation。保留 `executeCapability` 入口、科研进展及交付检查，抽出它与通用委派确实共用的实例生命周期／停止追踪；不迁移科研业务记录。生产图集合不变，也不引入新 Graph 类型。
@@ -191,7 +201,7 @@ sequenceDiagram
 
 ## 待办边界
 
-- **等待输入／接入**：科研实际委派角色仍缺；项目TaskRef／四操作、阅读两份设计及公共执行历史现已收到并核对，未合入本树／共同dev。具体构造器组合及是否增委派关联DTO待主线确认，迁移由计算统一组合。任务中保留真实整合依赖，不把源码审阅当提供者已接通。
+- **等待输入／接入**：科研实际委派角色与真实质量仍缺；项目TaskPort、阅读源码、公共历史和统一v6已随1026796正式进入本树。构造器沿现有共同顺序保留，任务关联采用父读/交ResourceEvidence/重读/保存原links，无需新委派DTO。机械接入验证见本轮delivery，不再等待同一公共接入方案。
 - **待实证**：Windows失败阶段与新父子真实路径、macOS人工路径及目标分发；Linux迁移／恢复、权限与独立审查范围见delivery，工件存在不替代执行证据。
 - **后续change**：已有会话持久通信、advisor、递归委派、后台移交、子checkpoint自动接续、角色编辑／分发管理和新供应商。产品／跨模块方向若需变更，带选项回用户，不能在实施中顺便决定。
 
@@ -235,7 +245,7 @@ sequenceDiagram
 
 公共资源叶schema先由项目提供者接入，保留resources原重导出；本线继续消费原ResourceEvidence，不复制叶声明。阅读图片枚举／格式判断在该叶增量之后组合；不会因为本线能打开报告文件就宣称交互报告实现。公共补丁文件、适用前提与实测范围记录在delivery；dev组合及用户同步消费者后才进入真实I3。
 
-## 同步恢复后的本轮范围
+## 上一轮同步恢复范围（历史证据）
 
 实际HEAD为2cb6aed4d0f3034ca2d1426858a64a0039e51ede，0519904（含b838402）已是祖先，启动时clean。用户已明确恢复，原等待同步条件失效。主线恢复记录`/tmp/scholoom-sync-recovery-wyn13R/{recovery.md,synchronized.json}`及本树日志提供先构建后34/34内核证据。直接使用本树正式源码，保留harness.executions／Graph来源、统一v5→v6、资源叶、projectId和双窗口基础，不再复制隔离组合或改迁移。
 

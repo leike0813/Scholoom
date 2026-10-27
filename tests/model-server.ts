@@ -29,7 +29,7 @@ export interface ModelServerOptions {
     user: string;
     calls: readonly string[];
     toolId: string;
-  }) => ModelPlan | undefined;
+  }) => ModelPlan | undefined | Promise<ModelPlan | undefined>;
 }
 type ModelPlan = { tool: { name: string; input: Record<string, unknown> } } | { text: string };
 
@@ -547,7 +547,7 @@ export async function createModelServer(options: ModelServerOptions = {}): Promi
     const suffix = String(sequence).padStart(4, '0');
     const { user, tools, calls, reads, researchCalls } = inspect(body);
     const toolId = `toolu_fixture_${suffix}`;
-    const planned = options.respond?.({ user, calls, toolId });
+    const planned = await options.respond?.({ user, calls, toolId });
     const turn = planned
       ? plannedTurn(planned, toolId)
       : planTurn(

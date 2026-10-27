@@ -53,7 +53,9 @@ export class KernelApplication extends ManualApplication {
   readonly harness: Harness;
   readonly research: ResearchRuntime;
   private readonly originFacts:
-    | ((context: CallContext) => FileExecutionFacts | undefined)
+    | ((
+        context: CallContext,
+      ) => FileExecutionFacts | undefined | Promise<FileExecutionFacts | undefined>)
     | undefined;
   private readonly graphAdmissions = new WeakMap<AbortSignal, () => void>();
   constructor(
@@ -65,7 +67,9 @@ export class KernelApplication extends ManualApplication {
       executionGraphs?: ExecutionGraphs;
       researchGraphs?: readonly ResearchGraph[];
       workerEntry?: URL;
-      fileExecutionFacts?: (context: CallContext) => FileExecutionFacts | undefined;
+      fileExecutionFacts?: (
+        context: CallContext,
+      ) => FileExecutionFacts | undefined | Promise<FileExecutionFacts | undefined>;
       taskResearch?: TaskResearchPort;
       delegationRoles?: readonly DelegationRole[];
     } = {},
@@ -357,8 +361,27 @@ export class KernelApplication extends ManualApplication {
   ): void {
     this.harness.recordResourceUse(context, ref);
   }
-  protected override executionFileFacts(context: CallContext): FileExecutionFacts | undefined {
-    return this.originFacts?.(context);
+  protected override async executionFileFacts(
+    context: CallContext,
+  ): Promise<FileExecutionFacts | undefined> {
+    if (this.originFacts) return this.originFacts(context);
+    const facts = await this.executionFacts(context);
+    if (facts.state !== 'verified') return undefined;
+    return {
+      projectId: facts.projectId,
+      sessionId: facts.sessionId,
+      runId: facts.runId,
+      instanceId: facts.instanceId,
+      ...(facts.delegation.state === 'verified'
+        ? {
+            delegation: {
+              delegationId: facts.delegation.delegationId,
+              parentInstanceId: facts.delegation.parentInstanceId,
+              parentRunId: facts.delegation.parentRunId,
+            },
+          }
+        : {}),
+    };
   }
   protected override checkFileHistoryContext(context: CallContext): void {
     if (context.principal.kind === 'agent') this.harness.checkFileHistoryContext(context);

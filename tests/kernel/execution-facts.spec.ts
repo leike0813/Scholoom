@@ -1,6 +1,4 @@
 import { randomUUID } from 'node:crypto';
-import { mkdtemp, rm } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { expect, test } from '@playwright/test';
 import { KernelApplication } from '../../apps/kernel/dist/application.js';
@@ -10,6 +8,7 @@ import { expectExecutionCompleted } from '../execution-diagnostics.js';
 import { delegationModel } from '../fixtures/delegation-model.js';
 
 class FactsApplication extends KernelApplication {
+  readonly saved: Array<{ context: CallContext; editId: string | undefined }> = [];
   readonly observed: Array<{
     context: CallContext;
     facts: Awaited<ReturnType<KernelApplication['executionFacts']>>;
@@ -45,14 +44,16 @@ class FactsApplication extends KernelApplication {
       },
       create: async (input: Parameters<typeof resources.create>[0]) => {
         await observe();
-        return resources.create(input);
+        const result = await resources.create(input);
+        if (result.state === 'complete') this.saved.push({ context, editId: result.editId });
+        return result;
       },
     };
   }
 }
 
 test('actual parent and child resource calls expose verified execution facts without inferred instruction authors', async () => {
-  const root = await mkdtemp(join(tmpdir(), 'scholoom-execution-facts-'));
+  const root = test.info().outputPath('execution-facts');
   const work: DelegationRequest = {
     delegationId: randomUUID(),
     roleId: 'worker',
@@ -65,7 +66,7 @@ test('actual parent and child resource calls expose verified execution facts wit
       outputs: [{ kind: 'create', path: 'report.md' }],
     },
   };
-  const model = await delegationModel(work);
+  const model = await delegationModel(work, { parentSave: true });
   const profile = join(root, 'profile');
   const settings = { modelEndpoint: model.url, environment: { MINIMAX_CN_API_KEY: 'synthetic' } };
   const app = new FactsApplication(profile, settings);
@@ -135,6 +136,46 @@ test('actual parent and child resource calls expose verified execution facts wit
       instructionContext: { state: 'unknown', reason: 'notCaptured' },
       tool: { state: 'unknown', reason: 'notBound' },
     });
+    for (const [path, instanceId] of [
+      ['parent.md', delegation.parentInstanceId],
+      ['report.md', delegation.childInstanceId],
+    ] as const) {
+      const file = await app.call('files.read', { projectId: project.id, path });
+      if (!file.fileId) throw new Error('Expected stable saved file');
+      const changes = await app.call('files.changes', {
+        projectId: project.id,
+        fileId: file.fileId,
+      });
+      const editId = changes.changes[0]!.editId;
+      const edit = await app.call('files.edit', {
+        projectId: project.id,
+        fileId: file.fileId,
+        editId,
+      });
+      expect(edit.origin).toMatchObject({
+        kind: 'execution',
+        ...scope,
+        runId: delegation.parentRunId,
+        instanceId,
+        principal: { kind: 'agent', id: session.id },
+        instructionContext: { state: 'unknown' },
+        tool: { state: 'unknown' },
+      });
+      const resource = await app.call('resources.describe', {
+        locator: { source: 'project', projectId: project.id, path },
+      });
+      expect(edit.afterEvidence?.basis).toBe(resource.basis);
+      if (path === 'report.md') {
+        expect(edit.origin).toMatchObject({
+          delegation: {
+            delegationId: delegation.id,
+            parentRunId: delegation.parentRunId,
+            parentInstanceId: delegation.parentInstanceId,
+          },
+        });
+        expect(app.saved).toContainEqual({ context: child!.context, editId });
+      } else expect(edit.origin && 'delegation' in edit.origin).toBe(false);
+    }
     expect(await app.harness.executions({ ...scope, instructionId })).toMatchObject({
       runs: [{ id: delegation.parentRunId }],
       instruction: { id: instructionId },
@@ -159,6 +200,5 @@ test('actual parent and child resource calls expose verified execution facts wit
   } finally {
     await app.close();
     await model.close();
-    await rm(root, { recursive: true });
   }
 });
