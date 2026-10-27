@@ -8,8 +8,14 @@ import { expect, test } from '@playwright/test';
 import { KernelApplication } from '../../apps/kernel/dist/application.js';
 import { ManagedNode, processMayBeAlive } from '../../packages/platform/dist/node.js';
 import type { DelegationRequest } from '../../packages/protocol/dist/index.js';
-import { expectExecutionCompleted, observeExecution } from '../execution-diagnostics.js';
+import {
+  expectExecutionCompleted,
+  installExecutionDiagnostics,
+  observeExecution,
+} from '../execution-diagnostics.js';
 import { delegationModel } from '../fixtures/delegation-model.js';
+
+installExecutionDiagnostics();
 
 class CapacityApplication extends KernelApplication {
   occupySpareCapacity() {
@@ -247,10 +253,39 @@ test('cancelling a child stops its actual work and keeps the parent and persiste
   try {
     diagnostics = observeExecution(f.app, f.scope, f.model);
     await f.start();
+    diagnostics.mark('sendAccepted');
+    const startup = { timeout: 5000, intervals: [100, 250] };
+    await expect.poll(() => f.model.requests.length, startup).toBeGreaterThanOrEqual(1);
+    diagnostics.mark('parentModelObserved');
     await expect
-      .poll(async () => (await f.app.call('delegation.list', f.scope)).delegations[0]?.state)
-      .toBe('running');
+      .poll(
+        async () =>
+          (await f.app.snapshot(f.scope)).messages.some(
+            (item) => item.tool?.name === 'delegate_agent',
+          ),
+        startup,
+      )
+      .toBe(true);
+    diagnostics.mark('delegateToolDispatched');
+    await expect
+      .poll(
+        async () =>
+          (await f.app.call('delegation.list', f.scope)).delegations.some(
+            (item) => item.id === f.request.delegationId,
+          ),
+        startup,
+      )
+      .toBe(true);
+    diagnostics.mark('delegationAccepted');
+    await expect.poll(async () => (await f.result()).state, startup).toBe('running');
+    diagnostics.mark('childRunning');
+    const running = await f.result();
+    expect(running.childInstanceId).not.toBe(running.parentInstanceId);
+    expect(running.parentProcessId).toBeGreaterThan(0);
+    expect(running.childProcessId).toBeGreaterThan(0);
+    expect(running.childProcessId).not.toBe(running.parentProcessId);
     await expect.poll(() => f.model.requests.length).toBeGreaterThanOrEqual(3);
+    diagnostics.mark('childModelObserved');
     await expect
       .poll(
         async () =>
@@ -262,15 +297,19 @@ test('cancelling a child stops its actual work and keeps the parent and persiste
         { timeout: 20000 },
       )
       .toBe(true);
+    diagnostics.mark('waitTimedOut');
     expect((await f.result()).state).toBe('running');
     const requested = await f.app.call('delegation.cancel', {
       ...f.scope,
       delegationId: f.request.delegationId,
     });
+    diagnostics.mark('cancelRequested');
     expect(['cancelling', 'cancelled']).toContain(requested.state);
     f.model.release();
     await expect.poll(async () => (await f.result()).state).toBe('cancelled');
+    diagnostics.mark('childCancelled');
     await expectExecutionCompleted(f.app, f.scope, f.model);
+    diagnostics.mark('parentCompleted');
     const before = await f.result();
     await diagnostics.stop();
     await f.app.close();
@@ -284,6 +323,7 @@ test('cancelling a child stops its actual work and keeps the parent and persiste
       });
       expect(result).toEqual(before);
       expect(f.model.requests).toHaveLength(count);
+      diagnostics.mark('restartChecked');
     } finally {
       await restarted.close();
     }

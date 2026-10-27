@@ -1,5 +1,51 @@
 # 实际交付与交接
 
+## 0b78815后的父子启动与取消观察修正
+
+本轮在共同源码`0b788151b5e17665a26d9286dfd1d12f6e2e0c30`、起始clean的本树执行；未重放旧补丁、切分支或同步别树。消费`/tmp/scholoom-round8-acceptance-UrXA7y/`的验收、原始CI、`main-diagnostics-result.json`和`cancel-failure-stages.json`。本节为当前交付，第13组已完成；change为31/35，4.2/4.3及6.1/6.2继续开放。本轮没有生产代码、schema、生成映射、期限、容量或停止语义变化。设计依据见[取消代表例的设置与观察边界](design.md#取消代表例的设置与观察边界0b78815)，原变更总览中的真实父子与所属取消路径不变。
+
+### 实际改动与阶段结论
+
+- `tests/execution-diagnostics.ts`：原observer增加最多16条阶段标记，只记录阶段名、时间和受控模型请求数；沿原32条采样/32子进程/256KiB及500ms诊断读取上界。显式`installExecutionDiagnostics()`供三个observer调用文件各自安装afterEach，避免模块缓存把hook留在首个文件。保留首import原hook；completion helper自身失败立即flush，成功且未开启诊断时保留缓存供后续断言失败取证。flush幂等，重复hook不会重复附件；业务错误仍原样抛出。
+- `tests/kernel/agent-delegation.spec.ts`取消代表例：依次观察父首次模型、`delegate_agent`可见、相同ID委派已受理、子running。每阶段原5秒、intervals `[100,250]`，累计名义启动预算可达20秒，受原60秒用例总上界约束；原取消确认5秒及父完成20秒不变。这是特定多进程冷启动夹具的阶段预算调整，未声称整个设置仍限5秒。新增不同父子instance/PID及正PID断言；保留同工作包、childHold、有限等待timedOut、实际取消、父完成、重启记录相等和模型请求不增加。
+- `tests/kernel/context-instructions.spec.ts`：只显式安装同一诊断hook，原excerpt内容/checkpoint行为与本轮已接收采样间隔不变。
+- `tests/kernel/literature-attachment-integration.spec.ts`：仅首条导入指令前装配同一observer，首run完成即停采。独立证据证明首轮同样存在轮询末段盲区后，仅此轮询设`[100,250]`，原5秒期限不变；首轮已完成时，后续reader失败不写成首轮failure。RPC、库、字节与授权断言保留；后续reader等待未改。
+
+主线与作者时间线分别保留：主线首次4099ms失败，最近3939ms父worker running/指令consumed/modelRequests=0/无委派，4114ms才首次模型请求，尚未调用cancel。本树原样红测约4146ms已accepted但子尚未running，是另一运行。临时startup-probe在4096ms保留原失败后观察：4097ms父模型、4099ms受理、4457ms子running、9193ms请求取消、10054ms确认cancelled、10945ms父completed、10977ms重启核查。实验执行原后续断言后重抛原错误，仍计失败；不拼接不同运行时点，不把设置失败称子取消失败。阶段mark表示测试观察到条件的时点，真实onStart/实例状态由原run_instances采样核对。
+
+### 构建、首次失败与最终结果
+
+以下原始日志/JSON均在`/tmp/scholoom-agent-round9-<名称>.{log,json}`，完整交接增量及汇总在`/tmp/scholoom-agent-round9-handoff-U1zbxK/`。临时实验源码留在独立`/tmp/scholoom-agent-round9-{startup-probe-Ta6qqm,attachment-probe-uf3DKr,hook-probe-bCzadL}/`，未进入正式补丁；隔离登记项目保留在对应test-results，不删除登记后的目录。
+
+| 名称 | 实际结果与证据边界 |
+| --- | --- |
+| `build` | `pnpm --config.optimisticRepeatInstall=false --filter @scholoom/kernel... build`通过，先构建后测试，测试期间无重建 |
+| `cancel-red` | 原合并5秒观察1失败，保留首个execution-stages及原错误 |
+| `startup-probe` | 1失败，原错误保留；同一执行后续取消/重启断言完成，提供上述独立时间线 |
+| `cancel-green` | 正式取消代表例1/1通过，场景12.5秒，命令24.2秒 |
+| `final` | 首个相邻组合3通过/1失败：真实报告保存与父读回、取消、父完成收尾通过；附件首轮仍running，且当时跨文件hook缓存导致缺附件，保留该失败 |
+| `handoff` | 修正显式hook后2通过/1失败：取消、excerpt通过；附件首轮失败已带阶段附件，4098ms失败、模型1请求、import工具complete/worker running，不能据此猜附件写入失败 |
+| `attachment-probe` / `attachment-observed` | 两个临时实验各1失败，保留原判定；后者原边界4242ms，4256ms经公开batch/readAttachment核对completed、processed1/failed0及字节匹配，4894ms原run完成，实例exited。只输出身份/状态/字节匹配布尔值，不输出正文 |
+| `hook-probe` | 关闭诊断开关：故意在真实执行完成后抛`CONTROLLED_LATE_ASSERTION`，1个预期控制失败且附件保留；重复flush只有1附件的自检1通过。正式用例无故意失败 |
+| `verified` | 附件首轮采样修正后最后组合2通过/1失败，取消与excerpt通过；附件首轮完成并读回实际字节，失败移到第二个reader会话，不能报整组通过 |
+| `attachment-final` | 区分首轮/reader错误归属后单项仍1失败，`literature-attachment-integration.spec.ts:101`的readScope等待仍running；首轮4938ms采样已completed/实例exited，5051ms测试观察完成，无首轮failure标记。停止于该具体后续缺口，不继续扩修 |
+
+正式测试入口为`node node_modules/@playwright/test/cli.js test --config playwright.kernel.config.ts --workers=1`，本轮定向使用`agent-delegation.spec.ts`的取消/报告/父收尾、`context-instructions.spec.ts`的real worker excerpt和`literature-attachment-integration.spec.ts`；诊断采集使用`SCHOOLOOM_EXECUTION_DIAGNOSTICS=1`，结果独立输出到`test-results/agent-round9-<名称>`，JSON reporter与日志如上。临时实验用各目录`probe.config.mts`，不改正式测试预期。`verified`组合并非全绿，最终单项失败也没有被较早绿色覆盖。
+
+静态验证：`node node_modules/typescript/bin/tsc --noEmit -p tsconfig.tools.json`、已有Biome对四个改动测试文件的error级检查、`openspec validate add-bounded-agent-delegation --strict`、`openspec schema validate scholoom-dev`、`git diff --check`均通过；实际命令与退出码附交接目录。无同源schema变化，不重写生成类型。补丁相对0b78815导出，临时index前向检查与当前树反向检查通过，不变更真实index。
+
+### CI、审查与真实边界
+
+最新已完成完整基线为b2f3b50/Checks40447074031：Linux734通过/1失败/23跳过，Windows715通过/4失败/39跳过，macOS人工UI13通过/1失败。Windows四项分别为host-connection:169、lifecycle:137、附件首次等待:55及platform-availability:147；取消代表例在该基线Linux/Windows原始日志已有通过，不等于本轮修改在Windows通过。原始基线由主线目录保留，不沿用54项清单。
+
+对本仓库一次只读查询截点为2026-10-27 05:34:45 UTC：0b78815的Checks40454653610仍in_progress；Windows diagnosis40454653566已success，实际仅覆盖basis-upgrade/结构工具重复10通过、ownership16通过3跳过、dev owner2通过、Electron首次装载3通过，不含完整取消或附件集成例。安全artifact与原job日志在`/tmp/scholoom-ci-evidence-WBZX2W/`（artifact12711359112）；未触发重跑、推送或等待其他线。没有本轮Windows通过结论。
+
+只读原生辅助Agent按gpt-6.1-sol/high、fork_context:false核对CI范围及静态边界，未写树/构建/测试；父Agent抽查并处理累计20秒说明、跨文件hook与晚断言缓存问题。控制实验验证了附件保存和幂等，但辅助静态审阅不冒充目标平台独立实跑。交接收尾关闭原辅助ID时接口返回not found，当前无可继续使用的辅助执行。
+
+内部kernel/broker、委派仓储、真实父子受管worker/文件、库/RPC及取消重启均真实；仅外部模型HTTP沿既有受控夹具，childHold为模型边界阻塞。excerpt沿原describe/check材料夹具，非实际科研角色；临时hook实验只验诊断生命周期。未绕过授权或注入合成执行身份，未访问真实用户库。
+
+本片已达停止点。下一步是对本增量作目标Windows复验，并为附件第二reader阶段另行取得首断言前证据；本轮首轮observer不能证明该reader的模型/工具/停止阶段。4.2/4.3平台整项、6.1/6.2科研角色/guidance与真实I3质量仍开放，其他context三项本轮未重跑，不据CI源码通过代报本地验证。无提交/推送/PR/归档/依赖安装/开发服务器或后台轮询。
+
 ## 第八轮主线诊断复验
 
 主线接入后使用诊断开关重跑excerpt、basis-upgrade及真实子取消三个代表例，仍为2通过／1失败；没有覆盖作者最后失败或称取消场景已闭合。取消例首次失败约4099ms，最近3939ms样本是父worker running、指令consumed、modelRequests=0、无delegation；4114ms最后样本才modelRequests=1，仍无子记录，尚未调用cancel。与作者某次accepted边界分别保存，不能拼接成同一时间线。early execution-stages附件确实在失败／清理后保留，数据有限且不含payload。

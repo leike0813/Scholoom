@@ -16,25 +16,25 @@ const Database = createRequire(new URL('../apps/kernel/package.json', import.met
 const pending = new WeakMap<
   TestInfo,
   Set<{
-    stop: () => Promise<void>;
-    body: () => string;
+    flush: (save: boolean) => Promise<void>;
   }>
 >();
 
-// biome-ignore lint/correctness/noEmptyPattern: Playwright requires fixture destructuring without creating unused fixtures.
-test.afterEach(async ({}, info) => {
-  const captures = pending.get(info);
-  pending.delete(info);
-  if (!captures) return;
-  for (const capture of captures) {
-    await capture.stop();
-    if (info.status !== info.expectedStatus || process.env.SCHOOLOOM_EXECUTION_DIAGNOSTICS === '1')
-      await info.attach('execution-stages', {
-        body: capture.body(),
-        contentType: 'application/json',
-      });
-  }
-});
+/** Hooks belong to the importing test file, so install explicitly despite module caching. */
+export function installExecutionDiagnostics() {
+  // biome-ignore lint/correctness/noEmptyPattern: Playwright requires fixture destructuring without creating unused fixtures.
+  test.afterEach(async ({}, info) => {
+    const captures = pending.get(info);
+    pending.delete(info);
+    if (!captures) return;
+    for (const capture of captures)
+      await capture.flush(
+        info.status !== info.expectedStatus || process.env.SCHOOLOOM_EXECUTION_DIAGNOSTICS === '1',
+      );
+  });
+}
+
+installExecutionDiagnostics();
 
 /** Install before send/first assertion; stop before closing the owning application. */
 export function observeExecution(
@@ -45,8 +45,10 @@ export function observeExecution(
   const started = performance.now();
   const samples: Record<string, unknown>[] = [];
   const children: Record<string, unknown>[] = [];
+  const stages: { elapsedMs: number; name: string; modelRequests: number }[] = [];
   let droppedSamples = 0;
   let droppedChildren = 0;
+  let droppedStages = 0;
   let stopped = false;
   let snapshotTimedOut = false;
   let inFlight: Promise<string | undefined> | undefined;
@@ -236,28 +238,53 @@ export function observeExecution(
   const info = test.info();
   const captures = pending.get(info) ?? new Set();
   pending.set(info, captures);
-  captures.add({
-    stop,
-    body: () => {
-      const payload = () =>
-        JSON.stringify({
-          platform: process.platform,
-          ...scope,
-          samples,
-          children,
-          droppedSamples,
-          droppedChildren,
-          failure,
-          snapshotTimedOut,
-        });
-      while (Buffer.byteLength(payload()) > 256 * 1024 && samples.length > 2) {
-        samples.splice(1, 1);
-        droppedSamples++;
-      }
-      return payload();
+  const body = () => {
+    const payload = () =>
+      JSON.stringify({
+        platform: process.platform,
+        ...scope,
+        samples,
+        children,
+        stages,
+        droppedSamples,
+        droppedChildren,
+        droppedStages,
+        failure,
+        snapshotTimedOut,
+      });
+    while (Buffer.byteLength(payload()) > 256 * 1024 && samples.length > 2) {
+      samples.splice(1, 1);
+      droppedSamples++;
+    }
+    return payload();
+  };
+  let flushed: Promise<void> | undefined;
+  const capture = {
+    flush: async (save: boolean) => {
+      flushed ??= (async () => {
+        await stop();
+        captures.delete(capture);
+        if (!captures.size) pending.delete(info);
+        if (save)
+          await info.attach('execution-stages', { body: body(), contentType: 'application/json' });
+      })();
+      return flushed;
     },
-  });
-  return { sample, stop, failure: markFailure };
+  };
+  captures.add(capture);
+  const mark = (name: string) => {
+    if (stages.length === 16) {
+      droppedStages++;
+      return;
+    }
+    stages.push({
+      elapsedMs: Math.round(performance.now() - started),
+      name: name.slice(0, 64),
+      modelRequests: model.requests.length,
+    });
+    void sample();
+  };
+  return { sample, stop, failure: markFailure, mark, flush: capture.flush };
 }
 
 /** Keep the original completion deadline; the same sampler also supports earlier assertions. */
@@ -267,6 +294,7 @@ export async function expectExecutionCompleted(
   model: ModelServer,
 ): Promise<void> {
   const diagnostics = observeExecution(app, scope, model);
+  let failed = false;
   const sample = async () => {
     const state = (await app.snapshot(scope)).run?.state;
     void diagnostics.sample();
@@ -276,6 +304,7 @@ export async function expectExecutionCompleted(
     // Cold worker startup and multi-tool execution are not a five-second product SLA.
     await expect.poll(sample, { timeout: 20_000 }).toBe('completed');
   } catch (error) {
+    failed = true;
     diagnostics.failure();
     if (process.env.SCHOOLOOM_EXECUTION_DIAGNOSTICS === '1') {
       // Observe progress without changing the original failed verdict or starting another run.
@@ -289,5 +318,7 @@ export async function expectExecutionCompleted(
     throw error;
   } finally {
     await diagnostics.stop();
+    if (failed || process.env.SCHOOLOOM_EXECUTION_DIAGNOSTICS === '1')
+      await diagnostics.flush(true);
   }
 }
