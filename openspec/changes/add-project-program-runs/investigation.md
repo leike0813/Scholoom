@@ -59,7 +59,15 @@ flowchart LR
 
 ### 当前CI基线（2026-10-27）
 
-当前依据为6b22d602046baa7c1349bf66059c61d79c07ae40的[40315429083](https://github.com/leike0813/Scholoom/actions/runs/40315429083)：Linux内核689通过9失败16跳过；Windows628通过49失败30跳过；macOS入口3通过1失败。原始日志和平台清单来自 `/tmp/scholoom-round6-acceptance-dXuzCA/{ci-baseline-failures.log,ci-baseline-summary.json}`，不以旧374项基线或原生专项绿色代替。
+最新完整基线为39be889／[40432749785](https://github.com/leike0813/Scholoom/actions/runs/40432749785)：Linux709通过9失败23跳过；Windows641通过54失败39跳过7未运行；macOS不可用校准2通过、人工入口3通过1失败。输入为 `/tmp/scholoom-round7-acceptance-SdxHy8/{ci-baseline-failures.log,ci-baseline-summary.json}`。Windows只有首批并发入口unknown，本轮占锁释放竞争已通过；Windows artifact 12706101417的失败trace仅有断言，无stage附件。macOS artifact 12702877587显示两次均连接，最终30s场景预算耗尽，不能沿用更早“第一次连接失败”的描述。
+
+共同8a2f0ce新增CI已实际查询：Windows execution diagnosis [40445841861](https://github.com/leike0813/Scholoom/actions/runs/40445841861)完成成功（artifact 12708068789）；实际范围为重复执行10项、原生／命令16项、开发所有权2项、初次Electron3项，不包含lifecycle并发两例。Checks [40445842005](https://github.com/leike0813/Scholoom/actions/runs/40445842005)查询截点Linux／Windows仍在内核阶段，尚无Windows新artifact，不把运行中计通过。macOS job已完成失败，artifact 12708646055在 `/tmp/scholoom-project-execution-round7-A5Plk8/macos-8a2f0ce.zip`；两次连接及同实例断言成功，首轮关窗后running；第二次关窗后新增诊断再次调用app.process()，Playwright映射已释放而抛 `_object` TypeError。现有安全附件在首个实际失败之前已记录首轮WS认证／状态／退出；第二轮关闭附件被该异常阻断，不能补写不存在的退出收据。
+
+已安装Playwright1.63.0的coreBundle中process()调用toImpl读取GUID对应对象，关闭dispatcher会删除该映射；缓存原始ChildProcess引用可继续读Node更新的退出字段。只修测试观察边界，保持真实关闭／退出等待；不改内核机制或生产预算。Windows采样只需入口时间与断言前有界附件。后续修正与实际红／绿结果见design及delivery第七轮，未目标复验保持开放。上述artifact、原日志及安全摘要保留于本轮证据目录，未执行artifact内容或输出连接凭据。
+
+### 上一轮CI阶段（历史）
+
+上一轮依据为6b22d602046baa7c1349bf66059c61d79c07ae40的[40315429083](https://github.com/leike0813/Scholoom/actions/runs/40315429083)：Linux内核689通过9失败16跳过；Windows628通过49失败30跳过；macOS入口3通过1失败。原始日志和平台清单来自 `/tmp/scholoom-round6-acceptance-dXuzCA/{ci-baseline-failures.log,ci-baseline-summary.json}`，不以旧374项基线或原生专项绿色代替。
 
 本线只读下载同仓库artifact：Windows 12650865090（diagnostics-windows-latest）、macOS 12646907624（diagnostics-macos-latest），均未过期，原zip保留在 `/tmp/scholoom-project-execution-round6-7zLloB/{windows.zip,macos.zip}`。只解包两份lifecycle及指定entrypoints失败；没有执行artifact内容、读取其他树或输出token／连接资料。Mac安全时间线见该目录entrypoints-safe-diagnostic.json。
 

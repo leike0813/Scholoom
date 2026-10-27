@@ -21,6 +21,37 @@ import {
   runningKernel,
 } from '../kernel-fixture.js';
 
+async function observedStarts(directory: string, label: string, count: number) {
+  const entries: object[] = [];
+  const results = await Promise.allSettled(
+    Array.from({ length: count }, async (_, index) => {
+      const startedAt = Date.now();
+      try {
+        const reply = await runKernel(directory, 'start');
+        entries[index] = {
+          index,
+          startedAt,
+          returnedAt: Date.now(),
+          reply: kernelResultSummary(reply),
+        };
+        return reply;
+      } catch (error) {
+        entries[index] = { index, startedAt, returnedAt: Date.now(), cliResult: 'rejected' };
+        throw error;
+      }
+    }),
+  );
+  const lifecycle = await kernelLifecycleDiagnostics(directory);
+  await test.info().attach(label, {
+    body: JSON.stringify({ entries, sampledAt: Date.now(), lifecycle }),
+    contentType: 'application/json',
+  });
+  return results.map((result) => {
+    if (result.status === 'rejected') throw result.reason;
+    return result.value;
+  });
+}
+
 test('queries and stops missing configurations without creating them', async () => {
   await isolatedKernel(async (directory) => {
     const missing = join(directory, 'missing');
@@ -32,18 +63,7 @@ test('queries and stops missing configurations without creating them', async () 
 
 test('concurrent entries share one canonical instance and separate configurations', async () => {
   await isolatedKernel(async (directory) => {
-    const started = performance.now();
-    const replies = await Promise.all(
-      Array.from({ length: 4 }, () => runKernel(directory, 'start')),
-    );
-    await test.info().attach('lifecycle-initial-start', {
-      body: JSON.stringify({
-        elapsedMs: Math.round(performance.now() - started),
-        replies: replies.map(kernelResultSummary),
-        lifecycle: await kernelLifecycleDiagnostics(directory),
-      }),
-      contentType: 'application/json',
-    });
+    const replies = await observedStarts(directory, 'lifecycle-initial-start', 4);
     const ids = replies.map((reply) => {
       expect(reply.state).toBe('running');
       return reply.state === 'running' ? reply.endpoint.instanceId : null;
@@ -57,16 +77,7 @@ test('concurrent entries share one canonical instance and separate configuration
       expect((await runningKernel(other)).instanceId).not.toBe(ids[0]);
     });
     expect((await runKernel(directory, 'stop')).state).toBe('stopped');
-    const restarted = await Promise.all(
-      Array.from({ length: 4 }, () => runKernel(directory, 'start')),
-    );
-    await test.info().attach('lifecycle-restart', {
-      body: JSON.stringify({
-        replies: restarted.map(kernelResultSummary),
-        lifecycle: await kernelLifecycleDiagnostics(directory),
-      }),
-      contentType: 'application/json',
-    });
+    const restarted = await observedStarts(directory, 'lifecycle-restart', 4);
     expect(restarted.every((reply) => reply.state === 'running')).toBe(true);
     expect(
       new Set(
@@ -125,15 +136,19 @@ test('entries wait for occupied stale discovery and compete after it is released
     try {
       await once(holder, 'message');
       const occupied = await runKernel(directory, 'status');
-      expect(occupied.state).toBe('unknown');
-      expect(kernelResultSummary(occupied)).toMatchObject({
-        diagnostic: { discovery: true, lock: 'held', phase: 'process', processAlive: false },
-      });
       await test.info().attach('lifecycle-occupied', {
         body: JSON.stringify(kernelResultSummary(occupied)),
         contentType: 'application/json',
       });
+      expect(occupied.state).toBe('unknown');
+      expect(kernelResultSummary(occupied)).toMatchObject({
+        diagnostic: { discovery: true, lock: 'held', phase: 'process', processAlive: false },
+      });
       const exhausted = await runKernel(directory, 'start');
+      await test.info().attach('lifecycle-availability-deadline', {
+        body: JSON.stringify(kernelResultSummary(exhausted)),
+        contentType: 'application/json',
+      });
       expect(kernelResultSummary(exhausted)).toMatchObject({
         state: 'unknown',
         errorCode: 'unavailable',
@@ -145,22 +160,11 @@ test('entries wait for occupied stale discovery and compete after it is released
           processAlive: false,
         },
       });
-      await test.info().attach('lifecycle-availability-deadline', {
-        body: JSON.stringify(kernelResultSummary(exhausted)),
-        contentType: 'application/json',
-      });
-      const entries = Promise.all(Array.from({ length: 3 }, () => runKernel(directory, 'start')));
+      const entries = observedStarts(directory, 'lifecycle-after-release', 3);
       await delay(500);
       holder.send('release');
       await exited;
       const results = await entries;
-      await test.info().attach('lifecycle-after-release', {
-        body: JSON.stringify({
-          replies: results.map(kernelResultSummary),
-          lifecycle: await kernelLifecycleDiagnostics(directory),
-        }),
-        contentType: 'application/json',
-      });
       expect(results.every((result) => result.state === 'running')).toBe(true);
       expect(
         new Set(

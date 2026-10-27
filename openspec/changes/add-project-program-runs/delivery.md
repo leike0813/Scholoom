@@ -2,7 +2,7 @@
 
 ## 当前状态与成果
 
-本轮起点为4b13183f7489d3cae12fd0a7d1a9e83fb33d7384，开始时工作区干净，主线已接收8.4及第9组诊断。正式输入为 `/tmp/scholoom-round6-acceptance-dXuzCA/{acceptance.md,synchronized.json,sync-build-results.json,sync-kernel-results.json}`，本轮只推进第10组的生命周期诊断及一次nativeTeX观察。TaskRef／TaskPanel／TaskPort、真实HarnessRecords委派恢复和programs已在本树，旧“缺私有提供者／等同步”条件失效。C1—C3、统一v6、各域接线及生态rememberCatalog持续外发授权修复均保留，未重用旧累计patch。Windows／macOS历史CI及整个change最终交付仍开放。
+本轮起点为8a2f0ce522dfbab4110e63e84e542f6660e6115e，开始时工作区干净，主线已接收第10组并保全合入／同步复验。正式输入为 `/tmp/scholoom-round7-acceptance-SdxHy8/`，本轮只推进第11组的目标CI消费与窄夹具修正，不重跑TeX或Linux全套。TaskRef／TaskPanel／TaskPort、真实HarnessRecords委派恢复和programs已在本树，旧“缺私有提供者／等同步”条件失效。C1—C3、统一v6、各域接线、生态rememberCatalog持续授权及主线报告历史正文／save／undo来源拒绝均保留，未重用旧累计patch。Windows／macOS修正后目标验证及整个change最终交付仍开放。
 
 第三轮同步证据仅保留当时结果：`/tmp/scholoom-sync-recovery-wyn13R/recovery.md`、`synchronized.json`及当时日志（主线65项内核／双宿主2项），不替代最新A/B验收。旧公共及累计patch均为历史工件，已合入共同1026796，不再次应用。用户允许本地补丁／提交；继续禁止推送、PR、归档、依赖下载／安装、真实库和开发服务器。
 
@@ -276,3 +276,46 @@ Avicenna（gpt-6.1-sol/high）独立只读审查提出三项P2：JSON转义后51
 交回同一证据目录：01-kernel-lifecycle-diagnostics.patch（公共源码及直接kernel／entrypoints夹具），02-ui-lifecycle-retry-fixtures.patch（依赖01的两个定向重试夹具），03-openspec-and-documentation.patch（本change及开发说明），README.md／manifest.json标明4b13183基线与消费顺序。只生成本轮增量，并用反向git apply --check核对，未应用／回滚、提交或同步任何树。
 
 10.1—10.3完成，5.2与6.2整项仍开放。下一目标是Windows两例的新安全CLI／锁／启动阶段附件，以及macOS第一次launch的bootstrap与WS回执；先据新事实确定局部修复，再真实目标验证。当前无充分平台因果，不交猜测式生产修复。macOS受管执行仍明确不可用，人工桌面重连应可用的目标独立保留；Linux通过不能替代该目标。没有新增全仓CI、Windows／macOS、历史nativeTeX根因或真实科研质量通过结论。本轮到此停止，不扩环境、Graph／角色、远端或发布范围。
+
+## 第七轮：共同8a2f0ce后的CI消费与观察夹具修正
+
+### 输入与阶段结论
+
+源码唯一工作点为当前已同步树，HEAD保持8a2f0ce；本轮证据目录 `/tmp/scholoom-project-execution-round7-A5Plk8/`。正式同步／验收／回执输入位于 `/tmp/scholoom-round7-acceptance-SdxHy8/`，原tasks／design和职责票已核对，OpenSpec apply初始32/34；新增第11组只承接本片，不改变5.2／6.2整项边界。
+
+| 来源及实际范围 | 可确认的阶段／首个失败 | 仍缺的证据 |
+| --- | --- | --- |
+| 39be889／40432749785完整CI，原日志及ci-baseline-summary.json | Linux709通过9失败23跳过；Windows641通过54失败39跳过7未运行；macOS不可用校准2通过、入口3通过1失败。Windows首批4个start返回后断言unknown；占锁释放竞争27.0s通过，不能继续称两例失败 | Windows artifact 12706101417仅有失败断言trace，无CLI／stage附件；看不到lock／discovery／handshake／listen先后，不猜性能或OS机制 |
+| 同基线macOS artifact 12702877587 | 两次launch均到connected、kernel running及同实例断言，30s场景预算在第二轮收尾耗尽 | 原trace没有关窗后最终收据；不能把此run描述为更早的首次连接13s失败 |
+| 8a2f0ce／40445841861 Windows execution diagnosis，artifact 12708068789 | job成功：重复执行10项、原生／命令16项、开发所有权2项、初次Electron3项；对应日志windows-diagnosis-current.log | 不包含lifecycle并发／占锁两例，不替代完整Checks或Windows重开验收 |
+| 8a2f0ce／40445842005 macOS job，artifact 12708646055 | 两次均连接且同实例；首轮安全附件在首个失败之前已记录WS认证／status、exit0及关窗后内核running。首个实际失败是第二次close后的诊断再次调用app.process()，Playwright映射已释放，抛 `_object` TypeError；非连接等待或生产unknown | 第二轮关闭附件被该异常中断，没有最终退出收据及关窗后查询；修正后目标macOS尚未实跑 |
+| 同一Checks的Linux／Windows job查询截点 | 仍in_progress于Run pnpm test:kernel；当前只有macOS artifact。checks-jobs-initial／followup.json保留两次查询 | 没有新Windows lifecycle回执；不忙轮询、不触发CI、不把运行中计通过 |
+
+原ZIP分别为macos-39be889.zip、macos-8a2f0ce.zip、windows-39be889.zip、windows-diagnosis-8a2f0ce.zip。Mac安全附件及Windows安全trace摘要同目录保留。仅只读查询本仓库API／artifact，未执行artifact内容或输出token、连接URL、bootstrap正文。
+
+### 最小修正、首次失败与实际验证
+
+仅修改两个直接测试文件。entrypoints.spec.ts在关窗前缓存原始ChildProcess对象，关闭后只读该对象的exitCode／signalCode；字段仍由Node在真实退出时更新，不提前缓存字段值。已安装Playwright1.63.0的process()每次经toImpl读取GUID映射，关闭dispatcher删除映射，源码与CI堆栈一致。closeDesktop原窗口关闭／app.quit及等待原子进程exit不变，未改生产kernel／bootstrap／platform，也未增加重试或任何预算。
+
+lifecycle.spec.ts用局部observedStarts复用三处并发启动：每项记录index／startedAt／returnedAt及原安全summary，固定3／4项同时启动。allSettled等同批全部结算后，只读一次原64KiB／最多64条日志尾，记录sampledAt并附于断言之前；拒绝项只记固定cliResult标记，附件后重抛原reason。多个拒绝时抛输入序号最前者，分析时间最早异常须按returnedAt。占锁与availability原附件也移到断言之前。stage.at可与各次返回时间比较；日志窗口之外及firstWindow监听前仍未知，没有持续轮询或复制原日志。
+
+| 实际命令／操作 | 结果与保留证据 |
+| --- | --- |
+| pnpm --config.optimisticRepeatInstall=false build:shared；同配置 --filter @scholoom/desktop build | 均通过，build-shared.log／build-desktop.log。此后测试期间无重建；已有依赖，无安装／下载或开发服务器 |
+| 临时guard.config.mts／guard-entrypoints.spec.ts首次启动 | guard-red.log因隔离/tmp缺type:module而无测试执行，保留为夹具启动错误，**不是有效红证据**；只补该临时目录package.json，不改依赖 |
+| xvfb-run -a node node_modules/@playwright/test/cli.js test --config 证据目录/guard.config.mts --grep 'desktop closes without' --output 证据目录/guard-red-registered-results | **1失败**，guard-red-registered.log：真实Electron正常退出后，仅测试观察API被置为不可用，原代码在entrypoints:216同一调用点失败；内核／文件／关闭流程真实，不冒充macOS实跑 |
+| 同一故障反例，修正后 --output 证据目录/guard-green-results | **1/1通过，38.1s**，guard-green.log；两次窗口、同实例、真实exit、关窗后仍running完整断言保留 |
+| node node_modules/@playwright/test/cli.js test --config playwright.kernel.config.ts tests/kernel/lifecycle.spec.ts --grep 'concurrent entries share\|entries wait for occupied' --output 证据目录/lifecycle-results | **2/2通过，1.3m**，lifecycle.log；真实锁／CLI／独立配置并发、重启、释放竞争及原unknown保留通过，未机械重跑主线已有35项全套 |
+| xvfb-run -a node node_modules/@playwright/test/cli.js test --config playwright.config.ts tests/smoke/entrypoints.spec.ts --grep 'desktop closes without' --output 证据目录/entrypoint-results | **无注入1/1通过，38.2s**，entrypoint.log；普通真实Electron两轮连接／同实例／关闭后驻留通过，未重建或放宽时限 |
+| types／格式／架构 | 最终tools tsc退出0，tools-final.log；两个源码Biome通过，biome-final.log；14模块253文件0 findings，architecture.log。没有更改schema或生成映射，沿正式基线类型，不另造声明 |
+| OpenSpec／diff | 本change strict、scholoom-dev schema及最终git diff --check通过，原图与不变停止／归属规则核对；无正式规格或UI设计变化 |
+
+真实／替身边界：本轮不使用模型。Linux内核、SQLite锁、CLI、WS、文件、实际Electron与退出事件均真实；唯一注入是临时guard在真实子进程退出后令Playwright的process观察API抛错，以稳定模拟CI映射失效。没有替代业务提供者、合成身份授权或修改node_modules。普通真实入口另行复验，不使用静态UI服务或Vite；本片未改renderer，未重复双宿主业务全套。
+
+### 审查及待验输入
+
+Avicenna（gpt-6.1-sol/high）只读核对旧Windows失败、Playwright销毁／process调用链及observedStarts，未发现新增确证问题，未代跑测试。指出的早已退出应用／信号退出发生在closeDesktop进入前属于该helper既有边界；本片只修正常关窗后的重复观察，不把该边界或历史连接失败一并宣称修复。主代理接受同点红／绿及最小回归，原生产unknown、完整停止、容量、锁／PID推断和时限全部不变。
+
+下一输入为完整8a2f0ce Windows Checks的lifecycle条目及安全附件；若仍unknown，按每项returnedAt与stage.at核对最早可观察失败，再选择机制修复。macOS需要主线接入此夹具后真实目标entrypoints重跑；受管执行明确不可用继续与人工桌面应可重连分别表达。本轮无其他新产品或架构选择。历史nativeTeX unknown没有新增观察或根因结论，未重复TeX。
+
+交回目录中01-lifecycle-entrypoint-fixtures.patch只含两个直接测试文件，02-openspec-evidence.patch含同一change的design／investigation／tasks／delivery，README.md及manifest.json列8a2f0ce基线、来源及顺序；各patch仅反向git apply --check，不应用或回滚。第11组完成，进度35/37，5.2／6.2整项仍开放；不提交／推送／PR／归档、操作其他树或自行展开后续阶段。

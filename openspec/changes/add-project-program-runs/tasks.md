@@ -77,7 +77,7 @@ flowchart TD
 
 ## 续做入口
 
-当前起点为4b13183f7489d3cae12fd0a7d1a9e83fb33d7384，工作区干净，主线已接收8.4／第9组并完成真实组合及同步。证据为 `/tmp/scholoom-round6-acceptance-dXuzCA/` 的acceptance／synchronized及sync-build／sync-kernel结果。本轮只推进第10组：5.2具体生命周期／一次nativeTeX诊断；不使用旧累计patch，不再等待同步，Windows／macOS目标验证及整个change收尾分别开放。
+当前起点为8a2f0ce522dfbab4110e63e84e542f6660e6115e，开始时工作区干净，主线已接收第10组并完成同步／定向复验。证据为 `/tmp/scholoom-round7-acceptance-SdxHy8/`。本轮只推进第11组：5.2／6.2中的新CI消费与窄夹具采样，不重复TeX或Linux全套，不使用旧累计patch，不再等待同步。Windows／macOS目标验证及整个change收尾分别开放。
 
 ## 8. 公共同步后的实际消费
 
@@ -98,3 +98,9 @@ flowchart TD
 - [x] 10.1 消费6b22d60／40315429083原始日志及Windows两例／macOS入口artifact，保留阶段事实和缺口；构建后只运行一次原render-authorization最小nativeTeX相关场景，1项通过，5实例均controller0／native0／收到stopped，无unknown。被动观察不读私有payload，不安装工具，不因未复现声称历史根因修复；Windows两例和macOS第一次launch仍待目标诊断。
 - [x] 10.2 先落design再补kernel lifecycle／bootstrap既有错误与直接夹具的窄诊断，保留discovery／锁／引导／服务连接／窗口关闭的实际观察，严格排除token／连接凭据／私有payload。512错误上限、最终availability最后观察及窗口launch／关闭附件经独立审查补齐；Linux真实锁／并发／停止及脱敏27项通过。未改变unknown、容量、PID归属、生产等待期限、自动重试或harness内部机制；仅本机有证据的定向入口／重试夹具阶段预算校正，保留首次失败。
 - [x] 10.3 先build后Linux生命周期／过程／容量27项、入口3项、双宿主重试4项通过，原双宿主传输重连2项通过；测试期间不重建。首次入口总预算及双宿主重试阶段断言失败保留，生产判据／期限未改。类型／架构／8份生成映射／strict／schema／diff通过，增量patch和同一delivery交回；Windows／macOS目标证据不足不关闭，5.2／6.2仍开放，到此停止。
+
+## 11. 目标CI消费与断言前采样
+
+- [x] 11.1 对照39be889／40432749785及8a2f0ce已完成job／artifact：旧Windows只有并发入口失败、占锁释放已通过；新Windows专项成功但不含lifecycle两例，完整Checks查询截点仍运行。新macOS两次均连接，首失败是关闭后的process诊断TypeError，非始终连接中。缺口和首失败前安全附件分别记录，不轮询或自行触发CI。
+- [x] 11.2 关窗前缓存真实ChildProcess引用，关闭后不重读已释放Playwright映射；并发入口逐次返回时间、拒绝结果及断言前有界附件已补。先构建，受控观察API反例1红→1绿、Linux并发／占锁2项、普通真实Electron入口1项通过，无新生产机制或预算变化。
+- [x] 11.3 tools类型／两个源码格式／架构／strict／schema／diff通过，独立只读核对Playwright调用链和采样无新增确证问题。同一delivery记录首次无测试启动错误、有效红／绿、普通入口及目标缺口，交本轮增量补丁；5.2／6.2仍开放，到此停止。
