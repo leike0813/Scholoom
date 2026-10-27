@@ -1,5 +1,13 @@
 # 实现设计
 
+## 首次断言前的有界诊断（8a2f0ce）
+
+本片只扩展测试诊断，不新增产品行为或schema。`tests/execution-diagnostics.ts`复用execution-stages采样/附件：observer在send和首次状态轮询前装配app变化与worker启动/退出订阅，采样合并为单个在途操作；保留初始及最近有限样本、工具/实例/进程元数据，禁止正文、凭据、原始argv或全库。finally在所属app关闭前停采，afterEach从缓存写附件，首个assert失败也保留；附件有固定字节上限，超限显式计数/裁剪。原expectExecutionCompleted复用该实现，原等待与诊断期限不扩大。
+
+实际边界为32条样本/32个子进程、单样本最多16条指令/工具/委派及32个实例（SQL最多读取100实例/17委派），附件最多256KiB；首次失败时间及最近已完成样本独立固定，不被后续裁剪覆盖。诊断snapshot单次500ms预算，首次超时即停止启动新读取，最多遗留一条不可取消读取；不阻止收尾。SQLite只读timeout=0，错误只写诊断码，业务断言仍直接读取原snapshot。excerpt仅针对已证明的轮询末段盲区调整intervals=[100,250]，名义5秒期限与原内容/checkpoint断言不变；不批量调整其他失败。
+
+仅接context-instructions的real worker excerpt和agent-delegation取消两个代表场景，真实broker/仓储/worker；excerpt既有材料describe/check为明确模块替身，外部模型受控。先原时限复现与受控临时失败验证附件，再决定是否存在本域夹具缺陷；生产恢复/准入、报告来源及kernel生命周期不在本片写集。原tasks/delivery保存结论，Windows自动CI与旧基线分别记录，无目标通过不关闭平台任务。
+
 ## 共同领域接入后的A/B有界切片
 
 本节取代下文历史阶段的未同步/TaskPort缺失与构造器候选说明。1026796共同基线已包含七域正式源码；主线同步证据为`/tmp/scholoom-round5-acceptance-WBreMJ/{acceptance.md,synchronized.json}`。只修改本树，不重放旧patch。科研角色/guidance与真实质量仍未设计，不以worker代替。

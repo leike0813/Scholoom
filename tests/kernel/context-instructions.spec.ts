@@ -16,7 +16,7 @@ import type {
   ResourceEvidence,
   ResourceLocator,
 } from '../../packages/protocol/dist/index.js';
-import { expectExecutionCompleted } from '../execution-diagnostics.js';
+import { expectExecutionCompleted, observeExecution } from '../execution-diagnostics.js';
 import { createModelServer, type ModelServer } from '../model-server.js';
 
 const projectRef = {
@@ -574,12 +574,14 @@ test('real worker sends explicit excerpts and draft comments and checkpoints str
   const model = await createModelServer();
   const fixture = resourceFixture(model);
   const app = new KernelApplication(root, fixture.options);
+  let diagnostics: ReturnType<typeof observeExecution> | undefined;
   try {
     await app.initialize();
     const session = await app.call('session.create', { projectId: 'application' });
     const scope = { projectId: 'application', sessionId: session.id };
     const instructionId = randomUUID();
     const contextItems = textContextItems();
+    diagnostics = observeExecution(app, scope, model);
     const receipt = await app.call('session.send', {
       ...scope,
       instructionId,
@@ -587,7 +589,12 @@ test('real worker sends explicit excerpts and draft comments and checkpoints str
       materials: [],
       contextItems,
     });
-    await expect.poll(async () => (await app.snapshot(scope)).run?.state).toBe('completed');
+    // Default backoff can stop polling before the five-second deadline during worker shutdown.
+    await expect
+      .poll(async () => (await app.snapshot(scope)).run?.state, {
+        intervals: [100, 250],
+      })
+      .toBe('completed');
     const request = JSON.stringify(model.requests.at(-1)?.messages);
     expect(request).toContain('explicit_saved_excerpt_73');
     expect(request).toContain('explicit_saved_comment_73');
@@ -596,7 +603,11 @@ test('real worker sends explicit excerpts and draft comments and checkpoints str
     expect(
       await checkpointInstructions(app.projects.get('application').internal, receipt.runId),
     ).toEqual([{ instructionId, contextItems }]);
+  } catch (error) {
+    diagnostics?.failure();
+    throw error;
   } finally {
+    await diagnostics?.stop();
     await app.close();
     await model.close();
     await rm(root, { recursive: true });
