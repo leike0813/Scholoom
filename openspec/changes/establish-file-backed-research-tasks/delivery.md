@@ -2,7 +2,7 @@
 
 ## 当前状态与成果
 
-2026-10-27最新状态：在共同HEAD `1026796d854b8f568c3e819f13268a9638980bc1` 完成任务侧真实I1机械组合，默认科研broker、真实库／项目／固定worker及新会话接续已有实际证据。详见末节“共同实现后的真实I1机械组合”。生产图目录仍空，校准图仅测试注入；4.1完整库分类／恢复及4.4c可选跨域消费保持开放，不代表整个change交付完成。下方旧阶段结果和补丁仅保留历史证据，旧同步门及缺科研提供者的描述不再适用于当前树，不再应用旧/tmp补丁。
+2026-10-27最新状态：共同HEAD已为 `4b13183f7489d3cae12fd0a7d1a9e83fb33d7384`，I1、M2和通用worker TaskPort均已接收同步。本轮4.4c项目侧可选消费核对闭合，project-backend两项CI红例经测试资格seam修正，相关35例通过；没有生产业务改动。详见末节“共同整合后的消费核对与后端夹具”。原值来源身份已有实际提供者，4.1仅完整库分类／恢复和主题知识等保持开放，不代表整个change完成。下方旧阶段结果和补丁只作历史证据，不再应用旧累计补丁或等待同一同步。
 
 2026-10-25，文件任务核心已实施并独立验收；第一阶段为9/13项，第二阶段增量和最新15/19进度见末节。当前仍是局部交付，I1未验收，不能归档。用户先要求“实现该change”，随后允许锁定依赖及隔离双宿主验收，本轮又明确授权主线快照消费、公共补丁及M2／I1规划。未提交、推送或创建PR，未读写真实用户库，未操作其他真实工作树。HEAD仍为`e3d58fc807827a78493dcd16e38de28c8d02766e`。
 
@@ -214,3 +214,43 @@ UI首次`ui-first.log`因/tmp配置未声明ESM而未启动测试，补临时pac
 收尾：OpenSpec strict首次因新增Requirement过长发出警告，已按启动、快照及历史读取拆分，语义不变；首轮见`openspec-first.log`，最终strict及schema均通过。apply为**25/27、ready**，仅4.1／4.4c未勾选，不归档。tracked及3份untracked的diff空白检查通过，HEAD与真实index未变；端口5721已释放，所属Kernel／Electron／HTTP句柄已关闭，两位辅助Agent已关闭。
 
 本轮可审查补丁为`/tmp/scholoom-i1-round6/001-real-task-graph-i1.patch`，基线1026796；精确文件及sha256见同目录`manifest.json`，操作／消费说明见`README.md`。仅17份tracked及3份新测试／夹具，共20文件；已在临时index／object目录核对基线可应用，并反向check匹配本树，未修改真实index或HEAD，证据`patch-verification.log`。本轮只有这一增量，直接依赖现已接入的1026796科研／库／公共代码，**不依赖旧round3补丁**。公共文件按符号审查：Kernel／Manual的TaskResearchPort hook与默认装配、WorkbenchSession.taskGraphs.readInput及useBusinessSession的同一端口、architecture的两个projects消费；其余根工具／构造参数／来源hook／迁移和他域生命周期保留。没有本地提交、推送、PR、归档或额外同步。
+
+## 共同整合后的消费核对与后端夹具（2026-10-27）
+
+### 本轮结果及依据
+
+开始时git clean，HEAD为`4b13183f7489d3cae12fd0a7d1a9e83fb33d7384`。主线`/tmp/scholoom-round6-acceptance-dXuzCA/{acceptance.md,synchronized.json,sync-build-results.json,sync-kernel-results.json}`已提供接收、同步及本树构建／定向复验依据；本轮从正式源码继续，没有应用旧补丁、复制私有实现、再等同步或修改Git历史。原I1机械成果继续有效，本轮不重做其装配。
+
+4.4c项目侧可选消费已满足：Kernel注入`projectTasks(context)`，经broker及`createTaskTools`调用真实ProjectTasks；父read取得TaskRef对应入口Evidence，通用子worker只沿原材料及输出授权读取／保存，父读实际成果、重读任务后save关联result/workItemId。`tests/kernel/delegation-task-port.spec.ts`四场景实际覆盖完整、材料变化、关联冲突、取消；`tests/fixtures/delegation-model.ts`仅控制外部模型的选择，内部broker、仓储、worker、任务及文件真实。主线`main-kernel.log`的172/172包含这四例，Agent源树15/15另作接收证据；本树本轮又实跑四例通过，三者不累加为不同样本。没有新增业务代码、第二套TaskRef或委派任务DTO，计算首批仍不绑定任务；科研角色／标准／质量和完整I3仍由所属方开放。
+
+4.1事实校正：`packages/protocol/src/library-records.ts`已有createSourceInstance、record／commitRecords／recordHistory；`packages/library/src/schema.ts`的sourceInstances／originalRecords及`catalog.ts`实际持久化并核对原值对象三元身份`{instanceId,libraryLocator,objectKey}`，Manual注册实际操作。主线172例包含`library-records.spec.ts`两例，不能继续称该身份提供者缺失。它与任务的附件／材料版本指针分别有权威，不扩TaskLink或伪造ResourceRef；recordHistory、阅读记录软删除、整库备份均不能代替库材料删除／恢复分类。完整删除记录／恢复、主题／分析知识及其项目消费仍开放，notFound不表示删除或已查询无历史。当前状态校正在原tasks、investigation及design第9节，历史证据保留。
+
+### 两项CI红例及修正边界
+
+采用最新真实CI `6b22d60 / Checks 40315429083`，原始平台证据为主线`ci-baseline-failures.log`和`ci-baseline-summary.json`：Linux内核689通过／9失败／16跳过；Windows628通过／49失败／30跳过；macOS入口3通过／1失败。本轮承接其中两平台共有的project-backend撤权及无关目录改名失败，不使用旧374项基线，也没有触发全仓CI。
+
+先构建共同源码，再对未修改的原两例固定红：`backend-red.log`记录**2/2失败**，分别为permissionDenied期望收到unavailable，以及occurrences期望1收到undefined，与CI一致。原Manual没有执行实例提供者，夹具又缺session/run/instance，`project.saveFile`在`fileOrigin→checkExecutionContext`提前拒绝，未进入原场景；这不证明生产撤权或目录逻辑有缺陷。
+
+唯一代码改动是`tests/kernel/project-backend.spec.ts`内自含`BackendApplication`，只替换测试的执行资格seam：绑定完整project/session/run/instance及Agent主体，并严格匹配收到的上下文。继承fileOrigin和全部实际broker／ProjectStore路径，未覆盖来源字段、项目锁、依据／内容校验或发布前权限检查。生产Manual仍无harness且缺资格时unavailable；未更改Kernel TaskResearchPort、FileEdit来源默认装配、runtime、生态或任何业务代码。
+
+两例改用该模块夹具，项目／profile保留在用例结果目录。撤权发生在实际保存等待期间，原保存被permissionDenied拒绝、原文保留，随后经人工files.read/save能编辑受限项目；无关report目录改名后，notes编辑返回occurrences=1，报告原文仍在新目录。修正后两例**2/2通过**，没有加超时、改变期望错误或删除检查。该资格seam是明确替身，不等于真实harness身份；真实worker和异步来源边界由本轮原有file-edit-origins及delegation-task-port回归分别核对。
+
+### 实际验证与交接
+
+日志及输出根：`/tmp/scholoom-project-round7/`；Linux／Node24.12.0／pnpm11.10.0，沿已有依赖，无安装／下载、真实用户库或开发服务器。先build后test，运行期间未重建产物；测试夹具／故障门控以外的内部路径真实。外部模型只在既有委派／来源用例受控。
+
+| 命令／范围 | 实际结果及证据 |
+| --- | --- |
+| `pnpm --config.optimisticRepeatInstall=false build:shared` | 共享及kernel构建通过，`build-baseline.log`；后续仅测试和文档修改，无生产重建需要 |
+| `node node_modules/@playwright/test/cli.js test --config playwright.kernel.config.ts tests/kernel/project-backend.spec.ts --grep 'revoking trust while an Agent save waits\|a moved expected report directory' --output <root>/backend-red` | 原两例2失败，`backend-red.log`及trace；修正后相同选择2通过（12.2秒），`backend-green.log`，首次红未覆盖 |
+| 同Playwright kernel入口，选择project-backend、research-tasks、task-tools、delegation-task-port、file-edit-origins五文件，`--output <root>/kernel-regression` | **35/35，1.3分钟**，`kernel-regression.log`。后端8、任务8、工具5、真实委派4、来源10；含真实worker、异步来源等待中cancel／revoke拒绝，及所有后端其余回归 |
+| `node node_modules/typescript/bin/tsc --noEmit -p tsconfig.tools.json` | 通过，`tools.log`；当前全部测试调用者及夹具类型检查 |
+| `node node_modules/@biomejs/biome/bin/biome check tests/kernel/project-backend.spec.ts` | 1文件通过，无诊断，`lint.log` |
+| `node scripts/check-architecture.ts` | 通过，`architecture.log`；没有增加模块消费或例外 |
+| OpenSpec strict及scholoom-dev schema、git diff空白检查 | 通过，`openspec.log`及收尾核对；无协议／schema变化，生成映射无需变更 |
+
+同树只读辅助Agent独立核对4.4c实际调用链、sourceInstances原值提供者及测试seam，确认生产Manual默认拒绝、真实保存锁／CAS与最终权限检查未放宽；未代跑测试，实际结果由父端取得。辅助Agent已关闭。没有本轮UI或生产界面改动，不重复双宿主验收；Windows两项待目标复跑，Linux绿色不关闭Windows平台任务，macOS和全仓其他CI失败仍保持原证据。
+
+本轮没有需主线猜定的新产品选择或需跨域资格补丁的生产反例。到4.4c消费核对及后端夹具增量交回停止，4.1保留开放；不展开科研角色／Graph、库删除恢复、远端或发布，不提交／推送／PR／归档。补丁及最终任务进度见本节收尾记录。
+
+收尾：apply为**27/28、ready**，仅4.1未完成。可审查补丁为`/tmp/scholoom-project-round7/001-project-backend-fixture-and-consumption.patch`，直接依赖4b13183，无旧累计patch依赖；文件前后sha256见同目录`manifest.json`。写集仅project-backend测试及本change的tasks／delivery／design／investigation共5文件，没有新文件、公共生产符号或协议变化。临时index／object目录验证基线可应用，反向check与当前树一致，真实index与HEAD未变，`patch-verification.log`保留结果。未创建提交，辅助Agent已关闭，所有本轮测试执行均已结束，无UI／后台服务留待收尾；测试结果及登记项目保留供主线复核。

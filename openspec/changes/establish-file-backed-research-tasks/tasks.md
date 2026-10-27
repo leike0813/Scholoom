@@ -1,6 +1,6 @@
 # 执行任务
 
-2026-10-26本轮从共同HEAD1026796继续真实I1机械整合，主线round5验收／synchronized.json确认所有七域源码已接入并同步。本轮只接默认科研broker及实际任务组合；旧补丁／等公共同步条件不再应用。保留Manual独立组合与显式注入；FileEdit来源由Agent线负责，不改其hook或调用点。沿已有隔离测试许可，不安装依赖、不改他树、不推送／PR／归档、不写真实用户库。历史结果保留，第8组记录当前切片。
+2026-10-27本轮共同HEAD为4b13183f7489d3cae12fd0a7d1a9e83fb33d7384；主线round6验收／同步及本树构建复验已完成。沿已接收I1、M2和通用worker TaskPort，核对4.4c及当前来源身份，轻量修正project-backend旧CI夹具；不再应用旧补丁或等同步。仅改所属任务／交付、必要事实源及测试；不改生产Manual／Kernel装配、runtime／生态、来源hook或资格提供者。历史第8组保留，当前切片归第9组。
 
 ```mermaid
 flowchart TD
@@ -43,12 +43,12 @@ flowchart TD
 
 ## 4. 跨线输入与真实整合
 
-- [ ] 4.1 【W1调查已收到，实际库提供者仍缺】已消费固定Zotero10.0.5身份／关系、字段及插件保存／SQL／通知／固定键调查，见design第7节。题录／附件删除恢复、主题分析及共同来源身份仍等所属正式契约／实际提供者；不实现伪删除、无历史或恢复，不把notFound当删除分类。新增引用字段须先审查受影响范围。
+- [ ] 4.1 【原值来源身份已有，完整库分类／恢复仍开放】固定Zotero10.0.5调查已收到；当前library.createSourceInstance、record／commitRecords／recordHistory及sourceInstances／originalRecords已提供原值来源身份{instanceId,libraryLocator,objectKey}。它不替代任务材料attachmentId／materialVersionId，不新增TaskLink union。题录／附件完整删除记录与恢复分类、主题／分析知识及其项目侧消费仍待正式契约和真实验收；不将notFound当删除或已查询无历史，也不以源key重现判定恢复。
 - [x] 4.2 【W2设计复核完成】分别读取用户快照中 `add-material-annotation-interactions/design.md` 与 `add-interactive-research-reports/design.md`，核对资源ref／basis、context、共同composer及正文保存触点。结论及精确路径见design第7节；不接管批注／报告协议，不合并两个change，不将设计到达称为实现接入。
 - [x] 4.3 【I1机械整合】在1026796正式源码上由任务详情经默认broker调用科研所属human→host适配，真实库／项目／固定worker／仓储完成首次成果、过程指针、条件关联与新会话文件接续。第8组及delivery记录实际双宿主和故障证据；校准图仅构造注入，生产目录继续空，不验科研综合质量或W1整体恢复。
 - [x] 4.4a 【任务契约正式交接及静态消费核对】以主线快照的本线task-contracts.ts／projects.ts正式交接tasks四操作、TaskRef三元组、可选workItemId、入口Evidence和部分关联语义。逐份核对科研、Agent、计算design及实际DTO：均可消费材料Evidence，但尚无完整任务字段；程序不要求绑定任务，session成果association不等于task links。
 - [x] 4.4b 【科研实际消费】项目侧重读TaskRef／workItemId，保存原入口输入并派生Evidence；默认端口经科研实际适配启动及查询，process记录原调用与快照，科研schema不加任务字段或run镜像。实际worker和新会话工具核对已保存文件，程序仍无需任务。
-- [ ] 4.4c 【原4.4b剩余可选消费】Agent委派的可选任务引用由其所属change按实际需要接入；计算首批可以无任务。当前I1接通不证明其他两域任务DTO已消费，不扩本轮范围。
+- [x] 4.4c 【项目侧可选委派消费】当前真实TaskPort已支持父read任务取得入口Evidence交通用子worker，子按原材料和输出授权实际保存，父重读入口后save关联result/workItemId；delegation-task-port四场景及主线round6实际证据核对完成，不新增委派TaskRef DTO或第二套任务权威。计算首批仍可无任务；科研角色／标准／质量及完整I3归所属方开放。
 
 ## 5. 整合与交付
 
@@ -57,7 +57,7 @@ flowchart TD
 
 ## 续做入口
 
-续做先读specs、design第8节及delivery最新节，对照代码和任务继续。公共同步、真实科研适配及I1机械组合已有运行证据；第7组保留历史注入端口结果。当前开放的是4.1完整库分类／恢复及4.4c可选跨域消费，不重新应用旧/tmp补丁或等待已经收到的提供者。
+续做先读specs、design第8–9节及delivery最新节，对照代码和任务继续。公共同步、I1和项目侧通用worker任务消费已有证据；第7组保留历史注入端口结果。4.1完整库分类／恢复仍开放，原值来源身份已存在；不重新应用旧/tmp补丁或等待已经收到的提供者。科研角色和质量不由项目侧机械闭环关闭。
 
 ## 6. 主线第二阶段公共对接准备
 
@@ -79,3 +79,7 @@ flowchart TD
 - [x] 8.2 从任务详情启动静态注入的真实固定图，真实库／项目／worker保存成果、process指针和任务条件关联；核对入口版本交错、错误主体／撤权／忙与等待／容量拒绝、unknown与部分关联。内部不使用synthetic runId替身，首次失败保留，不降低版本或停止保护。
 - [x] 8.2a 用户已选独立调用输入快照：先记录原TaskRef／basis及正文和来源指针，再以快照Evidence启动；创建unknown不启动，过程指针保存快照引用，可选inputSnapshot沿同源结果／UI传播。保护快照只作历史输入、库正文不复制，以及原稳定请求和部分失败语义；用已复现的真实worker红例验闭合。
 - [x] 8.3 新会话从实际任务／过程／成果读取下一步，外部模型可受控；必要双宿主及原边界回归、独立审查、类型／架构／生成／OpenSpec／diff检查完成后更新原delivery，交有界补丁并停止。新增产品／跨域契约选择带证据返回，受阻分支不假闭合。
+
+## 9. 共同整合后的任务消费与后端CI夹具
+
+- [x] 9.1 保留6b22d60／40315429083的Linux／Windows两项project-backend失败及本树固定红例，按当前完整执行来源契约修正测试内资格seam。broker、FileEdit来源及项目锁／CAS／最终授权真实，Manual生产不装harness或默认human；保护等待撤权拒绝、人工访问和无关目录改名。先build后原两例及相关后端／任务／真实worker边界最小回归，记录首次失败、最终结果和Linux以外未复验范围，再更新同一delivery并交有界增量后停止。

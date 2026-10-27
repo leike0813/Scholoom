@@ -2,7 +2,7 @@
 
 ## 变更总览
 
-本文件记录文件任务核心及第二阶段公共对接设计，实际结果见[delivery](delivery.md)。W1–W4资料已由用户快照正式交接，具体已闭合／仍缺的提供者见第7–8节及investigation。projects内部的深层Module `ProjectTasks`把格式核对、发现、身份、保存和诊断集中在小Interface后，复用原文件机制，不另建包、进程、任务数据库、调度器或关系事务。
+本文件记录文件任务核心及公共对接设计，实际结果见[delivery](delivery.md)。当前共同源码为4b13183：I1及父TaskPort→子资源→父任务关联机械闭环已具备真实提供者，最新校正在第9节；第7节保留历史快照证据。W1完整删除／恢复和主题知识仍开放，原值来源身份已有提供者。projects内部的深层Module `ProjectTasks`把格式核对、发现、身份、保存和诊断集中在小Interface后，复用原文件机制，不另建包、进程、任务数据库、调度器或关系事务。
 
 ```mermaid
 flowchart LR
@@ -21,7 +21,7 @@ flowchart LR
   ResourcePort --> Access
   Access --> Store
   Access --> Library[文献库权威]
-  Future[科研 Agent 计算消费方] -. TaskRef已交接 实际接线待同步 .-> Broker
+  Consumers[科研与通用父Agent] --> Broker
 ```
 
 ## 方案与接口
@@ -124,7 +124,7 @@ projects只保存任务自己的引用与采用理由，不直接调用库、科
 
 | 提供／消费方 | 本线交接 | 当前依赖与替身范围 |
 | --- | --- | --- |
-| 本线向科研／Agent／计算 | TaskRef、可选workItemId、入口ResourceEvidence、入口metadata.links及按需文件读取。工作项只提供计划导航，不承诺排队／运行状态 | 消费者设计和当前DTO已收到并核对；具体任务接线仍由所属线确认，本线不改其运行权威，程序首批可不关联任务 |
+| 本线向科研／Agent／计算 | TaskRef、可选workItemId、入口ResourceEvidence、入口metadata.links及按需文件读取。工作项只提供计划导航，不承诺排队／运行状态 | 科研I1及通用父Agent的真实TaskPort消费已验证；子只收材料Evidence，父负责条件关联。程序首批可不关联任务，科研角色及质量仍归所属方 |
 | 文献与生态 → 本线 | 当前attachmentId／materialVersionId与实际附件读取；未知删除事实不自行补造 | 独立测试可替换所属资源失败边界，模拟明确删除须标明“契约替身”。完整删除记录／主题知识／恢复真实验收受W1阻塞 |
 | 阅读交互 ↔ 本线 | 现有资源打开、ContextItem和共同composer；任务提供入口或现有链接ref／basis | W2两份设计已通过正式快照分别复核，未在当前树接入其新实现。批注、差异、报告和写回保持各自change，本线不增加私有消息通道 |
 | 宿主／harness → 本线 | CallContext绑定项目、主体及有效执行；人工与Agent经同一ProjectTasks，Agent模型外发和取消仍复用既有检查 | 人工组合不需要harness。任务工具只操作当前项目；全局／其他项目任务可沿现有read_target_project按已登记文件读取，不通过tasks.list在目标登记fileId |
@@ -184,14 +184,14 @@ Linux／Windows受管执行沿现有能力，macOS可独立验证人工任务文
 
 ## 待办边界
 
-- W1调查资料已收到；完整库引用分类、主题／分析知识及恢复仍等文献实际提供者。本线不建立库身份、引用键或删除历史字段。
+- W1调查及原值来源身份提供者已收到；完整库引用分类、主题／分析知识及恢复仍等实际提供者／验收。本线不另建库身份、引用键或删除历史字段，任务材料仍沿附件／材料版本指针。
 - W2两份design已分别复核，保持两change独立；不认定报告、材料写回或M2已接通。
-- W3／W4源码已随1026796进入本树；真实任务科研图机械组合沿第8节验收，可选委派任务消费仍归其所属change，不恢复后置综合Graph讨论。
+- W3／W4源码已在共同树，I1及项目侧通用委派消费分别见第8–9节；实际科研角色／标准／质量仍归其所属change，不恢复后置综合Graph讨论。
 - 自定义入口目录、任意深度全盘发现、自动抽取研究决定／证据图、任务自动排程和跨项目写入没有本次需求，不增加选项或预留抽象。
 
 实施授权来自用户本轮“实现该change”及后续锁定依赖／隔离验收许可；不包含真实用户库、提交／推送／PR或归档。
 
-## 7. 主线第二阶段正式输入与公共补丁
+## 7. 历史：主线第二阶段正式输入与公共补丁
 
 本节依据用户提供的`/tmp/scholoom-phase2-handoff-VZS5mS/manifest.json`、`acceptance.md`及`coordination-plan.md:180–199`，各源基线均为e3d58fc；只读快照，不进入manifest中的真实source工作树。本轮源代码不变，公共候选在`/tmp/scholoom-research-task-phase2-iF4ywR/`准备。
 
@@ -270,7 +270,7 @@ TaskGraphs核对入口和来源后，通过已有resources.create保存`tasks/<p
 
 项目线负责任务动作薄挂载、TaskRef／工作项核对和组合测试；科研线负责目录、启动与graphCalls；harness负责原worker及执行历史；library和projects分别核对材料。公共构造和工具安装点须经dev组合后使用，不在本树私自复制。
 
-### 可执行验收计划及停止条件
+### 历史：注入端口阶段的组合验收计划
 
 公共基线同步及D-I1选择现已具备；取得实际科研适配后，仍须用隔离Browser／真实Electron harness经**同一用户动作**完成下述真实组合。验收宿主静态注册快照`research-graph-runtime/tests/fixtures/research-graph-worker/{graphs.mjs,worker.mjs}`的`scholoom.calibration@1`；它仅是测试目录／固定worker，不能注册成生产科研功能或冒称实际综合流程。无测试注册的产品目录继续为空。
 
@@ -282,3 +282,13 @@ TaskGraphs核对入口和来源后，通过已有resources.create保存`tasks/<p
 6. 复用本线受控模型的普通新会话接续路径保存后续材料。模型只控制外部回复，内部库／任务／科研／worker不能用成功替身。来源不可用仍等用户决定；生产目录空、缺产品适配或缺真实提供者时I1保留未完成。
 
 本轮已实施任务侧编排与UI，并在注入科研端口下验来源选择、过程指针及部分关联；没有运行上述真实科研／固定worker跨域组合，不声称I1通过。下一步由科研所属线交实际适配、主线按符号组合并验证，再同步消费者。无需为I1定案科研综合流程，程序运行也不要求绑定任务。
+
+## 9. 4b13183后的可选任务消费与后端夹具校正
+
+主线`/tmp/scholoom-round6-acceptance-dXuzCA/acceptance.md`及`synchronized.json`确认共同接入；当前真实TaskPort来自Kernel构造注入的`ManualApplication.projectTasks(context)`，经broker及`createTaskTools`到ProjectTasks四操作。`tests/kernel/delegation-task-port.spec.ts`及`tests/fixtures/delegation-model.ts`明确父read入口→ResourceEvidence交子→子实际保存→父重读save关联result/workItemId。完整、材料变化、关联冲突、取消四场景核对实际文件及关联，项目侧4.4c无需第二套TaskRef或委派DTO。子不取得任务写入／程序启动权限，计算首批仍可无任务；科研角色、标准及质量保持所属方开放。
+
+当前`protocol/library-records.ts`、`library/schema.ts`和`LiteratureCatalog.createSourceInstance/record/commitRecords`已经提供原值来源实例及身份`{instanceId,libraryLocator,objectKey}`，同源操作由Manual真实注册。该身份约束外部原值对象绑定，不替代附件／材料版本，也不证明删除记录或恢复；任务材料继续使用原指针，不扩TaskLink union。完整删除／恢复行为矩阵、主题／分析知识及其项目消费仍是4.1剩余范围。
+
+最新CI为6b22d60／40315429083，两项project-backend失败在当前源码复现。原测试以未装harness的Manual和缺session/run/instance的合成调用保存，被FileEdit来源检查提前拒绝，尚未走到原撤权／无关目录场景。修正只在`tests/kernel/project-backend.spec.ts`增加自含`BackendApplication`测试资格seam：绑定完整项目／会话／run／instance并核对Agent主体。继承真实broker、fileOrigin及ProjectStore保存锁／依据／最终权限检查；不覆盖来源、不改生产Manual默认unavailable、不改harness资格提供者。两个场景的项目／profile保留于各自结果目录；等待后撤销信任仍拒绝，人工编辑可用，无关目录改名不阻断notes保存。生产执行来源另由已有真实worker回归核对；测试资格seam本身不称真实harness身份。
+
+本轮没有新增业务行为或协议，不改delta specs／生成映射或生产装配。以原两例红绿、整份后端、任务／工具、真实委派及来源边界作最小验证；Linux通过不关闭Windows实际CI失败，全仓与其他平台不自动重跑。结果见同一delivery末节，到有界增量交回停止。

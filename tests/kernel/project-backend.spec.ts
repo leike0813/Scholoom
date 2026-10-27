@@ -1,10 +1,11 @@
+import { randomUUID } from 'node:crypto';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { expect, test } from '@playwright/test';
 import { ManualApplication } from '../../apps/kernel/dist/manual.js';
 import { ProjectBackend } from '../../packages/harness/dist/node.js';
-import { OperationError } from '../../packages/protocol/dist/core.js';
+import { type CallContext, OperationError } from '../../packages/protocol/dist/core.js';
 import type { ProjectFilePort } from '../../packages/protocol/dist/projects.js';
 
 function deferred() {
@@ -13,6 +14,38 @@ function deferred() {
     resolve = done;
   });
   return { promise, resolve };
+}
+
+// Only execution qualification is a fixture; broker, FileEdit origin and final file checks stay real.
+class BackendApplication extends ManualApplication {
+  private execution?: CallContext;
+
+  executionFiles(projectId: string): ProjectFilePort {
+    const sessionId = randomUUID();
+    this.execution = {
+      moduleId: 'harness',
+      role: 'execution',
+      principal: { kind: 'agent', id: sessionId },
+      projectId,
+      sessionId,
+      runId: randomUUID(),
+      instanceId: randomUUID(),
+    };
+    return this.projectFiles(this.execution);
+  }
+
+  protected override checkExecutionContext(context: CallContext): void {
+    if (
+      !this.execution ||
+      context.role !== 'execution' ||
+      context.principal.kind !== 'agent' ||
+      context.principal.id !== this.execution.sessionId ||
+      (['projectId', 'sessionId', 'runId', 'instanceId'] as const).some(
+        (key) => context[key] !== this.execution?.[key],
+      )
+    )
+      throw new OperationError('instanceMismatch', 'Fixture execution does not match.');
+  }
 }
 
 test('project file tools accept a replaceable narrow port without a broker or host', async () => {
@@ -202,8 +235,8 @@ test('a target read keeps its Agent source and cannot widen through nested host 
 });
 
 test('revoking trust while an Agent save waits prevents its final write and keeps manual access', async () => {
-  const root = await mkdtemp(join(tmpdir(), 'scholoom-trust-save-'));
-  const app = new ManualApplication(join(root, 'profile'));
+  const root = test.info().outputPath('trust-save');
+  const app = new BackendApplication(join(root, 'profile'));
   try {
     await app.initialize();
     const store = await app.projects.create(join(root, 'project'));
@@ -223,12 +256,7 @@ test('revoking trust while an Agent save waits prevents its final write and keep
       }
       return result;
     };
-    const files = app.projectFiles({
-      moduleId: 'harness',
-      role: 'execution',
-      principal: { kind: 'agent', id: 'session' },
-      projectId: store.project.id,
-    });
+    const files = app.executionFiles(store.project.id);
     const saving = files['project.saveFile']({
       projectId: store.project.id,
       path: 'input.md',
@@ -242,9 +270,16 @@ test('revoking trust while an Agent save waits prevents its final write and keep
     release.resolve();
     await rejected;
     expect((await store.read('input.md')).content).toBe('original');
+    const manual = await app.call('files.read', { projectId: store.project.id, path: 'input.md' });
+    await app.call('files.save', {
+      projectId: store.project.id,
+      path: 'input.md',
+      basis: manual.basis,
+      content: 'manual edit after revocation',
+    });
+    expect((await store.read('input.md')).content).toBe('manual edit after revocation');
   } finally {
     await app.close();
-    await rm(root, { recursive: true });
   }
 });
 
@@ -380,8 +415,8 @@ for (const origin of ['manual', 'agent'] as const) {
 }
 
 test('a moved expected report directory does not prevent saving an unrelated file', async () => {
-  const root = await mkdtemp(join(tmpdir(), 'scholoom-report-scope-'));
-  const app = new ManualApplication(join(root, 'profile'));
+  const root = test.info().outputPath('report-scope');
+  const app = new BackendApplication(join(root, 'profile'));
   try {
     await app.initialize();
     const project = await app.projects.create(join(root, 'project'));
@@ -390,12 +425,7 @@ test('a moved expected report directory does not prevent saving an unrelated fil
     const report = await project.save('reports/result.md', 'original report');
     if (!report.fileId) throw new Error('Expected the report identity');
     await project.save('notes.md', 'original notes');
-    const port = app.projectFiles({
-      moduleId: 'harness',
-      role: 'execution',
-      principal: { kind: 'agent', id: 'fixture' },
-      projectId: project.project.id,
-    });
+    const port = app.executionFiles(project.project.id);
     const backend = new ProjectBackend(
       port,
       project.project.id,
@@ -412,6 +442,5 @@ test('a moved expected report directory does not prevent saving an unrelated fil
     expect((await project.read('kept/result.md')).content).toBe('original report');
   } finally {
     await app.close();
-    await rm(root, { recursive: true });
   }
 });
