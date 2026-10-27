@@ -212,7 +212,17 @@ runtime合并还须保留Agent的instanceLifecycle.onStopping中childrenControll
 
 ## 待办边界
 
-### 公共同步后本轮消费（2026-10-26）
+### 共同1026796后的有界切片
+
+当前七域实现都在本树。共享构造器末尾executionResources／taskPort／delegationOptions／programs、根工具、统一v6、三域restore和task／programs分派保持；不用快照或替代TaskPort。8.4通过真实任务tab、程序tab、多窗口、各自草稿／资源打开／取消和切项目隔离验收，复用tests/ui/program-runs及research-tasks现有用户入口；只在确有遗漏时修program接点，不改任务组件。登记项目在结果目录保留至所属共享配置退役。
+
+公共退出诊断仅修改 `packages/platform/src/processes.ts` 的ManagedNode现有failure／exit／启动失败错误，及 `process-controller.ts` 原生状态／stop catch／IPC failure detail。controller用固定原因码与有界JSON detail传递native最后状态、code／signal；宿主记录实际controller退出code／signal、instanceId、stoppedReceived和最近native信息，附于现有OperationError.message。没有新业务字段、日志框架、状态或控制接口。不输出entry／env／argv／RPC payload／异常stack或私有bootstrap；启动错误也保留同类上下文。
+
+诊断与停止事实分离：stopped仍只由原生成功收尾后原路径发送，未收到则保持原unknown及reservation保留。controller被杀时native退出未知，只记录此前确知的R／ready，不能推断后代停止。nativeStopUnconfirmed等固定原因只描述观察阶段。复用既有controller丢失及过程fixture，结构断言code／signal／实例／停止布尔／native状态；成功确认和容量回归保持。受控故障不证明历史nativeTeX unknown根因已修，不调整生产期限、释放责任或自动重试。
+
+先构建后测试，不在测试期间重建；模型仅在外部边界受控，内部broker／仓储／worker／文件真实。UI沿既有静态承载及语义token，不新增布局。公共诊断与program联合回归分片交回，不应用旧/tmp累计补丁或操作其他树。Windows／历史CI阶段证据仍开放。
+
+### 第三轮消费记录（历史，等待前置已解除）
 
 主线同步提交91615d5已包含0519904及b838402，恢复时本树干净。当前源码实际消费公共ManagedCommands.start及长时限、Graph来源／执行历史、统一v6迁移；不再重发迁移或搭建/tmp源码组合。ManualApplication继续独占程序登记、workspace、观察落盘和归属恢复，KernelApplication组合ProgramRecords.restore，Harness经工具所需的最窄Programs工具端口调用，人工登记／批准／移交仍留产品入口。started只表示进程已启动，exit记录退出，stopped确认完整归属收尾；环境ready须通过环境模块检查，不将任一命令started当应用ready，生态E4另行负责。
 
@@ -222,6 +232,6 @@ runtime合并还须保留Agent的instanceLifecycle.onStopping中childrenControll
 
 交回目录 `/tmp/scholoom-project-execution-round3-NCqJgg/` 的06补丁只给任务正式快照的五个共享文件叠加programs；保留task TabKind／tab.task／renderTask(TaskRef,group.id)，沿任务已有openTab使打开程序也撤销迟到任务导航。normalizeLegacyTab白名单同时保留task／programs。05补丁只给Agent正式快照的runtime／application叠加programs：保留delegationOptions原位置，programs追加其后，保留根／子工具分离、childrenController.abort、settleTools和childrenUnsettled，业务restore仍顺序组合。两份均仅上下文检查，未在本树启用他域业务或作生产联合验收；公共Graph来源／历史、统一v6均沿现有基线保留。
 
-- 主线已正式提供两份阅读design、TaskRef和Agent源码快照；消费精确路径及共享符号核对见下节。它们没有进入本树真实提供者，报告／批注／任务关联保持范围外；共享宿主、工具、tab与恢复最终合并仍待dev接入，不能以阅读设计冒充实际整合。
+- 共享提供者已由共同1026796实际接入，本轮只推进8.4及最小退出诊断，不将代码接入或历史补丁检查冒充真实联合实跑；报告新产品能力、任务强制关联及科研角色保持范围外。
 - 项目任务引用、科研Graph、任意依赖发现、自动安装工具本体、Conda完整发现／激活、editor迁移、终端／Notebook、SSH与完整macOS后端均不在首批。新增需求回到各自有界change，不把未接入代码放进本轮必需路径。
 - 首批保守unknown可能长期占用容量，这是停止保证的真实限制；不得以计划闭合为由伪造可重新取得原生归属。需要更强自动恢复时另审原生证明机制。

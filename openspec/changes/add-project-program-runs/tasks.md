@@ -56,7 +56,7 @@ flowchart TD
 
 ## 5. 明确等待的输入与CI前置
 
-- [x] 5.1 消费主线正式交接包 `/tmp/scholoom-phase2-handoff-VZS5mS` 的两份阅读design、项目TaskRef、Agent runtime／仓储／宿主及共享工作台快照；精确路径、字段及符号冲突已记录design“主线快照消费与接入边界”。输入核对闭合，真实提供者未合入；constructor参数顺序、工具权限及共享tab／恢复组合待主线接入验证，不把读设计写成I4／跨域已接通。
+- [x] 5.1 已消费主线正式设计及源码输入；历史路径和符号冲突记录于design。共同1026796已合入全部七域源码，当前executionResources／taskPort／delegationOptions／programs、根工具、三域restore及task／programs标签均在本树；不再等待同步或使用旧累计补丁。真实联合操作另由8.4验收，不把代码合入当作实际整合完成。
 - [ ] 5.2 进入受影响整合前承接调查记录中的CI基线：读取提供者实际诊断，PDF按发送／受理／编译／真实产物／视图刷新定位；Windows子进程计数核对身份，queued／running失败核对阶段。阅读交互／Agent线尚无本树诊断时记录等待，本线只做与command增量有关的隔离定向核查；所需公共修复单独界定。不放宽生产时限、不删保证、不把历史10/10推广到当前失败；未解决的必要回归保持失败／未完成，独立核心任务继续。
 
 5.1的输入核对不意味着新增报告适配属于本change；只有共同符号冲突或相关必要回归才阻塞对应整合，其他任务不串行等待。
@@ -77,12 +77,18 @@ flowchart TD
 
 ## 续做入口
 
-第7组保留上一轮C1—C3及迁移交回证据。2026-10-26主线完成安全同步后明确恢复原有界实施：本树HEAD为91615d58719f792dba8f9c311e9f13350de1c42f，0519904（含b838402）已是祖先，恢复时工作区干净。公共提供者已实际同步，不再制作/tmp源码组合或等待同步；其他域私有任务／委派提供者仍须分别核对。
+当前起点为1026796d854b8f568c3e819f13268a9638980bc1，工作区干净，七域完整实现已在本树；证据为 `/tmp/scholoom-round5-acceptance-WBreMJ/{acceptance.md,synchronized.json}`。第7／8组保留历史成果，不再以缺TaskRef／任务组件／委派仓储或旧同步门为前置。只推进8.4真实联合及第9组退出诊断，Windows／历史CI和整个change收尾保持开放。
 
 ## 8. 公共同步后的实际消费
 
 - [x] 8.1 只读确认同步HEAD／祖先／工作区及 `/tmp/scholoom-sync-recovery-wyn13R/recovery.md`、本线日志；消费 `/tmp/scholoom-round3-handoff-qefwKi/prompts/project-execution.md` 的已定任务。C1—C3沿主线复验关闭，保留统一v6与原恢复保护，不重新发公共迁移补丁。
 - [x] 8.2 核对实际ManualApplication／KernelApplication／Harness工具和架构准入符号；新增ProgramToolsPort，harness不持有人类登记／授权／移交入口。扩展已有真实Agent用例，核对HTTP工具返回与人工同一运行／日志／实际输出，全局／目标只读／失效实例及Agent自行移交被拒绝。73项定向内核通过，含公共执行历史回归，保留Graph来源。
-- [x] 8.3 核对本树真实project.restore中的领域钩子；扩展已有宿主丢失／副本恢复用例，证明原unknown始终占同一统一名额，副本无原command／host控制身份，取消副本及重开源项目不改原记录。既有小输出恢复／大输出遗漏及源成果保护用例通过；没有声称委派业务恢复已装配。
-- [ ] 8.4 本树运行tab双宿主2项通过，含固定CSV打开、双窗口同一运行查询／取消及草稿。已按正式任务快照准备五个共享文件的programs接入补丁，保留TaskRef、TaskPanel、TaskList、任务导航代际及renderTask；仅git apply --check通过。真实任务tab联合验收依赖TaskRef／TaskPort、任务组件与内核提供者合入本树，本项保持开放；不复制任务业务或以右栏简化列表代替。
+- [x] 8.3 核对真实project.restore钩子，原unknown保留统一名额，副本无原command／host控制身份，取消副本和重开源项目不改原记录；小输出／大输出遗漏保护通过。共同1026796已装配真实委派仓储，本轮直接导入HarnessRecords的组合恢复1项随57项内核通过，未使用快照env或外部适配。
+- [x] 8.4 共同1026796真实TaskPanel／TaskPort／程序tab双宿主2项首跑通过：任务正文编辑保存／过程材料打开与程序真实CSV／日志并存，第二窗口核对同一运行并取消，两类草稿跨项目及刷新隔离。程序不强制绑定任务。登记项目保留在结果目录至共享profile退役，无替代TaskPort，无生产任务组件改动；真实HarnessRecords恢复组合另随内核通过。
 - [x] 8.5 先构建再定向内核73项／程序双宿主2项静态夹具验收，测试期间未重建产物；类型／生成／架构／OpenSpec／diff通过，首次UI定位失败和最终结果分别保留。独立只读审查未发现确证缺陷；同一delivery及分片业务补丁已交回。Windows／macOS／全仓CI／真实科研质量及整个change收尾保持原边界。
+
+## 9. 最小公共退出诊断
+
+- [x] 9.1 在原design落稿后，仅修改platform processes／process-controller：既有IPC detail和错误末行JSON保留controller code／signal、instanceId、stoppedReceived、native最后状态／退出结果及固定reason；停止确认后刷新启动错误的最终诊断。无新ErrorInfo字段／框架／状态，无凭据／bootstrap日志；unknown、停止证明、容量、期限及重试未变。
+- [x] 9.2 真实controller SIGKILL／原生失败fixture／成功code0结构回归通过，未知继续占容量，明确停止才释放。独立审查发现启动错误使用旧快照的P2：初版构建反例1红1绿，补最终收据后全部通过、只读复核关闭。故障fixture仅替原生可执行文件，不宣称修复历史nativeTeX根因。
+- [x] 9.3 先完成shared／desktop及审查修复后的platform构建，再运行定向内核57项、C2容量／恢复3项和双宿主2项，全部通过；测试期间无重建，pnpm显式optimisticRepeatInstall=false，无安装／下载。类型／架构／8份生成映射／strict／diff通过；首次红与结果保留，公共诊断独立patch及同一delivery交回后停止。5.2历史CI／Windows与6.2整项交付仍开放。

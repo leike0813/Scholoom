@@ -208,11 +208,13 @@ macOS 完整能力恢复另立变更：Darwin 不支持 kqueue 自动后代跟�
 
 `programs.start` 以稳定 operationId 受理，回执不明时按原身份查询／补交，不另启重复程序。`programs.run/runs/logs` 分开提供执行、完整停止、退出及输出观察：退出0不证明结果完整，缺失／变化／部分文件仍独立呈现。日志最多保留1MiB，单次读取默认64KiB，有截断游标；程序输出持续排空，界面仅刷新当前项目和所选运行。工具等待为5秒，程序期限单独配置，长计算可无总期限，无日志不等于失败。
 
-运行写入项目 `program_runs`；公共容器链明确为v4→v5 delegations→v6 program_runs，每步保护原版本并在事务内建表／推进版本，保留授权和两域历史。旧未发布的program-only v5隔离profile不属于这条支持入口，保留原件供明确转换或重新建隔离样本，不按表猜历史或删除数据。环境及授权保存应用私有 `programs/environments.json`，不随项目备份复制机器配置。重启核查启动／停止收据，不重跑；无完整停止证据保留 unknown 和统一占用，核查按钮仅更新实际输出，不按PID消失消除未知。独立恢复副本保留历史但不控制原进程；真实两域宿主接线仍须先合入Agent仓储增量。
+运行写入项目 `program_runs`；公共容器链明确为v4→v5 delegations→v6 program_runs，每步保护原版本并在事务内建表／推进版本，保留授权和两域历史。旧未发布的program-only v5隔离profile不属于这条支持入口，保留原件供明确转换或重新建隔离样本，不按表猜历史或删除数据。环境及授权保存应用私有 `programs/environments.json`，不随项目备份复制机器配置。重启核查启动／停止收据，不重跑；无完整停止证据保留 unknown 和统一占用，核查按钮仅更新实际输出，不按PID消失消除未知。独立恢复副本保留历史但不控制原进程；宿主已组合真实HarnessRecords、ResearchRecords和ProgramRecords恢复，原快照适配条件已移除。
 
 后台移交先核对资格、保存人类授权，再同步接管；backgroundOwner.state区分authorized／active／failed，完成收据写入失败单列outcomeUnknown。环境配置读写均限4MiB，活动项为回执及恢复诊断预留元数据容量；容量不足不丢弃原计划、授权或可用状态。准备先保存意图再派发，回执不明按原操作身份核查，拒绝重复准备。旧近上限配置可先恢复查询并保留原文件，未腾出容量前新写明确tooLarge。程序时限以单调时钟分段调度，超过原生timer的2147483647ms边界仍等待完整时限，null无总期限。
 
-KernelApplication为harness仅装配同源 `ProgramToolsPort`，不传人工登记、批准环境或后台移交入口；这些动作继续由人类产品端口承担，broker和领域层分别核对权限。普通程序 `started` 只表示启动，退出码与完整 `stopped` 分别记录；环境ready由环境模块确认，应用级ready监督另由生态提供。程序运行tab已在当前树消费公共基线，任务／委派私有业务尚未合入；联合tab／两域业务恢复不由公共表结构或补丁上下文检查代替验收。
+KernelApplication为harness仅装配同源 `ProgramToolsPort`，不传人工登记、批准环境或后台移交入口；这些动作继续由人类产品端口承担，broker和领域层分别核对权限。普通程序 `started` 只表示启动，退出码与完整 `stopped` 分别记录；环境ready由环境模块确认，应用级ready监督由生态提供。任务／委派／programs完整提供者已在共同基线接入，真实联合操作仍按对应测试及交付证据验收，不由公共表结构或补丁上下文检查代替。
+
+受管退出诊断复用IPC failure detail及现有错误消息，末行JSON保留instanceId（最多256字符）、controller code／signal、stoppedReceived、native最后状态及退出结果、固定reason。原生状态P／R／E／invalid分别表示已报告PID、已确认准入、明确失败、无效状态；unobserved表示没有取得状态。controller被杀时只保留此前观察，不推断native已退出。诊断不包含env／argv／entry／RPC正文或私有bootstrap，不改变停止证明、unknown、占用或时限。定向入口为platform-processes及managed-commands的故障用例；历史nativeTeX首次unknown仍无根因结论。
 
 诊断先区分发送、受理、环境检查、准入／启动、执行、停止与结果刷新；读取 run 的phase/error/stop/exit、环境计划及实际输出依据。内核定向入口：`program-runs.spec.ts`、`program-runtime.spec.ts`、`program-environments.spec.ts`、`managed-commands.spec.ts`；双宿主入口 `tests/ui/program-runs.spec.ts`。实际覆盖与跨线未决见[本变更交付](../openspec/changes/add-project-program-runs/delivery.md)。
 

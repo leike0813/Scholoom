@@ -10,12 +10,29 @@ let stopping: Promise<void> | undefined;
 let pending = 0;
 let moduleReady = false;
 const startupFrames: object[] = [];
+let nativeStatus = 'unobserved';
+let failureReason: string | undefined;
+
+function detail(): string {
+  return JSON.stringify({
+    native: {
+      lastStatus: nativeStatus,
+      code: execution?.exitCode ?? null,
+      signal: execution?.signalCode ?? null,
+    },
+  });
+}
+
+function fail(reason: string) {
+  failureReason ??= reason;
+  send({ type: 'failure', reason: failureReason, detail: detail() });
+}
 
 function deliver(value: object) {
   execution?.send(value, (error) => {
     pending--;
     if (error) {
-      send({ type: 'failure' });
+      fail('executionSendFailed');
       void stop();
     }
   });
@@ -76,11 +93,15 @@ function stop(): Promise<void> {
     }
     if (process.connected)
       await new Promise<void>((resolve) => {
-        process.send?.({ type: 'stopped' }, () => resolve());
+        process.send?.({ type: 'stopped', detail: detail() }, () => resolve());
       });
     if (process.connected) process.disconnect();
   })().catch(() => {
-    send({ type: 'failure' });
+    fail(
+      execution && (execution.exitCode !== null || execution.signalCode !== null)
+        ? 'nativeScopeExit'
+        : 'nativeStopUnconfirmed',
+    );
     process.exitCode = 1;
     if (process.connected) process.disconnect();
   });
@@ -147,25 +168,32 @@ process.on('message', (value: unknown) => {
             const line = status.slice(0, end);
             status = status.slice(end + 1);
             if (line.startsWith('E ')) {
-              send({
-                type: 'failure',
-                reason: 'nativeScopeUnavailable',
-                detail: line.slice(2, 130),
-              });
+              nativeStatus = 'E';
+              fail(
+                line === 'E native scope unavailable'
+                  ? 'nativeScopeUnavailable'
+                  : line === 'E native execution startup failed'
+                    ? 'nativeExecutionStartupFailed'
+                    : line === 'E native process control unavailable'
+                      ? 'nativeControlUnavailable'
+                      : 'nativeStatusInvalid',
+              );
               void stop();
               return;
             }
             if (line.startsWith('P ') && !pid) {
               pid = Number(line.slice(2));
               if (!Number.isSafeInteger(pid) || pid <= 0) throw new Error('Invalid execution PID.');
+              nativeStatus = 'P';
               arm();
             } else if (line === 'R' && armed && !loaded && !stopping) {
+              nativeStatus = 'R';
               loaded = true;
               child.send(
                 { type: 'load', entry: message.entry, env: message.env ?? {} },
                 (error) => {
                   if (error) {
-                    send({ type: 'failure' });
+                    fail('executionLoadFailed');
                     void stop();
                   } else send({ type: 'ready', identity: { pid, instanceId } });
                 },
@@ -173,7 +201,8 @@ process.on('message', (value: unknown) => {
             } else throw new Error('Native execution ownership unavailable.');
           }
         } catch {
-          send({ type: 'failure' });
+          nativeStatus = 'invalid';
+          fail('nativeStatusInvalid');
           void stop();
         }
       });
@@ -201,7 +230,7 @@ process.on('message', (value: unknown) => {
         } else if (loaded) send({ type: 'frame', value: payload });
       });
       child.once('error', () => {
-        send({ type: 'failure' });
+        fail('nativeSpawnFailed');
         void stop();
       });
       child.once('disconnect', () => {
@@ -221,7 +250,7 @@ process.on('message', (value: unknown) => {
       else startupFrames.push(message.value ?? {});
     } else throw new Error('Invalid controller state.');
   } catch {
-    send({ type: 'failure' });
+    fail('controllerFrameInvalid');
     void stop();
   }
 });

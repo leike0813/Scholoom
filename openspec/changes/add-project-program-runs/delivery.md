@@ -2,9 +2,9 @@
 
 ## 当前状态与成果
 
-2026-10-26，继续原树与同一change。主线已复验关闭C1—C3，将公共切片接入dev，并完成本树安全同步；本轮已明确恢复。当前HEAD为91615d58719f792dba8f9c311e9f13350de1c42f，0519904（含b838402）为祖先，恢复只读核对工作区干净。原成果保留于本地WIP检查点及 `/tmp/scholoom-sync-recovery-wyn13R/project-execution/files/`，本轮唯一源码工作点为当前树，不再制作临时源码组合。第8组记录同步后的实际消费；任务／委派私有提供者合入、历史CI／Windows和整个change最终交付仍按实际条件开放。
+当前有界续做起点为1026796d854b8f568c3e819f13268a9638980bc1，工作区干净。主线已保全本线成果、合入dev并快进同步全部七域实现，证据为 `/tmp/scholoom-round5-acceptance-WBreMJ/{acceptance.md,synchronized.json}`。TaskRef／TaskPanel／TaskPort、真实HarnessRecords委派恢复和programs均已在本树，旧“缺私有提供者／等同步”条件失效。只推进8.4真实联合及第9组退出诊断；历史记录保留，不重用旧累计patch或替代提供者。C1—C3、统一v6及其他域接线保持，Windows／历史CI及整个change最终交付仍开放。
 
-同步证据：`/tmp/scholoom-sync-recovery-wyn13R/recovery.md`、`synchronized.json`及本线构建／测试日志。主线在本树先构建后验收内核65项及双宿主2项通过；这是同步与已有切片证据，不替代本轮新变化验收。公共命令观察／长时限、Graph来源／执行历史及v5 delegations→v6 program_runs已真实同步，旧公共patch仅为历史工件，不再次交付为新增量。用户允许本地补丁／提交；继续禁止推送、PR、归档、新依赖、真实库和常驻开发服务器。
+第三轮同步证据仅保留当时结果：`/tmp/scholoom-sync-recovery-wyn13R/recovery.md`、`synchronized.json`及当时日志（主线65项内核／双宿主2项），不替代最新A/B验收。旧公共及累计patch均为历史工件，已合入共同1026796，不再次应用。用户允许本地补丁／提交；继续禁止推送、PR、归档、依赖下载／安装、真实库和开发服务器。
 
 ### 首轮实施记录（保留历史证据）
 
@@ -190,3 +190,44 @@ Linux／Node24.12.0，全部合成项目、隔离profile和输出；真实broker
 本轮tasks为25/28：4.2程序实际tab、8.1／8.2／8.3／8.5完成；8.4等待真实任务提供者，5.2历史CI／Windows诊断及6.2整个change最终交付继续开放。主线后续须在正式接入任务／委派业务时按符号组合并验联合路径，不把05／06上下文检查认作完成I1—I6或整个change。原始CI根因、Windows／macOS分发、全仓CI、真实科研质量、公网registry均无本轮新增通过结论。
 
 达到本轮有界交回后停止；本轮未提交、推送、PR、归档、安装新依赖或操作真实用户库／其他真实树。现有原成果及文献4份工件保持保留，不自动展开下一阶段。
+
+## 第五轮：真实task／programs联合与公共退出诊断
+
+### 已完成范围
+
+起点1026796d854b8f568c3e819f13268a9638980bc1，git status干净；正式输入为 /tmp/scholoom-round5-acceptance-WBreMJ/{acceptance.md,synchronized.json}、本树并行计划“共同领域实现接入后的真实整合”及材料delivery“第四轮：主线验收反馈与一次进程观察”。旧缺TaskRef／TaskPanel／委派提供者条件已解除，全部实施基于当前正式源码，未操作其他树或应用旧累计补丁。
+
+**A／8.4完成。** tests/ui/program-runs.spec.ts沿真实用户入口读取公开任务文件、编辑并保存入口正文、关联并打开过程材料，同时运行固定2／4／6 Node程序并打开真实CSV。任务tab和程序tab并存；共同编辑器未保存正文经程序tab切换保留，保存后实际文件及任务重读一致。两种项目草稿在切项目和刷新后分别恢复；另一个项目不出现原任务／程序配置。第二窗口读取同一任务和持久运行身份，取消后两窗口均刷新已取消。人工路径无会话／模型，无替代TaskPort、无强制任务绑定，无需修改生产UI接点或任务组件。
+
+本树 program-migration-composition.spec.ts已直接导入真实HarnessRecords，随本轮内核通过，验证真实委派／programs仓储分别恢复副本、引用重绑、源授权和记录保护；没有旧环境变量跳过或外部快照适配。宿主丢失、恢复副本无控制身份／原unknown统一名额、父收尾及C1—C3相关边界保持通过。没有修改共享runtime的根工具、构造参数、TaskResearchPort、FileEdit来源、三域restore或统一v6，也没有回退题录选择、M3或图片消费者。
+
+**B／最小公共诊断完成。** 仅改 packages/platform/src/{processes,process-controller}.ts：原IPC failure detail及stopped消息携带有界native状态／退出结果；ManagedNode把instanceId、controller code／signal、stoppedReceived、native最后状态／code／signal及固定reason写入现有错误消息末行JSON。启动失败在原stop结束后刷新最终诊断、保留原错误码；停止未确认仍抛原outcomeUnknown并保留容量。JSON只含窄观察字段，不含env、argv、入口、RPC正文、stack或私有bootstrap；没有ErrorInfo新字段、新状态、框架、重试或时限变化。
+
+controller SIGKILL时只有此前R／ready可知，native code保持null，不把控制器退出或根PID消失当作停止。native失败与controller最终退出码分别表达：受控native exit23对应controller1／未收到stopped／unknown占用；E后原路径确认停止则controller0／native0／stoppedReceived=true，但启动仍unavailable。历史nativeTeX首次unknown仍无根因证据；本轮没有重复运行该排版测试，也不据固定反例宣称修复历史问题。
+
+### 实际验证与首次失败
+
+Linux，既有Node24.12.0和锁定工作区依赖；pnpm各命令显式 --config.optimisticRepeatInstall=false。先完成shared／desktop构建，审查修复后再构建受影响platform，然后运行最终测试；没有在测试期间重建产物。未下载或安装依赖，旧真实uv安装用例显式排除，本轮不扩环境能力。
+
+| 实际命令／操作 | 结果与精确证据 |
+| --- | --- |
+| pnpm --config.optimisticRepeatInstall=false build:shared；同配置 --filter @scholoom/desktop build | 通过，/tmp/project-execution-round5-build-first.log、/tmp/project-execution-round5-desktop-build.log；审查修复后 --filter @scholoom/platform build 通过，/tmp/project-execution-round5-platform-final-build.log |
+| pnpm --config.optimisticRepeatInstall=false -r typecheck；tools tsc | 全工作区初版类型检查通过，修复后的platform构建含tsc且最终tools检查通过；/tmp/project-execution-round5-typecheck.log、/tmp/project-execution-round5-tools-final.log |
+| 初版已构建诊断反例：platform-processes --grep 'native scope' | **1通过1失败**，明确暴露启动错误保留收尾前快照：E后实际退出0，错误仍显示stoppedReceived=false、native code=null。/tmp/project-execution-round5-diagnostic-red.log、test-results/program-round5-diagnostic-red/trace保留；这是本轮审查P2的红证据，不是历史TeX复现 |
+| node node_modules/@playwright/test/cli.js test --config playwright.kernel.config.ts tests/kernel/{platform-processes,managed-commands,process-admission,command-observation,program-runs,program-runtime,program-migration-composition,project-recovery}.spec.ts --grep-invert 'manual host prepares an authorized locked wheel' --output test-results/program-round5-kernel-first | **57/57通过**，1.7m，/tmp/project-execution-round5-kernel-first.log。包括上述两项修复后通过、真实controller丢失保留名额、成功停止code0、长时限、实际输出与后代、Agent／人工同一事实、C1移交竞态／存储失败、父收尾及真实两域恢复，无快照跳过 |
+| program-environments.spec.ts --grep 'aggregate plan capacity\|preparation intent survives\|near-limit pre-reservation'，output test-results/program-round5-capacity | **3/3通过**，/tmp/project-execution-round5-capacity.log；C2总容量／意图／近上限恢复，无安装动作 |
+| xvfb-run -a，SCHOOLOOM_TEST_ROOT=本树，SCHOOLOOM_UI_PORT=5645，SCHOOLOOM_UI_DATA_DIR=/tmp/scholoom-project-execution-round5-lJI3yA/ui-first-profile；Playwright --config /tmp/scholoom-project-execution-round5-lJI3yA/ui.config.mts tests/ui/program-runs.spec.ts | **Browser／Electron首跑2/2通过**，25.2s／32.2s，原90s测试时限未改。/tmp/project-execution-round5-ui-first.log；结果及截图在/tmp/scholoom-project-execution-round5-lJI3yA/ui-first-results |
+| architecture／生成／格式 | 14模块／247文件、0 findings／0豁免，/tmp/project-execution-round5-architecture.log；原生成器self-test及8份最终schema映射格式归一一致，/tmp/project-execution-round5-generation.log。5份改动源码Biome退出0，保留原9条warning，/tmp/project-execution-round5-biome-final.log |
+| OpenSpec／diff | 本change strict及scholoom-dev schema、git diff --check最终核对；没有修改正式规格或归档，设计原图与不变的停止状态／时序人工核对，未另渲染图 |
+
+UI全程使用已有静态HTTP承载 /tmp/scholoom-sync-recovery-wyn13R/static-ui.mjs、原kernelBootstrap中间件和已构建renderer，不启动Vite开发服务器。profile、库、两项目和输出隔离；登记项目位于Playwright结果目录，保留至共享配置退役，没有删除目录留下登记。测试夹具正常关闭所属窗口／内核及承载，结束5645无监听；没有收尾其他进程。
+
+替身边界：A内部任务、programs、broker、文件、SQLite、Node、资源打开和双宿主都真实；无模型。内核Agent用例仅外部模型为loopback受控HTTP。C2沿既有EnvironmentPorts的确定性执行替身，配置写入及重启读取真实，不验安装。两项native失败诊断仅把隔离副本内的原生可执行文件替换为固定shell协议，controller／IPC／容量真实；真实控制器SIGKILL、成功停止及程序后代仍沿实际原生后端。没有真实用户库、凭据、联网模型或公网registry操作。
+
+### 审查、补丁和剩余任务
+
+辅助Beauvoir（gpt-6.1-sol/high）仅扩展一份UI回归，未构建／测试／改生产实现。Raman独立只读审查发现上述P2；在修复后的processes／controller及参数化用例上追加复核认为已闭合，未发现新增确证问题，未代跑验收。主代理核对红证据、最终全部结果及不变停止判据后接受A/B切片。两者均已结束，不建立协调Agent或DAG。
+
+交回目录 /tmp/scholoom-project-execution-round5-lJI3yA/：01-public-process-exit-diagnostics.patch只含两个公共源码及直接过程／命令测试；02-task-programs-joint-regression.patch只含真实联合UI回归；03-openspec-and-documentation.patch含本change及必要开发说明。README／manifest列基线、依赖和替身。全部是1026796后的增量，在本树仅反向git apply --check核对，未应用或回滚，不含旧累计实现或新提供者。
+
+本轮8.4、9.1—9.3完成，tasks为29/31；5.2历史CI／Windows身份与阶段证据、6.2整个change最终交付继续开放。历史nativeTeX unknown、公网准备、Windows／macOS实际分发、全仓CI及真实科研质量没有新增通过结论。达到用户A/B有界切片后停止，不提交／推送／PR／归档、同步其他树或展开环境新特性。
