@@ -46,7 +46,10 @@ try {
         session.close();
         await new Promise(() => {});
       }
-      if (method === 'wait') return new Promise(() => {});
+      if (method === 'wait') {
+        await callback('sample.read', value);
+        return new Promise(() => {});
+      }
       throw new Error('fixed unknown method');
     },
     async shutdown() {

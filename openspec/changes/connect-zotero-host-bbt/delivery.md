@@ -1,6 +1,46 @@
 # 实际交付与交接
 
-## 当前交付：明确原值选择与独立题名更正（R8）
+## 当前交付：E4断联写入夹具送达边界（R9）
+
+基线及当前HEAD为`0b788151b5e17665a26d9286dfd1d12f6e2e0c30`，开始时clean。本轮按“第八轮验收后的收敛安排”只处理Windows host-connection:159的取证与夹具因果；原R8已接收，GUI由文献消费。R9三项完成后累计24/33，其余原任务及跨平台／生产／整体I6保持开放。本节替代旧轮的当前状态，不应用历史累计patch或修改已接收原值API。
+
+### 原始失败与校准结论
+
+已只读核对本仓Checks `40447074031`／b2f3b50，Windows job `122000779926`，artifact `12710309824`。证据在`/tmp/scholoom-zotero-r9-ci-jLNM0gAs/`；目标trace为`baseline/kernel/host-connection-transport--4a66c-ion-or-replay-it-on-restart/trace.zip`，提取事件、原job日志及evidence-manifest.json同目录。trace只记录unresolved轮询通过及写请求拒绝码unavailable，缺host.invoke派发／宿主接收、落盘及原错误消息事件，不能把它写成Windows已派发写入被错误分类的证明。
+
+源码核对`HostConnection.call`与`RpcPeer.request/close`：未决身份先同步入内存，写请求等待save后才request；drop为读，不等待该保存。RpcPeer已关闭时拒绝新请求为unavailable；待决写请求的lossCode才是outcomeUnknown。因此原测试的内存轮询不证明写请求已发出。保守未决身份仍须保留，不能因错误码unavailable就自动重放或清除监督记录。
+
+Linux既有真实固定host校准保存在`/tmp/scholoom-zotero-r9-calibration/before-dispatch.mjs`及`.log`：仅对该实例save增加一次诊断调度gate，在实际保存／request前停住；旧轮询条件已满足，此时先drop，放行save后得到`unavailable / RPC连接已关闭`。随后实际scopeStopped=true、pluginClosed=false、unknown及原稳定关联保留。内部WS、ManagedCommands、原生归属、RPC和磁盘写入真实；该gate不是Windows时序测量或正式回归，也没有新增生产钩子。它证明原断言允许一个未派发顺序；原Windows trace缺失的顺序仍不能反推。临时脚本生成器首次因未导入join失败，未启动宿主；改由内置工具落稿后实验一次通过，未删除临时目录。
+
+### 实际修正与范围
+
+- `tests/fixtures/zotero-host/fixed-host.mjs`：既有wait在进入invoke后先await已有sample.read回调，再保持不完成；不增加公共方法、假结果或睡眠。
+- `tests/kernel/host-connection.spec.ts`原失联用例：先断言未ready调用为unavailable且unresolved为空，再用相同稳定身份开始真实写请求；等待实际回调携带原caller到达，读取已持久的监督关联后才drop。原outcomeUnknown、unknown／完整原生停止及重启不重放断言保留；新mutation-loss.json保留实际caller、持久意图及关闭事实。
+- 仅更新本change的design/tasks/delivery。`HostConnection`、broker、schema、kernel生命周期、期限／容量／回调收尾、原值API、harness及UI均未改。既有“独立认证及操作范围的公共监督”规格已要求未知保留与不重放，本轮无新行为或规格增量。
+
+### 实际验证与首次结果
+
+Node24.12.0，Linux本机；先用已有tsc构建kernel，再测试，测试期间未重建。构建按原脚本复制migration和architecture到ignored产物，没有依赖安装或开发服务器。
+
+| 检查／命令 | 实际结果及证据 |
+| --- | --- |
+| baseline构建后原用例单跑 | 1/1通过，1.8秒；`/tmp/scholoom-zotero-r9-baseline-{build,tests}.log`。Linux原例偶然通过不否定CI失败或其因果缺口 |
+| 新报到断言先跑旧fixture | 预期1失败，6.1秒，caller为undefined；`/tmp/scholoom-zotero-r9-receipt-red.log`及`-receipt-red-results/`保留。证明原fixture无实际送达报到，不是生产错误分类修复的红例 |
+| 最终kernel build及tools类型 | `node_modules/.bin/tsc -p apps/kernel/tsconfig.json`与`tsc --noEmit -p tsconfig.tools.json`均0退出；final-build.log／tools-types.log |
+| 定向监督 | `node_modules/.bin/playwright test --config playwright.kernel.config.ts tests/kernel/host-connection.spec.ts --workers=1 --output=/tmp/scholoom-zotero-r9-final-results`：24/24通过，31.5秒；final-tests.log。覆盖修正用例、同身份重复写、正常关闭、回调超时仍跟踪／占容量、恢复与私有启动撤权等已有代表边界 |
+| 格式／语法／架构／OpenSpec／diff | Biome两文件0警告，fixed-host的node --check通过；架构14模块253文件0发现，strict及git diff --check通过。无schema变化，不重生映射；未重跑BBT或TeX |
+
+上述日志统一前缀`/tmp/scholoom-zotero-r9-`。最终结果目录保留实际`mutation-loss.json`；受测内部固定host、认证回环WS、ManagedCommands、OS原生归属及监督文件均真实，固定host的wait不完成／drop断联是明确故障夹具，没有文献库或模型替身。唯一诊断调度gate仅存在临时校准脚本，正式回归不靠它。测试与实验均收尾自己创建的执行，隔离目录保留。
+
+### CI截点、审查及交回
+
+只读辅助Agent（gpt-6.1-sol/high，fork_context:false）只做本仓CI／artifact取证，主Agent抽查trace的poll／拒绝事件及manifest；代码和验证由主Agent完成。自查确认wait只用于当前失联和同身份重复写场景，callback沿原handle、scope及可信context核对；没有放宽未知／停止／容量保证。本轮不需要新的产品或架构选择。
+
+CI查询截点为2026-10-27 05:35:33 UTC：Checks `40454653610`／0b78815仍in_progress，Windows job `122025046610`仍test:kernel；Windows diagnosis `40454653566`已成功，但实际命令未运行host-connection.spec.ts，artifact `12711359112`也无此例trace。均不计修正后Windows通过。已完成基线仍按用户给出的b2f3b50记录：Linux734通过1失败23跳过，Windows715通过4失败39跳过，macOS人工UI13通过1失败；本轮未触发CI或等待其他线。
+
+本地增量及日志清单在`/tmp/scholoom-zotero-r9-handoff-Zgn8sR/`，`fixture.patch`依赖当前0b78815及其真实公共监督，不是旧累计patch；包含两份测试工件和本change三份文档，反向git apply --check只读核对。Windows需主线将此增量接入后按同一有界场景真实复验；当前只能交回可核查的夹具修正，不能关闭该目标平台失败或整体E4／I6。没有真实用户库、BBT／TeX、文献UI、安装／下载依赖、提交／push／PR／归档或跨树操作。
+
+## 已接收：明确原值选择与独立题名更正（R8）
 
 2026-10-27，基线及当前HEAD为`8a2f0ce522dfbab4110e63e84e542f6660e6115e`，本轮开始时clean。已按用户D1–D3直接实施隔离内核／Agent片；不再等待同步或产品选择，不应用旧累计patch。当前R8.1–R8.4完成，累计21/30；原change其余任务、完整I6、E5/E6、真实用户库和跨平台均未关闭。下文规划／等待是各轮历史，不能覆盖本节及design顶部当前DTO。
 
