@@ -1,5 +1,17 @@
 # 实现设计
 
+## 938c33f后的5.4a真实进程消费者
+
+主线已选定并同步A，当前源码938c33f且开工前clean；配置不再等待方案。本片仅修改原`tests/ui/zotero-original.spec.ts`及原工件，复用现有构建，不改共享helper／生产CLI／UI组件。
+
+准备阶段用真实KernelApplication建立隔离共同库／期刊／键并核默认缺配置拒绝；关闭准备app后调用`startIsolatedKernel(profile, configuration)`。全部后续断言改用返回client的真实RPC；原记录／历史读取随当前client更新，不重新打开已关闭的准备仓储。既有bootstrap代理保持相同origin，只转交当前helper实际endpoint；每次新endpoint重新安装原传输门，不创建第二个server／provider／launcher。
+
+已提交题名回执丢失与未送达请求分别保存本地冻结pending及dirty CSL；调用helper.stop（绑定原instanceId）并等待自有exited，再向同一库显式注入同一原包配置启动新进程。核PID／runtime instanceId更换、实际libraryId不变，原窗口／origin不变，reload后pending的identity／revision／requestId／title不变。前者只读查committed、后者只读查notFound且仍待核查；原值／正式键／历史及CSL旧保存依据不变，传输观察不得出现额外replaceTitle。
+
+缺配置在准备app真实核unavailable；当前进程查询错误libraryId及撤read分别拒绝，不作notFound。最后用错误绑定配置真实再启动一进程，GUI对原pending查询必须显示unavailable并保留冻结请求；对错配实例的匹配请求另核instanceMismatch。所有操作仍经原权威，不代写回执。场景继续原90秒预算，不改生产期限，若出现未闭合阶段先保留首个失败再诊断。
+
+已有shared／desktop／host构建由主线在本树同步复验，本片只改测试无需重建。最小验证为tools类型及Biome、原单个zotero-original双宿主场景（真实Linux受管Electron／BBT9.0.68原包）；不重跑14UI或旧macOS列表。停止仍等待自身child退出、CLI status核对，不能使用重新发现的CLI stop。A只证明可信测试父每次显式注入的serveKernel进程路径，B标准CLI持久恢复继续未提供。
+
 ## 第十轮主线：测试侧可信进程提供者
 
 主线选择并交付下述A的测试侧边界：`tests/isolated-kernel.ts::startIsolatedKernel(directory, configuration)`及私有IPC入口`tests/fixtures/isolated-kernel-process.mjs`。调用者先准备并关闭隔离库，每次启动显式传同一IsolatedZotero；子进程调用真实serveKernel，父端核ready对应自身PID并持有development owner。返回实际endpoint、client、child、exited及stop，不增加生产配置或协议。

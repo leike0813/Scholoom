@@ -135,6 +135,11 @@ stateDiagram-v2
 - **WHEN** 原值题名请求失联或结果不明，用户重载或重开详情
 - **THEN** GUI SHALL 保留原requestId及提交输入，只读查询原结果，不自动重放；notFound不得解释为安全重试，迟到结果只归原对象，明确冲突保留题名及CSL草稿
 
+#### Scenario: 可信隔离配置显式注入后的内核进程重启
+
+- **WHEN** 同一隔离库由可信测试父进程在确认原内核退出后显式注入原配置启动新内核，原工作台窗口和origin保持
+- **THEN** GUI SHALL 保留冻结来源identity、原revision、requestId及未保存CSL，重新读取原稳定结果而不重放；committed与notFound分别呈现，缺配置／错误库绑定／撤销read不得解释为notFound或自动改绑。此场景不代表普通CLI配置持久恢复
+
 ```mermaid
 stateDiagram-v2
   [*] --> clean

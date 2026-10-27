@@ -1,5 +1,41 @@
 # 实际交付与交接
 
+## 2026-10-28：938c33f的5.4a真实进程重启验收
+
+本轮HEAD`938c33f2c9fcafb2cce11b0c165b2fb1e9a818c3`，开工前clean，未改变。主线已选择并同步A及独立审查后的共享helper，本线完成**5.4a，25/30**，不再等待配置方案；完整4.1／4.2、1.4、6.1／6.2及I6／E6不关闭。未修改生产源码、共享helper、CLI配置或其他线符号，未安装依赖、启动开发服务器、操作真实库／其他树或提交／推送／PR／归档。
+
+### 接线及成果
+
+只改`tests/ui/zotero-original.spec.ts`及原change的design／investigation／tasks／delivery／literature-catalog delta。准备app建立真实隔离共同库／期刊／键并核默认缺配置拒绝后关闭；随后使用已同步startIsolatedKernel，全部记录、历史、更正及授权检查都走当前RPC client。移除直接startKernelServer及合成runtime身份路径，不新造server／provider／launcher。原bootstrap代理只返回当前实际endpoint，保持相同origin及窗口；新WS URL安装原传输门后reload。
+
+每宿主四个真实内核进程：首次正确配置、已提交回执丢失后的正确配置重启、未送达后的正确配置重启、错误库绑定重启。helper.stop绑定原instanceId，等自有child close再CLI status；本线未调用重新发现的CLI stop或修改共享停止规则。实际原包命令仍为xvfb／Electron及未改BBT9.0.68，模型无需参与。
+
+committed／notFound各自跨真实停止、退出及同库显式注入重启；冻结libraryId／sourceId／来源identity／原revision／requestId／title和完整dirty CSL保持。查询committed后实际保存CSL仍以旧revision被contentChanged拒绝，未静默rebase。notFound后pending及禁提交状态保留，无重放。每宿主五次明确title请求、四次转发（含一次CAS拒绝）、三次提交，其他原值／正式键／固定状态及历史不污染。
+
+缺配置在准备app核unavailable；当前RPC的错误库请求、撤read分别拒绝；真实错误绑定重启后GUI对原pending查询显示unavailable，匹配错误配置ID的请求返回instanceMismatch。均不作notFound，也不改冻结请求适配配置。该区分是实际验收边界，不冒称已执行无配置普通CLI重启。
+
+### 实际验证及首轮结果
+
+证据根`/tmp/scholoom-library-process-round10/`。Linux／Node24及已有依赖；broker、SQLite／文件、运行锁／发现／内核子进程和受管原包真实。传输门只控制送达及真实成功回执丢失，不代写库回执。静态UI沿已构建产品与`/tmp/scholoom-sync-recovery-wyn13R/static-ui.mjs`，未使用开发样例或开发服务器。
+
+| 命令／依据 | 实际结果 |
+| --- | --- |
+| 主线本树同步构建：`/tmp/scholoom-round10-acceptance-j1MosP/sync-build-results.json`中literature-workbench | code=0，正式转交的literature-workbench/sync-build.log；当前kernel／desktop／host产物均存在。本片只改测试，依用户指令复用，未将其写成本轮新构建结果。运行中未重建产物。 |
+| `node node_modules/typescript/bin/tsc --noEmit -p tsconfig.tools.json`、`node node_modules/@biomejs/biome/bin/biome check tests/ui/zotero-original.spec.ts` | 首次及补强后均通过，`types-tools-first.log`／`lint-first.log`、`types-tools-final.log`／`lint-final.log`。无生产／schema变化，不重复desktop构建或生成映射。 |
+| `SCHOOLOOM_BBT_XPI=<已有9.0.68 XPI> SCHOOLOOM_UI_PORT=5815 SCHOOLOOM_UI_DATA_DIR=<证据根>/profile-first xvfb-run -a node node_modules/@playwright/test/cli.js test --config <证据根>/ui.config.mts tests/ui/zotero-original.spec.ts --workers=1` | **首轮2/2，2.9分钟**，`ui-first.log`／`ui-first/`。每宿主约1.2分钟，原90秒场景预算与生产期限未变；本轮无首次业务失败，不制造RED或覆盖首轮结果。 |
+| 同一场景，5817／profile-final，附`--output <证据根>/ui-final` | **最终2/2，2.9分钟**，`ui-final.log`／`ui-final/`。独立审查后补查询完成时的CSL旧依据和真实CAS拒绝才复验，并非无变化重跑。每宿主original-actions.json保留四个实际PID／runtime instanceId、请求／错误及冻结草稿。没有重跑14UI、旧macOS列表或已绿helper窄测试。 |
+| OpenSpec strict、scholoom-dev schema、当前apply instructions、diff及增量patch核查 | 通过，`openspec-*.log`／`apply-final.json`／`diff-check.log`／`patch-check.log`。CLI进度25/30不代表整个change或平台完成。 |
+
+原生辅助Agent遵用户gpt-6.1-sol／high、fork_context:false，仅只读核helper／UI接点及最终测试。其确证遗漏是committed查询后的CSL依据尚未独立核对，原断言可能漏静默推进；父Agent补实际旧revision保存拒绝，以及notFound后与同一原始CSL比较。辅助确认静态遗漏闭合，最终实跑由父核验；辅助已关闭。没有共享IPC／配置新缺口需要本轮另行定案。
+
+### 交回与边界
+
+CI输入沿8c2fd24／40479176954及4312262文档差异run分别表达，不从数量差异推同因果。只读新Checks40540362614确认head938c33f，截点整体与Linux／Windows内核仍in_progress、macOS job成功，`ci-observed.json`保留实际结果；未触发CI、等待其他线或据本机GUI关闭目标平台。
+
+本轮结果目录内原包／隔离库／登记项目保留；helper stop／child close、proxy／Electron均由夹具收尾，普通静态profile由既有teardown确认stopped后退役。5815／5817无监听，无本轮后台写树任务。相对938c33f的本线增量为`<证据根>/restart-gui.patch`，只含原测试及原change工件，不含公共helper或旧累计补丁。
+
+A证明可信测试父每次显式注入的serveKernel进程路径，**不代表B标准CLI配置持久恢复**；默认生产不可用／Mac受管执行不可用保持。没有新增Windows／macOS原包、分发包、真实模型／科研质量或后续业务批次结论，达到本片边界后停止。
+
 ## 第十轮主线：解除测试侧进程提供者前置
 
 主线接受下节的配置缺口调查，选择仅测试侧A，交付`tests/isolated-kernel.ts`、`tests/fixtures/isolated-kernel-process.mjs`与`tests/kernel/isolated-kernel.spec.ts`。真实serveKernel／锁／发现及development owner沿原实现，每次启动仅由可信父经私有IPC传入现有IsolatedZotero；没有生产CLI配置加载或第二server。
