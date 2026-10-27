@@ -44,14 +44,14 @@ test('the trusted provider seam keeps instruction sets and rejects facts from an
         parentRunId: 'r',
       },
     };
-    expect(app.bind(context)).toMatchObject({
+    await expect(app.bind(context)).resolves.toMatchObject({
       instanceId: 'child',
       instructionContext: { state: 'observed', instructionIds: ['first', 'second'] },
       tool: { state: 'unknown' },
       delegation: app.facts.delegation,
     });
     app.facts = { ...app.facts, instanceId: 'other' };
-    expect(() => app.bind(context)).toThrow(expect.objectContaining({ code: 'instanceMismatch' }));
+    await expect(app.bind(context)).rejects.toMatchObject({ code: 'instanceMismatch' });
   } finally {
     await app.close();
   }
@@ -107,6 +107,75 @@ test('human saves, resource creation and whole-edit undo expose the actual edit 
     await app.close();
   }
 });
+
+for (const change of ['cancel', 'revoke'] as const) {
+  test(`waiting for real execution facts does not permit a save after ${change}`, async () => {
+    const root = test.info().outputPath('origin-await');
+    let reached!: () => void;
+    let resume!: () => void;
+    const reachedPromise = new Promise<void>((resolve) => {
+      reached = resolve;
+    });
+    const resumePromise = new Promise<void>((resolve) => {
+      resume = resolve;
+    });
+    class WaitingApplication extends KernelApplication {
+      protected override async executionFileFacts(context: CallContext) {
+        const facts = await super.executionFileFacts(context);
+        reached();
+        await resumePromise;
+        return facts;
+      }
+    }
+    const model = await createModelServer({
+      respond: ({ calls }) =>
+        calls.includes('write_file')
+          ? { text: 'The rejected write remains unfinished.' }
+          : {
+              tool: {
+                name: 'write_file',
+                input: { file_path: 'blocked.md', content: 'Must not publish.' },
+              },
+            },
+    });
+    const app = new WaitingApplication(join(root, 'profile'), {
+      modelEndpoint: model.url,
+      environment: { MINIMAX_CN_API_KEY: 'synthetic' },
+    });
+    try {
+      await app.initialize();
+      const project = await app.call('project.create', {
+        path: join(root, 'project'),
+        trust: 'trusted',
+      });
+      const session = await app.call('session.create', { projectId: project.id });
+      const scope = { projectId: project.id, sessionId: session.id };
+      await app.call('session.send', {
+        ...scope,
+        instructionId: randomUUID(),
+        text: 'Save blocked.md.',
+        materials: [],
+      });
+      await reachedPromise;
+      if (change === 'cancel') app.harness.cancel(project.id, session.id);
+      else app.projects.get(project.id).grant({ trust: 'restricted', autoBackup: false });
+      resume();
+      await expect
+        .poll(async () => (await app.snapshot(scope)).run?.state, { timeout: 20000 })
+        .not.toMatch(/^(queued|running|cancelling)$/);
+      await expect(readFile(join(project.path, 'blocked.md'))).rejects.toMatchObject({
+        code: 'ENOENT',
+      });
+      expect(
+        app.projects.get(project.id).database.prepare('SELECT count(*) AS n FROM edits').get(),
+      ).toMatchObject({ n: 0 });
+    } finally {
+      resume();
+      await app.close();
+      await model.close();
+    }
+  });
+}
 
 test('file changes keep a bounded cursor window and report pruned anchors', async () => {
   const root = await mkdtemp(join(tmpdir(), 'scholoom-file-window-'));

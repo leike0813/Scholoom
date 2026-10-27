@@ -403,7 +403,7 @@ export class ManualApplication {
         this.checkProjectScope(projectId, context);
         return this.projects.get(projectId).path(path, allowMissing);
       },
-      'project.saveFile': (
+      'project.saveFile': async (
         { projectId, path, content, basis, expectedFileId, resourceBasis },
         context,
       ) => {
@@ -411,7 +411,7 @@ export class ManualApplication {
         return this.projects
           .get(projectId)
           .save(path, content, basis, undefined, expectedFileId, undefined, resourceBasis, {
-            origin: this.fileOrigin(projectId, context),
+            origin: await this.fileOrigin(projectId, context),
           });
       },
     });
@@ -759,13 +759,15 @@ export class ManualApplication {
   protected async projectReplacing(projectId: string): Promise<void> {
     await this.programs.releaseProject(projectId);
   }
-  protected executionFileFacts(_context: CallContext): FileExecutionFacts | undefined {
+  protected executionFileFacts(
+    _context: CallContext,
+  ): FileExecutionFacts | undefined | Promise<FileExecutionFacts | undefined> {
     return undefined;
   }
   protected checkFileHistoryContext(context: CallContext): void {
     if (context.principal.kind === 'agent') this.checkExecutionContext(context);
   }
-  protected fileOrigin(projectId: string, context: CallContext): FileEditOrigin {
+  protected async fileOrigin(projectId: string, context: CallContext): Promise<FileEditOrigin> {
     const principal = context.principal;
     if (principal.kind === 'human')
       return {
@@ -790,7 +792,8 @@ export class ManualApplication {
       !context.instanceId
     )
       throw new OperationError('permissionDenied', '文件修改来源缺少所属执行。');
-    const facts = this.executionFileFacts(context);
+    const facts = await this.executionFileFacts(context);
+    this.checkExecutionContext(context);
     if (
       facts &&
       (['projectId', 'sessionId', 'runId', 'instanceId'] as const).some(
@@ -1348,7 +1351,7 @@ export class ManualApplication {
             await this.taskOwner(input.projectId, context).create(input, {
               operationId: input.operationId,
               owner: this.creationOwner(context),
-              origin: this.fileOrigin(input.projectId, context),
+              origin: await this.fileOrigin(input.projectId, context),
               ...(context.sessionId ? { sessionId: context.sessionId } : {}),
               ...(context.runId ? { runId: context.runId } : {}),
             });
@@ -1378,7 +1381,7 @@ export class ManualApplication {
         async () => {
           const result = await this.taskOwner(input.task.projectId, context).save(
             input,
-            this.fileOrigin(input.task.projectId, context),
+            await this.fileOrigin(input.task.projectId, context),
           );
           this.changed(input.task.projectId);
           return result;
@@ -1395,7 +1398,7 @@ export class ManualApplication {
             await store.save(input.path, input.content, undefined, undefined, undefined, {
               operationId: input.operationId,
               owner: this.creationOwner(context),
-              origin: this.fileOrigin(input.projectId, context),
+              origin: await this.fileOrigin(input.projectId, context),
               ...(context.sessionId ? { sessionId: context.sessionId } : {}),
               ...(context.runId ? { runId: context.runId } : {}),
             });
@@ -1697,7 +1700,7 @@ export class ManualApplication {
       const edit = await this.projects
         .get(p.projectId)
         .save(p.path, p.content, p.basis, undefined, undefined, undefined, undefined, {
-          origin: this.fileOrigin(p.projectId, context),
+          origin: await this.fileOrigin(p.projectId, context),
         });
       this.changed(p.projectId);
       return edit;
@@ -1731,7 +1734,7 @@ export class ManualApplication {
       this.checkProjectScope(p.projectId, context);
       const result = await this.projects
         .get(p.projectId)
-        .undo(p.editId, this.fileOrigin(p.projectId, context));
+        .undo(p.editId, await this.fileOrigin(p.projectId, context));
       this.changed(p.projectId);
       return result;
     },

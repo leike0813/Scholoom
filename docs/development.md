@@ -127,7 +127,7 @@ SCHOOLOOM_UI_PORT=5343 node node_modules/@playwright/test/cli.js test --config p
 
 ## 文件修改记录与来源
 
-项目的FileEdit可包含`origin`、实际`beforeEvidence/afterEvidence`及撤销的`revertsEditId`，和正文历史同事务登记。宿主从实际CallContext绑定人工／系统身份或活动执行的project/session/run/instance；额外的`fileExecutionFacts`注入只接受与执行四元组匹配的可信提供者事实。未接入真实指令／委派提供者时不补造记录，精确tool始终unknown；普通保存参数不接受来源。旧历史没有origin即未知，外部未登记修改也不推断作者。
+项目的FileEdit可包含`origin`、实际`beforeEvidence/afterEvidence`及撤销的`revertsEditId`，和正文历史同事务登记。宿主从实际CallContext绑定人工／系统身份或活动执行的project/session/run/instance；Kernel默认经broker等待`harness.executionFacts`，只记录已核实的委派父子关系，instructionContext与tool保持unknown。额外的`fileExecutionFacts`可同步或异步注入，只接受与执行四元组匹配的可信事实。等待完成后复核执行资格，再进入projects原保存锁／CAS，不在SQLite事务等待；取消及撤权沿原授权检查。普通保存参数不接受来源。旧历史没有origin即未知，外部未登记修改也不推断作者。
 
 `files.changes({projectId,fileId,afterEditId?,limit?})`返回有界摘要和coverage，默认25，上限100；`files.edit({projectId,fileId,editId})`读取指定完整记录。续页只传cursor及limit，不再传顶层锚点；cursor固定项目／fileId、初始锚点状态、首屏保留上下界和续页位置，窗口下界被裁剪后明确失效。anchor missing、retention unknown/pruned及current changedOrUnrecorded分别表示覆盖缺口，不能把空页当完整无变化。负责Agent的`get_file_changes/read_file_edit`只读当前可信项目，子实例暂不开放任意历史正文。
 
@@ -354,7 +354,7 @@ Agent 的 `read_workbench_context` 工具按本次推进已注入的指令查询
 
 ### 有界 Agent 委派
 
-项目会话的父执行可用 `list_delegation_roles`、`delegate_agent`、`read_delegation`、`wait_delegation`、`cancel_delegation` 交接一个明确工作包。当前内置通用 `worker@1`，科研角色通过宿主源码 `delegationRoles` 注入；实际科研角色及任务关联整合仍待各自提供者。子执行使用独立受管进程，只接收工作包和所选角色指导；自己的 scratch 位于 `.scholoom/harness/sessions/<sessionId>/delegations/<delegationId>/scratch`。不导入父历史或 checkpoint，也不允许递归委派。父退出收尾未完成的子，局部取消只作用于该子；有限等待到期不取消。macOS 仍沿 `managedExecution` 明确不可用。
+项目会话的父执行可用 `list_delegation_roles`、`delegate_agent`、`read_delegation`、`wait_delegation`、`cancel_delegation` 交接一个明确工作包。当前内置通用 `worker@1`，科研角色通过宿主源码 `delegationRoles` 注入；实际科研角色仍待提供者。任务关联可选：父用`read_research_task`取得入口及依据，作为原ResourceEvidence交子；子只按受限资源权限保存，父读回成果、重读入口，再用`save_research_task`写入result及workItemId。关联冲突或取消保留成果与未完成关联，不自动建任务、不增加子任务／程序权限。子执行使用独立受管进程，只接收工作包和所选角色指导；自己的 scratch 位于 `.scholoom/harness/sessions/<sessionId>/delegations/<delegationId>/scratch`。不导入父历史或 checkpoint，也不允许递归委派。父退出收尾未完成的子，局部取消只作用于该子；有限等待到期不取消。macOS 仍沿 `managedExecution` 明确不可用。
 
 内部 `harness.executionFacts({})` 由宿主 `KernelApplication.executionFacts(context)` 适配消费，只使用实际CallContext核对当前Agent的principal／project/session/run/instance及持久委派父子关系，不接受模型自报身份、不进入公共操作或模型工具。根返回无父委派，匹配的子返回delegationId及父run／instance，无法匹配的关系为unknown；instructionContext与tool始终明确unknown。已取消或退出／重启后的旧上下文返回unknown，不能用持久history重新授权；权限身份不匹配拒绝。项目M2在实际保存受理时取该快照，FileEdit权威仍由项目维护，当前本线不推断精确工具／指令作者。
 

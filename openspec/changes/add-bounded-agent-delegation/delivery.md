@@ -1,20 +1,51 @@
 # 实际交付与交接
 
+## 1026796共同领域基线后的A/B交付
+
+本节为当前续做入口，后文历史阶段的等待描述不再构成前置。只读确认HEAD=`1026796d854b8f568c3e819f13268a9638980bc1`、祖先核对成功、起始git status为空。消费主线正式`/tmp/scholoom-round5-acceptance-WBreMJ/acceptance.md`与`synchronized.json`，未读取其他真实树、复制私有实现或应用旧累计patch。源码唯一工作点为当前树；末尾仍保留原历史失败与范围。
+
+### 实际实现与模块权威
+
+- A：`KernelApplication.executionFileFacts`默认await原`executionFacts(context)`，经既有kernel消费声明/broker调用完整harness事实提供者；显式`originFacts/fileExecutionFacts`仍可返回同步值或Promise。仅映射verified的四元组和verified委派链至原FileExecutionFacts，instructionContext/tool不推断。没有空provider、公开新工具、来源副本或新DTO/schema。
+- `ManualApplication.fileOrigin`等待后再次`checkExecutionContext`并核对事实四元组，再由project.saveFile、files.save/undo、resources.create、tasks.create/save的必要await传入原projects保存。原withAccess授权、文件锁、领域CAS和历史事务不变，不在SQLite事务或文件锁中等broker。项目线的TaskResearchPort装配、构造器末尾executionResources/taskPort/delegationOptions/programs、所有根工具、统一v6/restore、资源叶和任务/程序tab均无改动。
+- 实际来源回归中，父worker保存parent.md，子worker创建report.md；FileEdit读回分别核对父/子instance、principal/session/run及子持久委派关系，子创建返回的真实editId与历史一致。原退出/重启、伪造身份和unknown事实回归保留；另在真实broker事实已返回后以观察包装延迟来源返回，取消或同步撤权，验证无blocked.md和无新增edit。包装只延迟，不伪造事实/保存；同步Binder夹具仍单独标记为接口测试。
+- B：`delegation-task-port.spec.ts`使用当前真实TaskPort。父工具read取得TaskRef/入口basis，原ResourceEvidence交`worker@1`；子只读入口、沿受限create保存报告并report，父沿实际ref/basis读回、重读入口，再tasks.save关联result/workItemId。任务仍active且只有一个，不自动创建任务或把执行完成当科研完成。没有新增生产TaskRef字段、科研角色、子任务/程序/任意历史权限。
+- 四个机械场景：正常关联；子读取前入口发生真实人工条件保存，旧basis拒绝且report保留blocker/unfinished、无成果；成果保存后父关联遇到实际人工更新，CAS拒绝且保留报告与未完成说明；父已读成果及入口、尚未关联时取消，原成果/委派结果保留、任务无result链接且根run cancelled。最后一项不声称子已取消，也不把文件association误当任务links。
+
+### 本轮验证、首次失败与诊断
+
+环境Linux、Node24.12.0、OpenSpec1.15.0，已有依赖，真实内部broker/领域仓储/受管worker/文件，模型仅在loopback HTTP边界受控。所有样本合成，新增登记项目保留在test-results对应结果目录；不删除已登记目录。没有安装/下载、真实用户库写入或开发服务器。
+
+1. 先`pnpm --config.optimisticRepeatInstall=false --filter @scholoom/kernel... build`，再`--filter @scholoom/desktop build`；格式化后最终kernel build完成才启动内核测试。共享及desktop构建日志为`/tmp/scholoom-agent-round6-{build,desktop-build,kernel-final-build}.log`。测试期间没有重建产物。
+2. 新测试初次tools类型检查发现message.content误用、exactOptionalPropertyTypes下显式undefined及当前lib不支持Promise.withResolvers；分别使用message.text、明确联合值和原Promise构造器解决，未变更tsconfig/lib。后续tools/kernel类型检查通过。
+3. 首次内核`test-results/agent-round6-first`为12通过/3失败，日志`/tmp/scholoom-agent-round6-first.log`。实际故障是新模型夹具在respond内设置hold，而既有server的gate在respond前执行，目标工具已越过预期暂停点；不能据此认定材料/CAS/取消失效。现仅让原外部HTTP模型respond可返回Promise并await，task夹具在实际材料读取/关联响应前等待，内部保存实现未替换。修正后三个故障场景`agent-round6-task-gates` 3/3通过，首次trace/项目保留。
+4. 最终组合命令：`node node_modules/@playwright/test/cli.js test --config playwright.kernel.config.ts tests/kernel/execution-facts.spec.ts tests/kernel/file-edit-origins.spec.ts tests/kernel/agent-delegation.spec.ts tests/kernel/delegation-races.spec.ts tests/kernel/task-tools.spec.ts tests/kernel/research-task-agent.spec.ts tests/kernel/delegation-task-port.spec.ts tests/kernel/execution-history.spec.ts --output=test-results/agent-round6-integration`，**45/45通过（4.5分钟）**。日志`/tmp/scholoom-agent-round6-integration.log`。覆盖A1、合法连续保存/旧basis/未知意图、容量、父收尾/取消/重启、实际来源/撤权、任务工具/接续与公共history。随后纠正新测试的程序工具名断言为实际`start_project_program`，只补验机械正例，`agent-round6-task-tool-scope` **1/1通过**。
+5. 双宿主复用原`tests/ui/agent-delegation.spec.ts --grep 'opens its saved report'`，已构建静态承载`/tmp/scholoom-sync-recovery-wyn13R/static-ui.mjs`，临时配置`/tmp/scholoom-agent-round6-ui.config.mts`，独立端口5638、独立生成profile及`test-results/agent-round6-ui`。**Browser/Electron 2/2通过（1.8分钟）**，日志`/tmp/scholoom-agent-round6-ui.log`；仅正例，不称本轮重跑全部UI或I3产品科研路径。静态服务与内核均由原夹具收尾，无常驻开发服务。为保留登记目录，来源测试根移到`test.info().outputPath('execution-facts')`，该单项`agent-round6-facts-retained`另**1/1通过**，不再删除测试项目。
+6. kernel/tools类型检查、修改文件Biome error级检查、architecture（14模块/247文件、0 findings/0 exceptions）、生成器self-test及harness最终schema格式化映射逐字比对通过；同源schema/生成文件无差异。本change strict、scholoom-dev schema及git diff空白检查通过。
+
+只读原生辅助Agent继承gpt-6.1-sol/high，先核对TaskPort事实，再独立审查两份kernel来源改动，未发现确切授权/异步临界区问题；未写文件或运行构建/测试，现已关闭。主Agent核验运行证据并修复夹具；无未关闭写入者。
+
+### 独立增量与剩余范围
+
+本轮只交相对共同1026796的增量，不重发旧累计源码。补丁及manifest/日志包为`/tmp/scholoom-agent-round6-handoff-LP1kQp/`，包含真实默认注册消费链所需的kernel符号、必要测试/模型夹具与本change/开发文档；已有完整harness仓储/handler/schema均由1026796提供，不能把补丁解释为独立空事实provider。接入者按符号合并共享application/manual，保留项目线TaskResearchPort装配，其余域无需先复制私有代码。补丁正向临时索引与当前树反向check、最终任务数及diff核对见包内manifest/checks。
+
+任务第10组完成，整体**22/26**；4.2/4.3目标平台和6.1/6.2真实科研角色/guidance/质量仍开放。真实TaskPort与共同源码已到位，不再以缺其同步阻塞。未新增Windows/macOS、全仓CI、远端或分发包结论，不修改生产停止、容量、期限；不自动扩大科研Graph、advisor、递归或持久通信。达到本轮A/B边界停止，未提交/推送/PR/归档，也未操作其他树。
+
 ## 当前状态与成果
 
-当前为公共同步后的实际领域接入切片。A1已由主线复验关闭；同步提交2cb6aed包含0519904／b838402，启动clean且祖先核对通过，已取消旧等待同步条件。下文保留第一／第二阶段原始验证，恢复后本轮实跑及交接见文末。用户允许可审查本地提交或补丁，本轮选择补丁；仍不安装依赖、启动常驻开发服务器、操作真实库、推送／PR或归档。开发Agent保持Codex／gpt-6.1-sol／high，未新开Agent终端，产品命名模型仍使用既有MiniMax目录。
+当前为1026796共同领域基线后的A/B有界整合切片：真实executionFacts已接FileEdit来源，通用worker沿真实TaskPort完成机械I3。A1保持已复验关闭，七域源码已在本树，旧“公共源码未入dev／等待同步／TaskPort缺失”条件失效；不再应用历史累计patch。下文各历史阶段保留首次失败与原始验证，当前证据见文末。用户允许可审查本地提交或补丁，本轮选择补丁；仍不安装依赖、启动开发服务器、操作真实库、推送／PR或归档。开发Agent保持Codex／gpt-6.1-sol／high，未新开Agent终端，产品命名模型仍使用既有MiniMax目录。
 
 | proposal判据 | 实际成果与接受边界 |
 | --- | --- |
 | 真实父子保存及回读 | `Delegations`沿RemoteAgent和原静态worker运行；定向样本核对不同受管PID／实例、子实际读取42并保存report.md、父沿实际ref/basis读回。harness只接受领域回执，不把scratch或口述当成果 |
-| 上下文／权限／模型 | 子无父私有标记及父checkpoint，scratch按委派分隔；宿主落实父、角色、请求交集及领域授权；命名配置钉入版本，不同descriptor共享32次预算及全局并发1。角色指导注入、任务关联语义仍需真实提供者 |
+| 上下文／权限／模型 | 子无父私有标记及父checkpoint，scratch按委派分隔；宿主落实父、角色、请求交集及领域授权；命名配置钉入版本，不同descriptor共享32次预算及全局并发1。任务关联现沿真实TaskPort；科研角色指导及质量仍待提供者 |
 | 等待、取消和恢复 | 有限等待到期子仍running；局部取消父继续，父正常退出收尾未完成子；重启查询不发模型请求。真实控制器SIGKILL保interrupted/unknown并拒绝不安全项目释放 |
 | 双宿主会话 | 现有composer启动真实父子；工具记录按结构化delegationId展开、看实际模型／障碍／成果、开报告或取消；浏览器及真实Electron通过。组件夹具另核对切会话／重连迟到读取、草稿和配置冲突 |
-| I3 | 无任务依赖的真实资源交接已通过。科研实际角色、项目任务／工作项稳定引用及关联、阅读线两个design尚无输入，未做真实I3验收 |
+| I3 | 无任务资源交接及真实TaskPort的通用worker机械子范围通过，父用原ResourceEvidence交入口、重读后关联result/workItemId。科研角色／guidance与真实质量仍开放，不关闭完整6.1/6.2 |
 
 已核对[design变更总览及受理顺序](design.md)：进程、资源提供者、持久化及UI路径与实施一致。实际新增创建身份映射、修改意图与同ref在途拒绝、延迟子资源绑定、结构化工具引用和诊断PID已同步到design。正式规格未同步，旧科研能力／Graph保持原语义。
 
-主要入口：`packages/harness/src/delegations.ts`及runtime接线；`protocol/src/delegation-contracts.ts`和模型schema为事实源；`models/src/config-store.ts`保存命名配置；内核容器v4→v5增量迁移；`DelegationCall.tsx`沿既有ToolCall呈现。操作及诊断见[开发说明](../../../docs/development.md#有界-agent-委派)。
+主要入口：`packages/harness/src/delegations.ts`及runtime接线；`protocol/src/delegation-contracts.ts`和模型schema为事实源；`models/src/config-store.ts`保存命名配置；内核使用共同v4→v5→v6迁移，本轮不改迁移链；`DelegationCall.tsx`沿既有ToolCall呈现。操作及诊断见[开发说明](../../../docs/development.md#有界-agent-委派)。
 
 ## 实际验证
 
