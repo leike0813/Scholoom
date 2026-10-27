@@ -2,6 +2,8 @@
 
 ## 当前状态与成果
 
+2026-10-28续做状态：本树HEAD为938c33f2c9fcafb2cce11b0c165b2fb1e9a818c3，已消费共同基线。此次只读调查Linux双宿主声明科研首例，未改业务、夹具、规格、design或tasks；结论及同run证据见investigation末节和本记录末节。以下各日期的实施与测试结果保留为历史证据。
+
 2026-10-27，本树HEAD已核对为共同源码4b13183f7489d3cae12fd0a7d1a9e83fb33d7384，开始本轮时clean。科研可信人工请求、公共历史、M2可信执行来源与各域实现均已接入；主线已接收真实I1机械切片，证据见 `/tmp/scholoom-round6-acceptance-dXuzCA/acceptance.md`、synchronized.json及两份sync结果。此前2812777及更早基线、安装授权和验证日志保留为历史证据，不再作为等待同步或复制累计补丁的条件。本轮仅修正第8组独立模块测试夹具，结果见末节；未安装依赖、操作其他树或新增提交、推送、PR、正式规格同步及归档。
 
 已核对 [design](design.md) 的模块图和时序图；实际路径是科研入口 → broker → harness → 受管worker → 项目／库资源，执行权威继续归harness。对应proposal完成判据：
@@ -182,3 +184,24 @@ node node_modules/@playwright/test/cli.js test --config playwright.kernel.config
 自查核对了窄端口的调用方和参数转交、真实仓储身份竞争及受控外部模型边界；没有降低原有效断言、错误期望、时限或停止保护。新增代码仅为已有端口的直接委托，未增加新测试框架或生产修复。可审查增量为同目录 `research-capabilities-fixture.patch`，基于4b13183，包含本测试及原tasks／delivery共三个文件；仅导出并做reverse --check，未应用到其他树。
 
 本轮六项在Linux已由红转绿；Windows共有根因已修正，但没有Windows目标实跑，平台关闭仍待主线验证。其他全仓CI失败、macOS、UI／双宿主及真实科研质量均无本轮新增通过结论。真实综合Graph、节点／模型角色、I2及用户自定义Graph继续后置；不归档、不推送／PR，不自动展开下一阶段。
+
+## 2026-10-28：双宿主声明科研首例的只读交接
+
+按本轮授权，只维护investigation及本delivery。已读取AGENTS、七线计划第十轮安排、科研职责票、原design／tasks／delivery、scholoom-dev阶段约定，并取得当前apply及实际调查后的delivery instructions。CLI原任务25/25全勾选不代表归档；本轮不新增任务或业务契约。原design的新旧入口共存图及生产图空目录保持。
+
+调查结果见 [investigation的本轮结论](investigation.md#2026-10-28声明科研调用-ui-首例的双宿主只读调查)：Checks40479176954／8c2fd24的Browser与Electron均在第39行等待执行完成失败，未到第42行报告读取。GUI走普通session.send；受控模型应随后触发旧scholoom.material-analysis／1.0.0，没有GUI方法选择、research.requestGraph或生产业务Graph。可确认UI看到queued／accepted投影，缺同次执行及消费事实；目前不能确诊科研模块错误或分析质量失败，也不能断言首模型／research.invoke为零。将harness消费／首次模型推进及UI刷新缺口交Agent／公共提供者，经主线统筹；未跨树发消息或修改公共初始化。
+
+| 实际只读操作／检查 | 结果及边界 |
+| --- | --- |
+| `git status --short`、`git rev-parse HEAD` | 开始时clean，HEAD938c33f；结束仅两个授权文档变动 |
+| `openspec list --json`、`openspec status --change connect-research-graph-runtime --json`、`openspec instructions apply --change connect-research-graph-runtime --json` 及同change的 `instructions delivery --json` | 最近本树root已确认，scholoom-dev，原任务25/25；输出保留 `/tmp/scholoom-research-ui-round10/` |
+| `gh api repos/leike0813/Scholoom/actions/runs/40479176954/artifacts` | 确认Linux artifact12728680109与run／完整head一致；未查询外项目或触发CI |
+| 同artifact只读取四个目标ZIP项并解包trace | Browser／Electron的error-context.md与trace.zip均经ZIP CRC核对，路径、大小、CRC、身份与动作时间见同目录artifact-entries.json、first-case-evidence.json及selected/。首次完整下载和普通Range未完成／未生效，均未当成功证据；改用x-ms-range取指定区段，完整性只覆盖选定四项 |
+| `git diff 8c2fd24 HEAD`，限定UI首例／fixture／model-server、harness、research、kernel科研装配和相关UI／CI配置 | 无路径变更；另核lifecycle的启动观察差异。原失败属于旧run，不计为当前HEAD新实跑 |
+| trace的JSON事件与network目录核对、根因自查 | Browser可恢复实际项目／会话和20秒窗口；Electron仅动作／时间。两者均无instruction/run/instance、消费／首次模型／科研受理附件；artifact无UI配置DB或内核日志。后端卡在哪个阶段与UI刷新异常仍不可区分 |
+
+只读辅助Agent使用gpt-6.1-sol／high、fork_context:false，核对了GUI、模型替身、开发承载及调用边界；父Agent核对同run artifact、关键源码及最终分类，辅助Agent已关闭。未启动开发服务器、构建、UI／内核测试或安装依赖；只改文档，沿主线已构建产物，不重复已有绿测，也不把开发夹具放在普通静态产品中冒充复验。
+
+临时下载、索引及选定trace保留在 `/tmp/scholoom-research-ui-round10/` 作为调查依据；未完成前缀和稀疏索引不能当完整artifact。临时读取使用已有gh、Node、uv共享环境Python标准库及unzip，未安装新工具。本轮拥有的下载进程已结束，无自有内核／worker／开发服务在运行。收尾执行 `openspec validate connect-research-graph-runtime --strict` 及 `git diff --check` 均通过，结果分别保留于本轮validation.log、diff-check.log。
+
+本片完成的是首例双宿主的因果分类／明确缺口，UI失败仍未关闭。未改生产授权、期限、停止保护、容量、库权威或旧能力／图边界；未扩其他harness.spec场景、生产Graph／科研角色、真实模型、Windows／macOS／分发包或真实科研质量验收。等待主线按精确缺口安排提供者接线，不自行进入实施、提交、推送、PR或归档。
