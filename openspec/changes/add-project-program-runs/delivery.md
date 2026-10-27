@@ -2,7 +2,7 @@
 
 ## 当前状态与成果
 
-本轮起点为0b788151b5e17665a26d9286dfd1d12f6e2e0c30，开始时工作区干净，主线已接收第11组并保全合入／同步复验。正式输入为 `/tmp/scholoom-round8-acceptance-UrXA7y/`，本轮只推进第12组的两项Windows平台观察校准，不重跑TeX或Linux全套。TaskRef／TaskPort、各域恢复、工具／标签及既有报告／生态持续授权均保留，包括已接入的唯一checkReadable、子Evidence复查及原值独立更正／导出选择；未重用旧累计patch。本轮新夹具目标验证及整个change最终交付仍开放，上一轮关窗观察的macOS新回执见第八轮。
+本轮起点为4312262c1a1f432ccd706dd1eb6ff6468765fd4e，开始时工作区干净，主线已接收第12组并保全合入／同步复验。正式输入为 `/tmp/scholoom-round9-acceptance-IER31D/`，本轮只推进第13组的实际Windows反例与窄启动诊断，不重跑TeX或全仓。TaskRef／TaskPort、各域恢复、工具／标签、唯一库权威与未保存CSL、既有报告／生态持续授权均保留。报告frame／network-trap仍是未完成调查夹具，无2.1或生产页面通过结论。本轮修正后的Windows来源／启动取证及整个change最终交付仍开放，未重用旧累计patch。
 
 第三轮同步证据仅保留当时结果：`/tmp/scholoom-sync-recovery-wyn13R/recovery.md`、`synchronized.json`及当时日志（主线65项内核／双宿主2项），不替代最新A/B验收。旧公共及累计patch均为历史工件，已合入共同1026796，不再次应用。用户允许本地补丁／提交；继续禁止推送、PR、归档、依赖下载／安装、真实库和开发服务器。
 
@@ -362,3 +362,49 @@ Ptolemy原生辅助使用gpt-6.1-sol/high、fork_context:false，先只读追踪
 下一输入是主线接入本片后Windows两类校准的安全附件：holder PID／发现记录／锁／结果时点，以及全局事件的异步阶段／ACL来源／退出收据。旧PID8328当时具体身份仍缺，不猜生产机制修复。最新macOS旧入口修正回执已消费，但本轮新夹具目标矩阵仍未实跑，5.2／6.2整项保持开放。无新增产品／架构决策；其余两个Windows失败沿所属生态／Agent线，不并改HostConnection或harness推进。
 
 本轮交回同目录01-lifecycle-calibration.patch、02-unavailable-execution-observer.patch及03-openspec-evidence.patch，前两份为独立直接测试增量，第三份为所属四工件；README／manifest列0b78815基线与回归／待验输入。各patch仅反向git apply --check，不应用或回滚。最后一次只读Checks查询仍是Linux／Windows运行中、macOS成功，checks-final-query.json保留截点；不继续轮询等待。第12组完成，38/40，5.2／6.2继续开放。测试正常收尾，无本轮内核残留，辅助已结束。到此停止，不提交／推送／PR／归档、同步其他树、接用户库或扩环境／Graph／远端／发布。
+
+## 第九轮：4312262目标反例、来源修正与启动分段观察
+
+### 实际输入与最早失败
+
+共同HEAD保持4312262，正式输入为 `/tmp/scholoom-round9-acceptance-IER31D/` 的验收／同步资料、windows-diagnosis-current.json、windows-diagnosis.log／failures.log、concurrent-start-excerpt.log及ci-baseline日志。原apply进度38/40，新增第13组仅承接本片。证据目录 `/tmp/scholoom-project-execution-round9-RRtTUQ/`；所有查询／下载限本仓库，没有触发CI、读取他树或套用历史patch。
+
+| 来源／实际用例 | 已确认阶段 | 结论边界 |
+| --- | --- | --- |
+| caf9025／40455958976，Windows artifact12715580670 | 完整组687通过41失败42跳过；指定并发首批4入口中2个running同实例、2个unknown／availability／held／无discovery。第一个unknown回执比发布早6ms，另一个比发布晚87ms，但回执仍是最后一次无discovery观察 | 这是首批running断言失败，不是旧occupied的PID判断，也不是同一入口已连接后倒退。未记录最后检查的确切时点，不能把晚回执等同于晚检查 |
+| 4312262／40476577132，artifact12721785916，锁／availability步骤 | 3通过2失败。无发现占锁、RPC声明及Node观察器通过。活发现前段严格归属通过；失败在释放后三个入口：一个ready-timeout、两个availability／held／无discovery，新PID4436日志最后到initializing-application | 真实holder退出与新取锁／加载并不支持锁失效。只知采样时尚无ready／监听／发布，不能称永不就绪或根据总耗时猜根因 |
+| 同源码unavailable | 10条均成功退出，实际相位7／2／1，privateDirectory全部false；五个受管拒绝阶段无事件。完整全窗口白名单仍失败 | 不因PowerShell名称／阶段／exit0放行，不反填来源。原生／host步骤成功与Agent步骤三个失败分别记录，不并改其内部 |
+| 4312262／40476577071，artifact12724656293及checks-windows-4312262.log | 完整Windows727通过3失败42跳过：并发首批34.6s、两种占锁31.5s／22.0s均通过，unavailable仍有10条未归因。macOS job成功、Linux job失败 | 同源码完整组与独立诊断有正反样本，不能用一次通过关闭启动稳定性。其余失败不据名称归同因果，未扩大到全仓修复 |
+
+并发时间线以各批最早test caller startedAt为0，包含独立CLI加载，不把它当10s内部期限起点：caf的loading为+7.264s、initializing为+11.018s、ready为+13.063s、发布为+13.078s，第一个unknown回执+13.072s。新独立诊断释放后loading为+6.286s、initializing为+11.238s、ready-timeout回执+12.594s；采样仅到初始化，内部elapsed为10.004s。需要区分父准备、Node引导、子准备及各初始化提供者，现有证据不足以选择性能或生命周期机制修复；生产预算保持。
+
+### 来源校准与最小修正
+
+真实privateDirectory安全拒绝路径（符号链接／junction）在同Playwright worker校准得到stackLimit=200、实际帧指向platform/src/private-files.ts，旧compiled-only条件不匹配。另一个隔离临时调查保留真实privateDirectory Windows分支、Node子进程通道和文件操作，只将外部PowerShell ACL执行程序替为固定退出夹具；得到17帧、实际函数在第7帧，source=true／compiled=false、exit0。结果见origin-calibration.log／acl-channel.log及其安全附件；未输出完整栈／argv／环境。后者不验证Windows ACL效果，也不能作为目标观察通过。
+
+platform-availability.spec.ts提取局部privateDirectoryOrigin，只接受函数名与同一模块的compiled／source精确路径同时匹配，其余unresolved。原来源布尔由此派生；每事件补origin、frameCount、stackLimit，仍最多32条、标量总计不重置。原allows的Windows／阶段／PowerShell／真实退出条件及五入口零派发不变。永久校准调用真实实现并拒绝其他文件的同名函数；实际Windows另核原生ACL正例和非该来源的同名PowerShell负例，仅在win32运行。本机未执行这两条Windows分支。新校准标题复用既有“child process observation”选择器，现有Windows诊断workflow会纳入，未改主线workflow或另造入口。
+
+apps/kernel/src/lifecycle.ts只补窄观察：serve在准备前、准备后、busy分支写既有安全kernel.log。候选进程尚未取锁时无instanceId；沿真实db.isTransaction收据决定是否报告lock-released，busy候选不伪造归属。ensure启动错误的既有消息补preparationMs（仅prepareRuntime）与spawnedAt（spawn调用时点，不表示ready）。fixture白名单消费三个phase和两个数值字段，64KiB／64条日志限制保留。原512消息保护、deadline起点／剩余计算、既有检查循环、IPC、停止及准入控制流不变。没有新增业务schema／状态、自动重试、清锁或第二套协议。
+
+### 实际命令与结果
+
+Linux Node24.12.0、已有锁定依赖；目标Windows日志为Node24.22.1，两者不混记。先构建基线完成调查，源变动后构建kernel，再跑最终回归；测试期间无重建。没有安装／下载／升级依赖或启动开发服务器。
+
+| 命令／操作 | 实际结果与证据 |
+| --- | --- |
+| pnpm --config.optimisticRepeatInstall=false build:shared；同配置 --filter @scholoom/kernel build | 均通过，build-baseline.log／build-kernel-final.log；只有诊断源码需要第二次kernel构建，之后无产物重建 |
+| 临时calibration.config.mts／acl-channel.config.mts | 各 **1/1通过**，952ms／990ms；前者真实source-map拒绝栈，后者仅外部ACL程序替身的通道形状。固定旧谓词compiled=false是本轮来源缺口证据，不伪造“本机Windows红／绿” |
+| node node_modules/@playwright/test/cli.js test --config playwright.kernel.config.ts tests/kernel/lifecycle.spec.ts --grep 'concurrent entries share\|occupied configuration preserves\|diagnostic attachments\|bounded lifecycle\|escaped discovery\|bootstrap failure' --output 证据目录/lifecycle-results | **7/7通过，2.0m**，lifecycle.log：真实并发／独立配置／重启、两种占锁、Node引导失败、512边界、准备阶段无伪instance及日志／字段脱敏通过 |
+| 同配置 tests/kernel/platform-availability.spec.ts --output 证据目录/availability-results | **4/4通过，12.9s**，availability.log：实际映射帧与同名负来源、Node正常／启动失败、异步来源和原人工降级均通过。Windows专有ACL正／负分支未在Linux执行，不能据4/4关闭目标项 |
+| types／格式／架构 | tools tsc通过，tools-verified.log；四份源码Biome通过，biome-final.log。首个包含新observer的格式检查发现import顺序，initial-format-excerpt.txt为工具输出摘录而非原始日志文件，调整后通过；没有本机业务测试失败。14模块254文件0 findings，architecture.log |
+| OpenSpec／diff | 本change strict、scholoom-dev schema及最终git diff --check核对，无正式规格／同源schema／生成映射变化；原设计时序与不变控制流核对 |
+
+首个失败依据是主线完整保留的目标Windows原始日志／安全artifact：观察组3通过2失败，之后完整组unavailable仍失败。本机校准与回归通过，只验证修正及诊断可消费，不写成该目标已复验。CLI／broker／SQLite／文件／worker及真实子进程路径保持；最终产品回归只沿原非macOS availability getter替身，分类器窄输入为既有确定性校准，不使用模型／真实用户库。临时ACL替身仅为调查工件，未安装或接入产品；其目录、环境与platform改动均在隔离worker finally恢复／清理，payload及结果保留。
+
+### 审查、尚缺输入与停止点
+
+Ptolemy保持gpt-6.1-sol/high、无上下文fork，先只读定位来源候选，再仅实施observer／来源校准；父负责实际artifact、隔离调查、生命周期诊断及所有运行。辅助独立只读复核最终lifecycle／fixture未发现确定问题：busy归属、db收据、512边界及有界脱敏均保留，未代跑验收。未修改生态HostConnection、Agent推进、报告来源／页面或既有授权权威。
+
+当前5.2的精确输入：新源码Windows事件必须实际给出可核origin，才能关闭来源观察子项；本轮历史10条仍保持未归因。并发还需要新父preparationMs／spawnedAt及子准备／busy日志，再按原装配归属定位初始化提供者；若需要各域初始化耗时，由主线统筹对应窄取证，本片不猜定案。历史TeX无新根因、不重跑。源不同或未实跑不记目标关闭，不因新CI出现一组正样本结束稳定性核查。
+
+交回同目录01-kernel-startup-observation.patch、02-availability-provenance.patch、03-openspec-evidence.patch及README／manifest；前两份独立，第三份记录两者。只反向git apply --check，不应用或回滚。第13组完成，41/43，5.2／6.2继续开放。本轮测试／隔离进程正常收尾，辅助已结束；不提交／推送／PR／归档、同步其他树或扩新的环境／Graph／科研角色／SSH／发布。

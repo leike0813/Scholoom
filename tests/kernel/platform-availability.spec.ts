@@ -4,7 +4,7 @@ import { type ChildProcess, spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { channel } from 'node:diagnostics_channel';
 import { once } from 'node:events';
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, symlink } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { basename, join } from 'node:path';
 import { expect, test } from '@playwright/test';
@@ -13,8 +13,22 @@ import { ManagedCommands } from '../../apps/kernel/dist/commands.js';
 import { startKernelServer } from '../../apps/kernel/dist/server.js';
 import { createKernelClient } from '../../packages/client/dist/index.js';
 import { MaterialReading } from '../../packages/library/dist/node.js';
-import { ManagedNode, ProcessAdmission, runCommand } from '../../packages/platform/dist/node.js';
+import {
+  ManagedNode,
+  ProcessAdmission,
+  privateDirectory,
+  runCommand,
+} from '../../packages/platform/dist/node.js';
 import { protocolVersion } from '../../packages/protocol/dist/index.js';
+
+function privateDirectoryOrigin(stack: string): 'compiled' | 'source' | 'unresolved' {
+  for (const frame of stack.replaceAll('\\', '/').split('\n')) {
+    if (!/^\s*at (?:async )?privateDirectory \(/.test(frame)) continue;
+    if (/\/platform\/dist\/private-files\.js:\d+:\d+\)$/.test(frame)) return 'compiled';
+    if (/\/platform\/src\/private-files\.ts:\d+:\d+\)$/.test(frame)) return 'source';
+  }
+  return 'unresolved';
+}
 
 function observeChildProcesses() {
   const phases = new AsyncLocalStorage<string>();
@@ -23,6 +37,9 @@ function observeChildProcesses() {
     spawnfile: string;
     pid: number | null;
     privateDirectory: boolean;
+    origin: ReturnType<typeof privateDirectoryOrigin>;
+    frameCount: number;
+    stackLimit: number;
     exitCode: number | null;
     signal: NodeJS.Signals | null;
     exited: boolean;
@@ -34,17 +51,16 @@ function observeChildProcesses() {
     const child = (message as { process: ChildProcess }).process;
     const trace = new Error();
     Error.captureStackTrace(trace, spawnedChild);
+    const stack = trace.stack ?? '';
+    const origin = privateDirectoryOrigin(stack);
     const event = {
       phase: phases.getStore() ?? 'unattributed',
       spawnfile: '',
       pid: child.pid ?? null,
-      privateDirectory: (trace.stack?.replaceAll('\\', '/') ?? '')
-        .split('\n')
-        .some(
-          (frame) =>
-            /\bat (?:async )?privateDirectory \(/.test(frame) &&
-            /\/platform\/dist\/private-files\.js:\d+:\d+\)/.test(frame),
-        ),
+      privateDirectory: origin !== 'unresolved',
+      origin,
+      frameCount: stack.split('\n').filter((frame) => /^\s*at /.test(frame)).length,
+      stackLimit: Error.stackTraceLimit,
       exitCode: child.exitCode,
       signal: child.signalCode,
       exited: child.exitCode !== null || child.signalCode !== null,
@@ -116,6 +132,81 @@ test('kernel declares its real managed execution availability over RPC', async (
   }
 });
 
+test('child process observation recognizes real private directory provenance and rejects other sources', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'scholoom-origin-'));
+  const observation = observeChildProcesses();
+  const diagnostic = { origin: 'unresolved', frameCount: 0, stackLimit: Error.stackTraceLimit };
+  let child: ChildProcess | undefined;
+  try {
+    const target = join(root, 'target');
+    const link = join(root, 'link');
+    await mkdir(target);
+    await symlink(target, link, process.platform === 'win32' ? 'junction' : 'dir');
+    const failure = await privateDirectory(link).catch((error: unknown) => error);
+    assert(failure instanceof Error);
+    expect(failure).toMatchObject({ code: 'permissionDenied' });
+    const stack = failure.stack ?? '';
+    diagnostic.origin = privateDirectoryOrigin(stack);
+    diagnostic.frameCount = stack.split('\n').filter((frame) => /^\s*at /.test(frame)).length;
+    expect(diagnostic.origin).not.toBe('unresolved');
+    expect(observation.spawned).toBe(0);
+    {
+      function privateDirectory() {
+        return new Error().stack ?? '';
+      }
+      expect(privateDirectoryOrigin(privateDirectory())).toBe('unresolved');
+    }
+
+    if (process.platform === 'win32') {
+      await observation.phases.run('manual-setup', () => privateDirectory(join(root, 'private')));
+      expect(observation.spawned).toBe(1);
+      const acl = observation.events[0];
+      assert(acl);
+      expect(acl.origin).not.toBe('unresolved');
+      expect(observation.allows(acl)).toBe(true);
+      child = observation.phases.run('manual-setup', () =>
+        spawn('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', 'exit 0'], {
+          stdio: 'ignore',
+          windowsHide: true,
+        }),
+      );
+      await once(child, 'close');
+      expect(observation.spawned).toBe(2);
+      const other = observation.events[1];
+      assert(other);
+      expect(other).toMatchObject({
+        phase: 'manual-setup',
+        spawnfile: 'powershell.exe',
+        privateDirectory: false,
+        origin: 'unresolved',
+        exitCode: 0,
+        signal: null,
+        exited: true,
+      });
+      expect(observation.allows(other)).toBe(false);
+    }
+  } finally {
+    observation.unsubscribe();
+    try {
+      if (child && child.exitCode === null && child.signalCode === null) {
+        const closed = once(child, 'close');
+        child.kill();
+        await closed;
+      }
+      await rm(root, { recursive: true });
+    } finally {
+      await test.info().attach('private-directory-provenance', {
+        body: JSON.stringify({
+          diagnostic,
+          spawned: observation.spawned,
+          events: observation.events,
+        }),
+        contentType: 'application/json',
+      });
+    }
+  }
+});
+
 test('child process observation captures a real child and rejects execution phases', async () => {
   const observation = observeChildProcesses();
   let child: ChildProcess | undefined;
@@ -153,7 +244,12 @@ test('child process observation captures a real child and rejects execution phas
     });
     expect(observation.allows(event)).toBe(false);
     // Synthetic classifier calibration does not establish real Windows ACL provenance.
-    const acl = { ...event, spawnfile: 'powershell.exe', privateDirectory: true };
+    const acl = {
+      ...event,
+      spawnfile: 'powershell.exe',
+      privateDirectory: true,
+      origin: 'source' as const,
+    };
     for (const phase of ['initialization', 'manual-setup', 'manual-save']) {
       expect(observation.allows({ ...acl, phase }, 'win32')).toBe(true);
     }
