@@ -1,6 +1,16 @@
 # 实现设计
 
-## 本轮B批剩余编辑子范围（2026-10-26主线验收后）
+## 共同基线1026796后的5.3实施切片
+
+本树已快进到1026796d854b8f568c3e819f13268a9638980bc1且clean，七域源码、X1、原值权威和已支持编辑声明均已入dev。证据为`/tmp/scholoom-round5-acceptance-WBreMJ/{acceptance.md,synchronized.json}`，不再应用旧累计补丁或等待同步。完整复杂映射4.1／4.2继续开放，5.3实际依赖1.2、2.2、3.2及4.1a／b、4.2a／b。
+
+唯一文献状态拥有者仍为LibraryContents，保留CatalogSelection、完整JSON草稿、librarySaves及原保存函数。新增库内`library-details.tsx`的窄视图贡献：每个business-session实例持有一个贡献对象，仅发布ReactNode及带身份核对的释放函数；LibraryContents以生命周期发布原CatalogItemPane，右栏消费者订阅该派生视图。贡献不保存metadata／草稿副本，不查询DOM、不读取仓储；卸载拥有者时释放自己的视图，过期释放不清除新贡献。详情从中间区移出，同一时刻只挂载一次。
+
+business-session只新增对应贡献实例及`libraryDetails`可选ReactNode，并将同一贡献传给LibraryTab；session.ts增加该字段。Workbench把libraryDetails传给AuxiliaryPane，并持有辅助页签选择以在折叠／展开后保留；openTab仅对library跨组复用已有tab，防止拆分后重复挂载两个拥有者，保留原flush及overlay收起流程。原taskNavigator、TaskPanel、programs、资源与上下文装配不改。AuxiliaryPane增加“文献详情”页签，保留文件／材料／任务。详情显示当前页已选数量／主选，复用原题录／标签／关联／附件及JSON核查；字段不支持形状仍保留，不新增映射。300px右栏页签以横排标签折行，不压成纵排。
+
+写集：上述库内贡献、LibraryTab、library.css；business-session/session/Workbench/AuxiliaryPane对应符号；既有library/context-bridge/resource-opening相关测试；本文、tasks、delivery及文献UI／开发分节。无protocol操作、数据迁移或runtime修改，生成映射只读核对。回归先构建再冻结产物，复用静态UI承载及隔离profile；关键场景覆盖多选／主选、收展、切项目／会话、关闭重开、冲突／迟到草稿、共同附件入口和按主选有界读取。现有内核与字段证据复用，不重做X1或完整映射。
+
+## round4 B批编辑子范围（历史设计与证据）
 
 主线`/tmp/scholoom-round4-acceptance-JCUBNw/acceptance.md`已接收本树X1及原值／来源／正式键／原子事务首片，确认0519904已消费。分页超帧疑虑已由512KiB listPage反例撤回，不修改分页。当前未提交成果全部保留，不再同步或重复开发X1。
 
@@ -16,7 +26,7 @@
 
 验证：独立上游形态样本先核对book出版社／页数、journal PMID、film director／castMember、patent filingDate；实际回归选取book→journal手动录入、字段／角色／日期更正与真实库保存／重启，未知嵌套、复杂姓名粒子／日期和library.record原值／来源／固定键保持。film／patent只作声明取证，不声称另有运行样本。复用既有冲突／迟到草稿双宿主回归。未闭合的别名call-number／collection-title／dimensions／event-title／genre／medium／references／section、shortTitle双输出、Extra及正式键转换仅保留，不写逆转换；主线决定或精确utilities样本到达后才安排该分支，不影响本次可编辑CSL范围。
 
-## 2026-10-26 实施范围更新
+## round3／4实施范围更新（历史）
 
 当前正式HEAD70be8bf，0519904祖先，原成果未提交且完整保留。主线已验收X1同源声明、真实library／broker／host、harness恢复与模型准入、UI及原值权威首片；没有新增公共源码需要同步。新补丁进入dev及其他消费者仍需主线接入，本树不重复等待既有基线。
 
@@ -24,7 +34,7 @@
 
 ## 变更总览
 
-本设计对应B批，依据见[proposal](proposal.md)、[investigation](investigation.md)。E1调查、R1设计和共同基线已消费；X1及library原值／来源／键权威首片已在本树实现并经主线验收，尚未进入dev或生态实际消费。排序沿B列配置／F查询排序，右栏等待项目共同接入。
+本设计对应B批，依据见[proposal](proposal.md)、[investigation](investigation.md)。E1调查、R1设计及共同基线已消费；X1与原值／来源／键权威首片已在dev和本树1026796，不能据此宣称生态完整生产消费。排序沿B列配置／F查询排序，本轮消费实际AuxiliaryPane实施详情。
 
 ```mermaid
 flowchart LR
@@ -39,7 +49,7 @@ flowchart LR
   Contribution --> Bridge[既有连接快照与上下文工具]
   Bridge --> Catalog
   Table --> Reader[既有资源打开与阅读器]
-  Form -. 待共同基线后新增 .-> Detail[AuxiliaryPane 文献详情槽位]
+  Form --> Detail[AuxiliaryPane 文献详情槽位]
   Interaction[已收到阅读交互两份独立设计 R1] -. 保留材料字段及边界 .-> Bridge
 ```
 
@@ -127,21 +137,21 @@ sequenceDiagram
 | `add-material-annotation-interactions` | 提供真实库附件／版本和题录权威；消费共同上下文贡献、输入框与格式视图。 | 选区／批注／差异和材料修订归阅读及所属保存权威，不进入本批；相关写回仍等生态调查。X1须核对该设计。 |
 | `add-interactive-research-reports` | 可消费题录身份及明确读取，选择动作仍进共同输入框。 | 报告运行隔离、筛选／更新／关闭重开由阅读线另一change独立承接；本批不等待报告交付，不建报告执行记录。 |
 
-本线只提出文献详情槽位，当前项目快照实际仅提供taskNavigator，没有已发布library槽位。项目任务页签、通用对象选择及差异组件不代定；不把两个阅读change合并进B批。
+本线在当前AuxiliaryPane中新增可选libraryDetails，保留真实taskNavigator；不改项目任务语义，不把两个阅读change合并进B批。
 
 ## 文件变化
 
-以下为实施文件范围，已实现切片见delivery；右栏仍为待共同接入设计。
+以下为实施文件范围，已实现切片见delivery；右栏消费当前共同基线，实际验证由5.3交付记录承担。
 
 | 文件／符号 | 动作和拥有者 |
 | --- | --- |
 | `packages/protocol/src/library.ts`、`library-metadata.ts` | 文献线：父范围collections、闭合的类型／字段同源编辑声明和DTO导出；保留开放metadata。 |
 | `packages/library/src/catalog.ts` `collections`／相关校验 | 文献线：按父范围有界查询，复用update事务和历史；不重写摄取。本change不增加数据迁移，原值权威迁移归独立change。 |
 | `workbench/library/CatalogSelection.ts`、`CatalogItemList.tsx`、`CatalogItemRow.tsx` | 文献线：身份快照、可观察多选、列配置、焦点／范围和虚拟列表。替换旧索引调整方法前搜索全部调用方，删除无用行号补丁。 |
-| 同目录 `LibraryTab.tsx`、`LibraryToolbar.tsx`、`CatalogItemPane.tsx`、`CatalogItemSidenav.tsx`、`library.css` | 文献线：复用管理入口、`CatalogItemForm.tsx`／`CollectionNavigation.tsx`和现有单一选择／草稿状态；右栏详情待共同槽位，不新建controller空壳。 |
+| 同目录 `LibraryTab.tsx`、`LibraryToolbar.tsx`、`CatalogItemPane.tsx`、`CatalogItemSidenav.tsx`、`library.css` | 文献线：复用管理入口、`CatalogItemForm.tsx`／`CollectionNavigation.tsx`和现有单一选择／草稿状态；右栏通过library-details派生视图贡献消费同一状态，不新建controller空壳。 |
 | `workbench/drafts.ts` | 复用现有存储入口；库身份键和恢复逻辑尽量留library目录，不修改其他领域草稿语义。 |
-| `Workbench.tsx` 活动视图／`AuxiliaryPane`装配；`business-session.tsx` library装配；`session.ts`可选详情入口；`shell/AuxiliaryPane.tsx`文献页签 | 必要公共增量由文献线提出具体符号；R1先交接，独立可接收增量不能依赖私有未入dev实现。其余项目／任务／会话路径归各线。 |
-| `protocol/workbench-context-contracts.ts`、`context-contributions.tsx`、`harness/instruction-context.ts`／runtime工具、`kernel/application.ts`上下文装配 | 已选定独立题录贡献，真实提供者及模型／恢复复查已在本树实现并验收；进入dev和其他消费者仍需主线接入。复用现有连接store、可信来源与发布生命周期。 |
+| `Workbench.tsx` 活动视图／`AuxiliaryPane`装配；`business-session.tsx` library装配；`session.ts`可选详情入口；`shell/AuxiliaryPane.tsx`文献页签 | 仅新增libraryDetails、辅助页签选择及文献分支；本树已含真实项目／任务和programs，不整文件覆盖。其余项目／任务／会话路径归各线。 |
+| `protocol/workbench-context-contracts.ts`、`context-contributions.tsx`、`harness/instruction-context.ts`／runtime工具、`kernel/application.ts`上下文装配 | 独立题录贡献、真实提供者及模型／恢复复查已在dev及本树验收；本轮复用，不修改这些公共符号。 |
 | protocol生成映射、`architecture.json`及宿主注册 | 仅当已定接口确需变更时由提供者一起交付。映射通过 `generate:contracts` 生成，不手写第二套DTO；不为UI内部状态加broker操作。 |
 | `tests/kernel/literature-catalog.spec.ts`、`manual-application.spec.ts`、相关context用例；`tests/ui/library.spec.ts`、`context-bridge.spec.ts` | 文献增量随所属实现扩展，公共上下文修改由其提供者同步调用方及测试。只有稳定行为缺口才新增选择模型小测试。 |
 | `docs/ui-design/README.md` 文献设计／本地题录库分节、`docs/development.md`本地文献库／上下文节 | 先更新UI事实源再改结构，文献分节记录实际已交付与待接入边界；不修改openspec/specs正式规格。 |
@@ -188,9 +198,9 @@ ContextBridge新增窄catalog端口`read(input)`及同步`check(libraryId)`，�
 
 R1实际快照的位置增量保持：text.location引用readingLocationSchema，region.target的image／pdf／object，object.contentState；contextItemContent的对应编码同步保留。报告仍只规划，不把其resources.report／appendContextItems当已存在端口。M1／M2／M3保持所属领域等待，本线CSL编辑不解决库正文写回。
 
-先接入项目快照实际`AuxiliaryPaneProps.taskNavigator`、TaskList和协议TaskSummary，保留Workbench的taskPort、taskRevision、taskWatchError、taskDraftKey、taskCreation、associateTask、resolveResource、renderTask及taskNavigation迟到保护。随后仅加文献自己的`libraryInspector?: ReactNode`到WorkbenchSession与AuxiliaryPaneProps，TabId加library并在辅助区并列内容分支呈现。Workbench把同一library状态拥有者的Inspector送入该槽位；session.library继续是中间tab，不能重复挂载LibraryTab作详情。详情状态需提升为库拥有的单一实例后才接线；本轮不改这些公共符号。
+当前已包含真实`AuxiliaryPaneProps.taskNavigator`、TaskList和TaskPanel，保留Workbench的taskPort、taskRevision、taskWatchError、taskDraftKey、taskCreation、associateTask、resolveResource、renderTask及taskNavigation迟到保护。文献新增`libraryDetails?: ReactNode`到WorkbenchSession与AuxiliaryPaneProps，AuxiliaryTabId加library；Workbench只转交该视图，不重复挂载LibraryTab。LibraryContents继续唯一持有状态，通过库内派生视图贡献呈现原CatalogItemPane，精确写集见首节。
 
-右栏仍需项目AuxiliaryPane共同槽位接入后才能接线；0519904同步门及X1本树实现已有实际证据，不重复等待。UI夹具已同时保留本线openWorkbenchWindow和desktops登记、项目createSession的`string | {projectId:string}`签名及按项目定位／data-session-id等待；后续公共修改仍按符号组合，不整文件覆盖。
+1026796已提供实际AuxiliaryPane及七域实现，没有待同步门。UI夹具同时保留本线openWorkbenchWindow和desktops登记、项目createSession的`string | {projectId:string}`签名及按项目定位／data-session-id等待；公共修改按符号组合，不整文件覆盖。
 
 最小验证随任务分支执行，不先跑全仓。环境准备先核对Node24、依赖与构建；本轮已获锁定依赖安装及必要验证授权。根脚本的 `test:ui` 会执行setup，验证直接使用已准备的Playwright CLI。UI夹具只启动其拥有的隔离测试宿主，不启动日常开发实例；测试期间不重建或改动共享产物。
 
@@ -211,6 +221,6 @@ R1实际快照的位置增量保持：text.location引用readingLocationSchema�
 
 ## 待办边界
 
-- **真正阻塞**：X1候选的公共审查、真实library／host／harness提供者和共同基线同步；右栏槽位尚未接入。E1／R1调查已收到，不能再以缺设计为由等待。原值／来源／正式键／原子提交的三个政策问题由`define-library-zotero-record-authority`承接，完整4.1／4.2仍开放。
+- **剩余缺口**：完整复杂映射4.1／4.2仍需独立证据，Windows1.4及整体验收保持开放。X1、原值权威首片及共同基线已到位；来源副本、键冲突及有界原子提交政策已有决议，不再列为未决。5.3本轮按已完成编辑子范围独立验收，不等待生态完整接入。
 - P1沿原B/F分批闭合为本批列配置、F统一查询排序；没有新增排序实施。若将来确认B要按列排序，另补服务端契约、稳定次序与跨页oracle，不在本轮扩展。
 - C负责组织／附件及批量动作，D负责笔记与共用阅读，E回收合并，F搜索／排序，G引用格式，生态负责H提供者。正式引用键归文献域，但本批只保证不损坏既有信息；不顺带确定存储和生成。

@@ -77,6 +77,7 @@ async function importMaterials(
 async function selectSource(page: Page, panel: Locator, title: string): Promise<Locator> {
   await panel.getByLabel('查找题录', { exact: true }).fill(title);
   await panel.getByRole('option', { name: `查看题录 ${title}`, exact: true }).click();
+  await page.getByRole('tab', { name: '文献详情', exact: true }).click();
   return page.getByRole('region', { name: '题录详情', exact: true });
 }
 

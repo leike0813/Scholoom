@@ -27,6 +27,7 @@ import { readDraft, draftKey as storedDraftKey, subscribeDraft, writeDraft } fro
 import { fileDocument } from './file-document';
 import { FileExplorer } from './file-explorer/Explorer';
 import { LibraryTab } from './library/LibraryTab';
+import { LibraryDetails, LibraryDetailsContribution } from './library/library-details';
 import { ProjectOnboardingDialog } from './ProjectOnboarding';
 import { ProjectTrustDialog } from './ProjectTrustDialog';
 import { ProgramRunsTab } from './programs/ProgramRunsTab';
@@ -49,6 +50,7 @@ export function useBusinessSession(
   client: KernelClient | null,
   phase: KernelPhase,
 ): Partial<WorkbenchSession> {
+  const [libraryDetails] = useState(() => new LibraryDetailsContribution());
   const [instanceId] = useState(workbenchInstanceId);
   const draftKey = useCallback(
     (...parts: (string | undefined)[]) => storedDraftKey(instanceId, ...parts),
@@ -853,9 +855,11 @@ export function useBusinessSession(
       <LibraryTab
         client={client}
         enabled={phase === 'connected'}
+        details={libraryDetails}
         onOpenResource={(material) => setResourceTarget(attachmentResource(material))}
       />
     ) : undefined,
+    libraryDetails: client ? <LibraryDetails contribution={libraryDetails} /> : undefined,
     controls: (
       <ProjectControls
         snapshot={snapshot}

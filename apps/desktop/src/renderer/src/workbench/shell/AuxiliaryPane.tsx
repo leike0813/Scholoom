@@ -1,8 +1,16 @@
 import type { CSSProperties, ReactNode } from 'react';
-import { useState } from 'react';
 import type { FileNode, TaskSummary } from '../session';
 import { TaskStatusBadge } from '../tasks/TaskList';
-import { IconChevronLeft, IconChevronRight, IconFolder, IconPaperclip, IconTasks } from './icons';
+import {
+  IconChevronLeft,
+  IconChevronRight,
+  IconFolder,
+  IconLibrary,
+  IconPaperclip,
+  IconTasks,
+} from './icons';
+
+export type AuxiliaryTabId = 'files' | 'materials' | 'tasks' | 'library';
 
 function TreeNode({ node, depth }: { node: FileNode; depth: number }) {
   return (
@@ -30,6 +38,9 @@ export interface AuxiliaryPaneProps {
   onCollapse: () => void;
   fileNavigator?: ReactNode;
   taskNavigator?: ReactNode;
+  libraryDetails?: ReactNode;
+  activeTab: AuxiliaryTabId;
+  onTabChange: (tab: AuxiliaryTabId) => void;
 }
 
 export function AuxiliaryPane({
@@ -41,13 +52,16 @@ export function AuxiliaryPane({
   onCollapse,
   fileNavigator,
   taskNavigator,
+  libraryDetails,
+  activeTab,
+  onTabChange: setActiveTab,
 }: AuxiliaryPaneProps) {
-  type TabId = 'files' | 'materials' | 'tasks';
-  const [activeTab, setActiveTab] = useState<TabId>('files');
-
   return (
     <aside className="side side--right" aria-label="辅助面板">
-      <div className="auxiliary-tabs" role="tablist">
+      <div
+        className={`auxiliary-tabs${libraryDetails ? ' auxiliary-tabs--library' : ''}`}
+        role="tablist"
+      >
         <button
           type="button"
           role="tab"
@@ -81,6 +95,19 @@ export function AuxiliaryPane({
           <IconTasks />
           <span>任务</span>
         </button>
+        {libraryDetails && (
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'library'}
+            aria-controls="tab-library-details"
+            className="auxiliary-tab"
+            onClick={() => setActiveTab('library')}
+          >
+            <IconLibrary />
+            <span>文献详情</span>
+          </button>
+        )}
         <div className="auxiliary-tabs__spacer" />
         <button
           type="button"
@@ -94,6 +121,11 @@ export function AuxiliaryPane({
       </div>
 
       <div className="auxiliary-content" role="tabpanel">
+        {activeTab === 'library' && libraryDetails && (
+          <section className="pane" aria-label="文献详情" id="tab-library-details">
+            {libraryDetails}
+          </section>
+        )}
         {activeTab === 'files' && (
           <section className="pane" aria-label="文件" id="tab-files">
             <div className="pane__body">

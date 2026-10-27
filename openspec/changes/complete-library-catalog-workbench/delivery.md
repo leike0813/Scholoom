@@ -1,5 +1,42 @@
 # 实际交付与交接
 
+## 共同基线1026796后：5.3文献详情消费者
+
+当前HEAD为`1026796d854b8f568c3e819f13268a9638980bc1`，开工前clean；本轮只交付5.3及本机子验收6.1a，当前**18/23**。主线`/tmp/scholoom-round5-acceptance-WBreMJ/{acceptance.md,synchronized.json}`已证明七域源码及本线X1／原值权威／编辑子范围进入dev与当前树；下方早期阶段的“未入dev／等同步／缺项目源码”是历史，不再作为阻塞。本轮未应用旧累计补丁、切分支或同步其他树，未提交／推送／PR／归档、安装依赖或写真实用户库。
+
+### 实际成果与文件／符号
+
+- `library/library-details.tsx`的LibraryDetailsContribution／PublishLibraryDetails／LibraryDetails只贡献和订阅由LibraryContents生成的React视图；不保存第二份metadata、选择、草稿或提交状态。生命周期释放按当前视图身份核对，过期释放不会清掉新视图。`LibraryTab.tsx`保留全部原选择、草稿及saveDetail逻辑，将原CatalogItemPane从中间区移到该视图贡献，增加当前页已选数量／主选摘要；原CatalogItemForm、JSON、标签、集合、关联、历史及附件入口复用。
+- `business-session.tsx`每个实例持有一个贡献，新增session.libraryDetails并将同一贡献传入LibraryTab；`session.ts`新增可选ReactNode。`Workbench.tsx`只转交该视图、持有辅助页签选择并对library打开跨组复用已有tab；原flush与overlay收起保留。`shell/AuxiliaryPane.tsx`增加文献详情分支与受控页签，文件／材料／taskNavigator不改。programs、TaskPanel、TaskResearchPort、FileEdit来源、根工具、runtime构造器及各域restore均未修改。
+- `library.css`仅调整详情单栏及溢出、辅助页签换行，沿既有语义token；题录详情只挂载一次，折叠／切辅助页签不卸载LibraryContents。库tab卸载清除自己的视图，重开继续原库／窗口草稿及选择。视图贡献没有仓储／DOM读取；原主选get、集合／列表／附件分页及惰性历史继续原路径，不展开全库。
+- 复用`library.spec.ts`、`context-bridge.spec.ts`及`resource-opening.spec.ts`，调整详情定位，扩展已有选择／资源场景，覆盖两组库去重、完整草稿、折叠／展开、文件／任务页签、programs入口、Alpha／Beta会话及共同附件；未新建平行产品夹具。其余6份`attachments`、`reading-records`、`pdf-reading`、`document-reading`、`resource-lifecycle`、`material-interactions`仅在实际详情入口增加页签选择；其中attachments已实跑，其余阅读器用例本轮仅类型／lint核对，不声称重新验收阅读专项。
+- 更新原design／tasks／literature-catalog delta及开发／文献UI分节，5.3实际前置改为已完成4.1a／b、4.2a／b等子范围，不等待完整复杂映射。图中详情连线与当前设计一致。没有protocol schema、领域存储、迁移或正式规格修改。
+
+### 真实验证及首次问题
+
+证据根`/tmp/scholoom-library-details-round5/`。Linux、Node24／既有锁定依赖；真实Browser及Electron、client／broker／领域仓储、worker与文件。上下文模型在既有loopback HTTP边界受控；save/send RPC gate只用于既有迟到场景，不替代真实提交／权限／仓储。所有库、profile、项目与输入均为隔离合成样本；已登记项目保留在结果目录，不删除仍登记项目或放宽未知停止／容量／生产超时。
+
+| 命令／范围 | 实际结果与证据 |
+| --- | --- |
+| `pnpm --config.optimisticRepeatInstall=false build:shared`及`pnpm --config.optimisticRepeatInstall=false --filter @scholoom/desktop build` | 通过。共享一次，桌面分别在初片、视觉修正及去重修复后构建；`build-shared.log`、`build-desktop{,-final,-verified}.log`。最终桌面构建1分37秒；每轮测试均在对应构建退出后才开始，测试期间未重建或修改源码。 |
+| `node node_modules/typescript/bin/tsc --noEmit -p apps/desktop/tsconfig.json`及`-p tsconfig.tools.json` | 通过，`types-desktop-verified.log`／`types-tools-verified.log`；共享类型随共享构建通过。 |
+| 静态双宿主首轮：`SCHOOLOOM_UI_PORT=5725 SCHOOLOOM_UI_DATA_DIR=<证据根>/profile-first xvfb-run -a node node_modules/@playwright/test/cli.js test --config <证据根>/ui.config.mts tests/ui/library.spec.ts tests/ui/context-bridge.spec.ts tests/ui/resource-opening.spec.ts tests/ui/attachments.spec.ts --workers=1` | **24/24，11.0分钟**，`ui-first.log`／`ui-first/`。覆盖类型／原值、未知值、选择／列／分页、多窗口／关闭重开、冲突与迟到保存、X1实际工具、共同资源及附件有界读取；这轮尚未包含后来发现的跨组重复实例回归，不将24项冒充最终一次组合。 |
+| 跨组重复库RED：同静态夹具，5727／profile-red，`tests/ui/library.spec.ts --grep 'selection, collection navigation' --project ui-browser --workers=1` | **1失败，16.7秒**，`duplicate-red.log`及`ui-final/`trace。文献库→设置向右拆分→激活设置→再点文献库，真实区域数Expected1／Received2。修复仅在openTab的library分支优先已有库所在组，其他类型仍原规则。 |
+| 最终双宿主定向：5727／profile-verified，`--config <证据根>/ui-final.config.mts tests/ui/library.spec.ts tests/ui/resource-opening.spec.ts tests/ui/attachments.spec.ts --grep 'selection, collection navigation|project documents|用户摄取本机材料' --output <证据根>/ui-verified --workers=1` | **6/6，2.4分钟**，`ui-verified.log`／`ui-verified/`。重复库RED转绿，两组返回保留同一多选及未知草稿；真实文件／任务／programs切换、右栏收展、项目会话／资源及附件分页通过。没有重新执行整套24项，原未受去重／CSS影响的场景沿首轮证据。 |
+| 首次及最终视觉核对 | 首轮Browser附件截图发现300px右栏将页签文字压成纵排；已有flex-wrap不足以阻止标签收缩。限定新页签行的按钮不收缩／不拆字后重建，最终Browser和Electron附件截图保留；实际查看Browser最终截图，标签横排正常。未据此声称全部主题／宽度验收。 |
+| 16份相关源码／测试Biome、architecture、生成器self-test及只读映射核对 | 通过，`lint-verified.log`；`architecture-final.log`为14模块248文件0 findings／exceptions；7份生成输出经既有formatter与现源码一致，`generated-check.log`。未应用生成器纯格式diff。首次lint的callback return／导入格式均在测试前用apply_patch修正。 |
+| 本change strict、scholoom-dev schema及diff／补丁核查 | 最终日志见`openspec-*.log`、`diff-check.log`及`patches/patch-check.log`，不以CLI complete称整个change完成。 |
+
+静态服务器明确使用既有`/tmp/scholoom-sync-recovery-wyn13R/static-ui.mjs`与本树已构建renderer；未启动开发服务器。首轮／RED／最终三个profile内核status均stopped，5725／5727无监听，宿主由夹具回收；项目和诊断工件保留，不清理他树执行。
+
+同一原生辅助Agent保持gpt-6.1-sol/high，先只读梳理测试，后仅拥有3份测试的局部编辑并进行独立源码窄审查。其发现跨组重复LibraryContents风险，主Agent实跑确认并修复；最终绿灯由真实双宿主提供。二次静态复核因`Selected model is at capacity`中断，没有伪造该轮审查通过；主Agent源码核对确认library限定分支保留原flush／overlay与其他标签规则，独立审查之外未发现新增确证风险。辅助Agent已关闭。
+
+### 接入、剩余边界与停止点
+
+`<证据根>/patches/`提供相对共同基线1026796的本轮增量：**0001辅助槽位／视图贡献 → 0002文献拥有者接线 → 0003回归与文档**；公共文件只改上述符号，依赖与精确文件清单见README／manifest。逐片应用核查使用仅触及文件的临时载荷，不是另一个工作树或组合构建；实际验证始终在当前正式源码。本轮没有重用旧/tmp累计补丁。
+
+本机子片完成不代表完整B批／I6。1.4目标Windows阶段诊断、4.1／4.2复杂／非一一映射、完整6.1／6.2仍开放；未知值保留JSON核查，不新增映射或来源重绑定UI。没有生态完整事务、C—I、跨平台分发、全仓CI或真实科研质量新结论。现无需要新产品决定才能完成5.3的剩余问题，达到本轮有界目标后停止。
+
 ## 2026-10-26 round4：明确映射的B批编辑子范围
 
 主线已在`/tmp/scholoom-round4-acceptance-JCUBNw/acceptance.md`独立接收下文X1及原值／来源／键／事务首片。本轮完成新增子任务**4.1b／4.2b，当前16/22**；原4.1／4.2父任务、5.3、1.4及6.x仍开放，不称整个change或B批完成。HEAD仍为70be8bf，0519904祖先；全部原未提交成果保留。本轮没有同步、提交／推送／PR／归档、安装依赖或真实库写入。

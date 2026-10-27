@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import type { Page } from '@playwright/test';
 import { createKernelClient } from '../../packages/client/dist/index.js';
 import { runningKernel } from '../kernel-fixture.js';
 import { createSession, expect, openWorkbenchWindow, test } from './fixture.js';
@@ -24,7 +25,9 @@ test('manual typed fields, creators and calendar parts preserve library original
     await expect(uiPage.getByRole('status', { name: '连接状态' })).toContainText('已连接');
     await createSession(uiPage);
     await uiPage.getByRole('button', { name: '文献库', exact: true }).click();
+    await openLibraryDetails(uiPage);
     const panel = uiPage.getByRole('region', { name: '文献库', exact: true });
+    const detail = uiPage.getByRole('region', { name: '题录详情', exact: true });
     await panel.getByRole('button', { name: '新建题录', exact: true }).click();
     await panel.getByLabel('题名', { exact: true }).fill(title);
     await panel.getByLabel('类型', { exact: true }).selectOption('book');
@@ -94,17 +97,14 @@ test('manual typed fields, creators and calendar parts preserve library original
     ).toMatchObject({ state: 'committed' });
     await panel.getByLabel('查找题录', { exact: true }).fill(title);
     await panel.getByRole('option', { name: `查看题录 ${title}`, exact: true }).click();
-    await panel.getByText('类型化题录', { exact: true }).click();
-    await panel.getByLabel('题录原出版者', { exact: true }).fill('更正出版者');
-    await panel.getByLabel('题录总页数', { exact: true }).fill('321');
-    await panel.getByLabel('题录发表日期日', { exact: true }).fill('24');
-    await panel
-      .getByRole('region', { name: '题录详情', exact: true })
-      .getByText('创建者', { exact: true })
-      .click();
-    await panel.getByLabel('题录丛书编辑1角色', { exact: true }).selectOption('editor');
-    await panel.getByLabel('题录类型', { exact: true }).selectOption('article-journal');
-    await panel.getByLabel('题录PubMed编号（PMID）', { exact: true }).fill('12345678');
+    await detail.getByText('类型化题录', { exact: true }).click();
+    await detail.getByLabel('题录原出版者', { exact: true }).fill('更正出版者');
+    await detail.getByLabel('题录总页数', { exact: true }).fill('321');
+    await detail.getByLabel('题录发表日期日', { exact: true }).fill('24');
+    await detail.getByText('创建者', { exact: true }).click();
+    await detail.getByLabel('题录丛书编辑1角色', { exact: true }).selectOption('editor');
+    await detail.getByLabel('题录类型', { exact: true }).selectOption('article-journal');
+    await detail.getByLabel('题录PubMed编号（PMID）', { exact: true }).fill('12345678');
     const expected = {
       ...metadata,
       type: 'article-journal',
@@ -115,9 +115,9 @@ test('manual typed fields, creators and calendar parts preserve library original
       'collection-editor': [],
       editor: [creator],
     };
-    const json = panel.getByLabel('题录 CSL JSON', { exact: true });
+    const json = detail.getByLabel('题录 CSL JSON', { exact: true });
     await expect.poll(async () => JSON.parse(await json.inputValue())).toEqual(expected);
-    await panel.getByRole('button', { name: '保存题录更正', exact: true }).click();
+    await detail.getByRole('button', { name: '保存题录更正', exact: true }).click();
     await expect
       .poll(async () => (await client.call('library.get', { sourceId: created.id })).metadata)
       .toEqual(expected);
@@ -130,7 +130,7 @@ test('manual typed fields, creators and calendar parts preserve library original
     expect(
       (await client.call('library.record', { libraryId, sourceId: created.id })).citationKey,
     ).toEqual({ value: `Pinned${suffix}`, pinned: true });
-    await panel.getByLabel('题录题名', { exact: true }).fill(`${title}-未保存`);
+    await detail.getByLabel('题录题名', { exact: true }).fill(`${title}-未保存`);
     const current = await client.call('library.get', { sourceId: created.id });
     await client.call('library.update', {
       sourceId: current.id,
@@ -140,11 +140,12 @@ test('manual typed fields, creators and calendar parts preserve library original
       relatedIds: current.relatedIds,
       metadata: { ...current.metadata, abstract: '外部更正' },
     });
-    await panel.getByRole('button', { name: '保存题录更正', exact: true }).click();
-    await expect(panel.getByRole('alert')).toContainText('变化');
+    await detail.getByRole('button', { name: '保存题录更正', exact: true }).click();
+    await expect(detail.getByRole('alert')).toContainText('变化');
     await expect(json).toHaveValue(/未保存/);
     await uiPage.reload();
     await uiPage.getByRole('button', { name: '文献库', exact: true }).click();
+    await openLibraryDetails(uiPage);
     await panel.getByRole('option', { name: `查看题录 ${title}`, exact: true }).click();
     await expect(json).toHaveValue(/未保存/);
     expect((await client.call('library.get', { sourceId: created.id })).metadata).toEqual({
@@ -195,25 +196,24 @@ test('typed CSL edits preserve unsupported values through save and reload', asyn
     await expect(uiPage.getByRole('status', { name: '连接状态' })).toContainText('已连接');
     await createSession(uiPage);
     await uiPage.getByRole('button', { name: '文献库', exact: true }).click();
+    await openLibraryDetails(uiPage);
     const panel = uiPage.getByRole('region', { name: '文献库', exact: true });
+    const detail = uiPage.getByRole('region', { name: '题录详情', exact: true });
     await panel.getByLabel('查找题录', { exact: true }).fill(title);
     await panel.getByRole('option', { name: `查看题录 ${title}`, exact: true }).click();
-    await panel.getByText('类型化题录', { exact: true }).click();
-    await panel.getByLabel('题录题名', { exact: true }).fill(`${title}-更正`);
-    await panel.getByLabel('题录类型', { exact: true }).selectOption('book');
-    await panel.getByLabel('题录访问日期原文', { exact: true }).fill('2026年秋');
-    await panel
-      .getByRole('region', { name: '题录详情', exact: true })
-      .getByText('创建者', { exact: true })
-      .click();
-    await panel.getByLabel('题录作者1given', { exact: true }).fill('晓明');
+    await detail.getByText('类型化题录', { exact: true }).click();
+    await detail.getByLabel('题录题名', { exact: true }).fill(`${title}-更正`);
+    await detail.getByLabel('题录类型', { exact: true }).selectOption('book');
+    await detail.getByLabel('题录访问日期原文', { exact: true }).fill('2026年秋');
+    await detail.getByText('创建者', { exact: true }).click();
+    await detail.getByLabel('题录作者1given', { exact: true }).fill('晓明');
     await expect(
-      panel
+      detail
         .getByLabel('题录作者1角色', { exact: true })
         .getByRole('option', { name: '书籍作者', exact: true }),
     ).toHaveJSProperty('disabled', true);
-    await panel.getByRole('button', { name: '题录作者2上移', exact: true }).click();
-    await panel.getByLabel('题录作者2角色', { exact: true }).selectOption('translator');
+    await detail.getByRole('button', { name: '题录作者2上移', exact: true }).click();
+    await detail.getByLabel('题录作者2角色', { exact: true }).selectOption('translator');
     const expected = {
       ...original,
       title: `${title}-更正`,
@@ -224,19 +224,20 @@ test('typed CSL edits preserve unsupported values through save and reload', asyn
     };
     await expect
       .poll(async () =>
-        JSON.parse(await panel.getByLabel('题录 CSL JSON', { exact: true }).inputValue()),
+        JSON.parse(await detail.getByLabel('题录 CSL JSON', { exact: true }).inputValue()),
       )
       .toEqual(expected);
-    await panel.getByRole('button', { name: '保存题录更正', exact: true }).click();
+    await detail.getByRole('button', { name: '保存题录更正', exact: true }).click();
     await expect
       .poll(async () => (await client.call('library.get', { sourceId: source.id })).metadata)
       .toEqual(expected);
     await uiPage.reload();
     await uiPage.getByRole('button', { name: '文献库', exact: true }).click();
+    await openLibraryDetails(uiPage);
     await panel.getByRole('option', { name: `查看题录 ${title}-更正`, exact: true }).click();
     await expect
       .poll(async () =>
-        JSON.parse(await panel.getByLabel('题录 CSL JSON', { exact: true }).inputValue()),
+        JSON.parse(await detail.getByLabel('题录 CSL JSON', { exact: true }).inputValue()),
       )
       .toEqual(expected);
   } finally {
@@ -263,7 +264,9 @@ test('user imports, edits and groups real library metadata without losing the co
     const composer = uiPage.getByRole('textbox', { name: '研究指令' });
     await composer.fill('浏览题录时保留的指令草稿');
     await uiPage.getByRole('button', { name: '文献库', exact: true }).click();
+    await openLibraryDetails(uiPage);
     const panel = uiPage.getByRole('region', { name: '文献库', exact: true });
+    const detail = uiPage.getByRole('region', { name: '题录详情', exact: true });
     await panel.getByText('文献库授权与备份', { exact: true }).click();
     await panel.getByLabel('读取库', { exact: true }).check();
     await panel.getByLabel('写入库', { exact: true }).check();
@@ -288,9 +291,9 @@ test('user imports, edits and groups real library metadata without losing the co
       )
       .toBe(true);
     await panel.getByRole('option', { name: `查看题录 ${title}`, exact: true }).click();
-    await panel.getByLabel('题录标签', { exact: true }).fill('synthetic');
-    await panel.getByLabel(`集合 ${collection}`, { exact: true }).check();
-    await panel.getByRole('button', { name: '保存题录更正', exact: true }).click();
+    await detail.getByLabel('题录标签', { exact: true }).fill('synthetic');
+    await detail.getByLabel(`集合 ${collection}`, { exact: true }).check();
+    await detail.getByRole('button', { name: '保存题录更正', exact: true }).click();
     await expect
       .poll(async () => (await client.call('library.list', { query: title })).sources[0]?.tags)
       .toEqual(['synthetic']);
@@ -312,11 +315,11 @@ test('user imports, edits and groups real library metadata without losing the co
       (await client.call('library.list', { query: `文件研究-${suffix}` })).sources,
     ).toHaveLength(1);
     await expect(composer).toHaveValue('浏览题录时保留的指令草稿');
-    const json = panel.getByLabel('题录 CSL JSON', { exact: true });
+    const json = detail.getByLabel('题录 CSL JSON', { exact: true });
     await json.fill(JSON.stringify({ title, DOI: `10.1234/${suffix}`, abstract: '首次保存' }));
     await armRpcGate(uiPage, 'library.update');
-    await panel.getByRole('button', { name: '保存题录更正', exact: true }).click();
-    await expect(panel.getByRole('button', { name: '重新读取题录', exact: true })).toBeDisabled();
+    await detail.getByRole('button', { name: '保存题录更正', exact: true }).click();
+    await expect(detail.getByRole('button', { name: '重新读取题录', exact: true })).toBeDisabled();
     await json.fill(
       JSON.stringify({ title, DOI: `10.1234/${suffix}`, abstract: '保存期间的新编辑' }),
     );
@@ -328,17 +331,17 @@ test('user imports, edits and groups real library metadata without losing the co
       )
       .toBe('首次保存');
     await expect(json).toHaveValue(/保存期间的新编辑/);
-    await panel.getByRole('button', { name: '保存题录更正', exact: true }).click();
+    await detail.getByRole('button', { name: '保存题录更正', exact: true }).click();
     await expect
       .poll(
         async () =>
           (await client.call('library.list', { query: title })).sources[0]?.metadata.abstract,
       )
       .toBe('保存期间的新编辑');
-    await expect(panel.getByRole('button', { name: '保存题录更正', exact: true })).toBeEnabled();
+    await expect(detail.getByRole('button', { name: '保存题录更正', exact: true })).toBeEnabled();
     await json.fill(JSON.stringify({ title, DOI: `10.1234/${suffix}`, abstract: '切换前提交' }));
     await armRpcGate(uiPage, 'library.update');
-    await panel.getByRole('button', { name: '保存题录更正', exact: true }).click();
+    await detail.getByRole('button', { name: '保存题录更正', exact: true }).click();
     await json.fill(JSON.stringify({ title, DOI: `10.1234/${suffix}`, abstract: '离屏后续编辑' }));
     await panel.getByRole('option', { name: `查看题录 文件研究-${suffix}`, exact: true }).click();
     await json.fill(JSON.stringify({ title: `另一条目草稿-${suffix}` }));
@@ -352,14 +355,14 @@ test('user imports, edits and groups real library metadata without losing the co
     await expect(json).toHaveValue(new RegExp(`另一条目草稿-${suffix}`));
     await panel.getByRole('option', { name: `查看题录 ${title}`, exact: true }).click();
     await expect(json).toHaveValue(/离屏后续编辑/);
-    await panel.getByRole('button', { name: '保存题录更正', exact: true }).click();
+    await detail.getByRole('button', { name: '保存题录更正', exact: true }).click();
     await expect
       .poll(
         async () =>
           (await client.call('library.list', { query: title })).sources[0]?.metadata.abstract,
       )
       .toBe('离屏后续编辑');
-    await expect(panel.getByRole('button', { name: '保存题录更正', exact: true })).toBeEnabled();
+    await expect(detail.getByRole('button', { name: '保存题录更正', exact: true })).toBeEnabled();
     await json.fill(JSON.stringify({ title: `未保存草稿-${suffix}`, DOI: `10.1234/${suffix}` }));
     const current = (await client.call('library.list', { query: title })).sources[0];
     if (!current) throw new Error('Created source missing');
@@ -372,8 +375,8 @@ test('user imports, edits and groups real library metadata without losing the co
       relatedIds: current.relatedIds,
     });
     await expect(json).toHaveValue(new RegExp(`未保存草稿-${suffix}`));
-    await panel.getByRole('button', { name: '保存题录更正', exact: true }).click();
-    await expect(panel.getByRole('alert')).toContainText('变化');
+    await detail.getByRole('button', { name: '保存题录更正', exact: true }).click();
+    await expect(detail.getByRole('alert')).toContainText('变化');
     expect((await client.call('library.get', { sourceId: current.id })).metadata.title).toBe(
       `外部更正-${suffix}`,
     );
@@ -392,17 +395,18 @@ test('user imports, edits and groups real library metadata without losing the co
     await uiPage.screenshot({ path: info.outputPath('library-catalog.png') });
     await uiPage.reload();
     await uiPage.getByRole('button', { name: '文献库', exact: true }).click();
+    await openLibraryDetails(uiPage);
     await panel.getByLabel('查找题录', { exact: true }).fill(`外部更正-${suffix}`);
     await expect(
       panel.getByRole('option', { name: `查看题录 外部更正-${suffix}`, exact: true }),
     ).toBeVisible();
     await expect(composer).toHaveValue('浏览题录时保留的指令草稿');
     await panel.getByRole('option', { name: `查看题录 外部更正-${suffix}`, exact: true }).click();
-    await expect(panel.getByLabel('题录 CSL JSON', { exact: true })).toHaveValue(
+    await expect(detail.getByLabel('题录 CSL JSON', { exact: true })).toHaveValue(
       new RegExp(`未保存草稿-${suffix}`),
     );
-    await panel.getByRole('button', { name: '保存题录更正', exact: true }).click();
-    await expect(panel.getByRole('alert')).toContainText('变化');
+    await detail.getByRole('button', { name: '保存题录更正', exact: true }).click();
+    await expect(detail.getByRole('alert')).toContainText('变化');
   } finally {
     client.dispose();
     await rm(restoreRoot, { recursive: true });
@@ -454,6 +458,7 @@ test('library selection, collection navigation and columns survive bounded view 
     await expect(uiPage.getByRole('status', { name: '连接状态' })).toContainText('已连接');
     await createSession(uiPage);
     await uiPage.getByRole('button', { name: '文献库', exact: true }).click();
+    await openLibraryDetails(uiPage);
     const panel = uiPage.getByRole('region', { name: '文献库', exact: true });
     await panel.getByLabel('查找题录', { exact: true }).fill(prefix);
     await panel
@@ -463,6 +468,24 @@ test('library selection, collection navigation and columns survive bounded view 
       .getByRole('option', { name: `查看题录 ${second.metadata.title}`, exact: true })
       .click({ modifiers: ['ControlOrMeta'] });
     await expect(panel.getByRole('status', { name: '题录选择' })).toContainText('已选 2 项');
+    const summary = uiPage
+      .getByRole('complementary', { name: '辅助面板', exact: true })
+      .getByRole('status', { name: '文献选择概况', exact: true });
+    await expect(summary).toContainText(/已选\s*2\s*项/);
+    await expect(summary).toContainText(`${second.metadata.title}`);
+    const json = uiPage
+      .getByRole('region', { name: '题录详情', exact: true })
+      .getByLabel('题录 CSL JSON', { exact: true });
+    const splitDraft = { ...second.metadata, abstract: '跨组唯一草稿' };
+    await json.fill(JSON.stringify(splitDraft));
+    await uiPage.getByRole('button', { name: '设置', exact: true }).click();
+    await uiPage.getByRole('button', { name: '向右拆分', exact: true }).click();
+    await uiPage.getByRole('tab', { name: /设置/ }).click();
+    await uiPage.getByRole('button', { name: '文献库', exact: true }).click();
+    await expect(uiPage.getByRole('region', { name: '文献库', exact: true })).toHaveCount(1);
+    await expect.poll(async () => JSON.parse(await json.inputValue())).toEqual(splitDraft);
+    await expect(summary).toContainText(/已选\s*2\s*项/);
+    await uiPage.getByRole('button', { name: '关闭 设置', exact: true }).click();
     const secondRow = panel.getByRole('option', {
       name: `查看题录 ${second.metadata.title}`,
       exact: true,
@@ -517,6 +540,7 @@ test('library selection, collection navigation and columns survive bounded view 
     await expect(nav.getByRole('button', { name: '上一页导航集合', exact: true })).toBeVisible();
     await uiPage.reload();
     await uiPage.getByRole('button', { name: '文献库', exact: true }).click();
+    await openLibraryDetails(uiPage);
     await expect(panel.getByLabel('查找题录', { exact: true })).toHaveValue(prefix);
     await panel.getByText('表格列设置', { exact: true }).click();
     await expect(panel.getByLabel('作者列', { exact: true })).not.toBeChecked();
@@ -561,7 +585,9 @@ test('library object drafts stay isolated across windows and late failures', asy
       { key: legacyImport, title: `旧导入-${suffix}` },
     );
     await uiPage.getByRole('button', { name: '文献库', exact: true }).click();
+    await openLibraryDetails(uiPage);
     const panel = uiPage.getByRole('region', { name: '文献库', exact: true });
+    const detail = uiPage.getByRole('region', { name: '题录详情', exact: true });
     await panel.getByText('CSL JSON 导入', { exact: true }).click();
     await panel.getByRole('button', { name: '恢复旧导入草稿', exact: true }).click();
     await expect(panel.getByLabel('CSL JSON 文本', { exact: true })).toHaveValue(
@@ -572,13 +598,14 @@ test('library object drafts stay isolated across windows and late failures', asy
     );
     await panel.getByLabel('查找题录', { exact: true }).fill(prefix);
     await panel.getByRole('option', { name: `查看题录 ${prefix}-甲`, exact: true }).click();
-    const json = panel.getByLabel('题录 CSL JSON', { exact: true });
+    const json = detail.getByLabel('题录 CSL JSON', { exact: true });
     await json.fill(JSON.stringify({ title: `${prefix}-甲`, abstract: '跨卸载提交' }));
     await armRpcGate(uiPage, 'library.update');
-    await panel.getByRole('button', { name: '保存题录更正', exact: true }).click();
+    await detail.getByRole('button', { name: '保存题录更正', exact: true }).click();
     await uiPage.getByRole('button', { name: '关闭 文献库', exact: true }).click();
     await uiPage.getByRole('button', { name: '文献库', exact: true }).click();
-    await expect(panel.getByRole('button', { name: '保存题录更正', exact: true })).toBeDisabled();
+    await openLibraryDetails(uiPage);
+    await expect(detail.getByRole('button', { name: '保存题录更正', exact: true })).toBeDisabled();
     await json.fill(JSON.stringify({ title: `${prefix}-甲`, abstract: '原窗口草稿' }));
     await releaseRpcGate(uiPage);
     await expect
@@ -588,14 +615,17 @@ test('library object drafts stay isolated across windows and late failures', asy
       .toBe('跨卸载提交');
     await uiPage.getByRole('button', { name: '关闭 文献库', exact: true }).click();
     await uiPage.getByRole('button', { name: '文献库', exact: true }).click();
+    await openLibraryDetails(uiPage);
     await expect(json).toHaveValue(/原窗口草稿/);
     other = await openWorkbenchWindow(uiPage);
     await other.goto(rendererUrl);
     await other.getByRole('button', { name: '文献库', exact: true }).click();
+    await openLibraryDetails(other);
     const otherPanel = other.getByRole('region', { name: '文献库', exact: true });
+    const otherDetail = other.getByRole('region', { name: '题录详情', exact: true });
     await otherPanel.getByLabel('查找题录', { exact: true }).fill(prefix);
     await otherPanel.getByRole('option', { name: `查看题录 ${prefix}-甲`, exact: true }).click();
-    await expect(otherPanel.getByLabel('题录 CSL JSON', { exact: true })).not.toHaveValue(
+    await expect(otherDetail.getByLabel('题录 CSL JSON', { exact: true })).not.toHaveValue(
       /原窗口草稿/,
     );
     const latest = await client.call('library.get', { sourceId: source.id });
@@ -608,21 +638,22 @@ test('library object drafts stay isolated across windows and late failures', asy
       relatedIds: source.relatedIds,
     });
     await armRpcGate(uiPage, 'library.update');
-    await panel.getByRole('button', { name: '保存题录更正', exact: true }).click();
+    await detail.getByRole('button', { name: '保存题录更正', exact: true }).click();
     await panel.getByRole('option', { name: `查看题录 ${prefix}-乙`, exact: true }).click();
     await json.fill(JSON.stringify({ title: `${prefix}-乙`, abstract: '另一个对象草稿' }));
     await releaseRpcGate(uiPage);
-    await expect(panel.getByRole('button', { name: '保存题录更正', exact: true })).toBeEnabled();
+    await expect(detail.getByRole('button', { name: '保存题录更正', exact: true })).toBeEnabled();
     await expect(json).toHaveValue(/另一个对象草稿/);
-    await expect(panel.getByRole('alert')).toHaveCount(0);
+    await expect(detail.getByRole('alert')).toHaveCount(0);
     await panel.getByRole('option', { name: `查看题录 ${prefix}-甲`, exact: true }).click();
     await expect(json).toHaveValue(/原窗口草稿/);
-    await expect(panel.getByRole('alert')).toContainText('变化');
+    await expect(detail.getByRole('alert')).toContainText('变化');
     await uiPage.getByRole('button', { name: '关闭 文献库', exact: true }).click();
     await uiPage.getByRole('button', { name: '文献库', exact: true }).click();
+    await openLibraryDetails(uiPage);
     await expect(json).toHaveValue(/原窗口草稿/);
-    await panel.getByRole('button', { name: '重新读取题录', exact: true }).click();
-    const confirm = panel.getByRole('alertdialog', { name: '确认丢弃题录草稿' });
+    await detail.getByRole('button', { name: '重新读取题录', exact: true }).click();
+    const confirm = detail.getByRole('alertdialog', { name: '确认丢弃题录草稿' });
     await confirm.getByRole('button', { name: '保留草稿', exact: true }).click();
     await expect(json).toHaveValue(/原窗口草稿/);
   } finally {
@@ -630,3 +661,9 @@ test('library object drafts stay isolated across windows and late failures', asy
     client.dispose();
   }
 });
+
+async function openLibraryDetails(page: Page): Promise<void> {
+  const expand = page.getByRole('button', { name: '展开右区', exact: true });
+  if (await expand.isVisible()) await expand.click();
+  await page.getByRole('tab', { name: '文献详情', exact: true }).click();
+}

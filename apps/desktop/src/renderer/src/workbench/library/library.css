@@ -72,7 +72,7 @@
   text-align: center;
 }
 
-/* 内容区：两栏 */
+/* 内容区：集合导航与条目表 */
 .library-content {
   flex: 1;
   display: flex;
@@ -90,11 +90,26 @@
 }
 
 .library-detail-pane {
-  flex: 2;
-  min-width: 280px;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
   background: var(--bg);
   display: flex;
   flex-direction: column;
+  overflow-wrap: anywhere;
+}
+
+.library-detail-pane .project-controls {
+  max-height: none;
+}
+
+.auxiliary-tabs--library {
+  flex-wrap: wrap;
+}
+
+.auxiliary-tabs--library .auxiliary-tab {
+  flex: 0 0 auto;
+  white-space: nowrap;
 }
 
 .detail-pane-placeholder {
@@ -424,6 +439,7 @@
 
 /* 详情面板 */
 .catalog-item-pane {
+  flex: 1;
   display: flex;
   height: 100%;
   min-height: 0;
