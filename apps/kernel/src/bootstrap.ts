@@ -22,6 +22,7 @@ export function bootstrapKernel(
   mode: BootstrapRequest['mode'],
   options: { dataDirectory?: string; nodeExecutable?: string; development?: boolean } = {},
 ): Promise<BootstrapResult> {
+  const started = Date.now();
   const args = [
     fileURLToPath(new URL('./cli.js', import.meta.url)).replace(
       `${sep}app.asar${sep}`,
@@ -41,7 +42,7 @@ export function bootstrapKernel(
         maxBuffer: 128 * 1024,
         windowsHide: true,
       },
-      (_error, stdout) => {
+      (error, stdout) => {
         let result: unknown;
         try {
           result = JSON.parse(stdout);
@@ -55,8 +56,21 @@ export function bootstrapKernel(
                 state: 'unknown',
                 error: {
                   code: 'startupFailed',
-                  message:
-                    'Independent Node bootstrap failed. Check Node 24 and runtime/kernel.log.',
+                  message: `Independent Node bootstrap failed. Check Node 24 and runtime/kernel.log.\n${JSON.stringify(
+                    {
+                      phase: 'node-bootstrap',
+                      mode,
+                      elapsedMs: Date.now() - started,
+                      exitCode: typeof error?.code === 'number' ? error.code : undefined,
+                      systemCode:
+                        typeof error?.code === 'string' && /^E[A-Z0-9_]+$/.test(error.code)
+                          ? error.code
+                          : undefined,
+                      signal: error?.signal ?? null,
+                      killed: error?.killed ?? false,
+                      stdoutBytes: Buffer.byteLength(stdout),
+                    },
+                  )}`,
                 },
               },
         );

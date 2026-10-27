@@ -57,7 +57,19 @@ flowchart LR
 
 ## 影响方案的未知项与实验
 
-### 当前CI基线
+### 当前CI基线（2026-10-27）
+
+当前依据为6b22d602046baa7c1349bf66059c61d79c07ae40的[40315429083](https://github.com/leike0813/Scholoom/actions/runs/40315429083)：Linux内核689通过9失败16跳过；Windows628通过49失败30跳过；macOS入口3通过1失败。原始日志和平台清单来自 `/tmp/scholoom-round6-acceptance-dXuzCA/{ci-baseline-failures.log,ci-baseline-summary.json}`，不以旧374项基线或原生专项绿色代替。
+
+本线只读下载同仓库artifact：Windows 12650865090（diagnostics-windows-latest）、macOS 12646907624（diagnostics-macos-latest），均未过期，原zip保留在 `/tmp/scholoom-project-execution-round6-7zLloB/{windows.zip,macos.zip}`。只解包两份lifecycle及指定entrypoints失败；没有执行artifact内容、读取其他树或输出token／连接资料。Mac安全时间线见该目录entrypoints-safe-diagnostic.json。
+
+- Windows `lifecycle.spec.ts:20` 首批四个并发start返回后断言running，实际unknown；`:78` 在占用释放后发现三个返回不全running。测试trace只含断言，未保存CLI错误对象／锁／发现和内核日志；断言前约13.5s／释放阶段约12.5s不是足以归因CPU／超时的证据。
+- macOS `entrypoints.spec.ts:110` 实际仅执行一次electron.launch：约2.997s返回，3.604s取得窗口，3.606–16.637s等待连接失败，随后finally关窗／退出；没有走到第一次kernel status查询，也没有第二次launch。因此不能按用例标题称“重开失败”。UI connecting同时用于bootstrap及WS阶段，artifact不含二者的实际事件或kernel初始化记录。
+- 当前UI断言13s、bootstrap子进程允许17s，随后WS／认证／状态等待另有预算；这里只说明断言可能先于底层诊断结束，不认定该次启动慢或统一延长时限。macOS受管执行不可用与人工连接应可用分别表达。
+
+本轮选择先补原错误上下文、既有kernel.log安全阶段以及直接失败附件，保留停止／未知／容量／PID判断／时限／重试；只有后续目标平台证据或跨平台真实反例闭合因果才修改机制。旧记录保留如下，均不作为本轮最新CI结论。
+
+### 旧CI记录（历史）
 
 来源为[七线计划](../../../.scratch/domain-development/parallel-development-plan.md#当前-ci-基线的处理)固定 `55d020c` 的 [40100596838](https://github.com/leike0813/Scholoom/actions/runs/40100596838)，原始日志本轮可读于 `/tmp/scholoom-next-parallel-baseline-failures.log`。Linux UI 101通过／9失败／2跳过，Windows kernel 374通过／15失败／12跳过；macOS成功为降级验证，非全功能。
 

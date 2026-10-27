@@ -212,6 +212,20 @@ runtime合并还须保留Agent的instanceLifecycle.onStopping中childrenControll
 
 ## 待办边界
 
+### 共同4b13183后的生命周期诊断切片
+
+最新CI是6b22d60／40315429083：Linux内核689通过9失败16跳过，Windows628通过49失败30跳过，macOS入口3通过1失败。原始日志与平台清单位于 `/tmp/scholoom-round6-acceptance-dXuzCA/`。Windows生命周期两例在并发start返回后断言unknown／非running；artifact仅有测试trace，未保留各CLI错误／发现锁详情。macOS失败实际发生于第一次launch的初始连接，不是已执行的关闭重开；trace没有bootstrap或WS到达记录。13s UI等待与bootstrap最长17s、随后连接分阶段等待的预算差异只能解释诊断缺失，不能据此认定根因或延长等待。
+
+本轮先在构建产物上只运行一次原render-authorization场景，以隔离被动observer记录ManagedNode已有instance、controller code／signal、stopped及native窄字段；不记录entry／env／参数／RPC正文。未复现保持历史unknown开放，不反复跑排版或安装TeX。
+
+公共写集限 `apps/kernel/src/lifecycle.ts` 的inspect／ensure错误上下文、`bootstrap.ts` 已有execFile失败信息，以及 `tests/kernel/lifecycle.spec.ts`、`tests/smoke/entrypoints.spec.ts` 和直接kernel夹具。沿原ErrorInfo.message／测试attachment记录阶段、耗时、锁／发现／PID观察布尔、子进程退出和结果状态；不另建日志框架、新状态或凭据存储。实际锁、独立Node和WS接线保留；不改变PID存活判定、停止／unknown、容量、生产等待或自动重试。不修改Agent线的harness／模型／恢复内部，也保留生态rememberCatalog持续外发授权修复。
+
+错误总长度沿errorInfoSchema的512字符上限，在完整JSON序列化后检查，必要时去掉可选instanceId／缩短通用提示，保留原因码与完整JSON。ensure内部保留最后一次实际inspect观察，不从字符串反猜锁状态；最终availability诊断携带lastPhase／锁／发现／PID事实。serve的模块加载、初始化、监听、发现发布、服务关闭和锁释放只向既有kernel.log写固定字段，记录失败不能改变归属结果。夹具只读末尾64KiB并筛选至多64条安全阶段；不复制原日志或连接资料。窗口诊断覆盖launch序号、WS认证／状态方法及关闭／关闭后查询，最多100条事件、8个关联请求，缺监听前事件不作反证。
+
+在证据不足的系统分支不猜修复。Linux真实生命周期／独立配置并发、双宿主静态入口及生产Electron关闭重开用于本机回归；Windows／macOS真实验证仍为独立缺口。若只补诊断，已有业务schema／状态契约不变，无新增正式规格行为；当前设计与任务记录该窄切片，结果写同一delivery。
+
+本轮Linux首轮证据另确认两处夹具预算问题：关闭重开两次均认证／状态成功、同实例且窗口exit0，30s总预算耗尽在最后CLI查询；双宿主重试的5s断言在bootstrap返回前结束，日志随后记录发现发布。仅上述入口／重试夹具按现有bootstrap 17s、WS打开3s／认证3s／状态请求5s分阶段预算校正，生产入口等待28s，开发入口再计宿主连接11s及attach5s，共44s。场景总预算单独为两次窗口或停止后重启保留空间，并非端到端硬上界；生产期限保持。保留原失败及新附件，不将这次夹具修正归因为Windows／macOS的历史失败。
+
 ### 共同1026796后的有界切片
 
 当前七域实现都在本树。共享构造器末尾executionResources／taskPort／delegationOptions／programs、根工具、统一v6、三域restore和task／programs分派保持；不用快照或替代TaskPort。8.4通过真实任务tab、程序tab、多窗口、各自草稿／资源打开／取消和切项目隔离验收，复用tests/ui/program-runs及research-tasks现有用户入口；只在确有遗漏时修program接点，不改任务组件。登记项目在结果目录保留至所属共享配置退役。

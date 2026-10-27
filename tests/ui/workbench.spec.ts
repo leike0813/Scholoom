@@ -3,7 +3,8 @@ import { mkdir, rmdir, symlink, unlink } from 'node:fs/promises';
 import { join, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createKernelClient } from '../../packages/client/dist/index.js';
-import { runKernel, runningKernel } from '../kernel-fixture.js';
+import { limits } from '../../packages/protocol/dist/index.js';
+import { developmentKernelConnectionTimeout, runKernel, runningKernel } from '../kernel-fixture.js';
 import { createSession, expect, test } from './fixture.js';
 import { rendererUrl } from './renderer-url.js';
 
@@ -44,6 +45,8 @@ test('transport reconnect preserves the instruction draft', async ({ uiPage }) =
 });
 
 test('CLI shutdown reaches every client and retry preserves draft', async ({ uiPage }) => {
+  // Includes fixture bootstrap, confirmed shutdown, CLI checks and a fresh user-requested start.
+  test.setTimeout(2 * developmentKernelConnectionTimeout + limits.lifecycleMs);
   await uiPage.goto(rendererUrl);
   const status = uiPage.getByRole('status', { name: '连接状态' });
   await expect(status).toContainText('已连接');
@@ -64,7 +67,9 @@ test('CLI shutdown reaches every client and retry preserves draft', async ({ uiP
     expect((await runKernel(dataDirectory(), 'status')).state).toBe('stopped');
     await status.hover();
     await uiPage.getByRole('button', { name: '重试连接' }).click();
-    await expect(status).toContainText('已连接');
+    await expect(status).toContainText('已连接', {
+      timeout: developmentKernelConnectionTimeout,
+    });
     expect((await runningKernel(dataDirectory())).instanceId).not.toBe(endpoint.instanceId);
     await expect(input).toHaveValue('停机和重试后仍保留');
   } finally {
@@ -73,6 +78,7 @@ test('CLI shutdown reaches every client and retry preserves draft', async ({ uiP
 });
 
 test('kernel crash requires user retry and keeps draft', async ({ uiPage }) => {
+  test.setTimeout(2 * developmentKernelConnectionTimeout + limits.lifecycleMs);
   await uiPage.goto(rendererUrl);
   const status = uiPage.getByRole('status', { name: '连接状态' });
   await expect(status).toContainText('已连接');
@@ -87,7 +93,7 @@ test('kernel crash requires user retry and keeps draft', async ({ uiPage }) => {
   await expect(retry).toBeVisible({ timeout: 10_000 });
   expect((await runKernel(dataDirectory(), 'status')).state).toBe('stopped');
   await retry.click();
-  await expect(status).toContainText('已连接');
+  await expect(status).toContainText('已连接', { timeout: developmentKernelConnectionTimeout });
   await expect(input).toHaveValue('内核退出后保留');
 });
 

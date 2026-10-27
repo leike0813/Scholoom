@@ -1,12 +1,18 @@
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { _electron as electron, expect, test } from '@playwright/test';
+import { type ElectronApplication, _electron as electron, expect, test } from '@playwright/test';
+import { inspectKernel } from '../../apps/kernel/dist/lifecycle.js';
 import { limits } from '../../packages/protocol/dist/index.js';
 import { closeDesktop } from '../desktop-fixture.js';
-import { isolatedKernel, runKernel } from '../kernel-fixture.js';
+import {
+  isolatedKernel,
+  kernelConnectionTimeout,
+  kernelLifecycleDiagnostics,
+  kernelResultSummary,
+  runKernel,
+} from '../kernel-fixture.js';
 
 const projectRoot = fileURLToPath(new URL('../../', import.meta.url));
-const connectionTimeout = limits.lifecycleMs + limits.authenticationMs;
 const desktopLaunch = process.env.SCHOOLOOM_PACKAGED_DESKTOP
   ? { executablePath: process.env.SCHOOLOOM_PACKAGED_DESKTOP, args: [] }
   : { args: [fileURLToPath(new URL('../../apps/desktop', import.meta.url))] };
@@ -57,7 +63,7 @@ test('desktop loads React and its sandbox preload', async () => {
       );
       await expect(window.getByRole('heading', { level: 1 })).toBeVisible();
       await expect(window.getByRole('status', { name: '连接状态' })).toContainText('已连接', {
-        timeout: connectionTimeout,
+        timeout: kernelConnectionTimeout,
       });
       await expect(window.getByRole('button', { name: '发送指令' })).toBeDisabled();
       const platform = await window.evaluate(
@@ -70,7 +76,7 @@ test('desktop loads React and its sandbox preload', async () => {
       scenario.searchParams.set('scenario', 'ui-foundation');
       await window.goto(scenario.href);
       await expect(window.getByRole('status', { name: '连接状态' })).toContainText('已连接', {
-        timeout: connectionTimeout,
+        timeout: kernelConnectionTimeout,
       });
       await expect(window.getByRole('checkbox')).toHaveCount(0);
     } catch (error) {
@@ -108,23 +114,75 @@ test('desktop loads React and its sandbox preload', async () => {
 });
 
 test('desktop closes without stopping kernel and a new window reconnects', async () => {
+  // Two window/bootstrap cycles, each followed by CLI inspection and owned window close.
+  test.setTimeout(2 * (kernelConnectionTimeout + limits.lifecycleMs));
   await isolatedKernel(async (directory) => {
     let instanceId: string | undefined;
     for (let attempt = 0; attempt < 2; attempt += 1) {
-      const app = await electron.launch({
-        ...desktopLaunch,
-        env: {
-          ...process.env,
-          SCHOOLOOM_DATA_DIR: directory,
-          SCHOOLOOM_NODE_EXECUTABLE: process.execPath,
-        },
-      });
+      const started = performance.now();
+      const events: object[] = [];
+      const note = (phase: string, detail: object = {}) => {
+        if (events.length < 100)
+          events.push({ phase, elapsedMs: Math.round(performance.now() - started), ...detail });
+      };
+      let app: ElectronApplication | undefined;
+      let phase = 'launch';
       try {
+        app = await electron.launch({
+          ...desktopLaunch,
+          env: {
+            ...process.env,
+            SCHOOLOOM_DATA_DIR: directory,
+            SCHOOLOOM_NODE_EXECUTABLE: process.execPath,
+          },
+        });
+        note('desktop-launched');
+        phase = 'connection';
         const page = await app.firstWindow();
+        note('first-window-observed');
+        // Listening starts after firstWindow; missing earlier events do not prove they never occurred.
+        page.on('websocket', (socket) => {
+          note('ws-created');
+          const requests = new Map<string | number, string>();
+          socket.on('framesent', ({ payload }) => {
+            if (Buffer.byteLength(payload) > 16384) return;
+            try {
+              const message = JSON.parse(payload.toString());
+              if (
+                requests.size < 8 &&
+                ['kernel.authenticate', 'kernel.status'].includes(message.method) &&
+                ['string', 'number'].includes(typeof message.id)
+              ) {
+                requests.set(message.id, message.method);
+                note(`${message.method}-sent`);
+              }
+            } catch {}
+          });
+          socket.on('framereceived', ({ payload }) => {
+            if (Buffer.byteLength(payload) > 16384) return;
+            try {
+              const message = JSON.parse(payload.toString());
+              const method = requests.get(message.id);
+              if (method) {
+                requests.delete(message.id);
+                note(`${method}-received`, {
+                  ok: !message.error,
+                  code:
+                    typeof message.error?.data?.code === 'string'
+                      ? message.error.data.code.slice(0, 64)
+                      : undefined,
+                });
+              }
+            } catch {}
+          });
+          socket.on('socketerror', () => note('ws-error'));
+          socket.on('close', () => note('ws-closed'));
+        });
         await expect(page.getByRole('status', { name: '连接状态' })).toContainText('已连接', {
-          timeout: connectionTimeout,
+          timeout: kernelConnectionTimeout,
         });
         const current = await runKernel(directory, 'status');
+        note('connected-status', kernelResultSummary(current));
         expect(current.state).toBe('running');
         if (current.state === 'running') {
           if (instanceId) expect(current.endpoint.instanceId).toBe(instanceId);
@@ -132,10 +190,58 @@ test('desktop closes without stopping kernel and a new window reconnects', async
           await page.getByRole('status', { name: '连接状态' }).hover();
           await expect(page.getByText(`实例 ${instanceId}`, { exact: true })).toBeVisible();
         }
+      } catch (error) {
+        await test.info().attach(`desktop-connection-${attempt}`, {
+          body: JSON.stringify({ attempt, phase, events }),
+          contentType: 'application/json',
+        });
+        const observed = await inspectKernel(directory);
+        await test.info().attach(`desktop-failure-inspection-${attempt}`, {
+          body: JSON.stringify({
+            attempt,
+            phase: 'after-failed-assertion-before-close',
+            kernel: kernelResultSummary(observed),
+            lifecycle: await kernelLifecycleDiagnostics(directory),
+          }),
+          contentType: 'application/json',
+        });
+        throw error;
       } finally {
-        await closeDesktop(app);
+        if (app) {
+          note('desktop-close-requested');
+          try {
+            await closeDesktop(app);
+          } finally {
+            note(
+              app.process().exitCode !== null || app.process().signalCode !== null
+                ? 'desktop-exited'
+                : 'desktop-close-unconfirmed',
+              {
+                exitCode: app.process().exitCode,
+                signal: app.process().signalCode,
+              },
+            );
+            await test.info().attach(`desktop-close-${attempt}`, {
+              body: JSON.stringify({ attempt, events }),
+              contentType: 'application/json',
+            });
+          }
+        }
       }
-      expect((await runKernel(directory, 'status')).state).toBe('running');
+      try {
+        const after = await runKernel(directory, 'status');
+        await test.info().attach(`desktop-closed-status-${attempt}`, {
+          body: JSON.stringify({ attempt, kernel: kernelResultSummary(after) }),
+          contentType: 'application/json',
+        });
+        expect(after.state).toBe('running');
+      } catch (error) {
+        await test.info().attach(`desktop-closed-status-failure-${attempt}`, {
+          body: JSON.stringify({ attempt, phase: 'closed-status', events }),
+          contentType: 'application/json',
+        });
+        throw error;
+      }
     }
   });
 });

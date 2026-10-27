@@ -77,7 +77,7 @@ flowchart TD
 
 ## 续做入口
 
-当前起点为1026796d854b8f568c3e819f13268a9638980bc1，工作区干净，七域完整实现已在本树；证据为 `/tmp/scholoom-round5-acceptance-WBreMJ/{acceptance.md,synchronized.json}`。第7／8组保留历史成果，不再以缺TaskRef／任务组件／委派仓储或旧同步门为前置。只推进8.4真实联合及第9组退出诊断，Windows／历史CI和整个change收尾保持开放。
+当前起点为4b13183f7489d3cae12fd0a7d1a9e83fb33d7384，工作区干净，主线已接收8.4／第9组并完成真实组合及同步。证据为 `/tmp/scholoom-round6-acceptance-dXuzCA/` 的acceptance／synchronized及sync-build／sync-kernel结果。本轮只推进第10组：5.2具体生命周期／一次nativeTeX诊断；不使用旧累计patch，不再等待同步，Windows／macOS目标验证及整个change收尾分别开放。
 
 ## 8. 公共同步后的实际消费
 
@@ -92,3 +92,9 @@ flowchart TD
 - [x] 9.1 在原design落稿后，仅修改platform processes／process-controller：既有IPC detail和错误末行JSON保留controller code／signal、instanceId、stoppedReceived、native最后状态／退出结果及固定reason；停止确认后刷新启动错误的最终诊断。无新ErrorInfo字段／框架／状态，无凭据／bootstrap日志；unknown、停止证明、容量、期限及重试未变。
 - [x] 9.2 真实controller SIGKILL／原生失败fixture／成功code0结构回归通过，未知继续占容量，明确停止才释放。独立审查发现启动错误使用旧快照的P2：初版构建反例1红1绿，补最终收据后全部通过、只读复核关闭。故障fixture仅替原生可执行文件，不宣称修复历史nativeTeX根因。
 - [x] 9.3 先完成shared／desktop及审查修复后的platform构建，再运行定向内核57项、C2容量／恢复3项和双宿主2项，全部通过；测试期间无重建，pnpm显式optimisticRepeatInstall=false，无安装／下载。类型／架构／8份生成映射／strict／diff通过；首次红与结果保留，公共诊断独立patch及同一delivery交回后停止。5.2历史CI／Windows与6.2整项交付仍开放。
+
+## 10. 最新CI生命周期与一次排版观察
+
+- [x] 10.1 消费6b22d60／40315429083原始日志及Windows两例／macOS入口artifact，保留阶段事实和缺口；构建后只运行一次原render-authorization最小nativeTeX相关场景，1项通过，5实例均controller0／native0／收到stopped，无unknown。被动观察不读私有payload，不安装工具，不因未复现声称历史根因修复；Windows两例和macOS第一次launch仍待目标诊断。
+- [x] 10.2 先落design再补kernel lifecycle／bootstrap既有错误与直接夹具的窄诊断，保留discovery／锁／引导／服务连接／窗口关闭的实际观察，严格排除token／连接凭据／私有payload。512错误上限、最终availability最后观察及窗口launch／关闭附件经独立审查补齐；Linux真实锁／并发／停止及脱敏27项通过。未改变unknown、容量、PID归属、生产等待期限、自动重试或harness内部机制；仅本机有证据的定向入口／重试夹具阶段预算校正，保留首次失败。
+- [x] 10.3 先build后Linux生命周期／过程／容量27项、入口3项、双宿主重试4项通过，原双宿主传输重连2项通过；测试期间不重建。首次入口总预算及双宿主重试阶段断言失败保留，生产判据／期限未改。类型／架构／8份生成映射／strict／schema／diff通过，增量patch和同一delivery交回；Windows／macOS目标证据不足不关闭，5.2／6.2仍开放，到此停止。
