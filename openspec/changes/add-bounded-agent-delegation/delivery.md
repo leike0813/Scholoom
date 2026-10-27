@@ -1,5 +1,50 @@
 # 实际交付与交接
 
+## 4b13183后的最新CI诊断与首个共同根因修复
+
+这是当前续做状态。HEAD=`4b13183f7489d3cae12fd0a7d1a9e83fb33d7384`，祖先核对成功、起始clean；主线`/tmp/scholoom-round6-acceptance-dXuzCA/{acceptance.md,synchronized.json,sync-build-results.json,sync-kernel-results.json}`已证明本树同步、构建及execution-facts复验成功。M2/TaskPort和生态工具rememberCatalog持续授权修复已在共同基线，未重复接入或回退。下文A/B和旧CI分类是历史证据，最新基线由本节取代。当前只交第11组的诊断和已有契约内会话夹具修正，不以完整change未完否定该有界结果。
+
+### 本轮唯一源码修复与首次失败
+
+`tests/kernel/context-session.spec.ts`的客户端替身没有`subscribe`，其getSnapshot也未声明当前连接phase。共同源码的`useBusinessSession → useTasks → useFileWatch`在挂载effect中需要该订阅接口。两个CI平台均在第一次选择按钮（旧行81）等待60秒，未到发送、草稿、延迟或unknown回执场景；具体日志为`ci-baseline-failures.log:3285`（Windows）和`:9399`（Linux）。
+
+先构建共享/内核，再运行未修改原测试：`node node_modules/@playwright/test/cli.js test --config playwright.kernel.config.ts tests/kernel/context-session.spec.ts --output=test-results/agent-round7-context-red`，**1失败**，原60秒超时位置相同。`trace.zip/1-trace.trace`的pageError明确为`TypeError: client2.subscribe is not a function`，栈落在文件监听effect；挂载树被移除，不能归为点击遮挡、会话慢或草稿失效。原log与trace保留，未force click或延长时限。
+
+最小修复只补替身`subscribe:()=>()=>{}`及getSnapshot的`phase:'connected'`；没有生产订阅、来源、恢复、取消或资格检查改动。另在此既有组件夹具afterEach使用Playwright的pageErrors提供有界页面错误附件，后续失败可直接看到挂载原因，不必从大bundle猜错误。原完整场景断言和文案均保留：旧草稿恢复、拒绝后pending清理、迟到回执期间切换会话、后续附加项保留及unknown回执刷新保护。
+
+### Windows已取得的实际阶段证据
+
+最新目标证据为本仓`6b22d602046baa7c1349bf66059c61d79c07ae40` / Checks **40315429083**，不是旧374项基线。本轮只读下载该run的`diagnostics-windows-latest.zip`（985155字节），在`/tmp/scholoom-win40315429083-scout-wUkFaT/`定向提取所需失败trace；CI准确输入用本仓`git show 6b22d60:<path>`核对，无切分支或其他真实工作树读取。外层157条目，选取的16个失败trace只有error-context，无execution-stages或kernel.log，stdout/stderr事件为0。timeline为该目录`trace-poll-timeline.tsv`，证据包亦保留原zip及timeline。
+
+| CI输入/用例 | 已证明停点（日志行均相对主线ci-baseline-failures.log） | 不得推断/尚缺证据 |
+| --- | --- | --- |
+| `agent-delegation:244`，childHold父委派 | L3043；旧行250等running，trace从undefined到accepted | 未到delegation.cancel、父完成或重启。缺实际实例/PID/模型计数，不能称取消/重启机制坏 |
+| `harness-recovery:23`，gate后分别注入checkpoint INSERT、consumed UPDATE、confirm回执失败 | L3429/3458/3487；旧行69等failed，实际queued | 下一条model.requests=0断言未执行；不能把其当实际采样，也未进入重启恢复验收 |
+| `context-instructions:183`，占四名额、发100条同run指令、释放名额 | L3169；100条受理及runId检查通过，旧行216等首次模型请求，实际0 | overflow第101条尚未发，缺释放后worker/模型准入阶段。0请求只在本组有直接观测 |
+| context-instructions全context kinds及显式摘录/批注 | L3198/3227；旧行435/590，queued→running但五秒未完成 | 尚未验证持久来源重启/模型摘录/checkpoint内容，不把running等同HTTP请求到达 |
+| recovery普通跨轮、scratch/legacy/offload/empty、prior-scope live/exited共7例 | L3516起，首轮旧行134/193/274/341/382/531×2，queued→running后完成等待失败 | prior-scope尚未注入未知归属，其余未到对应接续步骤；不能按测试标题认定恢复损坏 |
+| recovery checkpoint序列化损坏/中断诊断失败共2例 | L3719/3748；trace确认首模型请求及cancelled，故障注入后旧行605/672的后续轮仍running | 取消已确认；缺后续最终进展与保留源核对，不归为取消未确认 |
+
+queued不足以证明worker未启动；running只是可观察状态，不证明模型HTTP或成果已保存。Windows同组的真实委派报告保存/父读回与保存后关联失败用例分别通过（L2324/L2333），不能转嫁为取消失败用例的成果证据。stop-unknown的POSIX controller故障注入在Windows跳过（managed-commands旧行375、agent-delegation旧行389），不计Windows验证成功。
+
+ownership定向只运行platform-processes与managed-commands、单worker，16通过/1跳过（L1917、50.2秒）；之后安装写作工具链才跑完整kernel714项、仍单worker：**628通过/49失败/30跳过/7未运行**（L2313/L4526）。主线summary省略7未运行，原始日志可核查；本线不修改该只读summary。两组条件和能力范围不同，不能以原生定向通过消除执行恢复失败。
+
+### 交回的精确输入与下一证据
+
+宿主发现/重启由计算线牵头，本线未改lifecycle/bootstrap。交回两项实际输入：同一隔离目录并发4次`node apps/kernel/dist/cli.js start --data-dir <dir> --connection-info`至少一次unknown（L3837）；持有`runtime/lifecycle.sqlite`的BEGIN EXCLUSIVE时并发3次start，500ms后释放，未全部running。准确源码为上述隔离证据目录`ci-source/tests/kernel/lifecycle.spec.ts:20/78`。缺每份完整BootstrapResult、endpoint/锁阶段及kernel.log；不能据状态同名把引导unknown当执行停止unknown，也无证据证明其导致harness等待。
+
+Windows恢复组的下一窄诊断应放在**首次失败断言**处：复用`tests/execution-diagnostics.ts`采集同一project/session/run的modelRequests实际计数、工具状态、最多100条run_instances及完整停止事实；当前delegation helper在失败的running断言之后，未执行。save/ack/receipt、容量释放和checkpoint后续轮也需在原失败时点各取一次，不能只读清理后的状态或统一加超时。必要Linux因果回放可延迟真实worker启动、观察四名额释放后的首模型请求，或重放“首次模型→cancelled→损坏注入→后续轮”；这些只是下一步判别输入，现无Windows机制根因证据，不在本轮继续改生产逻辑或新增整套试验。
+
+### 实际验证、替身与交接
+
+- 构建：`pnpm --config.optimisticRepeatInstall=false --filter @scholoom/kernel... build`通过，日志`/tmp/scholoom-agent-round7-build.log`；完成后才测试，测试期间未重建本树产物。既有组件测试的esbuild只在内存bundle（write:false），无产品开发服务器。
+- 红测如上；修复后同一context-session原场景、`--output=test-results/agent-round7-context-subscribe` **1/1通过（7.1秒）**，日志`/tmp/scholoom-agent-round7-context-subscribe.log`。原`context-drafts.spec.ts`以`--output=test-results/agent-round7-draft-regression` **1/1通过（6.0秒）**，日志`/tmp/scholoom-agent-round7-draft-regression.log`。未修改产品/测试时限，未强制点击。
+- tools类型检查、该文件Biome error级检查、OpenSpec strict/schema及diff检查通过。无schema/生成类型或生产代码变化，生成映射沿共同基线不重写；本轮未重跑全仓CI、真实worker整合或双宿主产品UI。
+- 替身：这两项是既有组件/草稿接口测试，真实React/useBusinessSession/草稿模块和浏览器存储，client及未挂载导航为明确替身，session.send的拒绝/迟到/unknown为受控回执。**不是实际broker/仓储/worker/FileEdit验收**，不合成身份调用生产保存，不把夹具通过重算为M2/I3通过；这些实际链路保持主线已接收状态。
+- 只读辅助Agent继承gpt-6.1-sol/high，完成Windows输入/trace归组；主Agent抽查accepted、queued和7未运行原始日志及timeline，核验本地红/绿。辅助Agent现已关闭，未写源码/构建/运行测试/跨树发送消息。
+
+独立增量与证据包：`/tmp/scholoom-agent-round7-handoff-QrPkEX/`，相对4b13183仅本测试及所属tasks/delivery，包含原始红/绿日志、页面错误摘录、原Windows zip/timeline和补丁检查manifest；不应用旧累计补丁，不提交/推送/PR/归档。任务**25/29**，第11组完成，4.2/4.3及6.1/6.2继续开放。达到首个可证明共同夹具根因的有界修复及精确Windows缺证边界后停止；没有新Windows/macOS目标通过结论，没有扩展科研角色/Graph、advisor、递归或持久通信。
+
 ## 1026796共同领域基线后的A/B交付
 
 本节为当前续做入口，后文历史阶段的等待描述不再构成前置。只读确认HEAD=`1026796d854b8f568c3e819f13268a9638980bc1`、祖先核对成功、起始git status为空。消费主线正式`/tmp/scholoom-round5-acceptance-WBreMJ/acceptance.md`与`synchronized.json`，未读取其他真实树、复制私有实现或应用旧累计patch。源码唯一工作点为当前树；末尾仍保留原历史失败与范围。

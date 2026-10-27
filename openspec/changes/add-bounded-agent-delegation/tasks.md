@@ -49,7 +49,7 @@ flowchart LR
 ## 4. 收尾、重启及基线故障证据
 
 - [x] 4.1 扩展execution-isolation、capability-stop-unknown／harness-recovery中适用机制并补通用委派行为：子崩溃、父正常退出／失败、局部与父链取消、已受理保存未收尾、停止未知保占用、旧实例迟到。重启查询保原结果且无新模型请求；新父推进先核查旧效果，不重用旧ID重启，不从根PID消失释放保护。完成依据：实际进程及领域操作，不能以AbortSignal或RPC返回替代停止确认。
-- [ ] 4.2 获取investigation所列Windows原失败阶段证据：六项running等待先记录模型／工具／run_instances／停止；lifecycle保留四路启动原返回和kernel.log；platform-availability按用途和阶段核对9次启动。保留原全组条件，确定系统ACL辅助程序与执行worker的实际分类。完成依据：目标Windows实跑／可信CI artifact；缺目标证据则保持未完成，不改生产时限。此任务可与3组独立调查，但任何代码修复须在后续实施授权内作为独立公共增量交付。
+- [ ] 4.2 沿最新6b22d60/Checks40315429083的Windows实际日志/artifact诊断执行恢复：ownership16通过/1跳过与完整628通过/49失败/30跳过分别核对；优先agent-delegation取消/重启、harness-recovery保存/确认/checkpoint及context-instructions，按模型请求/工具/实例/停止阶段归组。当前已有目标失败证据，不再沿旧374项基线声称缺全部Windows输入；本轮进展见11.1/delivery。尚需对应缺口及修复的目标复验，不改生产时限。宿主发现/重启的精确输入交回计算牵头主线，本线不并改lifecycle/bootstrap。
 - [ ] 4.3 Linux与Windows真实验证两个受管执行、产物回读、取消和重启，按4.2诊断修复影响验收的基线失败后定向复验；macOS核对明确不可用与人工保留。复用`tests/execution-diagnostics.ts`并附阶段材料；同组基线仍失败时如实记录，不把Linux通过当三平台完整能力。
 
 ## 5. 现有会话内呈现与设置
@@ -75,6 +75,16 @@ flowchart LR
 - [x] 10.3 先构建后运行最小内核组合及必要双宿主委派正例，记录首次失败、替身与最终结果；整理相对1026796的独立增量。完成依据：组合45/45、准确工具名补验1/1、双宿主正例2/2及静态检查；补丁/日志见delivery。6.1/6.2的科研角色/真实质量与4.2/4.3目标平台保持开放。
 
 ## 续做入口
+
+本轮续做基线为4b13183f7489d3cae12fd0a7d1a9e83fb33d7384，M2/TaskPort及持续库外发授权已被主线接收，保留现有实现。下列第11组限定最新CI诊断与首个有证据修复；不重新等待公共同步。
+
+## 11. 最新Windows证据与共同会话夹具
+
+- [x] 11.1 核对6b22d60/Checks40315429083的实际日志及可取得artifact，分组agent-delegation取消/重启、harness-recovery和context-instructions，区分模型0请求、执行/成果/停止阶段；ownership16通过1跳过与完整49失败分别表达。完成依据：定向下载Windows diagnostic，157条目及16个失败trace，分组/精确缺证和两项生命周期输入见delivery；不推断queued即worker未启动，不并改bootstrap。
+- [x] 11.2 原时限复现context-session双平台共同失败，依据页面错误核对实际会话选择/异步草稿夹具，只修已证缺口；保留拒绝、迟到和unknown回执保护，不force click或改生产授权/期限。完成依据：Linux原60秒红测与trace确认client.subscribe缺失导致挂载失败；仅补同步订阅/connected快照后原完整场景1/1、原草稿回归1/1通过，无新Windows通过结论。
+- [x] 11.3 先构建后最小定向复验，保留首次失败和诊断；更新本delivery并交相对4b13183独立增量。完成依据：共享/内核构建、context-session红/绿及context-drafts回归、tools类型与Biome/OpenSpec/diff检查；补丁及证据包见delivery。没有新目标Windows结果不关闭4.2/4.3；完整科研角色/质量仍开放。
+
+## 上一轮续做依据（历史）
 
 本轮HEAD为1026796d854b8f568c3e819f13268a9638980bc1，七域正式源码已共同接入，用户明确授权第10组。公共历史／v6及真实TaskPort均已在本树，不再应用旧累计补丁、等待同步或复制/tmp源码组合。科研角色及真实质量和Windows仍开放，机械I3不关闭完整6.1/6.2。不自动同步其他树、递归／advisor／跨会话通信、推送或归档。
 
