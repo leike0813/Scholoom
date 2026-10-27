@@ -378,7 +378,10 @@ test('lost process controller leaves command stop unknown and retains its occupi
   const start = ManagedNode.start;
   let owned: ManagedNode | undefined;
   ManagedNode.start = async (options) => {
-    const child = await start(options);
+    const child = await start({
+      ...options,
+      env: { ...options.env, SCHOLOOM_DIAGNOSTIC_SECRET: 'private-bootstrap-not-a-diagnostic' },
+    });
     owned = child;
     return child;
   };
@@ -392,6 +395,17 @@ test('lost process controller leaves command stop unknown and retains its occupi
     const controller = Reflect.get(owned, 'controller') as ChildProcess;
     controller.kill('SIGKILL');
     await unknown;
+    const error = await pending.catch((reason) => reason);
+    assert(error instanceof Error);
+    const detail = JSON.parse(error.message.split('\n').at(-1) ?? '');
+    expect(detail).toMatchObject({
+      instanceId: owned.identity?.instanceId,
+      controller: { code: null, signal: 'SIGKILL' },
+      stoppedReceived: false,
+      native: { lastStatus: 'R', code: null, signal: null },
+      reason: 'controllerExit',
+    });
+    expect(error.message).not.toContain('private-bootstrap-not-a-diagnostic');
     expect(f.processes.status.active).toBe(1);
   } finally {
     ManagedNode.start = start;

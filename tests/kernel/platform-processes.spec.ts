@@ -1,3 +1,4 @@
+import assert from 'node:assert/strict';
 import { fork } from 'node:child_process';
 import { once } from 'node:events';
 import { cp, mkdir, mkdtemp, rm, symlink, writeFile } from 'node:fs/promises';
@@ -5,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { expect, test } from '@playwright/test';
-import { ManagedNode } from '../../packages/platform/dist/node.js';
+import { ManagedNode, ProcessAdmission } from '../../packages/platform/dist/node.js';
 
 const entry = new URL('../fixtures/processes/execution.mjs', import.meta.url);
 function alive(pid: number): boolean {
@@ -71,7 +72,8 @@ test('owned execution echoes IPC, rejects stale identity and excludes ambient se
       code: 'tooLarge',
     });
     await child.send({ jsonrpc: '2.0', method: 'execution.stop', params: {} });
-    await child.exited;
+    expect(await child.exited).toEqual({ code: 0, signal: null });
+    await expect(child.stopped).resolves.toBeUndefined();
   } finally {
     delete process.env.SCHOLOOM_TEST_SECRET;
     await child.stop();
@@ -115,3 +117,84 @@ test('host SIGKILL still reclaims a busy execution', async () => {
     if (host.exitCode === null && host.signalCode === null) host.kill('SIGKILL');
   }
 });
+
+for (const scenario of [
+  {
+    name: 'exit',
+    source: '#!/bin/sh\nexit 23\n',
+    nativeCode: 23,
+    controllerCode: 1,
+    stopped: false,
+    status: 'unobserved',
+    reason: 'nativeScopeExit',
+    code: 'outcomeUnknown',
+  },
+  {
+    name: 'unavailable',
+    source: "#!/bin/sh\nprintf 'E native scope unavailable\\n' >&5\nread -r stop <&4\nexit 0\n",
+    nativeCode: 0,
+    controllerCode: 0,
+    stopped: true,
+    status: 'E',
+    reason: 'nativeScopeUnavailable',
+    code: 'unavailable',
+  },
+] as const) {
+  test(`native scope ${scenario.name} preserves final exit diagnostics and capacity without startup secrets`, async () => {
+    test.skip(process.platform === 'win32', 'POSIX executable failure fixture');
+    const root = await mkdtemp(join(tmpdir(), 'scholoom-native-failure-'));
+    const admission = new ProcessAdmission(1);
+    const lease = admission.reserve();
+    try {
+      const directory = join(root, 'dist');
+      await mkdir(directory);
+      for (const file of ['processes.js', 'process-controller.js'])
+        await cp(
+          new URL(`../../packages/platform/dist/${file}`, import.meta.url),
+          join(directory, file),
+        );
+      await writeFile(join(root, 'package.json'), '{"type":"module"}');
+      await mkdir(join(root, 'node_modules', '@scholoom'), { recursive: true });
+      await symlink(
+        fileURLToPath(new URL('../../packages/protocol/', import.meta.url)),
+        join(root, 'node_modules', '@scholoom', 'protocol'),
+        'junction',
+      );
+      // Only the native executable is a deterministic failure double; controller and IPC are real.
+      await writeFile(join(directory, 'process-scope'), scenario.source, { mode: 0o755 });
+      const platform: typeof import('../../packages/platform/dist/processes.js') = await import(
+        pathToFileURL(join(directory, 'processes.js')).href
+      );
+      const error = await platform.ManagedNode.start({
+        entry,
+        instanceId: 'native-failure',
+        env: { SCHOLOOM_DIAGNOSTIC_SECRET: 'private-bootstrap-not-a-diagnostic' },
+        reservation: lease,
+      }).then(
+        () => {
+          throw new Error('Failing scope must not start the execution.');
+        },
+        (reason) => reason,
+      );
+      expect(error).toMatchObject({ code: scenario.code });
+      assert(error instanceof Error);
+      expect(JSON.parse(error.message.split('\n').at(-1) ?? '')).toMatchObject({
+        instanceId: 'native-failure',
+        controller: { code: scenario.controllerCode, signal: null },
+        stoppedReceived: scenario.stopped,
+        native: { lastStatus: scenario.status, code: scenario.nativeCode, signal: null },
+        reason: scenario.reason,
+      });
+      expect(error.message).not.toContain('private-bootstrap-not-a-diagnostic');
+      lease.release();
+      expect(admission.status.active).toBe(scenario.stopped ? 0 : 1);
+      if (!scenario.stopped)
+        expect(() => admission.reserve()).toThrow(
+          expect.objectContaining({ code: 'resourceLimit' }),
+        );
+    } finally {
+      lease.release();
+      await rm(root, { recursive: true });
+    }
+  });
+}

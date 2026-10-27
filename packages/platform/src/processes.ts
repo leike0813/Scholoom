@@ -81,7 +81,24 @@ export class ManagedNode extends EventEmitter {
   private stopping: Promise<void> | undefined;
   private pending = 0;
   private finished = false;
+  private confirmed = false;
+  private native: {
+    lastStatus: string;
+    code: number | null;
+    signal: NodeJS.Signals | null;
+  } = { lastStatus: 'unobserved', code: null, signal: null };
+  private failureReason: string | undefined;
   identity: ProcessIdentity | undefined;
+
+  private detail(reason: string): string {
+    return JSON.stringify({
+      instanceId: this.options.instanceId.slice(0, 256),
+      controller: { code: this.controller.exitCode, signal: this.controller.signalCode },
+      stoppedReceived: this.confirmed,
+      native: this.native,
+      reason: this.failureReason ?? reason,
+    });
+  }
 
   private constructor(private readonly options: ManagedNodeOptions) {
     super();
@@ -91,7 +108,6 @@ export class ManagedNode extends EventEmitter {
       execArgv: [],
       serialization: 'json',
     });
-    let confirmed = false;
     let confirm!: () => void;
     let uncertain!: (error: Error) => void;
     this.stopped = new Promise<void>((resolve, reject) => {
@@ -103,14 +119,22 @@ export class ManagedNode extends EventEmitter {
     this.exited = new Promise((resolve) => {
       this.controller.once('exit', (code, signal) => {
         this.finished = true;
-        if (!confirmed)
-          uncertain(new OperationError('outcomeUnknown', '控制进程已退出，执行停止尚未确认。'));
+        if (!this.confirmed)
+          uncertain(
+            new OperationError(
+              'outcomeUnknown',
+              `控制进程已退出，执行停止尚未确认。\n${this.detail('controllerExit')}`,
+            ),
+          );
         resolve({ code, signal });
         this.emit('exit', code, signal);
       });
     });
     this.controller.on('error', () =>
-      this.emit('failure', new OperationError('unavailable', '执行控制进程失败。')),
+      this.emit(
+        'failure',
+        new OperationError('unavailable', `执行控制进程失败。\n${this.detail('controllerError')}`),
+      ),
     );
     this.controller.on('message', (value: unknown) => {
       if (!value || typeof value !== 'object') return;
@@ -121,23 +145,49 @@ export class ManagedNode extends EventEmitter {
         reason?: string;
         detail?: string;
       };
+      if (message.type === 'failure' || message.type === 'stopped') {
+        try {
+          const native =
+            message.detail && message.detail.length <= 1024
+              ? JSON.parse(message.detail).native
+              : undefined;
+          if (
+            native &&
+            ['unobserved', 'P', 'R', 'E', 'invalid'].includes(native.lastStatus) &&
+            (native.code === null || Number.isSafeInteger(native.code)) &&
+            (native.signal === null ||
+              (typeof native.signal === 'string' && /^SIG[A-Z0-9]+$/.test(native.signal)))
+          )
+            this.native = {
+              lastStatus: native.lastStatus,
+              code: native.code,
+              signal: native.signal,
+            };
+        } catch {
+          // A malformed diagnostic cannot replace native ownership evidence.
+        }
+      }
       if (message.type === 'ready' && message.identity?.instanceId === options.instanceId) {
         this.identity = Object.freeze(message.identity);
+        // Ready is emitted only after the native status pipe confirms R.
+        this.native.lastStatus = 'R';
         this.emit('ready');
       } else if (message.type === 'stopped') {
-        confirmed = true;
+        this.confirmed = true;
         confirm();
       } else if (message.type === 'frame') this.emit('message', message.value);
-      else if (message.type === 'failure')
+      else if (message.type === 'failure') {
+        this.failureReason ??= message.reason?.slice(0, 64) ?? 'controllerFailure';
         this.emit(
           'failure',
           new OperationError(
             'unavailable',
             message.reason === 'nativeScopeUnavailable'
-              ? `当前平台无法建立完整进程归属，执行尚未启动：${message.detail ?? 'native scope unavailable'}`
-              : '执行进程通信失败。',
+              ? `当前平台无法建立完整进程归属，执行尚未启动。\n${this.detail('controllerFailure')}`
+              : `执行进程通信失败。\n${this.detail('controllerFailure')}`,
           ),
         );
+      }
     });
   }
 
@@ -148,23 +198,33 @@ export class ManagedNode extends EventEmitter {
     const owned = new ManagedNode(options);
     const ready = new Promise<void>((resolve, reject) => {
       const timer = setTimeout(
-        () => done(new OperationError('unavailable', '执行进程启动超时。')),
+        () =>
+          done(
+            new OperationError(
+              'unavailable',
+              `执行进程启动超时。\n${owned.detail('startupTimeout')}`,
+            ),
+          ),
         5000,
       );
       const success = () => done();
       const failure = (error?: Error) =>
         done(error ?? new OperationError('unavailable', '执行进程未就绪。'));
+      const exit = () =>
+        failure(
+          new OperationError('unavailable', `执行进程未就绪。\n${owned.detail('controllerExit')}`),
+        );
       function done(error?: Error) {
         clearTimeout(timer);
         owned.off('ready', success);
         owned.off('failure', failure);
-        owned.off('exit', failure);
+        owned.off('exit', exit);
         if (error) reject(error);
         else resolve();
       }
       owned.once('ready', success);
       owned.once('failure', failure);
-      owned.once('exit', failure);
+      owned.once('exit', exit);
     });
     try {
       await owned.write({
@@ -179,6 +239,11 @@ export class ManagedNode extends EventEmitter {
     } catch (error) {
       await owned.stop();
       await ready.catch(() => undefined);
+      if (error instanceof OperationError)
+        throw new OperationError(
+          error.code,
+          `${error.message.split('\n')[0]}\n${owned.detail('startupFailure')}`,
+        );
       throw error;
     }
   }
