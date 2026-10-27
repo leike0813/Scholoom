@@ -38,6 +38,8 @@ type LifecycleObservation = {
   lastState?: BootstrapResult['state'];
   lastErrorCode?: string | undefined;
   lastPhase?: string;
+  preparationMs?: number;
+  spawnedAt?: number;
 };
 
 function errorInfo(error: unknown, observation?: LifecycleObservation): ErrorInfo {
@@ -270,19 +272,29 @@ export async function serveKernel(
     isolatedZotero?: import('./zotero.js').IsolatedZotero;
   } = {},
 ): Promise<void> {
+  let instanceId: string | undefined;
+  const report = (phase: string) => {
+    try {
+      console.error(JSON.stringify({ phase, at: Date.now(), instanceId, processId: process.pid }));
+    } catch {
+      // Diagnostics cannot change ownership or lifecycle results.
+    }
+  };
+  report('preparing-runtime');
   const canonical = await canonicalDirectory(directory, true);
   if (!canonical) throw new Error('Missing data directory');
   const runtime = await prepareRuntime(canonical);
+  report('runtime-prepared');
   const filename = join(runtime, 'lifecycle.sqlite');
   const file = await open(filename, 'a', 0o600);
   await file.close();
   const db = new DatabaseSync(filename, { timeout: 0 });
-  let report: ((phase: string) => void) | undefined;
   try {
     try {
       db.exec('PRAGMA journal_mode=DELETE; BEGIN EXCLUSIVE');
     } catch (error) {
       if (!sqliteBusy(error)) throw error;
+      report('lock-busy');
       process.send?.({ state: 'busy' });
       return;
     }
@@ -295,20 +307,7 @@ export async function serveKernel(
       startedAt: new Date().toISOString(),
       state: 'running',
     };
-    report = (phase) => {
-      try {
-        console.error(
-          JSON.stringify({
-            phase,
-            at: Date.now(),
-            instanceId: status.instanceId,
-            processId: process.pid,
-          }),
-        );
-      } catch {
-        // Diagnostics cannot change ownership or lifecycle results.
-      }
-    };
+    instanceId = status.instanceId;
     report('loading-application');
     let endpoint: KernelEndpoint;
     const { KernelApplication } = await import('./application.js');
@@ -346,9 +345,10 @@ export async function serveKernel(
       await server.stop();
     }
   } finally {
-    if (db.isTransaction) db.exec('ROLLBACK');
+    const owned = db.isTransaction;
+    if (owned) db.exec('ROLLBACK');
     db.close();
-    report?.('lock-released');
+    if (owned) report('lock-released');
   }
 }
 
@@ -370,8 +370,11 @@ export async function ensureKernel(
   const deadline = Date.now() + limits.lifecycleMs;
   while (Date.now() < deadline) {
     if (result.state === 'stopped') {
+      const preparationStarted = Date.now();
       const runtime = await prepareRuntime(canonical);
+      const preparationMs = Date.now() - preparationStarted;
       const log = await open(join(runtime, 'kernel.log'), 'a', 0o600);
+      const spawnedAt = Date.now();
       const child = spawn(
         process.execPath,
         [
@@ -392,6 +395,8 @@ export async function ensureKernel(
         phase: 'ready',
         processId: child.pid,
         handshake: 'none',
+        preparationMs,
+        spawnedAt,
       };
       try {
         await new Promise<void>((resolveReady, reject) => {

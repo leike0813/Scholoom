@@ -365,10 +365,12 @@ test('diagnostic attachments retain only allowlisted scalar lifecycle facts', ()
     state: 'unknown',
     error: {
       code: 'unavailable',
-      message: `unavailable\n${JSON.stringify({ phase: 'lock', token: secret, url: secret, nested: { token: secret }, lock: 'held' })}`,
+      message: `unavailable\n${JSON.stringify({ phase: 'ready-timeout', token: secret, url: secret, nested: { token: secret }, preparationMs: 3, spawnedAt: 42 })}`,
     },
   });
-  expect(summary).toMatchObject({ diagnostic: { phase: 'lock', lock: 'held' } });
+  expect(summary).toMatchObject({
+    diagnostic: { phase: 'ready-timeout', preparationMs: 3, spawnedAt: 42 },
+  });
   expect(JSON.stringify(summary)).not.toContain(secret);
 });
 
@@ -406,12 +408,14 @@ test('bounded lifecycle log attachments discard raw payload and unknown fields',
     await mkdir(join(directory, 'runtime'));
     await writeFile(
       join(directory, 'runtime', 'kernel.log'),
-      `${secret.repeat(10000)}\n${JSON.stringify({ phase: 'endpoint-published', at: 42, instanceId: 'instance', processId: 1, token: secret, payload: secret })}\n`,
+      `${secret.repeat(10000)}\n${JSON.stringify({ phase: 'preparing-runtime', at: 40, processId: 1, token: secret })}\n${JSON.stringify({ phase: 'endpoint-published', at: 42, instanceId: 'instance', processId: 1, token: secret, payload: secret })}\n`,
     );
     const rows = await kernelLifecycleDiagnostics(directory);
-    expect(rows).toEqual([
+    expect(rows).toMatchObject([
+      { phase: 'preparing-runtime', at: 40, processId: 1 },
       { phase: 'endpoint-published', at: 42, instanceId: 'instance', processId: 1 },
     ]);
+    expect(rows[0]?.instanceId).toBeUndefined();
     expect(JSON.stringify(rows)).not.toContain(secret);
   });
 });

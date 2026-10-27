@@ -59,7 +59,17 @@ flowchart LR
 
 ### 当前CI基线（2026-10-27）
 
-最新完整基线为b2f3b50／[40447074031](https://github.com/leike0813/Scholoom/actions/runs/40447074031)：Linux734通过1失败23跳过；Windows715通过4失败39跳过；macOS人工UI13通过1失败且入口步骤通过。输入为 `/tmp/scholoom-round8-acceptance-UrXA7y/{ci-baseline-failures.log,ci-baseline-summary.json}`，不再沿用旧54项。只读下载Windows artifact 12710309824至 `/tmp/scholoom-project-execution-round8-MP5HIK/windows-b2f3b50.zip`，安全摘要同目录。
+本轮指定基线为caf9025／[40455958976](https://github.com/leike0813/Scholoom/actions/runs/40455958976)：Linux743通过1失败26跳过；Windows687通过41失败42跳过；macOS人工UI13通过1失败、fallback2及入口4通过。原日志与精确并发摘录在 `/tmp/scholoom-round9-acceptance-IER31D/`，不沿用旧4失败清单或按用例总数推因果。Windows artifact 12715580670已只读下载至 `/tmp/scholoom-project-execution-round9-RRtTUQ/windows-checks-caf9025.zip`。首批4入口实际2个running同实例、2个unknown／availability／held／无discovery；第一个unknown调用回执在发现发布前6ms，另一个在发布后87ms返回，回执仍是最后一次held／无discovery观察，最后检查的确切时刻未记录。不是已连接实例回退，也不是旧occupied的PID判断。
+
+同源码4312262的[Windows诊断40476577132](https://github.com/leike0813/Scholoom/actions/runs/40476577132)已完成，artifact 12721785916与主线原始windows-diagnosis.log／failures.log均消费。锁／availability组3通过2失败：无发现占锁、RPC声明、Node观察器通过；活发现前段归属通过，释放后三入口为两个unknown／held／无discovery和一个ready-timeout／handshake none，最后采样仅到新PID4436的应用初始化；不能声称该内核永不就绪或锁失效。unavailable的10个事件实际相位7／2／1、退出0，但来源false，依旧未放行；没有由名称／相位推定来源。Agent步骤三个失败归所属线，本线不改推进／来源。
+
+4312262完整[Checks40476577071](https://github.com/leike0813/Scholoom/actions/runs/40476577071)也已完成：Windows727通过3失败42跳过；同配置并发34.6s、两种占锁31.5s／22.0s均通过，unavailable仍失败且10个事件来源全false。原log与artifact12724656293保留本轮目录，macOS job成功、Linux job失败，未扩成其他线的全仓分析。完整组正样本与独立诊断释放后失败并存，不能用一次通过关闭启动稳定性。
+
+真实privateDirectory安全拒绝路径在Playwright worker下证明函数帧被映射为platform/src/private-files.ts，stack limit200，旧dist-only条件失配。另一个隔离调查沿真实privateDirectory Windows分支／Node子进程通道，仅将外部ACL程序替为固定成功夹具，得到17帧、函数位于7、source=true／compiled=false；不构成Windows ACL或目标观察通过。最小修正精确识别同一实现两种帧，未知来源仍拒绝；目标10条历史记录不反填已确认来源。原kernel诊断只补准备／busy及父准备／spawn时点，等待新目标对相应耗时与origin采样，生产预算与判据不变。
+
+### 第八轮CI消费（历史）
+
+此前完整基线为b2f3b50／[40447074031](https://github.com/leike0813/Scholoom/actions/runs/40447074031)：Linux734通过1失败23跳过；Windows715通过4失败39跳过；macOS人工UI13通过1失败且入口步骤通过。输入为 `/tmp/scholoom-round8-acceptance-UrXA7y/{ci-baseline-failures.log,ci-baseline-summary.json}`。只读下载Windows artifact 12710309824至 `/tmp/scholoom-project-execution-round8-MP5HIK/windows-b2f3b50.zip`，安全摘要同目录。
 
 占锁artifact只保留旧初次结果：发现PID8328、lock=held、processAlive=false；后来start失败差异为processAlive=true／unreachable／connect。没有holder PID或同时刻进程身份，不能定为PID复用、tasklist错误或holder归属。真实反例证明夹具不能保证已退出PID在整个期限内保持不存活；本片将未知等待与明确活PID不可达拆为两个可控输入，保留原生产分支。platform-availability artifact只有总计10，没有逐进程数据。源码可逐项解释initialize7／人工准备2／保存1次privateDirectory，Windows该函数每次execFile PowerShell设置ACL；五个被拒绝入口均先requireAvailable，无静态探测派发。该10项解释仍待Windows逐事件回执，不因数目相同假装已认定身份。
 

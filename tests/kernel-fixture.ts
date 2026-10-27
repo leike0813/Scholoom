@@ -42,6 +42,8 @@ export function kernelResultSummary(result: BootstrapResult) {
           'lastPhase',
           'killed',
           'stdoutBytes',
+          'preparationMs',
+          'spawnedAt',
         ]
           .filter(
             (key) =>
@@ -68,6 +70,9 @@ export function kernelResultSummary(result: BootstrapResult) {
 
 export async function kernelLifecycleDiagnostics(directory: string) {
   const phases = [
+    'preparing-runtime',
+    'runtime-prepared',
+    'lock-busy',
     'loading-application',
     'initializing-application',
     'application-ready',

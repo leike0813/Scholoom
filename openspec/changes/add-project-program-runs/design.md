@@ -212,6 +212,14 @@ runtime合并还须保留Agent的instanceLifecycle.onStopping中childrenControll
 
 ## 待办边界
 
+### 共同4312262后的并发启动与ACL来源反例
+
+消费 `/tmp/scholoom-round9-acceptance-IER31D/` 及实际artifact：caf9025／40455958976的并发首批两个入口返回unknown／availability／held／无discovery，另外两个连接到同一实例；首个unknown在发现发布前6ms返回。4312262／40476577132的活发现占锁前段通过，失败在释放后：一个启动者ready-timeout、两个跟随者held／无discovery，最后stage为initializing-application。当前证据支持分解准备、装载与初始化，不能定为锁失效或按41失败数归统一性能原因；不改生产deadline、unknown、重试或锁归属。
+
+同源码Windows观察组3通过2失败，unavailable的10事件确为初始化7／人工准备2／保存1，均PowerShell成功退出但来源false，仍全部拒绝。真实privateDirectory拒绝路径及同worker子进程通道的隔离校准确认Playwright把函数帧映射到platform/src/private-files.ts，原dist-only条件漏识别；栈限制200，通道中的实际函数帧序号7。后者仅替Windows ACL外部程序为固定成功夹具，不能当Windows ACL效果或目标观察通过。最小修正仅识别同一实现的compiled／source帧，函数名及精确模块路径仍共同要求；保留unresolved拒绝、全窗口计数、阶段及成功退出收据。增加窄origin／栈深事实，不存完整栈／argv／环境。实际privateDirectory及同名其他来源作独立校准，Windows原生分支只在目标跑，不伪造通过。
+
+并发启动只增加必要窄观察：serve在准备运行目录前／后及遇到busy时沿原kernel.log记录固定phase和真实PID，只有取得锁后才附真实instanceId；原loading阶段已紧随成功取锁，无需第二套状态。ensure启动错误沿既有有界消息补preparationMs／spawnedAt，以区分父准备、独立Node引导和子准备／初始化；停止／IPC／期限控制流不变。fixture白名单同步消费，并扩展原日志脱敏校准、真实并发／独立配置及两个占锁回归。没有新业务schema／接口或生产配置，无法闭合的目标原因交回，不加宽启动预算。
+
 ### 共同0b78815后的剩余平台观察校准
 
 正式输入 `/tmp/scholoom-round8-acceptance-UrXA7y/`，完整基线b2f3b50／40447074031为Linux734通过1失败23跳过、Windows715通过4失败39跳过、macOS人工UI13通过1失败且入口已通过。Windows artifact 12710309824中同一发现PID8328先processAlive=false、后true／unreachable／connect；未记录当时的进程身份，不能声称holder复用或修改PID判据。夹具不应把已退出PID未来不被复用当作可保证输入。
