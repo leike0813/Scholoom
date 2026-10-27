@@ -119,6 +119,8 @@ sequenceDiagram
 
 ## 待办边界
 
+第九轮内容选择反例来自Checks40447074031的Linux日志：ProseMirror image事务已触发，但visualAction只等待page.evaluate返回，随后可能读取React上次提交的表格输出。VisualEditor在事务订阅内同步选择实际image并调用onSelection，不需要为夹具强制flush产品。测试夹具为每次真实onSelection绑定递增revision及同次value，visualAction等待该revision被DOM提交；不猜文案或sleep。除对象名称语义外核对与表格不同identity、实际src／caption／id和ProseMirror选中位置。写集仅content-selection.spec.ts，保留原生产组件；实跑结果与平台边界记delivery。
+
 M1仍缺文献材料提交，不在本线选择覆盖旧字节。M2真实来源及委派提供者已在共同基线，本轮消费；逐工具／单次指令因果未证明部分继续未知。M3既有验收保留，报告独立change沿自身tasks推进。跨版本持续精确定位、图像语义推断、完整科研意见状态机、Mac受管执行和三平台发布不在本change范围。
 
 ## 主线第二阶段交接与公共增量
