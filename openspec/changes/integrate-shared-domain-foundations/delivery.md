@@ -6,7 +6,7 @@
 
 接收HostConnection真实送达观察、两种占锁场景及ACL来源／阶段观察、委派分阶段设置及跨文件诊断hook、选区夹具与单条原值GUI。GUI复用同一CSL草稿和原生态API，未知回执重载后只查询，不重放；普通CSL保存不改原值。阅读Agent因上游502中断，两个隔离文件仅保全为未完成调查夹具，无测试入口或双宿主隔离结论；报告2.1a／2.1b、生产页和完整I5仍开放。具体行为和未完项沿所属tasks／delivery，不据接入关闭完整changes／I3／I5／I6。
 
-Standards／Spec两位原生gpt-6.1-sol／high只读审查均未发现确证新增问题，未代跑测试。主线完整build／全包类型、tools、架构14模块253文件0findings、8份同源生成映射及13个相关change strict通过；15份改动源码Biome最终退出0，保留原非空断言及未完成夹具的optional-chain提示。现有YAML解析器核对Windows新增三个定向步骤，Agent选择器实际列出3项。首次阅读夹具格式失败已保留，主线通过apply_patch整理；没有安装、下载、升级依赖或启动开发服务器。
+Standards／Spec两位原生gpt-6.1-sol／high只读审查均未发现确证新增问题，未代跑测试。主线完整build／全包类型、tools、架构14模块254文件0findings、8份同源生成映射及13个相关change strict通过；15份改动源码Biome最终退出0，保留原非空断言及未完成夹具的optional-chain提示。现有YAML解析器核对Windows新增三个定向步骤，Agent选择器实际列出3项。首次阅读夹具格式失败已保留，主线通过apply_patch整理；没有安装、下载、升级依赖或启动开发服务器。
 
 构建结束后主线HostConnection／选区／平台组合35/35通过（含选区8项、host24项及平台3项），真实占锁生命周期2/2通过。真实产品文献UI14/14通过（原library12及新原值GUI2，均Browser／Electron），无skip／flaky；内部库、broker、受管宿主及未修改BBT原包真实，原值GUI使用直接KernelServer与隔离可信配置，不覆盖CLI／serveKernel进程重启。命令、JSON、trace与结果沿main-*日志／results，测试期间未重建同树产物。
 
@@ -14,7 +14,13 @@ Standards／Spec两位原生gpt-6.1-sol／high只读审查均未发现确证新�
 
 最新已完成Checks40455958976／caf9025：Linux完整组743通过／1失败／26跳过，Windows687通过／41失败／42跳过，macOS人工UI13通过／1失败；macOS fallback2及入口4通过，Linux原生定向19通过、Windows原生16通过／3跳过。原始ci-baseline-*独立于本轮局部通过，不从失败数量认定同因果。现有Windows execution diagnosis新增host、占锁／不可用、cancel／excerpt／attachment步骤，新共同源码目标结果尚未产生；macOS受管执行仍明确不可用。没有全仓、分发包、三平台或真实科研质量通过结论。
 
-下一轮沿并行计划“第九轮验收后的收敛安排”：五条有界任务与两条等待指令只在共同基线推送、七树保全同步及构建／tools／定向测试通过后发送。同步和实际派发回执完成后补记于本节，不把已起草prompt当作已派发。
+共同源码`4312262c1a1f432ccd706dd1eb6ff6468765fd4e`已推送，七树保全快进至该基线，同步时全部clean；各树完整build／包类型／架构／生成自检、tools及定向内核全部通过，定向合计12/12。证据为synchronized.json、sync-build-results.json、sync-kernel-results.json及sync-summary.json；只补既有workspace链接，没有安装依赖。
+
+随后沿并行计划“第九轮验收后的收敛安排”发送五份有界任务和项目／科研两份等待指令，沿原Codex／GPT-6.1-Sol high会话。七份均accepted，六份API观察到turn_started；阅读线API仅input_accepted，按原requestId重放查询仍无启动事件，但实际终端在本次任务正文之后显示Working，作为独立启动证据。原回执未伪造或覆盖为turn_started，也未重复发送正文；原始／重观察回执及终端证据在research-interaction/，汇总dispatch-receipts.json，完整任务prompts/，卡片已更新。没有另建协调Agent、等待下一轮完成或要求用户手动同步。
+
+推送后的同源码Windows diagnosis40476577132已完成failure：旧执行重复组10通过，native16通过／3跳过，HostConnection24/24通过；availability组3通过／2失败，Agent组3失败，development owner2通过、Electron入口3通过。新失败具体为live-discovery占锁例释放后的并发启动未全running、ACL观察仍有initialization／powershell.exe／成功退出但来源标记false的事件，以及取消首次模型0、excerpt和附件首会话queued；不能据阶段或进程名直接放行。原始windows-diagnosis.log及failures.log已落地，给生态／计算／Agent三条补充事实均accepted（队列受理不额外宣称新turn已启动），回执ci-follow-up.json；不把Linux第二reader与Windows首轮queued混为一个失败。
+
+Checks40476577071仍未完成，但同源码macOS job122096177783已success：fallback、入口及双宿主人工工作台步骤均success，原macOS列表例已有新目标通过证据；仅有job／step状态，未据此补造逐例数量或三平台结论，详见macos-job-current.json。已给文献补充该事实并取得accepted回执，停止追查旧列表失败，继续原CLI配置缺口任务。macOS受管执行仍不可用。回执收尾只改主线记录，不为此再次同步正在工作的七树；下一轮继续源码4312262。
 
 ## 第八轮主线验收
 
