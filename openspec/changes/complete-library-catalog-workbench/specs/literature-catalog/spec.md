@@ -120,6 +120,21 @@ stateDiagram-v2
 
 类型化更正 SHALL 沿原修订条件保存，题录、创建者、标签、集合及关联编辑共享该对象草稿与提交依据。未保存内容 SHALL 按配置、工作台实例、实际库身份和条目身份隔离；切项、切 tab、范围通知、断线、页面重载及迟到回执不覆盖后续输入。保存成功只推进对应提交的修订；保存失败或冲突保留原草稿，错误归原对象。显式重新读取会丢弃更正时 SHALL 先让用户明确选择，保留可取回草稿的机会。
 
+#### Scenario: 原值题名更正独立于未保存CSL
+
+- **WHEN** 用户对当前单选、已核对唯一受支持期刊原值的准确identity／revision／title预览并提交独立题名更正
+- **THEN** GUI SHALL 只调用同源原值题名动作，其他原值／来源／正式键及未保存CSL完整保留，不自动保存CSL或推进其旧修订依据；冲突仍保留草稿并经明确重读处理
+
+#### Scenario: 明确采用已核对原值导出
+
+- **WHEN** 用户检查当前单选的已保存CSL、原值及不可比较边界，并明确选择采用所示原值
+- **THEN** GUI SHALL 使用该identity／revision的zotero-original expression请求现有导出；仅exported产生文本，selectionRequired无文本，选择／修订／格式变化或失联使旧确认及输出失效，不自动补键或推断原值
+
+#### Scenario: 原值更正回执不明
+
+- **WHEN** 原值题名请求失联或结果不明，用户重载或重开详情
+- **THEN** GUI SHALL 保留原requestId及提交输入，只读查询原结果，不自动重放；notFound不得解释为安全重试，迟到结果只归原对象，明确冲突保留题名及CSL草稿
+
 ```mermaid
 stateDiagram-v2
   [*] --> clean

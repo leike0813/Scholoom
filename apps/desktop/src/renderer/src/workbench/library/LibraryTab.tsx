@@ -13,6 +13,7 @@ import { draftKey, readDraft, subscribeDraft, writeDraft } from '../drafts';
 import { CatalogItemForm } from './CatalogItemForm';
 import { CatalogItemList } from './CatalogItemList';
 import { CatalogItemPane } from './CatalogItemPane';
+import { CatalogOriginalActions } from './CatalogOriginalActions';
 import { CatalogSelection } from './CatalogSelection';
 import { CollectionNavigation } from './CollectionNavigation';
 import { LibraryToolbar } from './LibraryToolbar';
@@ -1213,6 +1214,18 @@ function LibraryContents({
                           </button>
                         </div>
                       )}
+                      <CatalogOriginalActions
+                        key={detail.id}
+                        client={client}
+                        scope={scope}
+                        libraryId={status.value.id}
+                        sourceId={detail.id}
+                        revision={detail.revision}
+                        single={catalogSelection.items.length === 1}
+                        readable={readable}
+                        writable={writable}
+                        onCommitted={refresh}
+                      />
                       {historyOpen ? (
                         <>
                           {historyRead.error ? (

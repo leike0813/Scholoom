@@ -1,5 +1,47 @@
 # 实际交付与交接
 
+## 2026-10-27：0b78815后的滚动观察与单条原值GUI
+
+本轮基线`0b788151b5e17665a26d9286dfd1d12f6e2e0c30`，开工前clean，HEAD未改变。前片已由主线接收、入dev并同步；本轮完成**3.2a／5.4，24/29**，只交下述两步，不勾完整4.1／4.2、1.4、6.1／6.2或生态E6。未应用旧patch、安装下载依赖、启动开发服务器、操作别树／真实用户库或执行Git提交／同步／推送／PR／归档。
+
+### 第一步：核对macOS实际滚动提交
+
+原始Checks40447074031的Browser失败旧:683实际断言`scrollTop`返回200而非0，**不是列宽**；Electron同例已通过。没有读隐藏／卸载节点或必须改产品布局的证据。原测试只设置并立即读取DOM属性，不能证明原生scroll已让虚拟列表与范围偏好完成更新；现只增加可观察虚拟首行身份变化的等待，再按原精确值检查分页返回。未改生产列表、数值、时限或加sleep。
+
+共享／桌面构建后，隔离静态双宿主定向**2/2，1.1分钟**（Browser18.4秒／Electron22.9秒），`ui-scroll.log`；最终全library再次覆盖。未在本机声称稳定复现旧macOS200→0；新0b78815 CI的macOS人工步骤成功发生于未含本测试改动的基线，也不算修正后目标实跑。完整平台事实见investigation首节。
+
+### 第二步：真实单条原值题名／导出消费者
+
+- 新增`workbench/library/CatalogOriginalActions.tsx`，只从唯一LibraryContents接受scope、libraryId、单选主项／revision及授权状态；`LibraryTab.tsx`只在原题录分节挂载该消费者。原选择、CSL Form／JSON、保存及右栏都复用，不新增协议、provider、库来源表或生态监督。UI设计先于结构落稿，沿既有语义token与控件，无新视觉常量。
+- 明确核对调用`zotero.inspect`，展示已保存CSL、完整原值、准确identity三字段／revision及题名比较／其他不可比较。独立题名先预览再提交`replaceTitle`，保留准确字符串（包括首尾空格），其他原值、Extra／姓名、正式键／固定状态及未保存CSL保持。原值成功不推进dirty CSL旧保存依据；真实随后保存仍contentChanged，草稿不丢，未静默rebase或双写。
+- 仅勾选“采用所示原值导出”后提交准确zotero-original expression；选择不足按钮禁用／无文本，只有真实exported.text显示成功。格式、选择、修订、连接变化清除确认及输出，selectionRequired没有文本；未配置普通产品入口真实unavailable，不加真实库／原生路径启用开关。
+- 原值题名意图和冻结pending请求使用已有drafts，跨卸载占用复用librarySaves；不存另一份CSL。失联／unknown保留requestId及原输入，只提供`zotero.result`核查，notFound不解锁重试。迟到写结果只结算原对象同requestId；异步核对／导出还按当前选择依据代次拒绝旧响应。
+- 扩展既有`tests/ui/library.spec.ts`（滚动提交及默认unavailable），新增`tests/ui/zotero-original.spec.ts`的单个双宿主整合场景。只使用测试端KernelApplication的已有可信isolatedZotero构造与既有task-graph-launch的真实server／本机bootstrap代理模式；其余资产转发给既有静态承载。未把普通middleware后补配置或假provider当真实提供者。更新原proposal／investigation／design／delta／tasks及文献开发／UI分节。
+
+### 实跑、首次失败与独立审查
+
+证据根：`/tmp/scholoom-library-gui-round8/`。Linux／Node24、已有锁定依赖及本地未修改BBT9.0.68 XPI。内部broker、领域SQLite／文件、身份与授权、受管Electron／原BBT均真实；人工路径不调用模型或Agent worker，不以合成执行身份绕过授权。期刊oracle来自既有固定Preserved journal样本；传输门仅控制并发、实际请求未送达和真实成功回执丢失，库结果／历史不替换。
+
+| 实际命令／范围 | 结果与依据 |
+| --- | --- |
+| `pnpm --config.optimisticRepeatInstall=false build:shared`，随后desktop build；GUI实现及审查修复后desktop build，zotero-host build | 均通过，`build-shared.log`／`build-desktop-scroll.log`／`build-desktop-gui.log`／`build-desktop-final.log`／`build-zotero-host.log`；最终desktop约1分34秒。所有最终测试在构建结束后运行，期间冻结产物；中间构建均在前轮测试退出后执行。 |
+| `SCHOOLOOM_BBT_XPI=<已有XPI> node node_modules/@playwright/test/cli.js test --config playwright.kernel.config.ts tests/kernel/zotero-host.spec.ts --grep 'explicit original selection\|original title unknown\|original inspection rejects' --output <证据根>/kernel-original` | **3/3，25.7秒**，`kernel-original.log`。实际原BBT两格式导出、独立title保存／原值及键保护、unknown真实结果查询、拒绝多来源／陈旧身份；生态权威源码未改，后续只改GUI无需重跑该库路径。 |
+| 首次新增GUI，5777／profile-original-first，`tests/ui/zotero-original.spec.ts --output <证据根>/ui-original-first --workers=1` | **2失败**，Browser17.4秒／Electron19.3秒，`ui-original-first.log`和双方trace。真实写已提交、回执被传输门丢弃；断线重建后详情折叠，测试直接找核查按钮失败。改为通过用户入口显式重开详情／页面重载后核查，未放宽时间或伪造成功。 |
+| 修复后同静态配置，5779／profile-original-final，`tests/ui/zotero-original.spec.ts --output <证据根>/ui-original-final --workers=1` | **2/2，1.5分钟**，Browser31.6秒／Electron30.0秒，`ui-original-final.log`。真实保存／冲突、单选与明确expression、其他值／键／未保存CSL保持、跨重载unknown只查询均通过。每宿主5次明确title请求，4次实际转发（含1次CAS拒绝）、3次提交；丢失成功回执查询committed，未送达请求查询notFound，历史无重复污染。 |
+| 最终5781／profile-library-final，`tests/ui/library.spec.ts --output <证据根>/ui-library-final --workers=1` | **12/12，4.3分钟**，`ui-library-final.log`；默认无配置unavailable、原类型／日期、唯一右栏／跨组、列／集合分页、滚动提交、迟到／多窗口草稿及原冲突回归全部通过。 |
+| desktop／tools `tsc --noEmit`，4份相关源码／测试Biome、architecture、生成器self-test及最终schema只读映射比较 | 通过，`types-*-final.log`／`lint-final.log`／`architecture.log`／`generator-self-test.log`／`generated-check.log`；14模块254文件0 findings，7份格式化生成输出与本树相同，未应用格式噪声。首次类型检查的exactOptionalPropertyTypes错误保留于types-desktop-first.log并已修正；新测试首轮格式问题用apply_patch整理。 |
+| OpenSpec strict／scholoom-dev schema及diff／分片应用核对 | 最终通过，`openspec-strict.log`／`openspec-schema.log`／`diff-check.log`及patches/patch-check.log。首次strict因Requirement正文落在Scenario后而失败，保留openspec-first.log；已将正文移回正确位置，不缩减契约。 |
+
+独立辅助Agent为用户指定gpt-6.1-sol／high、fork_context:false，仅写拥有的新增UI测试，随后释放文件并只读审查生产消费者。发现两项确证风险：选择多选→同主选后迟到导出仍能显示旧文本、损坏JSON null被保护分支后继续解引用。主Agent分别修正选择依据代次和损坏对象处理，扩展该真实双宿主场景：旧export响应收到后仍无输出／未勾选；损坏另一对象草稿后显示错误且工作台仍可用。两项均在最终2/2实跑保护，辅助Agent已关闭。Browser预览截图已实际查看；两宿主截图及original-actions.json保留，不据此声称全主题／尺寸视觉验收。
+
+### 接入、收尾与剩余边界
+
+静态UI始终使用`/tmp/scholoom-sync-recovery-wyn13R/static-ui.mjs`和已构建产品；没有开发专用样例或开发服务器。UI构造的真实库／配置／原包目录在结果目录保留，登记项目随配置保留；普通静态profile由既有teardown确认stopped后退役。所属真实server／proxy／Electron已由夹具关闭，5775／5777／5779／5781无监听，无辅助Agent或本轮后台写树任务。
+
+相对0b78815的可审查增量见`<证据根>/patches/README.md`／manifest：**0001滚动观察测试独立增量 → 0002单条原值消费者及回归 → 0003原OpenSpec／文档**，没有新公共schema／权威／装配补丁。分片在仅触及文件的临时载荷顺序check／apply并比对最终源码，不是另一个完整仓库或工作树。
+
+没有需要本片新增产品决策的阻塞；原始多来源、其他字段／日期、自动原值同步、批量GUI及来源重绑定均未开放。直接server夹具不覆盖serveKernel运行锁／CLI进程重启的可信配置恢复；原包测试仅Linux，不声称macOS／Windows导出或完整Zotero宿主验收。新Checks查询时整体仍in_progress，Linux内核步骤success／macOS job success不代表完整CI，Windows内核仍在跑；Windows diagnosis success仅限其实际场景。完整4.1／4.2、I6／E6及科研质量均保持开放，达到本轮边界停止。
+
 ## 2026-10-27：8a2f0ce后的数字区间及circa子片
 
 本轮共同基线`8a2f0ce522dfbab4110e63e84e542f6660e6115e`，开工前clean，HEAD未改变。主线已接收前片并实际同步；本轮只完成**4.1d／4.2d，22/27**，父4.1／4.2、Windows1.4及完整6.1／6.2仍开放。本节取代下方历史阶段的当前范围和等待说明，不应用旧累计patch，也没有提交、同步其他树或启动后续阶段。

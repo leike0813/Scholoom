@@ -1,6 +1,23 @@
 # 实现设计
 
-## 8a2f0ce后的数字日期区间与circa子片
+## 0b78815后的滚动提交边界与单条原值消费者
+
+本树共同源码0b788151b5e17665a26d9286dfd1d12f6e2e0c30且开工前clean，前片已接收并同步。先处理macOS原失败：原日志旧:683实际断言scrollTop返回200，不是列宽。代码先同步设置scrollTop后立即读属性，未等待原生scroll触发虚拟列表更新／偏好保存。验证先观察当前可见列表及其虚拟行提交，再保留原分页返回的精确滚动断言；不改生产数值、超时或加sleep。当前同一基线新CI的macOS步骤已通过，不能据此声称改动前稳定复现或新改动已在macOS通过。
+
+第一步写集仅tests/ui/library.spec.ts及本change调查／任务／交付；复用既有虚拟列表及滚动拥有者，不提前更改生产布局。
+
+无阻塞问题，基于已定D1—D3及本树真实接口，第二步限单条所选且唯一可映射schema44期刊原值：
+
+- 新增库内CatalogOriginalActions，由同一LibraryContents传入scope、libraryId、主选sourceId／revision、当前单选及read／write状态；在原CatalogItemPane题录分节内增加“原值与导出”折叠区。不复制CSL草稿、选择或提交台账；只有原值题名输入与冻结的待核查请求按既有draftKey／readDraft／writeDraft保存，跨卸载占用复用librarySaves。
+- 用户点击核对才调用zotero.inspect，sources只有当前sourceId／已保存revision。展示返回的已保存CSL及完整原值、identity三字段、revision，题名equal／different及其余notComparable。不会从未保存CSL猜原值或从capabilities推断宿主可用。无配置／未支持原值沿真实unavailable错误；多选不开放此动作。
+- 独立题名输入保留准确字符串，不trim、不转换、不改其他原值／键。点击预览后显示原题名／新题名、身份和修订；再点提交才调用zotero.replaceTitle，仅携带libraryId／requestId／sourceId／revision／identity／title。输入／核对结果变化使预览失效。提交成功只刷新权威投影，不保存、丢弃或推进既有dirty CSL草稿依据；其随后保存仍通过原CAS冲突及明确重读流程。
+- expression仅在用户勾选“采用所示原值导出”后构造，格式限现有bibtex／biblatex。输出仅来自exported.text，selectionRequired不显示文本并重新展示核对材料；题名相同仍明确确认，因为其他属性不可比较。旧修订／身份不继续导出；格式／选择／修订／连接变化清除确认和旧输出。导出文本只读，首片不新增磁盘路径／批量操作。
+- 请求发出前持久化原requestId及完整题名请求。提交期间防重复；真实committed／rejected回执才解除pending。contentChanged明确保留题名及CSL草稿、要求重核；失联／outcomeUnknown等不明结果保留pending，只开放zotero.result只读核查，不自动重放。notFound仍不能证明安全重试。迟到查询／响应仅更新原scope对象的同requestId，旧选择不会覆盖新对象；核对／导出的异步响应还核当前选择依据代次，离开再返回不让旧文本重新出现。损坏的操作草稿只显示核查错误，不覆写原文或导致工作台崩溃。
+- 可信配置使用既有KernelApplication构造注入及tests/ui/task-graph-launch.spec.ts的双宿主真实startKernelServer／本机bootstrap代理模式：测试端传isolatedZotero，产品renderer及内部broker／SQLite／受管原包真实；静态承载仍用已有构建，无生产开关、私有API或provider替身。该模式不覆盖serveKernel运行锁／CLI重启，不能声称恢复可信配置；页面重载仅重连原真实服务。仅Linux与现有本地BBT9.0.68原包运行真实导出，不回退macOS执行限制。
+
+第二步写集：库内新组件、LibraryTab对应贡献、既有library测试与新增zotero-original双宿主测试，以及原change／UI设计／开发文献节。协议／存储／生态监督及其他装配不改。关键验收为单选／明确expression、准确title及其他值／键保持、dirty CSL保护与CAS冲突、真实回执丢失后跨重载只查询不重放；外部模型无需介入，传输门仅控制并发／真实回执丢失。
+
+## 8a2f0ce后的数字日期区间与circa子片（已接收）
 
 2026-10-27本树为8a2f0ce522dfbab4110e63e84e542f6660e6115e且初始clean。沿已接收4.1c／4.2c、5.3与唯一表单／JSON草稿，只交4.1d／4.2d，不改报告授权、生态外发P1、来源原值或原有工作台装配。当前CLI进度20/25不是本片未通过或整个change完成的依据。
 
