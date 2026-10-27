@@ -114,3 +114,48 @@ G1 公共实现供科研消费，后续以真实接线及运行结果判断整�
 初始规划阶段，`openspec validate connect-research-graph-runtime --strict`、`openspec schema validate scholoom-dev` 与 `git diff --check` 通过。新增未跟踪 Markdown 另以 `git diff --no-index --check /dev/null <文件>` 检查空白诊断，26个本地文件链接可达；当时工作区变化仅本 change 的6个文件（含 CLI 元数据），14项任务全部未勾选，delivery 不存在。Mermaid 只核对代码围栏、关系和正文一致性，未渲染；文件链接检查不验证标题锚点。该次规划未运行业务测试、构建、真实 worker 或 UI，这些历史结果不代表当前实施验收。
 
 当时已读取 apply 与 delivery instructions；CLI 的 apply ready 只表示规划依赖文件存在。后续实施依据用户明确授权推进，当前验收仍须核对实际结果，不能沿用初始规划停止状态。
+
+## 2026-10-28：声明科研调用 UI 首例的双宿主只读调查
+
+### 范围与同源证据
+
+本轮开始时HEAD为938c33f2c9fcafb2cce11b0c165b2fb1e9a818c3，工作区clean。仅调查 `tests/ui/harness.spec.ts:11` 的 `user invokes a declared research capability and opens its checked report`，不修harness／UI或扩展其他场景。依据七线计划“第十轮验收后的收敛安排”；职责仍沿科研票的Graph／执行分工，旧能力路径与新业务Graph分开。
+
+原失败是 [Checks40479176954](https://github.com/leike0813/Scholoom/actions/runs/40479176954)，完整head为8c2fd24534001a9724f9c008482d404c336a5a07，Linux job为122104867775。主线提供的 `/tmp/scholoom-round10-acceptance-j1MosP/ci-baseline-failures.log` 第8828／9335行起分别记录Browser／Electron在第39行等待20000ms失败：`排队中 · 有已受理指令等待消费`；两个首次失败保持，不修改预期或期限。本run Linux内核746通过／26跳过，UI126通过／32失败／4跳过；本调查不扩展其他失败，不用其他run的数量推定同因。
+
+通过本仓库只读API核对artifact 12728680109 `diagnostics-ubuntu-latest`，workflow_run/head与上述run一致。其476项目录中只有目标两宿主各自的error-context.md、trace.zip属于本例；四项已按ZIP CRC校验提取。原artifact及索引元数据、选择结果保留于 `/tmp/scholoom-research-ui-round10/`：artifacts.json、artifact-entries.json、first-case-evidence.json及selected/ui-5174/下两个 `harness-user-invokes-a-dec-88c29-nd-opens-its-checked-report-ui-*` 目录。browser-trace/、electron-trace/为对应trace解包结果。
+
+完整65,548,621字节下载较慢，已停止本轮下载进程，保留的diagnostics-ubuntu-latest.zip为未完成前缀，不能作为完整ZIP使用。普通Range请求未生效；最终经artifact重定向地址的x-ms-range只取中央目录及上述四项，校验后读取。artifact-index.zip为带空洞的索引／选定区段副本，也不能当作全包验证结果。只分析本例内容，未在日志或文档暴露API凭据／签名URL。
+
+### 首例实际调用路径与替身
+
+该场景没有GUI科研方法选择器：第24–26行只配置合成模型凭据，随后经实际项目打开、信任授权及新会话发送普通指令 `MODEL_RESEARCH 用材料分析方法处理 input.md 并保存 analysis.md`。`business-session.tsx:504、541` 的onNew经client调用session.send，首例materials为空，无contextItems、methodId或version；input.md此时只是指令中的路径，不是已附加材料。它不使用research.requestGraph，不启动固定校准图。
+
+CI的 `playwright.ui.config.ts:15` 继承单worker、零重试和失败trace，实际webServer为renderer开发承载；Browser为Chromium，Electron为真实应用窗口。`tests/ui/fixture.ts:27` 先确保开发内核；`tests/model-kernel.ts:7` 再停止该隔离配置的旧内核，用独立Node子进程调用真实serveKernel，注入modelEndpoint并等待ready。方法、broker、项目仓储、文件、受管worker和执行授权均为正式实现；外部模型使用 `tests/model-server.ts` 的loopback确定响应，目录选择交互也由夹具替换。首例没有科研模块端口或执行进程成功替身。
+
+模型替身在 `tests/model-server.ts:295` 按工具历史依次要求discover_research_methods、load_research_method，再调用invoke_research_capability，参数为scholoom.material-analysis／1.0.0、materialPaths=['input.md']、outputPath='analysis.md'及含MODEL_RESEARCH_EXECUTION的合成目标。这是旧声明方法的机械接线，不能当作生产业务Graph、真实模型理解或科研质量证据。
+
+`git diff 8c2fd24 HEAD` 核对上述UI测试／fixture、模型替身、harness、research、相关UI调用和kernel科研装配无差异；本段相关kernel差异仅lifecycle的启动观察／日志与事务持锁清理记录。旧run仍不能冒充938c33f上的新实跑。未用普通静态产品重跑依赖开发承载的场景，也未启动开发服务器。
+
+### 观察到的阶段及尚缺事实
+
+| 边界 | 同run证据与结论 |
+| --- | --- |
+| GUI配置、授权、新会话及发送 | 两份test.trace均通过这些动作。Browser发送点击pw:api@65为09:53:26.870–26.964 UTC；Electron pw:api@68为10:15:46.094–46.213 UTC。点击完成本身不是session.send原始回执 |
+| 指令已受理的UI投影 | 两宿主随后持续显示queued／accepted文案。`business-session.tsx:884` 的状态来自received WorkbenchSnapshot，而非onNew的乐观run赋值；refresh在198–223行经workbench.watch取回。可确认UI看到过受理投影，不能据此证明整个等待期间服务端状态未变化 |
+| 等待终点 | Browser expect@66在09:53:46.984 UTC失败，Electron expect@69在10:16:06.216 UTC失败，分别等待约20秒；两份error-context仅截取状态栏文本 |
+| harness instruction／run／instance | Browser末段DOM可定位项目442aa6af-9573-4064-a75b-515d4df385fb、会话29110dcf-53d6-48fe-a055-04c006ff2b02、项目名scholoom-ui-research-mnsJVN。Electron仅能恢复项目名scholoom-ui-research-LXTPK9，不能恢复其项目／会话身份。两宿主都无原instructionId／runId／instanceId、consumed/checkpoint或实例阶段，不能断言未创建进程、名额不足或卡在initialize |
+| 模型与科研模块受理 | 没有同次模型requests计数、工具RPC或ResearchAttempt记录，不能写成“首模型请求0”或“research.invoke调用0”。`runtime.ts:3029` 的能力工具、`application.ts:306` 的身份准入及 `ResearchRuntime.invoke:164` 均是尚未观察到的后续分界 |
+| 成果与质量 | 失败发生在第39行；第42行首次readFile、后续usable／notAssessed检查及打开报告均未执行。没有成果读取失败或分析质量不合格的证据 |
+
+Browser的1-trace.trace有73个frame-snapshot，1-trace.network有180个HTTP资源记录，console仅Vite连接及React开发提示；没有session.send／workbench.watch的WebSocket消息帧或父进程模型HTTP记录。最后一条bootstrap在09:53:48.044 UTC中断，晚于断言失败，属于finally停止内核／夹具收尾时间，不能倒推为最初queued的原因。Electron的0-trace.trace仅context-options，1-trace.trace只有默认Chromium空页newPage及一帧图像，两份network均为空，没有实际应用窗口的snapshot／网络记录；test.trace仍能证明测试动作与失败时间。
+
+artifact目录没有ui-profile条目或UI内核日志，目标项目及科研数据库也未保留。startModelKernel的子进程stdout／stderr为ignore；首例finally在停止内核后删除合成项目，既有UI全局收尾不提供此例持久事实附件。因此不能通过现有包补查ResearchAttempt或实际执行状态，HTTP网络记录中没有模型请求也不表示模型请求为零。
+
+### 分类与交给Agent／公共提供者的精确缺口
+
+**分类：GUI已看到指令受理；最早未被确认的边界是harness消费／首次模型推进及相应snapshot刷新。没有科研域失败的正面证据。** 源码中Harness.send在1154–1189行保存未消费指令、accepted消息和queued run后安排schedule；schedule在1214行起等待reservation.ready后执行。普通执行直到wrapModelCall（2193行起）才设置running，持久消费由confirmInstructions（2092行起）核checkpoint后确认。故queued文案无法区分准入名额、父准备、子进程引导、初始化、消费确认前，或后端已推进而UI未刷新；这些是待区分的阶段，不是已确证的根因。
+
+Agent／公共提供者后续只需沿上表同例身份与UTC窗口关联原session.send回执、instructions.consumed、run／instances及进程准备／initialize阶段、首次模型请求、工具invoke与research.attempts，再核workbench.watch返回revision／UI应用时点。`tests/execution-diagnostics.ts::observeExecution` 已提供内核侧观察，但需要KernelApplication实例；本例startModelKernel只向父进程返回stop，不能假装已有跨进程观察数据。若需补共享IPC或UI诊断接线，由主线统筹，本线不改该提供者。没有足够证据在上述候选间选定生产修复，也不以新增Graph、重做入口、重试、sleep或放宽期限填补缺口。
+
+本次无业务变更或本机UI通过结论；此前内核26项通过只保护模块边界，不替代本例双宿主验收。停止于上述因果分类与同run缺证结论，实际操作和检查见delivery本轮记录。
