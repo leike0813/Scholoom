@@ -11,7 +11,11 @@ import type { RunInstance } from '../../packages/harness/dist/node.js';
 import { callExecutionControl } from '../../packages/harness/dist/node.js';
 import type { ProcessAdmission } from '../../packages/platform/dist/node.js';
 import { ManagedNode, processMayBeAlive } from '../../packages/platform/dist/node.js';
+import { OperationError } from '../../packages/protocol/dist/core.js';
+import { installExecutionDiagnostics, observeExecution } from '../execution-diagnostics.js';
 import { createModelServer } from '../model-server.js';
+
+installExecutionDiagnostics();
 
 const harnessExecutionWorker = new URL('../../packages/harness/dist/execution.js', import.meta.url);
 const kernelExecutionWorker = new URL(
@@ -103,6 +107,75 @@ test('the kernel worker uses the shared driver and excludes fixture registration
     peer.close();
   }
 });
+
+for (const observed of [false, true]) {
+  test(`initialization send rejection reaches the run with diagnostics ${observed ? 'on' : 'off'}`, async () => {
+    const root = await mkdtemp(join(tmpdir(), 'scholoom-send-rejection-'));
+    const model = await createModelServer();
+    const app = new KernelApplication(root, {
+      modelEndpoint: model.url,
+      environment: { MINIMAX_CN_API_KEY: 'synthetic' },
+    });
+    const send = ManagedNode.prototype.send;
+    let rejected = 0;
+    let diagnostics: ReturnType<typeof observeExecution> | undefined;
+    try {
+      await app.initialize();
+      const session = await app.call('session.create', { projectId: 'application' });
+      const scope = { projectId: 'application', sessionId: session.id };
+      if (observed) diagnostics = observeExecution(app, scope, model);
+      ManagedNode.prototype.send = function (value) {
+        if (
+          value &&
+          typeof value === 'object' &&
+          'method' in value &&
+          value.method === 'execution.initialize'
+        ) {
+          rejected++;
+          return Promise.reject(new OperationError('resourceLimit', 'controlled send rejection'));
+        }
+        return send.call(this, value);
+      };
+      await app.call('session.send', {
+        ...scope,
+        instructionId: randomUUID(),
+        text: 'MODEL_CHAT initialization rejection',
+        materials: [],
+      });
+      await expect
+        .poll(async () => (await app.snapshot(scope)).run?.state, { timeout: 20_000 })
+        .toBe('failed');
+      expect(model.requests).toHaveLength(0);
+      expect(rejected).toBe(1);
+      if (diagnostics) {
+        await diagnostics.flush(true);
+        const attachment = test.info().attachments.find((item) => item.name === 'execution-stages');
+        assert(attachment);
+        const body =
+          attachment.body ?? (attachment.path ? await readFile(attachment.path) : undefined);
+        assert(body);
+        const captured = JSON.parse(body.toString()) as {
+          controls: { phase: string; errorCode?: string }[];
+        };
+        expect(captured.controls).toContainEqual(
+          expect.objectContaining({
+            phase: 'execution.initialize.rejected',
+            errorCode: 'resourceLimit',
+          }),
+        );
+        expect(captured.controls.some((item) => item.phase === 'execution.initialize.sent')).toBe(
+          false,
+        );
+      }
+    } finally {
+      ManagedNode.prototype.send = send;
+      await diagnostics?.stop();
+      await app.close();
+      await model.close();
+      await rm(root, { recursive: true });
+    }
+  });
+}
 
 test('a failed parent revokes and stops its actual capability process before another model request', async () => {
   const root = await mkdtemp(join(tmpdir(), 'scholoom-parent-failure-'));

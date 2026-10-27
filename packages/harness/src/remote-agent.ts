@@ -1,5 +1,6 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { randomUUID } from 'node:crypto';
+import { channel } from 'node:diagnostics_channel';
 import type { BaseMessage } from '@langchain/core/messages';
 import { ToolMessage } from '@langchain/core/messages';
 import { Command, isCommand } from '@langchain/langgraph';
@@ -31,6 +32,7 @@ import { fileProviders } from './files.js';
 import { decodeFrameworkMessage, encodeFrameworkMessage } from './framework-messages.js';
 
 type AgentOptions = NonNullable<Parameters<typeof createDeepAgent>[0]>;
+const executionDiagnostics = channel('scholoom.harness.execution');
 type RemoteOptions = {
   model?: ModelExecution;
   backend: BackendProtocolV2;
@@ -90,6 +92,19 @@ export class RemoteAgent {
     reservation?: ProcessReservation,
   ): AsyncGenerator<Event> {
     const options = this.options;
+    const observe = (
+      phase: string,
+      error?: unknown,
+      exit?: { controllerCode: number | null; controllerSignal: NodeJS.Signals | null },
+    ) => {
+      if (executionDiagnostics.hasSubscribers)
+        executionDiagnostics.publish({
+          instanceId: options.instanceId,
+          phase,
+          ...(error instanceof OperationError ? { errorCode: error.code } : {}),
+          ...exit,
+        });
+    };
     options.signal.throwIfAborted();
     const leases = new Set<string>();
     let valid = true;
@@ -287,7 +302,15 @@ export class RemoteAgent {
       ...(reservation ? { reservation } : {}),
     });
     peer = new RpcPeer(
-      { send: (frame) => owned.send(JSON.parse(frame)) },
+      {
+        send: (frame) => {
+          const message = JSON.parse(frame);
+          const sending = owned.send(message);
+          if (message.method === 'execution.initialize' && executionDiagnostics.hasSubscribers)
+            return sending.then(() => observe('execution.initialize.sent'));
+          return sending;
+        },
+      },
       {
         control: (method) => method === 'model.release' || method === 'execution.health',
         request: async (method, value) => {
@@ -296,6 +319,11 @@ export class RemoteAgent {
           if (isExecutionControlMethod(method) && !control)
             throw new OperationError('invalidRequest', '执行控制参数不符合契约。');
           const token = control && 'token' in control[1] ? control[1].token : undefined;
+          const observing =
+            executionDiagnostics.hasSubscribers &&
+            control &&
+            ['model.acquire', 'execution.consume', 'execution.beforeModel'].includes(control[0]);
+          if (observing) observe(`${method}.request`);
           const dispatch = async () => {
             if (!valid || options.signal.aborted)
               throw new OperationError('shuttingDown', '执行实例已失效。');
@@ -346,6 +374,11 @@ export class RemoteAgent {
           };
           const runner = token ? contexts.get(token) : undefined;
           const done = runner ? runner(dispatch) : dispatch();
+          if (observing)
+            void done.then(
+              () => observe(`${method}.response`),
+              (error: unknown) => observe(`${method}.rejected`, error),
+            );
           if (method.startsWith('resources.')) {
             resourcesInFlight.add(done);
             void done.then(
@@ -358,9 +391,10 @@ export class RemoteAgent {
       },
     );
     owned.on('message', (message) => peer.receive(JSON.stringify(message)));
-    owned.once('exit', () =>
-      peer.close({ code: 'unavailable', message: '执行进程已退出，未确认的工具效果仍需核查。' }),
-    );
+    owned.once('exit', (code: number | null, signal: NodeJS.Signals | null) => {
+      observe('controller.exit', undefined, { controllerCode: code, controllerSignal: signal });
+      peer.close({ code: 'unavailable', message: '执行进程已退出，未确认的工具效果仍需核查。' });
+    });
     const stop = () => {
       valid = false;
       peer.close({ code: 'shuttingDown', message: '执行已停止。' });
@@ -369,6 +403,7 @@ export class RemoteAgent {
     options.signal.addEventListener('abort', stop, { once: true });
     try {
       await options.onStart?.(owned);
+      observe('onStart.response');
       options.signal.throwIfAborted();
       const descriptor = options.model?.descriptor;
       let initialization =
@@ -415,7 +450,13 @@ export class RemoteAgent {
           }
         initialization = selection;
       }
-      await callExecutionControl(peer, 'execution.initialize', initialization);
+      try {
+        await callExecutionControl(peer, 'execution.initialize', initialization);
+        observe('execution.initialize.response');
+      } catch (error) {
+        observe('execution.initialize.rejected', error);
+        throw error;
+      }
       const health = async () => {
         if (!valid) return;
         try {
