@@ -2761,7 +2761,12 @@ export class Harness {
               },
             })),
             ...(this.programs ? programTools(this.programs.port(fileContext)) : []),
-            ...(this.zotero ? zoteroTools(this.zotero(fileContext)) : []),
+            ...(this.zotero
+              ? zoteroTools(this.zotero(fileContext), (libraryId) => {
+                  this.checkExecutionContext(fileContext);
+                  this.rememberCatalog(project, run.sessionId, libraryId);
+                })
+              : []),
             {
               name: 'describe_program_material',
               description:

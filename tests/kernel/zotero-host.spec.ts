@@ -505,3 +505,65 @@ test('actual harness tools use the common authority and original BBT; only the e
     await model.close();
   }
 });
+
+test('Zotero-only model context remains subject to library send authorization across turns and restart', async () => {
+  let input: { libraryId: string; sources: { sourceId: string; revision: number }[] };
+  const model = await createModelServer({
+    respond: ({ calls }) =>
+      calls.includes('export_zotero')
+        ? { text: '已核对隔离期刊导出。' }
+        : { tool: { name: 'export_zotero', input: { ...input, format: 'bibtex' } } },
+  });
+  const options = {
+    modelEndpoint: model.url,
+    environment: { MINIMAX_CN_API_KEY: 'synthetic-bbt' },
+  };
+  const f = await fixture(options);
+  let app = f.app;
+  try {
+    const record = (await f.selection()).at(-1);
+    if (!record) throw new Error('Missing fixed-key journal');
+    input = {
+      libraryId: f.libraryId,
+      sources: [{ sourceId: record.sourceId, revision: record.revision }],
+    };
+    const project = await app.call('project.create', {
+      path: join(f.directory, 'project'),
+      trust: 'trusted',
+    });
+    const session = await app.call('session.create', { projectId: project.id });
+    const scope = { projectId: project.id, sessionId: session.id };
+    await app.call('session.send', {
+      ...scope,
+      instructionId: randomUUID(),
+      text: '仅通过生态工具核对指定期刊。',
+      materials: [],
+    });
+    await expectExecutionCompleted(app, scope, model);
+    const final = model.requests.at(-1);
+    if (!final) throw new Error('No actual model requests');
+    expect(delegationOutput(final, 'export_zotero')?.text).toContain('ScholoomPreserved2026');
+    const requests = model.requests.length;
+    await app.call('library.grant', { read: true, write: true, send: false, autoBackup: false });
+    for (const boundary of ['next-turn', 'restart']) {
+      if (boundary === 'restart') {
+        await app.close();
+        app = new KernelApplication(f.root, { ...options, isolatedZotero: f.configuration });
+        await app.initialize();
+      }
+      await app.call('session.send', {
+        ...scope,
+        instructionId: randomUUID(),
+        text: `接续核查 ${boundary}`,
+        materials: [],
+      });
+      await expect
+        .poll(async () => (await app.snapshot(scope)).run?.state, { timeout: 20_000 })
+        .toBe('failed');
+      expect(model.requests).toHaveLength(requests);
+    }
+  } finally {
+    await app.close();
+    await model.close();
+  }
+});

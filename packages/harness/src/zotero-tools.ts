@@ -1,7 +1,7 @@
-import { type ZoteroPort, zoteroOperations } from '@scholoom/protocol/zotero';
+import { type ZoteroInputs, type ZoteroPort, zoteroOperations } from '@scholoom/protocol/zotero';
 import { z } from 'zod';
 
-export function zoteroTools(port: ZoteroPort) {
+export function zoteroTools(port: ZoteroPort, rememberLibrary: (libraryId: string) => void) {
   return (
     [
       [
@@ -24,7 +24,10 @@ export function zoteroTools(port: ZoteroPort) {
     name,
     description,
     schema: z.fromJSONSchema(JSON.parse(JSON.stringify(zoteroOperations[method].params))),
-    func: async (input: unknown) =>
-      JSON.stringify(await port.call(...([method, input] as Parameters<ZoteroPort['call']>))),
+    func: async (input: ZoteroInputs[keyof ZoteroInputs]) => {
+      const result = await port.call(...([method, input] as Parameters<ZoteroPort['call']>));
+      rememberLibrary(input.libraryId);
+      return JSON.stringify(result);
+    },
   }));
 }

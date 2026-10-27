@@ -4,6 +4,12 @@
 
 2026-10-27，基线 `1026796d854b8f568c3e819f13268a9638980bc1`，起始工作区干净。用户直接授权本轮最多100条普通期刊隔离接线；未同步／等待文献实际提供者条件已失效。下文第三／四轮及更早待办为历史证据，不是当前阻塞。当前任务13/22，仅R5.1–R5.4本片完成；整个change、3.x完整条件、I6、生产启用和跨平台未关闭。
 
+### 主线验收：持续外发授权P1
+
+独立Standards审查发现生态工具直接返回库结果，没有像共同题录工具一样保存会话已使用的库身份，下一轮模型可能再次发送旧导出而不复查库授权。主线在真实Kernel／broker／受管原包／worker、仅外部模型受控的only-export回归中确认：撤回send后旧实现仍completed，应拒绝模型请求；首次1失败保留在 `/tmp/scholoom-round6-acceptance-dXuzCA/zotero-send-red.log`。
+
+主线只修改harness的生态工具结果回调及唯一装配点，在成功返回前复查执行资格并复用 `rememberCatalog` 保存库身份，不增表或伪造资源。既有异步授权、最终同步准入和重启检查继续负责read/send。重编译harness后，原回归1/1通过，覆盖当前内核下一轮及重启，撤权后模型请求数均未增加；证据为同目录 `zotero-send-build.log`、`zotero-send-green.log`，根tools类型及改动Biome通过。原审查者追加只读复核确认P1闭合；没有把其静态结论写成实跑，也不由此关闭完整I6。全体组合验证和同步派发由公共接入delivery引用本轮证据。
+
 ### 实际接线与同源结果
 
 - `packages/protocol/src/zotero.ts` 复用真实library record／receipt／key schema，提供fillKeys/export/result及私有有界读回；`operations.ts`和生成business映射注册，未复制文献字段／正式键权威。schema44期刊字段／作者声明来自已归档固定schema调查，只接受明确原值，不逆猜CSL。
