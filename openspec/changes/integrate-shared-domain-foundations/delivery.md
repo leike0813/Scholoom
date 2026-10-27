@@ -18,7 +18,13 @@ Standards／Spec沿code-review两轴由gpt-6.1-sol／high独立只读核对。St
 
 最新完成Checks40479176954／8c2fd24：Linux内核746通过／26跳过、UI126通过／32失败／4跳过；Windows内核688通过／42失败／42跳过，原生定向16通过／3跳过；macOS job成功。仅回执文档差异的4312262／40476577071中，Windows内核727通过／3失败／42跳过；这两个结果分别保留于ci-baseline-*和ci-same-source-failures.log，不按数量推新增源码故障或稳定性关闭。Linux UI原始失败中可见首模型请求0、长期queued、未持有RPC及预览未出现等不同边界，详细映射ci-failure-matrix.json；不能将32项均推为同因果。
 
-下一轮按并行计划“第十轮验收后的收敛安排”：六条有界任务，生态转为等待具体前置；项目／科研对新真实UI失败只读取证，未恢复未定业务流程。共同源码须先推送并同步七树，完成各树构建／tools／定向复验后再发送。实际同步与派发回执完成后在本节补记，不把已起草prompt算作已派发；完整changes、目标分发包及真实科研质量未验收，不归档。
+共同源码`938c33f2c9fcafb2cce11b0c165b2fb1e9a818c3`已推送，七树保全快进且同步时全部clean；每树完整构建／包类型／架构／生成自检、tools及定向内核均通过，定向合计7/7，其中文献树直接验证新可信进程夹具。证据为synchronized.json、sync-build-results.json、sync-kernel-results.json及sync-summary.json，仅补既有workspace链接，没有安装或下载依赖。
+
+随后按并行计划“第十轮验收后的收敛安排”发送六条有界任务及生态等待指令，七份均accepted。项目／科研两份API报告turn_started；其余五份原API只报告input_accepted，主线按发送前空闲及发送后实际新回复／执行命令／Working或Compacting取得独立启动证据，没有伪造阶段或重复发送原文。逐树dispatch-receipt、start-observation／dispatch-start-evidence、完整prompts与汇总dispatch-receipts.json保留，七树卡片更新；项目／科研只对新UI失败取证，未恢复未定业务流程。未另建协调Agent或等待下一轮实现完成，用户无需手动同步或转发。
+
+新同源码Windows diagnosis40540362546已完成failure：旧执行重复组10通过、native16通过／3跳过、HostConnection24通过、availability6通过、development owner2通过、Electron入口3通过；Agent三例仍失败，分别首模型0、excerpt queued和附件首导入queued，未到Linux撤权新run。windows-diagnosis.log及failures.log已落地，并在实际派发前纳入计算／Agent原prompt。ACL观察修正已有新目标通过证据；并发初始化稳定性、完整change及其他平台范围仍不据此关闭。新Checks40540362614尚未验收完成。
+
+回执收尾仅更新本交付文档，以`[skip ci]`提交复用已推送源码的CI，不再触发一套相同代码的全仓运行；七树继续已验证源码938c33f，不为纯回执再次同步。完整changes、分发包及真实科研质量未验收，不归档。
 
 ## 第九轮主线验收
 
