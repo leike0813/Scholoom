@@ -10,6 +10,7 @@ import type {
   ProjectsOutputs,
   ProjectTargetReadPort,
 } from './projects.js';
+import { reportSnapshotSchema } from './report-contracts.js';
 import {
   resourceCreationResultSchema,
   resourceDescriptorSchema,
@@ -97,6 +98,11 @@ const request = <const M extends string, const S extends JSONSchema>(method: M, 
 const readSemantics = { effect: 'read', returns: 'result', waitMs: 5000 } as const;
 const access = { ref: resourceRefSchema, basis: id } as const;
 export const resourceOperations = {
+  'resources.report': {
+    semantics: { ...readSemantics, waitMs: 35000 },
+    params: object(access, ['ref', 'basis']),
+    result: reportSnapshotSchema,
+  },
   'resources.cancel': {
     semantics: { effect: 'write', returns: 'result', waitMs: 5000 },
     params: object({ requestId: id }, ['requestId']),

@@ -233,10 +233,10 @@ test('queued byte reads reject a moved identity when the old path is reused', as
   }
 });
 
-test('a project HTML resource declared read-only rejects saving and preserves its bytes', async ({
+test('an oversized project HTML resource stays read-only and preserves its bytes', async ({
   resources: { app, project },
 }) => {
-  const content = '<!doctype html><title>Original</title><p>Preserve this material</p>';
+  const content = `<!doctype html><title>Original</title><p>Preserve this material</p>${'a'.repeat(262144)}`;
   const path = join(project.path, 'paper.html');
   await writeFile(path, content);
   const resource = await app.call('resources.describe', {

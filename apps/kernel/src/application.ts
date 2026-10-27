@@ -22,6 +22,7 @@ import type {
   HarnessModuleOutputs,
   ResourceCreationInputs,
   ResourceDescriptor,
+  ResourceEvidence,
   ResourceRef,
   ResourceSaveResult,
   TaskResearchPort,
@@ -378,6 +379,16 @@ export class KernelApplication extends ManualApplication {
     ref: ResourceRef | { source: 'project'; projectId: string },
   ): void {
     this.harness.recordResourceUse(context, ref);
+  }
+  protected override reportUsed(context: CallContext, evidence: readonly ResourceEvidence[]): void {
+    if (context.role === 'host') this.checkInstructionContext(context);
+    this.harness.recordReportUse(context, evidence);
+  }
+  protected override checkReportContext(context: CallContext): void {
+    if (context.role !== 'execution') return;
+    const facts = this.harness.executionFacts(context);
+    if (facts.state !== 'verified' || facts.delegation.state !== 'none')
+      throw new OperationError('unavailable', '委派报告展开来源授权尚未接通。');
   }
   protected override async executionFileFacts(
     context: CallContext,

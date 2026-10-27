@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { expect, test } from '@playwright/test';
 import { KernelApplication } from '../../apps/kernel/dist/application.js';
@@ -174,6 +175,54 @@ test('actual parent and child resource calls expose verified execution facts wit
           },
         });
         expect(app.saved).toContainEqual({ context: child!.context, editId });
+        const fileScope = { projectId: project.id, fileId: file.fileId };
+        const originalBytes = await readFile(join(project.path, path));
+        const requestsBeforeUndo = model.requests.length;
+        const runBeforeUndo = (await app.snapshot(scope)).run?.id;
+        const human = await app.call('files.save', {
+          projectId: project.id,
+          path,
+          basis: file.basis,
+          content: '# Report\n\nHuman overlapping correction.\n',
+        });
+        expect(human).toMatchObject({
+          fileId: file.fileId,
+          origin: { kind: 'human' },
+          before: edit.after,
+          beforeEvidence: edit.afterEvidence,
+        });
+        await expect(
+          app.call('files.undo', { projectId: project.id, editId }),
+        ).rejects.toMatchObject({ code: 'contentChanged' });
+        expect(await readFile(join(project.path, path), 'utf8')).toBe(human.after);
+        const undone = await app.call('files.undo', { projectId: project.id, editId: human.id });
+        expect(undone).toMatchObject({
+          fileId: file.fileId,
+          origin: { kind: 'human' },
+          before: human.after,
+          after: edit.after,
+          beforeEvidence: human.afterEvidence,
+          revertsEditId: human.id,
+        });
+        expect(await readFile(join(project.path, path))).toEqual(originalBytes);
+        const restored = await app.call('resources.describe', { locator: resource.ref });
+        expect(undone.afterEvidence).toEqual({ ref: resource.ref, basis: restored.basis });
+        const history = await app.call('files.changes', { ...fileScope, afterEditId: editId });
+        expect(history).toMatchObject({
+          changes: [
+            { editId: undone.id, fileId: file.fileId, revertsEditId: human.id },
+            { editId: human.id, fileId: file.fileId, origin: { kind: 'human' } },
+          ],
+          coverage: { anchor: 'matched', current: 'matchesLatest' },
+        });
+        expect(await app.call('files.edit', { ...fileScope, editId })).toEqual(edit);
+        expect(await app.call('files.edit', { ...fileScope, editId: undone.id })).toEqual(undone);
+        expect((await app.snapshot(scope)).run?.id).toBe(runBeforeUndo);
+        expect(model.requests).toHaveLength(requestsBeforeUndo);
+        await test.info().attach('delegation-file-history', {
+          body: JSON.stringify({ scope, delegation, childEdit: edit, human, undone, history }),
+          contentType: 'application/json',
+        });
       } else expect(edit.origin && 'delegation' in edit.origin).toBe(false);
     }
     expect(await app.harness.executions({ ...scope, instructionId })).toMatchObject({

@@ -21,6 +21,15 @@ const denied = () => new OperationError('permissionDenied', '报告资源不在�
 export class ReportResources {
   constructor(private readonly ports: ReportResourcePorts) {}
 
+  async isReport(entry: Evidence): Promise<boolean> {
+    await this.ports.authorize([entry], 'read');
+    const resource = await this.verify(entry);
+    if (resource.ref.source !== 'project' || resource.format !== 'html') return false;
+    const head = await this.read(entry, reportHeaderStart.length + 3, true);
+    await this.ports.authorize([entry], 'read');
+    return new TextDecoder('utf-8').decode(head.bytes).startsWith(reportHeaderStart);
+  }
+
   private async verify(evidence: Evidence) {
     const resource = await this.ports.describe(evidence.ref);
     if (!isDeepStrictEqual(resource.ref, evidence.ref) || resource.basis !== evidence.basis)

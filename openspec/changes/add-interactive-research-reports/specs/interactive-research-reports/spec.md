@@ -24,6 +24,26 @@
 - **WHEN** 模块通过授权端口读取有界入口、声明依赖及来源
 - **THEN** 返回原入口身份／依据和完整清单，不解析HTML或建立新存储，前后核对所有依据及path-ref对应
 
+#### Scenario: 生产读取及后续模型准入
+
+- **WHEN** 人工或Agent通过报告操作、共同资源describe／read／document或Agent原文件读取取得项目报告
+- **THEN** 沿实际项目与库权威核对声明来源；Agent沿原ResourceEvidence持久记录实际使用来源，排队、下一轮及重启后的模型准入重新核查read／send，最后同步准入仍检查实际来源，不因页面ready或报告本身可读而放行
+
+#### Scenario: 委派或目标报告缺少展开授权提供者
+
+- **WHEN** 报告读取不能逐项核对委派材料范围及子模型最后准入，或目标报告无法在原targetRead范围内核对声明来源
+- **THEN** 在展开来源前明确返回unavailable，普通目标HTML仍只读；不将父会话已用来源当作子权限，也不移除targetRead扩大访问
+
+#### Scenario: 报告旧版本历史尚无来源核查Adapter
+
+- **WHEN** 读取HTML的FileEdit全文或旧历史，任一正文带约定报告头部而不能按其原Evidence核查声明来源
+- **THEN** 返回unavailable而不外发旧报告正文，保留changes摘要与普通材料历史；不将当前文件basis代替旧版本，不修改FileEdit存储权威
+
+#### Scenario: 项目HTML有条件保存
+
+- **WHEN** 调用方保存不超过256KiB的项目HTML
+- **THEN** 复用原strong basis及expectedFileId核对后保存；同内容替换仍拒绝，库材料及跨项目目标不取得写权限，普通HTML不执行脚本
+
 #### Scenario: 短分片、入口移动或来源撤权
 
 - **WHEN** 来源HTML头部跨多个短分片，入口同basis移动影响相对依赖，或任何声明来源已撤权

@@ -60,8 +60,8 @@ test.beforeAll(async () => {
             namespace: 'fixture',
           }));
           builder.onLoad({ filter: /.*/, namespace: 'fixture' }, () => ({
-            contents: `import {Schema} from '${editorModules}prosemirror-model/dist/index.js';
-            import {EditorState,TextSelection,NodeSelection} from '${editorModules}prosemirror-state/dist/index.js';
+            contents: `import {Schema} from ${JSON.stringify(`${editorModules}prosemirror-model/dist/index.js`)};
+            import {EditorState,TextSelection,NodeSelection} from ${JSON.stringify(`${editorModules}prosemirror-state/dist/index.js`)};
             export const DispatchEvent={}; export const EditorCommands={};
             export const defaultTheme=()=>({code:{}}); export const defaultEditorUIImages=()=>({});
             const schema=new Schema({nodes:{

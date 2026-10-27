@@ -147,6 +147,22 @@ sequenceDiagram
 
 ## 第二阶段接口交接与下一批范围
 
+### 第六轮接入：1.1b／1.2b写集和验收
+
+共同源码为4b13183，已包含manifest／codec／ReportResources及两项边界修复；不再等待公共同步。本轮公开`resources.report`，身份仍为`{ref,basis}`，返回原ReportSnapshot，不增加ResourceRef类别。写集为protocol的resources／index及生成映射、editor的node导出和ResourceAccess项目HTML条件保存、architecture中报告操作、kernel的manual／application报告装配，以及harness/runtime中仅报告来源记录符号。保留既有构造参数、工具、来源记录与所有领域恢复。
+
+ReportResources的生产Adapter复用原ResourceAccess的有界describe／read；这些内部读取经可信editor领域端口，外部入口统一检查报告，避免递归装配。实际`resources.describe/read/document/report`及Agent原`files.read/readBytes`在交付内容前核对入口和声明来源；普通HTML仍只读快照，不执行页面。人工仅要求所属read，执行仍沿原项目及库read/send；跨项目声明来源按原targetRead范围，不扩大写权。项目HTML沿原256KiB、strong basis及expectedFileId条件保存，库及target不增加write。
+
+报告读取成功后，将入口、依赖及声明来源的真实ResourceEvidence记入原instruction-resource-context，并复用现有库／跨项目使用记录。模型异步准入会重新describe报告，最后同步check检查刚核对的全部来源；指令受理阶段的报告来源也进入该次端口的同步复查。旧会话、排队及重启继续从原持久记录核对read/send，不增第二份来源表。声明来源不等于未声明粘贴内容的完整溯源，跨文件变化仍明确拒绝而非承诺事务。
+
+验收分别记录独立codec／module、真实Manual保存及权限、真实Kernel来源撤权与重启／最后准入、双宿主最小回归。外部模型可受控，内部broker／仓储／文件及worker真实；模块替身不计生产验收。1.1b／1.2b只勾实际完成子项；本轮不启用iframe／MessagePort、ReportView、发布或2.x／3.x，不将机械资源通过写成I5。
+
+独立审查发现尚缺委派展开授权seam：`DelegationManager.resources`只核对外层材料，内部readable规则未公开；子模型confirm仅消费工作包和reads，并不消费session的instructionEvidence。不能复制该私有白名单或把父会话已读视作子授权。本轮以真实executionFacts核对普通根执行；委派及不能证明根身份的报告读取返回unavailable，发生在展开来源之前。需要主线审查的最小增量是将原readable提取为同一个可调用检查，报告Adapter逐项核对实际展开集合，并把该实例的展开依据交现有子模型最终check；不改变工具白名单或新增科研角色。
+
+`project.readTarget`自行读文件，不能靠files.read守卫覆盖。它现已在原授权范围内有界核查HTML头部，识别报告则unavailable；普通跨项目HTML仍可只读。目标报告是否允许沿原会话分别取得声明库／其他项目来源权限尚无定案：保持当前targetRead单目标限制，或明确增加报告声明来源的独立授权组合。此选择不能由本线移除targetRead或扩大权限代替。本轮不交付目标报告／委派报告可读，1.2b的相应子项保持开放。
+
+旧报告也可能从原read_file_edit／files.history取得整段HTML，而当前basis不能证明旧清单。kernel的历史消费者识别HTML记录任一正文的约定头部（含BOM）后返回unavailable；files.changes摘要及普通材料历史保持原路径，不改FileEdit存储。历史版本来源读取须另审查使用原beforeEvidence／afterEvidence与实际保留正文的Adapter；不以当前源码ref解释旧报告，也不新建历史身份或存储。此入口只读保护纳入本轮写集，旧报告历史正文可读仍列1.2b.2。
+
 主线本轮正式交接`/tmp/scholoom-phase2-handoff-VZS5mS/manifest.json`所列快照，材料／报告两份design已作为六线可读输入，接口不再因“未收到设计”整体等待。材料同源位置／region／对象草稿字段和资源叶抽取的具体文件及补丁顺序见`../add-material-annotation-interactions/design.md`“主线第二阶段交接与公共增量”；这里继续拥有报告清单、隔离及更新，不与材料change合并。生态`zotero-ecosystem/openspec/changes/connect-zotero-host-bbt/investigation.md:69–74`也明确报告运行不依赖Reader写回；本次接收该调查不能宣称ReportResources已实现。
 
 | 下一批可独立准备／实施任务 | 是否等待新增公共基线及验收限制 |

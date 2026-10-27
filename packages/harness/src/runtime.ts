@@ -393,6 +393,18 @@ export class Harness {
       .onConflictDoUpdate({ target: tables.meta.key, set: { value } })
       .run();
   }
+  recordReportUse(context: CallContext, evidence: readonly ResourceEvidence[]): void {
+    if (context.role === 'host') {
+      const resources = this.contextBridge?.resources?.(context);
+      if (!resources) throw new OperationError('unavailable', '报告来源授权提供者不可用。');
+      resources.check(evidence);
+    } else this.checkExecutionContext(context);
+    if (!context.projectId || !context.sessionId)
+      throw new OperationError('instanceMismatch', '报告来源缺少执行归属。');
+    this.instructionEvidence(this.projects.get(context.projectId), context.sessionId, evidence);
+    if (context.role === 'execution')
+      for (const item of evidence) this.recordResourceUse(context, item.ref);
+  }
   private instructionEvidence(
     project: HarnessProject,
     sessionId: string,

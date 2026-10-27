@@ -5,6 +5,7 @@ export * from './harness.js';
 export * from './library.js';
 export * from './models.js';
 export * from './projects.js';
+export * from './report-contracts.js';
 export * from './research.js';
 export * from './resources.js';
 export * from './workbench-context.js';
