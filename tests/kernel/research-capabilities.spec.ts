@@ -11,6 +11,10 @@ import { startKernelServer } from '../../apps/kernel/dist/server.js';
 import { createKernelClient } from '../../packages/client/dist/index.js';
 import { ProjectBackend } from '../../packages/harness/dist/node.js';
 import { protocolVersion, type ResearchRequest } from '../../packages/protocol/dist/index.js';
+import type {
+  ProjectFilePort,
+  ResearchProjectPort,
+} from '../../packages/protocol/dist/projects.js';
 import {
   type CapabilityExecution,
   ResearchRecords,
@@ -43,14 +47,33 @@ async function setup() {
   project.grant({ trust: 'trusted', autoBackup: false });
   const session = app.harness.create(project.project.id);
   const controller = new AbortController();
-  const files = app.projectFiles({
-    moduleId: 'harness',
-    role: 'execution',
-    principal: { kind: 'agent', id: session.id },
-    projectId: project.project.id,
-    sessionId: session.id,
-    signal: controller.signal,
-  });
+  // 独立模块夹具替换执行调用端口；文件、权限、身份和版本仍由真实项目仓储核对。
+  const files: ProjectFilePort & ResearchProjectPort = {
+    'project.check': async ({ projectId, access }) => {
+      app.projects.get(projectId).check(access);
+      return { ok: true };
+    },
+    'project.path': async ({ projectId, path, allowMissing }) =>
+      app.projects.get(projectId).path(path, allowMissing),
+    'project.material': async ({ projectId, path }) => app.projects.get(projectId).material(path),
+    'files.read': async ({ projectId, path, offset }) =>
+      app.projects.get(projectId).read(path, offset),
+    'files.list': async ({ projectId, path, offset, limit, version, anchor }) =>
+      app.projects.get(projectId).list(path, offset, limit, version, anchor),
+    'files.resolve': async ({ projectId, fileIds }) =>
+      app.projects.get(projectId).files.resolve(fileIds),
+    'project.saveFile': async ({
+      projectId,
+      path,
+      content,
+      basis,
+      expectedFileId,
+      resourceBasis,
+    }) =>
+      app.projects
+        .get(projectId)
+        .save(path, content, basis, undefined, expectedFileId, undefined, resourceBasis),
+  };
   const context = {
     projectId: project.project.id,
     sessionId: session.id,
@@ -78,7 +101,7 @@ async function setup() {
     let runtime!: ResearchRuntime;
     runtime = new ResearchRuntime(() => {}, {
       records: (projectId) => new ResearchRecords(app.projects.get(projectId).internal),
-      files: (callContext) => app.researchFiles(callContext),
+      files: () => files,
       session: async ({ projectId, sessionId }) => app.harness.getSession(projectId, sessionId),
       execute: async (execution, callContext) => {
         await perform({
