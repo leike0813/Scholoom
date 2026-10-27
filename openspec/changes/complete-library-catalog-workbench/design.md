@@ -1,5 +1,22 @@
 # 实现设计
 
+## 4b13183后的原生CSL剩余编辑子片
+
+2026-10-27本树HEAD为4b13183f7489d3cae12fd0a7d1a9e83fb33d7384且初始clean；5.3及生态持续外发授权P1已由主线接收，证据`/tmp/scholoom-round6-acceptance-dXuzCA/acceptance.md`，本轮不修改这些路径。完整4.1／4.2继续开放，只实施4.1c／4.2c。
+
+固定schema44及utilities源码已从原始commit只读取得，版本仍为70c3aa98627413d6a30dca955886eafbde085ce9／1dd38e27edf81e9d9c4161c957b7efb7f5681ac3。Utilities.itemToCSLJSON明确跳过shortTitle输出、使用title-short；姓名按角色分组，name／fieldMode=1单名进入literal，其他姓名保留family／given，主角色无显式映射时才投影author；日期含原字符串解析、季节及accessDate时区处理。这些转换并不可逆。本轮不导入其反向类型选择、日期解析或Extra处理。
+
+无阻塞问题，基于“只更正CSL目标属性、原值独立保留、不推断反向映射”闭合：
+
+- 唯一library-metadata目录增加9个直接字符串控件：call-number、collection-title、dimensions、event-title、genre、medium、references、section、title-short；新增host角色用于broadcast／motion_picture。文本共44字段、角色共22；32种类型不变。其适用集合来自固定itemTypes／baseField投影并集，表示CSL编辑能力，不标识原Zotero类型。
+- 补齐现有container-title／publisher／publisher-place／volume／issue／page／ISBN／ISSN／edition／event-place的已知类型适用范围，保留所有原可编辑范围，不收窄开放metadata。event-place纳入上游audioRecording／presentation／videoRecording的place特例；publisher-place不因该特例给song／speech新增逆映射。新增控件只改自己的CSL键，例如genre不改metadata.type，title-short不覆盖既有shortTitle，references不改relatedIds。
+- CatalogItemForm继续通用消费同一目录；机构／单名沿既有literal，个人只填family也不猜拆given，角色移动／排序沿原helper移动完整姓名对象。将既有“添加机构”可见名明确为“添加机构／单名”，可访问名沿原入口。literal与family／given并存时沿既有分支只局部改literal、保留其余属性，不做姓名表达转换；非字符串或未知形状保留原值与JSON核查。
+- 复杂日期、raw／season／circa／范围、跨角色原始顺序、Extra原行、正式键及来源保持原权威。本轮不增加日期转换／编辑分支。shortTitle历史别名不自动回填或归一化，原有值仍在完整JSON中核查；只明确编辑标准title-short。
+
+写集：protocol/library-metadata、CatalogItemForm的上述标签、既有catalog-metadata／literature-catalog及library测试、原change调查／设计／delta／tasks／delivery及必要文献UI分节。无新provider、schema、迁移、保存台账或右栏状态。上游4个独立样本以未修改converter执行核对，只有schema字段／角色查询为隔离facade；不是Zotero宿主或生态生产接入，证据`/tmp/scholoom-library-metadata-round6/upstream-oracle.json`。测试用独立静态预期，不从新声明生成oracle。
+
+最小验证：声明适用范围RED→共享及桌面构建→helper／真实库保存、修订冲突及重启核查→library双宿主关键表单、单一右栏／跨组及迟到草稿。测试期间冻结产物，使用静态UI与隔离profile。最新CI基线40315429083的Windows四个文献集成失败仍在执行状态观察／权限收尾边界，无本域提交失败证据，不改生产时限；精确调查写investigation，目标平台任务不关闭。
+
 ## 共同基线1026796后的5.3实施切片
 
 本树已快进到1026796d854b8f568c3e819f13268a9638980bc1且clean，七域源码、X1、原值权威和已支持编辑声明均已入dev。证据为`/tmp/scholoom-round5-acceptance-WBreMJ/{acceptance.md,synchronized.json}`，不再应用旧累计补丁或等待同步。完整复杂映射4.1／4.2继续开放，5.3实际依赖1.2、2.2、3.2及4.1a／b、4.2a／b。
@@ -115,7 +132,7 @@ sequenceDiagram
 | `library.status`／`LibraryStatus` | library → UI／宿主 | id为当前实际库；revision为库失效通知依据，不替代 source.revision。授权 read／write／send分别检查。 |
 | `library.list/get/update/ingest/history`／`protocol/library.ts` | library → GUI、Agent | list分页结果和nextOffset是实际范围；source.id稳定、revision用于更正、metadata开放、version为发表版本、origins为来源信息。过期拒绝contentChanged；权限和不存在沿原错误码。 |
 | `library.collections/saveCollection` | library → UI／Agent | 增加上述父范围读取；parentId是集合父身份，非项目归属。保存及循环拒绝保持原权威。 |
-| CSL编辑声明 | 文献 → UI；生态只读参考 | 32种CSL类型、35文本字段、21角色和四日期键的literal／简单数字表达；不提供原类型逆映射，不推断跨角色原顺序，原值经library.record核查。 |
+| CSL编辑声明 | 文献 → UI；生态只读参考 | 32种CSL类型、44文本字段、22角色和四日期键的literal／简单数字表达；不提供原类型逆映射，不推断跨角色原顺序，原值经library.record核查。 |
 | 当前题录贡献（已实现X1） | 文献UI → 共同上下文 → harness | 实际libraryId、viewId、primarySourceId、sourceId与观测revision；题录修订不冒充materialVersionId，读取按实际领域授权核对。 |
 | `ResourceRef`／`onOpenResource` | library → 共同阅读 | 仅真实附件id＋材料版本；题录选择不触发正文读取。可读、缺失、变化仍由原提供者判断。 |
 | 右栏文献详情槽位 | library状态拥有者 → shell | 可选ReactNode／纯视图入口，shell只负责页签及显隐，不访问库仓储；具体符号与其他线交接。 |

@@ -350,7 +350,7 @@ export function CatalogItemForm({
                   disabled={(creators?.length ?? 0) >= 100}
                   onClick={() => update(role, [...(creators ?? []), { literal: '' }])}
                 >
-                  添加机构
+                  添加机构／单名
                 </button>
               </div>
             </fieldset>

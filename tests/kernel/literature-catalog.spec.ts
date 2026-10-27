@@ -9,6 +9,7 @@ import {
   moveCatalogCreator,
 } from '../../apps/desktop/src/renderer/src/workbench/library/catalog-metadata.js';
 import { LiteratureCatalog } from '../../packages/library/dist/node.js';
+import type { CslMetadata } from '../../packages/protocol/dist/library.js';
 import { validateLibrary } from '../../packages/protocol/dist/library.js';
 
 async function fixture() {
@@ -31,6 +32,127 @@ const record = {
   DOI: 'https://doi.org/10.1234/Example',
   author: [{ family: 'Researcher', given: 'A' }],
 };
+
+test('native CSL alias targets and ordered host names survive conflicts and authority restart independently of raw values', async () => {
+  const f = await fixture();
+  const metadata = {
+    title: 'Source film',
+    type: 'motion_picture',
+    genre: 'Documentary',
+    medium: 'DVD',
+    dimensions: '01:23:45',
+    'title-short': 'Source short',
+    shortTitle: 'Legacy short',
+    'event-title': 'Recorded event',
+    section: 'Original committee',
+    issued: {
+      'date-parts': [
+        [2024, 3],
+        [2024, 5],
+      ],
+      circa: true,
+    },
+    'original-date': { raw: '约春季', season: 'spring', extension: true },
+    note: 'Extra原行',
+    'citation-key': 'MetadataKey',
+    extension: { nested: ['保留'] },
+    host: [
+      { literal: '科学影像中心', extension: { original: true } },
+      { family: '单名', given: '' },
+    ],
+  };
+  try {
+    const batch = await ingest(f.catalog, metadata);
+    const id = batch.entries[0]?.sourceId as string;
+    const libraryId = f.catalog.status().id;
+    const instance = f.catalog.createSourceInstance({
+      libraryId,
+      requestId: randomUUID(),
+      label: 'Fixed schema44 film',
+    });
+    const original = {
+      identity: { instanceId: instance.id, libraryLocator: 'local', objectKey: 'FILM0001' },
+      schemaVersion: '44',
+      itemType: 'film',
+      fields: {
+        title: 'Source film',
+        genre: 'Documentary',
+        videoRecordingFormat: 'DVD',
+        runningTime: '01:23:45',
+        shortTitle: 'Source short',
+        date: '2024春至夏',
+        extra: 'Extra原行',
+      },
+      creators: [
+        { creatorType: 'host', lastName: '科学影像中心', fieldMode: 1, orderIndex: 0 },
+        { creatorType: 'host', lastName: '单名', firstName: '', orderIndex: 1 },
+      ],
+      relations: {},
+    };
+    expect(
+      f.catalog.commitRecords({
+        libraryId,
+        requestId: randomUUID(),
+        changes: [
+          {
+            sourceId: id,
+            revision: f.catalog.get(id).revision,
+            original,
+            key: { value: 'FixedFilm', pinned: true, intent: 'explicit' },
+          },
+        ],
+      }).state,
+    ).toBe('committed');
+    const before = f.catalog.get(id);
+    let changed: CslMetadata = moveCatalogCreator(metadata, 'host', 1, 'host', 0);
+    for (const [key, value] of [
+      ['type', 'patent'],
+      ['call-number', 'US12/123456'],
+      ['references', 'Prior application'],
+      ['issue', 'P-42'],
+      ['type', 'software'],
+      ['genre', 'TypeScript'],
+      ['medium', 'Linux'],
+      ['collection-title', 'Analysis tools'],
+      ['title-short', 'Changed short'],
+    ] as const)
+      changed = editCatalogField(changed, key, value);
+    f.catalog.update({ ...before, sourceId: id, metadata: changed });
+    expect(() =>
+      f.catalog.update({ ...before, sourceId: id, metadata: { title: 'stale' } }),
+    ).toThrow();
+    await f.catalog.close();
+    const reopened = new LiteratureCatalog(join(f.root, 'profile'), () => {});
+    try {
+      await reopened.initialize();
+      expect(reopened.get(id).metadata).toEqual({
+        ...metadata,
+        type: 'software',
+        genre: 'TypeScript',
+        medium: 'Linux',
+        'collection-title': 'Analysis tools',
+        'title-short': 'Changed short',
+        'call-number': 'US12/123456',
+        references: 'Prior application',
+        issue: 'P-42',
+        host: [metadata.host[1], metadata.host[0]],
+      });
+      expect(reopened.record({ libraryId, sourceId: id })).toMatchObject({
+        originals: [original],
+        citationKey: { value: 'FixedFilm', pinned: true },
+      });
+      expect(
+        reopened
+          .history({ sourceId: id })
+          .sources.some((s) => s.metadata['title-short'] === 'Source short'),
+      ).toBe(true);
+    } finally {
+      await reopened.close();
+    }
+  } finally {
+    await f.close();
+  }
+});
 async function ingest(
   catalog: LiteratureCatalog,
   json: unknown,

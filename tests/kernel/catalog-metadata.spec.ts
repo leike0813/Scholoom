@@ -5,6 +5,10 @@ import {
   editCatalogField,
   moveCatalogCreator,
 } from '../../apps/desktop/src/renderer/src/workbench/library/catalog-metadata.js';
+import {
+  catalogEditorFields,
+  catalogEditorRoles,
+} from '../../packages/protocol/dist/library-metadata.js';
 
 test('typed field edits preserve unknown CSL values and type-specific fields', () => {
   const before = {
@@ -22,6 +26,38 @@ test('typed field edits preserve unknown CSL values and type-specific fields', (
   expect(book).toEqual({ ...before, title: '新题名', type: 'book' });
   expect(before.title).toBe('原题名');
   expect(editCatalogField(book, 'DOI', '')).toEqual(book);
+});
+
+test('remaining native CSL projections from fixed upstream samples are editable in their types', () => {
+  // Independent schema44 / utilities 1dd38e2 samples, not derived from the editor declarations.
+  const samples = [
+    {
+      type: 'motion_picture',
+      fields: [
+        'genre',
+        'medium',
+        'dimensions',
+        'collection-title',
+        'title-short',
+        'publisher',
+        'event-place',
+      ],
+    },
+    { type: 'software', fields: ['genre', 'medium', 'collection-title', 'publisher-place'] },
+    { type: 'patent', fields: ['call-number', 'references', 'issue', 'publisher-place'] },
+    { type: 'legal_case', fields: ['container-title', 'volume', 'page', 'references'] },
+    { type: 'speech', fields: ['event-title', 'event-place'] },
+    { type: 'hearing', fields: ['section', 'references'] },
+  ];
+  for (const sample of samples)
+    for (const key of sample.fields) {
+      const field = catalogEditorFields.find((field) => field.key === key);
+      expect(field, `${sample.type}.${key}`).toBeDefined();
+      if (field?.types) expect(field.types).toContain(sample.type);
+    }
+  const host = catalogEditorRoles.find(([key]) => key === 'host');
+  expect(host).toBeDefined();
+  expect(host?.[2]).toEqual(expect.arrayContaining(['broadcast', 'motion_picture']));
 });
 
 test('simple CSL date edits preserve precision and leave complex dates and unrelated values intact', () => {

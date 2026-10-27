@@ -1,5 +1,53 @@
 # 调查依据
 
+## 2026-10-27：固定源码闭合的原生CSL子范围
+
+本树已同步4b13183f7489d3cae12fd0a7d1a9e83fb33d7384且开工前clean。主线已接收右栏／跨组唯一库、历史／undo、真实I1和生态普通期刊／BBT及持续外发P1；见`/tmp/scholoom-round6-acceptance-dXuzCA/{acceptance.md,synchronized.json,sync-build-results.json,sync-kernel-results.json}`。旧同步等待和旧374项CI记录不代表当前状态。以下round4／共同起点段落保留为历史取证。
+
+本轮只读取得两份固定原始源码：
+
+- `https://raw.githubusercontent.com/zotero/zotero-schema/70c3aa98627413d6a30dca955886eafbde085ce9/schema.json`，version44；与已消费E1 mapping的版本一致。
+- `https://raw.githubusercontent.com/zotero/utilities/1dd38e27edf81e9d9c4161c957b7efb7f5681ac3/utilities_item.js`，Zotero10.0.5固定utilities。第77—130行依次读取文本候选及baseField，首个有效字符串成为CSL目标；第78行明确跳过shortTitle输出，只写title-short。第141—179行按显式角色或原类型primary→author投影，机构／单字段name及fieldMode=1进入literal，其他进入family／given，按角色分组保留组内顺序；跨组原顺序不可恢复。第188—230行日期另含解析、season及accessDate时区变换；第287—299行反向类型使用规则或首个候选，不能作为本项目身份权威。
+
+源码临时证据及独立执行结果位于`/tmp/scholoom-library-metadata-round6/`。四组输入直接执行未修改itemToCSLJSON，ItemTypes／ItemFields／CreatorTypes仅以原schema实现查询facade，未加载Zotero宿主、日期解析或Extra。断言预期手工依据原源码／schema核对，不从新编辑目录生成；这只能作为映射oracle，不能当真实生态生产提供者。
+
+| 具体输入／上游结果 | 本轮可无损编辑的CSL目标 | 保留边界 |
+| --- | --- | --- |
+| film.genre=Documentary、videoRecordingFormat=DVD、runningTime=01:23:45、shortTitle=Source short | genre／medium／dimensions／title-short | 只改CSL；不把CSL type=motion_picture反猜film或videoRecording。既有shortTitle历史键独立保留，不回填、同步或合并。 |
+| computerProgram.programmingLanguage=TypeScript、system=Linux、seriesTitle=Analysis tools | genre／medium／collection-title | 相同CSL目标在原类型中语义不同，类型切换只改metadata.type，原字段／身份不变。 |
+| patent.applicationNumber=US12/123456、priorityNumbers=P-42、references=Prior application | call-number／issue／references | 不将申请号当正式引用键，不将references文本当relatedIds。 |
+| case.reporter=Court reports、reporterVolume=12、firstPage=42、history=Appeal history | container-title／volume／page／references | 补现有字段的法律类型适用范围；不重写原有字符串或关联身份。 |
+| presentation.conferenceName、hearing.committee；audioRecording／presentation／videoRecording.place的上游特例 | event-title／section、event-place及已知类型范围 | 只依据固定字段目标呈现，publisher-place不因特例新增song／speech逆映射。 |
+| host.name=科学影像中心；host.lastName=单名且firstName为空 | host:[{literal:科学影像中心},{family:单名,given:''}] | literal不能证明是机构还是个人单字段名；UI入口可明确输入两种CSL表达，但不自动互转、拆名或恢复fieldMode。完整对象与扩展属性随角色内移动。 |
+
+新9文本字段加已有35共44，host加已有21角色共22；32种CSL类型不变。原先“13种主要角色缺少证据”现在已能准确说明：固定utilities在缺显式角色映射且该角色为原类型primary时投影author；CSL侧author早已支持，但仍不能从author猜回inventor／programmer等原角色。所有新增范围仅编辑CSL自身，不提供原类型／原值自动同步。
+
+### 仍需选择或独立证据的分支
+
+| 反例／输入 | 当前无损行为 | 后续选项及影响 |
+| --- | --- | --- |
+| 原creators为host A、contributor B、host C，CSL为host[A,C]、contributor[B] | 只更正CSL组内顺序；原creators／orderIndex完整保留 | A继续CSL分组编辑（本批已定）；B另提供来源关联的原创建者编辑与明确写入意图，会扩大原值提交范围，不能从CSL倒排。 |
+| CSL issued含两端点、circa／season／raw、负年份或附属扩展；原日期字符串还可能含时区与部分日期 | 保留原JSON及原日期，不让简单年月日控件改写 | A保持JSON核查（当前）；B另定CSL范围／历法的结构化编辑，不自动解析原字符串；解析及原值同步需要单独产品语义和上游Date证据。 |
+| metadata.title-short=Changed short与历史shortTitle=Legacy short并存 | 只明确改title-short，历史键仍完整可查 | 如需“合并短题名／删除别名”，须定义冲突优先与显式丢弃动作；本片不推定允许删除或统一两值。 |
+| 原film为DVD／Documentary，人工将CSL改为software／Linux／TypeScript；原Extra或正式键另有原行 | CSL与原值各自真实可读，revision、原值／键保护不变 | 生态导出差异方案由其本轮调查承接。自动双写会猜原类型／字段，未获授权；需要选择明确来源字段及原子意图，不能为导出一致覆盖原值。 |
+
+这些分支不阻塞本次直接CSL编辑；完整4.1／4.2保持开放。没有新增公共schema、模型授权、原值权威或来源表。
+
+### 最新CI文献阶段核对
+
+最新实际基线为6b22d602046baa7c1349bf66059c61d79c07ae40／[Checks40315429083](https://github.com/leike0813/Scholoom/actions/runs/40315429083)：Linux内核689通过／9失败／16跳过；Windows628通过／49失败／30跳过；macOS入口3通过／1失败。只读核对`/tmp/scholoom-round6-acceptance-dXuzCA/ci-baseline-failures.log`及ci-baseline-summary.json，没有重跑CI或目标Windows。
+
+| Windows测试／日志行 | 实际观察及阶段 | 本轮结论 |
+| --- | --- | --- |
+| literature-attachment-integration:14，L3894—3911，断言:55 | 回执已返回，5000ms观察completed实际queued；后续batch／原字节断言未到 | 受理后推进边界，不能据queued认定未启动worker，不能证明附件提交失败。Linux L8984通过17.3秒。 |
+| literature-integration:15，L3923—3940，断言:67 | 人工摄取／通知及另一客户端读已过；首次MODEL_LIBRARY期待completed实际running | 工具／权限及执行收尾待时间线，无本域写入或权限失守结论。Linux L9000通过11.8秒。 |
+| document-integration:15，L3313—3330，断言:98 | 第一轮EPUB及记录真实读写已过；撤send后期待failed实际running，模型计数断言未到 | 外发授权／收尾边界仍开放，不能称拒绝已通过或违规外发已发生。Linux L8794通过9.1秒。 |
+| pdf-isolation:12，L3952—3969，断言:86 | 阻塞解析时题录查询／status仍响应；另一普通会话期待completed实际queued | 共同执行推进现象；后续停止和再次解析未验到。Linux L9055通过5.1秒。 |
+
+当前源码runtime.ts在模型wrapModel路径才写running；queued覆盖名额、启动、实例初始化等多个阶段，running不证明已发HTTP。权限错误之后的受管停止确认也可能先于终态发布。断言直接读持久snapshot，不经过renderer；没有UI刷新故障证据。Windows capability-isolation／harness-recovery／context-instructions亦有相似状态观察，但共同根因尚不能确证。公共harness调查归Agent／平台，文献保留batch及工具收据协查；不延长生产时限或削弱停止／容量保护。
+
+需目标现场补run／instance、准入、worker初始化、模型请求数、工具／batch回执、停止开始与确认时间；可复用tests/execution-diagnostics.ts，先保存首个错误再处理清理错误。现有日志足以更新调查输入，不足以关闭1.4，未读取诊断artifact压缩包不伪称已核对其trace。
+
 ## 2026-10-26 round4续做事实
 
 当前HEAD为`70be8bfcda5ab1453c20428f9eb3b367d90ed0b7`，`0519904`（含b838402）已为祖先。实际同步证据在`/tmp/scholoom-sync-recovery-wyn13R/{recovery.md,synchronized.json}`；主线`/tmp/scholoom-round4-acceptance-JCUBNw/acceptance.md`独立接收本树X1及原值／来源／正式键／有界事务首片，未接入dev。以下第二阶段及共同起点均为历史调查，不能覆盖当前实现状态。本轮未访问其他真实工作树或读取／打断仍工作的research-task-workspace。

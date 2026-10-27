@@ -1,5 +1,41 @@
 # 实际交付与交接
 
+## 2026-10-27：4b13183后的原生CSL编辑子片
+
+本轮基线`4b13183f7489d3cae12fd0a7d1a9e83fb33d7384`，开工前clean，HEAD未改变。主线已接收5.3、原值／正式键及生态持续外发P1；本轮只完成**4.1c／4.2c，当前20/25**，完整4.1／4.2及其余五项仍开放。未应用旧累计patch、提交／推送／PR／归档、合并／重置、安装依赖、写真实用户库或跨树操作。
+
+### 成果、调用方与字段语义
+
+- `protocol/library-metadata.ts`新增call-number、collection-title、dimensions、event-title、genre、medium、references、section、title-short，以及host角色；补10个现有字段的类型适用范围。总计32种CSL类型／44个文本字段／22个角色。原可编辑范围、日期键和开放schema逐项比较保持；没有新DTO、操作键、校验收紧或数据迁移。
+- `CatalogItemForm.tsx`继续通用消费同一目录，仅将既有机构按钮的可见名明确为“添加机构／单名”，原可访问名不变。原helper、完整JSON草稿、LibraryContents、保存台账和右栏贡献均复用，不新增第二份状态。只改明确的CSL键，genre不改type、title-short不改历史shortTitle、references不改relatedIds，不触碰来源原值或正式键。
+- `tests/kernel/catalog-metadata.spec.ts`增加独立上游类型／字段可编辑性回归；`literature-catalog.spec.ts`增加真实保存、旧revision拒绝及库重启后原值／来源／固定键保持样本；`tests/ui/library.spec.ts`增加一个完整表单场景，沿真实手动摄取从影像→演讲→听证→专利→软件更正9字段、host机构／单名及角色内排序，核对复杂日期、未知嵌套、旧别名和原值保持。其余原用例保护原字段、右栏单实例／跨组、稳定选择、冲突／迟到及双窗口草稿。
+- 当前spec／design／investigation／tasks及文献开发／UI分节同步到实际范围。新声明不是Zotero逆向转换schema；未改生态schema或自动同步生产路径，不依赖生态本轮尚未同步的新方案。调查中的具体差异、复杂日期／跨角色原序及后续选项见investigation首节。
+
+### 实际验证及首次失败
+
+证据根`/tmp/scholoom-library-metadata-round6/`。Linux、Node24和已安装锁定依赖；人工表单／真实kernel客户端、broker、SQLite及文件均真实，Browser与Electron使用同一静态构建。此次表单无需模型或Agent worker，未以假执行身份替代生产授权；不据此声称worker／真实科研效果验收。域库测试为隔离合成库，实际关闭并重开，UI配置／项目／库／端口独立，测试期间未重建产物。
+
+| 命令／范围 | 结果与证据 |
+| --- | --- |
+| 固定schema44／utilities源码及`node <证据根>/upstream-probe.mjs` | **4组样本通过**，upstream-probe.log／upstream-oracle.json。未修改的上游converter在VM中执行，ItemTypes／ItemFields／CreatorTypes只为schema查询facade，不含宿主、Date解析或Extra；预期为独立人工核对静态样本，不来自新目录。 |
+| 基线声明RED：`node node_modules/@playwright/test/cli.js test --config playwright.kernel.config.ts tests/kernel/catalog-metadata.spec.ts --grep 'remaining native CSL' --output <证据根>/kernel-red` | **1失败**，旧已构建基线缺motion_picture.genre声明，metadata-red.log及trace保留；没有将此预期RED覆盖为通过。 |
+| `pnpm --config.optimisticRepeatInstall=false build:shared`及`pnpm --config.optimisticRepeatInstall=false --filter @scholoom/desktop build` | 通过，build-shared.log／build-desktop.log；两者均退出后才开始最终内核及UI，期间冻结构建产物。未安装或下载依赖；只读取得的上游源码保留在临时证据目录，不作为运行依赖。 |
+| `node node_modules/@playwright/test/cli.js test --config playwright.kernel.config.ts tests/kernel/catalog-metadata.spec.ts tests/kernel/literature-catalog.spec.ts tests/kernel/library-records.spec.ts --output <证据根>/kernel-final` | **14/14，13.0秒**，kernel.log／kernel-final。覆盖声明RED转绿、未知值、复杂日期、姓名完整对象／顺序、实际冲突及重启、原值／固定键及既有原子提交。 |
+| `SCHOOLOOM_UI_PORT=5745 SCHOOLOOM_UI_DATA_DIR=<证据根>/profile-first xvfb-run -a node node_modules/@playwright/test/cli.js test --config <证据根>/ui.config.mts tests/ui/library.spec.ts --workers=1` | **12/12，4.2分钟**，ui-first.log／ui-first。新场景Browser16.6秒／Electron21.5秒；原字段、未知值、分页／列／导航、右栏跨组唯一实例、双窗口／冲突／迟到均通过。新多类型场景沿原人工建项90秒场景预算，轮询及生产超时均未改变。 |
+| desktop及tools `tsc --noEmit`、5份相关源码／测试Biome | 通过，types-desktop.log／types-tools.log／lint.log。测试首次仅导入／格式经apply_patch整理，无业务测试失败被忽略。 |
+| architecture、生成器`--self-test`及`--patch`只读比对 | 通过，architecture.log／generator-self-test.log／generated-check.log；7份dry-run输出经现有formatter与当前映射相同，未输出者不变，本轮未改生成类型。declarations-check.log另证明44唯一字段、22角色及原范围／schema不回退。 |
+| OpenSpec strict、scholoom-dev schema及diff／补丁载荷 | 最终结果见openspec-*.log、diff-check.log、patches/patch-check.log；正式规格未同步，CLI状态不代表整个change完成。 |
+
+同一原生辅助Agent保持gpt-6.1-sol/high，先只读核对CI，后仅拥有library-metadata声明文件，主Agent承担方案、表单／测试及最终验收。其独立窄审查发现设计把混合literal／family姓名误称为仅JSON可查；实际既有分支局部改literal并保留family／given。已仅修正设计表述，保留既有能力；未发现新增逆映射、原值自动覆盖或声明范围确证错误。审查未代跑测试，实际结果由主Agent执行。
+
+最新CI以6b22d60／Checks40315429083为准：Linux689通过／9失败／16跳过，Windows628／49／30，macOS入口3／1；精确文献四项失败阶段与原始日志行已写investigation。它们停在queued／running观察或撤权收尾，尚无本域提交失败证据，未改时限／停止／容量或harness。未下载诊断artifact，不称已检查其trace；没有Windows目标实跑，不关闭1.4，也不以本机14／12绿色替代全仓CI。
+
+### 补丁、剩余项与停止点
+
+`<证据根>/patches/`提供相对本轮4b13183的增量：**0001公共编辑声明 → 0002表单／真实回归 → 0003原OpenSpec及文献文档**；精确文件及依赖见manifest／README。临时载荷仅验证触及文件的顺序应用，实际构建／测试始终在当前树，不建立另一工作树组合。未触及共享runtime、rememberCatalog／外发P1、根工具、构造参数、各域restore、task／programs／右栏或M3／图片消费者。
+
+来源／CSL不一致仍显式保留；机构与个人单字段literal不可反推、跨角色原orderIndex不可从CSL分组恢复、复杂日期解析与历法未新增。后续若要结构化CSL范围日期、合并短题名别名或原值同步，须按investigation的具体选项闭合，不为父任务勾选扩大本片。当前安全子片无待决阻塞；完整4.1／4.2、1.4和6.1／6.2仍开放，不扩C—I、来源重绑定UI、生态完整事务、生产Graph／角色或发布范围。达到本轮边界后停止。
+
 ## 共同基线1026796后：5.3文献详情消费者
 
 当前HEAD为`1026796d854b8f568c3e819f13268a9638980bc1`，开工前clean；本轮只交付5.3及本机子验收6.1a，当前**18/23**。主线`/tmp/scholoom-round5-acceptance-WBreMJ/{acceptance.md,synchronized.json}`已证明七域源码及本线X1／原值权威／编辑子范围进入dev与当前树；下方早期阶段的“未入dev／等同步／缺项目源码”是历史，不再作为阻塞。本轮未应用旧累计补丁、切分支或同步其他树，未提交／推送／PR／归档、安装依赖或写真实用户库。

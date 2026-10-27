@@ -21,7 +21,7 @@
 
 #### Scenario: 原生CSL局部编辑边界
 
-- **WHEN** 用户从同源目录选择32种CSL类型，修改35个支持的文本字段、21组CSL姓名角色或四日期键的literal／简单单端点数字表达
+- **WHEN** 用户从同源目录选择32种CSL类型，修改44个支持的文本字段、22组CSL姓名角色或四日期键的literal／简单单端点数字表达
 - **THEN** 保存只改变明确字段，姓名角色调整移动完整对象并保留组内顺序；复杂日期、非字符串值、不适用字段、未知类型及扩展仍可核查且不自动归一化，不反推Zotero原类型或跨角色顺序
 
 #### Scenario: 日期精度与复杂值保护
@@ -38,6 +38,16 @@
 
 - **WHEN** 当前metadata中某角色不是姓名数组，用户编辑其他创建者
 - **THEN** 原角色值保留且该角色不能作为表单移动目标，其他更正可正常保存，完整JSON仍可明确编辑原值
+
+#### Scenario: 原生CSL别名目标与原值分离
+
+- **WHEN** 用户明确编辑genre、medium、dimensions、collection-title、call-number、event-title、references、section或title-short等已声明字符串
+- **THEN** 只改变明确CSL键，genre不替换条目type，title-short不覆盖既有shortTitle，references不修改关联身份；不推断或写回Zotero类型专属原字段，未知值与原值／正式键保持
+
+#### Scenario: 主持人及单名的有序更正
+
+- **WHEN** 用户在broadcast或motion_picture中添加或调整host的个人、机构／单字段姓名及角色内顺序
+- **THEN** literal或family／given按明确输入保存，完整姓名及扩展对象移动，既有其他角色及复杂日期保留；不从CSL分组顺序恢复Zotero跨角色orderIndex
 
 ### Requirement: 按身份维护主选和多选
 
