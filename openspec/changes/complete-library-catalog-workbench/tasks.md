@@ -4,7 +4,7 @@
 
 本轮已核对真实CLI→ensureKernel→serve及现有UI注入路径。CLI没有isolatedZotero可信配置加载／传递能力；按用户条件只交investigation／design中的提供者及候选方案，不创建新server／launcher或跨模块配置，不重复已绿14UI。原macOS列表同例已有4312262新目标通过证据；不再调查旧失败。
 
-- [ ] 5.4a **受阻，等待主线接线选择及提供者**：在已接收单条原值GUI上，验证冻结identity／revision／requestId及CSL草稿跨真实内核进程重启后仍可核查且不重放。当前只有Application／serveKernel内存注入，普通CLI缺配置入口；A测试侧可信serveKernel子进程与B标准CLI受控配置的精确拥有者、启动／授权及最小测试见design首节。当前只读调查与方案已完成，尚未创建／发布提供者或实跑重启，不勾本项。
+- [ ] 5.4a **测试侧进程提供者已具备，待消费验收**：使用主线`tests/isolated-kernel.ts::startIsolatedKernel`及既有单条原值GUI，验证冻结identity／revision／requestId与CSL草稿跨真实内核进程重启仍可核查且不重放。A的窄身份／生命周期测试已通过；真实原包、双宿主committed／notFound及撤权／错误库恢复仍未验，不能据夹具通过勾本项。实际停止绑定原instanceId，不调用重新发现的CLI stop；B标准CLI持久配置不在本片，见design首节。
 
 ## 0b78815后的有界GUI消费者
 
@@ -108,4 +108,4 @@ flowchart LR
 
 ## 续做入口
 
-共同基线4312262已实际消费，5.4原GUI及unknown重载已接收；本轮止于5.4a配置接线缺口及可审查方案，等待主线确认并提供可信进程入口／配置，不等待另一轮泛泛调查。完整映射4.1／4.2、Windows1.4及整体6.x／生态E6保持开放；未知操作只查询不重放，不新增生产配置或真实库接线，不归档或启动后续大阶段。
+5.4原GUI及unknown重载已接收；主线已交付A的可信测试进程提供者，下一片直接消费并验5.4a，不再重复配置缺口调查。完整映射4.1／4.2、Windows1.4及整体6.x／生态E6保持开放；未知操作只查询不重放，不新增B生产配置或真实库接线，不归档或启动后续大阶段。

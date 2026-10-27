@@ -1,5 +1,13 @@
 # 实际交付与交接
 
+## 第十轮主线：解除测试侧进程提供者前置
+
+主线接受下节的配置缺口调查，选择仅测试侧A，交付`tests/isolated-kernel.ts`、`tests/fixtures/isolated-kernel-process.mjs`与`tests/kernel/isolated-kernel.spec.ts`。真实serveKernel／锁／发现及development owner沿原实现，每次启动仅由可信父经私有IPC传入现有IsolatedZotero；没有生产CLI配置加载或第二server。
+
+首次窄测试1/1通过后，独立审查发现停止预检与CLI重新发现间可能误停接替实例的P2。主线改用既有绑定原实例的owner.shutdown，等待child close后只CLI status，扩原场景核旧句柄拒绝且接替实例仍可用；最终1/1通过，43.0秒。没有扩大生产期限、清锁、重试或移除库身份／授权。新夹具初次格式失败已整理，包构建和tools类型通过，完整证据在`/tmp/scholoom-round10-acceptance-j1MosP/`的main-build、main-tools、main-helper及main-helper-final日志。独立复核确认P2代码关闭，未代跑测试。
+
+该窄测试使用不执行的占位宿主路径，仅证明配置门、身份及独立进程替换；未执行BBT原包、committed操作或双宿主GUI恢复。5.4a保持未勾，下一片由文献线把已验证夹具接入原GUI场景，传真实已存在原包／宿主命令，核冻结请求、草稿及真实结果。A的实际停止方式沿design首节，不声称普通CLI stop预期实例或B持久配置已验收。
+
 ## 2026-10-27：4312262配置／进程重启调查交回
 
 当前HEAD`4312262c1a1f432ccd706dd1eb6ff6468765fd4e`，开工前clean，未改变。主线`/tmp/scholoom-round9-acceptance-IER31D/{acceptance.md,main-ui-result.json}`已接收原单条GUI／unknown工作台重载；本轮按条件分支只完成**配置缺口调查及方案**，5.4a跨进程验收仍未完成，整体**24/30**。未应用旧patch、改业务／测试源码、创建另一server／launcher、安装依赖、启动服务或操作真实库／其他树；无提交／同步／推送／PR／归档。

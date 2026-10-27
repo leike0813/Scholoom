@@ -9,7 +9,7 @@ flowchart LR
   subgraph RI[阅读交互所有权]
     F[报告文件与显式清单] --> R[editor ReportResources]
     R --> V[共同资源tab中的ReportView]
-    V --> I[opaque sandbox iframe]
+    V --> I[待验证的隔离承载]
     I --> B[版本绑定的MessagePort]
     B --> C[既有ContextContribution]
     V --> U[更新保护和窗口草稿]
@@ -73,9 +73,9 @@ ReportResources 是 `packages/editor` 内的 module，不新建包／数据库�
 
 续做实跑已确认两宿主的交集CSP仍允许WebRTC数据通道向本轮STUN端口发UDP；`camera/microphone 'none'`不阻止该通道。Electron中仅nonce策略还实际加载远程脚本，Browser相同校准被Local Network Access拦下，不能归功于CSP。当前结论是生产保持unavailable，HTTP样本零请求仅是被测通道结果。250ms忙循环期间Browser父页心跳出现251–258ms间隔；Electron样本17–18ms也不构成强CPU隔离保证。精确版本、原始包计数与各轮失败见同一delivery。
 
-主线待审方案：维持已有不执行脚本的HTML阅读器，继续保留活动报告不可用；或另立有界架构切片，提供覆盖UDP／DNS／HTTP的实际网络拒绝及CPU／完整停止权威，再设计跨宿主承载。Browser普通iframe不能据本候选兑现这些保证；Electron独立session的HTTP拦截也不足以处理已证实的UDP反例。不以覆盖fetch／RTCPeerConnection或收紧页面API白名单替代可靠隔离。本片不选择新承载，不改生产CSP、导航或共享内核接口。
+主线接收调查，维持已有不执行脚本的HTML阅读器，活动报告继续不可用。下一片仅调查能提供UDP／DNS／HTTP拒绝、CPU及完整停止权威的独立执行承载与双宿主呈现接法，列明现有资源／桥的复用、跨平台可用条件、最小反例及待选架构；候选齐备后再定2.1b实施，不在本轮选择新产品承载或改生产CSP。Browser普通iframe和Electron仅HTTP拦截均不能凭本片兑现这些保证，覆盖页面API也不构成可靠隔离。
 
-ReportView 使用 opaque-origin sandbox iframe，仅 allow-scripts；没有 allow-same-origin、popups、forms、downloads、top-navigation 或宿主preload。加载器重新构造文档头和资源引用，移除base、外部URL、嵌入文档、原meta策略及主动导航。应用控制的CSP默认禁止所有来源，只放行本次nonce脚本、明确Blob资源及必要样式；connect、worker、frame/object、form-action、base-uri均禁止。父文档的frame-src同时限定报告允许的Blob目标，防止脚本通过自身导航绕过frame内connect限制；这会影响共享入口，必须实测普通排版／PDF视图不受损。不能只加sandbox属性即声称“无网络”。
+以下是2.1a已实跑的iframe候选，不作为正式ReportView承载：opaque-origin sandbox只allow-scripts，无allow-same-origin、popups、forms、downloads、top-navigation或宿主preload。加载器重建头部和资源引用，移除base、外部URL、嵌入文档、原meta及主动导航；CSP限制nonce／Blob资源、connect／worker／frame／object／form／base，父frame-src约束Blob目标。它仍有上述STUN及CPU反例；正式承载和普通HTML／PDF影响由2.1b另行验证。
 
 首次握手仅向当前iframe.contentWindow传一次MessagePort，不把origin:'null'作为身份。每次加载持有新的viewId、generation、basis，关闭／更新立即关闭旧port和Blob URL。后续消息仅在该port接收，不能监听任意window消息执行动作。
 

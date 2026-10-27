@@ -1,5 +1,11 @@
 # 实际交付与交接
 
+## 第十轮主线验收
+
+共同构建结束后，主线在Browser／Electron复验本调查2/2通过，再将入口明确限定为`SCHOOLOOM_REPORT_ISOLATION_PROBE=1`显式调查，普通产品UI回归不默认执行已否定候选。通过仅表示可重复取得HTTP正例、STUN外发／宿主访问及桥／CPU样本，不证明活动报告已隔离；2.1b和生产不可用保持，下一片只调查可靠独立承载及双宿主呈现方案。
+
+Standards轴发现P2：trap取得后目录断言、runningKernel、client.connect和页面初始化位于try之外，失败可能遗留资源。主线从trap取得后立即建立try保护，并在finally释放已创建连接及trap；只读复核确认原失败窗口已覆盖，Spec轴无其他确证新增问题。未放宽CSP、启用生产页或改资源权威，原始快照与修复证据在`/tmp/scholoom-round10-acceptance-j1MosP/`。显式调查最终结果另沿main-ui-final日志／JSON，原作者失败轮次保留。
+
 ## 第九轮中断后的续做：2.1a机制调查交付，生产仍不可用
 
 2026-10-27从共同源码`4312262c1a1f432ccd706dd1eb6ff6468765fd4e`、起始干净工作区续做。读取主线`/tmp/scholoom-round9-acceptance-IER31D/`、原工件及当前apply指引；实际执行后取得delivery指引。只关闭2.1a的调查任务，当前6/13；2.1b及完整报告change／I5未完成。原设计总览仍是目标链路，本片验证的是“ReportResources快照／实际字节→专用隔离候选→桥观测”，没有ReportView／composer／生产tab。

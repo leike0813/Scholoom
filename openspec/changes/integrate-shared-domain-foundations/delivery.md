@@ -1,5 +1,25 @@
 # 实际交付与交接
 
+## 第十轮主线验收
+
+主线起点8c2fd24，七树共同源码4312262。五树含untracked成果经临时index冻结、核对真实staging后建立本地检查点，再no-ff合入dev，五次无冲突；项目／科研按约无增量。接入时25个未有意修改的单线文件逐字节保留，之后主线修报告夹具、增加三个可信测试进程文件并更新所属OpenSpec、开发说明及并行计划。证据根`/tmp/scholoom-round10-acceptance-j1MosP/`保留snapshots、checkpoint-commits、source-preservation及逐树merge.log，没有reset／rebase、覆盖成果或推送工作树分支。
+
+接收生态同源码Windows HostConnection24/24监督子项、ACL来源compiled／source校准、kernel准备／busy窄观察、reader独立取证及局部采样、报告2.1a调查与文献配置缺口方案。生产仅增加既有生命周期的安全阶段／时点观察，未更改期限、unknown、锁、停止、容量或授权；观察器仍拒绝未归因事件，不按PowerShell名称直接放行。reader工具和字节已通过，完整附件例仍未通过，不能据本片关闭整项。
+
+Standards／Spec沿code-review两轴由gpt-6.1-sol／high独立只读核对。Standards发现报告trap创建后部分初始化位于try之外的P2，主线将目录、内核、客户端连接及页面初始化纳入清理保护，复核确认关闭。原冻结增量Spec无确证新增问题；辅助测试夹具追加审查发现“预检身份后CLI重新发现停止”可误停接替实例的P2，主线改用绑定原instanceId的owner.shutdown，等自有child close后只CLI status，旧句柄拒绝且接替实例仍可用的真实场景通过，独立复核无剩余确证问题。审查未代跑测试，原发现与处理沿independent-review.json。
+
+文献A已由主线交付：`tests/isolated-kernel.ts::startIsolatedKernel`及私有IPC入口仅接收可信测试父进程每次显式提供的现有IsolatedZotero，调用真实serveKernel并持有development owner。配置门／身份／进程替换窄测试最终1/1，43.0秒；占位宿主不执行BBT。它解除5.4a的测试提供者前置，未证明真实原包／committed／双宿主GUI恢复，也未提供B标准CLI持久配置或预期实例CLI stop选项。具体选择、写集及后续沿文献同一design／tasks／delivery。
+
+主线先完成完整build／包类型／架构自检（14模块254文件0findings），再运行测试，期间不重建同树产物。受影响生命周期／平台组合10/10、最终可信进程夹具1/1通过；tools最终检查、13份源码Biome、8份生成映射及13个相关change strict通过。初次新夹具格式失败已保留并整理；未安装、下载、升级依赖或启动开发服务器。命令及原始结果沿main-*日志，内核／文件／锁／broker／worker真实，外部模型沿既有合成受控边界。
+
+执行诊断组合独立为2通过／1失败：取消与excerpt通过，附件reader及实际工具／模型字节、后续PDF阅读记录通过；撤销send后的新run在当前190行期待failed仍running。已完成并停止的reader observer不能解释该run，失败与trace保留，不声称撤权无效或整例通过。下一片使观察覆盖完整路径至清理，并补Windows execution.initialize／消费指令／首次模型之间的精确阶段，不逐断言轮流加等待或猜公共根因。
+
+报告调查在Browser／Electron复验2/2，显式调查最终仍2/2且无skip／flaky；入口仅`SCHOOLOOM_REPORT_ISOLATION_PROBE=1`运行，普通产品回归不默认执行已否定候选。通过表示实际HTTP／UDP、opaque访问、桥及CPU观察可重复，两宿主STUN外发反例仍否定零网络，Browser忙循环还影响父页响应。生产活动报告继续unavailable，2.1b／2.2／3.x及完整I5开放，下一片只调查可靠独立承载／双宿主呈现，不降低保证。首次及最终JSON、逐宿主report-probe文件和trace保留，调查不等于生产隔离验收。
+
+最新完成Checks40479176954／8c2fd24：Linux内核746通过／26跳过、UI126通过／32失败／4跳过；Windows内核688通过／42失败／42跳过，原生定向16通过／3跳过；macOS job成功。仅回执文档差异的4312262／40476577071中，Windows内核727通过／3失败／42跳过；这两个结果分别保留于ci-baseline-*和ci-same-source-failures.log，不按数量推新增源码故障或稳定性关闭。Linux UI原始失败中可见首模型请求0、长期queued、未持有RPC及预览未出现等不同边界，详细映射ci-failure-matrix.json；不能将32项均推为同因果。
+
+下一轮按并行计划“第十轮验收后的收敛安排”：六条有界任务，生态转为等待具体前置；项目／科研对新真实UI失败只读取证，未恢复未定业务流程。共同源码须先推送并同步七树，完成各树构建／tools／定向复验后再发送。实际同步与派发回执完成后在本节补记，不把已起草prompt算作已派发；完整changes、目标分发包及真实科研质量未验收，不归档。
+
 ## 第九轮主线验收
 
 主线起点caf9025，七树共同源码0b78815。五个实施树连同untracked通过临时index冻结、核对真实staging后建立本地检查点，再no-ff合入dev；五次无文本冲突，项目／科研按约无增量。34个非共享、非格式整理文件逐字节保留，共享UI设计文档自动合并；主线仅整理report-frame／content-selection两文件格式，扩现有Windows诊断workflow并更新原交付记录与并行计划。原始范围、检查点及合并日志在`/tmp/scholoom-round9-acceptance-IER31D/`的snapshots.json、checkpoint-commits.json、source-preservation.json及逐树merge.log；没有reset／rebase、覆盖成果或推送工作树分支。

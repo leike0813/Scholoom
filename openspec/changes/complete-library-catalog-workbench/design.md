@@ -1,6 +1,14 @@
 # 实现设计
 
-## 4312262后的重启接线方案（候选，未实施）
+## 第十轮主线：测试侧可信进程提供者
+
+主线选择并交付下述A的测试侧边界：`tests/isolated-kernel.ts::startIsolatedKernel(directory, configuration)`及私有IPC入口`tests/fixtures/isolated-kernel-process.mjs`。调用者先准备并关闭隔离库，每次启动显式传同一IsolatedZotero；子进程调用真实serveKernel，父端核ready对应自身PID并持有development owner。返回实际endpoint、client、child、exited及stop，不增加生产配置或协议。
+
+停止沿原owner.shutdown绑定instanceId，等待自有child close，再以CLI status核对。原建议中的CLI stop会重新发现当前实例，存在停止接替者的竞态，因此本夹具不调用它；不修改CLI行为或声称已验证其预期实例控制。未知时保留配置、不清锁或自动重试；准备阶段失败只处理自身fork的child。窄测试已核三次真实进程、库身份、notFound、错误绑定与旧句柄不停止接替实例；没有运行原包或GUI。5.4a的下一步是文献消费者使用该提供者，完成下述两宿主真实原包及冻结请求恢复，尚不能勾选。
+
+普通CLI持久受控配置B仍未设计或交付。以下为4312262时提出的候选依据，A的实际停止路径以上述实现为准。
+
+## 4312262后的重启接线调查
 
 本轮当前路径和源码证据见investigation首节：UI夹具直接注入Application／KernelServer；serveKernel有可信构造参数，普通CLI start／serve及bootstrap没有isolatedZotero配置加载／传递。**不能满足本轮条件实施分支，停止在此方案。** 原单条GUI及页面重载保持已接收，不用它们代表内核进程重启保证。
 

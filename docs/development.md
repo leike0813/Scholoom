@@ -455,6 +455,10 @@ Agent 使用 Orca browser skill，先列出当前项目的标签，核对 URL �
 
 UI 测试期间保持源码和共享包构建产物稳定；改动或重新构建会触发 Vite 热刷新，重置正在验收的组件状态。完成构建后再运行交互测试。
 
+原值恢复的可信测试进程由`tests/isolated-kernel.ts::startIsolatedKernel(directory, configuration)`提供：父进程先准备隔离库，每次经私有IPC显式注入现有IsolatedZotero，子进程调用真实serveKernel，父持有development owner。停止通过绑定原instanceId的客户端shutdown，等待自有子进程close，再用CLI status核对；不使用重新发现实例的CLI stop，未知时保留配置且不接管接替实例。`tests/kernel/isolated-kernel.spec.ts`只验配置门、身份和进程替换，不运行BBT；原包及GUI恢复由文献场景另验，不代表普通CLI配置持久恢复。
+
+`tests/ui/report-isolation.spec.ts`是未采纳隔离候选的调查入口，仅在`SCHOOLOOM_REPORT_ISOLATION_PROBE=1`时运行。它记录实际HTTP／UDP、宿主访问、桥及CPU样本，包含已知STUN外发反例；用例通过表示调查可重复，不表示产品已隔离。生产活动报告保持不可用，正式承载仍按报告change设计。
+
 同一隔离配置会在多个 UI 用例间重启内核，已登记的测试项目随结果目录保留到该配置退役；删除目录前须先解除空闲项目登记，或确认整个配置及内核已结束。缺失的登记项目仍须按程序恢复规则保留未知占用，测试不能放宽此保护。项目名按用例及宿主区分，项目定位优先稳定身份。
 
 真实开发命令及模型 UI 验收位于 `tests/smoke/development.spec.ts`：普通场景使用浏览器5315／Electron CDP 9315，live 场景使用5316／9316，Electron renderer 使用本轮服务的实际 URL。显式运行 `SCHOOLOOM_LIVE_MODEL_TEST=1 pnpm test:smoke tests/smoke/development.spec.ts --grep 'live MiniMax' --output test-results/development-live`；Key 仅经环境注入，不录 trace，保存合成成果作为验收附件。Linux 命令自动化使用 electron-vite 的 `NO_SANDBOX=1` 环境选项，与既有 Playwright Electron 启动设置一致；产品默认 sandbox 设置不变，本机通过不代表目标平台 OS sandbox 或分发包已验收。

@@ -14,6 +14,11 @@ import { runningKernel } from '../kernel-fixture.js';
 import { expect, test } from './fixture.js';
 import { rendererUrl } from './renderer-url.js';
 
+test.skip(
+  process.env.SCHOOLOOM_REPORT_ISOLATION_PROBE !== '1',
+  'Explicit investigation of a rejected isolation candidate, not a product regression gate',
+);
+
 let bundle = '';
 test.beforeAll(async () => {
   const result = await build({
@@ -58,20 +63,22 @@ test('report isolation investigation measures real egress, opaque access and bri
     ),
   );
   const trap = await reportNetworkTrap(font);
-  const directory = process.env.SCHOOLOOM_UI_DATA_DIR;
-  assert(directory);
-  const client = createKernelClient(await runningKernel(directory));
-  await client.connect();
+  let connection: ReturnType<typeof createKernelClient> | undefined;
   const diagnostics: Record<string, unknown> = {
     host: uiHost,
     production: 'unavailable',
-    userAgent: await uiPage.evaluate(() => navigator.userAgent),
   };
   const consoleErrors: string[] = [];
-  uiPage.on('pageerror', (error) => {
-    if (consoleErrors.length < 16) consoleErrors.push(error.message.slice(0, 512));
-  });
   try {
+    const directory = process.env.SCHOOLOOM_UI_DATA_DIR;
+    assert(directory);
+    const client = createKernelClient(await runningKernel(directory));
+    connection = client;
+    await client.connect();
+    diagnostics.userAgent = await uiPage.evaluate(() => navigator.userAgent);
+    uiPage.on('pageerror', (error) => {
+      if (consoleErrors.length < 16) consoleErrors.push(error.message.slice(0, 512));
+    });
     const project = await client.call('project.create', {
       path: join(root, 'project'),
       trust: 'restricted',
@@ -433,7 +440,7 @@ test('report isolation investigation measures real egress, opaque access and bri
   } finally {
     diagnostics.bridge ??= await stats(uiPage).catch(() => null);
     await uiPage.evaluate(() => Reflect.get(window, 'isolationFixture')?.close()).catch(() => {});
-    client.dispose();
+    connection?.dispose();
     await trap.close();
     diagnostics.http = { total: trap.httpTotal, samples: [...trap.httpRequests] };
     diagnostics.errors = consoleErrors;
