@@ -72,11 +72,13 @@ async function main() {
       if (method === 'zotero.export') {
         const request = input as ZoteroInputs['zotero.export'];
         return {
+          state: 'exported',
           format: request.format,
-          sources: config.snapshot.map(({ sourceId, revision, citationKey }) => ({
+          sources: config.snapshot.map(({ sourceId, revision, citationKey }, index) => ({
             sourceId,
             revision,
             citationKey,
+            expression: request.sources[index]?.expression,
           })),
           text: await host.export(
             request.sources.map((source) => source.sourceId),

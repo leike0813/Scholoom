@@ -10,6 +10,7 @@ import { expect, test } from '@playwright/test';
 import { KernelApplication } from '../../apps/kernel/dist/application.js';
 import { inspectKernel, serveKernel, stopKernel } from '../../apps/kernel/dist/lifecycle.js';
 import type { IsolatedZotero } from '../../apps/kernel/dist/zotero.js';
+import type { ZoteroOutputs, ZoteroSnapshot } from '../../packages/protocol/dist/zotero.js';
 import { expectExecutionCompleted } from '../execution-diagnostics.js';
 import { delegationOutput } from '../fixtures/delegation-model.js';
 import { createModelServer } from '../model-server.js';
@@ -17,6 +18,22 @@ import { createModelServer } from '../model-server.js';
 test.skip(process.platform !== 'linux', 'Bounded Linux managed Electron calibration');
 const xpi = process.env.SCHOOLOOM_BBT_XPI;
 test.skip(!xpi, 'Supply the unchanged local BBT 9.0.68 release');
+
+function originalSources(records: ZoteroSnapshot) {
+  return records.map(({ sourceId, revision, originals }) => {
+    const original = originals[0];
+    if (!original) throw new Error('Missing actual original selection');
+    return {
+      sourceId,
+      revision,
+      expression: { kind: 'zotero-original' as const, identity: original.identity },
+    };
+  });
+}
+function exported(result: ZoteroOutputs['zotero.export']) {
+  if (result.state !== 'exported') throw new Error('Expected explicitly selected original export');
+  return result;
+}
 
 async function fixture(
   options: ConstructorParameters<typeof KernelApplication>[1] = {},
@@ -109,6 +126,123 @@ async function fixture(
   return { app, directory, root, configuration, libraryId, sources, selection };
 }
 
+test('explicit original selection and independent title replacement preserve the common CSL and other original values', async () => {
+  const f = await fixture();
+  try {
+    const before = (await f.selection())[2];
+    if (!before) throw new Error('Missing pinned journal');
+    const source = await f.app.call('library.get', { sourceId: before.sourceId });
+    await f.app.call('library.update', {
+      sourceId: source.id,
+      revision: source.revision,
+      metadata: {
+        ...source.metadata,
+        title: 'Common CSL corrected title',
+        issued: {
+          'date-parts': [
+            [2025, 9],
+            [2026, 2],
+          ],
+          circa: true,
+        },
+        author: [{ literal: 'Synthetic Research Consortium' }],
+      },
+      tags: source.tags,
+      collectionIds: source.collectionIds,
+      relatedIds: source.relatedIds,
+    });
+    const record = await f.app.call('library.record', {
+      libraryId: f.libraryId,
+      sourceId: source.id,
+    });
+    expect(record.originals).toEqual(before.originals);
+    expect(record.citationKey).toEqual(before.citationKey);
+    const request = {
+      libraryId: f.libraryId,
+      sources: [{ sourceId: record.sourceId, revision: record.revision }],
+      format: 'bibtex' as const,
+    };
+    const unresolved = await f.app.call('zotero.export', request);
+    expect(unresolved).toMatchObject({ state: 'selectionRequired' });
+    expect(unresolved).not.toHaveProperty('text');
+    const booleanConfirmation = { ...request, confirmed: true };
+    await expect(f.app.call('zotero.export', booleanConfirmation)).rejects.toMatchObject({
+      code: 'invalidRequest',
+    });
+    const inspection = await f.app.call('zotero.inspect', {
+      libraryId: f.libraryId,
+      sources: request.sources,
+    });
+    const selected = inspection.sources[0];
+    if (!selected) throw new Error('Missing inspection');
+    expect(selected.comparison).toEqual({ title: 'different', remaining: 'notComparable' });
+    expect(selected.csl.title).toBe('Common CSL corrected title');
+    expect(selected.original).toEqual(before.originals[0]);
+    const expression = { kind: 'zotero-original' as const, identity: selected.original.identity };
+    const sources = [{ sourceId: record.sourceId, revision: record.revision, expression }];
+    for (const format of ['bibtex', 'biblatex'] as const) {
+      const result = await f.app.call('zotero.export', { ...request, sources, format });
+      if (result.state !== 'exported') throw new Error('Expected selected export');
+      expect(result.text.toLowerCase()).toContain('preserved journal');
+      expect(result.text).not.toContain('Common CSL corrected title');
+      expect(result.sources[0]?.expression).toEqual(expression);
+    }
+    const csl = await f.app.call('library.get', { sourceId: source.id });
+    const replacement = {
+      libraryId: f.libraryId,
+      requestId: randomUUID(),
+      sourceId: source.id,
+      revision: record.revision,
+      identity: expression.identity,
+      title: 'Explicit original title correction',
+    };
+    const saved = await f.app.call('zotero.replaceTitle', replacement);
+    expect(saved.state).toBe('committed');
+    const updated = await f.app.call('library.record', {
+      libraryId: f.libraryId,
+      sourceId: source.id,
+    });
+    expect(updated.originals[0]).toEqual({
+      ...selected.original,
+      fields: { ...selected.original.fields, title: replacement.title },
+    });
+    expect(updated.citationKey).toEqual(before.citationKey);
+    expect((await f.app.call('library.get', { sourceId: source.id })).metadata).toEqual(
+      csl.metadata,
+    );
+    expect(
+      await f.app.call('zotero.result', {
+        libraryId: f.libraryId,
+        requestId: replacement.requestId,
+      }),
+    ).toEqual(saved.receipt);
+    await expect(
+      f.app.call('zotero.replaceTitle', { ...replacement, requestId: randomUUID() }),
+    ).rejects.toMatchObject({ code: 'contentChanged' });
+    expect(
+      await f.app.call('zotero.replaceTitle', { ...replacement, title: 'Must not replay' }),
+    ).toMatchObject({ state: 'queried', receipt: saved.receipt });
+    await expect(f.app.call('zotero.export', { ...request, sources })).rejects.toMatchObject({
+      code: 'contentChanged',
+    });
+    for (const format of ['bibtex', 'biblatex'] as const) {
+      const result = await f.app.call('zotero.export', {
+        ...request,
+        format,
+        sources: [{ sourceId: source.id, revision: updated.revision, expression }],
+      });
+      if (result.state !== 'exported') throw new Error('Expected updated original export');
+      expect(result.text.toLowerCase()).toContain('explicit original title correction');
+    }
+    await writeFile(
+      test.info().outputPath('original-title.json'),
+      JSON.stringify({ inspection, saved, updated }, null, 2),
+    );
+  } finally {
+    await f.app.close();
+  }
+});
+
 test('real library/broker/managed original BBT commits missing keys once and exports both formats after restart', async () => {
   const f = await fixture({}, 100);
   try {
@@ -141,11 +275,13 @@ test('real library/broker/managed original BBT commits missing keys once and exp
     });
     expect(await f.selection()).toEqual(records);
     for (const format of ['bibtex', 'biblatex'] as const) {
-      const output = await f.app.call('zotero.export', {
-        libraryId: f.libraryId,
-        sources: records.map(({ sourceId, revision }) => ({ sourceId, revision })),
-        format,
-      });
+      const output = exported(
+        await f.app.call('zotero.export', {
+          libraryId: f.libraryId,
+          sources: originalSources(records),
+          format,
+        }),
+      );
       await writeFile(test.info().outputPath(`${format}.bib`), output.text);
       expect(output.text).toContain('ScholoomPreserved2026');
       expect(output.text.toLowerCase()).toContain(
@@ -178,11 +314,13 @@ test('real library/broker/managed original BBT commits missing keys once and exp
     expect(corrected.map((record) => record.citationKey)).toEqual(
       records.map((record) => record.citationKey),
     );
-    const refreshed = await f.app.call('zotero.export', {
-      libraryId: f.libraryId,
-      sources: corrected.map(({ sourceId, revision }) => ({ sourceId, revision })),
-      format: 'bibtex',
-    });
+    const refreshed = exported(
+      await f.app.call('zotero.export', {
+        libraryId: f.libraryId,
+        sources: originalSources(corrected),
+        format: 'bibtex',
+      }),
+    );
     expect(refreshed.text.toLowerCase()).toContain('updated research agents after common commit');
     expect(refreshed.text).toContain(first.citationKey?.value as string);
     await f.app.close();
@@ -201,7 +339,7 @@ test('real library/broker/managed original BBT commits missing keys once and exp
       expect(JSON.parse(query.stdout)).toEqual(result.receipt);
       const request = {
         libraryId: f.libraryId,
-        sources: corrected.map(({ sourceId, revision }) => ({ sourceId, revision })),
+        sources: originalSources(corrected),
         format: 'biblatex',
       };
       const exported = await promisify(execFile)(process.execPath, [
@@ -212,6 +350,7 @@ test('real library/broker/managed original BBT commits missing keys once and exp
         '--input',
         JSON.stringify(request),
       ]);
+      expect(JSON.parse(exported.stdout)).toMatchObject({ state: 'exported' });
       expect(JSON.parse(exported.stdout).text).toContain('ScholoomPreserved2026');
     } finally {
       await stopKernel(f.root);
@@ -346,7 +485,7 @@ test('lost post-commit observation queries the real stable operation without rep
     await expect(
       f.app.call('zotero.export', {
         libraryId: f.libraryId,
-        sources: committed.map(({ sourceId, revision }) => ({ sourceId, revision })),
+        sources: originalSources(committed),
         format: 'bibtex',
       }),
     ).rejects.toMatchObject({ code: 'outcomeUnknown' });
@@ -377,7 +516,7 @@ for (const method of ['zotero.fillKeys', 'zotero.export'] as const) {
           ? f.app.call(method, request)
           : f.app.call(method, {
               libraryId: request.libraryId,
-              sources: request.sources,
+              sources: originalSources(records.slice(2)),
               format: 'bibtex',
             });
       const outcome = pending.then(
@@ -421,6 +560,7 @@ for (const method of ['zotero.fillKeys', 'zotero.export'] as const) {
 }
 
 test('actual harness tools use the common authority and original BBT; only the external model is controlled', async () => {
+  const titleRequestId = randomUUID();
   let request: {
     libraryId: string;
     operationId: string;
@@ -439,18 +579,55 @@ test('actual harness tools use the common authority and original BBT; only the e
             (result: { sourceId: string }) => result.sourceId === source.sourceId,
           )?.revision ?? source.revision,
       }));
+      if (!calls.includes('inspect_zotero_originals'))
+        return {
+          tool: {
+            name: 'inspect_zotero_originals',
+            input: { libraryId: request.libraryId, sources },
+          },
+        };
+      const inspection = body ? delegationOutput(body, 'inspect_zotero_originals') : undefined;
+      const first = inspection?.sources?.[0];
+      if (!first) throw new Error('Expected actual original inspection result');
+      if (!calls.includes('replace_zotero_original_title'))
+        return {
+          tool: {
+            name: 'replace_zotero_original_title',
+            input: {
+              libraryId: request.libraryId,
+              requestId: titleRequestId,
+              sourceId: first.sourceId,
+              revision: first.revision,
+              identity: first.original.identity,
+              title: 'Agent explicit journal title',
+            },
+          },
+        };
+      const replacement = body
+        ? delegationOutput(body, 'replace_zotero_original_title')
+        : undefined;
+      const selected = inspection?.sources.map(
+        (source: { sourceId: string; revision: number; original: { identity: unknown } }) => ({
+          sourceId: source.sourceId,
+          revision:
+            replacement?.receipt?.results?.find(
+              (result: { sourceId: string }) => result.sourceId === source.sourceId,
+            )?.revision ?? source.revision,
+          expression: { kind: 'zotero-original', identity: source.original.identity },
+        }),
+      );
       if (!calls.includes('export_zotero'))
         return {
           tool: {
             name: 'export_zotero',
-            input: { libraryId: request.libraryId, sources, format: 'bibtex' },
+            input: { libraryId: request.libraryId, sources: selected, format: 'bibtex' },
           },
         };
       if (calls.filter((call) => call === 'export_zotero').length === 1)
         return {
           tool: {
             name: 'export_zotero',
-            input: { libraryId: request.libraryId, sources, format: 'biblatex' },
+            input: { libraryId: request.libraryId, sources: selected, format: 'biblatex' },
           },
         };
       if (!calls.includes('read_zotero_result'))
@@ -483,7 +660,7 @@ test('actual harness tools use the common authority and original BBT; only the e
     await f.app.call('session.send', {
       ...scope,
       instructionId: randomUUID(),
-      text: '核对隔离期刊补键和两个格式导出。',
+      text: '核对隔离期刊并补缺键。独立将第一条原值题名更正为“Agent explicit journal title”，保留CSL。明确采用各条目的Zotero原值导出两个格式。',
       materials: [],
     });
     await expectExecutionCompleted(f.app, scope, model);
@@ -494,7 +671,19 @@ test('actual harness tools use the common authority and original BBT; only the e
       notification: 'delivered',
     });
     expect(delegationOutput(final, 'read_zotero_result')).toMatchObject({ state: 'committed' });
+    expect(delegationOutput(final, 'replace_zotero_original_title')).toMatchObject({
+      state: 'committed',
+    });
+    expect(delegationOutput(final, 'export_zotero')).toMatchObject({ state: 'exported' });
     expect(delegationOutput(final, 'export_zotero')?.text).toContain('ScholoomPreserved2026');
+    expect(delegationOutput(final, 'export_zotero')?.text.toLowerCase()).toContain(
+      'agent explicit journal title',
+    );
+    const firstSource = request.sources[0];
+    if (!firstSource) throw new Error('Missing selected journal');
+    expect(
+      (await f.app.call('library.get', { sourceId: firstSource.sourceId })).metadata.title,
+    ).toBe('Research agents and reproducible literature workflows');
     expect((await f.selection()).every((record) => !!record.citationKey)).toBe(true);
     await writeFile(
       test.info().outputPath('harness.json'),
@@ -506,8 +695,160 @@ test('actual harness tools use the common authority and original BBT; only the e
   }
 });
 
+test('original title unknown receipts query the real provider without replay', async () => {
+  const f = await fixture();
+  let armed = true;
+  const detach = f.app.subscribe((change) => {
+    if (armed && change.libraryChanged) {
+      armed = false;
+      throw new Error('Post-commit original-title observation failure');
+    }
+  });
+  try {
+    const before = (await f.selection())[2];
+    const original = before?.originals[0];
+    if (!before || !original) throw new Error('Missing pinned original');
+    const input = {
+      libraryId: f.libraryId,
+      requestId: randomUUID(),
+      sourceId: before.sourceId,
+      revision: before.revision,
+      identity: original.identity,
+      title: 'Committed despite lost observation',
+    };
+    await expect(f.app.call('zotero.replaceTitle', input)).rejects.toMatchObject({
+      code: 'outcomeUnknown',
+    });
+    const receipt = await f.app.call('zotero.result', {
+      libraryId: f.libraryId,
+      requestId: input.requestId,
+    });
+    expect(receipt).toMatchObject({ state: 'committed' });
+    const after = await f.app.call('library.record', {
+      libraryId: f.libraryId,
+      sourceId: before.sourceId,
+    });
+    expect(after.revision).toBe(before.revision + 1);
+    expect(after.originals[0]).toEqual({
+      ...original,
+      fields: { ...original.fields, title: input.title },
+    });
+    expect(after.citationKey).toEqual(before.citationKey);
+    expect(await f.app.call('zotero.replaceTitle', input)).toMatchObject({
+      state: 'queried',
+      receipt,
+    });
+    expect(
+      await f.app.call('library.record', { libraryId: f.libraryId, sourceId: before.sourceId }),
+    ).toEqual(after);
+  } finally {
+    detach();
+    await f.app.close();
+  }
+});
+
+test('original inspection rejects missing values, multiple sources and stale identity without inventing a projection', async () => {
+  const f = await fixture();
+  try {
+    const before = (await f.selection())[2];
+    const original = before?.originals[0];
+    if (!before || !original) throw new Error('Missing pinned original');
+    const selection = {
+      libraryId: f.libraryId,
+      sources: [{ sourceId: before.sourceId, revision: before.revision }],
+    };
+    const readback = await f.app.call('zotero.inspect', selection);
+    expect(readback.sources[0]?.comparison).toEqual({ title: 'equal', remaining: 'notComparable' });
+    const wrong = { ...original.identity, objectKey: 'WRONGKEY' };
+    await expect(
+      f.app.call('zotero.export', {
+        ...selection,
+        format: 'bibtex',
+        sources: [
+          {
+            sourceId: before.sourceId,
+            revision: before.revision,
+            expression: { kind: 'zotero-original', identity: wrong },
+          },
+        ],
+      }),
+    ).rejects.toMatchObject({ code: 'contentChanged' });
+    const titleInput = {
+      libraryId: f.libraryId,
+      requestId: randomUUID(),
+      sourceId: before.sourceId,
+      revision: before.revision,
+      identity: original.identity,
+      title: 'Concurrent original change',
+    };
+    const source = await f.app.call('library.get', { sourceId: before.sourceId });
+    const outcomes = await Promise.allSettled([
+      f.app.call('zotero.replaceTitle', titleInput),
+      f.app.call('library.update', {
+        sourceId: source.id,
+        revision: source.revision,
+        metadata: { ...source.metadata, title: 'Competing CSL correction' },
+        tags: source.tags,
+        collectionIds: source.collectionIds,
+        relatedIds: source.relatedIds,
+      }),
+    ]);
+    expect(outcomes[0]).toMatchObject({ status: 'rejected', reason: { code: 'contentChanged' } });
+    expect(outcomes[1]?.status).toBe('fulfilled');
+    let current = await f.app.call('library.record', {
+      libraryId: f.libraryId,
+      sourceId: before.sourceId,
+    });
+    expect(current.originals).toEqual(before.originals);
+    const fields = { ...original.fields };
+    delete fields.title;
+    await f.app.call('library.commitRecords', {
+      libraryId: f.libraryId,
+      requestId: randomUUID(),
+      changes: [
+        {
+          sourceId: before.sourceId,
+          revision: current.revision,
+          original: { ...original, fields },
+        },
+      ],
+    });
+    current = await f.app.call('library.record', {
+      libraryId: f.libraryId,
+      sourceId: before.sourceId,
+    });
+    await expect(
+      f.app.call('zotero.inspect', {
+        ...selection,
+        sources: [{ sourceId: current.sourceId, revision: current.revision }],
+      }),
+    ).rejects.toMatchObject({ code: 'unavailable' });
+    await f.app.call('library.commitRecords', {
+      libraryId: f.libraryId,
+      requestId: randomUUID(),
+      changes: [
+        {
+          sourceId: current.sourceId,
+          revision: current.revision,
+          original: { ...original, identity: { ...original.identity, objectKey: 'SECOND01' } },
+        },
+      ],
+    });
+    current = await f.app.call('library.record', {
+      libraryId: f.libraryId,
+      sourceId: before.sourceId,
+    });
+    await expect(
+      f.app.call('zotero.replaceTitle', { ...titleInput, revision: current.revision }),
+    ).rejects.toMatchObject({ code: 'unavailable' });
+    expect(current.originals).toHaveLength(2);
+  } finally {
+    await f.app.close();
+  }
+});
+
 test('Zotero-only model context remains subject to library send authorization across turns and restart', async () => {
-  let input: { libraryId: string; sources: { sourceId: string; revision: number }[] };
+  let input: { libraryId: string; sources: ReturnType<typeof originalSources> };
   const model = await createModelServer({
     respond: ({ calls }) =>
       calls.includes('export_zotero')
@@ -525,7 +866,7 @@ test('Zotero-only model context remains subject to library send authorization ac
     if (!record) throw new Error('Missing fixed-key journal');
     input = {
       libraryId: f.libraryId,
-      sources: [{ sourceId: record.sourceId, revision: record.revision }],
+      sources: originalSources([record]),
     };
     const project = await app.call('project.create', {
       path: join(f.directory, 'project'),
@@ -536,12 +877,13 @@ test('Zotero-only model context remains subject to library send authorization ac
     await app.call('session.send', {
       ...scope,
       instructionId: randomUUID(),
-      text: '仅通过生态工具核对指定期刊。',
+      text: '仅通过生态工具，明确采用指定期刊的Zotero原值导出。',
       materials: [],
     });
     await expectExecutionCompleted(app, scope, model);
     const final = model.requests.at(-1);
     if (!final) throw new Error('No actual model requests');
+    expect(delegationOutput(final, 'export_zotero')).toMatchObject({ state: 'exported' });
     expect(delegationOutput(final, 'export_zotero')?.text).toContain('ScholoomPreserved2026');
     const requests = model.requests.length;
     await app.call('library.grant', { read: true, write: true, send: false, autoBackup: false });

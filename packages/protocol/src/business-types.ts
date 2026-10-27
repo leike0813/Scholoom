@@ -176,6 +176,8 @@ export type Inputs = {
   'workbench.watch': FromSchema<(typeof businessSchemas)['workbench.watch']['params']>;
   'zotero.export': FromSchema<(typeof businessSchemas)['zotero.export']['params']>;
   'zotero.fillKeys': FromSchema<(typeof businessSchemas)['zotero.fillKeys']['params']>;
+  'zotero.inspect': FromSchema<(typeof businessSchemas)['zotero.inspect']['params']>;
+  'zotero.replaceTitle': FromSchema<(typeof businessSchemas)['zotero.replaceTitle']['params']>;
   'zotero.result': FromSchema<(typeof businessSchemas)['zotero.result']['params']>;
 };
 export type Outputs = {
@@ -352,5 +354,7 @@ export type Outputs = {
   'workbench.watch': FromSchema<(typeof businessSchemas)['workbench.watch']['result']>;
   'zotero.export': FromSchema<(typeof businessSchemas)['zotero.export']['result']>;
   'zotero.fillKeys': FromSchema<(typeof businessSchemas)['zotero.fillKeys']['result']>;
+  'zotero.inspect': FromSchema<(typeof businessSchemas)['zotero.inspect']['result']>;
+  'zotero.replaceTitle': FromSchema<(typeof businessSchemas)['zotero.replaceTitle']['result']>;
   'zotero.result': FromSchema<(typeof businessSchemas)['zotero.result']['result']>;
 };

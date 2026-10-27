@@ -14,6 +14,7 @@ import {
 import {
   journalOriginal,
   type ZoteroInputs,
+  type ZoteroInspection,
   type ZoteroOutputs,
   type ZoteroSnapshot,
   zoteroHostCallbacks,
@@ -29,6 +30,7 @@ export type IsolatedZotero = {
   packageDirectory: string;
 };
 type Methods =
+  | 'library.get'
   | 'library.status'
   | 'library.record'
   | 'library.commitRecords'
@@ -66,6 +68,109 @@ export class ZoteroOperations {
     await this.check(port, input.libraryId, false, context.principal.kind === 'agent');
     return port.call('library.commitResult', input);
   }
+  private async read(port: Port, input: ZoteroInputs['zotero.inspect']) {
+    if (new Set(input.sources.map((source) => source.sourceId)).size !== input.sources.length)
+      throw new OperationError('invalidRequest', '不能重复选择同一条目。');
+    const sources: ZoteroInspection[] = [];
+    const records: ZoteroSnapshot = [];
+    let bytes = 16;
+    for (const selected of input.sources) {
+      const source = await port.call('library.get', { sourceId: selected.sourceId });
+      const record = await port.call('library.record', {
+        libraryId: input.libraryId,
+        sourceId: selected.sourceId,
+      });
+      if (source.revision !== record.revision || record.revision !== selected.revision)
+        throw new OperationError('contentChanged', 'CSL或原值修订已变化，请重新核对选择。');
+      const original = journalOriginal(record);
+      if (typeof original.fields.title !== 'string' || !original.fields.title.length)
+        throw new OperationError('unavailable', '所选原值缺少准确题名。');
+      const item: ZoteroInspection = {
+        sourceId: source.id,
+        revision: record.revision,
+        csl: source.metadata,
+        original,
+        citationKey: record.citationKey,
+        comparison: {
+          title: source.metadata.title === original.fields.title ? 'equal' : 'different',
+          remaining: 'notComparable',
+        },
+      };
+      bytes += Buffer.byteLength(JSON.stringify(item)) + 1;
+      if (bytes > 256 * 1024)
+        throw new OperationError('tooLarge', '所选原值及CSL核对结果超过256KiB。');
+      sources.push(item);
+      records.push(record);
+    }
+    return { sources, records };
+  }
+  async inspect(
+    input: ZoteroInputs['zotero.inspect'],
+    context: CallContext,
+  ): Promise<ZoteroOutputs['zotero.inspect']> {
+    const request = structuredClone(input);
+    const port = this.port(context);
+    await this.check(port, request.libraryId, false, context.principal.kind === 'agent');
+    const { sources } = await this.read(port, request);
+    await this.check(port, request.libraryId, false, context.principal.kind === 'agent');
+    return { sources };
+  }
+  async replaceTitle(
+    input: ZoteroInputs['zotero.replaceTitle'],
+    context: CallContext,
+  ): Promise<ZoteroOutputs['zotero.replaceTitle']> {
+    if (this.closing) throw new OperationError('shuttingDown', '隔离宿主正在关闭。');
+    if (this.running) throw new OperationError('resourceLimit', '隔离宿主正在执行。');
+    this.running = true;
+    try {
+      const request = structuredClone(input);
+      const port = this.port(context);
+      const send = context.principal.kind === 'agent';
+      await this.check(port, request.libraryId, true, send);
+      const previous = await port.call('library.commitResult', {
+        libraryId: request.libraryId,
+        requestId: request.requestId,
+      });
+      if (previous.state !== 'notFound')
+        return { requestId: request.requestId, state: 'queried', receipt: previous };
+      const { sources } = await this.read(port, {
+        libraryId: request.libraryId,
+        sources: [{ sourceId: request.sourceId, revision: request.revision }],
+      });
+      const selected = sources[0];
+      if (!selected || !isDeepStrictEqual(selected.original.identity, request.identity))
+        throw new OperationError('contentChanged', '所选原值身份已变化。');
+      await this.check(port, request.libraryId, true, send);
+      const commit: LibraryInputs['library.commitRecords'] = {
+        libraryId: request.libraryId,
+        requestId: request.requestId,
+        changes: [
+          {
+            sourceId: request.sourceId,
+            revision: request.revision,
+            original: {
+              ...selected.original,
+              fields: { ...selected.original.fields, title: request.title },
+            },
+          },
+        ],
+      };
+      let receipt: LibraryOutputs['library.commitRecords'];
+      try {
+        const result = await port.call('library.commitRecords', commit);
+        receipt = result;
+      } catch {
+        throw new OperationError(
+          'outcomeUnknown',
+          '原值题名更正结果未确认；请按原requestId查询，不重放。',
+        );
+      }
+      await this.check(port, request.libraryId, false, send);
+      return { requestId: request.requestId, state: receipt.state, receipt };
+    } finally {
+      this.running = false;
+    }
+  }
   async execute(
     method: 'zotero.fillKeys' | 'zotero.export',
     input: ZoteroInputs['zotero.fillKeys'] | ZoteroInputs['zotero.export'],
@@ -100,19 +205,35 @@ export class ZoteroOperations {
       if (previous.state !== 'notFound')
         return { operationId, state: 'queried', receipt: previous, notification: 'notRun' };
     }
-    const snapshot: ZoteroSnapshot = [];
-    for (const source of input.sources) {
-      const record = await port.call('library.record', {
-        libraryId: input.libraryId,
-        sourceId: source.sourceId,
-      });
-      if (record.revision !== source.revision)
-        throw new OperationError('contentChanged', '所选题录版本已变化。');
-      journalOriginal(record);
-      if (!fill && !record.citationKey)
+    let snapshot: ZoteroSnapshot = [];
+    if (!fill) {
+      const request = input as ZoteroInputs['zotero.export'];
+      const readback = await this.read(port, request);
+      for (const [index, source] of request.sources.entries()) {
+        if (
+          source.expression &&
+          !isDeepStrictEqual(source.expression.identity, readback.sources[index]?.original.identity)
+        )
+          throw new OperationError('contentChanged', '所选导出表达的原值身份已变化。');
+      }
+      if (request.sources.some((source) => !source.expression)) {
+        await this.check(port, request.libraryId, false, true);
+        return { state: 'selectionRequired', sources: readback.sources };
+      }
+      if (readback.records.some((record) => !record.citationKey))
         throw new OperationError('unavailable', '导出前必须明确补齐正式键。');
-      snapshot.push(record);
-    }
+      snapshot = readback.records;
+    } else
+      for (const source of input.sources) {
+        const record = await port.call('library.record', {
+          libraryId: input.libraryId,
+          sourceId: source.sourceId,
+        });
+        if (record.revision !== source.revision)
+          throw new OperationError('contentChanged', '所选题录版本已变化。');
+        journalOriginal(record);
+        snapshot.push(record);
+      }
     const configuration = this.configuration;
     if (!configuration) throw new OperationError('unavailable', '未配置隔离宿主。');
     await mkdir(this.directory, { recursive: true, mode: 0o700 });
@@ -262,10 +383,11 @@ export class ZoteroOperations {
       }
       return {
         ...result,
-        sources: snapshot.map(({ sourceId, revision, citationKey }) => ({
-          sourceId,
-          revision,
-          citationKey,
+        sources: snapshot.map((record) => ({
+          sourceId: record.sourceId,
+          revision: record.revision,
+          citationKey: record.citationKey,
+          expression: { kind: 'zotero-original', identity: journalOriginal(record).identity },
         })),
       } as ZoteroOutputs['zotero.export'];
     }

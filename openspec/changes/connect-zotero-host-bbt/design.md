@@ -1,8 +1,22 @@
 # 实现设计
 
-## CSL更正与原值导出差异方案（4b13183）
+## 已批准的内核／Agent切片（8a2f0ce）
 
-**D1–D3已由用户确认，实施尚未交付。** 采用A＋B1：差异或无法比较时，导出前明确选择采用原值；Agent可依用户明确指令选择，不确定时询问。原值通过独立动作更正，首片仅已有唯一期刊原值的题名。决策事实源见[领域决定](../../../.scratch/domain-development/issues/08-zotero-ecosystem-constraints.md#csl-更正与原值导出的明确选择)。下列待决措辞记录本轮调查时的备选与依赖；续做以本确认及下一片具体设计为准，不将推荐解释为每次必须人工点击。
+用户D1–D3及本轮直接授权已闭合，无需再等同步／产品选择：仅已有唯一schema44 journalArticle原值的准确题名；普通CSL保存不双写；差异或不能比较时须明确采用原值，Agent按用户明示指令选择，不确定先询问。复用当前真实library权威、原包及监督，不新增确认token／来源表，不改元数据表单。本节具体契约替代下文候选／逐次人工确认的历史措辞。
+
+- `zotero.inspect({libraryId,sources:[{sourceId,revision}]})`：最多100条，读取真实`library.get`与`record`，两次读取的共同revision及请求revision必须一致，否则contentChanged，不循环重读。唯一identity、schema44期刊、原title准确字符串缺失时unavailable。结果复用共同CSL／OriginalRecord／citationKey schema，带sourceId/revision、完整所选原值及identity、CSL、题名`equal/different`、其余字段`notComparable`。不声称题名相同代表全条目一致，结果编码总预算256KiB，超限明确拒绝。
+- `zotero.export`的每个source增加可选`expression: {kind:'zotero-original',identity:{instanceId,libraryLocator,objectKey}}`。缺少选择返回`state:'selectionRequired'`及上述可核查结果，不生成文本／不启动宿主；错identity或过期revision返回contentChanged。由于其余字段仍notComparable，本片每个选中对象都需要明确expression。选择齐备后按既有原包路径导出，返回`state:'exported'`、format/text及真实sourceId/revision/key/pinned/expression依据，完整关闭后再查共同CSL／record依据和read/send。
+- expression是受授权工具调用的**操作选择**，不是人类确认凭据。工具描述要求先核查、仅按用户明示采用原值，不能确定时询问；kernel不解析自然语言、不声称知道用户意图，也不接受`confirmed:true`替代实际identity/revision。不新建无法证明身份的确认token或审批仓储。既有broker可信调用上下文、库授权和P1持续外发登记继续生效，包括selectionRequired等含库内容的成功返回。
+- `zotero.replaceTitle({libraryId,requestId,sourceId,revision,identity,title})`：独立动作，准确字符串1–4096字符，不trim／规范化。先查原requestId，已有回执仅返回queried，不重放新的题名；首次从真实同revision读回唯一原值，核identity后完整保留对象，只替换fields.title，调用一次`commitRecords`，省略metadata/key，CSL／日期／creator全序／Extra／来源／正式键均不变。返回committed/rejected及真实receipt，发送后未获可验证回执返回outcomeUnknown，只按原requestId用`zotero.result`核查。没有原值级第二仓储／历史／修订。
+- GUI本轮只消费同源契约：现有选择提供sourceId/revision；inspect展示CSL与所选原值、题名差异及其余不可比较；明确采用原值才传expression，独立题名动作提交准确字符串及identity。文献下一轮在单一草稿／详情接入，不改CatalogItemForm或另建CSL草稿。
+
+实现所有权：`protocol/zotero.ts`及business生成映射提供DTO；`ZoteroOperations`集中读取／核对／选择及题名事务，kernel architecture仅增`library.get`及新生态操作；manual/CLI薄装配；`zoteroTools`新增核对／题名工具并保留rememberCatalog成功登记。host只适配导出结果tag／expression依据，JournalCatalog仍只投影共同original。library存储、原包、FileEdit、TaskResearchPort、报告授权、所有其他工具／恢复／标签不变。
+
+验证扩原`zotero-host.spec.ts`：旧代码先失败于未选择仍导出；新增真实共同库/原BBT反例涵盖CSL-only保留、selectionRequired无文本、明确选择两格式、题名更正保留其他值、CAS与错identity、缺值／多来源、未知回执原查询及实际Agent工具选择。原only-export撤权／重启P1和受影响监督保留代表回归。先build再test，测试期间不重建。Linux本机不关闭Windows／macOS、E6或整体I6。
+
+## 历史调查：CSL更正与原值导出差异方案（4b13183）
+
+**D1–D3已由用户确认。** 采用A＋B1：差异或无法比较时，导出前明确选择采用原值；Agent可依用户明确指令选择，不确定时询问。原值通过独立动作更正，首片仅已有唯一期刊原值的题名。决策事实源见[领域决定](../../../.scratch/domain-development/issues/08-zotero-ecosystem-constraints.md#csl-更正与原值导出的明确选择)。本节待决／未实施措辞记录4b13183调查时点的备选与依赖；当前实现以顶部具体DTO及delivery为准，不将推荐解释为每次必须人工点击。
 
 本轮交回的是调查与规划，尚无上述新行为的生产实现。当前基线`4b13183`已接收真实普通期刊切片及持续外发授权P1。当前差异、四阶段实跑和固定资源依据集中在[investigation当前节](investigation.md#当前调查csl更正与原值导出的差异4b13183)和[隔离证据](evidence/csl-original-4b13183/README.md)。本轮调查未修改library、zotero协议／host、harness或表单，也未重做监督方案。
 
@@ -105,7 +119,7 @@ stop仍在原有界预算内等待entry.work；超时保持unknown、原未决�
 
 设计基于[调查](investigation.md)，使用 codebase-design 的 deep module 检查：调用方只了解共同对象、操作及结果，宿主内部集中处理固定版本对象／SQL、原包环境、通知、Worker和生命周期。复用原生 Chromium、既有 broker、RPC 和领域保存；不另建插件市场、文献数据库或通用事件框架。
 
-用户已授权实施。当前独立H1实现为Electron主进程中的ZoteroHost、隐藏renderer／原Worker与显式注入的合成Adapter；下图仍是整体目标分层，broker／共同文献／长驻监督尚未接线，E1–E4标注处保持受阻。
+用户已授权实施。独立H1使用合成Adapter；当前隔离普通期刊路径已实际连接共同library、broker、HostConnection和受管Electron／原Worker。下图核对该真实分层，E1–E3只在现有普通期刊有界范围成立，E4已在Linux校准；复杂映射、E5/E6、跨平台和生产启用仍开放。
 
 ```mermaid
 flowchart LR
@@ -117,7 +131,7 @@ flowchart LR
   Compat --> BBT[未修改BBT 9.0.68]
   BBT -->|原Worker及translator| Chromium[隐藏Chromium与IndexedDB缓存]
   Compat -->|共同引用及受保护修改| Adapter
-  Adapter -->|E1 E2 E3 待领域契约| Library[文献领域唯一权威]
+  Adapter -->|E1 E2 E3 现有普通期刊| Library[文献领域唯一权威]
   Owner[共同宿主与平台] -->|E4 实例及完整归属| Main
   Library -->|已提交修订| Compat
 ```
@@ -126,9 +140,9 @@ flowchart LR
 
 ### Module、Interface 与可替换依赖
 
-在 `apps/zotero-host` 内实现 `ZoteroHost` Module，外部 Interface 只承担 `status`、`fillKeys`、`export` 和宿主私有 `start/close`；Item、DB、Notifier、加载器、资源映射及Worker属于内部实现。内核仅装配 `ZoteroHostConnection` Adapter，经共同broker注册。没有独立消费者前不预先新建生态 workspace 包。
+在 `apps/zotero-host` 内实现 `ZoteroHost` Module，外部 Interface 只承担 `status`、`fillKeys`、`export` 和宿主私有 `start/close`；Item、DB、Notifier、加载器、资源映射及Worker属于内部实现。内核由 `ZoteroOperations` 经broker注册，原包执行复用 `HostConnection`。没有独立消费者前不预先新建生态 workspace 包。
 
-H1的实际Interface见 `src/main/host.ts`：构造参数是可信资源目录、独立profile和 `HostCatalog` 注入端口，不是产品业务载荷；测试Adapter的整数ID及SQL留在fixture。`status`标明 `injected-adapter` 和生产缺失能力，`closed/localResourcesClosed`只表示局部资源释放，不替代OS进程归属确认。下文zotero操作及内核Adapter仍是受阻的目标，不因私有Module存在而注册成功替身。
+H1的实际Interface见 `src/main/host.ts`：构造参数是可信资源目录、独立profile和 `HostCatalog` 注入端口，不是产品业务载荷；测试Adapter的整数ID及SQL留在fixture。`status`标明 `injected-adapter` 和生产缺失能力，`closed/localResourcesClosed`只表示局部资源释放，不替代OS进程归属确认。真实隔离路径由JournalCatalog投影共同record，公共监督分别核对插件关闭、原生归属及已受理回调；不能把H1替身结果计为共同接线通过。
 
 真实变化处的 seam 只有两类：共同领域消费端口，以及宿主的原生资源／进程端口。测试可在这些位置换 Adapter；不为每个Zotero函数再加一层可替换包装。前者已有真实 `library.get/update/...` 与测试替身，后者使用已有Electron／platform实现及失联夹具。原包执行本身不能被替换后声称兼容通过。
 

@@ -1,6 +1,7 @@
 import type { FromSchema } from 'json-schema-to-ts';
 import { type CallArguments, OperationError } from './core.js';
-import { libraryRecordOperations } from './library-records.js';
+import { cslMetadataSchema } from './library-metadata.js';
+import { libraryRecordOperations, originalRecordSchema } from './library-records.js';
 import { count, id, object } from './schema.js';
 
 const selected = object({ sourceId: id, revision: count }, ['sourceId', 'revision']);
@@ -9,6 +10,23 @@ const scope = {
   sources: { type: 'array', minItems: 1, maxItems: 100, items: selected },
 } as const;
 const receipt = libraryRecordOperations['library.commitRecords'].result;
+const identity = originalRecordSchema.properties.identity;
+const expression = object({ kind: { const: 'zotero-original' }, identity }, ['kind', 'identity']);
+const inspection = object(
+  {
+    sourceId: id,
+    revision: count,
+    csl: cslMetadataSchema,
+    original: originalRecordSchema,
+    citationKey: libraryRecordOperations['library.record'].result.properties.citationKey,
+    comparison: object(
+      { title: { enum: ['equal', 'different'] }, remaining: { const: 'notComparable' } },
+      ['title', 'remaining'],
+    ),
+  },
+  ['sourceId', 'revision', 'csl', 'original', 'citationKey', 'comparison'],
+);
+const inspections = { type: 'array', minItems: 1, maxItems: 100, items: inspection } as const;
 const exportSources = {
   type: 'array',
   minItems: 1,
@@ -18,11 +36,35 @@ const exportSources = {
       sourceId: id,
       revision: count,
       citationKey: libraryRecordOperations['library.record'].result.properties.citationKey.anyOf[0],
+      expression,
     },
-    ['sourceId', 'revision', 'citationKey'],
+    ['sourceId', 'revision', 'citationKey', 'expression'],
   ),
 } as const;
 export const zoteroOperations = {
+  'zotero.inspect': {
+    params: object(scope, ['libraryId', 'sources']),
+    result: object({ sources: inspections }, ['sources']),
+    semantics: { effect: 'read', returns: 'result', waitMs: 5000 },
+  },
+  'zotero.replaceTitle': {
+    params: object(
+      {
+        libraryId: id,
+        requestId: id,
+        sourceId: id,
+        revision: count,
+        identity,
+        title: cslMetadataSchema.properties.title,
+      },
+      ['libraryId', 'requestId', 'sourceId', 'revision', 'identity', 'title'],
+    ),
+    result: object(
+      { requestId: id, state: { enum: ['committed', 'rejected', 'queried'] }, receipt },
+      ['requestId', 'state', 'receipt'],
+    ),
+    semantics: { effect: 'write', returns: 'result', waitMs: 5000 },
+  },
   'zotero.fillKeys': {
     params: object({ ...scope, operationId: id }, ['libraryId', 'sources', 'operationId']),
     result: {
@@ -47,19 +89,34 @@ export const zoteroOperations = {
     semantics: { effect: 'write', returns: 'result', waitMs: 30000 },
   },
   'zotero.export': {
-    params: object({ ...scope, format: { enum: ['bibtex', 'biblatex'] } }, [
-      'libraryId',
-      'sources',
-      'format',
-    ]),
-    result: object(
+    params: object(
       {
+        ...scope,
+        sources: {
+          ...scope.sources,
+          items: object({ sourceId: id, revision: count, expression }, ['sourceId', 'revision']),
+        },
         format: { enum: ['bibtex', 'biblatex'] },
-        text: { type: 'string', maxLength: 262144 },
-        sources: exportSources,
       },
-      ['format', 'text', 'sources'],
+      ['libraryId', 'sources', 'format'],
     ),
+    result: {
+      anyOf: [
+        object(
+          {
+            state: { const: 'exported' },
+            format: { enum: ['bibtex', 'biblatex'] },
+            text: { type: 'string', maxLength: 262144 },
+            sources: exportSources,
+          },
+          ['state', 'format', 'text', 'sources'],
+        ),
+        object({ state: { const: 'selectionRequired' }, sources: inspections }, [
+          'state',
+          'sources',
+        ]),
+      ],
+    },
     semantics: { effect: 'read', returns: 'result', waitMs: 30000 },
   },
   'zotero.result': libraryRecordOperations['library.commitResult'],
@@ -70,6 +127,7 @@ export type ZoteroInputs = {
 export type ZoteroOutputs = {
   [M in keyof typeof zoteroOperations]: FromSchema<(typeof zoteroOperations)[M]['result']>;
 };
+export type ZoteroInspection = FromSchema<typeof inspection>;
 export type ZoteroPort = {
   call<A extends CallArguments<ZoteroInputs>>(...args: A): Promise<ZoteroOutputs[A[0]]>;
 };

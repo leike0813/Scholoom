@@ -6,6 +6,20 @@
 
 ## ADDED Requirements
 
+### Requirement: 有界核对共同CSL与唯一期刊原值
+
+zotero.inspect SHALL 对最多100条选定sourceId／共同revision读取真实library.get及record，核对同一修订和唯一schema44 journalArticle原值identity。结果编码最多256KiB，题名比较明确equal或different，其余字段保持notComparable；不从相同revision或题名推出全条目一致，不扫描全库或无限重读。
+
+#### Scenario: 核对CSL-only更正
+
+- **WHEN** 用户更正CSL题名、日期或作者后读取所选修订
+- **THEN** 返回真实CSL、完整所选原值／identity和正式键；题名准确比较，其余字段保持不可比较，原值不自动双写
+
+#### Scenario: 读取期间竞争或原值不受支持
+
+- **WHEN** get／record与请求revision不一致，或缺原title、缺原值、多个原值或不支持形态
+- **THEN** 竞争返回contentChanged，缺值／不支持返回unavailable；不默认首个来源或从CSL猜原值
+
 ### Requirement: 原值表达的显式选择与题名更正
 
 普通 CSL 更正 SHALL 保留未明确修改的 Zotero 原值。两种表达不一致或无法比较时，BBT 导出 SHALL 在明确选择采用所选原值后进行；Agent 可依用户明确指令选择，不能确定意图时 SHALL 询问并等待，不以默认选择代替授权。选择及结果依据 SHALL 绑定实际来源身份和共同 revision，竞争变化后重新核查。
@@ -26,6 +40,16 @@
 
 - **WHEN** 用户明确提交唯一受支持原值的题名更正
 - **THEN** 共同提交只修改该原值题名，冲突保留原稿和已保存数据，不隐式同步 CSL 或其他原值字段
+
+#### Scenario: 结构化表达选择及实际导出依据
+
+- **WHEN** zotero.export请求所选sourceId／revision，其他字段仍不可比较
+- **THEN** 缺expression返回selectionRequired及核对依据，不启动宿主或返回文本；明确选择expression.kind=zotero-original及准确identity后，实际两格式导出返回exported及format／text／revision／正式键／expression，交付前复核权限和依据。选择沿既有可信工具边界，不接受boolean替代或新增伪身份token；成功返回继续登记持续库外发依据
+
+#### Scenario: 独立题名更正的竞争及未知回执
+
+- **WHEN** zotero.replaceTitle提交稳定requestId、共同revision、identity及准确非空title，或按同requestId再次调用
+- **THEN** 首次仅原title通过一次共同commitRecords更正；过期revision／identity拒绝，未知只查原requestId且不重放；已有回执返回queried，不声称新题名已执行，不另存题录／历史
 
 ### Requirement: 现有普通期刊的隔离共同接线
 

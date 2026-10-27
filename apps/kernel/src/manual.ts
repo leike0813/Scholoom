@@ -1765,6 +1765,14 @@ export class ManualApplication {
       if (context.principal.kind === 'agent') this.checkExecutionContext(context);
       return this.zotero.result(input, context);
     },
+    'zotero.inspect': async (input, context) => {
+      if (context.principal.kind === 'agent') this.checkExecutionContext(context);
+      return this.zotero.inspect(input, context);
+    },
+    'zotero.replaceTitle': async (input, context) => {
+      if (context.principal.kind === 'agent') this.checkExecutionContext(context);
+      return this.zotero.replaceTitle(input, context);
+    },
     'library.createSourceInstance': async (input) => this.library.createSourceInstance(input),
     'library.record': async (input) => this.library.record(input),
     'library.recordHistory': async (input) => this.library.recordHistory(input),

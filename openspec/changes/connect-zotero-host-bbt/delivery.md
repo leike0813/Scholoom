@@ -1,5 +1,53 @@
 # 实际交付与交接
 
+## 当前交付：明确原值选择与独立题名更正（R8）
+
+2026-10-27，基线及当前HEAD为`8a2f0ce522dfbab4110e63e84e542f6660e6115e`，本轮开始时clean。已按用户D1–D3直接实施隔离内核／Agent片；不再等待同步或产品选择，不应用旧累计patch。当前R8.1–R8.4完成，累计21/30；原change其余任务、完整I6、E5/E6、真实用户库和跨平台均未关闭。下文规划／等待是各轮历史，不能覆盖本节及design顶部当前DTO。
+
+### 实际行为与所有权
+
+- `protocol/zotero.ts`增加inspect／replaceTitle，export增加selectionRequired/exported分支与逐条expression；复用共同CSL／OriginalRecord／receipt，business映射仅增加四行。未修改library权威、原包、原值投影或存储台账。
+- `ZoteroOperations.read/inspect`实际经broker读取同revision的get／record及唯一schema44期刊identity；题名准确比较，其他字段始终notComparable，结果最多100条／256KiB。缺题名、多原值或不支持形态unavailable，修订竞争contentChanged，不反猜、扫描或循环重读。
+- `ZoteroOperations.run`在缺expression时返回核对结果，不创建profile／启动原包或给新文本。明确选择实际identity及revision后才沿既有HostConnection／受管Electron导出；关闭后复核共同依据和read/send，返回实际expression／revision／正式键。host的managed出口仅补结果tag和expression，无原包流程修改。
+- `replaceTitle`独立提交准确原title，完整保留其他原值、CSL、来源及正式键／pinned；复用一次共同commitRecords、CAS、稳定requestId及结果查询。已有回执返回queried，未知不重放。生产时限、容量、unknown及关闭保证未放宽。
+- manual／CLI与architecture仅添加两个生态操作，kernel消费增加library.get；harness增加`inspect_zotero_originals`、`replace_zotero_original_title`，保留原工具及所有成功结果的rememberLibrary→rememberCatalog登记。表达是可信调用边界内的操作选择；工具要求按用户明示选择、不确定询问，不把模型填boolean当人类授权证据。runtime／application及FileEdit／报告／TaskPort／programs未改。
+
+design变更总览已核对为当前真实隔离分层，先前候选／人工确认provider等待仅属历史。GUI交接契约：以实际sourceId/revision调用inspect，展示CSL与原值、identity、题名比较及其余不可比较；按明确选择提交expression。独立题名动作提交准确title及原identity/revision，成功后消费receipt.results中的新revision并刷新；CAS失败重新核对且保留草稿，未知用原requestId查询。复用文献单一草稿／详情，尚未实现GUI，不改CatalogItemForm或新建来源／同步表。
+
+### 首次失败、真实结果及命令
+
+Node24.12.0／TypeScript7.0.2／Electron44.5.1，Linux本机。沿固定资源清单使用已有BBT9.0.68原XPI `/tmp/scholoom-zotero-bbt-assets/zotero-better-bibtex-9.0.68.xpi`，夹具从原包隔离解包；未安装、下载或修改原包。日志统一前缀`/tmp/scholoom-zotero-r8-`，manifest和可审查增量在`/tmp/scholoom-zotero-r8-handoff-hggAcT/`。
+
+| 检查 | 实际结果／证据 |
+| --- | --- |
+| 先红：构建旧kernel／host后只跑explicit original selection | 预期1失败：未选expression仍返回BBT文本。red.log、red-results/及red-kernel-build.log／red-host-build.log保留 |
+| 首次实现构建／类型 | kernel-first.log保留TS2589/2590；将共同commit DTO先显式定型后kernel-second.log通过。tools-first.log保留TS18048；对真实核对结果增加缺失检查后tools-second.log通过 |
+| 初绿真实原包整合 | first-tests.log：10/10，包含新3项、既有100条／冲突／未知／撤权／实际worker工具／only-export重启 |
+| 最终构建 | 已安装tsc顺序构建protocol、harness、kernel，按原脚本复制migration和architecture；host目录用electron-vite build。final-{protocol,harness,kernel,host}-build.log均0退出 |
+| 受影响类型／格式／架构 | `tsc --noEmit -p tsconfig.tools.json`及host tsconfig通过，protocol／harness／kernel由构建检查；final-tools-types.log、final-host-types.log。Biome改动9文件0警告；architecture为14模块253文件0发现，分别final-biome.log／final-architecture.log |
+| 最终定向内核组合 | final-tests.log：48/48，2.4分钟。architecture5、broker4、HostConnection24、library-records2、实际Electron scope1、原包监督2、共同库／BBT10 |
+| 生成映射／规格／diff | final-generated.log中全部8份映射对最终schema及Biome格式逐字相同。strict首次仅因新增Requirement超过500字符返回1，openspec-first.log保留；去重并拆清核对契约及场景后final-openspec.log通过。probe的node --check及git diff --check通过 |
+
+最终组合命令（构建完成后执行，期间未重建产物）：
+
+```sh
+SCHOOLOOM_BBT_XPI=/tmp/scholoom-zotero-bbt-assets/zotero-better-bibtex-9.0.68.xpi node_modules/.bin/playwright test --config playwright.kernel.config.ts tests/kernel/zotero-host.spec.ts tests/kernel/zotero-host-supervision.spec.ts tests/kernel/zotero-host-scope.spec.ts tests/kernel/host-connection.spec.ts tests/kernel/library-records.spec.ts tests/kernel/broker.spec.ts tests/kernel/architecture.spec.ts --workers=1 --output=/tmp/scholoom-zotero-r8-final-results
+```
+
+新回归实际核对：CSL题名及日期范围／机构作者更正后完整原值和固定键保留；未选表达无文本，boolean额外字段invalidRequest；明确原值两格式保留原题名；独立更正后仅原title改变且两格式采用新值；稳定重复请求只查询、不执行不同新题名；实际CSL竞争拒绝旧CAS；缺题名／多来源／错identity拒绝。未知样本在真实共同提交后由订阅观察故意抛错，返回outcomeUnknown，原requestId查到committed且revision只增加一次。Agent用真实worker工具读取实际核对／回执后更正与导出，only-export持续外发P1在下一轮和重启均阻止新的模型请求。结果目录包含original-title.json、fill.json、两格式100条文本和harness.json。
+
+内部kernel／broker／library SQLite、WS、受管进程及原生归属、Electron、原BBT Worker均真实；题录／来源实例为合成输入。替身只有Agent外部模型HTTP的确定工具响应，以及未知回执用例的提交后观察故障注入；不替换共同存储／SQL／事务或用合成身份绕过生产授权。隔离配置、库、profile、项目和结果目录保留，测试关闭自己创建的执行；收尾未见本树managed host或kernel CLI残留。调查probe只做必要新契约调用迁移与语法检查，未重跑已接收四阶段研究。
+
+### 审查、增量依赖及停点
+
+只读独立审查（gpt-6.1-sol/high）核对同revision读取、无选择不启动、题名只改原字段、未知查询、薄注册及P1，未发现可确证缺陷；审查未执行构建／测试，实跑结论以上述日志为准。后续GUI独立消费时仍须验其真实交互和草稿保护；未把审查视为全平台或真实模型科研质量证明。
+
+本地`slice.patch`完整依赖当前8a2f0ce共同基线，另拆`contracts.patch`→`integration.patch`→`docs.patch`供符号审查：先同源schema／生成映射，再kernel／host／harness／注册／必要测试，再事实源文档。未要求独立拣取其中不完整子集，主线应按最终schema重核映射；不含历史累计patch或其他树私有实现。manifest列文件及日志，反向git apply --check只读验证补丁覆盖当前增量。
+
+最新外部CI仍为39be889／40432749785：Linux709通过9失败23跳过；Windows641通过54失败39跳过7未运行；macOS不可用校准2通过、人工入口3通过1失败。本轮不主动触发全仓、不修无关平台，不以Linux定向结果计Windows通过，也未重复整套H1 smoke、UI或真实模型科研验收。
+
+在本片后端／Agent和GUI消费者契约交回处停止。其他字段／多来源、自动双写或CSL导出、GUI接入、原值恢复／删除E6、生产装配及完整I6均未实施或关闭；没有真实库操作、依赖变更、开发服务器、提交／push／PR／归档或跨树操作。
+
 ## 第七轮主线接收及产品选择
 
 CSL／原值四阶段调查及原包证据已接收，主线在隔离库独立重跑evidence/csl-original-probe.mjs退出0；更正CSL后原值及导出保持，显式更正original题名才改变原包导出。用户已确认D1–D3：差异或无法比较时先明确选择采用原值，Agent可依用户明示指令选择、不确定询问；独立更正所选原值；首片仅唯一期刊原值题名。决策事实源为领域票08，design／delta spec及R6.4已更新，未将新政策记为已实现。

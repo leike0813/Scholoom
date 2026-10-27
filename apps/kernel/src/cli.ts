@@ -74,6 +74,8 @@ async function main() {
       'zotero.fillKeys',
       'zotero.export',
       'zotero.result',
+      'zotero.inspect',
+      'zotero.replaceTitle',
     ].includes(command ?? '')
   ) {
     const endpoint = await inspectKernel(directory);
@@ -88,6 +90,8 @@ async function main() {
         case 'zotero.fillKeys':
         case 'zotero.export':
         case 'zotero.result':
+        case 'zotero.inspect':
+        case 'zotero.replaceTitle':
           result = await client.call(command, JSON.parse(values.input ?? '{}'));
           break;
         case 'project-open':
