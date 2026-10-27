@@ -77,7 +77,7 @@ flowchart TD
 
 ## 续做入口
 
-当前起点为8a2f0ce522dfbab4110e63e84e542f6660e6115e，开始时工作区干净，主线已接收第10组并完成同步／定向复验。证据为 `/tmp/scholoom-round7-acceptance-SdxHy8/`。本轮只推进第11组：5.2／6.2中的新CI消费与窄夹具采样，不重复TeX或Linux全套，不使用旧累计patch，不再等待同步。Windows／macOS目标验证及整个change收尾分别开放。
+当前起点为0b788151b5e17665a26d9286dfd1d12f6e2e0c30，开始时工作区干净，主线已接收第11组并完成同步／定向复验。证据为 `/tmp/scholoom-round8-acceptance-UrXA7y/`。本轮只推进第12组两项Windows观察校准，不重复TeX或Linux全套，不使用旧累计patch，不再等待同步。完整change及目标验证按实际回执分别保持开放。
 
 ## 8. 公共同步后的实际消费
 
@@ -104,3 +104,9 @@ flowchart TD
 - [x] 11.1 对照39be889／40432749785及8a2f0ce已完成job／artifact：旧Windows只有并发入口失败、占锁释放已通过；新Windows专项成功但不含lifecycle两例，完整Checks查询截点仍运行。新macOS两次均连接，首失败是关闭后的process诊断TypeError，非始终连接中。缺口和首失败前安全附件分别记录，不轮询或自行触发CI。
 - [x] 11.2 关窗前缓存真实ChildProcess引用，关闭后不重读已释放Playwright映射；并发入口逐次返回时间、拒绝结果及断言前有界附件已补。先构建，受控观察API反例1红→1绿、Linux并发／占锁2项、普通真实Electron入口1项通过，无新生产机制或预算变化。
 - [x] 11.3 tools类型／两个源码格式／架构／strict／schema／diff通过，独立只读核对Playwright调用链和采样无新增确证问题。同一delivery记录首次无测试启动错误、有效红／绿、普通入口及目标缺口，交本轮增量补丁；5.2／6.2仍开放，到此停止。
+
+## 12. 剩余Windows平台观察
+
+- [x] 12.1 消费b2f3b50 artifact12710309824：旧发现PID8328从false变true，具体身份缺失；全窗口10事件无身份附件，7+2+1仅源码解释。0b78815新macOS不可用2／入口4／人工UI14通过，Windows完整Checks查询截点仍运行。未沿用旧54项清单或将Windows专项成功冒充本片验证。
+- [x] 12.2 两条真实占锁／竞争校准分别通过；全窗口观察按异步来源／ACL来源／成功退出严格核查，拒绝入口零派发，真实Node正校准及启动失败校准通过，原人工降级最终通过。首次URL不合schema和Node早期通道字段错误保留；先构建无重建，不改生产拒绝、停止、容量、PID或时限。
+- [x] 12.3 tools类型／两个源码格式／架构／strict／schema／diff通过；只读复核采样、锁保护及关闭失败保留profile，无新增确定缺陷。同一delivery与本轮独立增量交回，Windows新夹具／历史事件身份仍待目标回执，5.2／6.2保持开放；不再重复TeX，到此停止。

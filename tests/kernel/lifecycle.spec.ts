@@ -1,6 +1,7 @@
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
-import { access, mkdir, readFile, symlink, writeFile } from 'node:fs/promises';
+import { access, mkdir, readFile, symlink, unlink, writeFile } from 'node:fs/promises';
+import { type AddressInfo, createServer } from 'node:net';
 import { join } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import { expect, test } from '@playwright/test';
@@ -10,6 +11,7 @@ import { createKernelClient, KernelClientError } from '../../packages/client/dis
 import {
   errorInfoSchema,
   isBootstrapResult,
+  isKernelEndpoint,
   protocolVersion,
 } from '../../packages/protocol/dist/index.js';
 import {
@@ -115,68 +117,129 @@ test('stale discovery is replaced only after owned process exits', async () => {
   });
 });
 
-test('entries wait for occupied stale discovery and compete after it is released', async () => {
-  await isolatedKernel(async (directory) => {
-    await runningKernel(directory);
-    expect((await runKernel(directory, 'stop')).state).toBe('stopped');
-    const source = [
-      'const { DatabaseSync } = require("node:sqlite");',
-      'const db = new DatabaseSync(process.argv[1]);',
-      'db.exec("BEGIN EXCLUSIVE"); process.send({held:true});',
-      'process.once("message",()=>{db.exec("ROLLBACK");db.close();process.disconnect();});',
-    ].join(' ');
-    const holder = spawn(
-      process.execPath,
-      ['-e', source, join(directory, 'runtime', 'lifecycle.sqlite')],
-      {
-        stdio: ['ignore', 'ignore', 'ignore', 'ipc'],
-      },
-    );
-    const exited = once(holder, 'exit');
-    try {
-      await once(holder, 'message');
-      const occupied = await runKernel(directory, 'status');
-      await test.info().attach('lifecycle-occupied', {
-        body: JSON.stringify(kernelResultSummary(occupied)),
-        contentType: 'application/json',
-      });
-      expect(occupied.state).toBe('unknown');
-      expect(kernelResultSummary(occupied)).toMatchObject({
-        diagnostic: { discovery: true, lock: 'held', phase: 'process', processAlive: false },
-      });
-      const exhausted = await runKernel(directory, 'start');
-      await test.info().attach('lifecycle-availability-deadline', {
-        body: JSON.stringify(kernelResultSummary(exhausted)),
-        contentType: 'application/json',
-      });
-      expect(kernelResultSummary(exhausted)).toMatchObject({
-        state: 'unknown',
-        errorCode: 'unavailable',
-        diagnostic: {
-          phase: 'availability',
-          lastPhase: 'process',
-          discovery: true,
-          lock: 'held',
-          processAlive: false,
+for (const liveDiscovery of [false, true])
+  test(`occupied configuration preserves ${liveDiscovery ? 'live unreachable discovery' : 'undiscovered ownership'} and entries compete after release`, async () => {
+    await isolatedKernel(async (directory) => {
+      const endpoint = await runningKernel(directory);
+      expect((await runKernel(directory, 'stop')).state).toBe('stopped');
+      const filename = join(directory, 'runtime', 'endpoint.json');
+      // This stopped fixture owns its discovery; an exited PID is not permanently unavailable.
+      await unlink(filename);
+      const source = [
+        'const { DatabaseSync } = require("node:sqlite");',
+        'const db = new DatabaseSync(process.argv[1]);',
+        'db.exec("BEGIN EXCLUSIVE"); process.send({held:true});',
+        'process.once("message",()=>{db.exec("ROLLBACK");db.close();process.disconnect();});',
+      ].join(' ');
+      const holder = spawn(
+        process.execPath,
+        ['-e', source, join(directory, 'runtime', 'lifecycle.sqlite')],
+        {
+          stdio: ['ignore', 'ignore', 'ignore', 'ipc'],
         },
-      });
-      const entries = observedStarts(directory, 'lifecycle-after-release', 3);
-      await delay(500);
-      holder.send('release');
-      await exited;
-      const results = await entries;
-      expect(results.every((result) => result.state === 'running')).toBe(true);
-      expect(
-        new Set(
-          results.map((result) => (result.state === 'running' ? result.endpoint.instanceId : '')),
-        ).size,
-      ).toBe(1);
-    } finally {
-      if (holder.connected) holder.send('release');
-      await exited;
-    }
+      );
+      const exited = once(holder, 'exit');
+      const listener = createServer((socket) => socket.destroy());
+      let fakeDiscovery = false;
+      try {
+        await once(holder, 'message');
+        if (liveDiscovery) {
+          await new Promise<void>((resolve) => listener.listen(0, '127.0.0.1', resolve));
+          const address = listener.address() as AddressInfo;
+          const discovery = {
+            ...endpoint,
+            processId: holder.pid,
+            url: `ws://127.0.0.1:${address.port}/`,
+          };
+          expect(isKernelEndpoint(discovery)).toBe(true);
+          await writeFile(filename, JSON.stringify(discovery));
+          fakeDiscovery = true;
+        }
+        const expected = liveDiscovery
+          ? {
+              state: 'unreachable',
+              errorCode: 'unavailable',
+              diagnostic: {
+                phase: 'connect',
+                discovery: true,
+                lock: 'held',
+                processId: holder.pid,
+                processAlive: true,
+              },
+            }
+          : {
+              state: 'unknown',
+              errorCode: 'unavailable',
+              diagnostic: {
+                phase: 'lock',
+                discovery: false,
+                lock: 'held',
+              },
+            };
+        const occupied = await runKernel(directory, 'status');
+        await test.info().attach('lifecycle-occupied', {
+          body: JSON.stringify({
+            sampledAt: Date.now(),
+            holder: {
+              processId: holder.pid,
+              exitCode: holder.exitCode,
+              signal: holder.signalCode,
+            },
+            recordedPreviousProcessId: endpoint.processId,
+            result: kernelResultSummary(occupied),
+          }),
+          contentType: 'application/json',
+        });
+        expect(holder.exitCode).toBeNull();
+        expect(holder.signalCode).toBeNull();
+        expect(kernelResultSummary(occupied)).toMatchObject(expected);
+        const exhausted = await runKernel(directory, 'start');
+        await test.info().attach('lifecycle-availability-deadline', {
+          body: JSON.stringify({
+            sampledAt: Date.now(),
+            result: kernelResultSummary(exhausted),
+            lifecycle: await kernelLifecycleDiagnostics(directory),
+          }),
+          contentType: 'application/json',
+        });
+        expect(kernelResultSummary(exhausted)).toMatchObject(
+          liveDiscovery
+            ? expected
+            : {
+                ...expected,
+                diagnostic: { ...expected.diagnostic, phase: 'availability', lastPhase: 'lock' },
+              },
+        );
+        if (fakeDiscovery) {
+          const saved = JSON.parse(await readFile(filename, 'utf8'));
+          expect(saved.instanceId).toBe(endpoint.instanceId);
+          expect(saved.processId).toBe(holder.pid);
+          // Remove only our synthetic record; the production lock file is never removed.
+          await unlink(filename);
+          fakeDiscovery = false;
+        }
+        const entries = observedStarts(directory, 'lifecycle-after-release', 3);
+        holder.send('release');
+        await exited;
+        const results = await entries;
+        expect(results.every((result) => result.state === 'running')).toBe(true);
+        expect(
+          new Set(
+            results.map((result) => (result.state === 'running' ? result.endpoint.instanceId : '')),
+          ).size,
+        ).toBe(1);
+      } finally {
+        if (holder.connected) holder.send('release');
+        await exited;
+        if (fakeDiscovery) await unlink(filename);
+        if (listener.listening) {
+          const closed = once(listener, 'close');
+          listener.close();
+          await closed;
+        }
+      }
+    });
   });
-});
 
 for (const scenario of [
   { name: 'wrong token', change: { token: 'x'.repeat(64) }, code: 'authenticationFailed' },

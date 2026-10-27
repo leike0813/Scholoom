@@ -59,7 +59,15 @@ flowchart LR
 
 ### 当前CI基线（2026-10-27）
 
-最新完整基线为39be889／[40432749785](https://github.com/leike0813/Scholoom/actions/runs/40432749785)：Linux709通过9失败23跳过；Windows641通过54失败39跳过7未运行；macOS不可用校准2通过、人工入口3通过1失败。输入为 `/tmp/scholoom-round7-acceptance-SdxHy8/{ci-baseline-failures.log,ci-baseline-summary.json}`。Windows只有首批并发入口unknown，本轮占锁释放竞争已通过；Windows artifact 12706101417的失败trace仅有断言，无stage附件。macOS artifact 12702877587显示两次均连接，最终30s场景预算耗尽，不能沿用更早“第一次连接失败”的描述。
+最新完整基线为b2f3b50／[40447074031](https://github.com/leike0813/Scholoom/actions/runs/40447074031)：Linux734通过1失败23跳过；Windows715通过4失败39跳过；macOS人工UI13通过1失败且入口步骤通过。输入为 `/tmp/scholoom-round8-acceptance-UrXA7y/{ci-baseline-failures.log,ci-baseline-summary.json}`，不再沿用旧54项。只读下载Windows artifact 12710309824至 `/tmp/scholoom-project-execution-round8-MP5HIK/windows-b2f3b50.zip`，安全摘要同目录。
+
+占锁artifact只保留旧初次结果：发现PID8328、lock=held、processAlive=false；后来start失败差异为processAlive=true／unreachable／connect。没有holder PID或同时刻进程身份，不能定为PID复用、tasklist错误或holder归属。真实反例证明夹具不能保证已退出PID在整个期限内保持不存活；本片将未知等待与明确活PID不可达拆为两个可控输入，保留原生产分支。platform-availability artifact只有总计10，没有逐进程数据。源码可逐项解释initialize7／人工准备2／保存1次privateDirectory，Windows该函数每次execFile PowerShell设置ACL；五个被拒绝入口均先requireAvailable，无静态探测派发。该10项解释仍待Windows逐事件回执，不因数目相同假装已认定身份。
+
+0b78815的Checks [40454653610](https://github.com/leike0813/Scholoom/actions/runs/40454653610)实际查询到macOS job 122025046737成功：不可用校准2、入口4（关闭重开20.5s）、人工UI14项通过，日志macos-0b78815.log；上一轮app.process观察修正已有真实目标回执。受管执行仍不可用，不能把人工入口成功扩为计算可用。查询截点Linux／Windows仍在内核阶段，无新Windows artifact。Windows execution diagnosis [40454653566](https://github.com/leike0813/Scholoom/actions/runs/40454653566)已成功，但其范围不含本片两个剩余例，不替代目标验证。
+
+### 第七轮CI消费（历史）
+
+上一完整基线为39be889／[40432749785](https://github.com/leike0813/Scholoom/actions/runs/40432749785)：Linux709通过9失败23跳过；Windows641通过54失败39跳过7未运行；macOS不可用校准2通过、人工入口3通过1失败。输入为 `/tmp/scholoom-round7-acceptance-SdxHy8/{ci-baseline-failures.log,ci-baseline-summary.json}`。Windows只有首批并发入口unknown，本轮占锁释放竞争已通过；Windows artifact 12706101417的失败trace仅有断言，无stage附件。macOS artifact 12702877587显示两次均连接，最终30s场景预算耗尽，不能沿用更早“第一次连接失败”的描述。
 
 共同8a2f0ce新增CI已实际查询：Windows execution diagnosis [40445841861](https://github.com/leike0813/Scholoom/actions/runs/40445841861)完成成功（artifact 12708068789）；实际范围为重复执行10项、原生／命令16项、开发所有权2项、初次Electron3项，不包含lifecycle并发两例。Checks [40445842005](https://github.com/leike0813/Scholoom/actions/runs/40445842005)查询截点Linux／Windows仍在内核阶段，尚无Windows新artifact，不把运行中计通过。macOS job已完成失败，artifact 12708646055在 `/tmp/scholoom-project-execution-round7-A5Plk8/macos-8a2f0ce.zip`；两次连接及同实例断言成功，首轮关窗后running；第二次关窗后新增诊断再次调用app.process()，Playwright映射已释放而抛 `_object` TypeError。现有安全附件在首个实际失败之前已记录首轮WS认证／状态／退出；第二轮关闭附件被该异常阻断，不能补写不存在的退出收据。
 

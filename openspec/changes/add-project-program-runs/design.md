@@ -212,6 +212,16 @@ runtime合并还须保留Agent的instanceLifecycle.onStopping中childrenControll
 
 ## 待办边界
 
+### 共同0b78815后的剩余平台观察校准
+
+正式输入 `/tmp/scholoom-round8-acceptance-UrXA7y/`，完整基线b2f3b50／40447074031为Linux734通过1失败23跳过、Windows715通过4失败39跳过、macOS人工UI13通过1失败且入口已通过。Windows artifact 12710309824中同一发现PID8328先processAlive=false、后true／unreachable／connect；未记录当时的进程身份，不能声称holder复用或修改PID判据。夹具不应把已退出PID未来不被复用当作可保证输入。
+
+仅改直接测试：占锁校准以“无发现记录”和“发现PID明确指向仍存活的测试holder、可控loopback端口拒绝连接”分别构造unknown／availability和unreachable／connect。真实SQLite锁和ChildProcess生命周期不替换；记录holder句柄／发现PID／安全结果及采样时间，严格断言原生产分支。只移除本夹具自行写入的伪发现记录后释放holder并核对实际退出，再竞争同一真实kernel实例；不删除锁文件，不给生产自动清理或根据PID取得控制权。不声称此校准证明CI的具体PID复用原因。
+
+不可用测试保留原全窗口child_process订阅，按异步来源阶段和窄可执行文件／privateDirectory调用来源／退出收据记录，最多32项，超限或未知来源失败。源码推导ACL为initialize7、人工项目准备2、文件保存1；不是用固定10替代断言。仅初始化／人工阶段的Windows PowerShell且明确来自现有privateDirectory、成功退出可放行；五个拒绝入口中的任何子进程均失败，包括同名PowerShell。保留unavailable、无消息／run、材料load未调用、原容量断言。观察器用真实已知Node子进程校准，并证明同一事件若来自拒绝阶段会被拒绝；不记录argv、完整env或stack。内部库／项目／仓储不替换，Linux只替availability边界，Windows事件身份仍待目标回执。
+
+没有生产行为变化，不增加正式schema／状态或超时／重试。先build再最小独立校准及Linux回归，已有绿全套不重跑；新CI只读查询已完成job，不等待其他线。0b78815的macOS job现已成功，须以实际步骤日志区分不可用校准、入口与人工UI，不把其成功扩为受管计算可用。目标Windows修正后没有实跑仍开放，历史TeX不重跑。
+
 ### 共同8a2f0ce后的目标CI消费与采样修正
 
 正式输入为 `/tmp/scholoom-round7-acceptance-SdxHy8/`。39be889／40432749785的Windows并发入口在首批4个start返回后收到unknown；占锁释放竞争本轮已通过，不沿用上一轮“两例失败”。该基线没有本轮安全stage日志。8a2f0ce／40445841861的Windows execution diagnosis成功，但只覆盖开发所有权与初次Electron等定向路径，不含lifecycle并发两例。完整Checks 40445842005的运行中job不作通过结论。

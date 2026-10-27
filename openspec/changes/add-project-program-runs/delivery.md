@@ -2,7 +2,7 @@
 
 ## 当前状态与成果
 
-本轮起点为8a2f0ce522dfbab4110e63e84e542f6660e6115e，开始时工作区干净，主线已接收第10组并保全合入／同步复验。正式输入为 `/tmp/scholoom-round7-acceptance-SdxHy8/`，本轮只推进第11组的目标CI消费与窄夹具修正，不重跑TeX或Linux全套。TaskRef／TaskPanel／TaskPort、真实HarnessRecords委派恢复和programs已在本树，旧“缺私有提供者／等同步”条件失效。C1—C3、统一v6、各域接线、生态rememberCatalog持续授权及主线报告历史正文／save／undo来源拒绝均保留，未重用旧累计patch。Windows／macOS修正后目标验证及整个change最终交付仍开放。
+本轮起点为0b788151b5e17665a26d9286dfd1d12f6e2e0c30，开始时工作区干净，主线已接收第11组并保全合入／同步复验。正式输入为 `/tmp/scholoom-round8-acceptance-UrXA7y/`，本轮只推进第12组的两项Windows平台观察校准，不重跑TeX或Linux全套。TaskRef／TaskPort、各域恢复、工具／标签及既有报告／生态持续授权均保留，包括已接入的唯一checkReadable、子Evidence复查及原值独立更正／导出选择；未重用旧累计patch。本轮新夹具目标验证及整个change最终交付仍开放，上一轮关窗观察的macOS新回执见第八轮。
 
 第三轮同步证据仅保留当时结果：`/tmp/scholoom-sync-recovery-wyn13R/recovery.md`、`synchronized.json`及当时日志（主线65项内核／双宿主2项），不替代最新A/B验收。旧公共及累计patch均为历史工件，已合入共同1026796，不再次应用。用户允许本地补丁／提交；继续禁止推送、PR、归档、依赖下载／安装、真实库和开发服务器。
 
@@ -319,3 +319,46 @@ Avicenna（gpt-6.1-sol/high）只读核对旧Windows失败、Playwright销毁／
 下一输入为完整8a2f0ce Windows Checks的lifecycle条目及安全附件；若仍unknown，按每项returnedAt与stage.at核对最早可观察失败，再选择机制修复。macOS需要主线接入此夹具后真实目标entrypoints重跑；受管执行明确不可用继续与人工桌面应可重连分别表达。本轮无其他新产品或架构选择。历史nativeTeX unknown没有新增观察或根因结论，未重复TeX。
 
 交回目录中01-lifecycle-entrypoint-fixtures.patch只含两个直接测试文件，02-openspec-evidence.patch含同一change的design／investigation／tasks／delivery，README.md及manifest.json列8a2f0ce基线、来源及顺序；各patch仅反向git apply --check，不应用或回滚。第11组完成，进度35/37，5.2／6.2整项仍开放；不提交／推送／PR／归档、操作其他树或自行展开后续阶段。
+
+## 第八轮：共同0b78815后的剩余平台观察校准
+
+### 输入、诊断与边界
+
+当前HEAD保持0b78815；正式验收／同步／回执及最新基线日志沿 `/tmp/scholoom-round8-acceptance-UrXA7y/`。已读并行计划“第八轮验收后的收敛安排”、职责及原change，apply初始35/37。本轮证据目录 `/tmp/scholoom-project-execution-round8-MP5HIK/`，不应用历史patch，不操作其他树。
+
+最新完整Checks b2f3b50／40447074031为Linux734通过1失败23跳过、Windows715通过4失败39跳过、macOS人工UI13通过1失败且入口通过，不再使用旧54项清单。只读下载Windows artifact 12710309824为windows-b2f3b50.zip，lifecycle-b2-safe.json／availability-b2-safe.json保存安全附件摘要。后者原trace没有逐进程附件。
+
+占锁场景首个附件为发现PID8328／lock=held／processAlive=false；后续start返回unreachable／connect／processAlive=true。没有同刻进程身份或holder PID，不能宣称holder复用、tasklist错误或锁被夺取。证据只确定“已退出PID在整个等待期始终不出现”不是受控前提。原生产在活PID且连接不可达时保守返回unreachable，不能为符合旧断言将它改unknown或清锁。
+
+不可用测试在initialize之前订阅全局child_process，持续到人工保存／题录操作之后，混计合法平台操作与禁止的受管派发。源码逐项可解释Windows私有目录ACL共7+2+1：library及materials2、Projects初始化／系统项目3、programs1、harness待交付目录1；人工项目内部目录／harness2；保存候选目录1。唯一对应实现为privateDirectory的PowerShell ACL操作；本例没有显式环境／排版工具探测。这个分布是源码解释，与10相等不证明历史10个事件身份，仍待目标逐事件核对。
+
+0b78815 Checks40454653610的macOS job122025046737已真实成功，日志macos-0b78815.log：不可用校准2、入口4（关闭重开20.5s）、人工UI14项通过。上一轮app.process观察修正有了新目标回执；不等于更早连接失败根因已解释或macOS受管执行可用。checks-jobs-initial／followup.json查询截点Linux／Windows仍在内核阶段，无新Windows Checks artifact。Windows专项40454653566已成功，diagnosis-run.json保留来源；其workflow不包含本片两项剩余例，不能代替本片目标校准。没有轮询等待或触发CI。
+
+### 实际变化及验证
+
+生产源码无改动。lifecycle.spec.ts将旧不受控PID前提改为两个可控用例：真实SQLite holder持锁且无发现记录，严格验证unknown／availability；另一个发现记录明确指向仍活着的holder PID及本测试loopback拒绝端口，严格验证unreachable／connect及伪记录未被替换。记录真实holder句柄退出字段、旧发现PID和安全结果／采样时间，PID仅为观察，不产生控制权。移除的只是已停止配置的发现记录和本测试伪记录，锁文件始终保留；等待holder实际退出，再让三个入口竞争同一真实新内核实例。原500ms夹具延迟移除，不用sleep推定竞争已到达某阶段。
+
+platform-availability.spec.ts保留全窗口原始总计，不清零，不只观察某几个入口。最多32个窄事件，超限失败；用AsyncLocalStorage固定异步来源阶段，迟到事件不会变成人工阶段。仅Windows初始化／人工准备／保存阶段、PowerShell basename、同步栈明确来自platform privateDirectory、真实成功退出才放行；五个拒绝入口不设任何豁免。未知来源、未确认退出、失败或其他命令仍失败。同步栈只转为来源布尔，不保存完整栈、argv、环境或脚本。Node通道在构造器早期发布，来源同步固定，身份在spawn/error及exit时更新；error负退出码可知但不伪造exit收据。
+
+观察器独立校准使用一个真实Node子进程、跨异步阶段触发及另一个不存在的可执行文件；核对原ChildProcess PID／退出和启动失败负码。合成窄事件只用于分类器输入校准，证明同名PowerShell在拒绝阶段、未知来源或无停止收据时仍拒绝，不计Windows ACL实跑。原unavailable、无消息／run、材料load未调用及容量断言完整保留。关闭失败时保留profile，安全附件仍尝试写出；不因清理失败删除未退休配置。
+
+| 实际命令／阶段 | 结果及证据 |
+| --- | --- |
+| pnpm --config.optimisticRepeatInstall=false build:shared | 通过，build-shared.log；此后没有在测试期间重建产物，也未安装／下载依赖或启动开发服务器 |
+| tools首次／格式检查 | 初版tools遗漏仍被其他用例使用的delay import，tools-first.log失败；已恢复该import。初版格式差异保留，最终tools／两个源码Biome通过，tools-verified.log／biome-final.log |
+| node node_modules/@playwright/test/cli.js test --config playwright.kernel.config.ts tests/kernel/lifecycle.spec.ts --grep 'occupied configuration preserves' --output 证据目录/lifecycle-results | 首次 **1通过1失败**：无发现记录37.8s通过；我构造的loopback URL漏协议要求的结尾斜杠，真实schema正确拒绝instanceMismatch。lifecycle.log及trace保留；不是Windows根因复现 |
+| 同文件 --grep 'preserves live unreachable' --output 证据目录/lifecycle-live-green-results | 按现有schema修正URL并增加isKernelEndpoint前置核对后 **1/1通过，31.1s**，lifecycle-live-green.log；真实活holder／不可达／原记录保护及释放后竞争通过。无发现记录前次通过未重复 |
+| 同配置 tests/kernel/platform-availability.spec.ts，output availability-first-results | 首次 **2通过1失败**，availability-first.log：声明RPC与人工降级通过；真实Node正校准发现构造时spawnfile=null，初版观察器过早读取而失败，防止无事件的Linux用例假绿 |
+| 同文件 --grep 'child process observation'，output observer-green-results／observer-final-results | 调整采样时序后 **1/1通过，11.6s**；只读复核发现error无exit时负码遗漏，补identify及真实启动失败校准后最终 **1/1通过，11.5s**，observer-final.log。exited只由真实exit置true |
+| 同文件 --grep 'unavailable execution refuses'，output availability-final-results／availability-cleanup-results | 最终观察器 **1/1通过，12.7s**；恢复关闭失败保留目录后定向 **1/1通过，13.8s**，availability-cleanup.log。五入口均拒绝，无派发／消息／run、load=false、容量及人工文件／题录／会话通过 |
+| architecture／OpenSpec／diff | 14模块253文件0 findings；本change strict、scholoom-dev schema及最终diff核对通过。无schema／生成映射／正式规格变化，不新增平行声明；原图与不变控制时序核对 |
+
+以上均为Linux、既有Node24.12.0及已有依赖。没有UI改动，不重建桌面或重复已绿UI／35项lifecycle全套；未使用开发样例或Vite。真实范围为内核／broker／文件／SQLite锁、CLI、Node子进程／回执及loopback连接。替身限非macOS的原availability getter，以及测试自有伪发现记录／拒绝端口和分类器窄输入；没有替换仓储／worker、使用模型或真实用户库。没有重复TeX，历史unknown根因仍未闭合。
+
+### 审查、待输入与交回
+
+Ptolemy原生辅助使用gpt-6.1-sol/high、fork_context:false，先只读追踪7+2+1与拒绝边界，再仅实施platform-availability夹具；父负责设计、lifecycle、首次失败及实际运行。父审修正了早期Node通道字段时序、错误收据及清理保护。辅助随后只读复核两份最终源码，未发现新增确定缺陷，未构建／测试。新观察器的Windows实际privateDirectory来源／成功退出字段仍待目标校准，不把合成分类器结果当目标证据。
+
+下一输入是主线接入本片后Windows两类校准的安全附件：holder PID／发现记录／锁／结果时点，以及全局事件的异步阶段／ACL来源／退出收据。旧PID8328当时具体身份仍缺，不猜生产机制修复。最新macOS旧入口修正回执已消费，但本轮新夹具目标矩阵仍未实跑，5.2／6.2整项保持开放。无新增产品／架构决策；其余两个Windows失败沿所属生态／Agent线，不并改HostConnection或harness推进。
+
+本轮交回同目录01-lifecycle-calibration.patch、02-unavailable-execution-observer.patch及03-openspec-evidence.patch，前两份为独立直接测试增量，第三份为所属四工件；README／manifest列0b78815基线与回归／待验输入。各patch仅反向git apply --check，不应用或回滚。最后一次只读Checks查询仍是Linux／Windows运行中、macOS成功，checks-final-query.json保留截点；不继续轮询等待。第12组完成，38/40，5.2／6.2继续开放。测试正常收尾，无本轮内核残留，辅助已结束。到此停止，不提交／推送／PR／归档、同步其他树、接用户库或扩环境／Graph／远端／发布。
