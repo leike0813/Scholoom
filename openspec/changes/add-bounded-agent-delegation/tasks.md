@@ -49,7 +49,7 @@ flowchart LR
 ## 4. 收尾、重启及基线故障证据
 
 - [x] 4.1 扩展execution-isolation、capability-stop-unknown／harness-recovery中适用机制并补通用委派行为：子崩溃、父正常退出／失败、局部与父链取消、已受理保存未收尾、停止未知保占用、旧实例迟到。重启查询保原结果且无新模型请求；新父推进先核查旧效果，不重用旧ID重启，不从根PID消失释放保护。完成依据：实际进程及领域操作，不能以AbortSignal或RPC返回替代停止确认。
-- [ ] 4.2 最新已完成完整CI基线为b2f3b50/40447074031：Linux734通过/1失败/23跳过，Windows715通过/4失败/39跳过，macOS人工UI13通过/1失败。原日志与分组在`/tmp/scholoom-round8-acceptance-UrXA7y/ci-baseline-{failures.log,summary.json}`；Windows剩余为host-connection、lifecycle、附件首次完成等待、platform-availability，不沿用旧54项。0b78815的40454653610在2026-10-27 05:34:45 UTC查询时仍运行；40454653566定向已成功，但不含本片完整取消或附件例。第13组已完成Linux分阶段修正，仍需修改后目标结果，不改生产时限/停止/容量；宿主发现/重启归计算牵头，不并改bootstrap。
+- [ ] 4.2 最新已完成完整CI基线为caf9025/40455958976：Linux743通过/1失败/26跳过，Windows687通过/41失败/42跳过，macOS人工UI13通过/1失败、fallback2/2、入口4/4。原日志与分组在`/tmp/scholoom-round9-acceptance-IER31D/ci-baseline-*`，不沿用旧4失败清单。4312262的Windows诊断40476577132已completed/failure；agent三例逐例均失败，实际为模型0请求、run queued/指令accepted且未到委派或reader，不能据用例名归取消/附件故障。原附件与初始化前后缺证见delivery。新Checks40476577071在2026-10-27 09:06:51 UTC查询仍运行，不推最终状态。当前增量仍需目标实跑；不改生产期限/停止/容量，跨域启动问题交主线/计算。
 - [ ] 4.3 Linux与Windows真实验证两个受管执行、产物回读、取消和重启，按4.2诊断修复影响验收的基线失败后定向复验；macOS核对明确不可用与人工保留。复用`tests/execution-diagnostics.ts`并附阶段材料；同组基线仍失败时如实记录，不把Linux通过当三平台完整能力。
 
 ## 5. 现有会话内呈现与设置
@@ -76,7 +76,13 @@ flowchart LR
 
 ## 续做入口
 
-本轮基线0b788151b5e17665a26d9286dfd1d12f6e2e0c30，公共增量已同步。第13组只收敛取消代表例的设置/观察边界，使用主线独立时间线，不把父首次模型前的失败称子取消失败。现有产品取消/停止/容量及其他域修复保持不变。
+本轮基线4312262c1a1f432ccd706dd1eb6ff6468765fd4e，公共增量已同步。第13组已接收，取消/excerpt不再沿旧设置失败描述；第14组只核第二个附件reader的首次失败与局部因果。保留导入段已完成的独立证据及全部既有授权/恢复。
+
+## 14. 第二个附件reader的独立观察
+
+- [x] 14.1 在readScope发送和首断言前复用独立observer，保留原首次失败、模型/工具/实例阶段与停止前末状态；导入与reader按实际session分开，不能借用已停止的导入observer推断reader。完成依据：reader-red两份独立scope附件，reader起点模型计数2、首次失败4027ms/最后实例stopping；原helper无新增机制。
+- [x] 14.2 用原时限红测和必要隔离观察核对reader的模型请求、工具开始/回执及实际停止；局部因果闭合后先补设计再修最小夹具点，或交精确跨域/缺证方案；保留原字节和权限断言，不改生产期限。完成依据：临时reader-observed保留4022ms原失败，4390ms同run已completed/实例exited、实际模型字节匹配；设计补证后仅reader轮询改[100,250]，原5秒不变。正式组合reader4910ms完成且原字节断言通过；后续撤权新指令等待仍失败，不扩修。
+- [x] 14.3 先构建后运行附件/cancel/excerpt最小组合及静态检查，核4312262新Windows诊断逐例结果；保留首次失败与最终结果，取delivery instructions更新同一交付记录并导出独立增量后停止，不关闭平台/科研整项。完成依据：组合2通过/1失败，最后失败在撤权后新指令等待failed（当前190行），原reader observer已完成，不能解释新阶段。类型/Biome/OpenSpec/diff及补丁检查通过；Windows原三例目标失败证据已消费，尚无本增量目标结果，见delivery当前节。
 
 ## 13. 父子启动后的真实取消
 
