@@ -2,7 +2,7 @@
 
 ## 当前状态与成果
 
-2026-10-27最新状态：共同HEAD已为 `4b13183f7489d3cae12fd0a7d1a9e83fb33d7384`，I1、M2和通用worker TaskPort均已接收同步。本轮4.4c项目侧可选消费核对闭合，project-backend两项CI红例经测试资格seam修正，相关35例通过；没有生产业务改动。详见末节“共同整合后的消费核对与后端夹具”。原值来源身份已有实际提供者，4.1仅完整库分类／恢复和主题知识等保持开放，不代表整个change完成。下方旧阶段结果和补丁只作历史证据，不再应用旧累计补丁或等待同一同步。
+2026-10-28最新状态：共同HEAD为 `938c33f2c9fcafb2cce11b0c165b2fb1e9a818c3`，I1／4.4c已接收，4.1仍待完整库删除／恢复及主题知识提供者。本轮只读核对旧Checks40479176954的file-workbench双宿主两个场景：Browser均已有成功session.send回执及accepted／queued快照，Electron实际窗口RPC未留存；不能定为保存／草稿丢失或共同初始化根因。详见investigation末节及本记录末节。只改这两份工件，不改生产／测试、不复跑UI，不关闭整个change。下方旧阶段结果及补丁保留历史，不再应用旧累计补丁或等待同一同步。
 
 2026-10-25，文件任务核心已实施并独立验收；第一阶段为9/13项，第二阶段增量和最新15/19进度见末节。当前仍是局部交付，I1未验收，不能归档。用户先要求“实现该change”，随后允许锁定依赖及隔离双宿主验收，本轮又明确授权主线快照消费、公共补丁及M2／I1规划。未提交、推送或创建PR，未读写真实用户库，未操作其他真实工作树。HEAD仍为`e3d58fc807827a78493dcd16e38de28c8d02766e`。
 
@@ -254,3 +254,34 @@ UI首次`ui-first.log`因/tmp配置未声明ESM而未启动测试，补临时pac
 本轮没有需主线猜定的新产品选择或需跨域资格补丁的生产反例。到4.4c消费核对及后端夹具增量交回停止，4.1保留开放；不展开科研角色／Graph、库删除恢复、远端或发布，不提交／推送／PR／归档。补丁及最终任务进度见本节收尾记录。
 
 收尾：apply为**27/28、ready**，仅4.1未完成。可审查补丁为`/tmp/scholoom-project-round7/001-project-backend-fixture-and-consumption.patch`，直接依赖4b13183，无旧累计patch依赖；文件前后sha256见同目录`manifest.json`。写集仅project-backend测试及本change的tasks／delivery／design／investigation共5文件，没有新文件、公共生产符号或协议变化。临时index／object目录验证基线可应用，反向check与当前树一致，真实index与HEAD未变，`patch-verification.log`保留结果。未创建提交，辅助Agent已关闭，所有本轮测试执行均已结束，无UI／后台服务留待收尾；测试结果及登记项目保留供主线复核。
+
+## 2026-10-28：file-workbench首模型前的只读交接
+
+本片按“第十轮验收后的收敛安排”只调查指定两场景四次失败。开始git clean、HEAD938c33f；失败源为Checks40479176954／8c2fd24534001a9724f9c008482d404c336a5a07，Linux内核746通过／26跳过、UI126通过／32失败／4跳过。没有将别轮Windows计数、尚未完成的新run或本机历史结果当作本次通过。
+
+详细逐例边界、身份表、已执行文件动作及所属提供者统一在[investigation](investigation.md#2026-10-28file-workbench双宿主首模型计数的只读取证)末节。实际证据根`/tmp/scholoom-file-workbench-r10-jFEF4T/`：`bounded-evidence.json`汇总四例，Browser各自`trace-content/kernel-websocket.jsonl`保留原帧一基行号，`focused-rpc.json`提供去认证载荷的相关回执。`run-source.json`、`artifact-source.json`核run/head及artifact12728680109来源，`artifact-inventory.json`与`selected-manifest.json`记录目录和20项SHA256。
+
+| 指定例 | 已证最早边界／未证及交回 |
+| --- | --- |
+| 文件预览／改名回收场景，Browser，原111行 | 一次session.send RPC130成功受理，run `97a4c35d-dd58-4838-aec6-dfc229cc214e`；后续accepted／queued，首个可计数模型HTTP仍0。之前文件保存有成功回执及磁盘断言，未保存段落保留在编辑器／预览；后续大文本、目录改名、回收恢复未执行。交Agent核受理后阶段，项目无确证保存缺陷 |
+| 同场景，Electron，原111行 | 实际UI点击及0计数断言有test.trace；实际窗口network为0字节，发送、受理、session/run／worker身份无法绑定。公共UI夹具先补真实窗口RPC和清理前状态，不套Browser结论 |
+| 多项目草稿切换，Browser，原400行 | 一次Alpha消息session.send RPC195成功受理，run `cae289fd-3050-4899-b3fc-11059247d6b7`；后续accepted／queued且模型计数0。之前两项目初始文件已写入，切换保留草稿断言已通过；UI无新草稿保存请求，Beta后台发送及后续完成断言未执行。交Agent独立核该run |
+| 同场景，Electron，原400行 | 实际UI操作及0计数断言可核，窗口RPC／snapshot同样缺失，不能确证与其他三例同因。归公共夹具补身份链及Agent消费侧核对 |
+
+Browser两例的最后watch仅分别在09:52:21.526Z和49.246Z；queued不能区分进程准入、worker initialize、指令消费或model.acquire。内核bootstrap PID23524／23710不是worker PID，未保留worker实例／PID／准入或模型前阶段，目标项目／配置又被原finally清理，不能事后查询其DB。Browser的kernel.stopping分别晚于原计数断言约1.1秒；清理后的“Not connected…草稿已保留”不作为首因。没有以相似queued或请求0猜同一初始化缺陷，没有增加等待／改期限／改model-server，也没有在项目树并改harness。
+
+### 实际取证操作与证据边界
+
+| 操作 | 结果 |
+| --- | --- |
+| `git status --short`、`git rev-parse HEAD`、`git show/diff 8c2fd24 HEAD -- <相关路径>` | 起点clean、938c33f。测试／模型夹具／UI配置／workflow及harness核心逐字节相同；当前lifecycle和kernel-fixture新增诊断不能倒写成旧CI证据。精确hash见source-comparison.json |
+| `openspec instructions apply --change establish-file-backed-research-tasks --json` | scholoom-dev，27/28、ready，只有原4.1未完；本片不改tasks或规格 |
+| `gh api repos/leike0813/Scholoom/actions/runs/40479176954`及其artifacts元数据 | 真实完成run/head匹配，目标Linux artifact未过期。只读本仓库，未触发CI或查询外项目线程 |
+| artifact12728680109的只读选取、`unzip -t <四份trace.zip>`、Node解析trace／network的WebSocket JSONL | 四份trace校验通过；选取20文件，内嵌测试源码全与CI／当前树一致。Browser请求／回执／watch已绑定；Electron network为空，目标UI profile／项目DB／worker stderr不在artifact |
+| `openspec instructions delivery --change establish-file-backed-research-tasks --json` | 实际取证后获取并更新本记录；无业务实施结果或修复通过结论 |
+
+首次完整archive下载较慢，已停止自己拥有的下载；suffix Range返回200、单个大Range超时均保留原记录。改用明确首尾偏移及256KiB分块取得**同一artifact的目标成员**，不是重跑测试或重试业务。`diagnostics-ubuntu-latest.zip`及`artifact-complete.zip`均为停止后的不完整下载，不能作完整有效archive；有效证据是selected目录的四份校验通过trace及对应成员，清单可复查。未安装依赖、未启动服务或触碰真实用户库。
+
+同模型只读辅助Agent独立核源码版本、承载、模型替身及断言前后动作；父端实际提取artifact并核WebSocket回执。辅助Agent已关闭，没有跨树消息或常驻协调。外部HTTP模型是既有受控边界；真实UI、broker、harness及文件操作未替换。model.hold发生在requests.push之后，不能解释已登记请求计数0；但计数0也不足以排除路径／JSON或更早执行阶段。
+
+本片到“Browser已受理后缺执行细分、Electron先缺窗口身份链”的精确缺证交回停止。Agent及公共夹具按investigation中的绑定身份／字段补证；项目侧本轮无确证业务缺口可修。没有运行构建／本机UI／全量测试：仅文档修改无需重建，且不得用静态普通产品复跑替代旧CI的开发承载。无新增生产符号／协议／映射、无提交／推送／归档；I1／4.4c接收不变，4.1及完整change、科研质量继续开放。
