@@ -54,7 +54,8 @@ test('project documents and library text share opening while project sessions an
       .poll(async () => (await client.call('library.batch', { batchId: batch.id })).batch.state)
       .toBe('completed');
     const entry = (await client.call('library.batch', { batchId: batch.id })).entries[0];
-    assert(entry?.attachmentId);
+    assert(entry?.attachmentId && entry.sourceId);
+    const sourceId = entry.sourceId;
     await installRpcGate(uiPage);
     await uiPage.goto(rendererUrl);
     await expect(uiPage.getByRole('status', { name: '连接状态' })).toContainText('已连接');
@@ -124,9 +125,44 @@ test('project documents and library text share opening while project sessions an
       'Replacement must remain intact\n',
     );
     await uiPage.getByRole('button', { name: '文献库', exact: true }).click();
-    await uiPage.getByLabel('查找题录', { exact: true }).fill(libraryName);
-    await uiPage.getByRole('option').filter({ hasText: libraryName }).click();
-    await uiPage.getByRole('button', { name: `打开 文本 ${libraryName}`, exact: true }).click();
+    const panel = uiPage.getByRole('region', { name: '文献库', exact: true });
+    await panel.getByLabel('查找题录', { exact: true }).fill(libraryName);
+    await panel.getByRole('option').filter({ hasText: libraryName }).click();
+    const expand = uiPage.getByRole('button', { name: '展开右区', exact: true });
+    if (await expand.isVisible()) await expand.click();
+    const detailsTab = uiPage.getByRole('tab', { name: '文献详情', exact: true });
+    await detailsTab.click();
+    const detail = uiPage.getByRole('region', { name: '题录详情', exact: true });
+    const json = detail.getByLabel('题录 CSL JSON', { exact: true });
+    const libraryRecord = await client.call('library.get', { sourceId });
+    const metadataDraft = {
+      ...libraryRecord.metadata,
+      extension: { nested: ['Preserved across auxiliary and project switches'] },
+    };
+    await expect
+      .poll(async () => JSON.parse(await json.inputValue()))
+      .toEqual(libraryRecord.metadata);
+    await json.fill(JSON.stringify(metadataDraft));
+    await uiPage.getByRole('button', { name: '折叠右区', exact: true }).click();
+    await expect(uiPage.getByRole('complementary', { name: '辅助区（已折叠）' })).toBeVisible();
+    await expand.click();
+    await expect(detailsTab).toHaveAttribute('aria-selected', 'true');
+    await expect.poll(async () => JSON.parse(await json.inputValue())).toEqual(metadataDraft);
+    const auxiliary = uiPage.getByRole('complementary', { name: '辅助面板', exact: true });
+    await auxiliary.getByRole('tab', { name: '任务', exact: true }).click();
+    await expect(auxiliary.getByRole('region', { name: '任务', exact: true })).toBeVisible();
+    await auxiliary.getByRole('tab', { name: '文件', exact: true }).click();
+    await expect(auxiliary.getByRole('region', { name: '文件', exact: true })).toBeVisible();
+    await detailsTab.click();
+    await expect.poll(async () => JSON.parse(await json.inputValue())).toEqual(metadataDraft);
+    await uiPage.getByRole('button', { name: '项目程序运行', exact: true }).first().click();
+    await expect(uiPage.getByRole('region', { name: '项目程序运行', exact: true })).toBeVisible();
+    await uiPage.getByRole('button', { name: '文献库', exact: true }).click();
+    await expect.poll(async () => JSON.parse(await json.inputValue())).toEqual(metadataDraft);
+    expect((await client.call('library.get', { sourceId })).metadata).toEqual(
+      libraryRecord.metadata,
+    );
+    await detail.getByRole('button', { name: `打开 文本 ${libraryName}`, exact: true }).click();
     const librarySource = uiPage.getByRole('textbox', {
       name: `文件内容 ${libraryName}`,
       exact: true,
@@ -183,6 +219,15 @@ test('project documents and library text share opening while project sessions an
     await expect(librarySource).toContainText('Library readonly');
     await expect(betaSession).toHaveAttribute('aria-pressed', 'true');
     await alphaSession.click();
+    await uiPage.getByRole('button', { name: '文献库', exact: true }).click();
+    if (await expand.isVisible()) await expand.click();
+    await detailsTab.click();
+    await expect.poll(async () => JSON.parse(await json.inputValue())).toEqual(metadataDraft);
+    await detail.getByRole('button', { name: '保存题录更正', exact: true }).click();
+    await expect
+      .poll(async () => (await client.call('library.get', { sourceId })).metadata)
+      .toEqual(metadataDraft);
+    await expect(alphaSession).toHaveAttribute('aria-pressed', 'true');
     await uiPage.getByRole('tab', { name: /note\.md/ }).click();
     await expect(source).toContainText('Project unsaved draft');
     await uiPage.getByRole('button', { name: '保存文件', exact: true }).click();

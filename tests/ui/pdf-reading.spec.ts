@@ -62,6 +62,7 @@ test('local PDF reader shares selected highlights, bookmarks and notes through t
     const open = async () => {
       await uiPage.getByLabel('查找题录', { exact: true }).fill(name);
       await uiPage.getByRole('option').filter({ hasText: name }).click();
+      await uiPage.getByRole('tab', { name: '文献详情', exact: true }).click();
       await uiPage.getByRole('button', { name: `打开 PDF ${name}`, exact: true }).click();
     };
     await open();

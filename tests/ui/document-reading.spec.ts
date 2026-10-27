@@ -95,6 +95,7 @@ for (const format of ['epub', 'html'] as const) {
       await uiPage.getByRole('button', { name: '文献库', exact: true }).click();
       await uiPage.getByLabel('查找题录', { exact: true }).fill(name);
       await uiPage.getByRole('option').filter({ hasText: name }).click();
+      await uiPage.getByRole('tab', { name: '文献详情', exact: true }).click();
       const open = uiPage.getByRole('button', {
         name: `打开 ${format === 'epub' ? 'EPUB' : '网页'} ${name}`,
         exact: true,
@@ -221,6 +222,7 @@ for (const format of ['epub', 'html'] as const) {
       await uiPage.getByRole('button', { name: '文献库', exact: true }).click();
       await uiPage.getByLabel('查找题录', { exact: true }).fill(name);
       await uiPage.getByRole('option').filter({ hasText: name }).click();
+      await uiPage.getByRole('tab', { name: '文献详情', exact: true }).click();
       await open.click();
       await expect(records).toContainText('跨节点摘录的用户说明');
       await reader.getByRole('textbox', { name: '搜索文档', exact: true }).fill('evidence');

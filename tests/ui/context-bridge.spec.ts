@@ -212,9 +212,14 @@ test('a global composer keeps explicit library material while the tool reads the
     const scope = { projectId: 'application', sessionId: session.id };
     const openLibrary = async (name: string) => {
       await uiPage.getByRole('button', { name: '文献库', exact: true }).click();
-      await uiPage.getByLabel('查找题录', { exact: true }).fill(name);
-      await uiPage.getByRole('option').filter({ hasText: name }).click();
-      await uiPage.getByRole('button', { name: `打开 文本 ${name}`, exact: true }).click();
+      const panel = uiPage.getByRole('region', { name: '文献库', exact: true });
+      await panel.getByLabel('查找题录', { exact: true }).fill(name);
+      await panel.getByRole('option').filter({ hasText: name }).click();
+      const expand = uiPage.getByRole('button', { name: '展开右区', exact: true });
+      if (await expand.isVisible()) await expand.click();
+      await uiPage.getByRole('tab', { name: '文献详情', exact: true }).click();
+      const detail = uiPage.getByRole('region', { name: '题录详情', exact: true });
+      await detail.getByRole('button', { name: `打开 文本 ${name}`, exact: true }).click();
       await expect(uiPage.getByRole('button', { name: '附加资源', exact: true })).toBeEnabled();
     };
     await openLibrary(firstName);

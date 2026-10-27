@@ -301,6 +301,7 @@ test('project and library images share real region selection while revoked conte
     await uiPage.getByRole('button', { name: '文献库', exact: true }).click();
     await uiPage.getByLabel('查找题录', { exact: true }).fill(name);
     await uiPage.getByRole('option').filter({ hasText: name }).click();
+    await uiPage.getByRole('tab', { name: '文献详情', exact: true }).click();
     await uiPage.getByRole('button', { name: `打开 图片 ${name}`, exact: true }).click();
     await expect(image.getByRole('img', { name, exact: true })).toBeVisible();
     await image.getByLabel('区域高度', { exact: true }).fill('0.5');

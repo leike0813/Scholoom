@@ -16,6 +16,7 @@ import { CatalogItemPane } from './CatalogItemPane';
 import { CatalogSelection } from './CatalogSelection';
 import { CollectionNavigation } from './CollectionNavigation';
 import { LibraryToolbar } from './LibraryToolbar';
+import { type LibraryDetailsContribution, PublishLibraryDetails } from './library-details';
 import { librarySaves, readLibraryNavigation, readLibrarySelection } from './library-state';
 import { useLibraryRead as useRead } from './useLibraryRead';
 
@@ -51,6 +52,7 @@ const bytesOf = (text: string): number => new TextEncoder().encode(text).length;
 interface LibraryTabProps {
   client: KernelClient;
   enabled: boolean;
+  details: LibraryDetailsContribution;
   onOpenResource?: ((material: LibraryAttachment) => void) | undefined;
 }
 
@@ -93,6 +95,7 @@ export function LibraryTab(props: LibraryTabProps) {
 function LibraryContents({
   client,
   enabled,
+  details,
   onOpenResource,
   scope,
   status,
@@ -1051,204 +1054,210 @@ function LibraryContents({
             rangeKey={rangeKey}
           />
         </div>
-        <div className="library-detail-pane">
-          <CatalogItemPane
-            entry={detail ?? null}
-            client={client}
-            enabled={enabled}
-            readable={readable}
-            writable={writable}
-            tick={revision}
-            onBatch={applyBatch}
-            onOpenResource={onOpenResource}
-            metadata={
-              <div className="catalog-section" id="section-metadata">
-                {' '}
-                {detail ? (
-                  <p>
-                    稳定身份 {detail.id} · 修订号 {detail.revision} · 版本 {detail.version} · 来源{' '}
-                    {detail.origins.join('、') || '无'}
-                  </p>
-                ) : (
-                  <p className="empty-hint">正在读取题录…</p>
-                )}
-                {detail ? (
-                  <fieldset className="project-controls" disabled={!enabled}>
-                    {objectError && (
-                      <p className="business-error" role="alert">
-                        {objectError}
-                      </p>
-                    )}
-                    {!dirty && readDraft(draftKey(directory, 'library', 'metadata', detail.id)) && (
-                      <button
-                        type="button"
-                        className="btn"
-                        onClick={() => {
-                          if (readDraft(metadataDraft(detail.id))) return;
-                          writeDraft(
-                            metadataDraft(detail.id),
-                            readDraft(draftKey(directory, 'library', 'metadata', detail.id)),
-                          );
-                          setEditRevision(0);
-                          refresh();
-                        }}
-                      >
-                        恢复旧题录草稿
-                      </button>
-                    )}
-                    <details>
-                      <summary>类型化题录</summary>
-                      <CatalogItemForm
-                        value={metadataText}
-                        onChange={(value) => {
-                          setMetadataText(value);
-                          setDirty(true);
-                        }}
-                      />
-                    </details>
-                    <label>
-                      CSL JSON 题录
-                      <textarea
-                        className="composer-input"
-                        aria-label="题录 CSL JSON"
-                        rows={10}
-                        spellCheck={false}
-                        value={metadataText}
-                        onChange={(event) => {
-                          setMetadataText(event.target.value);
-                          setDirty(true);
-                        }}
-                      />
-                    </label>
-                    <label id="section-tags">
-                      标签
-                      <input
-                        aria-label="题录标签"
-                        value={tagsText}
-                        onChange={(event) => {
-                          setTagsText(event.target.value);
-                          setDirty(true);
-                        }}
-                      />
-                    </label>
-                    <fieldset>
-                      <legend>集合</legend>
-                      {collections.map((collection) => (
-                        <label key={collection.id}>
-                          <input
-                            type="checkbox"
-                            checked={chosenCollections.includes(collection.id)}
-                            onChange={() => {
-                              setChosenCollections((current) => toggled(current, collection.id));
-                              setDirty(true);
+        <PublishLibraryDetails contribution={details}>
+          <div className="library-detail-pane">
+            <p className="catalog-selection-summary" role="status" aria-label="文献选择概况">
+              已选 {catalogSelection.items.length} 项 · 主选：{detail?.metadata.title ?? '无'}
+            </p>
+            <CatalogItemPane
+              entry={detail ?? null}
+              client={client}
+              enabled={enabled}
+              readable={readable}
+              writable={writable}
+              tick={revision}
+              onBatch={applyBatch}
+              onOpenResource={onOpenResource}
+              metadata={
+                <div className="catalog-section" id="section-metadata">
+                  {' '}
+                  {detail ? (
+                    <p>
+                      稳定身份 {detail.id} · 修订号 {detail.revision} · 版本 {detail.version} · 来源{' '}
+                      {detail.origins.join('、') || '无'}
+                    </p>
+                  ) : (
+                    <p className="empty-hint">正在读取题录…</p>
+                  )}
+                  {detail ? (
+                    <fieldset className="project-controls" disabled={!enabled}>
+                      {objectError && (
+                        <p className="business-error" role="alert">
+                          {objectError}
+                        </p>
+                      )}
+                      {!dirty &&
+                        readDraft(draftKey(directory, 'library', 'metadata', detail.id)) && (
+                          <button
+                            type="button"
+                            className="btn"
+                            onClick={() => {
+                              if (readDraft(metadataDraft(detail.id))) return;
+                              writeDraft(
+                                metadataDraft(detail.id),
+                                readDraft(draftKey(directory, 'library', 'metadata', detail.id)),
+                              );
+                              setEditRevision(0);
+                              refresh();
                             }}
-                          />
-                          集合 {collection.name}
-                        </label>
-                      ))}
-                    </fieldset>
-                    <fieldset id="section-related">
-                      <legend>关联版本</legend>
-                      {relatedCandidates.map((candidate) => (
-                        <label key={candidate.id}>
-                          <input
-                            type="checkbox"
-                            checked={chosenRelated.includes(candidate.id)}
-                            onChange={() => {
-                              setChosenRelated((current) => toggled(current, candidate.id));
-                              setDirty(true);
-                            }}
-                          />
-                          关联版本 {candidate.title}
-                        </label>
-                      ))}
-                    </fieldset>
-                    <div className="file-view-controls">
-                      <button
-                        type="button"
-                        className="btn"
-                        disabled={!writable || saving}
-                        onClick={() => void saveDetail()}
-                      >
-                        保存题录更正
-                      </button>
-                      <button
-                        type="button"
-                        className="btn"
-                        disabled={!readable || saving}
-                        onClick={() => (dirty ? setConfirmReload(true) : reloadDetail())}
-                      >
-                        重新读取题录
-                      </button>
-                      <button
-                        type="button"
-                        className="btn"
-                        disabled={!readable}
-                        onClick={() => setHistoryOpen((value) => !value)}
-                      >
-                        {historyOpen ? '收起历史' : '查看历史'}
-                      </button>
-                    </div>
-                    {confirmReload && (
-                      <div role="alertdialog" aria-label="确认丢弃题录草稿">
-                        <p>重新读取会丢弃当前更正，可先复制上方草稿。</p>
-                        <button type="button" className="btn" onClick={reloadDetail}>
-                          丢弃并重新读取
+                          >
+                            恢复旧题录草稿
+                          </button>
+                        )}
+                      <details>
+                        <summary>类型化题录</summary>
+                        <CatalogItemForm
+                          value={metadataText}
+                          onChange={(value) => {
+                            setMetadataText(value);
+                            setDirty(true);
+                          }}
+                        />
+                      </details>
+                      <label>
+                        CSL JSON 题录
+                        <textarea
+                          className="composer-input"
+                          aria-label="题录 CSL JSON"
+                          rows={10}
+                          spellCheck={false}
+                          value={metadataText}
+                          onChange={(event) => {
+                            setMetadataText(event.target.value);
+                            setDirty(true);
+                          }}
+                        />
+                      </label>
+                      <label id="section-tags">
+                        标签
+                        <input
+                          aria-label="题录标签"
+                          value={tagsText}
+                          onChange={(event) => {
+                            setTagsText(event.target.value);
+                            setDirty(true);
+                          }}
+                        />
+                      </label>
+                      <fieldset>
+                        <legend>集合</legend>
+                        {collections.map((collection) => (
+                          <label key={collection.id}>
+                            <input
+                              type="checkbox"
+                              checked={chosenCollections.includes(collection.id)}
+                              onChange={() => {
+                                setChosenCollections((current) => toggled(current, collection.id));
+                                setDirty(true);
+                              }}
+                            />
+                            集合 {collection.name}
+                          </label>
+                        ))}
+                      </fieldset>
+                      <fieldset id="section-related">
+                        <legend>关联版本</legend>
+                        {relatedCandidates.map((candidate) => (
+                          <label key={candidate.id}>
+                            <input
+                              type="checkbox"
+                              checked={chosenRelated.includes(candidate.id)}
+                              onChange={() => {
+                                setChosenRelated((current) => toggled(current, candidate.id));
+                                setDirty(true);
+                              }}
+                            />
+                            关联版本 {candidate.title}
+                          </label>
+                        ))}
+                      </fieldset>
+                      <div className="file-view-controls">
+                        <button
+                          type="button"
+                          className="btn"
+                          disabled={!writable || saving}
+                          onClick={() => void saveDetail()}
+                        >
+                          保存题录更正
                         </button>
                         <button
                           type="button"
                           className="btn"
-                          onClick={() => setConfirmReload(false)}
+                          disabled={!readable || saving}
+                          onClick={() => (dirty ? setConfirmReload(true) : reloadDetail())}
                         >
-                          保留草稿
+                          重新读取题录
+                        </button>
+                        <button
+                          type="button"
+                          className="btn"
+                          disabled={!readable}
+                          onClick={() => setHistoryOpen((value) => !value)}
+                        >
+                          {historyOpen ? '收起历史' : '查看历史'}
                         </button>
                       </div>
-                    )}
-                    {historyOpen ? (
-                      <>
-                        {historyRead.error ? (
-                          <p className="business-error" role="alert">
-                            {historyRead.error}
-                          </p>
-                        ) : null}
-                        <ul>
-                          {(historyRead.value?.sources ?? []).map((snapshot) => (
-                            <li key={snapshot.revision}>
-                              修订号 {snapshot.revision} · {snapshot.metadata.title} ·{' '}
-                              {snapshot.updatedAt}
-                            </li>
-                          ))}
-                        </ul>
-                        <div className="file-view-controls">
-                          <button
-                            type="button"
-                            className="btn"
-                            disabled={!readable || historyOffsets.length < 2}
-                            onClick={() => setHistoryOffsets((current) => current.slice(0, -1))}
-                          >
-                            上一页历史
+                      {confirmReload && (
+                        <div role="alertdialog" aria-label="确认丢弃题录草稿">
+                          <p>重新读取会丢弃当前更正，可先复制上方草稿。</p>
+                          <button type="button" className="btn" onClick={reloadDetail}>
+                            丢弃并重新读取
                           </button>
                           <button
                             type="button"
                             className="btn"
-                            disabled={!readable || historyRead.value?.nextOffset === undefined}
-                            onClick={() => {
-                              const next = historyRead.value?.nextOffset;
-                              if (next !== undefined)
-                                setHistoryOffsets((current) => [...current, next]);
-                            }}
+                            onClick={() => setConfirmReload(false)}
                           >
-                            下一页历史
+                            保留草稿
                           </button>
                         </div>
-                      </>
-                    ) : null}
-                  </fieldset>
-                ) : null}
-              </div>
-            }
-          />
-        </div>
+                      )}
+                      {historyOpen ? (
+                        <>
+                          {historyRead.error ? (
+                            <p className="business-error" role="alert">
+                              {historyRead.error}
+                            </p>
+                          ) : null}
+                          <ul>
+                            {(historyRead.value?.sources ?? []).map((snapshot) => (
+                              <li key={snapshot.revision}>
+                                修订号 {snapshot.revision} · {snapshot.metadata.title} ·{' '}
+                                {snapshot.updatedAt}
+                              </li>
+                            ))}
+                          </ul>
+                          <div className="file-view-controls">
+                            <button
+                              type="button"
+                              className="btn"
+                              disabled={!readable || historyOffsets.length < 2}
+                              onClick={() => setHistoryOffsets((current) => current.slice(0, -1))}
+                            >
+                              上一页历史
+                            </button>
+                            <button
+                              type="button"
+                              className="btn"
+                              disabled={!readable || historyRead.value?.nextOffset === undefined}
+                              onClick={() => {
+                                const next = historyRead.value?.nextOffset;
+                                if (next !== undefined)
+                                  setHistoryOffsets((current) => [...current, next]);
+                              }}
+                            >
+                              下一页历史
+                            </button>
+                          </div>
+                        </>
+                      ) : null}
+                    </fieldset>
+                  ) : null}
+                </div>
+              }
+            />
+          </div>
+        </PublishLibraryDetails>
       </div>
     </section>
   );

@@ -19,7 +19,7 @@ import type { WorkbenchSession } from './session';
 import { ActivityPane, ActivityRail, type ThemeMode } from './shell/ActivityPane';
 import { AgentDock } from './shell/AgentDock';
 import { AgentOverlay } from './shell/AgentOverlay';
-import { AuxiliaryPane, AuxiliaryRail } from './shell/AuxiliaryPane';
+import { AuxiliaryPane, AuxiliaryRail, type AuxiliaryTabId } from './shell/AuxiliaryPane';
 import { DelegationContext } from './shell/DelegationCall';
 import { PaneHandle } from './shell/PaneHandle';
 import { StatusBar } from './shell/StatusBar';
@@ -73,6 +73,7 @@ function WorkbenchContent({ session }: { session: WorkbenchSession }) {
 
   const [leftCollapsed, setLeftCollapsed] = useState(false);
   const [rightCollapsed, setRightCollapsed] = useState(false);
+  const [auxiliaryTab, setAuxiliaryTab] = useState<AuxiliaryTabId>('files');
   const [agentExpanded, setAgentExpanded] = useState(false);
   // 三区可调尺寸（默认值见 docs/ui-design/README.md 三区骨架一节），不持久化。
   const [leftWidth, setLeftWidth] = useState(260);
@@ -369,7 +370,12 @@ function WorkbenchContent({ session }: { session: WorkbenchSession }) {
         if (isCurrent && !isCurrent()) return;
         setAgentExpanded(false);
         const targetGroupId =
-          groups.find((group) => group.id === activeGroupId)?.id ?? groups[0]?.id ?? 'a';
+          (tab.kind === 'library'
+            ? groups.find((group) => group.tabs.some((item) => item.kind === 'library'))?.id
+            : undefined) ??
+          groups.find((group) => group.id === activeGroupId)?.id ??
+          groups[0]?.id ??
+          'a';
         setGroups((current) =>
           current.length
             ? current.map((group) =>
@@ -719,6 +725,9 @@ function WorkbenchContent({ session }: { session: WorkbenchSession }) {
           <AuxiliaryRail onExpand={() => setRightCollapsed(false)} />
         ) : (
           <AuxiliaryPane
+            activeTab={auxiliaryTab}
+            onTabChange={setAuxiliaryTab}
+            libraryDetails={session.libraryDetails}
             fileTree={session.fileTree ?? []}
             tasks={session.tasks ?? []}
             taskNavigator={
