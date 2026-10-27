@@ -1,5 +1,27 @@
 # 实际交付与交接
 
+## 第十轮验收后的承载调查（938c33f，未实施2.1b）
+
+2026-10-28只读确认HEAD为`938c33f2c9fcafb2cce11b0c165b2fb1e9a818c3`且起始干净。依本轮直接授权完成下一承载的资料／源码调查与候选设计；取得当前apply及delivery instructions后更新原记录。写集只有本change的investigation、design、tasks、delivery，没有业务／夹具／协议源码变更；任务仍6/13，2.1b尚未实施，活动页继续unavailable。
+
+精确消费`/tmp/scholoom-round10-acceptance-j1MosP/{acceptance.md,synchronized.json,main-ui-final-result.json,report-probe-ui-browser.json,report-probe-ui-electron.json,ci-same-source-failures.log,ci-failure-matrix.json}`及本树正式源码；没有应用source.patch。主线2/2调查、两宿主STUN各1包20字节及Browser父心跳258ms已核原JSON，不重跑失败候选，不把通过／默认skip记成隔离。保留trap初始化try／finally保护和显式调查环境开关，也保留原首次失败及后续轮次。
+
+| 原工件 | 本片实际交付 |
+| --- | --- |
+| investigation“当前承载调查” | 已有CommandWorkspace／ManagedCommands、ManagedNode／controller／原生scope、ProcessAdmission、资源和Evidence的复用及缺口；官方L／W／C来源、当前Linux被动条件及最新CI证据边界。清理首次规划中已被否定的iframe选择／旧374项基线作为当前结论的表述 |
+| design“下一承载候选与待决范围” | A独立完整浏览器OS隔离与B容器／VM两候选；明确Browser共同React呈现、控制器／私有pipe／版本桥和实际文件所有权。列安装权限、分发维护、资源与呈现取舍、关键反例和六步最小校准；新图以虚线标拟接口，既有总览不再预设跨进程MessagePort |
+| tasks | 基线／范围改为938c33f的调查片；2.1b不勾选，首批未来任务按“平台机制→原生校准→实际报告→审接口后UI”推进。没有以候选文档完成关闭实施任务 |
+
+本轮可复用的是授权／归属／停止机制，**不是**网络或CPU沙箱。本机bwrap 0.11.1无setuid；namespace未试建；当前Orca cgroup只暴露memory／pids，没有cpu.max。该scope的W_OK不能代表已取得完整委托，也不是所有Linux部署或未来独立内核scope的结论。Windows只核官方AppContainer／Job／WFP／Sandbox文档及本树helper，未实跑Windows；Mac原受管执行仍不可用。
+
+只读资料核对通过官方web入口与官方DevTools JSON；后者记录在`/tmp/scholoom-report-carrier-round11/cdp-source-extract.json`，`source-fetch.log`列出截图／输入和experimental字段。上游master不是已安装runtime承诺。DevTools网页没有返回所需正文，临时JSON提取脚本首次有括号语法错误、未执行；改正后读取成功，没有因此运行任何浏览器或修改产品。两位原辅助均为gpt-6.1-sol／high：本机／源码事实和Microsoft资料各自只读，最终判断仍由本线负责；没有跨树／会话调查。
+
+适用检查为`openspec validate add-interactive-research-reports --strict`、`openspec schema validate scholoom-dev`及`git diff --check`，结果与diff在`/tmp/scholoom-report-carrier-round11/`收尾工件。只改四份Markdown，未重建已验证的相同产物，未运行kernel／UI／OS／网络／CPU测试；没有新增“通过新承载”结论，也没有替身测试。最新CI范围沿investigation记录，不触发或等待新全仓CI、不推定运行中job成功。
+
+**交主线决定后停止：** 建议先审A的条件校准，不代表已采纳。待选项是共同画面／输入与语义／可访问性体验、Linux委托和Windows安装权限、浏览器分发及安全维护、交互与资源预算。现有双宿主只读HTML继续可用，但不作为降低活动报告产品范围的替代验收。无决定或必要提供者时不创建协议／OS实现，不自动回退容器、特权服务或受信程序执行；2.1b／2.2／3.x、目标与旧版本Adapter及完整I5保持开放。
+
+本片没有安装／下载依赖、启动新服务、改变OS权限、操作真实用户库、提交／推送／PR／归档、合并／重置／同步或操作其他树。未新增常驻任务或Agent；辅助结束后关闭，仅交本地可审查文档增量。
+
 ## 第十轮主线验收
 
 共同构建结束后，主线在Browser／Electron复验本调查2/2通过，再将入口明确限定为`SCHOOLOOM_REPORT_ISOLATION_PROBE=1`显式调查，普通产品UI回归不默认执行已否定候选。通过仅表示可重复取得HTTP正例、STUN外发／宿主访问及桥／CPU样本，不证明活动报告已隔离；2.1b和生产不可用保持，下一片只调查可靠独立承载及双宿主呈现方案。

@@ -2,7 +2,7 @@
 
 ## 变更总览
 
-用户已采纳 [investigation](investigation.md#已获得本轮产品选择) 的项目内有界方案。无阻塞问题，基于该首批范围制定方案；下面的限额是实现起点，需用固定场景校准，不表示已经测得性能。
+用户已采纳 [investigation](investigation.md#已获得本轮产品选择) 的项目内有界产品范围；资源及来源授权已接入，活动承载仍阻塞。当前共同源码938c33f，本片只提交“下一承载候选与待决范围”，不据原iframe候选或CLI状态进入2.1b。既有资源限额保持；新的执行／呈现预算须在架构选择后校准。
 
 ```mermaid
 flowchart LR
@@ -10,7 +10,7 @@ flowchart LR
     F[报告文件与显式清单] --> R[editor ReportResources]
     R --> V[共同资源tab中的ReportView]
     V --> I[待验证的隔离承载]
-    I --> B[版本绑定的MessagePort]
+    I --> B[版本绑定的有界桥 传输待定]
     B --> C[既有ContextContribution]
     V --> U[更新保护和窗口草稿]
   end
@@ -58,6 +58,70 @@ ReportResources 是 `packages/editor` 内的 module，不新建包／数据库�
 页面要求写入选中对象的comment，原有composer展示并允许修改；输入框正文继续由用户填写／检查，发送仍满足现有非空文字契约。本变更不自动替用户填充或发送“继续分析”。对象多选只贡献当前已加载清单，不读取文献表格DOM或全库投影。
 
 ### 隔离与页面桥
+
+#### 下一承载候选与待决范围（938c33f，仅调查设计）
+
+机制事实、官方来源L／W／C索引及本机条件由investigation“当前承载调查”维护。本片不修改正式规格／同源schema；既有“页面隔离与有界动作桥”的保证不变。新的物理承载未定，不将像素投影、OS新权限或新传输当已批准产品能力。
+
+排除近路：只增加renderer／BrowserWindow／WebContentsView不能覆盖组外browser／network／GPU服务，也不自动限制CPU。WebContentsView仅属Electron main，普通Browser不能嵌入该原生视图。新窗口或开放CDP端口不保持共同UI，也可能泄露控制能力；DOM API覆盖、Electron HTTP过滤、禁摄像头不替代OS网络拒绝。
+
+只保留两个待校准候选，目前都没有可用提供者：
+
+| 候选 | 必需组合 | 权限、安装及不足 |
+| --- | --- | --- |
+| A：OS隔离的独立完整浏览器进程图＋可信呈现控制器 | Linux独立namespace／最小文件视图／受控FD与syscall策略，加实际委托的cpu／memory／pids cgroup；Windows无网络AppContainer／LPAC、ACL及受限句柄，加Job配额／归属。主browser、renderer、network、utility和崩溃进程都入范围；控制器通过私有pipe管理 | 复用现有监督语义，但新增OS策略归platform／主线。当前Linux scope无cpu controller，namespace未试建；Windows浏览器兼容性、DNS代理和句柄覆盖未验。需WFP／特权服务则另审，不自动安装。还需可维护的浏览器运行时／字体分发与许可，不能借用户profile或开发Playwright缓存冒充产品依赖 |
+| B：无网络的容器／VM浏览器＋同一可信呈现控制器 | 容器仍需namespace／配额；VM另需guest镜像、hypervisor及guest／host资源与退出证明。Windows Sandbox／Hyper-V仅是机制候选，不是现成provider | 安装、磁盘、虚拟化、可能重启及镜像更新成本更大；Windows版本／Home边界、默认联网、共享目录／剪贴板必须收口。VM主进程退出不证明全部归属停止；本机未核KVM／Hyper-V可用，不承诺Mac。此候选也没有消除双宿主呈现问题 |
+
+建议主线优先选择**A的有条件机制校准**，以复用执行归属并避免立即引入guest镜像；这只是待审建议。实际权限不能兑现保证便继续unavailable，不自动回退B、无配额或受信项目执行。B只在明确接受更大安装／维护范围后推进。
+
+**普通Browser的具体呈现候选：** 报告脚本在执行端独立浏览器运行；Browser／Electron共同React tab仅显示可信控制器输出的有界画面及宿主控件，转发当前视图的指针／键盘／滚动，不执行回传HTML／CSS／JS。Browser父工作台仍持既有认证连接，**报告进程**不持KernelClient、token、preload或通用broker方法。Electron走同一路径，不另做原生业务页。本片没有实现画面／输入流或新协议。
+
+```mermaid
+flowchart LR
+  R[ReportResources 实际快照与领域授权] --> C[拟可信呈现控制器]
+  C -. 核准版本字节和私有pipe .-> S[拟OS隔离的完整浏览器进程图]
+  S -. 不可信画面及有界页面JSON .-> C
+  C -. 主线待审同源呈现契约 .-> V[拟共同React视图 Browser与Electron]
+  V -. 当前视图有界输入 .-> C
+  C -. 原Bridge schema核对 .-> D[既有共同composer 待2.2]
+```
+
+CDP截图／输入或独立Electron offscreen仅是控制器内部Adapter候选；不把CDP、任意evaluate或调试端口交给页面／工作台。私有pipe不继承宿主socket、terminal、D-Bus／X11／Wayland、凭据或共享profile；必要公开字体／运行时只读映射，scratch独立。画面不是M3 render ResourceRef或项目成果，临时视图句柄不是reportId／新来源表。MessagePort可留在报告浏览器内部，但对象不能直接跨OS进程／Browser网络传递；跨越处仍须重新核schema、方向、大小、viewId／generation／basis和当前对象集合。
+
+图像投影缺少工作台原生DOM文本选择、查找和可访问性树，中文IME、复制、焦点、缩放及高DPI都须证明；CDP的screencast／IME相关项在本次上游源码标experimental。若需可信语义／可访问性投影，其输入必须来自同一核准报告，不将任意DOM注入父页。这些是产品和接口待决项，不能写作“后续优化”来降低首批体验；未采纳前不实现图像流、报告DSL或新schema。
+
+控制器也不信任浏览器输出：画面尺寸／字节／帧率先核再解码，只保留最新候选帧，输入队列有界并明确拒绝；编码／解码不能把不受限工作转移到kernel主线程。具体预算及传输背压须校准后定，不把现有Bridge的64KiB限额挪作图像协议。
+
+**深模块及未来写集。** 单一报告运行module集中“核快照→受管启动→有界呈现／JSON→失效／停止”；OS Adapter和浏览器控制Adapter是内部seam，不让双宿主调用方各自处理规则。外部Interface只需保证／可用性检查、打开已授权视图及关闭／取消，状态／失败沿原ErrorInfo及实际实例；帧／输入schema在选型后由主线确定。替换Adapter的测试只证明模块状态／授权逻辑，不证明OS安全。
+
+| 文件／符号（拟新增均未创建） | 所有权及消费契约 |
+| --- | --- |
+| `packages/editor/src/report-resources.ts`、拟`report-execution.ts` | 阅读线掌握报告版本、对象／加载集及展示生命周期；消费scope Adapter，不直接调用原生OS、不另存正文或领域授权 |
+| `packages/platform/src/processes.ts`／`process-controller.ts`、`native/process-scope.c`及拟隔离Adapter | platform／计算线与主线提供网络、文件、配额、预执行gate及完整stop；共享符号按独立公共增量审查，不修改programs权限或扩读managedExecution为新保证 |
+| `apps/kernel/src/manual.ts::reportResources/reportSnapshot`、拟报告装配及`commands.ts::CommandWorkspace` | 主线统筹真实read／send、受管准入与私有资源绑定；Manual不要求harness。普通programStart的受信执行权限不能绕过报告隔离，页面不提供可信context |
+| `packages/protocol/src/report-contracts.ts`及相关operations／派生映射 | 主线统一审查呈现／输入／保证发现的增量，复用Bridge JSON和既有ResourceRef／basis。画面不是64KiB桥JSON，需要独立有界分帧／背压设计；禁止两端私造DTO或无限通知 |
+| 拟renderer `workbench/reports/ReportView.tsx`、现有资源tab窄接入 | 阅读线提供双宿主同一React消费及草稿／失败呈现；本片不创建该文件，不改Workbench／CSP／导航／composer或正式UI布局 |
+| `packages/harness/src/runtime.ts`现有报告Evidence链 | 本轮不写；queue／final／restart及委派checkReadable继续保护实际来源。页面ready和画面不授予模型外发，不自选接收者；2.2才接明确附加 |
+
+授权在打开／排队前、取版本字节及交付前再次核全部ref／basis和实际read范围；来源撤权／版本不符停止交付新字节／画面并使视图失效。用户发送仍经既有harness核read／send及子范围。OS范围只得到允许的资源字节，不见项目／library根或数据库；scratch／profile也不能访问本机代理。撤权后清除受保护展示／缓存，但不声称能回收用户已经看到的信息。
+
+**最小校准设计（仅计划，选型后另授权实施）：**
+
+1. 先由独立platform提供者以固定原生子程序校准网络／配额／完整stop，再接浏览器。查真实OS／版本／程序身份和预执行gate，必要策略先于不可信代码；现有Node bootstrap不能直接当浏览器gate，Windows不能先spawn再补token／Job／网络策略。权限缺失即unavailable，不自动提权／安装。
+2. 自有正向控制与观察器覆盖IPv4／IPv6、loopback／LAN、TCP／UDP、STUN及独立无缓存域名的DNS；核系统DNS／代理broker、继承socket、UNIX socket或命名管道。HTTP计数或fetch失败不能代替DNS／UDP证据。缺自有DNS／目标平台条件就明确缺证，不改系统全局DNS或真实库。
+3. 用真实ReportResources／项目／库装固定HTML与依赖，前后核basis；不齐、旧basis、path-ref变化、撤权、委派缺项及旧版本Adapter继续拒绝。复用`tests/fixtures/report.ts`与原生产／委派授权回归；窄端口替身不算生产授权。
+4. 单独scope内有限忙循环、多worker、内存及后代样本，读实际CPU／memory／pids计数和宿主心跳，核子不能改配额或经GPU／组外服务绕过。预算／响应和画面吞吐需预先沿验证纪律定下，CPU配额不等于绝对实时保证，失败不加统一timeout。
+5. 正常关闭、取消、根退出、控制器／浏览器崩溃、fork竞态及管道丢失分别核完整归属；ProcessAdmission继续保留unknown及占用，不能按根PID消失释放。关报告运行不取消已受理Agent，重开不自动重放动作。Mac继续无可用受管提供者，不借候选VM宣称恢复。
+6. 机制通过后才用静态构建产品做真实Browser／Electron呈现校准：版本绑定、旧消息／帧、超量及背压、中文IME／焦点／选择／可访问性和撤权释放。内部broker／文件／worker／隔离提供者真实，模型仅外部可控。接口有增量先审schema及生成映射，不以普通HTML／PDF回归代替。
+
+**须交用户／主线决定：**
+
+- 是否选择A进入机制校准，以及是否接受“共同UI可信画面＋输入／语义桥”；若要求完整原生DOM体验，需另一可兑现隔离方案，不能恢复已否定iframe。
+- Linux委托scope／namespace如何提供；Windows先校准无网络AppContainer＋Job，还是承担WFP服务／VM的安装维护。权限不足不可用，不先承诺免安装或三平台覆盖。
+- 浏览器随产品分发还是人工登记已安装版本；Node内核不依赖开发缓存，运行时更新、签名／许可及目标安全版本维护归谁。
+- 中文IME、可访问性、查找／复制、WebGL的验收范围与单视图预算／多视图容量；不能靠禁用功能或只保留截图降低报告保证。
+
+上述决定未到，不固化新协议或开始OS实现；2.1b保持未实施，2.2／3.x、目标报告／旧版本Adapter及完整I5继续开放。
 
 #### 第九轮隔离机制原型（当前共同基线4312262）
 

@@ -1,6 +1,54 @@
 # 调查依据
 
-## 当前事实与复用选择
+## 当前承载调查（2026-10-28，938c33f）
+
+当前HEAD为`938c33f2c9fcafb2cce11b0c165b2fb1e9a818c3`，开始时工作区干净；无`.codegraph/`。本片授权只有下一承载的调查／可审查设计，写集为本change的investigation、design、tasks、delivery，不实现跨系统沙箱、图像流或协议。原2.1a调查已接收，2.1b尚未实施。项目HTML＋显式本地资源、无网络／任意文件／内核直连、双宿主共同UI的产品保证不降低。
+
+### 已消费的实际证据
+
+- `/tmp/scholoom-round10-acceptance-j1MosP/acceptance.md`、`synchronized.json`与本树HEAD证明公共代码已同步；没有重放旧source.patch或操作其他树。`main-ui-final-result.json`的stats为expected=2、unexpected=0；`report-probe-ui-{browser,electron}.json`分别记录STUN 1包20字节。Browser父心跳最大间隔258ms，Electron样本不证明强CPU隔离。该结果是**失败候选调查通过**，不是报告隔离通过。
+- 当前`tests/ui/report-isolation.spec.ts`已要求`SCHOOLOOM_REPORT_ISOLATION_PROBE=1`；trap取得后所有初始化在try内，finally收尾。保留主线P2修复，不重跑已否定候选、不把默认skip记为新通过。
+- 最新已完成Checks40479176954／8c2fd24：Linux内核746通过26跳过、UI126通过32失败4跳过；Windows内核688通过42失败42跳过，macOS job成功。4312262／40476577071的Windows727通过3失败42跳过只是另一轮结果；`ci-same-source-failures.log`和`ci-failure-matrix.json`作为归因边界，不将差额当新增缺陷。938c33f的40540362546／40540362614在交接截点为运行中；本片未查询或等待其结论。下方首次规划的CI信息仅为历史，不再用374项旧基线判断现状。
+
+### 本树已有机制及明确缺口
+
+| 事实源／符号 | 可复用与限制 |
+| --- | --- |
+| `apps/kernel/src/commands.ts:18,31`的CommandWorkspace／ManagedCommands | 宿主登记程序和workspace、绑定主体／项目／实例、排队后复查授权；不是客户端任意argv或任意路径入口。不能把报告浏览器当原受信programs.start直接放行 |
+| `packages/platform/src/processes.ts:64,119,275`、`process-controller.ts:59,150`、`native/process-scope.c:18,105` | ManagedNode及controller持有实际instance、Linux subreaper／Windows Job后代归属；只有完整停止证据才释放。Windows现有Job只设KILL_ON_JOB_CLOSE；业务加载前有Node bootstrap gate，但不是任意浏览器的安全启动门。保留unknown及原生诊断，不能从根PID或renderer退出推断范围空 |
+| `packages/platform/src/admission.ts:11`、`command-deadline.ts`、`command.ts:6` | ProcessAdmission控制名额／等待；墙钟期限不是CPU配额，输出上限不是内存上限。现有CommandRequest没有网络／CPU／内存策略；runCommand还继承HOME等环境，不能直接作为不可信报告环境 |
+| `packages/protocol/src/platform.ts:44`、`core.ts` | platform.command／programStart／programCancel和managedExecution只表达现有受管执行；没有新的隔离保证声明。Linux／Windows原available不代表报告沙箱available；Mac当前仍不可用 |
+| `packages/platform/src/resources.ts::ResourceAccess` | 对经端口的真实路径／身份做范围校验；不限制原生浏览器的系统调用。OS文件视图和句柄白名单仍缺提供者 |
+| `packages/editor/src/report-resources.ts::ReportResources`、`manual.ts:1178,1219` | 已有完整snapshot、ref／basis、path-ref及read／send核查，可作为唯一资源输入。它不提供冻结的进程文件系统，取字节与交付仍须再核查，不新建reportId／来源表 |
+| `packages/protocol/src/report-contracts.ts`、`packages/harness/src/runtime.ts::recordReportUse/checkReportContext` | 复用有界JSON消息及ResourceEvidence的委派／模型准入权威。页面没有模型准入权；新承载不能将展示ready当发送授权或绕过queue／final／restart |
+| `apps/kernel/package.json`、根`package.json`、`apps/desktop` | Node内核未声明生产Chromium运行时或图像／输入桥；开发Playwright缓存不等于可分发产品依赖。Electron外壳已有浏览器，但复用它的UI主进程／共享network service不能提供独立OS范围 |
+
+本机只读核对：Linux `7.0.0-38-generic`；`unprivileged_userns_clone=1`且AppArmor的unprivileged_userns限制为1，未试建namespace。`/usr/bin/bwrap`为0.11.1、root:root、0755，无setuid／setgid；PATH有unshare、systemd-run、prlimit，无nsjail／firejail。当前Orca所属cgroup v2的`cgroup.controllers`只有`memory pids`，没有cpu；`cpu.max/cpu.weight`不存在。目录和subtree_control的W_OK为true、subtree_control为空，memory.max为max；这些仅是权限／配置读取，未创建或写任何cgroup。**本scope没有已证明可用的CPU控制提供者**，不能因系统根暴露cpu或bwrap存在便宣称候选可运行。需要可委托的独立scope，或有明确安装／权限决定的替代提供者。
+
+### 官方机制核对（2026-10-28，只读资料）
+
+以下是机制依据，未在目标OS创建沙箱；平台可用性必须按选定版本重新校准。官方明确能力与Scholoom候选组合的推断分开：
+
+| 来源 | 官方事实与本片推断边界 |
+| --- | --- |
+| [L1 network_namespaces(7)](https://man7.org/linux/man-pages/man7/network_namespaces.7.html) | 网络namespace隔离设备、协议栈／路由及抽象UNIX socket。候选使用无外部接口／路由且不接宿主网络的独立namespace；这不自动关闭继承socket或文件路径上的本地代理 |
+| [L2 cgroup v2](https://cdn.kernel.org/doc/html/latest/admin-guide/cgroup-v2.html) | cpu.max为周期带宽限制，memory.max为内存限制（可短暂超额），pids.max约束进程数；cgroup.kill处理子树及并发fork。委托需实际权限，CPU控制有调度类条件；不能据文件存在保证延迟或退出已完成 |
+| [L3 seccomp(2)](https://man7.org/linux/man-pages/man2/seccomp.2.html)、[L4 unix(7)](https://man7.org/linux/man-pages/man7/unix.7.html) | 系统调用过滤可继承，须满足no_new_privs或对应权限；pathname UNIX socket依赖文件权限且可传FD。候选还需最小文件视图、关闭多余FD和限制可转发代理，单独netns不是全部保证 |
+| [L5 bubblewrap上游安全政策](https://github.com/containers/bubblewrap/security/policy) | bwrap是构建工具，保护取决于调用者策略；不把默认运行或工具存在当完整沙箱。采用现有工具与否仍需核版本、策略和维护责任 |
+| [W1 AppContainer](https://learn.microsoft.com/en-us/windows/win32/secauthz/implementing-an-appcontainer) | 无network capability时不授予网络访问；token、capability及DACL共同限定资源。候选还须核全浏览器进程图的实际身份、loopback豁免、继承句柄及不受限broker；“仅renderer在AppContainer”不足 |
+| [W2 Job Objects](https://learn.microsoft.com/en-us/windows/win32/procthread/job-objects)、[W3 CPU rate](https://learn.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-jobobject_cpu_rate_control_information) | Job后代归属／kill-on-last-handle-close与CPU hard cap是独立机制；CPU按调度区间限制，内存另配。须排除breakaway／组外服务，不能用completion事件代替最终空范围证明 |
+| [W4 WFP权限](https://learn.microsoft.com/en-us/windows/win32/fwp/access-control) | 添加规则需要ADD／关联权限；默认普通用户OPEN／CLASSIFY不表示可安装过滤器。若AppContainer校准不足，WFP只能作为另审的特权候选，精确scope、代理DNS覆盖及策略丢失时拒绝尚无提供者 |
+| [W5 Windows Sandbox](https://learn.microsoft.com/en-us/windows/security/application-security/application-isolation/windows-sandbox/)、[安装条件](https://learn.microsoft.com/en-us/windows/security/application-security/application-isolation/windows-sandbox/windows-sandbox-install)、[W6 Windows容器条件](https://learn.microsoft.com/en-us/virtualization/windowscontainers/deploy-containers/system-requirements) | Sandbox使用独立内核，默认联网、Home不支持，安装需管理员并可能重启；Hyper-V容器另需相关功能／虚拟化。都不是本项目已安装的浏览器提供者，也不自带共同UI桥或完整停止证明 |
+| [C1 Chromium多进程](https://www.chromium.org/developers/design-documents/multi-process-architecture/)、[C2 WebContentsView](https://www.electronjs.org/docs/latest/api/web-contents-view)、[C3 offscreen](https://www.electronjs.org/docs/latest/tutorial/offscreen-rendering) | 浏览器／renderer／network职责分开；WebContentsView是Electron main能力，offscreen可取位图。推断：只隔离renderer或增加原生子视图既不覆盖全网络，也不能直接嵌入普通Browser；共享GPU／外壳会扩大隔离及资源核算范围 |
+| [C4 Chrome调试pipe](https://developer.chrome.com/blog/remote-debugging-port)、[C5 DevTools同源协议源码](https://github.com/ChromeDevTools/devtools-protocol/blob/master/json/browser_protocol.json) | pipe应使用独立profile而非真实用户profile。上游声明captureScreenshot／输入派发，screencast、insertText／imeSetComposition在此次源码中标experimental。它们只证明存在机制；图像、输入法及可访问性桥尚未实现或获产品采纳 |
+
+DevTools网页只返回导航壳，改为只读抓取官方JSON并提取字段，结果在`/tmp/scholoom-report-carrier-round11/cdp-source-extract.json`；master不是已安装运行时的承诺。本片没有运行浏览器、VM／容器、网络探针或CPU实验，没有安装／下载依赖、启动服务或改变权限。
+
+### 当前结论
+
+原iframe候选已被实际STUN和CPU样本否定。下一步不是继续补DOM覆盖，而是先决定独立OS执行与双宿主呈现的组合。design“下一承载候选与待决范围”列最少候选、关键反例、接口所有权及最小校准；架构／产品选择尚未闭合，活动页继续unavailable，不宣称2.1b可实施或三平台可用。
+
+## 首次规划事实与复用选择（历史）
 
 2026-10-25首次规划，基线 `e3d58fc807827a78493dcd16e38de28c8d02766e`，无 `.codegraph/`，初始工作区干净。主 Agent 及原生只读子 Agent 核对源码、测试定义、决议和归档记录；当时没有运行应用、测试、编译或模型。后续材料change已取得依赖／隔离授权，第四轮公共0519904已具备，用户直接授权报告schema／codec与注入端口模块。以下表格保留初始差距，实际模块范围见design第四轮及本change delivery；不将规划阅读或材料UI测试当作报告生产接线。
 
@@ -53,11 +101,11 @@ flowchart LR
 - 项目内保存入口及显式本地资源；关闭工作台后成果保留，等待沿 session.send 接续。
 - 不包含联网报告、库／全局报告的新建权威。这一首批范围不影响只读引用库材料作为报告来源。
 
-基于此采用浏览器标准 sandbox iframe 与受限 MessagePort，不引入报告 SDK。脚本耗尽 renderer 资源的故障隔离不能由 sandbox 属性证明；首批限制文件／消息／资源大小，独立验证真实双宿主隔离，任意恶意 CPU 强隔离不作为浏览器 iframe 的承诺。
+首次候选采用浏览器标准sandbox iframe与受限MessagePort；该实现选择已被2.1a实跑否定，不再作为生产方案。产品无网络及无关领域可用的保证保持，下一承载见当前调查和design。
 
 ### 基线失败与证据边界
 
-当前 CI 不全绿，固定 Checks 40100596838 的 Linux UI 101／9／2、Windows kernel 374／15／12 见[共同计划](../../../.scratch/domain-development/parallel-development-plan.md#当前-ci-基线的处理)。写作 PDF 挂载超时的直接日志、未知根因与诊断入口由[材料调查](../add-material-annotation-interactions/investigation.md#ci-输入写作-pdf-预览)维护；该链接只是调查复用，报告模块不依赖另一 change 交付。报告独立验收不使用 PDF 编译作为前置；影响实际报告路径的 composer/RPC gate 失败需沿发送、受理、worker、保存、刷新分段核查。
+首次规划Checks40100596838只作历史输入；当前CI见本文件当前承载调查及共同计划“第十轮验收后的收敛安排”。写作PDF首次unknown的旧记录沿[材料调查](../add-material-annotation-interactions/investigation.md#ci-输入写作-pdf-预览)，诊断已交计算线，不在报告本片无目标重跑；报告独立验证不以PDF编译为前置。
 
 ### 尚需跨线输入
 
@@ -67,4 +115,4 @@ flowchart LR
 
 ## 结论与承接
 
-无阻塞问题，基于用户已采纳的项目内有界报告方案制定本 change 的首批设计。可复用真实项目、共同资源、共同 composer、harness 和等待；补 HTML 条件保存、报告资源清单、隔离页面与更新控制。独立验收仅证明固定文献对比的机械闭环；科研质量、迁入真实业务 Graph、三平台分发均另验。
+首次规划在当时调查范围内进入首批设计；后续HTML条件保存、清单和真实来源授权已沿本change交付，不能重复等待它们。当前真正阻塞是活动页面的可靠隔离承载与双宿主呈现选择，见本轮调查；共同composer及harness接入仍待后续整合。科研质量、生产Graph和三平台分发均另验。
