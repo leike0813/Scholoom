@@ -200,6 +200,7 @@ export async function reportFrameProbe(
   root.replaceChildren(iframe);
   return {
     binding,
+    sourceURL: url,
     stats,
     dispose,
     restore: (browse: object) => reply({ type: 'restore', browse, draft: null, dirty: false }),
@@ -227,6 +228,10 @@ function bootstrap(payload: {
     send,
     raw: (message: object) => port?.postMessage(message),
     binding: payload.binding,
+    retainPort: () => {
+      if (port) parent.postMessage({ fixtureRetainedPort: true }, '*', [port]);
+      port = undefined;
+    },
   });
   window.addEventListener('pagehide', () => {
     port?.close();

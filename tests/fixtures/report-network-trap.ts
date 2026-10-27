@@ -5,6 +5,8 @@ import type { AddressInfo, Socket } from 'node:net';
 export async function reportNetworkTrap(font: Buffer) {
   const httpRequests: { method: string; url: string }[] = [];
   const udpPackets: number[] = [];
+  let httpTotal = 0;
+  let udpTotal = 0;
   const sockets = new Set<Socket>();
   const image = Buffer.from(
     'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jF9sAAAAASUVORK5CYII=',
@@ -12,13 +14,18 @@ export async function reportNetworkTrap(font: Buffer) {
   );
   let origin: string;
   const record = (request: IncomingMessage) => {
+    httpTotal += 1;
     let path = '/';
     try {
       path = new URL(request.url ?? '/', 'http://127.0.0.1').pathname;
     } catch {
       // Keep malformed requests observable without retaining raw URLs or credentials.
     }
-    httpRequests.push({ method: (request.method ?? '').slice(0, 2048), url: path.slice(0, 2048) });
+    if (httpRequests.length < 32)
+      httpRequests.push({
+        method: (request.method ?? '').slice(0, 2048),
+        url: path.slice(0, 2048),
+      });
     return path;
   };
   const http = createServer((request, response) => {
@@ -39,7 +46,7 @@ export async function reportNetworkTrap(font: Buffer) {
     if (path.startsWith('/worker')) {
       type = 'text/javascript; charset=utf-8';
       body = 'self.postMessage("external worker loaded");';
-    } else if (path === '/script' || /\.(?:m?js)$/.test(path)) {
+    } else if (path.endsWith('/script') || /\.(?:m?js)$/.test(path)) {
       type = 'text/javascript; charset=utf-8';
       body = 'window.__externalScriptExecuted = true;';
     } else if (path === '/image' || path.endsWith('.png')) {
@@ -64,6 +71,10 @@ export async function reportNetworkTrap(font: Buffer) {
     response.end(body);
   });
   http.on('connection', (socket) => {
+    if (sockets.size >= 16) {
+      socket.destroy();
+      return;
+    }
     sockets.add(socket);
     socket.once('close', () => sockets.delete(socket));
   });
@@ -76,7 +87,8 @@ export async function reportNetworkTrap(font: Buffer) {
 
   const udp = createSocket('udp4');
   udp.on('message', (message, remote) => {
-    udpPackets.push(message.length);
+    udpTotal += 1;
+    if (udpPackets.length < 32) udpPackets.push(message.length);
     if (
       message.length < 20 ||
       message.readUInt16BE(0) !== 0x0001 ||
@@ -144,9 +156,17 @@ export async function reportNetworkTrap(font: Buffer) {
       stunURL: `stun:127.0.0.1:${udp.address().port}`,
       httpRequests,
       udpPackets,
+      get httpTotal() {
+        return httpTotal;
+      },
+      get udpTotal() {
+        return udpTotal;
+      },
       reset(): void {
         httpRequests.length = 0;
         udpPackets.length = 0;
+        httpTotal = 0;
+        udpTotal = 0;
       },
       close,
     };

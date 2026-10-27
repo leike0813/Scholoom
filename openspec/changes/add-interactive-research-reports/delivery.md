@@ -1,5 +1,59 @@
 # 实际交付与交接
 
+## 第九轮中断后的续做：2.1a机制调查交付，生产仍不可用
+
+2026-10-27从共同源码`4312262c1a1f432ccd706dd1eb6ff6468765fd4e`、起始干净工作区续做。读取主线`/tmp/scholoom-round9-acceptance-IER31D/`、原工件及当前apply指引；实际执行后取得delivery指引。只关闭2.1a的调查任务，当前6/13；2.1b及完整报告change／I5未完成。原设计总览仍是目标链路，本片验证的是“ReportResources快照／实际字节→专用隔离候选→桥观测”，没有ReportView／composer／生产tab。
+
+| 文件／符号 | 本片实际范围 |
+| --- | --- |
+| `tests/fixtures/report-frame.ts::reportFrameProbe/bootstrap` | 复用主线保全候选及同源Bridge validator；仅新增夹具sourceURL及真实port转移观察入口，不导出生产能力。按viewId／generation／basis验证，单选择在途、限额及关闭仍归该候选 |
+| `report-isolation-entry.ts` | 独立静态父页入口，挂载／替换候选、限量CSP／回执观察、受控选择Promise；不接共同输入框或内核写动作。保留实际旧port验证，同代queued是独立正向控制 |
+| `report-probes.ts` | 保存到真实项目HTML中的固定恶意脚本样本；16类资源／动作通道、五类导航、被盗nonce、STUN、宿主访问及有界250ms忙循环。Blob／data新页含无需脚本的图片／样式探针及真实nonce，不把脚本没运行误算网络隔离 |
+| `report-network-trap.ts::reportNetworkTrap` | 自有回环HTTP／UDP计数，样本各最多32条、URL最多2048字符、自有连接最多16个；整轮单调计数不reset，阶段路径独立，关闭后再核全部请求。只回复合规STUN绑定请求，不留数据正文 |
+| `tests/ui/report-isolation.spec.ts` | 真实kernel创建隔离项目、实际files／resources.report／resources.read及条件保存R2；固定清单和PNG／字体样本不来自本候选输出。真实Browser及Electron主窗口先加载构建产品，再路由到专用父页／打包模块；所有攻击目标走实际自有HTTP／UDP，不拦截或abort攻击流量 |
+
+### 实际结果与首次失败
+
+证据根`/tmp/scholoom-report-isolation-round10/`。共享、桌面构建先于UI；测试期间没有重建同树产物。独立端口5861–5864、各轮独立profile／项目，所有结果目录及登记项目保留。没有安装、下载、启动开发服务、触发CI、提交／推送／PR／归档、同步或操作其他树／用户真实库。
+
+- `ui-first.log`为首次真实结果，0/2：Browser的nonce远程脚本被浏览器Local Network Access拒绝，原预期错误地要求两宿主都执行；Electron已跑到关闭阶段，失败为读取Playwright frame清单早于实际detach。保存原trace、输入和`first-*-diagnostic.json`，没有把它们改记成功。
+- 独立只读审查发现导航脚本缺nonce与无脚本通道、阶段reset会丢迟到请求、旧port断言缺真实回执。分别补固定样本、全轮累计／阶段路径／CSP终止观察、真实端点转移与queued正例。不是重试或延长期限。
+- `ui-second.log`为1/2：Electron通过；Browser不支持MessagePort的`onclose`事件，不能等待原生通知判定应用层失效。保留原失败，后续按实际支持性记录；Browser仍发送真实旧port消息并核对选择不增加、旧待完成回执不交付、新实例有界消息循环继续工作，不声称已观察其原生close事件。
+- `ui-third.log`为2/2（51.5s）。随后补实际bootstrap只读GET的CSP拒绝及关闭陷阱后最终计数，格式／导入整理经stdin与apply_patch完成；最终`ui-final.log`为2/2（50.8s，Browser13.5s／Electron14.5s）。原30s用例、5s观察、零重试保持，未增加sleep或放松产品期限。
+
+最终每宿主的完整事实位于`results-final/report-isolation-*/isolation-diagnostic.json`，包含原basis、CSP事件、端口状态、包计数和有界心跳，原ref见同目录项目的`report.html`固定输入；所有轮次输入及失败trace分目录保留：
+
+| 保证／样本 | Browser HeadlessChrome153.0.8010.12 | Electron44.5.1／Chrome152.0.7977.130（Linux） |
+| --- | --- | --- |
+| 实际页面／资源正例 | 脚本ready、PNG宽1、字体实际loaded | 同左 |
+| opaque／宿主访问 | origin为null、父DOM拒绝、preload／process／require不存在；真实bootstrap GET被connect-src拒绝，无响应交付 | 同左 |
+| 仅nonce策略 | HTTP仅control；远程脚本被LNA挡下，不能归功于CSP | 实际GET `/nonce/script`并执行，策略失败 |
+| 交集CSP的16类通道及五类导航 | 被测strict／navigation路径0HTTP，CSP／frame生命周期事件有据 | 同左；全轮HTTP仅control和nonce反例各1次 |
+| 全网络保证 | **失败**：实际STUN 1包、20字节 | **失败**：实际STUN 1包、20字节 |
+| 桥／释放 | 六类错误绑定／对象／超量消息拒绝，window伪消息不执行；旧端点不再触发选择；过量移除iframe；根Blob关闭前可fetch、关闭后失败。原生close事件不支持 | 同左，另实际收到旧port的close事件 |
+| CPU样本 | 250ms忙循环，最终父页心跳最大间隔258ms（第三轮251ms） | 最终17ms（第三轮18ms）；这不是强CPU隔离证明 |
+
+HTTP正例control证明计数器工作；nonce反例在Electron证明脚本通道可实际送达，Browser本地地址限制不作为普遍互联网阻断保证。STUN仅为自有回环合成数据；它直接否定“脚本无网络”，不外推互联网可达范围。CSP和sandbox的属性本身没有被用作通过依据。
+
+### 验证、审查和停止点
+
+主要命令（日志同根）：
+
+```sh
+pnpm --config.optimisticRepeatInstall=false build:shared
+pnpm --config.optimisticRepeatInstall=false --filter @scholoom/desktop build
+SCHOOLOOM_UI_PORT=5864 SCHOOLOOM_UI_DATA_DIR=/tmp/scholoom-report-isolation-round10/profile-final node node_modules/@playwright/test/cli.js test --config /tmp/scholoom-report-isolation-round10/ui.config.ts report-isolation.spec.ts --workers=1 --output=/tmp/scholoom-report-isolation-round10/results-final
+pnpm --config.optimisticRepeatInstall=false --filter @scholoom/protocol --filter @scholoom/editor typecheck
+node node_modules/typescript/bin/tsc --noEmit -p tsconfig.tools.json
+node scripts/check-architecture.ts
+```
+
+`build-shared.log`、`build-desktop.log`、`types-modules.log`及`types-final.log`通过；architecture为14模块／254文件零发现。`generator-check.log`核对最终schema生成映射，7份仅格式差异、无源码写入；`biome-final.log`通过，保留候选原可选链及样本脚本拼接／void类型的3条warning，不自动应用unsafe修复。OpenSpec strict及diff检查见同目录收尾日志。复用原辅助gpt-6.1-sol／high：一位只改网络观测有界计数，一位只读安全／证据审查；重要三项缺口已处理，后者未将静态审查算实跑。
+
+真实边界为kernel／broker／ReportResources／项目文件与版本／Browser及Electron；合成输入为固定报告、资源和攻击脚本，选择回调为本片Promise替身，无模型、真实共同composer、报告生产页或完整harness业务验收。只观察到父DOM／API缺失和bootstrap样本被CSP拒绝，未穷举宿主漏洞或包发行环境；不据Linux本机两宿主关闭Windows／macOS、CI或科研质量。
+
+**停止并交主线决策：** 保留活动报告unavailable；选项及依据已回写design“第九轮隔离机制原型”。继续现有静态HTML阅读不需扩大权限；若推进活动页，需另审覆盖UDP／DNS／HTTP和CPU／完整停止的真实承载，普通Browser iframe与Electron HTTP拦截均不能据本片保证兑现。生产父CSP、普通HTML／PDF影响尚未接入验证；2.1b／2.2／3.x、目标报告／旧版本Adapter、完整I5保持开放，材料M1仍无库正文提交provider。本片未重做已绿选区或旧报告授权保护。
+
 ## 第九轮：隔离夹具中断交接
 
 本轮从共同源码0b78815继续，阅读Agent因上游provider 502中断，未形成完整交付。主线将`tests/fixtures/report-frame.ts`与`report-network-trap.ts`连同原design/tasks检查点保全后接入；只整理前者格式，没有补生产接线或隔离实现。两个文件仍是调查夹具，没有可运行测试入口，也没有Browser／Electron隔离证据；2.1a／2.1b保持未完成，生产报告页、目标报告及旧版本Adapter仍不可用。
