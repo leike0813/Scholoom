@@ -1,5 +1,13 @@
 # 实现设计
 
+## 第二个附件reader的独立取证（4312262）
+
+共同源码4312262已接收第13组分阶段启动及跨文件hook。主线`/tmp/scholoom-round9-acceptance-IER31D/{main-diagnostics-result.json,diagnostic-stage-summary.json,attachment-import-observer.json}`证明取消/excerpt通过，附件失败在第二会话readScope的completed等待；已停止的导入observer不能解释reader。当前只复用`observeExecution`，在该reader的session.send/首断言前安装新实例，标记发送受理、完成及原失败边界，在所属内核清理前stop以保留最终有界样本。样本按独立project/session/run/instance区分，模型请求计数为同一模型夹具累计值，以reader开始时样本为基准，不能把导入两次请求当reader请求。
+
+写集仅附件测试、必要诊断helper及本change原工件。先保留原轮询、5秒期限、RPC/库/worker、字节与权限断言取得首个红测；必要临时观察仍重抛原错误，不当作通过。阶段样本只存身份/状态/工具名/计数及进程元数据，沿原容量与脱敏规则，不记录正文/凭据或全库。根据实际模型、工具开始/回执及实例停止区分轮询盲区、多阶段启动或生产疑点；如需夹具修正，先在本节补具体时序依据。没有跨域证据不改生产实现、报告Evidence/checkReadable或生命周期。最小验证为附件例与取消/excerpt原三例组合，以及既有Windows诊断的逐例结果；无本增量目标实跑不报平台已修。
+
+本机独立取证已闭合局部轮询因果：reader原样红测4027ms失败，3638ms工具streaming、3662mscomplete、3741ms累计模型请求4（reader起点2），4030ms末样本实例stopping；不是材料读取失败。另一次临时观察保留4022ms原失败，4239ms控制进程code0退出，4390ms只读观测同run completed，末样本实例exited；原工具回执complete，模型实际收到的字节与合成输入匹配。实验最终重抛原错误，不能记通过。沿已确认Playwright默认回退间隔可能提前结束窗口的机制，仅reader完成轮询设置`intervals:[100,250]`，仍为原5秒，不加阶段预算/总期限或重发操作。保留首次失败与成功的独立session证据；该局部修正不适用于Windows尚无首次模型请求的queued反例。
+
 ## 取消代表例的设置与观察边界（0b78815）
 
 主线同一运行在4099ms首次等待失败，最近3939ms父worker已running但modelRequests=0且无委派，4114ms才首次模型请求；这不是子取消失败，也不借用其他运行的accepted状态。当前测试把父启动/首次模型、delegate工具及受理、子启动合并到名义5秒等待。职责票要求独立父子进程与完整所属停止，未承诺全链5秒启动SLA；取消验收须先证明实际子已启动。

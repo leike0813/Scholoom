@@ -90,15 +90,28 @@ test('real RPC and Agent share material bytes while project paths and model send
     expect(names).not.toContain('library_relocateAttachment');
     const reader = await client.call('session.create', { projectId: project.id });
     const readScope = { projectId: project.id, sessionId: reader.id };
-    await client.call('session.send', {
-      ...readScope,
-      instructionId: randomUUID(),
-      text: `MODEL_ATTACHMENT_READ ${receipt.attachmentId}`,
-      materials: [],
-    });
-    await expect
-      .poll(async () => (await client.call('workbench.snapshot', readScope)).run?.state)
-      .toBe('completed');
+    const readDiagnostics = observeExecution(app, readScope, model);
+    readDiagnostics.mark('readerPrepared');
+    try {
+      await client.call('session.send', {
+        ...readScope,
+        instructionId: randomUUID(),
+        text: `MODEL_ATTACHMENT_READ ${receipt.attachmentId}`,
+        materials: [],
+      });
+      readDiagnostics.mark('readInstructionAccepted');
+      await expect
+        .poll(async () => (await client.call('workbench.snapshot', readScope)).run?.state, {
+          intervals: [100, 250],
+        })
+        .toBe('completed');
+      readDiagnostics.mark('readExecutionCompleted');
+    } catch (error) {
+      readDiagnostics.failure();
+      throw error;
+    } finally {
+      await readDiagnostics.stop();
+    }
     const tool = (await client.call('workbench.snapshot', readScope)).messages.find(
       (message) => message.tool?.name === 'library_readAttachment',
     );

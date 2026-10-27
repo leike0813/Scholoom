@@ -1,5 +1,51 @@
 # 实际交付与交接
 
+## 4312262后的附件reader独立观察与局部修正
+
+本轮起始clean，HEAD=`4312262c1a1f432ccd706dd1eb6ff6468765fd4e`，直接使用已同步源码；消费`/tmp/scholoom-round9-acceptance-IER31D/`的验收、计划、原诊断组合、`diagnostic-stage-summary.json`、`attachment-import-observer.json`及更新后的Windows事实。第13组已接收，取消/excerpt不再沿更早的“尚未调用cancel”设置失败描述。第14组有界工作已完成，change为34/38，平台4.2/4.3与科研6.1/6.2仍开放。**最后正式组合仍为2通过/1失败**；闭合的是原第二个reader观察与轮询问题，未宣称整条附件路径通过。
+
+### 文件、符号与实际路径
+
+只改`tests/kernel/literature-attachment-integration.spec.ts`及本change原design/tasks/delivery。原`observeExecution`与显式hook足以复用，`tests/execution-diagnostics.ts`无需新增机制。readScope在send/首断言之前装配自己的observer，标记readerPrepared/readInstructionAccepted，原断言失败时固定failure、finally在app清理前stop，成功标记readExecutionCompleted。导入observer仍在导入完成后停止，不能用其样本替代reader。每个scope沿原32样本/32子进程/16阶段/256KiB及500ms诊断读取上界，只保留身份、状态、工具名、计数与进程元数据；不记录正文/凭据/全库。模型计数是同一夹具的累计值，reader基准为2，不把导入请求当reader请求。
+
+先在原轮询红测和临时观察证明时序，再按[本片设计](design.md#第二个附件reader的独立取证4312262)仅给reader完成轮询设`intervals:[100,250]`。原5秒期限、60秒用例上界不改，没有新增阶段预算、sleep或重发操作。保留真实RPC、库/worker、工具回执、原字节、PDF记录、外发撤权与路径权限断言；生产授权、unknown、停止/容量、报告Evidence/checkReadable、生命周期及协议/生成类型均未改。原变更总览中共同broker/文件及所属执行路径不变，没有新的产品状态或规格。
+
+### Linux独立时序与验证
+
+原始日志/JSON为`/tmp/scholoom-agent-round10-<名称>.{log,json}`，交接目录`/tmp/scholoom-agent-round10-handoff-LSLHy6/`保留独立补丁、命令、汇总和有界附件。
+
+| 名称 | 实际结果与边界 |
+| --- | --- |
+| `build` | `pnpm --config.optimisticRepeatInstall=false --filter @scholoom/kernel... build`通过，完成后测试，测试期间不重建同树产物 |
+| `reader-red` | 1失败，红测105行reader原completed等待；4027ms首次失败、最近3751ms模型累计4/工具complete，末样本4030ms实例stopping。独立reader起点为2；3638ms工具streaming、3662mscomplete、3741ms后续模型请求已到达。导入scope另有完成附件，不混用 |
+| `reader-probe` | 临时目录首次装载失败：找不到`@playwright/test`，无测试执行。仅在该/tmp目录链接本树已安装node_modules后续跑，未安装/下载依赖；原装载失败日志保留 |
+| `reader-observed` | 临时观察1失败，最终重抛原错误。另一独立运行4022ms原等待失败，4239ms控制进程code0退出，4390ms观测同run completed、末样本4405ms实例exited。只读公开snapshot证明工具complete，受控模型实际收到的合成字节匹配，累计请求仍4；未重发/重放/代写成果。表明默认轮询遗漏原5秒末段，不是附件读取失败 |
+| `combined` | 正式最小组合2通过/1失败（49.4秒）：取消12.5秒、excerpt4.5秒通过；附件reader4910ms观察completed，末样本4917ms实例exited/工具complete，原工具/模型字节断言及后续PDF记录断言均已执行通过。附件例20.7秒后失败于**当前190行撤权后新指令等待failed，实际running**；不是原105行reader，也不是Windows64行首导入 |
+
+正式命令：`SCHOOLOOM_EXECUTION_DIAGNOSTICS=1 PLAYWRIGHT_JSON_OUTPUT_NAME=/tmp/scholoom-agent-round10-combined.json node node_modules/@playwright/test/cli.js test --config playwright.kernel.config.ts tests/kernel/agent-delegation.spec.ts tests/kernel/context-instructions.spec.ts tests/kernel/literature-attachment-integration.spec.ts --grep 'cancelling a child stops|real worker sends explicit excerpts|real RPC and Agent share material bytes' --workers=1 --reporter=list,json --output=test-results/agent-round10-combined`。红测用同入口只选附件例，独立输出reader-red；临时观察用`/tmp/scholoom-agent-round10-reader-probe-eWKaEv/probe.config.mts`，源码/配置保留为证据，未进入正式补丁、未留下故意失败的正式用例。临时实验的有界失败后观察不改变原判定，也没有作为绿色回归。
+
+静态检查：`node node_modules/typescript/bin/tsc --noEmit -p tsconfig.tools.json`、`node_modules/.bin/biome check --diagnostic-level=error tests/kernel/literature-attachment-integration.spec.ts`、OpenSpec strict/schema及`git diff --check`通过。补丁相对4312262，临时index前向与当前树反向检查通过，真实index未改。未改schema/生成映射、生产模块或UI，无需重建/重写它们来验证这段测试夹具。
+
+### Windows同源码目标事实（与Linux reader分开）
+
+Windows diagnosis40476577132/job122096177677已于2026-10-27 09:04:52 UTC完成failure，源码同为4312262。主线更新`windows-diagnosis.log`及`windows-diagnosis-failures.log`与辅助只读核对一致；不是仍无Windows证据。agent步骤实际Running 3 tests/3 failed，各例均有15个有界样本、模型计数始终0、非空run状态仅queued、指令accepted、无工具/委派、无采样丢弃或snapshot超时：
+
+| 用例 | 原目标断言及首次失败 | 末样本与未执行范围 |
+| --- | --- | --- |
+| cancel | 原258行首次模型请求≥1，实际0；failure4890ms | 4895ms仍queued、只有sendAccepted；instance running不代表模型已启动，未到delegate/子取消/重启 |
+| excerpt | 原603行completed，实际queued；failure4955ms | 4959ms仍queued；未到摘录/批注外发与checkpoint断言 |
+| attachment | 原64行首导入completed，实际queued；failure4866ms | 4870ms仍queued、只有importInstructionAccepted；reader尚未创建，不能称目标reader失败 |
+
+这些运行的Node控制进程在约2.1–2.2秒启动，末样本虽有running的run_instances，但run仍queued/指令accepted，不能把它等同模型或工具已派发。源码`Harness.instanceLifecycle.onStart`先登记实例running，`RemoteAgent`在该回调后才发送`execution.initialize`；当前工件缺initialize发送/响应、worker就绪/消费指令与首次模型准入之间的时点，无法区分初始化延迟、IPC等待或其他启动原因。**交主线/计算牵头的最小下一步**是针对这些精确run/instance补现有初始化/指令消费/首次模型准入的有界阶段证据，再决定是否有本域缺陷；本树不猜补跨域机制、不在未派发时调整取消逻辑或扩大超时。此Windows输入与Linux工具已complete、实例stopping的reader不同因果层。
+
+安全工件artifact12721785916（2026-10-27 09:04:47 UTC）在`/tmp/scholoom-win40476577132-review-U82FsU/`，含原ZIP、`agent-step-log-filtered.txt`及`windows-agent/<各用例>/execution-stages.json`；交接包仅复制必要阶段和过滤日志，不复制凭据、库或模型正文。最新已完成完整基线仍按本轮提供的caf9025/40455958976：Linux743通过/1失败/26跳过，Windows687通过/41失败/42跳过；Windows原生16通过3跳过与Linux原生19通过分别表达，不沿用旧4失败或推定41项同因。4312262的Checks40476577071在辅助本次查询2026-10-27 09:06:51 UTC仍in_progress，未轮询或据启动推通过。
+
+### 真实边界、审查与停止点
+
+内部kernel、RPC/broker、项目/库/委派仓储、文件/字节、受管worker及取消重启真实；只在外部模型HTTP使用既有受控合成响应。PDF为既有syntheticPdf合成样本，excerpt沿原describe/check模块夹具，不冒充科研角色或质量。辅助Agent使用gpt-6.1-sol/high、fork_context:false，只读核对指定CI与安全artifact，父Agent抽查原阶段；未改树/构建/测试，已关闭。父Agent自查本地diff、原断言保留和observer成功/失败清理；本片无生产接口/数据迁移变化。
+
+已达到原reader最小修正与相关验证停止点。新暴露的撤权新指令（同session的另一run）未安装本轮observer，完成后的reader附件不能解释它；该处失败后“不增加模型请求”、路径/后续拒绝断言尚未执行，不称外发撤权已回归通过，也不猜授权已失效。下一步应先取该新run首断言前证据，不能继续借用reader完成样本。Windows启动前缺证交主线，完整4.2/4.3及6.1/6.2不关闭；无本增量目标Windows实跑、全仓重跑、双宿主或真实科研验收。未提交/推送/PR/归档、未同步其他树、无开发服务器/新依赖/真实用户库操作；无后台轮询或下一阶段实施。
+
 ## 0b78815后的父子启动与取消观察修正
 
 本轮在共同源码`0b788151b5e17665a26d9286dfd1d12f6e2e0c30`、起始clean的本树执行；未重放旧补丁、切分支或同步别树。消费`/tmp/scholoom-round8-acceptance-UrXA7y/`的验收、原始CI、`main-diagnostics-result.json`和`cancel-failure-stages.json`。本节为当前交付，第13组已完成；change为31/35，4.2/4.3及6.1/6.2继续开放。本轮没有生产代码、schema、生成映射、期限、容量或停止语义变化。设计依据见[取消代表例的设置与观察边界](design.md#取消代表例的设置与观察边界0b78815)，原变更总览中的真实父子与所属取消路径不变。
