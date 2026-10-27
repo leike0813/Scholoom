@@ -336,6 +336,26 @@ M2共同接点：当前文件来源hook是同步形态，真实`harness.executio
 
 六条有界任务与生态等待指令继续沿原Codex／gpt-6.1-sol／high会话，在主线限定验收、七树同步构建和定向复验后才发送。项目／科研此次有真实整合失败可调查，但不因此恢复未定业务流程；跨域符号仍由主线统筹，避免多个Agent并写同一初始化或诊断模块。
 
+## 第十一轮验收后的安排
+
+六树增量已冻结、建立本地检查点并合入dev，33个单线文件逐字节保留；生态按约无增量。两路独立审查未发现本片确证缺陷，完整构建、包及tools类型、架构、生成映射、OpenSpec检查通过。主线生命周期／来源／Agent组合11/11及可信进程夹具1/1通过。文献真实进程重启首组Browser通过，Electron在原包解压时遇到EDQUOT；保留失败后迁到本机磁盘上的独立临时目录，仅补验Electron1/1通过，两个宿主各有通过依据，不写成一次2/2。具体结果见[文献交付](../../openspec/changes/complete-library-catalog-workbench/delivery.md)。日志及冻结输入在`/tmp/scholoom-round11-acceptance-Jx5Oez/`，Electron补验在`/home/joshua/.cache/scholoom-round11-ui-euNa9W/`。
+
+最新完成[Checks40540362614](https://github.com/leike0813/Scholoom/actions/runs/40540362614)，源码938c33f：Linux内核748通过／26跳过，UI125通过／33失败／6跳过；Windows内核677通过／55失败／42跳过；macOS job成功。这是本轮增量之前的基线；不按不同运行失败数推新增缺陷或共同根因。Windows来源校准窄项已接收，启动稳定性和新阶段目标回执继续开放。文献测试侧A不代表标准CLI持久配置B；活动报告仍不可用，不关闭完整changes、I3／I5／I6或科研质量。
+
+| 开发线 | 下一片及所有权 | 停止边界 |
+| --- | --- | --- |
+| 项目 | 公共UI取证：`tests/ui/fixture.ts`、窄窗口观察helper及原file-workbench两例，保留真实Browser／Electron发送、受理、快照身份及有界脱敏附件 | 不改model-kernel或harness；原4.1主题知识／库删除恢复仍等待，不凭模型未到改文件／草稿业务 |
+| Agent | 公共执行取证：`tests/model-kernel.ts`、必要可信测试子入口、execution-diagnostics及已有remote-agent窄观察 | 保留旧异步stop调用，绑定原实例、子进程close及接替者保护；不改窗口fixture，不新增生产RPC或另一server |
+| 计算 | 消费938c33f完整Windows组的并发启动及isolated-kernel ready-ipc失败，或已完成的新阶段目标回执 | 不拼接批次／PID，不加生产期限；公共isolated-kernel归属修正先交主线，新CI未完成即交缺证停止 |
+| 文献 | 现有字段范围内推进6.1的Linux真实业务整合子片，核4.1／4.2剩余要求的具体差距 | 不重复5.4a、扩CLI配置或猜Zotero逆映射；不写本轮项目／Agent拥有的公共夹具，平台整项按实际保留 |
+| 阅读交互 | 只校准候选A的本机普通权限前置：namespace、独立用户scope及配额、无网络和完整停止的有限原生样本 | 不选择画面流或降低文本／无障碍体验，不写生产平台／UI／协议，不安装／提权／改系统配置；缺必要权限立即交回，不运行无约束浏览器 |
+| 科研 | 等待两个公共诊断片进入共同源码后再关联同一次科研UI的发送／受理／执行 | 不重复旧trace调查，不读取在研私有成果，不新建生产Graph／角色 |
+| 生态 | 等待明确生态接口任务 | 不重复HostConnection／BBT或启真实用户库，完整E4／I6保持开放 |
+
+公共取证两端先固定数据边界，再各自独立交付：窗口只保留方法／请求标识、project／session、instruction／run、快照revision及结构化状态／时点；执行侧只保留实际实例及安全阶段／错误码，通过真实仓储或RPC核对归属。均有白名单、数量上限、丢弃计数与清理前落盘，不保留文字、材料、token或原始通用帧。保持实际调用及错误传播；下一轮由主线合入后统一关联，不跨树边实现边消费。
+
+仍须先完成主线验收、共同源码提交推送、七树快进同步与定向复验，再向原Codex／gpt-6.1-sol／high终端发送五条有界任务和两条等待指令。回执单独补公共交付记录，不为文档回执再次同步已经启动的树。
+
 ## 首轮 Agent 的共同起始任务
 
 各线采用下述共同要求，并附上本文件中该开发线的小节：

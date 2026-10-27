@@ -1,5 +1,19 @@
 # 实际交付与交接
 
+## 第十一轮主线验收
+
+主线起点68a5f76，七树源码938c33f。六树含untracked增量经临时index冻结、核对实际staging后建立本地检查点，再逐线no-ff合入dev，均无冲突；生态按约等待无增量。33个单线文件在接入时逐字节保留，后续只更新原工件及共同计划。`/tmp/scholoom-round11-acceptance-Jx5Oez/`保存inventory、snapshots、source.patch、checkpoint-commits、source-preservation及CI与验证日志；没有reset／rebase、覆盖成果或推送工作树分支。
+
+接收初始化提供者安全阶段／显式JSON附件、Agent附件整路径观察／局部采样及初始化／消费／模型准入诊断、文献5.4a真实进程重启GUI，以及项目／科研旧UI缺证调查、报告独立承载候选。Standards与Spec分别由两位gpt-6.1-sol／high原生辅助独立只读审查，均无确证新增缺陷；未代跑测试，完整平台／科研范围未被审查结论关闭。
+
+主线先完整build／包类型／架构自检（14模块254文件0findings），测试期间不重建；tools、12份改动源码／配置Biome、8份生成映射、13个change strict及scholoom-dev schema通过。生命周期／来源／Agent定向组合11/11、可信进程夹具1/1通过。真实内部kernel／broker／仓储／文件／worker及授权路径保留，模型仅外部HTTP受控，原期限、unknown、完整停止、容量及锁策略不变。
+
+文献原GUI静态产品首组1通过／1失败：Browser通过；Electron解压原包遇到EDQUOT，尚未进入业务，trace也因写入失败截断。保留首次结果，改用`/home/joshua/.cache/scholoom-round11-ui-euNa9W/`独立输出／profile／TMPDIR，只补验Electron1/1通过，没有源码或预算修正。两个宿主各有通过依据，不写成一次2/2。A真实可信注入／进程恢复不等于B生产CLI持久配置；原包／GUI结果、失败与补验路径沿文献同一delivery。
+
+已完成旧源码938c33f／Checks40540362614：Linux内核748通过26跳过、UI125通过33失败6跳过；Windows内核677通过55失败42跳过；macOS job成功。原日志和逐例矩阵已保存，不能拿运行计数差异推新增源码根因或本片通过。Windows来源校准窄项已接收，新提供者目标证据与启动稳定性仍开放。活动报告继续unavailable，候选未采纳画面流／新权限或生产隔离；macOS受管执行不可用，完整changes、I3／I5／I6及科研质量保持原未完成边界。
+
+下一轮五条任务与两条等待按[共同计划](../../../.scratch/domain-development/parallel-development-plan.md#第十一轮验收后的安排)。主线先统筹公共取证字段／归属，项目补真实窗口侧，Agent补自有model-kernel执行侧，科研等两片共同合入再消费；计算取目标反例，文献做现有范围的Linux业务整合，阅读只做普通权限原生机制校准，生态等待。同步及实际发送回执在完成后补本节，不提前声明七树已启动。
+
 ## 第十轮主线验收
 
 主线起点8c2fd24，七树共同源码4312262。五树含untracked成果经临时index冻结、核对真实staging后建立本地检查点，再no-ff合入dev，五次无冲突；项目／科研按约无增量。接入时25个未有意修改的单线文件逐字节保留，之后主线修报告夹具、增加三个可信测试进程文件并更新所属OpenSpec、开发说明及并行计划。证据根`/tmp/scholoom-round10-acceptance-j1MosP/`保留snapshots、checkpoint-commits、source-preservation及逐树merge.log，没有reset／rebase、覆盖成果或推送工作树分支。

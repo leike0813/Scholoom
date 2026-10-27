@@ -1,5 +1,9 @@
 # 实际交付与交接
 
+## 第十一轮主线接收与下一片
+
+本轮两文档的只读取证已冻结合入，独立规范／规格审查无确证夸大；不将文档接收当作旧CI修复。最新完整CI及逐例矩阵在`/tmp/scholoom-round11-acceptance-Jx5Oez/`。下一片由本线提供真实Browser／Electron窗口的发送／受理／快照安全观察，Agent线独立提供model-kernel执行观察，字段和所有权按[共同计划](../../../.scratch/domain-development/parallel-development-plan.md#第十一轮验收后的安排)。两片先独立交付再由主线关联；本线不并改harness或model-kernel，原4.1提供者仍等待。
+
 ## 当前状态与成果
 
 2026-10-28最新状态：共同HEAD为 `938c33f2c9fcafb2cce11b0c165b2fb1e9a818c3`，I1／4.4c已接收，4.1仍待完整库删除／恢复及主题知识提供者。本轮只读核对旧Checks40479176954的file-workbench双宿主两个场景：Browser均已有成功session.send回执及accepted／queued快照，Electron实际窗口RPC未留存；不能定为保存／草稿丢失或共同初始化根因。详见investigation末节及本记录末节。只改这两份工件，不改生产／测试、不复跑UI，不关闭整个change。下方旧阶段结果及补丁保留历史，不再应用旧累计补丁或等待同一同步。

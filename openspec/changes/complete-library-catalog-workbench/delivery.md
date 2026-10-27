@@ -1,5 +1,13 @@
 # 实际交付与交接
 
+## 第十一轮主线验收
+
+5.4a六文件增量已冻结、建立本地检查点并合入dev。Standards／Spec两路gpt-6.1-sol／high独立只读审查未发现确证缺陷，核对了原发送及错误语义、真实committed／notFound、冻结请求及草稿、查询后旧revision真实CAS拒绝。主线完整构建后冻结产物，tools、格式、架构、生成映射和13个change strict／schema通过；可信进程夹具1/1及相关内核组合11/11通过。
+
+静态产品双宿主首组为1通过／1失败：Browser真实原包及四次内核进程路径通过；Electron在33行解压原包时写入EDQUOT，未进入业务。完整首次日志／JSON及截断trace保存在`/tmp/scholoom-round11-acceptance-Jx5Oez/main-ui*`，不删除或将损坏ZIP当有效证据。不改源码或期限，将输出、profile和TMPDIR迁到本机磁盘独立目录`/home/joshua/.cache/scholoom-round11-ui-euNa9W/`，只补跑`--project=ui-electron`，1/1通过（1.6分钟）。每个宿主各有真实通过依据，不称一次2/2，也不将环境准备失败写成业务缺陷已修复。
+
+实际入口仍为现有XPI、静态构建产品、xvfb／Electron及私有IPC／serveKernel；传输门只控制送达及丢失成功回执，没有代写库结果。A测试侧注入、标准CLI持久配置B、目标平台分别表达，25/30及完整4.1／4.2／I6／E6继续按原不足保留。下一片沿[共同计划](../../../.scratch/domain-development/parallel-development-plan.md#第十一轮验收后的安排)做现有字段范围内的Linux真实业务整合，不重复5.4a或并写本轮公共诊断夹具。
+
 ## 2026-10-28：938c33f的5.4a真实进程重启验收
 
 本轮HEAD`938c33f2c9fcafb2cce11b0c165b2fb1e9a818c3`，开工前clean，未改变。主线已选择并同步A及独立审查后的共享helper，本线完成**5.4a，25/30**，不再等待配置方案；完整4.1／4.2、1.4、6.1／6.2及I6／E6不关闭。未修改生产源码、共享helper、CLI配置或其他线符号，未安装依赖、启动开发服务器、操作真实库／其他树或提交／推送／PR／归档。

@@ -1,5 +1,11 @@
 # 实际交付与交接
 
+## 第十一轮主线验收
+
+冻结增量经两路gpt-6.1-sol／high独立只读审查，无确证规范／规格缺陷。主线完整构建后，在生命周期／来源／Agent组合11/11中复验取消、excerpt、完整附件路径及有／无诊断的初始化发送拒绝五项，全部通过；真实内部接线、受控外部模型，原期限及授权／停止保护不变。命令、JSON及诊断在`/tmp/scholoom-round11-acceptance-Jx5Oez/main-kernel*`，完整38/42及平台／科研整项继续开放。
+
+下一片按[共同计划](../../../.scratch/domain-development/parallel-development-plan.md#第十一轮验收后的安排)承担自有model-kernel的有界执行取证，窗口侧由项目线独立提供；不要求科研线重复读同一旧trace。938c33f完整CI已结束且未全绿，不能作为本增量目标通过证据。
+
 ## 938c33f后的完整附件路径及初始化窄观察
 
 起始clean，HEAD=`938c33f2c9fcafb2cce11b0c165b2fb1e9a818c3`；消费`/tmp/scholoom-round10-acceptance-j1MosP/`的验收、原冻结输入、main诊断和CI日志，没有重放旧patch或同步其他树。本轮第15组完成，change为38/42；4.2/4.3平台与6.1/6.2科研整项继续开放。**审查修正后的组合5/5通过**：原取消/excerpt/完整附件三例，加有/无观察器的初始化发送拒绝两例；此后只增强两例的故障命中断言并定向2/2通过。没有本增量Windows通过或真实科研质量结论。
