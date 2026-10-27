@@ -1107,6 +1107,7 @@ function LibraryContents({
                       <details>
                         <summary>类型化题录</summary>
                         <CatalogItemForm
+                          key={detail.id}
                           value={metadataText}
                           onChange={(value) => {
                             setMetadataText(value);

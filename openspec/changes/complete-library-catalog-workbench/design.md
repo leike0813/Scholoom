@@ -1,5 +1,21 @@
 # 实现设计
 
+## 8a2f0ce后的数字日期区间与circa子片
+
+2026-10-27本树为8a2f0ce522dfbab4110e63e84e542f6660e6115e且初始clean。沿已接收4.1c／4.2c、5.3与唯一表单／JSON草稿，只交4.1d／4.2d，不改报告授权、生态外发P1、来源原值或原有工作台装配。当前CLI进度20/25不是本片未通过或整个change完成的依据。
+
+独立证据为CSL schema／specification v1.0.2与官方processor-tests固定blob：date_Uncertain的circa=1，date_TextFormFulldateYearRange的[[1987,8,3],[2003,10,23]]，数字字符串混用与[0]开放端点样本另行保留。schema允许每端1—3分量、最多2端，分量可以字符串／数值，circa可以字符串／数值／布尔；本片只支持原正整数分量范围，不把schema允许的全部表达宣称为已支持。citeproc-js 1.4.61的is-uncertain-date按circa真值判断，闭合布尔和0／1；字符串“0”不能当false，不做通用字符串转换。证据位于`/tmp/scholoom-library-date-round7/`，仅为标准／样本调查，不是Zotero宿主或引用排版验收。
+
+日期规则及边界：
+
+- 唯一共享编辑声明新增catalogEditorNumericDate，包含2端上限、年1—9999／月1—12／日1—31、已支持circa值及已知复杂属性；library.ts只补其导出，不修改开放metadata schema。catalogDateParts改为返回所有端点，编辑helper追加可选endpoint=0，原单端调用不变；所有调用点和测试一起更新。
+- 每端精度独立，年／年月／年月日均为连续前缀。只改指定端点／分量，深复制被修改的端点并复制日期对象，保留其余端点、circa及未知属性；不解释历法、不补分量、不排序或交换端点。无效整数／范围、跳过前缀、中间清空、带结束端点时清空唯一起始年均拒绝，原metadata保持。原有非公历、season、raw、literal与数字并存的日期仍只读；未知扩展不主动解释且原样保留。
+- 增加结束年才创建第二端点，不猜填结束值，不生成空端点。尾部清空只缩减该端精度；移除结束日期是明确动作。只删除最后数字时仍保留其他日期属性，只有显式“清除日期”才删除整个日期对象；无date-parts剩余的属性对象继续JSON核查。
+- circa以未指定／约略／非约略呈现。布尔或0／1可改，既有数值类型在显式切换时保持0／1；新标记使用布尔值。未改circa时不得归一化。未知circa字符串／其他值保持只读及JSON核查，不妨碍单独更正已知数字属性；season／raw／calendar等已知含义未定日期整体不开放数字控件。literal沿原已有字段编辑路径，不解析原文或自动转数字日期。
+- UI仍为CatalogItemForm：起始端沿原年月日可访问名，结束日期以原生details按需展开，已含区间时可检查两端；加circa选择及明确移除结束动作。无效输入显示就地错误并保持原JSON，不另存日期草稿或保存状态；浏览器number输入badInput不当成用户清空。
+
+写集：protocol/library-metadata与library.ts必要导出、catalog-metadata、CatalogItemForm、LibraryTab详情表单的sourceId key及既有catalog／library测试、原change和文献设计／开发分节。该key只隔离表单临时错误／展开偏好，不另存对象草稿。先更新UI文档，再补RED及实现；先共享／桌面构建，后冻结产物跑helper／真实保存、冲突与重启、library双宿主关键表单及右栏／迟到回归。完整4.1／4.2、Windows任务不关闭；未同步的生态原值题名／导出选择API不复制、不接假UI。
+
 ## 4b13183后的原生CSL剩余编辑子片
 
 2026-10-27本树HEAD为4b13183f7489d3cae12fd0a7d1a9e83fb33d7384且初始clean；5.3及生态持续外发授权P1已由主线接收，证据`/tmp/scholoom-round6-acceptance-dXuzCA/acceptance.md`，本轮不修改这些路径。完整4.1／4.2继续开放，只实施4.1c／4.2c。

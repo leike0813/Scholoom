@@ -1,5 +1,37 @@
 # 调查依据
 
+## 2026-10-27：8a2f0ce后的数字日期区间与circa
+
+开工前本树clean，HEAD为`8a2f0ce522dfbab4110e63e84e542f6660e6115e`；主线验收、同步及定向复验见`/tmp/scholoom-round7-acceptance-SdxHy8/`。本节为当前输入，下方分阶段记录保留其历史范围，不再等待旧公共同步。仅闭合4.1d／4.2d，原值／来源／正式键、5.3及X1不重做。
+
+### 独立日期证据与实际表达
+
+只读调查材料和执行记录保留在`/tmp/scholoom-library-date-round7/`，未新增运行依赖：
+
+- [CSL schema v1.0.2](https://raw.githubusercontent.com/citation-style-language/schema/v1.0.2/schemas/input/csl-data.json)，本地`csl-data.json`：date-parts为1—2端点、每端1—3个字符串或数字分量；circa允许字符串、数字或布尔。schema允许不代表表单支持全部表达。
+- [CSL specification v1.0.2](https://raw.githubusercontent.com/citation-style-language/documentation/v1.0.2/specification.rst)，本地`csl-json.rst`实际为规范正文；数字日期范围按起止端表达，各端精度不能靠补齐推断。
+- 官方[citation-style-language/test-suite](https://github.com/citation-style-language/test-suite)固定树`6eefc5b07c6969ab8999e48542acbcc131cba864`的processor-tests：`date_TextFormFulldateYearRange` blob `eabb3a8feb8cea087464191014c134204ba5d3e8`使用`[[1987,8,3],[2003,10,23]]`；`date_Uncertain` blob `a5d3da05c3ee677cd97dfdee5840076b6a623027`使用circa=1，预期含circa。文件以原名.json保留，预期来自固定输入／输出，不从新helper生成。
+- 反例：`sort_DateVariableRangeMixed` blob `996a2ec25cc5a35dbb6243205f613e64fe41b5f1`含数字字符串；`date_TextFormYeardateYearRangeOpen` blob `d9007628f565a9c0befbc0b86053d82bda4ae4dc`使用`[[1987],[0]]`。均保持JSON核查，不将字符串变数字或把0改成猜测年份。
+- [citeproc-js 1.4.61 attributes.js](https://raw.githubusercontent.com/Juris-M/citeproc-js/1.4.61/src/attributes.js)的is-uncertain-date条件按circa真值判断；布尔true／false和数字1／0可对应约略／非约略，字符串`"0"`仍为真，不能用数字强转显示成false。此为独立参考处理器，不声称是当前Zotero运行引擎。
+
+`node /tmp/scholoom-library-date-round7/standard-probe.mjs`已核对schema、上述固定样本及原参考条件，日志`standard-probe.log`通过。VM只执行未修改的circa条件；未执行排版、日期解析、Zotero宿主或替代产品provider。取证中两个候选文档URL返回404，没有把缺失内容作为依据。
+
+本片支持既定正整数范围内一端或两端、各端独立年／年月／年月日；只更正指定分量、circa或明确移除结束端，保留未知日期属性及完整metadata。旧数值circa显式切换仍保持0／1，新标记布尔；未改标记不归一化。raw／literal与数字并存、season／calendar、负年、数字字符串、开放端点、未知circa均保留；其中未知circa只禁用标记编辑，仍可局部改已知数字端点。非法输入包括原生number的badInput，不作为清空保存。
+
+季节／非公历或混合literal／raw需要额外解释规则，现有输入不足以确定结构控件应改哪个权威值；继续JSON核查。后续可选择仅编辑原属性，或先定义显式表达转换及丢弃确认；后者将扩大产品范围。本片不依赖该选择、不解析自由字符串或从CSL重建原类型、姓名、Extra和来源原值。
+
+### 生态原值题名／导出选择的当前库承载
+
+仅核对本树正式源码：`protocol/library-records.ts`的OriginalRecord.fields保持开放JSON；`LiteratureCatalog.commitRecords`可在一个共享revision CAS内提交完整original，并独立选择是否更改metadata。相同来源身份元组更新原值，改变元组则新增关联；没有独立original修订。省略key保持正式键／固定状态。成功记录与稳定结果同事务提交，requestId重放及commitResult已存在；入口授权／schema／字节校验失败不保证已有结果收据。真实manual broker注册和既有library-records测试均存在，不能把存储能力等同新增调用方已授权。
+
+结论：独立原值题名存储及CAS不缺底层模型；生态仍须按schema44及实际journal类型验证目标字段。08中D1—D3已定，不重新提作待决。当前`zotero.export`没有本轮新增的显式导出选择接口，kernel/zotero回调目前只处理键／Extra，不提交任意原题名。生态新后端尚未共同同步，本片不复制其API、不接假UI、不自动双写CSL／原值。
+
+### 最新CI阶段复核
+
+以39be889／[Checks40432749785](https://github.com/leike0813/Scholoom/actions/runs/40432749785)为最新已完成基线，原日志`/tmp/scholoom-round7-acceptance-SdxHy8/{ci-baseline-failures.log,ci-baseline-summary.json}`。Linux709通过／9失败／23跳过，Windows641通过／54失败／39跳过／7未运行，macOS不可用校准2通过，人工入口3通过／1失败。主线指出Linux9项本地已修正，不据此关闭Windows。
+
+Windows文献剩余观察：literature-attachment在L3708附近、断言:55仍queued；literature-integration在L3737附近、断言:67仍running；pdf-isolation在L3795附近、断言:86仍queued。没有新增本域提交／授权失败证据，也不能只从状态证明共同worker根因。**document-integration已在L2142通过14.1秒**，含撤send后failed与无新增模型请求断言；不再沿用旧“四项均失败”。library-records两项和literature-catalog亦通过。原始阶段不足以替代Windows现场准入／worker／请求／回执与停止时间线，1.4继续开放；本轮不改超时或生产保护，未额外下载diagnostic artifact或触发CI。
+
 ## 2026-10-27：固定源码闭合的原生CSL子范围
 
 本树已同步4b13183f7489d3cae12fd0a7d1a9e83fb33d7384且开工前clean。主线已接收右栏／跨组唯一库、历史／undo、真实I1和生态普通期刊／BBT及持续外发P1；见`/tmp/scholoom-round6-acceptance-dXuzCA/{acceptance.md,synchronized.json,sync-build-results.json,sync-kernel-results.json}`。旧同步等待和旧374项CI记录不代表当前状态。以下round4／共同起点段落保留为历史取证。
