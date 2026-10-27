@@ -1,6 +1,6 @@
 # 执行任务
 
-当前共同源码0b78815已包含验收的委派来源及旧摘录／save／undo授权保护。本轮仅2.1的隔离原型／专用双宿主夹具；具体保证及写集见design“第九轮隔离机制原型”。不启用生产报告页，目标报告／旧版本Adapter继续不可用。
+当前共同源码4312262已包含验收的委派来源、旧摘录／save／undo授权保护及选区提交观察；选区8项已由主线通过，本轮不重做。本轮仅续做2.1的隔离原型／专用双宿主夹具；具体保证及写集见design“第九轮隔离机制原型”。不启用生产报告页，目标报告／旧版本Adapter继续不可用。
 
 ```mermaid
 flowchart TD
@@ -25,7 +25,7 @@ flowchart TD
 
 ## 2. 页面内浏览与共同动作
 
-- [ ] 2.1a 本轮仅原型：tests/fixtures/report-frame专用候选模块及真实Browser／Electron静态夹具，消费实际ReportResources快照与有版本的资源字节，复用Bridge schema；先核合法脚本及清单资源，再用自有HTTP计数／必要UDP探针检验CSP、父frame-src、自导航／blob／popup／form／fetch／图片／字体／worker／嵌套、宿主访问、版本port／旧port／过量／关闭。保留首次结果，失败给unavailable及精确方案，不算生产已隔离。
+- [x] 2.1a 调查原型已交付：tests/fixtures/report-frame专用候选模块及真实Browser／Electron静态夹具，消费实际ReportResources快照与有版本的资源字节，复用Bridge schema；合法脚本及清单资源、HTTP／UDP探针、CSP／父frame-src／导航／资源通道、宿主访问及有界桥生命周期已有代表性证据。两宿主实际STUN外发、Browser忙循环阻塞反例见delivery；只关闭调查，不算生产已隔离，生产保持unavailable。
 - [ ] 2.1b 保持开放：按2.1a真实保证决定正式模块及生产父CSP／宿主接线，主线先评估普通HTML／PDF影响；恶意CPU及无法兑现保证不得弱化后直接启用。2.2／3.x与完整I5不在本轮。
 - [ ] 2.2 实际文献对比页面支持筛选／排序／展开，已加载对象通过原子appendContextItems进入同一composer，用户检查正文后沿原session.send；核对objectIds、报告basis、明确来源、comment与接收者不变。超限整批拒绝保留草稿。1.2与2.1可分离实现，本线主Agent整合共同贡献及共享资源符号，禁止并行写同一文件。
 

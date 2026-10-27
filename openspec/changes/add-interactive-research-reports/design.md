@@ -59,15 +59,21 @@ ReportResources 是 `packages/editor` 内的 module，不新建包／数据库�
 
 ### 隔离与页面桥
 
-#### 第九轮隔离机制原型（0b78815）
+#### 第九轮隔离机制原型（当前共同基线4312262）
 
 写集仅`tests/fixtures/report-frame.ts`候选隔离模块、`tests/ui/report-isolation.spec.ts`、必要测试输入／构建夹具与本change工件／UI设计分节。模块归类为调查夹具，不是第二份生产业务实现；不接ReportView／Workbench／composer、不注册tab或页面，不改harness白名单及生产CSP。后续若采纳必须将经验证模块迁入唯一生产实现并移除夹具定义，不能两处维护。
+
+续做的必要入口为`report-isolation-entry.ts`，恶意页面样本为`report-probes.ts`，网络观测复用`report-network-trap.ts`；只保留前32条HTTP／UDP样本及总数、最多16个自有连接。导航等待实际CSP事件或frame生命周期，不能以初始Blob地址已存在判断尝试结束。测试正向资源读取、nonce泄露反例及交集策略分别记录，HTTP与UDP结论分开。选择回调仅为可受控的待完成Promise，不连接composer或内核写动作。
 
 真实kernel的ReportResources返回snapshot，测试按其ref／basis取得实际字节再复查snapshot；候选模块只接收这份已授权的窄字节集合。HTML用惰性template解析并重建受控头部，显式清单资源转本轮Blob；不在父DOM挂原HTML。首次nonce策略作校准，另测nonce与仅Blob脚本策略的交集，防页面读取nonce后加载任意远程script；不把单个nonce或frame-src blob解释成精确资源白名单。父策略仅施于专用夹具页，生产策略变更须主线另评估HTML/PDF。
 
 两宿主沿既有真实Browser／Electron主窗口及静态已构建承载，测试路由提供已打包的专用父页模块，不用DEV示例入口。自有HTTP服务在解析前开始计数，正向请求证明计数有效，所有攻击目标是本轮端口；必要UDP/STUN探针补充HTTP计数看不到的WebRTC路径。先证明合法脚本／图片／字体确实运行，再核多通道零外部请求、opaque DOM／preload／Node／内核访问隔离、导航／blob继承、桥版本／generation／basis、旧port、过量和关闭释放。忙循环只用有界样本诊断父响应，不以等待或重试隐藏失败。
 
 输出是逐宿主、逐保证的实际结论。只要确认的保证失败，生产仍unavailable，保留反例及最小可审查替代方案，不把设置sandbox属性或请求被测试拦截算作安全，不把HTTP零计数扩大为所有网络保证。
+
+续做实跑已确认两宿主的交集CSP仍允许WebRTC数据通道向本轮STUN端口发UDP；`camera/microphone 'none'`不阻止该通道。Electron中仅nonce策略还实际加载远程脚本，Browser相同校准被Local Network Access拦下，不能归功于CSP。当前结论是生产保持unavailable，HTTP样本零请求仅是被测通道结果。250ms忙循环期间Browser父页心跳出现251–258ms间隔；Electron样本17–18ms也不构成强CPU隔离保证。精确版本、原始包计数与各轮失败见同一delivery。
+
+主线待审方案：维持已有不执行脚本的HTML阅读器，继续保留活动报告不可用；或另立有界架构切片，提供覆盖UDP／DNS／HTTP的实际网络拒绝及CPU／完整停止权威，再设计跨宿主承载。Browser普通iframe不能据本候选兑现这些保证；Electron独立session的HTTP拦截也不足以处理已证实的UDP反例。不以覆盖fetch／RTCPeerConnection或收紧页面API白名单替代可靠隔离。本片不选择新承载，不改生产CSP、导航或共享内核接口。
 
 ReportView 使用 opaque-origin sandbox iframe，仅 allow-scripts；没有 allow-same-origin、popups、forms、downloads、top-navigation 或宿主preload。加载器重新构造文档头和资源引用，移除base、外部URL、嵌入文档、原meta策略及主动导航。应用控制的CSP默认禁止所有来源，只放行本次nonce脚本、明确Blob资源及必要样式；connect、worker、frame/object、form-action、base-uri均禁止。父文档的frame-src同时限定报告允许的Blob目标，防止脚本通过自身导航绕过frame内connect限制；这会影响共享入口，必须实测普通排版／PDF视图不受损。不能只加sandbox属性即声称“无网络”。
 
