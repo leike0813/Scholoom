@@ -9,6 +9,163 @@ import { createSession, expect, openWorkbenchWindow, test } from './fixture.js';
 import { rendererUrl } from './renderer-url.js';
 import { armRpcGate, installRpcGate, releaseRpcGate } from './rpc-gate.js';
 
+test('native CSL fields and ordered host names preserve raw authority across type changes', async ({
+  uiPage,
+}) => {
+  test.setTimeout(90000);
+  const client = createKernelClient(
+    await runningKernel(process.env.SCHOOLOOM_UI_DATA_DIR as string),
+  );
+  const suffix = randomUUID().slice(0, 8),
+    title = `CSL映射-${suffix}`;
+  try {
+    await client.connect();
+    await client.call('library.grant', { read: true, write: true, send: false, autoBackup: false });
+    await uiPage.goto(rendererUrl);
+    await expect(uiPage.getByRole('status', { name: '连接状态' })).toContainText('已连接');
+    await createSession(uiPage);
+    await uiPage.getByRole('button', { name: '文献库', exact: true }).click();
+    await openLibraryDetails(uiPage);
+    const panel = uiPage.getByRole('region', { name: '文献库', exact: true });
+    const detail = uiPage.getByRole('region', { name: '题录详情', exact: true });
+    await panel.getByRole('button', { name: '新建题录', exact: true }).click();
+    await panel.getByLabel('题名', { exact: true }).fill(title);
+    await panel.getByLabel('类型', { exact: true }).selectOption('motion_picture');
+    await panel.getByLabel('体裁／类别说明', { exact: true }).fill('Documentary');
+    await panel.getByLabel('载体／系统', { exact: true }).fill('DVD');
+    await panel.getByLabel('尺寸／时长', { exact: true }).fill('01:23:45');
+    await panel.getByLabel('短题名', { exact: true }).fill('Source short');
+    await panel.getByText('创建者', { exact: true }).first().click();
+    await panel.getByRole('button', { name: '添加机构主持人', exact: true }).click();
+    await panel.getByLabel('主持人1literal', { exact: true }).fill('科学影像中心');
+    await panel.getByRole('button', { name: '添加主持人', exact: true }).click();
+    await panel.getByLabel('主持人2family', { exact: true }).fill('单名');
+    await panel.getByRole('button', { name: '创建题录', exact: true }).click();
+    await expect
+      .poll(async () => (await client.call('library.list', { query: title })).sources.length)
+      .toBe(1);
+    const created = (await client.call('library.list', { query: title })).sources[0];
+    if (!created) throw new Error('Missing native CSL sample');
+    const organization = { literal: '科学影像中心', extension: { retained: true } };
+    const single = { family: '单名', given: '' };
+    expect(created.metadata).toMatchObject({
+      type: 'motion_picture',
+      genre: 'Documentary',
+      medium: 'DVD',
+      dimensions: '01:23:45',
+      'title-short': 'Source short',
+      host: [{ literal: '科学影像中心' }, single],
+    });
+    const libraryId = (await client.call('library.status', {})).id;
+    const instance = await client.call('library.createSourceInstance', {
+      libraryId,
+      requestId: randomUUID(),
+      label: 'Fixed film sample',
+    });
+    const original = {
+      identity: { instanceId: instance.id, libraryLocator: 'local', objectKey: `FILM${suffix}` },
+      schemaVersion: '44',
+      itemType: 'film',
+      fields: {
+        genre: 'Documentary',
+        videoRecordingFormat: 'DVD',
+        runningTime: '01:23:45',
+        shortTitle: 'Source short',
+        date: '2024春至夏',
+        extra: 'Unparsed Extra',
+      },
+      creators: [
+        { creatorType: 'host', lastName: '科学影像中心', fieldMode: 1, orderIndex: 0 },
+        { creatorType: 'host', lastName: '单名', firstName: '', orderIndex: 1 },
+      ],
+      relations: {},
+    };
+    const metadata = {
+      ...created.metadata,
+      host: [organization, single],
+      shortTitle: 'Legacy short',
+      issued: {
+        'date-parts': [
+          [2024, 3],
+          [2024, 5],
+        ],
+        circa: true,
+      },
+      'original-date': { raw: '约春季', season: 'spring' },
+      extension: { nested: ['保留'] },
+    };
+    expect(
+      await client.call('library.commitRecords', {
+        libraryId,
+        requestId: randomUUID(),
+        changes: [
+          {
+            sourceId: created.id,
+            revision: created.revision,
+            metadata,
+            original,
+            key: { value: `FixedFilm${suffix}`, pinned: true, intent: 'explicit' },
+          },
+        ],
+      }),
+    ).toMatchObject({ state: 'committed' });
+    await panel.getByLabel('查找题录', { exact: true }).fill(title);
+    await panel.getByRole('option', { name: `查看题录 ${title}`, exact: true }).click();
+    await detail.getByText('类型化题录', { exact: true }).click();
+    await detail.getByText('创建者', { exact: true }).click();
+    await detail.getByRole('button', { name: '题录主持人2上移', exact: true }).click();
+    await expect(detail.getByLabel('题录发表日期年', { exact: true })).toHaveCount(0);
+    await detail.getByLabel('题录类型', { exact: true }).selectOption('speech');
+    await detail.getByLabel('题录活动／会议名称', { exact: true }).fill('Recorded event');
+    await detail.getByLabel('题录类型', { exact: true }).selectOption('hearing');
+    await detail.getByLabel('题录分节／委员会', { exact: true }).fill('Research committee');
+    await detail.getByLabel('题录沿革／参考说明', { exact: true }).fill('Prior application');
+    await detail.getByLabel('题录类型', { exact: true }).selectOption('patent');
+    await detail.getByLabel('题录索引编号', { exact: true }).fill('US12/123456');
+    await detail.getByLabel('题录期', { exact: true }).fill('P-42');
+    await detail.getByLabel('题录类型', { exact: true }).selectOption('software');
+    await detail.getByLabel('题录体裁／类别说明', { exact: true }).fill('TypeScript');
+    await detail.getByLabel('题录载体／系统', { exact: true }).fill('Linux');
+    await detail.getByLabel('题录丛书／系列名称', { exact: true }).fill('Analysis tools');
+    await detail.getByLabel('题录短题名', { exact: true }).fill('Changed short');
+    const expected = {
+      ...metadata,
+      type: 'software',
+      genre: 'TypeScript',
+      medium: 'Linux',
+      'event-title': 'Recorded event',
+      section: 'Research committee',
+      references: 'Prior application',
+      'call-number': 'US12/123456',
+      issue: 'P-42',
+      'collection-title': 'Analysis tools',
+      'title-short': 'Changed short',
+      host: [single, organization],
+    };
+    const json = detail.getByLabel('题录 CSL JSON', { exact: true });
+    await expect.poll(async () => JSON.parse(await json.inputValue())).toEqual(expected);
+    await detail.getByRole('button', { name: '保存题录更正', exact: true }).click();
+    await expect
+      .poll(async () => (await client.call('library.get', { sourceId: created.id })).metadata)
+      .toEqual(expected);
+    const authority = await client.call('library.record', { libraryId, sourceId: created.id });
+    expect(authority).toMatchObject({
+      originals: [original],
+      citationKey: { value: `FixedFilm${suffix}`, pinned: true },
+    });
+    await uiPage.reload();
+    await uiPage.getByRole('button', { name: '文献库', exact: true }).click();
+    await openLibraryDetails(uiPage);
+    await panel.getByRole('option', { name: `查看题录 ${title}`, exact: true }).click();
+    await expect.poll(async () => JSON.parse(await json.inputValue())).toEqual(expected);
+    expect(await client.call('library.record', { libraryId, sourceId: created.id })).toEqual(
+      authority,
+    );
+  } finally {
+    client.dispose();
+  }
+});
+
 test('manual typed fields, creators and calendar parts preserve library originals and conflict drafts', async ({
   uiPage,
 }) => {
