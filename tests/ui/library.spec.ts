@@ -162,6 +162,10 @@ test('native CSL fields and ordered host names preserve raw authority across typ
     expect(await client.call('library.record', { libraryId, sourceId: created.id })).toEqual(
       authority,
     );
+    await detail.getByText('原值与导出', { exact: true }).click();
+    await detail.getByRole('button', { name: '核对所选原值', exact: true }).click();
+    await expect(detail.getByRole('alert')).toContainText('unavailable');
+    await expect.poll(async () => JSON.parse(await json.inputValue())).toEqual(expected);
   } finally {
     client.dispose();
   }
@@ -726,9 +730,14 @@ test('library selection, collection navigation and columns survive bounded view 
       panel.getByRole('listbox', { name: '题录列表' }).getByRole('option', { selected: true }),
     ).toHaveCount(2);
     const listbox = panel.getByRole('listbox', { name: '题录列表' });
+    const firstVisibleRow = await listbox.getByRole('option').first().getAttribute('aria-label');
     await listbox.evaluate((element) => {
       element.scrollTop = 200;
     });
+    await expect(listbox.getByRole('option').first()).not.toHaveAttribute(
+      'aria-label',
+      firstVisibleRow as string,
+    );
     await expect.poll(() => listbox.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
     const scroll = await listbox.evaluate((element) => element.scrollTop);
     await panel.getByRole('button', { name: '下一页题录', exact: true }).click();

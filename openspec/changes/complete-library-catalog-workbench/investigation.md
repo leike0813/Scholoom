@@ -1,5 +1,43 @@
 # 调查依据
 
+## 2026-10-27：0b78815后的真实失败与原值GUI接口
+
+当前正式共同源码`0b788151b5e17665a26d9286dfd1d12f6e2e0c30`且开工前clean，主线接收／同步／定向复验见`/tmp/scholoom-round8-acceptance-UrXA7y/`。原日期子片、生态inspect／replaceTitle／expression、报告及授权修复均已在本树，旧“生态新接口未同步”属于历史，不再阻塞本轮消费者。
+
+### 原macOS失败实际是分页滚动
+
+原始`ci-baseline-failures.log` L29—47显示Browser旧tests/ui/library.spec.ts:683对`listbox.scrollTop`期待200、得到0；不是列宽。Electron同例通过。当前场景先`element.scrollTop=200`，随后只读同一同步属性；它不能证明异步scroll事件已经让useVirtualizedList更新可见行并由CatalogItemList保存范围偏好。当前locator按可访问名在唯一文献region查询，非缓存ElementHandle；没有读旧卸载节点或第二个隐藏列表的确证。
+
+保守修正仅在现有测试中等待首个虚拟行的可访问身份随滚动实际变化，再翻页；继续核对精确返回位置，未放宽值／时限或加sleep。未发现需要改产品布局的证据。本机双宿主首次定向2/2通过；旧目标日志只能证明间歇失败，未在本机声称稳定复现200→0。
+
+本轮只读查询Checks40454653610时总体仍in_progress，但macOS job122025046737的人工双宿主及package步骤已success，源码仍为未含本轮修正的0b78815；不能把它算作修正后目标实跑。Windows diagnosis40454653566已success，仅覆盖其实际定向场景。原样job证据在`/tmp/scholoom-library-gui-round8/ci-{checks,windows}-observed.json`；下载macOS文本日志受到gh终端转义保护拒绝，未冒充读过该份详细运行trace。
+
+最新已完成全仓基线仍以用户提供的b2f3b50／40447074031为输入：Linux734通过／1失败／23跳过，Windows715通过／4失败／39跳过，macOS人工13通过／1失败。Windows四项为host-connection断联、lifecycle占锁、literature-attachment执行等待及platform-availability计数；不沿用旧54项清单。本线不改共同监督、生命周期、unknown、停止或容量保护；附件阶段协查由Agent安排承接，不凭本机结果关闭Windows。
+
+### 已同步生态契约与可用性
+
+事实源为`packages/protocol/src/zotero.ts`及`apps/kernel/src/zotero.ts`：
+
+| 操作／字段 | 本轮消费者准确语义 |
+| --- | --- |
+| inspect：libraryId、sources[{sourceId,revision}] | 单条有界读取，返回已保存csl／original／citationKey及同一revision；comparison.title严格equal／different，remaining固定notComparable，不能用未保存草稿替换csl。 |
+| original.identity | instanceId／libraryLocator／objectKey全部精确使用返回值；唯一schema44 journalArticle且满足journalOriginal受限字段／姓名／关系检查，缺准确title或多来源返回unavailable。 |
+| replaceTitle：libraryId／requestId／sourceId／revision／identity／title | title为1—4096字符串，原样保存，不trim。只有fields.title被替换；完整其他原值、CSL及正式键沿共同commitRecords保留，共享revision递增。inspect／replaceTitle不启动BBT。 |
+| export：format、sources的expression | 格式bibtex／biblatex；未选expression返回selectionRequired且无文本、不启动原包。明确zotero-original identity后才生成实际BBT文本；没有键则unavailable，不隐式填键。 |
+| replaceTitle receipt与zotero.result | 外层queried只是查询原requestId，不代表重新执行；结果committed／rejected来自共同稳定回执。失联／outcomeUnknown留原请求，仅result只读核查；notFound不能证明安全重放。 |
+
+所有入口要求可信构造中的isolatedZotero与实际libraryId匹配；capabilities列表不证明可用。人工inspect／result要求read，replaceTitle另要write，export还要send；Agent另有send／可信执行检查，GUI不绕过。普通内核默认unavailable，macOS受管执行不可用保持，首片不提供启用真实库或输入原生路径的renderer开关。
+
+LibraryTab当前dirty对象收到原值更正通知仍保留CSL全文与旧editRevision，因此随后保存会按CAS冲突；这是本片保留且实测的契约，不自动rebase或把原值写入成功当CSL保存成功。原值输入／pending仅保存自己的题名意图与冻结请求，复用drafts及librarySaves，不复制CSL状态。
+
+### 可信隔离夹具与证据限制
+
+没有现成生态UI启用配置，可信seam已在KernelApplication／serveKernel的isolatedZotero构造参数。直接沿普通UI middleware启动后补注入不可行；开发owner生命周期也不会在CLI重启后保存该参数。本片复用现有`tests/ui/task-graph-launch.spec.ts`的实际KernelApplication＋startKernelServer＋本机bootstrap代理到既有静态renderer模式，只在测试端构造隔离配置。没有新增生产provider、开关、broker替身或自动重启配置。
+
+测试真实共同SQLite／文件与原BBT9.0.68未修改XPI，期刊样本来自既有zotero-host独立Preserved journal输入；所有身份经真实createSourceInstance／摄取／commitRecords创建。传输门只控制真实请求派发与真实成功回执丢失，保留实际库回执和历史；无假成功provider。该夹具验证同一真实服务的页面重载／重连，**不覆盖serveKernel锁与CLI进程重启注入**。原包使用既有受限兼容facade，不能称完整原生Zotero用户库／宿主验收；外部模型未参与人工动作。
+
+独立窄审查发现两个局部确证风险：只比较当前single／revision会让离开再返回后的迟到导出复现；JSON null损坏草稿在保护分支之后仍被解引用。已分别用所选视图依据的对象代次拒绝旧异步响应、校验失败后避免解引用；在真实双宿主主场景扩展多选→同一主选期间迟到导出无输出，以及损坏另一对象草稿后工作台仍可用的回归。没有新领域schema／存储或保存入口。
+
 ## 2026-10-27：8a2f0ce后的数字日期区间与circa
 
 开工前本树clean，HEAD为`8a2f0ce522dfbab4110e63e84e542f6660e6115e`；主线验收、同步及定向复验见`/tmp/scholoom-round7-acceptance-SdxHy8/`。本节为当前输入，下方分阶段记录保留其历史范围，不再等待旧公共同步。仅闭合4.1d／4.2d，原值／来源／正式键、5.3及X1不重做。
