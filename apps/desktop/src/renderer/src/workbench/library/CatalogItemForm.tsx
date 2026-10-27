@@ -2,15 +2,19 @@ import {
   type CslMetadata,
   catalogEditorDates,
   catalogEditorFields,
+  catalogEditorNumericDate,
   catalogEditorRoles,
   catalogEditorTypes,
 } from '@scholoom/protocol';
 import { type Ref, useId, useState } from 'react';
 import {
+  catalogDateCirca,
   catalogDateParts,
+  editCatalogDateCirca,
   editCatalogDatePart,
   editCatalogField,
   moveCatalogCreator,
+  removeCatalogDateEnd,
 } from './catalog-metadata';
 
 const record = (value: unknown): value is Record<string, unknown> =>
@@ -29,6 +33,7 @@ export function CatalogItemForm({
 }) {
   const formId = useId();
   const [dateModes, setDateModes] = useState<Record<string, 'literal' | 'parts'>>({});
+  const [dateError, setDateError] = useState<{ key: string; basis: string; message: string }>();
   let metadata: CslMetadata;
   try {
     const parsed: unknown = JSON.parse(value);
@@ -37,8 +42,10 @@ export function CatalogItemForm({
   } catch {
     return <p role="status">请先在 CSL JSON 中检查题录格式，原草稿已保留。</p>;
   }
-  const update = (key: string, next: unknown) =>
+  const update = (key: string, next: unknown) => {
+    setDateError(undefined);
     onChange(JSON.stringify(editCatalogField(metadata, key, next), null, 2));
+  };
   const name = (label: string) => `${prefix}${label}`;
   const type = typeof metadata.type === 'string' ? metadata.type : '';
   const changeCreator = (role: string, index: number, field: string, next: string) => {
@@ -124,6 +131,40 @@ export function CatalogItemForm({
           : date === undefined
             ? (dateModes[key] ?? 'literal')
             : 'literal';
+        const circa = catalogDateCirca(date);
+        const dateInputs = (endpoint: number) =>
+          catalogEditorNumericDate.parts.map(({ label: part, min, max }, index) => (
+            <label key={part}>
+              {part}
+              <input
+                type="number"
+                min={min}
+                max={max}
+                step={1}
+                aria-label={name(`${label}${endpoint === 1 ? '结束' : ''}${part}`)}
+                value={parts?.[endpoint]?.[index] ?? ''}
+                disabled={
+                  (endpoint === 1 && !parts?.[0]?.length) ||
+                  index > (parts?.[endpoint]?.length ?? 0)
+                }
+                onChange={(event) => {
+                  const next = event.currentTarget.validity.badInput
+                    ? metadata
+                    : editCatalogDatePart(metadata, key, index, event.target.value, endpoint);
+                  if (next === metadata) {
+                    setDateError({
+                      key,
+                      basis: value,
+                      message: '未采用该输入；请使用范围内整数并保持连续精度，原日期草稿已保留。',
+                    });
+                    return;
+                  }
+                  setDateError(undefined);
+                  onChange(JSON.stringify(next, null, 2));
+                }}
+              />
+            </label>
+          ));
         return (
           <fieldset key={key}>
             <legend>{label}</legend>
@@ -159,29 +200,57 @@ export function CatalogItemForm({
                 />
               </label>
             ) : (
-              ['年', '月', '日'].map((part, index) => (
-                <label key={part}>
-                  {part}
-                  <input
-                    type="number"
-                    min={1}
-                    max={index === 0 ? 9999 : index === 1 ? 12 : 31}
-                    step={1}
-                    aria-label={name(`${label}${part}`)}
-                    value={parts?.[index] ?? ''}
-                    disabled={index > (parts?.length ?? 0)}
-                    onChange={(event) =>
-                      onChange(
-                        JSON.stringify(
-                          editCatalogDatePart(metadata, key, index, event.target.value),
-                          null,
-                          2,
-                        ),
-                      )
-                    }
-                  />
-                </label>
-              ))
+              <>
+                {dateInputs(0)}
+                <details open={parts?.length === 2}>
+                  <summary>结束日期</summary>
+                  {dateInputs(1)}
+                  <button
+                    type="button"
+                    className="btn btn-sm"
+                    aria-label={name(`移除${label}结束日期`)}
+                    disabled={parts?.length !== 2}
+                    onClick={() => {
+                      setDateError(undefined);
+                      onChange(JSON.stringify(removeCatalogDateEnd(metadata, key), null, 2));
+                    }}
+                  >
+                    移除结束日期
+                  </button>
+                </details>
+                {circa === undefined ? (
+                  <p>
+                    约略标记：{JSON.stringify(record(date) ? date.circa : undefined)}
+                    （保留原值，可在JSON中编辑）
+                  </p>
+                ) : (
+                  <label>
+                    约略标记
+                    <select
+                      aria-label={name(`${label}约略标记`)}
+                      value={circa}
+                      disabled={!parts}
+                      onChange={(event) => {
+                        setDateError(undefined);
+                        onChange(
+                          JSON.stringify(
+                            editCatalogDateCirca(metadata, key, event.target.value),
+                            null,
+                            2,
+                          ),
+                        );
+                      }}
+                    >
+                      <option value="unset">未指定</option>
+                      <option value="true">约略</option>
+                      <option value="false">非约略</option>
+                    </select>
+                  </label>
+                )}
+              </>
+            )}
+            {dateError?.key === key && dateError.basis === value && (
+              <p role="alert">{dateError.message}</p>
             )}
             <button
               type="button"

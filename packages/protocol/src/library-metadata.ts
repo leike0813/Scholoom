@@ -368,6 +368,17 @@ export const catalogEditorRoles: readonly (readonly [
   ['collection-editor', '丛书编辑', [...books, 'map', 'paper-conference', 'report']],
   ['script-writer', '编剧', ['broadcast', 'motion_picture']],
 ] as const;
+export const catalogEditorNumericDate = {
+  maxEndpoints: 2,
+  parts: [
+    { label: '年', min: 1, max: 9999 },
+    { label: '月', min: 1, max: 12 },
+    { label: '日', min: 1, max: 31 },
+  ],
+  circaValues: [true, false, 0, 1],
+  readOnlyProperties: ['literal', 'raw', 'season', 'calendar'],
+} as const;
+
 export const catalogEditorDates = [
   ['issued', '发表日期'],
   ['accessed', '访问日期'],

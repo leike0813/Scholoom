@@ -10,6 +10,7 @@ export * from './catalog-selection.js';
 export {
   catalogEditorDates,
   catalogEditorFields,
+  catalogEditorNumericDate,
   catalogEditorRoles,
   catalogEditorTypes,
   cslMetadataSchema,

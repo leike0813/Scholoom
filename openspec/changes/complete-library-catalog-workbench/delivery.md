@@ -1,5 +1,44 @@
 # 实际交付与交接
 
+## 2026-10-27：8a2f0ce后的数字区间及circa子片
+
+本轮共同基线`8a2f0ce522dfbab4110e63e84e542f6660e6115e`，开工前clean，HEAD未改变。主线已接收前片并实际同步；本轮只完成**4.1d／4.2d，22/27**，父4.1／4.2、Windows1.4及完整6.1／6.2仍开放。本节取代下方历史阶段的当前范围和等待说明，不应用旧累计patch，也没有提交、同步其他树或启动后续阶段。
+
+### 成果、文件与调用方
+
+- `packages/protocol/src/library-metadata.ts`增加唯一`catalogEditorNumericDate`声明：两端、年月日边界及已知只读复杂属性、circa布尔和0／1；`library.ts`仅补导出。开放metadata、44字段／22角色／32类型、同源操作schema与生成类型无变化。
+- `workbench/library/catalog-metadata.ts`的`catalogDateParts`返回所有端点；`editCatalogDatePart`追加可选endpoint参数并按连续精度局部编辑，新增`catalogDateCirca`／`editCatalogDateCirca`／`removeCatalogDateEnd`。所有调用方已核对；不推断日期、不补齐或交换端点，不改未指定属性。既有数值circa更正仍为0／1，未知字符串不强转；最后数字清除仍保留附属属性，只有明确清除整个日期才删除对象。
+- `CatalogItemForm.tsx`复用同一JSON草稿和保存路径，支持结束日期按需展开、独立精度、circa及明确移除结束端；非法范围／原生badInput显示错误且不触发草稿改写。错误仅保存字段与JSON依据，不保存日期副本。`LibraryTab.tsx`仅为详情表单增加sourceId key，隔离对象间临时错误／展开状态；单一选择、右栏、保存台账及迟到保护仍沿原实现。无新样式或硬编码视觉值。
+- 扩展既有`tests/kernel/{catalog-metadata,literature-catalog}.spec.ts`及`tests/ui/library.spec.ts`，没有另建UI／领域夹具。独立上游样本及未支持表达的精确边界见[investigation](investigation.md)首节；更新本change的design／delta／tasks与开发、UI文献分节。原design变更总览中的表单→client→库→SQLite路径仍为实际路径，无新增模块／权威。
+
+### 实际验证、首次失败与证据边界
+
+证据根`/tmp/scholoom-library-date-round7/`。Linux／Node24、既有依赖；共享构建结束后才构建桌面，二者退出后冻结产物运行最终测试。内部client、broker、真实领域SQLite／文件、Browser和Electron接线真实；手动表单路径不需模型或Agent worker，没有替身执行身份。合成原值及来源只在隔离测试库创建，不接真实用户数据；标准probe仅在VM执行独立参考条件，不是产品排版或Zotero宿主。
+
+| 命令／范围 | 实际结果及保留依据 |
+| --- | --- |
+| `node <证据根>/standard-probe.mjs` | 通过，`standard-probe.log`；固定CSL v1.0.2 schema、官方范围／circa样本及citeproc-js 1.4.61真值条件。字符串`"0"`不作为false；固定版本与blob见调查。 |
+| 基线RED：`node node_modules/@playwright/test/cli.js test --config playwright.kernel.config.ts tests/kernel/catalog-metadata.spec.ts --grep 'numeric CSL date ranges' --output <证据根>/kernel-red` | **1失败**，原helper对官方范围返回undefined，预期为两端点；`date-red.log`和trace保留。不是运行环境或加时限修复。 |
+| `pnpm --config.optimisticRepeatInstall=false build:shared`，随后`pnpm --config.optimisticRepeatInstall=false --filter @scholoom/desktop build` | 通过，`build-shared.log`／`build-desktop.log`，桌面约1分38秒。测试期间没有重建产物；未安装下载依赖或启动开发服务器。 |
+| `node node_modules/@playwright/test/cli.js test --config playwright.kernel.config.ts tests/kernel/catalog-metadata.spec.ts tests/kernel/literature-catalog.spec.ts tests/kernel/library-records.spec.ts --output <证据根>/kernel-final` | **16/16，13.8秒**，`kernel.log`；端点／精度及circa、未知属性、非法输入、真实保存／CAS冲突／库关闭重启读回、原值／来源／固定键及原子事务均通过。 |
+| `SCHOOLOOM_UI_PORT=5755 SCHOOLOOM_UI_DATA_DIR=<证据根>/profile-first xvfb-run -a node node_modules/@playwright/test/cli.js test --config <证据根>/ui.config.mts tests/ui/library.spec.ts --workers=1` | **12/12，4.3分钟**，`ui-first.log`／`ui-first/`。人工区间／circa录入→更正、完整未知JSON、原值／固定键、冲突草稿、唯一右栏／跨组、集合／选择／分页及双窗口迟到回归通过。 |
+| 同一静态config，端口5757、profile-verified，`tests/ui/library.spec.ts --grep 'manual typed fields' --output <证据根>/ui-verified --workers=1` | **2/2，1.0分钟**，`ui-verified.log`。独立窄审查指出原`.press('e')`只核JSON、未证明触发badInput；随后仅补测试观察器，真实捕获原生input事件中的badInput=true，再核JSON不变。Browser17.9秒／Electron21.8秒；未伪造事件状态或扩大时限，未重跑全部12项。 |
+| desktop和tools `tsc --noEmit`（`apps/desktop/tsconfig.json`／`tsconfig.tools.json`） | 通过，`types-desktop.log`／`types-tools-final.log`。补强测试后再次核tools；生产产物不变。 |
+| 8份相关源码／测试Biome、`node scripts/check-architecture.ts`、生成器`--self-test`和只读`--patch`映射比较 | 通过，`lint-final.log`／`architecture.log`／`generator-self-test.log`／`generated-check.log`；14模块253文件0 findings，7份格式化生成输出与当前源码一致，未应用格式噪声。 |
+| `openspec validate complete-library-catalog-workbench --strict`、`openspec schema validate scholoom-dev`及`git diff --check` | 通过，`openspec-strict.log`／`openspec-schema.log`／`diff-check.log`；CLI状态不是全change或目标平台验收。补丁应用检查另见下述工件。 |
+
+静态UI使用`/tmp/scholoom-sync-recovery-wyn13R/static-ui.mjs`承载已构建renderer。既有globalTeardown经cleanupKernel确认stopped后退役并删除本轮两个隔离profile；登记随配置退役，未留下仍登记却删除的项目。5755／5757已无监听，本轮测试会话及辅助Agent均已退出；保留RED、截图／结果和所有日志，不清理别域进程。现有截图不是新增日期控件全主题视觉验收，不声称该范围。
+
+辅助Agent仅写拥有的literature-catalog测试，并对共享声明／helper／表单／调用方作独立静态窄审查，未发现确证源码问题。其badInput证据缺口已用上述真实双宿主补齐；主Agent核对最终调用方及差异。经验检索未找到相关条目，不作为新增通过结论。
+
+### 接入与剩余问题
+
+本轮补丁位于`<证据根>/patches/`，仅相对8a2f0ce：**0001共享编辑声明 → 0002日期helper／表单及既有回归 → 0003原OpenSpec与文档**。精确文件及逐片核对见该目录README／manifest；临时应用核查仅含触及文件，不是另一个工作树或组合构建。公共部分为编辑能力声明，没有新增操作、迁移或未注册provider。
+
+生态已定D1—D3不重提待决：当前库事务能存独立原值题名并以共享revision原子核对，正式键省略则保持；本树尚无新显式导出选择API或任意原题名提交装配，不接假UI。精确现有能力／缺消费接口及授权边界见调查。季节、非公历、数字字符串、开放端点、混合literal／raw及未知circa仍JSON核查；若后续要求结构化转换，须先定义明确语义及可能丢弃确认。本片没有阻塞的产品选择，已到授权停止点。
+
+Windows最新文献三项状态观察仍待现场时间线，document-integration已通过；不以本机绿灯关闭1.4，也不关闭完整4.1／4.2、6.1／6.2。不扩C—I、原值同步、完整生态事务、真实科研质量或跨平台发布；没有push／PR／archive。
+
 ## 2026-10-27：4b13183后的原生CSL编辑子片
 
 本轮基线`4b13183f7489d3cae12fd0a7d1a9e83fb33d7384`，开工前clean，HEAD未改变。主线已接收5.3、原值／正式键及生态持续外发P1；本轮只完成**4.1c／4.2c，当前20/25**，完整4.1／4.2及其余五项仍开放。未应用旧累计patch、提交／推送／PR／归档、合并／重置、安装依赖、写真实用户库或跨树操作。

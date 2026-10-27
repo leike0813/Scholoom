@@ -114,7 +114,8 @@ test('native CSL fields and ordered host names preserve raw authority across typ
     await detail.getByText('类型化题录', { exact: true }).click();
     await detail.getByText('创建者', { exact: true }).click();
     await detail.getByRole('button', { name: '题录主持人2上移', exact: true }).click();
-    await expect(detail.getByLabel('题录发表日期年', { exact: true })).toHaveCount(0);
+    await expect(detail.getByLabel('题录发表日期年', { exact: true })).toHaveValue('2024');
+    await expect(detail.getByLabel('题录原始发表日期年', { exact: true })).toHaveCount(0);
     await detail.getByLabel('题录类型', { exact: true }).selectOption('speech');
     await detail.getByLabel('题录活动／会议名称', { exact: true }).fill('Recorded event');
     await detail.getByLabel('题录类型', { exact: true }).selectOption('hearing');
@@ -194,6 +195,14 @@ test('manual typed fields, creators and calendar parts preserve library original
     await panel.getByLabel('发表日期年', { exact: true }).fill('2026');
     await panel.getByLabel('发表日期月', { exact: true }).fill('7');
     await panel.getByLabel('发表日期日', { exact: true }).fill('23');
+    await panel
+      .getByRole('group', { name: '发表日期', exact: true })
+      .getByText('结束日期', { exact: true })
+      .click();
+    await panel.getByLabel('发表日期结束年', { exact: true }).fill('2027');
+    await panel.getByLabel('发表日期结束月', { exact: true }).fill('8');
+    await panel.getByLabel('发表日期结束日', { exact: true }).fill('24');
+    await panel.getByLabel('发表日期约略标记', { exact: true }).selectOption('true');
     await panel.getByText('创建者', { exact: true }).first().click();
     await panel.getByRole('button', { name: '添加丛书编辑', exact: true }).click();
     await panel.getByLabel('丛书编辑1family', { exact: true }).fill('王');
@@ -208,7 +217,13 @@ test('manual typed fields, creators and calendar parts preserve library original
       type: 'book',
       'original-publisher': '原版出版社',
       'number-of-pages': '320',
-      issued: { 'date-parts': [[2026, 7, 23]] },
+      issued: {
+        'date-parts': [
+          [2026, 7, 23],
+          [2027, 8, 24],
+        ],
+        circa: true,
+      },
       'collection-editor': [{ family: '王', given: '小明' }],
     });
     const libraryId = (await client.call('library.status', {})).id;
@@ -234,6 +249,15 @@ test('manual typed fields, creators and calendar parts preserve library original
     const metadata = {
       ...created.metadata,
       'collection-editor': [creator],
+      issued: {
+        'date-parts': [
+          [2026, 7, 23],
+          [2027, 8, 24],
+        ],
+        circa: 1,
+        extension: { nested: ['日期原属性'] },
+      },
+      accessed: { 'date-parts': [[2005, 12, 15]], circa: '0' },
       extension: { nested: ['未知值'] },
       'original-date': { 'date-parts': [[1900], [1905]], circa: true },
     };
@@ -255,6 +279,37 @@ test('manual typed fields, creators and calendar parts preserve library original
     await panel.getByLabel('查找题录', { exact: true }).fill(title);
     await panel.getByRole('option', { name: `查看题录 ${title}`, exact: true }).click();
     await detail.getByText('类型化题录', { exact: true }).click();
+    const json = detail.getByLabel('题录 CSL JSON', { exact: true });
+    await expect.poll(async () => JSON.parse(await json.inputValue())).toEqual(metadata);
+    await detail.getByLabel('题录发表日期结束月', { exact: true }).fill('13');
+    await expect(detail.getByRole('alert')).toContainText('保留');
+    await expect.poll(async () => JSON.parse(await json.inputValue())).toEqual(metadata);
+    const yearInput = detail.getByLabel('题录发表日期年', { exact: true });
+    await yearInput.evaluate((element) => {
+      const input = element as HTMLInputElement;
+      const observed: boolean[] = [];
+      Reflect.set(input, '__dateBadInput', observed);
+      input.addEventListener('input', () => observed.push(input.validity.badInput), {
+        capture: true,
+      });
+    });
+    await yearInput.press('e');
+    expect(await yearInput.evaluate((element) => Reflect.get(element, '__dateBadInput'))).toContain(
+      true,
+    );
+    await expect.poll(async () => JSON.parse(await json.inputValue())).toEqual(metadata);
+    await detail.getByRole('button', { name: '题录移除发表日期结束日期', exact: true }).click();
+    await expect
+      .poll(async () => JSON.parse(await json.inputValue()))
+      .toEqual({ ...metadata, issued: { ...metadata.issued, 'date-parts': [[2026, 7, 23]] } });
+    await detail
+      .getByRole('group', { name: '发表日期', exact: true })
+      .getByText('结束日期', { exact: true })
+      .click();
+    await detail.getByLabel('题录发表日期结束年', { exact: true }).fill('2028');
+    await expect(detail.getByLabel('题录发表日期结束日', { exact: true })).toBeDisabled();
+    await detail.getByLabel('题录发表日期约略标记', { exact: true }).selectOption('false');
+    await expect(detail.getByLabel('题录访问日期约略标记', { exact: true })).toHaveCount(0);
     await detail.getByLabel('题录原出版者', { exact: true }).fill('更正出版者');
     await detail.getByLabel('题录总页数', { exact: true }).fill('321');
     await detail.getByLabel('题录发表日期日', { exact: true }).fill('24');
@@ -267,12 +322,11 @@ test('manual typed fields, creators and calendar parts preserve library original
       type: 'article-journal',
       'original-publisher': '更正出版者',
       'number-of-pages': '321',
-      issued: { 'date-parts': [[2026, 7, 24]] },
+      issued: { ...metadata.issued, 'date-parts': [[2026, 7, 24], [2028]], circa: 0 },
       PMID: '12345678',
       'collection-editor': [],
       editor: [creator],
     };
-    const json = detail.getByLabel('题录 CSL JSON', { exact: true });
     await expect.poll(async () => JSON.parse(await json.inputValue())).toEqual(expected);
     await detail.getByRole('button', { name: '保存题录更正', exact: true }).click();
     await expect

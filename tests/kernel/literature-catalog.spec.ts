@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { expect, test } from '@playwright/test';
 import {
+  editCatalogDateCirca,
   editCatalogDatePart,
   editCatalogField,
   moveCatalogCreator,
@@ -51,6 +52,7 @@ test('native CSL alias targets and ordered host names survive conflicts and auth
         [2024, 5],
       ],
       circa: true,
+      extension: { original: true },
     },
     'original-date': { raw: '约春季', season: 'spring', extension: true },
     note: 'Extra原行',
@@ -117,6 +119,8 @@ test('native CSL alias targets and ordered host names survive conflicts and auth
       ['title-short', 'Changed short'],
     ] as const)
       changed = editCatalogField(changed, key, value);
+    changed = editCatalogDatePart(changed, 'issued', 2, '23', 1);
+    changed = editCatalogDateCirca(changed, 'issued', 'false');
     f.catalog.update({ ...before, sourceId: id, metadata: changed });
     expect(() =>
       f.catalog.update({ ...before, sourceId: id, metadata: { title: 'stale' } }),
@@ -135,6 +139,14 @@ test('native CSL alias targets and ordered host names survive conflicts and auth
         'call-number': 'US12/123456',
         references: 'Prior application',
         issue: 'P-42',
+        issued: {
+          'date-parts': [
+            [2024, 3],
+            [2024, 5, 23],
+          ],
+          circa: false,
+          extension: { original: true },
+        },
         host: [metadata.host[1], metadata.host[0]],
       });
       expect(reopened.record({ libraryId, sourceId: id })).toMatchObject({

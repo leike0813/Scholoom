@@ -1,32 +1,45 @@
-import type { CslMetadata } from '@scholoom/protocol';
+import { type CslMetadata, catalogEditorNumericDate } from '@scholoom/protocol';
 
-const datePartMaximum = (index: number) => (index === 0 ? 9999 : index === 1 ? 12 : 31);
+const record = (value: unknown): value is Record<string, unknown> =>
+  !!value && typeof value === 'object' && !Array.isArray(value);
 
-export function catalogDateParts(value: unknown): readonly number[] | undefined {
-  if (
-    !value ||
-    typeof value !== 'object' ||
-    Array.isArray(value) ||
-    Object.keys(value).length !== 1 ||
-    !('date-parts' in value)
-  )
+export function catalogDateParts(value: unknown): readonly (readonly number[])[] | undefined {
+  if (!record(value) || catalogEditorNumericDate.readOnlyProperties.some((key) => key in value))
     return;
   const dates = value['date-parts'];
-  if (!Array.isArray(dates) || dates.length !== 1 || !Array.isArray(dates[0])) return;
-  const parts: unknown[] = dates[0];
   if (
-    parts.length < 1 ||
-    parts.length > 3 ||
-    !parts.every(
-      (part, index) =>
-        typeof part === 'number' &&
-        Number.isInteger(part) &&
-        part >= 1 &&
-        part <= datePartMaximum(index),
+    !Array.isArray(dates) ||
+    dates.length < 1 ||
+    dates.length > catalogEditorNumericDate.maxEndpoints
+  )
+    return;
+  if (
+    !dates.every(
+      (parts) =>
+        Array.isArray(parts) &&
+        parts.length >= 1 &&
+        parts.length <= catalogEditorNumericDate.parts.length &&
+        parts.every((part, index) => {
+          const bounds = catalogEditorNumericDate.parts[index];
+          return (
+            bounds &&
+            typeof part === 'number' &&
+            Number.isInteger(part) &&
+            part >= bounds.min &&
+            part <= bounds.max
+          );
+        }),
     )
   )
     return;
-  return parts as number[];
+  return dates as number[][];
+}
+
+export function catalogDateCirca(value: unknown): 'unset' | 'true' | 'false' | undefined {
+  const flag = record(value) ? value.circa : undefined;
+  if (flag === undefined) return 'unset';
+  if (!catalogEditorNumericDate.circaValues.some((known) => known === flag)) return;
+  return flag === true || flag === 1 ? 'true' : 'false';
 }
 
 /** Date precision is a prefix; clearing a middle component must not discard later values. */
@@ -35,27 +48,71 @@ export function editCatalogDatePart(
   key: string,
   index: number,
   value: string,
+  endpoint = 0,
 ): CslMetadata {
   const current = metadata[key];
-  const parts = catalogDateParts(current);
-  if ((current !== undefined && !parts) || index < 0 || index > 2) return metadata;
-  const next = [...(parts ?? [])];
+  const dates = catalogDateParts(current);
+  const bounds = catalogEditorNumericDate.parts[index];
+  if (
+    (current !== undefined && !dates) ||
+    !Number.isInteger(index) ||
+    !bounds ||
+    !Number.isInteger(endpoint) ||
+    endpoint < 0 ||
+    endpoint >= catalogEditorNumericDate.maxEndpoints ||
+    endpoint > (dates?.length ?? 0)
+  )
+    return metadata;
+  const next = (dates ?? []).map((parts) => [...parts]);
+  const parts = [...(next[endpoint] ?? [])];
   if (value === '') {
-    if (index !== next.length - 1) return metadata;
-    next.pop();
+    if (index !== parts.length - 1 || (parts.length === 1 && endpoint === 0 && next.length > 1))
+      return metadata;
+    parts.pop();
   } else {
     const number = Number(value);
     if (
       !/^\d+$/.test(value) ||
       !Number.isInteger(number) ||
-      number < 1 ||
-      number > datePartMaximum(index) ||
-      index > next.length
+      number < bounds.min ||
+      number > bounds.max ||
+      index > parts.length
     )
       return metadata;
-    next[index] = number;
+    parts[index] = number;
   }
-  return editCatalogField(metadata, key, next.length ? { 'date-parts': [next] } : '');
+  if (parts.length) next[endpoint] = parts;
+  else next.splice(endpoint, 1);
+  const date = { ...(record(current) ? current : {}) };
+  if (next.length) date['date-parts'] = next;
+  else delete date['date-parts'];
+  return editCatalogField(metadata, key, Object.keys(date).length ? date : '');
+}
+
+export function removeCatalogDateEnd(metadata: CslMetadata, key: string): CslMetadata {
+  const current = metadata[key],
+    dates = catalogDateParts(current);
+  if (!record(current) || dates?.length !== 2) return metadata;
+  return editCatalogField(metadata, key, { ...current, 'date-parts': [dates[0]] });
+}
+
+export function editCatalogDateCirca(
+  metadata: CslMetadata,
+  key: string,
+  value: string,
+): CslMetadata {
+  const current = metadata[key];
+  if (
+    !record(current) ||
+    !catalogDateParts(current) ||
+    catalogDateCirca(current) === undefined ||
+    !['unset', 'true', 'false'].includes(value)
+  )
+    return metadata;
+  const date = { ...current };
+  if (value === 'unset') delete date.circa;
+  else date.circa = typeof current.circa === 'number' ? Number(value === 'true') : value === 'true';
+  return editCatalogField(metadata, key, date);
 }
 
 export function editCatalogField(metadata: CslMetadata, key: string, value: unknown): CslMetadata {
