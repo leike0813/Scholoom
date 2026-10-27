@@ -16,8 +16,14 @@ import type {
   ResourceEvidence,
   ResourceLocator,
 } from '../../packages/protocol/dist/index.js';
-import { expectExecutionCompleted, observeExecution } from '../execution-diagnostics.js';
+import {
+  expectExecutionCompleted,
+  installExecutionDiagnostics,
+  observeExecution,
+} from '../execution-diagnostics.js';
 import { createModelServer, type ModelServer } from '../model-server.js';
+
+installExecutionDiagnostics();
 
 const projectRef = {
   source: 'project' as const,

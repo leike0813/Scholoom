@@ -1,12 +1,28 @@
 # 实现设计
 
+## 取消代表例的设置与观察边界（0b78815）
+
+主线同一运行在4099ms首次等待失败，最近3939ms父worker已running但modelRequests=0且无委派，4114ms才首次模型请求；这不是子取消失败，也不借用其他运行的accepted状态。当前测试把父启动/首次模型、delegate工具及受理、子启动合并到名义5秒等待。职责票要求独立父子进程与完整所属停止，未承诺全链5秒启动SLA；取消验收须先证明实际子已启动。
+
+本片只改tests/execution-diagnostics、agent-delegation及必要同域夹具。observer增加最多16个有界语义阶段标记（时间/阶段名/模型请求计数），关联原run/instance/工具/委派采样；不记录模型正文或把采样成功当业务成功。先用原断言红测及临时观察取得父/子各自启动时间，再明确此用例的阶段预算和等待。完整停止、父可继续、真实产物/原结果保留及重启无新请求不减弱；不改生产deadline、unknown、容量、Delegations/checkReadable或kernel生命周期。阶段预算的具体选择与测量在本节闭合后才进入正式夹具修复。
+
+独立测量已闭合：本树原样红测约4146ms时委派accepted，子未登记running；临时观察在4096ms保留原失败边界、4097ms观测父模型、4099ms受理、4457ms子running，随后9193ms取消请求、10054ms确认cancelled、10945ms父completed、10977ms重启核查无新请求。该实验最后重抛原错误，不计通过。它与主线模型0请求的不同运行分别记录。
+
+特定夹具采用**每阶段原5秒**，intervals=[100,250]：先父首次模型，再delegate工具可见，再相同ID委派已受理，再子running。预算依据是现有单阶段5秒以及上述父启动/子启动测量，取消契约没有整个多进程冷启动5秒SLA；不以扩大统一timeout替代划阶段。子running来自真实onStart路径（先登记run_instances再started），另核不同父子instance/PID。原模型hold、有限等待timedOut、所属取消、parent completion及restart原记录/模型请求不增全部保留。原取消确认5秒、父完成20秒、用例60秒上界不改。
+
+四个启动观察的累计名义预算可达20秒（此前是合并5秒），仍受原用例总60秒约束；这是有测量依据的本用例设置范围调整，不是宣称端到端5秒不变。阶段标记是各条件已被测试观察到的时点，不冒充宿主事件的精确发生时间。
+
+代表例通过后，附件集成只在原首条指令send前安装同一observer，首run完成即停采；该阶段失败则在原finally清理前固定边界。后续reader失败不能标记为首run失败。原RPC/broker/文件/库及后续授权断言真实，原5秒完成期限不调整。该调用点不改变文献协议、摄取或材料权限，不据Linux结果声称Windows复验。
+
+附件后续独立观察已证明同因：原等待4242ms提前失败；4256ms公共batch状态completed/processed1/failed0、原附件实际读回字节匹配；4894ms原run completed且实例exited，仍在原5秒窗口内。仅为该首次完成轮询设置intervals=[100,250]，deadline仍5秒，后续材料/授权断言不动。临时观察保留原失败，不因继续观察改报通过；此处是局部夹具采样修正，不推定Windows机制已修。
+
 ## 首次断言前的有界诊断（8a2f0ce）
 
 本片只扩展测试诊断，不新增产品行为或schema。`tests/execution-diagnostics.ts`复用execution-stages采样/附件：observer在send和首次状态轮询前装配app变化与worker启动/退出订阅，采样合并为单个在途操作；保留初始及最近有限样本、工具/实例/进程元数据，禁止正文、凭据、原始argv或全库。finally在所属app关闭前停采，afterEach从缓存写附件，首个assert失败也保留；附件有固定字节上限，超限显式计数/裁剪。原expectExecutionCompleted复用该实现，原等待与诊断期限不扩大。
 
 实际边界为32条样本/32个子进程、单样本最多16条指令/工具/委派及32个实例（SQL最多读取100实例/17委派），附件最多256KiB；首次失败时间及最近已完成样本独立固定，不被后续裁剪覆盖。诊断snapshot单次500ms预算，首次超时即停止启动新读取，最多遗留一条不可取消读取；不阻止收尾。SQLite只读timeout=0，错误只写诊断码，业务断言仍直接读取原snapshot。excerpt仅针对已证明的轮询末段盲区调整intervals=[100,250]，名义5秒期限与原内容/checkpoint断言不变；不批量调整其他失败。
 
-仅接context-instructions的real worker excerpt和agent-delegation取消两个代表场景，真实broker/仓储/worker；excerpt既有材料describe/check为明确模块替身，外部模型受控。先原时限复现与受控临时失败验证附件，再决定是否存在本域夹具缺陷；生产恢复/准入、报告来源及kernel生命周期不在本片写集。原tasks/delivery保存结论，Windows自动CI与旧基线分别记录，无目标通过不关闭平台任务。
+上一轮接context-instructions的real worker excerpt和agent-delegation取消两个代表场景，本轮另接附件例首次执行。三个observer调用文件显式顶层installExecutionDiagnostics，避免模块缓存把hook留在第一个文件；保留首import原hook及completion helper自身失败的flush，成功且未开诊断时缓存留给afterEach，flush幂等防重复。真实broker/仓储/worker；excerpt既有材料describe/check为明确模块替身，外部模型受控。生产恢复/准入、报告来源及kernel生命周期不在本片写集，无目标通过不关闭平台任务。
 
 ## 共同领域接入后的A/B有界切片
 

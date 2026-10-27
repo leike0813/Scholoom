@@ -8,8 +8,11 @@ import { KernelApplication } from '../../apps/kernel/dist/application.js';
 import { startKernelServer } from '../../apps/kernel/dist/server.js';
 import { createKernelClient } from '../../packages/client/dist/index.js';
 import { protocolVersion } from '../../packages/protocol/dist/index.js';
+import { installExecutionDiagnostics, observeExecution } from '../execution-diagnostics.js';
 import { createModelServer } from '../model-server.js';
 import { syntheticPdf } from '../pdf-fixture.js';
+
+installExecutionDiagnostics();
 
 test('real RPC and Agent share material bytes while project paths and model sends remain authorized', async () => {
   const root = await mkdtemp(join(tmpdir(), 'scholoom-material-rpc-'));
@@ -31,6 +34,8 @@ test('real RPC and Agent share material bytes while project paths and model send
   };
   const server = await startKernelServer(status, () => app.close(), app);
   const client = createKernelClient({ ...status, url: server.url, token: server.token });
+  let diagnostics: ReturnType<typeof observeExecution> | undefined;
+  let initialExecutionCompleted = false;
   try {
     await client.connect();
     await writeFile(join(projectRoot, 'input.txt'), 'shared material 42\n');
@@ -44,15 +49,22 @@ test('real RPC and Agent share material bytes while project paths and model send
     await client.call('library.grant', { read: true, write: true, send: true, autoBackup: false });
     const session = await client.call('session.create', { projectId: project.id });
     const scope = { projectId: project.id, sessionId: session.id };
+    diagnostics = observeExecution(app, scope, model);
     await client.call('session.send', {
       ...scope,
       instructionId: randomUUID(),
       text: 'MODEL_ATTACHMENT_IMPORT',
       materials: [],
     });
+    diagnostics.mark('importInstructionAccepted');
     await expect
-      .poll(async () => (await client.call('workbench.snapshot', scope)).run?.state)
+      .poll(async () => (await client.call('workbench.snapshot', scope)).run?.state, {
+        intervals: [100, 250],
+      })
       .toBe('completed');
+    initialExecutionCompleted = true;
+    diagnostics.mark('initialExecutionCompleted');
+    await diagnostics.stop();
     await expect
       .poll(
         async () =>
@@ -191,7 +203,11 @@ test('real RPC and Agent share material bytes while project paths and model send
     await expect(
       client.call('library.readingRecord', { recordId: agentRecordId }),
     ).rejects.toMatchObject({ code: 'permissionDenied' });
+  } catch (error) {
+    if (!initialExecutionCompleted) diagnostics?.failure();
+    throw error;
   } finally {
+    await diagnostics?.stop();
     client.dispose();
     await server.stop();
     await model.close();
