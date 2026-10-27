@@ -2,7 +2,7 @@
 
 ## 当前状态与成果
 
-2026-10-26，本树已依用户追加授权同步至281277777f88aa068c948512f084f0d05150776e，0519904（含b838402）为祖先，恢复时clean。首轮14项及前轮4项成果完整保留；本轮新增7.1–7.4为可信人工请求及可组合补丁，结果见末节。下文早期e3d58fc基线、安装授权和验证日志为历史证据，本轮未安装依赖或操作其他树，也未新增提交、推送、PR、正式规格同步或归档。
+2026-10-27，本树HEAD已核对为共同源码4b13183f7489d3cae12fd0a7d1a9e83fb33d7384，开始本轮时clean。科研可信人工请求、公共历史、M2可信执行来源与各域实现均已接入；主线已接收真实I1机械切片，证据见 `/tmp/scholoom-round6-acceptance-dXuzCA/acceptance.md`、synchronized.json及两份sync结果。此前2812777及更早基线、安装授权和验证日志保留为历史证据，不再作为等待同步或复制累计补丁的条件。本轮仅修正第8组独立模块测试夹具，结果见末节；未安装依赖、操作其他树或新增提交、推送、PR、正式规格同步及归档。
 
 已核对 [design](design.md) 的模块图和时序图；实际路径是科研入口 → broker → harness → 受管worker → 项目／库资源，执行权威继续归harness。对应proposal完成判据：
 
@@ -53,9 +53,9 @@ node node_modules/@playwright/test/cli.js test --config playwright.kernel.config
 
 ## 未完成事项与下一步
 
-本change首轮独立范围已完成。本轮主线已通过正式源码快照转交项目任务接口及阅读线 `add-material-annotation-interactions`、`add-interactive-research-reports` 的design，消费设计见下节；提供者没有合入当前源码，**I1／I3／I5未验收**。没有访问实际其他树或跨树发消息。下游可消费本线稳定入口、ResourceEvidence及真实run查询，任务权威由项目线提供。
+本线图接入及可信人工请求已进入共同源码；项目任务与阅读等提供者也已进入本树。主线已接收I1机械切片，本轮不重复项目入口、任务／过程材料组合，也不据此推定完整I3／I5或科研质量验收。下节快照路径及此前未合入结论保留为当时的交接记录，当前同步状态以上节及第8组结果为准。
 
-生产真实综合图的节点、顺序、回路和质量要求仍待用户恢复讨论；用户自定义Graph、库级成果写入、通用委派均后置。固定图只证明机制，科研充分性始终notAssessed。未运行UI／Electron交互、真实模型、Windows／macOS或分发包验收，Mermaid未另行渲染；当前macOS受管执行不可用的既有边界保持。公共增量接入dev、规格同步／归档和Git交付均留待用户安排。
+生产真实综合图的节点、顺序、回路、模型角色和质量要求仍待用户恢复讨论，用户自定义Graph继续后置；生产图目录仍空，固定图只证明机制，科研充分性始终notAssessed。本轮未运行UI／Electron、真实模型、Windows／macOS或分发包验收；当前macOS受管执行不可用的既有边界保持。后续规格同步／归档仍须依据实际完成范围及用户安排，不能由旧tasks全勾选推定。
 
 ## 本轮主线转交与消费结果
 
@@ -144,3 +144,41 @@ node node_modules/@playwright/test/cli.js test --config playwright.kernel.config
 只生成补丁和只读git apply --check／reverse --check核对，没有新建工作树、复制其他线私有实现或应用到dev。顺序为公共补充→科研私有补丁→项目线消费同一research.requestGraph并组合任务详情／process材料。共享符号只改Harness.send的可选受理检查、application科研graph ports／内部handler、researchOperations／派生business映射；没有修改公共历史、迁移、TaskRef schema、Workbench/tab或阅读图片消费者。
 
 本轮已定有界适配完成。仍需项目真实提供者、任务服务端选项核对、详情动作和过程／结果链接保存的实际组合，才可验收完整I1。真实综合Graph、科研模型角色、I2、自定义Graph继续后置；没有编造synthesizer／reviewer或新增Method。没有新增UI／双宿主、Windows／macOS、分发包、全仓CI或真实科研质量通过结论，不自动开展下一阶段、归档、推送或PR。
+
+## 2026-10-27：M2接入后的旧能力模块夹具修正（第8组）
+
+这是用户本轮明确授权的轻量测试修正，沿既有材料分析契约维护，不新增规格行为。当前基线为4b13183，包含主线已接收的I1机械切片、M2可信执行来源／通用worker TaskPort和生态工具持续外发授权修复；本轮不改这些实现。原模块图、时序图及生产目录为空的边界保持，未重新实施任务入口或增加科研角色。
+
+### 首次失败与根因
+
+最新CI输入为6b22d602046baa7c1349bf66059c61d79c07ae40／40315429083，来自 `/tmp/scholoom-round6-acceptance-dXuzCA/ci-baseline-failures.log` 和ci-baseline-summary.json：Linux内核689通过／9失败／16跳过，Windows628通过／49失败／30跳过，macOS入口3通过／1失败。以下仅承接其中research-capabilities六项Linux／Windows共有失败，不将其他失败或平台状态计为关闭。
+
+先完成共享／内核构建，再运行未修改的research-capabilities整组：**6失败、5通过，1.3分钟，退出码1**，保存 `/tmp/scholoom-research-capabilities-round6/red.log` 及red-results/，与CI六项一致。发现／交付、重试和报告移动返回incomplete；并发路径替换因首份报告未保存而出现ENOENT；身份复核没有得到预期contentChanged；取消／重启没有部分产物。
+
+共同根因在该文件setup：独立ResearchRuntime使用合成runId／instanceId，而ProjectBackend却调用 `app.projectFiles` 的生产执行端口，传入上下文甚至没有runId／instanceId。当前保存经 `ManualApplication.fileOrigin → KernelApplication.checkExecutionContext → Harness.checkExecutionContext` 验证真实活动尝试；无资格上下文应被拒绝。ProjectBackend将保存错误转换为结果并登记failed进展，后续交付检查因无真实成果而失败。这不是生产权限过严，也没有证据支持增加超时。
+
+### 文件、符号及替身边界
+
+仅修改 `tests/kernel/research-capabilities.spec.ts` 的setup.files和独立ResearchRuntime的files注入：显式提供 `ProjectFilePort & ResearchProjectPort`，供同一夹具的ResearchRuntime与真实ProjectBackend使用。七个窄方法分别委托真实ProjectStore的check、path、material、read、list、files.resolve和save；保存完整转交basis、expectedFileId与resourceBasis。保持原读取／保存／failed进展回调和全部原有断言，包括报告移动后的稳定身份、条件修订、并发同路径替换、交付／重试重新核对身份、部分成果、取消与重启查询，以及备份恢复。
+
+替换的是独立模块测试的执行调度与文件调用身份适配，不是假文件实现或生产执行资格。合成run／instance仅用于科研记录关联及progress核对，不再送入生产写入端口。实际文件字节、fileId、读取basis、目录／版本、信任检查、SQLite记录和恢复仍来自真实模块。夹具直接save使用ProjectStore默认unknown／unattributed来源，不伪造human／host／system或Agent执行事实；此模块结果不作为M2来源整合证据。
+
+同组真实harness保存期间取消及真实模型Graph用例保持生产入口和原断言；受控本地HTTP模型只是外部边界替身，内部broker、harness、仓储、worker与文件真实。原进程中断用例保持其只读researchFiles及实际仓储写入边界，不将其合成执行身份写成真实worker资格。没有修改production checkExecutionContext、FileEdit来源、kernel生命周期、委派或项目任务入口。
+
+### 实际验证与交付
+
+环境：Linux、Node v24.12.0、pnpm 11.10.0。下列命令均在本树运行，测试期间未重建产物；仅使用已有依赖，无开发服务器、真实模型凭据或用户库。各例沿原夹具生成独立profile／项目／库及端口，关闭所属app／worker后退役整个所属临时根目录，不留下仍登记却被删除的项目。红／绿日志和trace保留在下列证据目录。
+
+| 命令／检查 | 结果及证据（均位于 `/tmp/scholoom-research-capabilities-round6/`） |
+| --- | --- |
+| `pnpm --config.optimisticRepeatInstall=false build:shared` | 通过，退出码0；build-initial.log，包含共享包及kernel。随后仅改测试与文档，无需再次生成业务产物 |
+| 原整组：`node node_modules/@playwright/test/cli.js test --config playwright.kernel.config.ts tests/kernel/research-capabilities.spec.ts --output /tmp/scholoom-research-capabilities-round6/red-results` | 修正前6失败／5通过；red.log及red-results/ |
+| `node node_modules/@playwright/test/cli.js test --config playwright.kernel.config.ts tests/kernel/research-capabilities.spec.ts tests/kernel/research-module.spec.ts tests/kernel/research-graphs.spec.ts --output /tmp/scholoom-research-capabilities-round6/final-results` | **26/26通过，2.0分钟，退出码0**：旧能力11、独立模块3、科研Graph12；final.log及final-results/ |
+| `node node_modules/typescript/bin/tsc --noEmit -p tsconfig.tools.json` | 通过；types.log |
+| `node scripts/check-architecture.ts` | 14模块／253文件，0 findings／exceptions；architecture.log |
+| `node node_modules/@biomejs/biome/bin/biome check tests/kernel/research-capabilities.spec.ts` | 通过；biome.log。首次格式检查仅指出参数解构需换行，使用apply_patch修正后通过 |
+| `openspec validate connect-research-graph-runtime --strict`；`git diff --check` | 通过；openspec.log及diff-check.log。schema／生成映射未变，无需重生成 |
+
+自查核对了窄端口的调用方和参数转交、真实仓储身份竞争及受控外部模型边界；没有降低原有效断言、错误期望、时限或停止保护。新增代码仅为已有端口的直接委托，未增加新测试框架或生产修复。可审查增量为同目录 `research-capabilities-fixture.patch`，基于4b13183，包含本测试及原tasks／delivery共三个文件；仅导出并做reverse --check，未应用到其他树。
+
+本轮六项在Linux已由红转绿；Windows共有根因已修正，但没有Windows目标实跑，平台关闭仍待主线验证。其他全仓CI失败、macOS、UI／双宿主及真实科研质量均无本轮新增通过结论。真实综合Graph、节点／模型角色、I2及用户自定义Graph继续后置；不归档、不推送／PR，不自动展开下一阶段。
