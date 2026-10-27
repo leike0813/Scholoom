@@ -212,6 +212,14 @@ runtime合并还须保留Agent的instanceLifecycle.onStopping中childrenControll
 
 ## 待办边界
 
+### 共同938c33f后的来源回执与初始化提供者观察
+
+正式输入沿 `/tmp/scholoom-round10-acceptance-j1MosP/`。同源码Windows诊断40540362546的availability六例全部通过，含真实Windows ACL来源正例、同名非来源负例、两种占锁和人工降级／五入口零派发；关闭来源识别窄子项，不反填旧10条身份。artifact12751410950未保留该成功步骤的JSON附件，具体origin枚举及逐事件值不能从成功日志补造。8c2fd24完整组40479176954的artifact12726536151显示首批通过、重启批次失败，新PID1412最后到initializing-application；不与431或新诊断拼时间线，不猜CPU／锁／域根因。
+
+本片仅扩展kernel装配层观察：ManualApplication.initialize及KernelApplication.initialize接受可选固定阶段报告回调，serveKernel传入既有受保护report；各现有提供者调用前后分别报告library、projects、program records、program environments、harness、research阶段。回调仅报告固定阶段，不含路径、参数、环境、项目或异常正文，不进入领域实现或另建状态／日志权威。原无参调用保持；projectOpened等业务接续不改。serveKernel继续绑定同一instanceId／PID及Date.now时点，未完成标记只表示采样时没有完成事实，不证明永久阻塞。
+
+写集限上述三份kernel源码、kernel-fixture阶段白名单及lifecycle现有直接回归；availability现有两份安全JSON与并发启动附件改为显式输出文件并按路径附加，确保成功步骤也由既有artifact路径保留，不改workflow。沿真实并发／独立配置／重启用例验证阶段可消费及同一实例，扩展原有界日志脱敏测试；不新增业务schema、正式规格或依赖。源码变动后只构建kernel，再运行最小回归；目标Windows新提供者时点尚无实跑则交精确缺证，不做机制修复，不改生产deadline、重试、锁、unknown、容量或完整停止。
+
 ### 共同4312262后的并发启动与ACL来源反例
 
 消费 `/tmp/scholoom-round9-acceptance-IER31D/` 及实际artifact：caf9025／40455958976的并发首批两个入口返回unknown／availability／held／无discovery，另外两个连接到同一实例；首个unknown在发现发布前6ms返回。4312262／40476577132的活发现占锁前段通过，失败在释放后：一个启动者ready-timeout、两个跟随者held／无discovery，最后stage为initializing-application。当前证据支持分解准备、装载与初始化，不能定为锁失效或按41失败数归统一性能原因；不改生产deadline、unknown、重试或锁归属。

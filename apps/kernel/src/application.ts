@@ -504,10 +504,14 @@ export class KernelApplication extends ManualApplication {
     const port = this.modulePort(context, 'harness');
     return (input) => port.call('research.progress', input);
   }
-  override async initialize(): Promise<void> {
-    await super.initialize();
+  override async initialize(report: (phase: string) => void = () => {}): Promise<void> {
+    await super.initialize(report);
+    report('initializing-harness');
     await this.harness.initialize();
+    report('harness-initialized');
+    report('initializing-research');
     for (const project of this.projects.all()) this.research.initialize(project.project.id);
+    report('research-initialized');
   }
   protected override async projectOpened(): Promise<void> {
     await super.projectOpened();

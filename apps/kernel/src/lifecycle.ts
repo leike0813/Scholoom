@@ -313,7 +313,7 @@ export async function serveKernel(
     const { KernelApplication } = await import('./application.js');
     const application = new KernelApplication(canonical, options);
     report('initializing-application');
-    await application.initialize();
+    await application.initialize(report);
     report('application-ready');
     const server = await startKernelServer(
       status,
