@@ -1,5 +1,46 @@
 # 实际交付与交接
 
+## 第八轮：真实委派报告展开来源
+
+共同起点已只读核对为`8a2f0ce522dfbab4110e63e84e542f6660e6115e`，起始干净；消费`/tmp/scholoom-round7-acceptance-SdxHy8/`的验收／同步结果和当前正式源码，保留主线旧摘录／公开save／undo授权修复。未应用旧patch、同步分支、提交、推送、PR、归档、安装或操作真实用户库。仅完成1.2b.2a，当前5/12；1.2b.2b及2.x／3.x／完整I5开放。
+
+| 文件／符号 | 实际行为及边界 |
+| --- | --- |
+| `harness/delegations.ts::checkReadable/resources` | 提取原materials、实际artifacts、outputs.save的唯一ref／basis核对；原describe/read/document和报告共用。取消信号、active及accepted/running核对保留失活拒绝，不复制白名单，不因父有权或清单声明增加子权限 |
+| `manual.ts::checkReportContext/reportResources/reportSnapshot`、`application.ts`报告hook | 有界入口及清单按实际executionFacts确定子；入口先核，完整Evidence整批核对先于依赖／来源正文读取，返回前再核。跨项目报告及旧历史版本仍拒绝；未改主线旧摘录／save／undo保护 |
+| `runtime.ts::checkReportContext/recordReportUse/instructionEvidence` | 完整成功snapshot才记真实核准Evidence。复用原meta仓储／序列化，session原键保护父／重启，`instruction-report-context:<sessionId>:<childInstanceId>`只记录本子使用事实，不成为权限源、不新建材料表。原delegation.reads仍只来自实际资源read／document |
+| 子模型`reports/evidence/authorize/confirm` | 读取本实例持久Evidence，合并工作包及实际reads；异步授权和最终同步确认重新核活动身份、唯一范围及领域read/send。最终确认读取新集合，不捕获旧清单，不消费父的全部Evidence扩大范围 |
+| `tests/fixtures/report.ts`、`report-production.spec.ts`、新增`delegated-reports.spec.ts` | 原真实报告fixture原样抽取复用；新样本为真实父子进程、库导入、项目JSON／HTML及broker，ref／basis来自实际回执。核全量成功、缺库／依赖、真实D1→D2旧basis、queue／final／restart和取消；拒绝时展开正文read为0，成功时reads只记实际入口 |
+
+证据目录`/tmp/scholoom-delegated-reports-round8/`保留原始输入、每轮结果、trace与附件；不覆盖首次失败：
+
+- `build-first.log`先shared构建通过；格式收尾后`build-final.log`重建harness／kernel再测试，期间未并发重建同树产物。
+- `baseline-first.log`普通委派及根报告21/21通过，包含父隐私隔离、真实保存、取消／重启、容量及unknown、旧摘录、公开save／undo与改名、目标报告及不全委派拒绝。未重跑无关CI或nativeTeX。
+- 新增首轮`delegated-first.log`4通过／3失败：前三种范围拒绝及全量成功通过；队列预期漏掉父撤权收尾的取消竞态，final查询早于受理登记，缓存资源端口取消沿原signal.reason而非统一instanceMismatch。修正测试oracle和时机后`delegated-second.log`3/3通过，未改生产停止／授权或时限。
+- `delegated-final.log`7/7通过，但追加独立窄审指出queue证明仍可被“父先失败取消子”满足，不能据这次绿关闭该边界。最终只在外部模型准入边界暂缓父第二次请求（不占slot），真实子全量授权并在真实lease后排队；释放后必须观察子原authorize／confirm的permissionDenied及子failed，再恢复父核查父也失败。`admission-proof.log`queue／final最终2/2通过（18.5秒／17.2秒），均无第二个子模型请求。finally释放gate，不改变业务worker／broker／仓储或模型预算，不加重试或时限。
+- final实际调用原confirm，每次重置Evidence观察标记，按独立manifest集合核对权限接口收到完整来源，避免只凭首次准入标记或不完整范围假绿。重启原profile查询原delegation不新增模型请求，显式新session.send仍拒绝；旧子context不因持久记录恢复权限。
+- harness／kernel类型及tools检查通过，architecture 14模块／253文件零发现，同源派生映射核对通过（生成器7份格式差异输出按空白归一，无protocol源码变更）。Biome退出0，18条原有非空断言提示保留。OpenSpec strict及diff收尾结果沿同目录日志。
+
+主要命令：
+
+```sh
+pnpm --config.optimisticRepeatInstall=false build:shared
+pnpm --config.optimisticRepeatInstall=false --filter @scholoom/harness --filter @scholoom/kernel build
+pnpm --config.optimisticRepeatInstall=false --filter @scholoom/harness --filter @scholoom/kernel typecheck
+node_modules/.bin/tsc --noEmit -p tsconfig.tools.json
+node_modules/.bin/playwright test --config playwright.kernel.config.ts tests/kernel/report-production.spec.ts tests/kernel/agent-delegation.spec.ts --output=/tmp/scholoom-delegated-reports-round8/baseline-first-results
+node_modules/.bin/playwright test --config playwright.kernel.config.ts tests/kernel/delegated-reports.spec.ts --output=/tmp/scholoom-delegated-reports-round8/delegated-final-results
+node_modules/.bin/playwright test --config playwright.kernel.config.ts tests/kernel/delegated-reports.spec.ts --grep admission --output=/tmp/scholoom-delegated-reports-round8/admission-proof-results
+```
+
+Linux使用现有依赖；模型HTTP为隔离loopback受控响应，准入观察及父gate仅在模型边界并调用原五参数、共享budget和confirm。权限hook／资源read观察也调用原实现，不合成可信身份、回执或数据；内部worker、文件、库、broker和SQLite真实。配置／项目／端口逐测试隔离，注册项目保留于结果目录，关闭本轮app和模型server。无产品UI变化，不重复双宿主，不启动开发服务器。
+
+独立只读审查未发现生产diff确证P1/P2；追加测试审查发现并在修正后确认queue P2证明缺口关闭，审查未代替实跑。最新已知CI仍为39be889／40432749785：Linux709通过／9失败／23跳过，Windows641通过／54失败／39跳过／7未运行，macOS不可用校准2通过、人工入口3通过／1失败；本机定向通过不关闭目标平台或全仓CI。
+
+OpenSpec strict及git diff --check均通过，apply回执为5/12且ready。可审查本地增量为`/tmp/scholoom-delegated-reports-round8/delegated-report-sources.patch`，同目录manifest.json列11个准确文件、共同起点及必须一起接入的四个源码文件；已只读逆向核对当前目标状态，不实际应用或提交。所有测试／构建任务及本轮辅助Agent均结束，结果目录保留。
+
+停止点：本轮委派展开子片已验收，未关闭完整1.2b.2或proposal完整交互判据。目标报告授权组合、旧报告正文版本Adapter仍不可用；页面／iframe／MessagePort／自动发布及2.x／3.x后置，M1库正文仍缺provider。科研质量、Windows／macOS及发布未验；本轮没有新产品选择需要推定定案。
+
 ## 第七轮主线安全验收
 
 独立Spec审查确认P1：发送前报告已被普通HTML覆盖时，仅按当前正文描述会漏掉旧摘录的库来源。Standards审查确认P2：公开undo及同类files.save回执可携带未授权旧报告正文。主线新增真实Kernel／Manual回归，稳定旧产物下3项均失败后修复；取原Evidence的窄授权端口复用项目有界历史，精确匹配fileId及before／after basis。旧报告或无法核查的版本明确unavailable，普通材料保留原摘录及basis，不校验quote子串或替换摘录。
@@ -10,7 +51,7 @@
 
 本次没有历史报告版本授权Adapter、委派展开或目标报告提供者；这些路径继续明确不可用，1.2b.2及完整I5不关闭。下一片只提取Delegations唯一readable权威并接逐项报告展开／子模型准入，页面、iframe与自动发布仍后置。
 
-## 当前状态与成果
+## 第六轮资源接入（历史）
 
 2026-10-27，第六轮从已同步共同源码`4b13183f7489d3cae12fd0a7d1a9e83fb33d7384`实施授权的1.1b／1.2b可证明部分。消费依据为`/tmp/scholoom-round6-acceptance-dXuzCA/{acceptance.md,synchronized.json,sync-build-results.json,sync-kernel-results.json}`和本树正式源码。没有应用旧patch、同步分支、新提交、安装、推送、PR、归档或真实用户库操作。当前**4/11**，1.2b拆为已验收普通根执行及待安全接口审查两项；完整报告change和I5未完成。
 
