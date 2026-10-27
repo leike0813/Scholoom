@@ -6,7 +6,11 @@ import type {
   WorkbenchSource,
 } from '@scholoom/protocol/harness';
 import type { LibraryModuleInputs, LibraryModuleOutputs } from '@scholoom/protocol/library';
-import type { ExecutionResourcePort, ResourceEvidence } from '@scholoom/protocol/resources';
+import type {
+  ExecutionResourcePort,
+  ResourceDescriptor,
+  ResourceEvidence,
+} from '@scholoom/protocol/resources';
 
 type SnapshotResult = Exclude<
   WorkbenchContextOutputs['workbench.context.read'],
@@ -30,6 +34,7 @@ export type ContextBridge = {
     port: Pick<ExecutionResourcePort, 'describe'> &
       Partial<Pick<ExecutionResourcePort, 'read' | 'document'>>;
     check: (evidence: readonly ResourceEvidence[], libraryUsed?: boolean) => void;
+    describeEvidence?: (evidence: ResourceEvidence) => Promise<ResourceDescriptor>;
   };
 };
 
@@ -44,7 +49,9 @@ export async function authorizeContextItems(
   resources.check(items);
   for (const item of items) {
     // Stored excerpts keep their original basis; actual resource reads verify that version.
-    const resource = await resources.port.describe(item.ref);
+    const resource = resources.describeEvidence
+      ? await resources.describeEvidence(item)
+      : await resources.port.describe(item.ref);
     if (!resource.capabilities.read)
       throw new OperationError(
         'unavailable',

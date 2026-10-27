@@ -1,5 +1,13 @@
 # 实际交付与交接
 
+## 第七轮主线接收及产品选择
+
+CSL／原值四阶段调查及原包证据已接收，主线在隔离库独立重跑evidence/csl-original-probe.mjs退出0；更正CSL后原值及导出保持，显式更正original题名才改变原包导出。用户已确认D1–D3：差异或无法比较时先明确选择采用原值，Agent可依用户明示指令选择、不确定询问；独立更正所选原值；首片仅唯一期刊原值题名。决策事实源为领域票08，design／delta spec及R6.4已更新，未将新政策记为已实现。
+
+主线真实zotero-host七项带固定XPI复验7/7通过，保留only-export持续外发授权及重启保护。原始证据为`/tmp/scholoom-round7-acceptance-SdxHy8/zotero-ecosystem/probe.log`、`main-zotero.log`；初次主线组合缺显式XPI环境的7个skip不计通过，随后独立带环境实跑。
+
+下一片先闭合具体DTO／任务，再实现隔离内核及Agent的显式原值选择和独立题名更正。GUI需求交文献后续消费，不复制草稿或抢改表单；自动同步、其他表达／字段、多来源、真实用户库及完整I6仍开放。
+
 ## 当前状态：CSL／原值差异规划
 
 2026-10-27，本树HEAD已核对为`4b13183f7489d3cae12fd0a7d1a9e83fb33d7384`，起始clean，实际同步／构建／本树持续外发P1复验由用户交接的`/tmp/scholoom-round6-acceptance-dXuzCA/`四份验收／同步JSON及本树日志提供。普通期刊真实切片和P1已接收，本轮没有返工或回退；没有应用旧patch、等待同步或操作其他树。

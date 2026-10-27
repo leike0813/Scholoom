@@ -354,6 +354,7 @@ export class ProjectStore {
     resourceBasis?: string,
     source?: FileEditSource,
     expectedByteBasis?: string,
+    checkReceipt?: (edit: FileEdit) => void,
   ): Promise<FileEdit> {
     this.check('write');
     const editSource: FileEditSource = structuredClone(
@@ -438,6 +439,7 @@ export class ProjectStore {
           : {}),
         ...(operation ? { fileId: randomUUID() } : {}),
       };
+      checkReceipt?.(edit);
       const candidateDir = join(this.internal, 'candidates');
       await privateDirectory(candidateDir);
       const candidate = join(candidateDir, edit.id);
@@ -713,11 +715,36 @@ export class ProjectStore {
     };
   }
 
-  async undo(editId: string, origin?: FileEditOrigin): Promise<FileEdit> {
+  evidenceContent(fileId: string, basis: string): { path: string; content: string } | undefined {
+    this.check('read');
+    this.files.location(fileId);
+    const row = this.db
+      .select()
+      .from(tables.edits)
+      .where(sql`
+      json_extract(${tables.edits.value}, '$.fileId') = ${fileId} AND (
+        json_extract(${tables.edits.value}, '$.beforeEvidence.basis') = ${basis} OR
+        json_extract(${tables.edits.value}, '$.afterEvidence.basis') = ${basis})
+    `)
+      .limit(1)
+      .get();
+    if (!row) return undefined;
+    return {
+      path: row.value.path,
+      content: row.value.afterEvidence?.basis === basis ? row.value.after : row.value.before,
+    };
+  }
+
+  async undo(
+    editId: string,
+    origin?: FileEditOrigin,
+    checkReceipt?: (edit: FileEdit) => void,
+  ): Promise<FileEdit> {
     const undoOrigin = structuredClone(origin ?? { kind: 'unknown', reason: 'unattributed' });
     if (!isFileEditOrigin(undoOrigin)) throw new OperationError('invalidRequest', '撤销来源无效。');
     const row = this.db.select().from(tables.edits).where(eq(tables.edits.id, editId)).get();
     if (!row) throw new OperationError('notFound', '修改历史不存在。');
+    checkReceipt?.(row.value);
     const currentPath = row.value.fileId ? this.files.currentPath(row.value.fileId) : row.path;
     if (!row.value.created)
       return this.save(
@@ -730,6 +757,7 @@ export class ProjectStore {
         undefined,
         { origin: undoOrigin, revertsEditId: editId },
         row.value.basis,
+        checkReceipt,
       );
     this.check('write');
     const target = await this.path(currentPath);
@@ -748,6 +776,7 @@ export class ProjectStore {
       if (row.value.basis && byteBasis(actual) !== row.value.basis)
         throw new OperationError('contentChanged', '原创建实体或版本已变化。');
       const retired = join(this.internal, 'reverted');
+      checkReceipt?.({ ...row.value, path: currentPath, before: row.value.after, after: '' });
       await privateDirectory(retired);
       await rename(target, join(retired, row.value.id));
       const edit: FileEdit = {

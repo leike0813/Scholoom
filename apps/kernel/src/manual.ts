@@ -901,6 +901,7 @@ export class ManualApplication {
       port: Pick<ExecutionResourcePort, 'describe'> &
         Partial<Pick<ExecutionResourcePort, 'read' | 'document'>>;
       check: (items: readonly ResourceEvidence[], libraryUsed?: boolean) => void;
+      describeEvidence: (item: ResourceEvidence) => Promise<ResourceDescriptor>;
     }
   >();
   private isInstructionAdmission(context: CallContext): boolean {
@@ -984,6 +985,30 @@ export class ManualApplication {
           }
         : this.executionResources(source),
       check,
+      describeEvidence: async (item: ResourceEvidence) => {
+        const scoped = scope(item.ref);
+        return this.resourceOperation(scoped, item.ref, false, async () => {
+          const current = await resources.port.describe(item.ref);
+          if (item.ref.source === 'project' && item.basis !== current.basis) {
+            const ref = item.ref;
+            const read = () =>
+              this.projects.get(ref.projectId).evidenceContent(ref.fileId, item.basis);
+            const previous =
+              ref.projectId === source.projectId
+                ? read()
+                : this.projects.withTargetRead(
+                    scoped,
+                    ref.projectId,
+                    () => targets.check([ref.projectId]),
+                    read,
+                  );
+            if (!previous)
+              throw new OperationError('unavailable', '摘录原版本不可核查，请重新附加。');
+            this.checkReportHistory({ path: previous.path, before: previous.content, after: '' });
+          }
+          return current;
+        });
+      },
     };
     this.instructionResourcePorts.set(context, resources);
     return resources;
@@ -1897,11 +1922,20 @@ export class ManualApplication {
     'files.save': async (input, context) => {
       const p = input;
       this.checkProjectScope(p.projectId, context);
-      const edit = await this.projects
-        .get(p.projectId)
-        .save(p.path, p.content, p.basis, undefined, undefined, undefined, undefined, {
+      const edit = await this.projects.get(p.projectId).save(
+        p.path,
+        p.content,
+        p.basis,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        {
           origin: await this.fileOrigin(p.projectId, context),
-        });
+        },
+        undefined,
+        (edit) => this.checkReportHistory({ ...edit, after: '' }),
+      );
       this.changed(p.projectId);
       return edit;
     },
@@ -1938,7 +1972,9 @@ export class ManualApplication {
       this.checkProjectScope(p.projectId, context);
       const result = await this.projects
         .get(p.projectId)
-        .undo(p.editId, await this.fileOrigin(p.projectId, context));
+        .undo(p.editId, await this.fileOrigin(p.projectId, context), (edit) =>
+          this.checkReportHistory(edit),
+        );
       this.changed(p.projectId);
       return result;
     },

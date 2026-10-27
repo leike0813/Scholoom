@@ -1,5 +1,15 @@
 # 实际交付与交接
 
+## 第七轮主线安全验收
+
+独立Spec审查确认P1：发送前报告已被普通HTML覆盖时，仅按当前正文描述会漏掉旧摘录的库来源。Standards审查确认P2：公开undo及同类files.save回执可携带未授权旧报告正文。主线新增真实Kernel／Manual回归，稳定旧产物下3项均失败后修复；取原Evidence的窄授权端口复用项目有界历史，精确匹配fileId及before／after basis。旧报告或无法核查的版本明确unavailable，普通材料保留原摘录及basis，不校验quote子串或替换摘录。
+
+公开files.save在串行保存核对实际before后、首次文件副作用前检查将交付的旧正文；undo同时检查历史及当前路径，非创建分支透传串行回执检查，创建撤销在rename前检查。拒绝时未保存／撤销，成功仍返回真实FileEdit；resources.save继续只返回Descriptor。追加审查发现的目标只读scope与改名undo边界已分别修正：历史核查沿withTargetRead复查原主体／目标信任和实例，撤销按实际路径检查，未扩大子权限。
+
+重编译后report-production、context-resources及material-history组合20/20通过，包含4个新增代表例、普通跨项目旧摘录、队列／最终模型准入／重启、历史与整次撤销。两位审查者追加只读复核均未发现剩余确证问题。命令、首次失败、最终日志和产物位于`/tmp/scholoom-round7-acceptance-SdxHy8/report-red-stable.log`、`main-security-final.log`及各results目录；前者3项红例，后者20项组合，不记为首次全绿。
+
+本次没有历史报告版本授权Adapter、委派展开或目标报告提供者；这些路径继续明确不可用，1.2b.2及完整I5不关闭。下一片只提取Delegations唯一readable权威并接逐项报告展开／子模型准入，页面、iframe与自动发布仍后置。
+
 ## 当前状态与成果
 
 2026-10-27，第六轮从已同步共同源码`4b13183f7489d3cae12fd0a7d1a9e83fb33d7384`实施授权的1.1b／1.2b可证明部分。消费依据为`/tmp/scholoom-round6-acceptance-dXuzCA/{acceptance.md,synchronized.json,sync-build-results.json,sync-kernel-results.json}`和本树正式源码。没有应用旧patch、同步分支、新提交、安装、推送、PR、归档或真实用户库操作。当前**4/11**，1.2b拆为已验收普通根执行及待安全接口审查两项；完整报告change和I5未完成。

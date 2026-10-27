@@ -320,6 +320,125 @@ for (const boundary of ['queue', 'final'] as const) {
   });
 }
 
+test('an old report excerpt is rejected before admission after its manifest is replaced', async () => {
+  const root = test.info().outputPath('old-report-excerpt');
+  await mkdir(root, { recursive: true });
+  const model = await createModelServer();
+  const app = new KernelApplication(join(root, 'profile'), {
+    modelEndpoint: model.url,
+    environment: { MINIMAX_CN_API_KEY: 'synthetic' },
+  });
+  try {
+    await app.initialize();
+    const { project, entry } = await reportFixture(app, root);
+    await app.call('resources.save', {
+      ref: entry.ref,
+      basis: entry.basis,
+      content: '<p>Ordinary replacement</p>',
+    });
+    const session = await app.call('session.create', { projectId: project.id });
+    await expect(
+      app.call('session.send', {
+        projectId: project.id,
+        sessionId: session.id,
+        instructionId: randomUUID(),
+        text: 'Inspect the old excerpt',
+        materials: [],
+        contextItems: [
+          {
+            kind: 'text',
+            itemId: randomUUID(),
+            ref: entry.ref,
+            basis: entry.basis,
+            quote: 'Fixed dose comparison',
+            contentState: 'saved',
+          },
+        ],
+      }),
+    ).rejects.toMatchObject({ code: 'unavailable' });
+    expect(model.requests).toHaveLength(0);
+  } finally {
+    await app.close();
+    await model.close();
+  }
+});
+
+test('report undo does not disclose historical bodies or apply an unreportable change', async () => {
+  const root = test.info().outputPath('report-undo');
+  await mkdir(root, { recursive: true });
+  const app = new ManualApplication(join(root, 'profile'));
+  try {
+    await app.initialize();
+    const { project, entry } = await reportFixture(app, root);
+    const saved = await app.call('resources.save', {
+      ref: entry.ref,
+      basis: entry.basis,
+      content: '<p>Replacement</p>',
+    });
+    assert(saved.ref.source === 'project');
+    const editId = app.projects.get(project.id).editForEvidence(saved.ref.fileId, saved.basis);
+    assert(editId);
+    await app.call('library.grant', { read: false, write: false, send: false, autoBackup: false });
+    await expect(app.call('files.undo', { projectId: project.id, editId })).rejects.toMatchObject({
+      code: 'unavailable',
+    });
+    expect(await readFile(join(project.path, 'report.html'), 'utf8')).toBe('<p>Replacement</p>');
+  } finally {
+    await app.close();
+  }
+});
+
+test('a public file save cannot return the old report body after source revocation', async () => {
+  const root = test.info().outputPath('report-save-receipt');
+  await mkdir(root, { recursive: true });
+  const app = new ManualApplication(join(root, 'profile'));
+  try {
+    await app.initialize();
+    const { project, html } = await reportFixture(app, root);
+    const read = await app.call('files.read', { projectId: project.id, path: 'report.html' });
+    await app.call('library.grant', { read: false, write: false, send: false, autoBackup: false });
+    await expect(
+      app.call('files.save', {
+        projectId: project.id,
+        path: 'report.html',
+        basis: read.basis,
+        content: '<p>Replacement</p>',
+      }),
+    ).rejects.toMatchObject({ code: 'unavailable' });
+    expect(await readFile(join(project.path, 'report.html'), 'utf8')).toBe(html);
+  } finally {
+    await app.close();
+  }
+});
+
+test('undo checks the actual current report path after a Markdown creation is renamed', async () => {
+  const root = test.info().outputPath('report-renamed-undo');
+  await mkdir(root, { recursive: true });
+  const app = new ManualApplication(join(root, 'profile'));
+  try {
+    await app.initialize();
+    const { project, html } = await reportFixture(app, root);
+    const edit = await app.call('files.save', {
+      projectId: project.id,
+      path: 'example.md',
+      content: html,
+    });
+    await app.call('files.rename', {
+      projectId: project.id,
+      path: 'example.md',
+      name: 'renamed.html',
+      operationId: randomUUID(),
+    });
+    await app.call('library.grant', { read: false, write: false, send: false, autoBackup: false });
+    await expect(
+      app.call('files.undo', { projectId: project.id, editId: edit.id }),
+    ).rejects.toMatchObject({ code: 'unavailable' });
+    expect(await readFile(join(project.path, 'renamed.html'), 'utf8')).toBe(html);
+  } finally {
+    await app.close();
+  }
+});
+
 test('accepted report excerpts retain source authority when a queued report loses its manifest', async () => {
   const root = test.info().outputPath('queued-excerpt');
   await mkdir(root, { recursive: true });
