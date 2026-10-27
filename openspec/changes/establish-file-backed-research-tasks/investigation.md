@@ -80,12 +80,12 @@ flowchart LR
 
 | 编号／提供者 | 已有证据、缺失输入 | 当前选项与局部处理 | 阻塞范围／解除依据 |
 | --- | --- | --- | --- |
-| W1 文献线，生态线提供上游约束 | 生态10.0.5身份／字段／关系及BBT／茉莉花调查已由本轮快照正式交接，具体消费路径见design第7节；文献实际来源身份、主题／分析知识和删除恢复仍缺 | 首批继续仅消费attachmentId／materialVersionId，不将Zotero局部itemID、citationKey或源key重现当共同身份／恢复依据。新引用union待所属契约 | 调查文件缺失已解除，完整库行为矩阵／恢复仍待真实提供者；notFound不能推出已查询且无删除记录 |
+| W1 文献线，生态线提供上游约束 | 生态10.0.5调查已收到；4b13183已有library-records同源契约及sourceInstances／originalRecords实际持久化，提供原值身份{instanceId,libraryLocator,objectKey}、record／commit／history | 任务材料继续消费attachmentId／materialVersionId，不另造ResourceRef或TaskLink。外部原值身份不等于附件材料身份，源key重现也不等于恢复 | 仅完整库删除记录／恢复行为矩阵、主题／分析知识及其项目消费仍开放；notFound不能推出已查询且无删除记录 |
 | W2 阅读交互线 | 两份design均已从用户快照分别完整读取并核对，见design第7节 | 材料位置增量与报告清单分别消费；共同ResourceRef／basis、context、composer及保存边界无静态冲突，报告批量附加仍是候选 | 信息及设计复核阻塞解除；不代表报告、M1／M2／M3、U1修复或I5已实现，不合并两个change |
-| W3 科研线 | 已收到graph目录／调用／查询、通用执行历史和固定worker源码；默认产品目录仍为空。startResearchGraph是可信host入口，没有现成产品用户启动适配 | I1真实入口及组合方案见design第8节，固定calibration仅验收夹具，不代拟后置综合流程 | 仍等公共增量入dev、消费者同步及产品启动入口确认；当前树未接科研私有实现，I1不验收 |
-| W4 Agent／计算线 | 已收到委派workPackage及programStart实际schema和design，均无TaskRef字段；本线契约随用户快照正式交接 | 入口ResourceEvidence可按需作为材料；TaskRef三元组及可选workItemId交付消费方复核，不能把session成果association当任务links。程序首批无需任务 | 静态消费核对已完成，具体DTO及实际调用尚未接入；保留4.4b，不要求两域整项完成 |
+| W3 科研线 | 实际research.requestGraph人工适配及固定worker已经进入共同源码，主线已接收I1机械组合；生产目录仍空 | 项目组合TaskRef／workItemId及来源，沿独立输入快照与process指针；实际依据见design第8节及delivery | 不再等待提供者／同步；校准图仅测试注入，不关闭真实业务Graph和科研质量 |
+| W4 Agent／计算线 | 当前通用worker真实TaskPort闭环已进入共同源码，父read→入口Evidence→子保存→父重读save关联有四场景证据 | 沿已有TaskRef及材料Evidence，不向委派载荷加另一套DTO；result/workItemId由父写回任务。程序首批无需任务 | 项目侧4.4c可闭合；科研角色／标准／真实质量仍由所属change交付，不称完整I3通过 |
 
-上述状态于主线第二阶段交接后更新；快照来源／基线由`/tmp/scholoom-phase2-handoff-VZS5mS/manifest.json`证明，不来自对其他真实树的探查。W2已完成设计复核；W1／W3／W4剩余真实接线仍未闭合。需要扩展公开行为时先审查范围；既有材料行为矩阵不重新投票。
+当前表于4b13183主线共同接入后复核；历史快照路径见design第7节，最新证据为`/tmp/scholoom-round6-acceptance-dXuzCA/{acceptance.md,synchronized.json}`及本树正式源码。W1完整库分类／恢复仍开放，W3／W4项目侧机械接线已具备实际证据。需要扩展公开行为时先审查范围；既有材料行为矩阵不重新投票。
 
 ## 结论与承接
 
