@@ -1,11 +1,5 @@
 import type { KernelClient } from '@scholoom/client';
-import type {
-  ContextItem,
-  FileContent,
-  FileEdit,
-  ResourceDescriptor,
-  ResourceRef,
-} from '@scholoom/protocol';
+import type { ContextItem, FileContent, ResourceDescriptor, ResourceRef } from '@scholoom/protocol';
 import { lazy, Suspense, useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import type { ContentSelection } from './content-selection';
 import { useContextContribution } from './context-contributions';
@@ -14,7 +8,7 @@ import { RenderPane } from './editor/RenderPane';
 import { SourceEditor } from './editor/SourceEditor';
 import { fileDocument, useFileDocument } from './file-document';
 import { MarkdownPreview } from './MarkdownPreview';
-import { ContentDiff, MaterialChangeView } from './MaterialChangeView';
+import { ContentDiff, MaterialHistory } from './MaterialChangeView';
 import { ReadingRecordsPanel } from './ReadingRecordsPanel';
 import {
   projectTarget,
@@ -205,7 +199,7 @@ export function FileEditor({
     };
   }, []);
   const [path, setPath] = useState(initialPath);
-  const [edits, setEdits] = useState<FileEdit[]>([]);
+  const [historyOpen, setHistoryOpen] = useState<boolean>();
   const [saving, setSaving] = useState(false);
   const readResource = useCallback(async () => {
     const before = await port.describe(currentLocator());
@@ -282,7 +276,6 @@ export function FileEditor({
   // biome-ignore lint/correctness/useExhaustiveDependencies: 文件修订事件触发当前资源重读，保留草稿。
   useEffect(() => {
     setPath(initialPath);
-    setEdits([]);
     if (!project && !enabled) setDescriptor(undefined);
     else if (!project?.create || project.fileId || document.get().source) void reload();
     else document.update({ loaded: true });
@@ -374,6 +367,13 @@ export function FileEditor({
     },
     [onOpenFile, project],
   );
+  const historyRef =
+    project &&
+    boundRef.current?.source === 'project' &&
+    boundRef.current.projectId === project.projectId &&
+    (!project.fileId || boundRef.current.fileId === project.fileId)
+      ? boundRef.current
+      : undefined;
   const external = useCallback((url: string) => {
     if (!/^(https?:|mailto:)/i.test(url)) return;
     if (window.scholoomDesktop) void window.scholoomDesktop.openExternal(url);
@@ -409,17 +409,8 @@ export function FileEditor({
         >
           重新读取
         </button>
-        {projectWritable ? (
-          <button
-            type="button"
-            className="btn"
-            onClick={() => {
-              if (!project) return;
-              void client
-                .call('files.history', { projectId: project.projectId, path })
-                .then(setEdits, (error) => document.update({ error: String(error) }));
-            }}
-          >
+        {project && descriptorMatches && descriptor?.ref.source === 'project' ? (
+          <button type="button" className="btn" onClick={() => setHistoryOpen(true)}>
             修改历史
           </button>
         ) : null}
@@ -575,23 +566,32 @@ export function FileEditor({
           </details>
         </>
       )}
-      {projectWritable && !accessRevoked
-        ? edits.map((edit) => (
-            <MaterialChangeView
-              key={edit.id}
-              edit={edit}
-              onUndo={() => {
-                if (!project) return;
-                void client
-                  .call('files.undo', { projectId: project.projectId, editId: edit.id })
-                  .then(
-                    () => reload(true),
-                    (error) => document.update({ error: String(error) }),
-                  );
-              }}
-            />
-          ))
-        : null}
+      {historyOpen !== undefined && project && historyRef ? (
+        <MaterialHistory
+          key={`${project.projectId}:${historyRef.fileId}`}
+          client={client}
+          projectId={project.projectId}
+          fileId={historyRef.fileId}
+          visible={
+            historyOpen &&
+            enabled &&
+            !!descriptorMatches &&
+            !!descriptor?.capabilities.read &&
+            !accessRevoked
+          }
+          canUndo={
+            enabled &&
+            !accessRevoked &&
+            !!descriptor?.capabilities.read &&
+            !!projectWritable &&
+            !readOnly &&
+            !saving &&
+            value.content === value.source?.content
+          }
+          onChanged={() => reload()}
+          onClose={() => setHistoryOpen(false)}
+        />
+      ) : null}
       {records ? (
         <details>
           <summary>共同阅读记录</summary>
