@@ -1,5 +1,19 @@
 # 实际交付与交接
 
+## 第八轮主线验收
+
+用户请求验收已派发成果并继续安排。主线起点b2f3b50，七树共同源码8a2f0ce；项目／科研两线按约等待、无源码增量。其余五树含untracked增量已冻结tree并核对真实staging，建立本地WIP检查点后no-ff合入dev，五次均无文本冲突；49个单线文件在接入时逐字节保留，共享manual装配与开发说明保留各域符号／分节。证据目录`/tmp/scholoom-round8-acceptance-UrXA7y/`的snapshots.json、checkpoints.json、source-preservation.json及逐树merge.log提供原始范围，没有reset／rebase、覆盖成果或推送工作树分支。
+
+接收生态inspect／独立replaceTitle／export显式expression与selectionRequired及实际工具、委派报告唯一checkReadable与子实例Evidence准入、CSL数字日期两端／circa及badInput保护、早期执行诊断和生命周期观察夹具。普通CSL保存不改原值，题名动作不改其他字段／键，库权威不变；报告完整展开前逐项核白名单，父来源不成为子权限，目标／旧报告版本仍不可用。实际范围沿各自tasks／delivery，不关闭完整changes或I3／I5／I6。
+
+Standards与Spec两位原生gpt-6.1-sol／high审查者独立核对五个冻结增量、原prompts及相关契约，两个轴均无确证新增问题，未代跑测试；主线核对共享合并并负责实跑。完整build／包类型、tools、架构14模块253文件0findings、8份生成映射及13个相关change定向strict通过；28份改动源码Biome退出0，保留既有非空断言warnings。没有安装、下载或升级依赖，也没有开发服务器。
+
+构建结束后，主线核心内核组合86/86通过（main-kernel.log），覆盖实际共同库／原BBT、显式选择及题名保留、CAS／稳定查询／持续外发、委派报告完整范围／缺项／旧basis／queue／final／restart／取消、旧报告保护、日期及真实任务消费。仅外部模型及明确模型准入控制边界使用受控响应；内部broker、库、文件和父子worker真实。另Linux生命周期2/2及真实Electron入口4/4通过；相关真实产品UI16/16通过（文献日期／草稿、M2父子历史、普通报告资源，各Browser／Electron），无skip或flaky。UI使用既有静态已构建产品承载，测试期间未重建同树产物；命令／JSON／trace沿main-*日志及results。
+
+早期诊断代表组合为2通过／1失败，与核心86项分开表达：excerpt及basis-upgrade通过，取消例首次等待仍失败、尚未调用cancel。新增诊断确实保留首次失败前后样本，主线最早边界父worker running且modelRequests=0、无delegation，后续才到首次模型请求；不能把作者另一次accepted时点拼接为同一次执行。原结果与cancel-failure-stages.json保留，具体续做沿Agent原delivery；接收诊断增量不等于取消／Windows整项验收完成。
+
+最新已完成Checks40447074031／b2f3b50：Linux734通过／1失败／23跳过，Windows715通过／4失败／39跳过，macOS人工UI13通过／1失败；后者入口步骤已通过。原始日志及按平台清单见同目录ci-baseline-*。Linux剩余选区例和macOS列宽例本地本轮通过，未证明目标失败根因已修。下一轮按并行计划分别收敛选区／列表、HostConnection断联、占锁启动／不可用计数及执行设置观察，再消费原值GUI与隔离机制夹具；项目／科研继续等待实际前置。没有全仓绿色、分发包、目标平台或真实科研质量通过结论，macOS受管执行仍明确不可用。
+
 ## 第七轮主线验收
 
 用户请求验收七个既有Agent并协调下一轮。七树共同起点4b13183，主线起点39be889；含untracked增量通过临时index冻结，真实tree核对后建立本地WIP检查点，再逐线no-ff合入dev，七次均无文本冲突。67个未由主线有意修改的单线文件逐字节保留，共享开发／UI文档保留两域增量。快照、检查点、合并、源码保全和命令日志集中在`/tmp/scholoom-round7-acceptance-SdxHy8/`。没有reset、rebase、强制覆盖或推送工作树分支。

@@ -1,5 +1,11 @@
 # 实际交付与交接
 
+## 第八轮主线诊断复验
+
+主线接入后使用诊断开关重跑excerpt、basis-upgrade及真实子取消三个代表例，仍为2通过／1失败；没有覆盖作者最后失败或称取消场景已闭合。取消例首次失败约4099ms，最近3939ms样本是父worker running、指令consumed、modelRequests=0、无delegation；4114ms最后样本才modelRequests=1，仍无子记录，尚未调用cancel。与作者某次accepted边界分别保存，不能拼接成同一时间线。early execution-stages附件确实在失败／清理后保留，数据有限且不含payload。
+
+命令及原始证据为`/tmp/scholoom-round8-acceptance-UrXA7y/main-diagnostics-result.json`、`main-diagnostics-results/`、解出的`cancel-failure-stages.json`；其他核心领域组合86项与本组不同，不能合计为全绿。下一片沿实际受测阶段核对父模型、工具受理、子进程及onStart，先决定有依据的夹具观察边界；生产时限和停止语义不变，4.2／4.3及整项继续开放。
+
 ## 8a2f0ce后的早期诊断与本机excerpt反例
 
 这是当前有界交付，取代下文历史阶段的“下一步补首次诊断”说明。只读确认起始clean、HEAD及祖先为`8a2f0ce522dfbab4110e63e84e542f6660e6115e`，消费`/tmp/scholoom-round7-acceptance-SdxHy8/`的验收、计划、main-kernel.log、context-control.log及CI基线。未应用旧patch、同步别树或修改生产代码。context-session已接收不重做；报告旧Evidence历史授权、生态only-export、FileEdit来源、全部根工具/恢复/标签保持原样。第12组完成，但**最后正式组合为2通过/1失败**，取消等待尚未闭合，不以较早绿色覆盖。
