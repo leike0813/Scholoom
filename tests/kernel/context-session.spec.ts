@@ -2,6 +2,15 @@ import { fileURLToPath } from 'node:url';
 import { expect, test } from '@playwright/test';
 import { build } from '../../packages/editor/node_modules/esbuild/lib/main.js';
 
+test.afterEach(async ({ page }, info) => {
+  const errors = await page.pageErrors();
+  if (errors.length)
+    await info.attach('page-errors', {
+      body: JSON.stringify(errors.map((error) => ({ name: error.name, message: error.message }))),
+      contentType: 'application/json',
+    });
+});
+
 test('business session preserves later drafts across rejected, delayed and unknown send receipts', async ({
   page,
 }) => {
@@ -14,7 +23,7 @@ test('business session preserves later drafts across rejected, delayed and unkno
         import {readDraft} from './src/renderer/src/workbench/drafts';
         const project={id:'application',name:'Application',path:'fixture',trust:'trusted',autoBackup:false};
         window.mode='reject';window.sent=[];
-        const client={getSnapshot:()=>({status:{dataDirectory:'fixture-profile'}}),subscribeChanges:()=>()=>{},call:async(method,input)=>{
+        const client={getSnapshot:()=>({phase:'connected',status:{dataDirectory:'fixture-profile'}}),subscribe:()=>()=>{},subscribeChanges:()=>()=>{},call:async(method,input)=>{
           if(method==='session.send'){
             window.sent.push(input);
             if(window.mode==='reject')throw new KernelClientError('unavailable','Synthetic unavailable');
