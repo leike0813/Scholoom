@@ -1,5 +1,21 @@
 # 实际交付与交接
 
+## 第九轮主线验收
+
+主线起点caf9025，七树共同源码0b78815。五个实施树连同untracked通过临时index冻结、核对真实staging后建立本地检查点，再no-ff合入dev；五次无文本冲突，项目／科研按约无增量。34个非共享、非格式整理文件逐字节保留，共享UI设计文档自动合并；主线仅整理report-frame／content-selection两文件格式，扩现有Windows诊断workflow并更新原交付记录与并行计划。原始范围、检查点及合并日志在`/tmp/scholoom-round9-acceptance-IER31D/`的snapshots.json、checkpoint-commits.json、source-preservation.json及逐树merge.log；没有reset／rebase、覆盖成果或推送工作树分支。
+
+接收HostConnection真实送达观察、两种占锁场景及ACL来源／阶段观察、委派分阶段设置及跨文件诊断hook、选区夹具与单条原值GUI。GUI复用同一CSL草稿和原生态API，未知回执重载后只查询，不重放；普通CSL保存不改原值。阅读Agent因上游502中断，两个隔离文件仅保全为未完成调查夹具，无测试入口或双宿主隔离结论；报告2.1a／2.1b、生产页和完整I5仍开放。具体行为和未完项沿所属tasks／delivery，不据接入关闭完整changes／I3／I5／I6。
+
+Standards／Spec两位原生gpt-6.1-sol／high只读审查均未发现确证新增问题，未代跑测试。主线完整build／全包类型、tools、架构14模块253文件0findings、8份同源生成映射及13个相关change strict通过；15份改动源码Biome最终退出0，保留原非空断言及未完成夹具的optional-chain提示。现有YAML解析器核对Windows新增三个定向步骤，Agent选择器实际列出3项。首次阅读夹具格式失败已保留，主线通过apply_patch整理；没有安装、下载、升级依赖或启动开发服务器。
+
+构建结束后主线HostConnection／选区／平台组合35/35通过（含选区8项、host24项及平台3项），真实占锁生命周期2/2通过。真实产品文献UI14/14通过（原library12及新原值GUI2，均Browser／Electron），无skip／flaky；内部库、broker、受管宿主及未修改BBT原包真实，原值GUI使用直接KernelServer与隔离可信配置，不覆盖CLI／serveKernel进程重启。命令、JSON、trace与结果沿main-*日志／results，测试期间未重建同树产物。
+
+执行诊断组合单独为2通过／1失败：真实父子取消／重启和excerpt通过；附件例完成导入、batch及字节读取后，第二reader在5000ms completed观察中仍running（当前101行）。保存的observer属于已完成导入会话，停止于该首轮，无法证明reader阶段；首次失败与trace保留在main-diagnostics-result.json及main-diagnostics-results，不称附件／整组通过。下一片在reader发送前接同一有界诊断，再按实际最早失败阶段收敛。
+
+最新已完成Checks40455958976／caf9025：Linux完整组743通过／1失败／26跳过，Windows687通过／41失败／42跳过，macOS人工UI13通过／1失败；macOS fallback2及入口4通过，Linux原生定向19通过、Windows原生16通过／3跳过。原始ci-baseline-*独立于本轮局部通过，不从失败数量认定同因果。现有Windows execution diagnosis新增host、占锁／不可用、cancel／excerpt／attachment步骤，新共同源码目标结果尚未产生；macOS受管执行仍明确不可用。没有全仓、分发包、三平台或真实科研质量通过结论。
+
+下一轮沿并行计划“第九轮验收后的收敛安排”：五条有界任务与两条等待指令只在共同基线推送、七树保全同步及构建／tools／定向测试通过后发送。同步和实际派发回执完成后补记于本节，不把已起草prompt当作已派发。
+
 ## 第八轮主线验收
 
 用户请求验收已派发成果并继续安排。主线起点b2f3b50，七树共同源码8a2f0ce；项目／科研两线按约等待、无源码增量。其余五树含untracked增量已冻结tree并核对真实staging，建立本地WIP检查点后no-ff合入dev，五次均无文本冲突；49个单线文件在接入时逐字节保留，共享manual装配与开发说明保留各域符号／分节。证据目录`/tmp/scholoom-round8-acceptance-UrXA7y/`的snapshots.json、checkpoints.json、source-preservation.json及逐树merge.log提供原始范围，没有reset／rebase、覆盖成果或推送工作树分支。

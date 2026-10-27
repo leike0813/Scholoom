@@ -164,7 +164,8 @@ async function visualAction(page: Page, action: string) {
       selection: Reflect.get(window, 'visualFixture').getSelection(),
     };
   }, action);
-  await expect.poll(async () => Number(await page.locator('#visual-selection').getAttribute('data-revision')))
+  await expect
+    .poll(async () => Number(await page.locator('#visual-selection').getAttribute('data-revision')))
     .toBeGreaterThanOrEqual(observation.revision);
   return observation;
 }
@@ -424,7 +425,12 @@ test('visual selection-only transactions, explicit tables and image snapshots pr
   expect(selected.from).toBe(selected.imagePosition);
   expect(selected.to - selected.from).toBe(1);
   await test.info().attach('visual-selection-commit', {
-    body: JSON.stringify({ imageAction, selected, tableId: table.objectId, imageId: image.objectId }),
+    body: JSON.stringify({
+      imageAction,
+      selected,
+      tableId: table.objectId,
+      imageId: image.objectId,
+    }),
     contentType: 'application/json',
   });
   await visualAction(page, 'edit');

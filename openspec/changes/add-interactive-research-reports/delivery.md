@@ -1,5 +1,11 @@
 # 实际交付与交接
 
+## 第九轮：隔离夹具中断交接
+
+本轮从共同源码0b78815继续，阅读Agent因上游provider 502中断，未形成完整交付。主线将`tests/fixtures/report-frame.ts`与`report-network-trap.ts`连同原design/tasks检查点保全后接入；只整理前者格式，没有补生产接线或隔离实现。两个文件仍是调查夹具，没有可运行测试入口，也没有Browser／Electron隔离证据；2.1a／2.1b保持未完成，生产报告页、目标报告及旧版本Adapter仍不可用。
+
+主线共同构建、包类型与tools通过；Standards／Spec两位gpt-6.1-sol／high只读审查均未发现确证新增问题，静态检查不证明隔离。原始冻结tree、源码补丁、两轴结论及主线日志在`/tmp/scholoom-round9-acceptance-IER31D/`。下一片恢复原会话，补有界实际入口、自有网络观测与双宿主反例；任一保证不能兑现则保留不可用并交回决策，不放宽生产CSP或启用页面。
+
 ## 第八轮：真实委派报告展开来源
 
 共同起点已只读核对为`8a2f0ce522dfbab4110e63e84e542f6660e6115e`，起始干净；消费`/tmp/scholoom-round7-acceptance-SdxHy8/`的验收／同步结果和当前正式源码，保留主线旧摘录／公开save／undo授权修复。未应用旧patch、同步分支、提交、推送、PR、归档、安装或操作真实用户库。仅完成1.2b.2a，当前5/12；1.2b.2b及2.x／3.x／完整I5开放。

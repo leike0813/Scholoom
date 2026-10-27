@@ -1,5 +1,11 @@
 # 实际交付与交接
 
+## 第九轮：选区夹具观察修正
+
+从共同源码0b78815继续，仅修改`tests/kernel/content-selection.spec.ts`：选区动作等待实际revision提交，并核对图片对象身份、原图注及位置，避免选择图片后仍读取前一个表格对象。生产选择逻辑未改，pending draft和显式表格保护保留。作者8项通过；主线共同构建结束后在35项HostConnection／选区／平台组合中复验本文件8/8通过。原始结果为`/tmp/scholoom-round9-acceptance-IER31D/main-kernel.log`及main-kernel-results；主线只作格式整理，未增加重试、固定sleep或平台跳过。
+
+Linux本地通过不关闭caf9025的旧CI失败，也不证明Windows目标通过。另一报告change的隔离夹具因502中断，实际状态沿其delivery，不据选区通过关闭2.1或完整I5。本change既有M1／完整交付开放项保持不变。
+
 ## 当前状态与成果
 
 当前共同基线为`4b13183f7489d3cae12fd0a7d1a9e83fb33d7384`，原成果已有主线检查点并合入dev，第六轮同步证据在`/tmp/scholoom-round6-acceptance-dXuzCA/`；没有应用旧累计补丁或重新同步。本轮在已接入M2消费者上补真实父子委派联合证据及Windows夹具修正，当前仍11/15项：1.1–3.3及4.2／4.3／4.5／4.6；M1的4.1／4.4及完整5.1／5.2开放。本轮无新提交、同步、推送、PR、归档、依赖安装或真实用户库操作，任务以[tasks](tasks.md)为准，不宣称整个change或全部I5完成。

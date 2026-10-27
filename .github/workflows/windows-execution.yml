@@ -7,6 +7,12 @@ on:
       - .github/workflows/windows-execution.yml
       - tests/execution-diagnostics.ts
       - tests/kernel/context-instructions.spec.ts
+      - tests/kernel/agent-delegation.spec.ts
+      - tests/kernel/literature-attachment-integration.spec.ts
+      - tests/kernel/host-connection.spec.ts
+      - tests/fixtures/zotero-host/fixed-host.mjs
+      - tests/kernel/lifecycle.spec.ts
+      - tests/kernel/platform-availability.spec.ts
       - tests/kernel/harness.spec.ts
       - tests/kernel/development-execution.spec.ts
       - tests/kernel/managed-commands.spec.ts
@@ -39,6 +45,15 @@ jobs:
       - name: Verify native ownership and command authorization
         if: '!cancelled()'
         run: pnpm --config.optimisticRepeatInstall=false exec playwright test --config playwright.kernel.config.ts tests/kernel/platform-processes.spec.ts tests/kernel/managed-commands.spec.ts --output test-results/windows-ownership
+      - name: Verify delivered host mutations retain uncertainty
+        if: '!cancelled()'
+        run: pnpm --config.optimisticRepeatInstall=false exec playwright test --config playwright.kernel.config.ts tests/kernel/host-connection.spec.ts --workers=1 --output test-results/windows-host
+      - name: Verify lock and unavailable execution observations
+        if: '!cancelled()'
+        run: pnpm --config.optimisticRepeatInstall=false exec playwright test --config playwright.kernel.config.ts tests/kernel/lifecycle.spec.ts tests/kernel/platform-availability.spec.ts --grep 'occupied configuration preserves|kernel declares|child process observation|unavailable execution refuses' --workers=1 --output test-results/windows-availability
+      - name: Observe cancellation setup excerpts and attachment reader
+        if: '!cancelled()'
+        run: pnpm --config.optimisticRepeatInstall=false exec playwright test --config playwright.kernel.config.ts tests/kernel/agent-delegation.spec.ts tests/kernel/context-instructions.spec.ts tests/kernel/literature-attachment-integration.spec.ts --grep 'cancelling a child|real worker sends explicit excerpts|real RPC and Agent share material bytes' --workers=1 --output test-results/windows-agent
       - name: Check development owner lifecycle
         if: '!cancelled()'
         run: pnpm --config.optimisticRepeatInstall=false exec playwright test --config playwright.kernel.config.ts tests/kernel/development-execution.spec.ts --output test-results/windows-owner
