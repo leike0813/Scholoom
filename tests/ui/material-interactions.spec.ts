@@ -1,6 +1,6 @@
 /// <reference lib="dom" />
 import assert from 'node:assert/strict';
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { basename, join } from 'node:path';
 import { createKernelClient } from '../../packages/client/dist/index.js';
@@ -14,14 +14,26 @@ test('a real document annotation reaches the shared composer and changes a proje
   uiPage,
 }, info) => {
   test.setTimeout(120000);
-  const root = await mkdtemp(join(tmpdir(), 'scholoom-material-ui-'));
+  const root = info.outputPath(`material-m2-${info.project.name}`);
+  await mkdir(root, { recursive: true });
   const evidence = 'Material evidence 73.';
   const before = '# Finding\n\nBefore review.\n';
   const after = '# Finding\n\nAfter review.\n';
   await writeFile(join(root, 'paper.html'), `<html><body><p>${evidence}</p></body></html>`);
-  await writeFile(join(root, 'note.md'), before);
+  await writeFile(join(root, 'note.md'), '# Finding\n\nUnreviewed.\n');
+  let inspect:
+    | { projectId: string; fileId: string; editId: string; afterEditId: string }
+    | undefined;
   const model = await createModelServer({
     respond: ({ calls }) => {
+      if (inspect) {
+        const { projectId, fileId, editId, afterEditId } = inspect;
+        if (!calls.includes('get_file_changes'))
+          return { tool: { name: 'get_file_changes', input: { projectId, fileId, afterEditId } } };
+        if (!calls.includes('read_file_edit'))
+          return { tool: { name: 'read_file_edit', input: { projectId, fileId, editId } } };
+        return { text: '已读取实际撤销记录及当前文件变化。' };
+      }
       if (!calls.includes('read_file'))
         return { tool: { name: 'read_file', input: { file_path: '/note.md' } } };
       if (!calls.includes('edit_file'))
@@ -58,6 +70,22 @@ test('a real document annotation reaches the shared composer and changes a proje
     const session = (await client.call('session.list', { projectId: project.id })).sessions[0];
     assert(session);
     const scope = { projectId: project.id, sessionId: session.id };
+    await uiPage.getByRole('treeitem', { name: '打开文件 note.md', exact: true }).dblclick();
+    const editor = uiPage.getByRole('textbox', { name: '文件内容 note.md', exact: true });
+    const editText = async (text: string) => {
+      await editor.click();
+      await editor.press('ControlOrMeta+A');
+      await uiPage.keyboard.insertText(text);
+    };
+    await expect(editor).toContainText('Unreviewed.');
+    await editText(before);
+    await uiPage.getByRole('button', { name: '保存文件', exact: true }).click();
+    await expect.poll(() => readFile(join(root, 'note.md'), 'utf8')).toBe(before);
+    const file = await client.call('files.read', { projectId: project.id, path: 'note.md' });
+    assert(file.fileId);
+    const historyInput = { projectId: project.id, fileId: file.fileId };
+    const manual = (await client.call('files.changes', historyInput)).changes[0];
+    expect(manual?.origin?.kind).toBe('human');
     await uiPage.getByRole('treeitem', { name: '打开文件 paper.html', exact: true }).dblclick();
     const article = uiPage.getByRole('article', { name: '文档正文', exact: true });
     await expect(article).toContainText(evidence);
@@ -118,17 +146,100 @@ test('a real document annotation reaches the shared composer and changes a proje
       uiPage.getByRole('textbox', { name: '文件内容 note.md', exact: true }),
     ).toContainText('After review.');
     await uiPage.getByRole('button', { name: '修改历史', exact: true }).click();
-    const history = uiPage
-      .locator('.file-editor > details')
-      .filter({ hasText: '已保存修改 · note.md' });
-    await expect(history).toHaveCount(1);
-    await history.locator('summary').click();
+    const history = uiPage.getByRole('region', { name: '文件修改历史', exact: true });
+    await expect(history.getByRole('button', { name: /^查看修改 / })).toHaveCount(2);
+    const executionEdit = (await client.call('files.changes', historyInput)).changes.find(
+      (item) => item.origin?.kind === 'execution',
+    );
+    assert(executionEdit?.origin?.kind === 'execution');
+    expect(executionEdit.origin).toMatchObject({
+      sessionId: session.id,
+      instructionContext: { state: 'unknown' },
+      tool: { state: 'unknown' },
+    });
+    await history
+      .getByRole('button', { name: `查看修改 ${executionEdit.editId}`, exact: true })
+      .click();
+    const selected = history.getByRole('region', { name: '选定修改', exact: true });
+    await expect(selected).toContainText('Agent执行修改');
+    await expect(selected).toContainText(executionEdit.origin.runId);
+    await expect(selected).toContainText(executionEdit.origin.instanceId);
+    await expect(selected).toContainText('未知');
+    assert(executionEdit.beforeEvidence && executionEdit.afterEvidence);
+    await expect(selected).toContainText(executionEdit.beforeEvidence.basis);
+    await expect(selected).toContainText(executionEdit.afterEvidence.basis);
     await expect(history.getByLabel('内容差异', { exact: true })).toContainText('Before review.');
     await expect(history.getByLabel('内容差异', { exact: true })).toContainText('After review.');
+    const overlap = '# Finding\n\nHuman overlapping correction.\n';
+    await editText(overlap);
+    await expect(history.getByRole('button', { name: '撤销此修改', exact: true })).toBeDisabled();
+    await uiPage.getByRole('button', { name: '保存文件', exact: true }).click();
+    await expect.poll(() => readFile(join(root, 'note.md'), 'utf8')).toBe(overlap);
+    const overlapping = (await client.call('files.changes', historyInput)).changes[0];
+    assert(overlapping);
+    expect(overlapping.origin?.kind).toBe('human');
+    const requestsBeforeUndo = model.requests.length;
+    const runBeforeUndo = (await client.call('workbench.snapshot', scope)).run?.id;
+    await expect(history.getByRole('button', { name: '撤销此修改', exact: true })).toBeEnabled();
     await history.getByRole('button', { name: '撤销此修改', exact: true }).click();
-    await expect.poll(() => readFile(join(root, 'note.md'), 'utf8')).toBe(before);
+    await expect(history.getByRole('alert')).toContainText('contentChanged');
+    expect(await readFile(join(root, 'note.md'), 'utf8')).toBe(overlap);
+    await expect(editor).toContainText('Human overlapping correction.');
+    await expect(history.getByLabel('内容差异', { exact: true })).toContainText('Before review.');
+    await history.getByRole('button', { name: '重读修改历史', exact: true }).click();
+    await history
+      .getByRole('button', { name: `查看修改 ${overlapping.editId}`, exact: true })
+      .click();
+    await expect(selected).toContainText('人工修改');
+    await history.getByRole('button', { name: '撤销此修改', exact: true }).click();
+    await expect.poll(() => readFile(join(root, 'note.md'), 'utf8')).toBe(after);
+    await expect(history.getByRole('status').filter({ hasText: '撤销已保存' })).toBeVisible();
+    await expect(selected).toContainText(overlapping.editId);
+    const undo = (await client.call('files.changes', historyInput)).changes[0];
+    assert(undo);
+    expect(undo).toMatchObject({ origin: { kind: 'human' }, revertsEditId: overlapping.editId });
+    expect(model.requests.length).toBe(requestsBeforeUndo);
+    expect((await client.call('workbench.snapshot', scope)).run?.id).toBe(runBeforeUndo);
+    inspect = { ...historyInput, editId: undo.editId, afterEditId: executionEdit.editId };
+    const checkInstruction = 'MODEL_CHAT 核查刚才的人工重叠与撤销记录，不修改文件。';
+    await uiPage.getByRole('textbox', { name: '研究指令', exact: true }).fill(checkInstruction);
+    await uiPage.getByRole('button', { name: '发送指令', exact: true }).click();
+    await expect
+      .poll(
+        async () => {
+          const current = await client.call('workbench.snapshot', scope);
+          return current.run?.id !== runBeforeUndo && current.run?.state === 'completed';
+        },
+        { timeout: 25000 },
+      )
+      .toBe(true);
+    const messages = (await client.call('workbench.snapshot', scope)).messages;
+    const queried = messages.findLast((message) => message.tool?.name === 'get_file_changes');
+    const readUndo = messages.findLast((message) => message.tool?.name === 'read_file_edit');
+    expect(queried?.state).toBe('complete');
+    expect(JSON.parse(queried?.tool?.output ?? '{}').changes).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ editId: undo.editId, revertsEditId: overlapping.editId }),
+      ]),
+    );
+    expect(JSON.parse(readUndo?.tool?.output ?? '{}')).toMatchObject({
+      id: undo.editId,
+      revertsEditId: overlapping.editId,
+      before: overlap,
+      after,
+      origin: { kind: 'human' },
+    });
     await info.attach('material-evidence', {
-      body: JSON.stringify({ scope, contextItems: sent.contextItems, before, after }),
+      body: JSON.stringify({
+        scope,
+        contextItems: sent.contextItems,
+        fileId: file.fileId,
+        executionEdit,
+        overlapping,
+        undo,
+        before,
+        after,
+      }),
       contentType: 'application/json',
     });
   } finally {
@@ -136,7 +247,6 @@ test('a real document annotation reaches the shared composer and changes a proje
     client.dispose();
     await stop();
     await model.close();
-    await rm(root, { recursive: true, force: true });
   }
 });
 

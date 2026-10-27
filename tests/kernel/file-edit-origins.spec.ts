@@ -328,6 +328,8 @@ test('a real worker records its coarse source and the next instruction can query
   let projectId = '',
     fileId = '',
     editId = '';
+  let inspection = 0;
+  let afterEditId: string | undefined;
   const model = await createModelServer({
     respond: ({ calls }) => {
       if (phase === 'save')
@@ -339,9 +341,14 @@ test('a real worker records its coarse source and the next instruction can query
                 input: { file_path: 'source.md', content: 'Synthetic process and next step.' },
               },
             };
-      if (!calls.includes('get_file_changes'))
-        return { tool: { name: 'get_file_changes', input: { projectId, fileId } } };
-      if (!calls.includes('read_file_edit'))
+      if (calls.filter((name) => name === 'get_file_changes').length < inspection)
+        return {
+          tool: {
+            name: 'get_file_changes',
+            input: { projectId, fileId, ...(afterEditId ? { afterEditId } : {}) },
+          },
+        };
+      if (calls.filter((name) => name === 'read_file_edit').length < inspection)
         return { tool: { name: 'read_file_edit', input: { projectId, fileId, editId } } };
       return { text: '已核对实际人工更改。' };
     },
@@ -373,6 +380,7 @@ test('a real worker records its coarse source and the next instruction can query
     };
     const receipt = await send('保存source.md作为合成过程材料。');
     const read = await app.call('files.read', { projectId, path: 'source.md' });
+    const originalBytes = await readFile(join(project.path, 'source.md'));
     assert(read.fileId);
     fileId = read.fileId;
     const first = (await app.call('files.changes', { projectId, fileId })).changes[0];
@@ -394,7 +402,8 @@ test('a real worker records its coarse source and the next instruction can query
     });
     editId = human.id;
     phase = 'inspect';
-    await send('读取该文件的实际修改记录，核查人工更改。');
+    inspection++;
+    const inspected = await send('读取该文件的实际修改记录，核查人工更改。');
     const messages = (await app.snapshot(scope)).messages;
     const detail = messages.findLast((message) => message.tool?.name === 'read_file_edit');
     expect(detail?.state).toBe('complete');
@@ -402,6 +411,63 @@ test('a real worker records its coarse source and the next instruction can query
       id: human.id,
       origin: { kind: 'human' },
       after: 'Explicit human correction and next step.',
+    });
+    const requestCount = model.requests.length;
+    const undone = await app.call('files.undo', { projectId, editId: human.id });
+    assert(human.afterEvidence && undone.beforeEvidence && undone.afterEvidence);
+    expect(undone.beforeEvidence).toEqual(human.afterEvidence);
+    const restored = await app.call('resources.describe', {
+      locator: { source: 'project', projectId, fileId },
+    });
+    expect(undone.afterEvidence).toEqual({ ref: restored.ref, basis: restored.basis });
+    expect(await readFile(join(project.path, 'source.md'))).toEqual(originalBytes);
+    const undoRecord = await app.call('files.edit', { projectId, fileId, editId: undone.id });
+    expect(undoRecord).toMatchObject({
+      id: undone.id,
+      fileId,
+      origin: { kind: 'human' },
+      before: human.after,
+      after: read.content,
+      beforeEvidence: undone.beforeEvidence,
+      afterEvidence: undone.afterEvidence,
+      revertsEditId: human.id,
+    });
+    expect((await app.snapshot(scope)).run).toMatchObject({
+      id: inspected.runId,
+      state: 'completed',
+    });
+    expect(model.requests).toHaveLength(requestCount);
+
+    editId = undone.id;
+    afterEditId = human.id;
+    inspection++;
+    const inspectedUndo = await send('读取人工修改之后的变化，核查实际撤销记录及恢复后的正文。');
+    expect(inspectedUndo.runId).not.toBe(inspected.runId);
+    const undoMessages = (await app.snapshot(scope)).messages.filter(
+      (message) => message.tool?.runId === inspectedUndo.runId,
+    );
+    const changes = undoMessages.find((message) => message.tool?.name === 'get_file_changes');
+    expect(changes?.state).toBe('complete');
+    expect(JSON.parse(changes?.tool?.input ?? '{}')).toMatchObject({
+      projectId,
+      fileId,
+      afterEditId: human.id,
+    });
+    expect(JSON.parse(changes?.tool?.output ?? '{}')).toMatchObject({
+      changes: [{ editId: undone.id, fileId, origin: { kind: 'human' }, revertsEditId: human.id }],
+      coverage: { anchor: 'matched', current: 'matchesLatest' },
+    });
+    const undoDetail = undoMessages.find((message) => message.tool?.name === 'read_file_edit');
+    expect(undoDetail?.state).toBe('complete');
+    expect(JSON.parse(undoDetail?.tool?.output ?? '{}')).toMatchObject({
+      id: undone.id,
+      fileId,
+      origin: { kind: 'human' },
+      before: human.after,
+      after: read.content,
+      beforeEvidence: undoRecord.beforeEvidence,
+      afterEvidence: undoRecord.afterEvidence,
+      revertsEditId: human.id,
     });
   } finally {
     await app.close();

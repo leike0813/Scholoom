@@ -108,4 +108,4 @@ M1只关闭“未收到生态阅读写回调查”，仍等待文献实际材料
 
 达到最多一轮边界，不再循环跑。下一窄入口为platform `process-controller.ts`的native scope状态管道及stop catch、`processes.ts`的controller exit：先审查最小公共诊断增量，在既有failure reason/detail和outcomeUnknown诊断文本保留controller exit code/signal、instanceId／ready pid、是否收到stopped，以及native stop失败detail／最后P/R/E和scope exit状态；不要扩ErrorInfo DTO或另建日志框架。沿现有command／process测试验证正常stopped、scope非0／signal、controller提前退出时unknown及reservation仍未释放。该平台增量仅为待主线审核方案，本树未实施、不改变停止／容量保证。
 
-真实格式贡献、共同发送、图片区域、已有结构对象、实际项目差异及M3只读产物链路已完成局部实施，实际证据见delivery。M1等待文献提交提供者，M2等待可靠归因／消费契约；受影响的生产路径及完整I5保持开放。基础综合和独立报告change不以这些写回／归因前置为整体依赖。
+第五轮共同基线1026796已实际同步并包含M2提供者和本线M3／图片／报告独立模块。M2的真实粗粒度来源、Evidence、fileId有界摘要及整次undo已在本轮消费，见design当前M2节及delivery第五轮；前文“等待M2／公共接入”仅记录历史，不能再作为阻塞。M1仍缺正文提交；委派细分联合、报告生产／隔离及完整I5开放。历史TeX unknown诊断交计算线，本轮未重复。基础综合不等待报告完成。

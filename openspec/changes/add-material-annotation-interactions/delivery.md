@@ -2,7 +2,7 @@
 
 ## 当前状态与成果
 
-2026-10-26，当前HEAD为`e71663b02a3444af0bda2091218dd09ebc0df638`，已只读核对0519904（含b838402）为祖先。用户恢复指令替代旧等待手动同步条件；本轮授权实施M3只读render提供者及实际消费者，并交可审查本地补丁。沿既有依赖和隔离UI授权，没有安装新依赖、触及真实用户库、同步其他树、提交／推送／PR或归档。原e3d58fc起点成果及同步检查点保留。当前完成9/15项：1.1–3.3、4.3及4.6；4.1／4.2／4.4／4.5和完整5.1／5.2保持未完成。任务以[tasks](tasks.md)为准，不宣称整个change或材料I5完成。
+当前共同基线为`1026796d854b8f568c3e819f13268a9638980bc1`，起始树干净且已只读核对；原成果已有主线检查点并合入dev。第五轮证据见`/tmp/scholoom-round5-acceptance-WBreMJ/{acceptance.md,synchronized.json}`，旧“公共未入dev／等同步”已失效，没有应用旧累计补丁。本轮直接授权并完成M2真实粗粒度FileEdit消费者，当前11/15项：1.1–3.3及4.2／4.3／4.5／4.6；M1的4.1／4.4及完整5.1／5.2开放。本轮无新提交、同步、推送、PR、归档、依赖安装或真实用户库操作，任务以[tasks](tasks.md)为准，不宣称整个change或全部I5完成。
 
 已接入：
 
@@ -11,8 +11,9 @@
 - 项目与库PNG／JPEG／GIF／WebP共用图片视图，分片、身份、权限、字节／像素容量、键盘／指针区域及旋转／缩放均有边界；不提供图像语义推断或正文写回。
 - 项目文件历史复用`lineDiff`及原`files.undo`，实际保存与候选分别展示，未知执行者／理由不推断。首条真实阅读批注→共同composer→harness worker→项目保存→差异／撤销已在双宿主跑通。
 - M3新增只读render资源，以projectId/outputId和产物自身basis读取，保留生产job及实际输入；嵌入PDF直接选取、共同composer、实际worker字节／页解析、历史打开和刷新在两宿主通过。旧缺证据记录仍可预览／导出，不能附加。公共提供者及通用调用方与阅读器消费者分开交补丁，详见第三阶段。
+- M2在当前共同基线消费files.changes／edit／undo：稳定fileId每页10条摘要、选定editId才读全文；实际human／system／execution来源、前后Evidence和revertsEditId按记录呈现，科研理由及未核实因果不推断。两宿主已真实验证人工和普通执行修改、差异／依据、人工重叠拒绝旧撤销、正确整次撤销及负责Agent查询撤销；实际范围见第五轮。
 
-结构与实际链路沿[design总览](design.md#变更总览)，M1／M2虚线保持未接；M3使用真实产物ResourceRef，没有伪造源码引用。另一交互报告change本轮未实施，未创建其delivery。
+结构沿[design总览](design.md#变更总览)，M1仍未接；M2粗粒度消费者及M3真实产物路径已接入。另一报告change的独立模块与delivery已在共同基线，主线修复两边界后70/70通过；本轮没有展开报告生产／隔离。
 
 ## 第一阶段实际验证（历史）
 
@@ -203,3 +204,74 @@ NODE_OPTIONS='--import=/tmp/scholoom-render-exit-observation-Xusye8/observe.mjs'
 结果1通过（20.1s）；观察脚本、`run.log`、`controller-events.jsonl`及trace保留在上述目录，不是产品依赖。5个本轮controller都记录ready身份、stopped消息及随后code0／signal null退出；首两个对应顺序上的两次nativeTeX render。没有直接记录scope状态管道，本轮通过不补齐历史缺失，原unknown根因仍开放。观察完成后不再运行同一用例，不加重试／超时，不以PID消失认定停止，不将unknown改完成或提前释放容量。
 
 下一步仅向主线交独立最小公共诊断方案：既有controller exit／native stop catch保留code/signal、instance身份、stopped是否收到、native最后状态和退出原因，复用现有IPC failure detail／诊断文本和过程测试，不扩业务ErrorInfo或另起框架；本树未实现平台行为变更。材料9/15保持，M1／M2及完整I5开放；报告模块实施归其独立change记录。本轮不读／打断活动项目树、不安装依赖或碰真实库。
+
+## 第五轮：真实FileEdit的M2消费者
+
+### 共同输入与当前边界
+
+用户明确以1026796共同源码直接实施4.2／4.5及5.x的M2子范围，取代旧tmp公共补丁和未同步门。读取主线计划“共同领域实现接入后的真实整合”、职责／存储决议、原design/tasks和当前apply／delivery instructions，并按本树正式协议与调用点核对。没有操作其他真实树，未读取活动项目树；七域实现均来自当前共同源码。
+
+真实提供者为`protocol/project-file-contracts.ts`、`projects/store.ts::changes/undo`及既有Manual／Kernel装配。files.changes的cursor固定查询窗口，返回摘要与coverage；files.edit按稳定fileId/editId只读全文；undo生成真实新FileEdit及revertsEditId。beforeEvidence／afterEvidence与撤销用FileEdit.basis语义不同，缺失不互补。执行资源回执可带editId及独立association，公共人工resources.save仍仅回ResourceDescriptor；UI只用摘要／实际撤销回执的编号，不猜对应修改。
+
+普通执行的session/run/instance真实，当前未注入的指令／工具／委派保持unknown。后续Agent线真实委派来源不作为本轮前置，不复制其未同步实现、不冒称已验证委派细分或科研理由。M1库正文提交仍缺provider，报告生产操作／HTML写／iframe／隔离未展开。TeX首次unknown仍未定位，退出诊断交计算线，本轮未重跑原用例。
+
+### 实际变更及调用方
+
+| 文件／符号 | 结果 |
+| --- | --- |
+| `MaterialChangeView.tsx::MaterialHistory` | 当前fileId每页10条摘要、原样cursor，更早页替换当前页；只保留一个选中全文。不调用files.history，不预取全项目历史。coverage三维分别显示，空窗口不等于无变化；状态明确摘要、全文、撤销及刷新环节 |
+| `MaterialChangeView`／Evidence展示 | actual principal/module与execution的session/run/instance、实际指令集合／委派字段，缺失或单次因果／工具／科研理由未知。前后Evidence按实际ref/basis显示，撤销关系单列。系统身份不当科研理由，不从时间／工具文本补作者 |
+| `project-ui.tsx`历史入口及刷新 | 沿绑定的projectId/fileId保留历史实例；只读项目也可查历史，撤销仍核对原写能力与草稿。历史开关、临时断线／撤权只隐藏并清页／正文，保留在途及未知撤销保护；恢复先重查。撤销后非强制reload保留继续编辑的草稿 |
+| `MaterialHistory`撤销状态 | 同步防重入、在途禁止面板关闭，unknown编号列表不因面板开关／临时断线丢失，不自动重放。成功显示实际新记录，失败保留现状／草稿及原差异。公开接口无候选DTO，不伪造“候选已保存”。区域限高50%并独立滚动，编辑区仍可操作 |
+| `tests/kernel/file-edit-origins.spec.ts` | 扩原真实worker用例：实际人工改动后整次undo、读回字节及Evidence／新记录，证明不启动新run；用户显式下一指令后，同负责session用get_file_changes/read_file_edit查询实际撤销 |
+| 新`tests/kernel/material-history.spec.ts` | 六个组合消费回归：有界页／coverage、旧及各类来源、迟到正文与文件key、撤销禁用／unknown、关闭重开、隐藏中unknown／重连。KernelClient为明确替身，只证明组件消费 |
+| `tests/ui/material-interactions.spec.ts`首条真实路径 | 沿实际静态工作台、阅读器／composer、broker、worker、SQLite及文件，新增人工保存→普通执行保存→差异／依据→人工重叠→拒绝旧undo／正确undo→负责Agent查询。注册项目放宿主独立结果目录且不删除 |
+| 原design/tasks/spec delta及UI设计 | 清除当前同步等待，明确粗粒度、整次undo、coverage及未知边界；其余历史阶段保留原失败与证据。未改正式规格／公共schema |
+
+没有修改project store权威、kernel TaskResearchPort／事实装配、harness工具／委派／构造参数、programs、统一v6或restore；task/programs标签、实时题录选择、材料附加、M3和图片源码均保留。写集只有上述UI消费者、测试和所属工件。没有必要增加session回调或第二套DTO。
+
+### 验证、首次失败与修复
+
+Linux／Node24.12.0／pnpm11.10.0，复用已有依赖；所有pnpm命令带`--config.optimisticRepeatInstall=false`。先shared构建，再desktop构建及检查；测试运行期间没有重建共享或桌面产物。UI由`/tmp/scholoom-sync-recovery-wyn13R/static-ui.mjs`承载已构建产品，没有启动开发服务。端口5667，每轮profile及结果目录独立，模型只在既有loopback HTTP边界受控，内部提供者未替换。
+
+| 检查 | 实际结果与证据 |
+| --- | --- |
+| 构建 | shared通过：`/tmp/scholoom-m2-build-shared.log`；最终desktop通过：`/tmp/scholoom-m2-desktop-build-verified.log`。后续只加解释性lint注释，运行代码未变 |
+| 类型／静态 | 首次desktop类型发现canUndo含undefined（`/tmp/scholoom-m2-types-first.log`），归一boolean后通过，最终`/tmp/scholoom-m2-types-verified.log`；tools通过`/tmp/scholoom-m2-tools-verified.log`。Biome首次要求解释查询范围cleanup依赖，补必要注释后5文件通过：`/tmp/scholoom-m2-biome-final.log` |
+| 真实提供者＋首轮组件 | 12/12：`/tmp/scholoom-m2-kernel-first.log`、`test-results/m2-kernel-first`。其中8项真实提供者／Kernel，含普通worker与人工undo后查询；4项组件依赖替身，不能合称12项生产链路 |
+| 面板开关及断线修复组件 | 5/5中间复验：`/tmp/scholoom-m2-history-recheck.log`；最终6/6：`/tmp/scholoom-m2-history-verified.log`、`test-results/m2-history-verified`。最后新增隐藏期间收到unknown及恢复后禁用的回归 |
+| 双宿主首轮 | 0通过／2失败：`/tmp/scholoom-m2-ui-first.log`、`test-results/m2-ui-first`。已走到真实执行历史／Evidence，人工重叠编辑时历史内容挤压并截获编辑区鼠标；trace明确pointer interception。未force click／增时限；原测试120s、原动作时限保持 |
+| 布局／开关修复后双宿主 | 2/2：`/tmp/scholoom-m2-ui-recheck.log`、`test-results/m2-ui-recheck`，浏览器39.9s／Electron50.9s；随后临时断线保护修正后最终2/2：`/tmp/scholoom-m2-ui-verified.log`、`test-results/m2-ui-verified`，浏览器40.3s／Electron51.3s。各轮重叠用例不累加为不同测试 |
+| 架构及生成 | 14模块／247文件、0 findings／exceptions：`/tmp/scholoom-m2-architecture.log`。生成器self-test通过，最终8份声明映射中7份仅格式差异核对一致、另1份无需变化，`/tmp/scholoom-m2-generated.patch`仅作比较未应用，无生成文件改动 |
+| 收尾 | 两change OpenSpec strict、git diff及新增组件文件空白检查通过；当前HEAD仍1026796，真实staging未改，无本轮提交。端口5667无监听，辅助Agent均已结束 |
+
+主要实际命令（各轮输出目录如上，UI配置／profile清单保留在交接目录）：
+
+```sh
+pnpm --config.optimisticRepeatInstall=false build:shared
+pnpm --config.optimisticRepeatInstall=false --filter @scholoom/desktop typecheck
+pnpm --config.optimisticRepeatInstall=false --filter @scholoom/desktop build
+node node_modules/typescript/bin/tsc --noEmit -p tsconfig.tools.json
+node node_modules/@playwright/test/cli.js test --config playwright.kernel.config.ts tests/kernel/file-edit-origins.spec.ts tests/kernel/material-history.spec.ts --workers=1 --output test-results/m2-kernel-first
+node node_modules/@playwright/test/cli.js test --config playwright.kernel.config.ts tests/kernel/material-history.spec.ts --workers=1 --output test-results/m2-history-verified
+SCHOOLOOM_UI_PORT=5667 SCHOOLOOM_UI_DATA_DIR=/home/joshua/orca/workspaces/Scholoom/research-interaction/test-results/m2-ui-verified-profile-JhZjL0 SCHOOLOOM_TEST_ROOT=/home/joshua/orca/workspaces/Scholoom/research-interaction xvfb-run -a node node_modules/@playwright/test/cli.js test --config /tmp/scholoom-m2-delivery-QT6Tkf/ui-verified.config.mts tests/ui/material-interactions.spec.ts --grep 'a real document annotation' --workers=1
+pnpm --config.optimisticRepeatInstall=false check:architecture
+node packages/protocol/scripts/contract-types.mjs --self-test
+openspec validate add-material-annotation-interactions --strict
+openspec validate add-interactive-research-reports --strict
+git diff --check
+```
+
+UI项目均保留于各自Playwright结果目录，与三个隔离profile一起保留至配置退役，没有删除登记目录造成启动容量unknown。外部模型只按固定场景读／改文本及查历史，不能评价科研质量。system、observed指令集合、已提供委派字段和临时断线时序的展示主要由组件替身覆盖；真实提供者／双宿主证明人工及普通执行，不宣称真实委派链已接入。M3／图片及报告70项的主线既有通过仅作为共同基线，不在本轮重复计通过。
+
+### 审查与问题处理
+
+Pascal辅助扩展kernel测试，Epicurus辅助独立组件样本，均保持gpt-6.1-sol/high；父Agent负责UI实现和最终实跑。原Faraday只读审查因429重试上限失败，未取得有效结论；改由未参与UI实现的Pascal只读复核UI，不将其自写kernel测试列作独立审查。审查确认关闭重开会丢unknown保护的P2，修复后再发现临时断线同类残余；均修正、补回归，最终只读复核确认源码闭合、无新增确定缺陷。审查本身未运行验证，实跑如上。
+
+格式化传递中曾把截断标记写入project-ui并误删一段内容；在测试前发现，用当前HEAD仅恢复该段未改动逻辑，再核对窄diff及类型／构建。没有reset、整文件覆盖他域实现或回滚用户成果；最终独立源码复核及真实路径验证保留选择、草稿、M3、图片和当前资源能力。此工具失败不隐藏，也不作为额外业务修复范围。
+
+### 交接与停止点
+
+可审查本地补丁及manifest位于`/tmp/scholoom-m2-delivery-QT6Tkf/`，比较点1026796到当前工作区，包含新增组件测试。没有新公共协议／提供者补丁，不用旧累计包，也未自行接其他分支。补丁检查只证明可应用；本轮运行证据来自当前真实树。
+
+4.2及4.5闭合，累计11/15。5.x本轮M2子范围已审查／验证，但M1库正文提交、真实委派细分联合、报告生产API／HTML写／页面隔离及完整I5仍开放。未知撤销保护为当前文件视图内状态，本轮未新建跨窗口操作日志；完整关闭／重启等更大恢复验收仍沿所属权威及未完成5.x，不扩范围。达到本轮切片后停止；未提交、推送、PR、归档、安装依赖或写真实库，未验全仓CI、跨平台／分发及真实科研质量。

@@ -2,7 +2,7 @@
 
 ## 变更总览
 
-基于 [investigation](investigation.md)，可独立部分采用既有资源／上下文 seam。当前M1已消费生态调查、仍缺文献提交提供者，M2等待可靠归因／消费契约。M3方案B已获采纳，并在已同步本树完成只读产物提供者和真实双宿主选择链路；实际结果见delivery。受阻分支只保留候选和所需输入，不将整个change宣称已交付。
+共同基线1026796已包含七域源码和本线M3／图片／报告独立模块，旧公共接入及同步门已失效。当前M1仍缺文献提交提供者；M2已具备真实FileEdit的粗粒度来源、Evidence、稳定fileId摘要查询／选定正文及整次undo，本轮直接消费。未核实指令／工具／委派和科研修改理由继续未知，不将整个change宣称已交付。
 
 ```mermaid
 flowchart LR
@@ -22,7 +22,7 @@ flowchart LR
   P --> H
   L --> H
   M1[文献材料修订及提交 待输入] -.-> L
-  M2[项目和 Agent 修改关联 待输入] -.-> H
+  M2[projects files.changes/edit/undo 真实来源与依据] --> H
 ```
 
 ## 方案与接口
@@ -48,7 +48,7 @@ Markdown公式从同一TeX annotation生成一次摘录，表格语义沿同一�
 | `ResourceRef/basis` | 项目fileId／库材料版本和实际读取依据；产物不能使用当前源码basis冒充 | projects／library／editor提供，本线消费 |
 | `ResourcePort`／`ReadingRecordPort` | 原读取、条件保存、记录修订、可信作者和未知结果核查 | 所属领域 |
 | `FileEdit`／`files.history/undo` | 实际before/after、editId及现有冲突保护，不另存历史副本 | projects |
-| 修改核查关联候选 | `editId`＋`resource ref`＋可靠原`instructionId/runId/toolCallId`，理由引用真实指令或记录；不接受页面自报执行者 | M2待项目／Agent核对，不在本线定案 |
+| 修改来源及依据 | 当前FileEdit／changes的origin、beforeEvidence/afterEvidence及revertsEditId；指令集合不等于单次因果，缺失字段不补 | projects提供，阅读消费；细分委派后续联合 |
 
 region 目标字段影响既有固定 provider、检查器、SDK编码及持久指令；变更时必须同步所有当前 region 构造者与消费者。历史无目标 region 保持可读且明确基准未知，不猜页号；不把其作为新格式选择输出。与另一报告 change 的对象项保持独立，其 object 不需要本次位置增量。
 
@@ -81,7 +81,7 @@ sequenceDiagram
 
 已附加选区是快照；旧版本还可读时打开原版，可核对页码才导航。原版缺失显示原摘录／说明及缺失原因，新版不能借旧位置导航。撤权隐藏受保护缓存，读取和模型外发仍由原领域核查。
 
-差异优先复用 lineDiff 与实际 FileEdit；大于400行使用两份有依据全文对照。候选、落盘、关联unknown分别显示。局部撤销复用 files.undo，失败不覆盖后续编辑。M2到位前只展示文件历史，不声称可信执行归因、可靠变化消费或“意见已解决”。
+差异优先复用lineDiff与实际FileEdit；大于400行使用两份有依据全文对照。整次撤销复用files.undo，失败不覆盖后续编辑；当前M2展示已记录的可信粗粒度身份，不声称科研理由、细分工具因果或“意见已解决”。没有公开候选DTO时只保留原差异与拒绝原因，不伪称候选已保存。
 
 ### UI 设计落点
 
@@ -101,7 +101,7 @@ sequenceDiagram
 | 新workbench/ImageResourceView.tsx | 真实图片展示、受控区域选择和Blob释放 |
 | 新workbench/MaterialChangeView.tsx、既有line-diff.ts调用方 | 差异呈现与所属历史／撤销适配，不增加历史权威 |
 | editor/RenderPane.tsx、PdfReader.RenderedPdf | 产物证据和选区适配待明确；先承接CI诊断，保持最后成功预览 |
-| kernel/manual.ts、harness/instruction-context.ts及SDK编码 | 仅位置增量实际校验／保留必要调用方；M2变化消费待提供者确认 |
+| kernel/manual.ts、harness/instruction-context.ts及SDK编码 | 前阶段位置增量；本轮提供者已在共同基线，不修改这些符号 |
 | tests/kernel/context-contributions.spec.ts、context-instructions.spec.ts、resource-access.spec.ts | 扩展真实格式适配、保存依据及位置序列化的稳定边界 |
 | tests/ui/pdf-reading.spec.ts、document-reading.spec.ts、context-bridge.spec.ts、resource-lifecycle.spec.ts、writing-editor-pdf.spec.ts | 真实选择／共同发送／撤权／重开及必要失败诊断；仅缺乏图片链路时新增该场景 |
 | docs/ui-design/README.md、docs/development.md | 上述设计分节和实际运行／诊断入口；修正UI文档中“共同资源接口仍待实施”的旧描述，不改无关文献方案 |
@@ -119,7 +119,7 @@ sequenceDiagram
 
 ## 待办边界
 
-M1、M2仍为明确前置，M3局部实现及验证已闭合。M1选项为由文献域提供新材料版本提交，或继续只读；不能在本线选择覆盖旧字节。M2先消费项目提供的可信粗粒度来源与整次FileEdit撤销，实际字段和消费方式交提供者确认，不推断作者或理由。对应任务阻塞，已明确选择模块可独立实施。跨版本持续精确定位、图像语义推断、完整科研意见状态机、Mac受管执行和三平台发布不在本change范围。
+M1仍缺文献材料提交，不在本线选择覆盖旧字节。M2粗粒度提供者已在1026796，本轮真实消费；委派细分和逐工具／指令因果未证明部分继续未知。M3及报告独立模块沿既有验收保留。跨版本持续精确定位、图像语义推断、完整科研意见状态机、Mac受管执行和三平台发布不在本change范围。
 
 ## 主线第二阶段交接与公共增量
 
@@ -137,7 +137,7 @@ M1、M2仍为明确前置，M3局部实现及验证已闭合。M1选项为由文
 | 同文件`region.target?` | `image`指整幅图内容框；`pdf`声明页及原页面宽高；`object`声明providerId/objectId。region始终为对应目标的归一化矩形；旧无target记录基准未知。计算输出图片沿实际项目资源打开，不新增另一种ref |
 | 同文件`object.contentState?`及既有`text.contentState` | 草稿对象／摘录不代表保存；旧object缺字段仍可读。任务详情与文献表格由所属域维护，只消费共同贡献端口，不跨DOM取数据 |
 | `workbench-context.ts::isContextItems`、`harness/instruction-context.ts::contextItemContent` | 派生校验、容量、位置编码为同一事实源；SDK和持久消息保留载荷。所有实际读取／外发仍走所属授权，页面不能赋予权限 |
-| 报告设计中的manifest／`ReportResources`／页面桥 | 项目内HTML、本地显式资源及来源、共同composer动作和草稿更新约束已采纳；报告schema和生产模块尚未实施，不能当作可调用提供者 |
+| 报告设计中的manifest／`ReportResources`／页面桥 | schema／codec及注入模块已进入共同基线并经主线修复；生产API／HTML写／页面隔离未接通，另阶段推进 |
 
 ### 资源叶模块与图片补丁顺序
 
@@ -148,7 +148,25 @@ M1、M2仍为明确前置，M3局部实现及验证已闭合。M1选项为由文
 3. `/tmp/scholoom-reading-public-CUURdN/material-context-evidence.patch`为位置／region目标／对象草稿同源声明、派生校验、模型编码及原契约测试的5文件增量；对e3d58fc临时基线通过apply检查。它与叶抽取可独立排序，若先抽取则继续从原resources重导出消费，不改身份。最终映射从合并后的schema重生，不能拼接生成文件。
 4. 主线接入上述增量并验证后，用户同步消费者；各域只调整自己拥有的构造者和消费点。真实图片视图、阅读器、composer检查器仍随材料change交付，不能据协议补丁可应用就称I5已接通。
 
-### M2：实际可用事实与消费者需求
+### M2：实际可用范围（1026796共同基线）
+
+本节替代第二阶段“缺FileEdit提供者”的等待状态；历史需求另见下段。输入为本树`protocol/project-file-contracts.ts`与`projects/store.ts`、`harness/file-change-tools.ts`及主线`/tmp/scholoom-round5-acceptance-WBreMJ/{acceptance.md,synchronized.json}`。所有七域源码已在当前树，不应用旧累计补丁、不取他树私有实现。
+
+`files.changes({projectId,fileId,limit:10,cursor?})`只读摘要；续页原样传回cursor，替换当前页，不扫描所有页。coverage.anchor／retention／current分别表达锚点、历史是否裁剪及当前字节是否匹配最新记录，unknown不当作完整、缺口不当作零变化。仅明确选定editId时调用`files.edit({projectId,fileId,editId})`读取全文；不从时间或路径选择“对应修改”。beforeEvidence／afterEvidence为实际资源依据，`FileEdit.basis`为撤销校验依据，缺失不能互相补齐。
+
+origin由宿主绑定：human／system仅显示真实principal与module，execution额外显示sessionId/runId/instanceId、实际记录的instructionContext和delegation。observed指令集合不表示逐修改因果，tool当前只有unknown；没有字段不猜科研理由／作者或伪造委派来源。执行资源回执可选editId与association独立，公共人工resources.save仍只回ResourceDescriptor；UI不从该回执猜editId，而沿摘要中的真实editId选择。
+
+写集限`MaterialChangeView.tsx`（新增其中MaterialHistory及来源／依据展示）、`project-ui.tsx`的历史入口／草稿与撤销后刷新、对应UI设计和必要测试。component key按projectId/fileId隔离；请求有迟到响应守卫，每次仅保留当前10条摘要和一个选中正文，权限失效隐藏保护内容。历史查询不要求正文可写，undo仅在原可写能力、无未保存草稿及无在途动作时由用户明确触发。
+
+历史区域不超过文件视图一半高度并独立滚动，避免挤压覆盖编辑区。面板关闭或临时断线／失去读取资格只隐藏并清除读取的页／正文，不卸载同一绑定fileId的实例，文件视图内的未知撤销身份保留；重开重新读取权限。撤销中暂不能关闭历史，防同步重入；断线期间保留在途undo身份，回执unknown仍进入保护列表，重连不重放。结果未知不自动重试。撤销后的reload沿非强制路径，保护等待期间继续输入的草稿。
+
+撤销沿原`files.undo`，成功显示实际新FileEdit与revertsEditId并重读当前文件；冲突不重试、不清草稿，不将原差异冒充已保存候选。当前公开接口没有候选DTO或候选查询，保留可核查的原before/after与错误，磁盘以真实提供者为准。outcomeUnknown单列核查，不据失败推断无效果。撤销不调用session.send；负责Agent只在用户明确新指令后用现有get_file_changes／read_file_edit核查新记录。
+
+验证先shared／desktop build，再真实Manual／Kernel既有file-edit-origins相关场景及双宿主从人工保存、阅读批注／普通执行修改、历史选择、人工重叠、旧撤销拒绝、正确整次撤销到负责session查询的固定路径。只替换外部模型，broker／SQLite／worker／文件真实；注册项目位于结果目录且保留到隔离配置退役。静态承载使用`/tmp/scholoom-sync-recovery-wyn13R/static-ui.mjs`，不启开发服务。覆盖分页／迟到响应／旧记录的组件夹具只证明消费边界，不冒充生产权限。
+
+M1、报告生产／隔离和委派细分联合均保持后续边界；TeX退出诊断交计算线，不重跑无目标实验。
+
+#### 第二阶段历史需求（不再作为同步门）
 
 项目快照design“来源取用与跨线Interface”提供CallContext和任务入口材料，不含FileEdit归因DTO；其delivery所称“关联字段草稿”指任务关联表单，不等于修改归因候选已发布。包内`research-task-workspace/packages/protocol/src/projects.ts`仍从原`project-file-contracts.ts`派生FileEdit。本树`protocol/core.ts::CallContext`只有可信principal、projectId、sessionId、runId、instanceId等，没有instructionId／toolCallId；`harness/runtime.ts`一次推进可消费多个instructionIds，不能任选一个归因。
 
