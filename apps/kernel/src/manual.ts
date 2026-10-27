@@ -1,7 +1,12 @@
 import { readFileSync, statSync } from 'node:fs';
 import { join, posix } from 'node:path';
 import { Broker, type Handlers } from '@scholoom/broker';
-import { EditorRuntime, ResourceAccess } from '@scholoom/editor/node';
+import {
+  EditorRuntime,
+  ReportResources,
+  ResourceAccess,
+  reportHeaderStart,
+} from '@scholoom/editor/node';
 import { LiteratureCatalog, MaterialReading } from '@scholoom/library/node';
 import { failure, ManagedNode, ProcessAdmission } from '@scholoom/platform/node';
 import { ProgramEnvironments, ProgramRecords, ProgramRuns } from '@scholoom/programs/node';
@@ -454,7 +459,44 @@ export class ManualApplication {
             throw new OperationError('permissionDenied', '目标读取不属于获授权的执行范围。');
         };
         return this.projects.withTargetRead(context, targetProjectId, authorize, async () => {
-          const result = await new ProjectTargetReader(target).read(request);
+          const reader = new ProjectTargetReader(target);
+          if (request.kind !== 'list') {
+            const descriptor = await reader.read({
+              kind: 'describe',
+              fileId: request.fileId,
+              ...(request.basis ? { basis: request.basis } : {}),
+            });
+            if (
+              descriptor.kind === 'describe' &&
+              resourceFormatForName(descriptor.path) === 'html'
+            ) {
+              const chunks: Buffer[] = [];
+              let offset = 0;
+              const maximum = reportHeaderStart.length + 3;
+              while (offset < maximum) {
+                const head = await reader.read({
+                  kind: 'readBytes',
+                  fileId: descriptor.fileId,
+                  basis: descriptor.basis,
+                  offset,
+                  limit: maximum - offset,
+                });
+                if (head.kind !== 'readBytes')
+                  throw new OperationError('unavailable', '报告头部不可核查。');
+                const bytes = Buffer.from(head.data, 'base64');
+                chunks.push(bytes);
+                offset += bytes.length;
+                if (head.nextOffset === undefined) break;
+                if (!bytes.length || head.nextOffset !== offset)
+                  throw new OperationError('contentChanged', '报告头部分片已变化。');
+              }
+              if (
+                new TextDecoder('utf-8').decode(Buffer.concat(chunks)).startsWith(reportHeaderStart)
+              )
+                throw new OperationError('unavailable', '跨项目报告声明来源授权尚未接通。');
+            }
+          }
+          const result = await reader.read(request);
           authorize();
           return result;
         });
@@ -901,6 +943,7 @@ export class ManualApplication {
     });
     const targets = this.projectTargetRead(source);
     const origin = source.projectId ? this.projects.get(source.projectId) : undefined;
+    const reportEvidence = new Map<string, ResourceEvidence>();
     const scope = (locator: ResourceLocator): CallContext => {
       if (
         source.targetRead &&
@@ -920,7 +963,7 @@ export class ManualApplication {
         this.library.check('read');
         this.library.check('send');
       }
-      for (const item of items) {
+      for (const item of [...items, ...reportEvidence.values()]) {
         const ref = item.ref;
         this.resourceAuthorization(scope(ref), ref, false)();
         if (ref.source === 'project' && ref.projectId !== source.projectId)
@@ -933,7 +976,9 @@ export class ManualApplication {
             describe: async (locator: ResourceLocator) => {
               const scoped = scope(locator);
               return this.resourceOperation(scoped, locator, false, () =>
-                this.resources.describe(locator, scoped),
+                this.describeResource(locator, scoped, (evidence) => {
+                  for (const item of evidence) reportEvidence.set(JSON.stringify(item.ref), item);
+                }),
               );
             },
           }
@@ -1007,7 +1052,9 @@ export class ManualApplication {
       format,
       capabilities: {
         read: true,
-        write: format === 'text',
+        write:
+          format === 'text' ||
+          (format === 'html' && Buffer.byteLength(edit.after, 'utf8') <= 262144),
         readingRecords: false,
         render: /\.(md|markdown|qmd|tex)$/i.test(edit.path),
       },
@@ -1097,6 +1144,107 @@ export class ManualApplication {
     _context: CallContext,
     _ref: ResourceRef | { source: 'project'; projectId: string },
   ): void {}
+  protected reportUsed(_context: CallContext, _evidence: readonly ResourceEvidence[]): void {}
+  protected checkReportContext(_context: CallContext): void {}
+
+  private reportResources(context: CallContext): ReportResources {
+    const scope = (locator: ResourceLocator): CallContext => {
+      if (
+        context.targetRead &&
+        (locator.source !== 'project' || locator.projectId !== context.targetRead.targetProjectId)
+      )
+        throw new OperationError('permissionDenied', '不能扩大报告目标读取范围。');
+      return locator.source === 'project' &&
+        locator.projectId !== context.projectId &&
+        (context.role === 'execution' || this.isInstructionAdmission(context))
+        ? { ...context, targetRead: { targetProjectId: locator.projectId, access: 'read' } }
+        : context;
+    };
+    return new ReportResources({
+      describe: (locator) => {
+        const scoped = scope(locator);
+        return this.resourceOperation(scoped, locator, false, () =>
+          this.resources.describe(locator, scoped),
+        );
+      },
+      read: (input) => {
+        const scoped = scope(input.ref);
+        return this.resourceOperation(scoped, input.ref, false, () =>
+          this.resources.read(input, scoped),
+        );
+      },
+      authorize: async (evidence) => {
+        for (const item of evidence) {
+          const scoped = scope(item.ref);
+          await this.resourceOperation(scoped, item.ref, false, async () => {
+            if (item.ref.source === 'library') {
+              this.library.check('read');
+              if (context.role === 'execution' || this.isInstructionAdmission(context))
+                this.library.check('send');
+            }
+          });
+        }
+      },
+    });
+  }
+  private async reportSnapshot(
+    entry: ResourceEvidence,
+    context: CallContext,
+  ): Promise<BusinessOutputs['resources.report']> {
+    this.checkReportContext(context);
+    const snapshot = await this.reportResources(context).snapshot(
+      entry,
+      context.role === 'execution' || this.isInstructionAdmission(context) ? 'send' : 'read',
+    );
+    if (context.role === 'execution' || this.isInstructionAdmission(context))
+      this.reportUsed(context, this.reportEvidence(snapshot));
+    return snapshot;
+  }
+
+  private reportEvidence(snapshot: BusinessOutputs['resources.report']): ResourceEvidence[] {
+    return [snapshot.resource, ...snapshot.manifest.resources, ...snapshot.manifest.sources].map(
+      ({ ref, basis }) => ({ ref, basis }),
+    );
+  }
+
+  private checkReportHistory(edit: { path: string; before: string; after: string }): void {
+    if (
+      resourceFormatForName(edit.path) === 'html' &&
+      [edit.before, edit.after].some((content) =>
+        content.replace(/^\ufeff/, '').startsWith(reportHeaderStart),
+      )
+    )
+      throw new OperationError('unavailable', '旧报告正文的声明来源授权尚未接通。');
+  }
+
+  private async describeResource(
+    locator: ResourceLocator,
+    context: CallContext,
+    observed?: (evidence: readonly ResourceEvidence[]) => void,
+  ): Promise<ResourceDescriptor> {
+    const resource = await this.resources.describe(locator, context);
+    if (resource.ref.source !== 'project' || resource.format !== 'html') return resource;
+    if (await this.reportResources(context).isReport(resource)) {
+      const snapshot = await this.reportSnapshot(resource, context);
+      observed?.(this.reportEvidence(snapshot));
+    }
+    return resource;
+  }
+
+  private async withReport<T>(
+    locator: ResourceLocator,
+    context: CallContext,
+    action: () => Promise<T>,
+  ) {
+    const resource = await this.describeResource(locator, context);
+    const result = await action();
+    if (resource.ref.source === 'project' && resource.format === 'html') {
+      const current = await this.describeResource(resource.ref, context);
+      if (current.basis !== resource.basis)
+        throw new OperationError('contentChanged', '报告读取期间已变化。');
+    }
+    return result;
+  }
   protected modulePort(
     context: CallContext,
     moduleId: string,
@@ -1441,14 +1589,18 @@ export class ManualApplication {
         context,
         input.locator,
         false,
-        () => this.resources.describe(input.locator, context),
+        () => this.describeResource(input.locator, context),
       ),
     'resources.read': (input, context) =>
-      this.resourceOperation(context, input.ref, false, () => this.resources.read(input, context)),
+      this.resourceOperation(context, input.ref, false, () =>
+        this.withReport(input.ref, context, () => this.resources.read(input, context)),
+      ),
     'resources.document': (input, context) =>
       this.resourceOperation(context, input.ref, false, () =>
-        this.resources.document(input, context),
+        this.withReport(input.ref, context, () => this.resources.document(input, context)),
       ),
+    'resources.report': (input, context) =>
+      this.resourceOperation(context, input.ref, false, () => this.reportSnapshot(input, context)),
     'resources.save': async (input, context) => {
       const result = await this.resourceOperation<BusinessOutputs['resources.save']>(
         context,
@@ -1463,7 +1615,10 @@ export class ManualApplication {
     'files.readBytes': (input, context) => {
       this.checkProjectScope(input.projectId, context);
       const { projectId, fileId, ...range } = input;
-      return this.projects.get(projectId).files.readBytes(fileId, range);
+      const read = () => this.projects.get(projectId).files.readBytes(fileId, range);
+      return context.moduleId === 'editor'
+        ? read()
+        : this.withReport({ source: 'project', projectId, fileId }, context, read);
     },
     'editor.tools': (_input, context) => this.editor.tools(context),
     'editor.convert': (input, context) => this.editor.convert(input, context),
@@ -1730,7 +1885,14 @@ export class ManualApplication {
     'files.read': async (input, context) => {
       const p = input;
       this.checkProjectScope(p.projectId, context);
-      return this.projects.get(p.projectId).read(p.path, p.offset);
+      const read = () => this.projects.get(p.projectId).read(p.path, p.offset);
+      return context.moduleId === 'editor' || !/\.html?$/i.test(p.path)
+        ? read()
+        : this.withReport(
+            { source: 'project', projectId: p.projectId, path: p.path },
+            context,
+            read,
+          );
     },
     'files.save': async (input, context) => {
       const p = input;
@@ -1745,7 +1907,9 @@ export class ManualApplication {
     },
     'files.history': async (input) => {
       const p = input;
-      return this.projects.get(p.projectId).history(p.path);
+      const edits = this.projects.get(p.projectId).history(p.path);
+      for (const edit of edits) this.checkReportHistory(edit);
+      return edits;
     },
     'files.changes': (input, context) =>
       this.resourceOperation(
@@ -1764,7 +1928,9 @@ export class ManualApplication {
         false,
         async () => {
           this.checkFileHistoryContext(context);
-          return this.projects.get(input.projectId).edit(input.fileId, input.editId);
+          const edit = this.projects.get(input.projectId).edit(input.fileId, input.editId);
+          this.checkReportHistory(edit);
+          return edit;
         },
       ),
     'files.undo': async (input, context) => {

@@ -1,6 +1,6 @@
 # 执行任务
 
-本轮用户直接授权M2真实消费者。当前已只读核对HEAD为1026796d854b8f568c3e819f13268a9638980bc1，工作区起始干净，七域源码及本线成果已接入；主线证据见`/tmp/scholoom-round5-acceptance-WBreMJ/{acceptance.md,synchronized.json}`。旧等待同步和旧累计补丁失效。本轮消费FileEdit粗粒度来源／Evidence、有界changes/edit及整次undo已完成验证，不改提供者；未知指令／工具／委派及科研理由不推断。当前11/15项，任务以下列复选框为准，实际结果见[delivery](delivery.md)。
+当前已核对共同HEAD为4b13183f7489d3cae12fd0a7d1a9e83fb33d7384；主线同步及复验证据见`/tmp/scholoom-round6-acceptance-dXuzCA/`。旧等待同步和累计补丁失效。本轮消费真实委派FileEdit来源，扩展4.2／4.5同一文件父子历史、Evidence衔接及人工重叠／整次undo验证；修正Windows内容选择夹具的生成JS路径转义，不改业务选择。指令／工具及科研理由仍按实际记录未知，不改提供者。当前11/15项，任务以下列复选框为准，实际结果见[delivery](delivery.md)。
 
 第四轮主线接受M3局部成果，但独立内核首轮为34通过／1失败，失败项单独原时限复验1通过，不能合并称一次全绿。首个nativeTeX job unknown的控制进程退出根因仍开放；本轮最多一次有界观察已结束，不改停止保证、容量或时限。诊断证据及下一窄公共方案见investigation／delivery第四轮；4.6的局部交付不关闭5.2的该限制。
 
@@ -39,10 +39,10 @@ flowchart TD
 ## 4. 受阻输入及其条件实施
 
 - [ ] 4.1 【M1部分闭合】已消费主线正式转交的生态Reader／sidecar／PDF字节及保存／SQL／通知／固定键调查，关闭“未收到调查”；精确路径及证据边界见investigation第二阶段小节。仍等待文献材料修订／实际提交结果提供者及sidecar转换契约；不代文献域定案，不以H1替身关闭写回前置。
-- [x] 4.2 【M2实际输入复核】消费1026796中的files.changes/files.edit、origin、beforeEvidence/afterEvidence、revertsEditId及可选editId，复核真实Manual／普通Kernel执行的保存与整次undo；明确人工资源回执和执行资源回执差别、coverage缺口及指令／工具／委派未知范围，不等待新同步或推断归因。
+- [x] 4.2 【M2实际输入复核】消费4b13183中的files.changes/files.edit、真实委派origin、beforeEvidence/afterEvidence、revertsEditId及可选editId，复核真实Manual／普通Kernel及父子worker的保存与整次undo；明确人工资源回执和执行资源回执差别、coverage缺口及单次指令／工具未知范围，不等待新同步或推断归因。
 - [x] 4.3 【M3方案已采纳】完成生产job／lastSuccess及缓存依据调查和A／B比较；主线2026-10-26已确认新增只读render ref的B方案，实施沿4.6，不以方案确认代替真实接线。
 - [ ] 4.4 【依赖4.1】仅在正式库修订能力实际可用且获授权时接入阅读写回；核对旧记录、原版本和实际新版本／提交状态。若提供者决定本批继续只读，同步scope及规格并显式排除该生产任务，不伪装已实现。
-- [x] 4.5 【M2当前可证明消费者】MaterialHistory按稳定fileId每页10条changes摘要，选择editId才读全文；MaterialChangeView显示实际human/system/execution、前后Evidence及撤销关系，理由／未知指令工具委派如实未知。真实双宿主核对人工与普通执行保存、草稿、coverage、重叠人工修改拒绝旧undo、正确整次undo及负责session用get_file_changes查询撤销；不伪造候选DTO，不将消费提示当对方已读取。
+- [x] 4.5 【M2当前可证明消费者】MaterialHistory按稳定fileId每页10条changes摘要，选择editId才读全文；MaterialChangeView显示实际human/system/execution、前后Evidence及撤销关系；真实origin带委派时显示delegationId／parentRunId／parentInstanceId，缺失字段及科研理由保持未知。真实双宿主核对人工与普通执行及同文件父子修改、草稿、coverage、重叠人工修改拒绝旧undo、正确整次undo；保留原负责session用get_file_changes查询撤销场景，不伪造候选DTO或因果。
 - [x] 4.6 实施只读render资源的独立协议／editor提供者、ResourceAccess与harness解析／字节／权限消费；嵌入RenderPane复用真实PdfReader直接附加，保留原成功job的input及产物basis，核对只读、撤权、替换、缺证据、淘汰和刷新。公共切片与阅读器消费者分开交补丁，真实双宿主共同composer／harness验收；导出不替代该入口。
 
 ## 5. 整合与交付

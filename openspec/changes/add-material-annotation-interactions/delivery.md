@@ -2,7 +2,7 @@
 
 ## 当前状态与成果
 
-当前共同基线为`1026796d854b8f568c3e819f13268a9638980bc1`，起始树干净且已只读核对；原成果已有主线检查点并合入dev。第五轮证据见`/tmp/scholoom-round5-acceptance-WBreMJ/{acceptance.md,synchronized.json}`，旧“公共未入dev／等同步”已失效，没有应用旧累计补丁。本轮直接授权并完成M2真实粗粒度FileEdit消费者，当前11/15项：1.1–3.3及4.2／4.3／4.5／4.6；M1的4.1／4.4及完整5.1／5.2开放。本轮无新提交、同步、推送、PR、归档、依赖安装或真实用户库操作，任务以[tasks](tasks.md)为准，不宣称整个change或全部I5完成。
+当前共同基线为`4b13183f7489d3cae12fd0a7d1a9e83fb33d7384`，原成果已有主线检查点并合入dev，第六轮同步证据在`/tmp/scholoom-round6-acceptance-dXuzCA/`；没有应用旧累计补丁或重新同步。本轮在已接入M2消费者上补真实父子委派联合证据及Windows夹具修正，当前仍11/15项：1.1–3.3及4.2／4.3／4.5／4.6；M1的4.1／4.4及完整5.1／5.2开放。本轮无新提交、同步、推送、PR、归档、依赖安装或真实用户库操作，任务以[tasks](tasks.md)为准，不宣称整个change或全部I5完成。
 
 已接入：
 
@@ -13,7 +13,24 @@
 - M3新增只读render资源，以projectId/outputId和产物自身basis读取，保留生产job及实际输入；嵌入PDF直接选取、共同composer、实际worker字节／页解析、历史打开和刷新在两宿主通过。旧缺证据记录仍可预览／导出，不能附加。公共提供者及通用调用方与阅读器消费者分开交补丁，详见第三阶段。
 - M2在当前共同基线消费files.changes／edit／undo：稳定fileId每页10条摘要、选定editId才读全文；实际human／system／execution来源、前后Evidence和revertsEditId按记录呈现，科研理由及未核实因果不推断。两宿主已真实验证人工和普通执行修改、差异／依据、人工重叠拒绝旧撤销、正确整次撤销及负责Agent查询撤销；实际范围见第五轮。
 
-结构沿[design总览](design.md#变更总览)，M1仍未接；M2粗粒度消费者及M3真实产物路径已接入。另一报告change的独立模块与delivery已在共同基线，主线修复两边界后70/70通过；本轮没有展开报告生产／隔离。
+结构沿[design总览](design.md#变更总览)，M1仍未接；M2真实来源消费者及M3产物路径已接入。另一报告change本轮资源／授权生产子范围有独立tasks和delivery，不与本change合并，页面隔离仍未展开。
+
+## 第六轮：真实委派联合与内容选择夹具
+
+MaterialChangeView原生产分支已消费真实委派字段，无需重复改业务组件；本轮只扩原`tests/kernel/execution-facts.spec.ts`，并新增`tests/ui/material-delegation-history.spec.ts`。真实子worker创建report.md后，父worker先通过read_file读取再edit_file修改同一fileId；核对父beforeEvidence等于子afterEvidence，UI显示各自真实instance及子origin的delegationId／parentRunId／parentInstanceId。父修改没有委派字段仍显示未知，不用文本或工具预览推断作者、单次指令或理由。随后人工编辑同文件，旧撤销拒绝覆盖并保留原选定修改，明确撤销人工修改后核对实际字节、Evidence及revertsEditId；撤销不产生模型请求或新运行，composer后续草稿保留。只有外部模型响应受控，broker、worker、FileEdit仓储、文件及双宿主均真实，未注入父子字段。
+
+Windows CI指定错误来自生成JS的ProseMirror绝对import：普通引号字符串吞掉反斜线。`tests/kernel/content-selection.spec.ts`两处改用JSON.stringify编码真实路径，邻近夹具未发现同类确证缺陷；不改选区业务、跳过平台、扩大时限或增加重试。输入证据为`/tmp/scholoom-round6-acceptance-dXuzCA/ci-baseline-failures.log:3104–3105`。Linux现有8项content-selection在`/tmp/scholoom-research-round6/kernel-first.log`通过；没有Windows目标实跑，不能记Windows关闭。
+
+本轮验证及失败保留在`/tmp/scholoom-research-round6/`：
+
+- 先shared／desktop构建，再测试。实际execution-facts在kernel首轮和最终组均通过；最终`kernel-final.log`15/15还包含报告／生态授权整合和保存身份回归，不能全归作本change测试。
+- 双宿主夹具首次project.create失败来自预建了目标目录；改为只建结果父目录。后续真实父edit_file因未建立read_file依据被拒绝，按原保护补实际读取。会话选择改按projectId，正文断言改语义并单独读文件核字节，保留失败trace，没有放宽提供者或测试时限。`ui-second/third/fourth.log`逐轮保留。
+- 最终`ui-final.log`材料Browser37.0秒／Electron40.6秒，两宿主通过真实同文件父子来源／人工重叠／undo。该组合另有报告Electron第二次重载30秒失败（3通过／1失败），不能记一次全绿；报告后续有界烟测结果由另一delivery记录。
+- protocol／editor／kernel和tools类型、architecture零发现、最终schema派生映射、Biome退出0。strict和diff见收尾。静态辅助审查未替代实跑，没有为了验收修改FileEdit、TaskPort或委派权威。
+
+收尾本change及报告change的OpenSpec strict、git diff --check均通过。材料增量为`/tmp/scholoom-research-round6/material-evidence.patch`（6文件），与同目录report-resources.patch独立基于4b13183；manifest.json列准确文件。两patch已做只读逆向核对，未实际应用、提交或同步。所有实际测试及构建任务结束，仅由本轮夹具收尾自己的进程；注册项目结果仍保留。
+
+最新CI基线为6b22d60／40315429083：Linux689通过／9失败／16跳过、Windows628通过／49失败／30跳过、macOS入口3通过／1失败；定向Linux结果不消除这些失败。原nativeTeX首次unknown仍交计算线诊断，本轮未重跑。M1正文提交provider及完整科研质量、Windows／macOS分发和整个I5保持开放。
 
 ## 第一阶段实际验证（历史）
 

@@ -89,7 +89,7 @@ export class ResourceAccess {
         format: kind,
         capabilities: {
           read: true,
-          write: !ports.target && kind === 'text' && bytes.size <= 262144,
+          write: !ports.target && ['text', 'html'].includes(kind) && bytes.size <= 262144,
           readingRecords: false,
           render: /\.(md|markdown|qmd|tex)$/i.test(bytes.path),
         },
@@ -298,6 +298,8 @@ export class ResourceAccess {
     const descriptor = await this.describe(ref, context);
     if (!descriptor.capabilities.write)
       throw new OperationError('permissionDenied', '此资源不提供正文保存。');
+    if (descriptor.format === 'html' && Buffer.byteLength(content, 'utf8') > 262144)
+      throw new OperationError('tooLarge', 'HTML正文超过保存容量。');
     if (descriptor.basis !== basis) throw changed();
     const location = await this.projectLocation(ports, ref);
     const source = await ports.project['files.read']({

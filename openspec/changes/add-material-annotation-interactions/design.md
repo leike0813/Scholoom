@@ -2,7 +2,7 @@
 
 ## 变更总览
 
-共同基线1026796已包含七域源码和本线M3／图片／报告独立模块，旧公共接入及同步门已失效。当前M1仍缺文献提交提供者；M2已具备真实FileEdit的粗粒度来源、Evidence、稳定fileId摘要查询／选定正文及整次undo，本轮直接消费。未核实指令／工具／委派和科研修改理由继续未知，不将整个change宣称已交付。
+共同基线4b13183已包含七域源码和本线M3／图片／报告模块，旧公共接入及同步门已失效。M1仍缺文献提交提供者；M2已具备真实FileEdit来源（含可信委派）、Evidence、稳定fileId摘要查询／选定正文及整次undo，本轮补父子联合证据。未核实的单次指令／工具及科研修改理由继续未知，不将整个change宣称已交付。
 
 ```mermaid
 flowchart LR
@@ -119,7 +119,7 @@ sequenceDiagram
 
 ## 待办边界
 
-M1仍缺文献材料提交，不在本线选择覆盖旧字节。M2粗粒度提供者已在1026796，本轮真实消费；委派细分和逐工具／指令因果未证明部分继续未知。M3及报告独立模块沿既有验收保留。跨版本持续精确定位、图像语义推断、完整科研意见状态机、Mac受管执行和三平台发布不在本change范围。
+M1仍缺文献材料提交，不在本线选择覆盖旧字节。M2真实来源及委派提供者已在共同基线，本轮消费；逐工具／单次指令因果未证明部分继续未知。M3既有验收保留，报告独立change沿自身tasks推进。跨版本持续精确定位、图像语义推断、完整科研意见状态机、Mac受管执行和三平台发布不在本change范围。
 
 ## 主线第二阶段交接与公共增量
 
@@ -148,7 +148,9 @@ M1仍缺文献材料提交，不在本线选择覆盖旧字节。M2粗粒度提�
 3. `/tmp/scholoom-reading-public-CUURdN/material-context-evidence.patch`为位置／region目标／对象草稿同源声明、派生校验、模型编码及原契约测试的5文件增量；对e3d58fc临时基线通过apply检查。它与叶抽取可独立排序，若先抽取则继续从原resources重导出消费，不改身份。最终映射从合并后的schema重生，不能拼接生成文件。
 4. 主线接入上述增量并验证后，用户同步消费者；各域只调整自己拥有的构造者和消费点。真实图片视图、阅读器、composer检查器仍随材料change交付，不能据协议补丁可应用就称I5已接通。
 
-### M2：实际可用范围（1026796共同基线）
+### M2：实际可用范围（共同基线）
+
+第六轮4b13183已提供实际委派origin。MaterialChangeView原有字段分支可直接显示delegationId、parentRunId和parentInstanceId，无需改写提供者或UI。写集限于`tests/kernel/execution-facts.spec.ts`和`tests/ui/material-delegation-history.spec.ts`：外部模型受控，真实子worker创建报告后父worker先读取再编辑同一fileId，核对父beforeEvidence与子afterEvidence，以及UI真实来源、人工重叠拒绝及整次撤销。既有普通执行／负责Agent查询变化场景保留。Windows夹具另只改`content-selection.spec.ts`生成JS的import字面量，使用JSON编码保留反斜线；Linux通过不表示Windows目标通过。首轮失败与复验逐项记delivery，不扩M1或整个I5。
 
 本节替代第二阶段“缺FileEdit提供者”的等待状态；历史需求另见下段。输入为本树`protocol/project-file-contracts.ts`与`projects/store.ts`、`harness/file-change-tools.ts`及主线`/tmp/scholoom-round5-acceptance-WBreMJ/{acceptance.md,synchronized.json}`。所有七域源码已在当前树，不应用旧累计补丁、不取他树私有实现。
 

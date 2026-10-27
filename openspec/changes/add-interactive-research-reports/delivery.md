@@ -2,9 +2,43 @@
 
 ## 当前状态与成果
 
+2026-10-27，第六轮从已同步共同源码`4b13183f7489d3cae12fd0a7d1a9e83fb33d7384`实施授权的1.1b／1.2b可证明部分。消费依据为`/tmp/scholoom-round6-acceptance-dXuzCA/{acceptance.md,synchronized.json,sync-build-results.json,sync-kernel-results.json}`和本树正式源码。没有应用旧patch、同步分支、新提交、安装、推送、PR、归档或真实用户库操作。当前**4/11**，1.2b拆为已验收普通根执行及待安全接口审查两项；完整报告change和I5未完成。
+
+| 本轮文件／符号 | 实际接线及边界 |
+| --- | --- |
+| `protocol/resources.ts::resources.report`、`index.ts`、`business-types.ts`、`architecture.json::editor.provides` | 公开原ref／basis→ReportSnapshot同源操作，根导出原报告契约，最终生成映射核对一致；不增加ResourceRef类别、reportId、存储或第二套DTO |
+| `editor/node.ts`、`ResourceAccess.describe/save`及kernel的`resourceCreation` | 公开原codec／ReportResources；项目HTML在256KiB内可有条件保存，沿原strong basis／expectedFileId，UTF8新正文超限拒绝；大HTML、库、跨项目仍只读 |
+| `ReportResources.isReport`、`manual.ts::reportResources/reportSnapshot/describeResource/withReport` | 真实项目／库Adapter，头部短片累计及BOM一致；识别前后仍核授权。共同describe／read／document／report及原files.read/readBytes交付内容前核查完整声明集合，内部可信editor端口避免递归；普通HTML继续不执行脚本 |
+| `application.ts::reportUsed`、`Harness.recordReportUse` | 普通根执行及可信host指令受理将真实入口／依赖／来源Evidence写入原instruction-resource-context；沿原库／target使用跟踪和准入检查，不新建来源表。queue／final／restart重新核权限；受理后清单被移除也保留旧摘录来源 |
+| `KernelApplication.checkReportContext`、`project.readTarget`报告分支 | 真实executionFacts不能证明普通根执行时在展开前unavailable；目标读取在原provider内检测报告并unavailable，普通目标HTML仍只读。未移除targetRead，也未替代委派白名单 |
+| `manual.ts::checkReportHistory`及原files.edit／history消费者 | 报告HTML的旧FileEdit全文无法以当前basis验证，返回前明确unavailable，防read_file_edit直接外发旧正文；changes摘要、普通材料及Markdown中的头部示例保留，不改存储或undo提供者 |
+| `report-production.spec.ts`、`report-resources.spec.ts`、`resource-identity.spec.ts`、`ui/report-resources.spec.ts` | 独立手写wire样本；真实Manual保存／替换／撤权，真实Kernel普通工具及模型准入、重启、受理后清单变化，真实子worker与目标读取的不可用边界。两宿主仅验证已保存报告经共同HTML入口安全打开；不启用iframe或页面桥 |
+
+完整证据在`/tmp/scholoom-research-round6/`，保留每次首次输入、结果和trace，没有用最终通过覆盖失败：
+
+- `build-shared.log`、`build-shared-final.log`、`build-desktop.log`通过；后续host来源保存改动先由`build-admission-final.log`重建harness／kernel，再测试。最终探测授权补充由`build-editor-prefix-final.log`编译editor后再测试，测试期间无重建。
+- 首轮`kernel-first.log`为44通过／6失败：5项新夹具未建assets目录，另1项旧用例仍将所有HTML视为只读。第二轮10项为5通过／5失败，独立wire样本的UUID未按既定注释格式转义。第三轮5项为3通过／2失败：模型夹具用了不存在的工具名；子运行错误已沿模型边界归一化，测试错期待原领域码。修正夹具后`kernel-fourth.log`2通过。
+- `kernel-final.log`15/15通过：真实来源／FileEdit、生态持续read/send、报告生产6项及身份保存／替换保护。最后探测read授权补充后，`kernel-prefix-final.log`为ReportResources26项＋生产6项，32/32通过；`codec-final.log`45/45通过，保留共享JSON预算和BOM递归修复。分轮结果不相加称一次全绿。
+- 共同read／document装配增加了报告前后检查，追加原`resource-access.spec.ts`核对取消、所有权、撤权、关联及真实PDF／EPUB／HTML解析，`resource-access-final.log`10/10通过。最终历史正文保护先经`build-history-final.log`及`build-history-consumer.log`编译，再由`history-consumer-final.log`2/2验证真实报告历史拒绝和普通父子FileEdit回归，未重复已绿UI。
+- UI首次配置尚未进入测试即因/tmp缺ESM声明失败，`ui-first.log`保留。随后夹具修复包含：project.create不能预建目标目录；按projectId建会话；父执行先走真实read_file再edit_file；正文只断言语义，真实文件另核字节。中间运行均有各自ui-second／third／fourth日志及trace。
+- `ui-final.log`为3通过／1失败：材料父子历史双宿主通过，Electron报告在第二次整页重载触及默认30秒。资源阶段烟测改为一次“保存后从产品入口打开”，不承担3.x页面更新／重载状态；不加时限。`ui-report-final.log`报告双宿主2/2通过（Browser12.6秒、Electron17.8秒）。不能合并称一次4/4，也未验收交互页。
+- protocol／editor／kernel类型检查、最终tools类型、architecture零发现、7份派生映射（仅忽略格式空白）核对通过。一次tools检查早于新editor产物完成，报告旧dist无isReport，日志保留，构建后复验通过。Biome最终退出0，保留8 warning及1 info；strict与diff结果见本轮收尾检查。
+
+收尾两change的OpenSpec strict及git diff --check通过，日志为openspec-material-final／openspec-reports-final／diff-check。历史正文保护追加独立只读窄审未发现经root read_file_edit的确定绕过，未找到模型undo入口；未将审查视为实跑。本地可审查增量为`/tmp/scholoom-research-round6/report-resources.patch`（20文件），精确写集和共同baseline在同目录manifest.json；与材料6文件测试／文档补丁独立，均经git apply --reverse --check只读核对当前目标状态，未实际应用或提交。主线组合其他增量后仍须以最终schema核对生成映射。
+
+最小命令入口：`pnpm --config.optimisticRepeatInstall=false build:shared`、相同参数的desktop build／筛选类型检查；直接已有Playwright运行上述指定kernel specs及两份UI specs。UI用`/tmp/scholoom-sync-recovery-wyn13R/static-ui.mjs`及本轮临时ESM配置，端口5846，profile／项目／库／输出独立。仅外部模型loopback响应、准入撤权时机及模块窄端口可控；broker、SQLite仓储、文件、子worker、目标provider和双宿主均真实。注册项目留在各结果目录，所属临时配置由原夹具停机退役；无常驻开发服务。
+
+独立只读窄审确认target读取绕过、委派展开越白名单和子confirm遗漏展开来源，以及一次前缀探测的短片假设；对应收口／回归后追加审查未再确认这些已报绕过。审查未代替实跑。还核对了host受理来源的身份及无递归接线，真实queue-excerpt回归通过。未修改TaskResearchPort、FileEdit权威、delegations实现或生态成功工具的rememberCatalog。
+
+**交回的具体缺口：** 1.2b.2须由主线审查提取并复用原DelegationManager唯一readable检查，报告展开前逐项核对白名单，再将该实例的已授权展开Evidence交现有子模型最终check；本树未复制该私有规则。跨项目报告有两项选择：继续保持当前unavailable；或明确允许沿来源领域分别授权声明材料，并设计与单目标targetRead的组合，不能简单移除targetRead。旧报告历史正文须以原beforeEvidence／afterEvidence及已保留正文设计版本读取Adapter，目前不能以当前文件ref／basis代替。本轮停在上述可证明部分，2.x／3.x、HTML自动发布、iframe／MessagePort、原子附加及完整I5保持开放。M1库正文仍无提交provider。
+
+最新已知CI仍为6b22d60／40315429083：Linux689通过／9失败／16跳过，Windows628通过／49失败／30跳过，macOS入口3通过／1失败；本机增量不关闭平台失败、全仓CI或真实科研质量。
+
+## 第四轮历史成果
+
 2026-10-26，用户第四轮直接授权1.1中的manifest／snapshot／桥schema、有界头部codec和1.2注入端口ReportResources。固定比较点为`e71663b02a3444af0bda2091218dd09ebc0df638`到工作区（含untracked），0519904已在本树；没有新公共源码同步、Git历史操作或新提交。原材料M3／图片、共享来源／历史、v5→v6迁移和双窗口夹具均保留。材料诊断另记同change的tasks／delivery，没有合并两change。
 
-原1.1／1.2拆为可独立验收的a模块与b生产部分；只完成1.1a／1.2a，当前**2/10**。未完成1.1b／1.2b及2.1–4.2，不声称报告UI、生产保存、实际来源准入、模型前复查或完整I5通过。proposal的四条完整判据均尚未整体达到，当前成果仅为其契约／加载模块前置。
+第四轮将原1.1／1.2拆为可独立验收的a模块与b生产部分，当时只完成1.1a／1.2a，进度为**2/10**；尚未接生产操作、保存及来源准入。第六轮实际范围见上文，proposal的四条完整判据仍未整体达到，不声称完整I5通过。
 
 | 文件／符号 | 实际成果与边界 |
 | --- | --- |
@@ -62,9 +96,9 @@ git diff --check
 
 交接目录`/tmp/scholoom-round4-research-8uzKwk/`提供固定e71663b到当前含untracked的累计补丁、独立报告模块补丁和相对主线验收快照的材料诊断文档增量，manifest列来源、文件及依赖。累计补丁含已接收M3成果，不能重复应用到本阅读树；独立报告补丁消费当前同源资源声明，公共接入仍由主线按符号核对、构建／测试后再调度消费者，不操作其他真实树。
 
-生产缺口为1.1b／1.2b：公开根入口及editor/node导出、resources.report注册及最终生成映射、HTML条件保存、真实项目／库read-send Adapter、报告声明来源在执行读取／模型前的复查。依赖和授权按所属模块权威接入，不借schema或替身认定具备。报告2.1 iframe／CSP／导航、2.2原子附加、3.x发布更新／草稿／等待、4.x双宿主完整I5均未展开；不以材料PDF或报告浏览代替。
+第四轮时未接的生产部分已按上文第六轮记录推进；当前准确缺口为1.2b.2及报告2.1 iframe／CSP／导航、2.2原子附加、3.x发布更新／草稿／等待、4.x完整I5，不以材料PDF或报告浏览代替。
 
-材料M1仍缺正文提交／新版本与unknown结果provider，M2仍缺可信FileEdit来源／撤销provider。本轮没有读取／打断活动research-task-workspace，没有新依赖、真实库写入、提交、推送、PR或归档。达到两个有界任务后停止；真实报告科研质量、全仓CI及Windows／macOS分发未验。
+材料M1仍缺正文提交／新版本与unknown结果provider；M2实际来源及整次撤销provider现已在共同基线，真实消费者见材料change。未读取／打断活动research-task-workspace；真实报告科研质量、全仓CI及Windows／macOS分发未验。
 
 ## 主线验收：报告边界修复
 

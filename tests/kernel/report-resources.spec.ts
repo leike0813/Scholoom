@@ -117,6 +117,22 @@ function fixture(content = html) {
   };
 }
 
+test('report detection accumulates short byte fragments including a split UTF8 BOM', async () => {
+  for (const content of [html, `\ufeff${html}`, '<p>Ordinary HTML</p>']) {
+    const f = fixture(content);
+    const read = f.ports.read.bind(f.ports);
+    f.ports.read = (input) => read({ ...input, limit: Math.min(input.limit ?? 2, 2) });
+    expect(await new ReportResources(f.ports).isReport(entry)).toBe(
+      content !== '<p>Ordinary HTML</p>',
+    );
+  }
+  const revoked = fixture();
+  revoked.onRead(() => revoked.revoke());
+  await expect(new ReportResources(revoked.ports).isReport(entry)).rejects.toMatchObject({
+    code: 'permissionDenied',
+  });
+});
+
 test('fixed report snapshot checks real identity and declared read/send sources without adding storage', async () => {
   const f = fixture();
   const snapshot = await new ReportResources(f.ports).snapshot(entry, 'send');
