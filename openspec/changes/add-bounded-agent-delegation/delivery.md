@@ -1,5 +1,47 @@
 # 实际交付与交接
 
+## 8a2f0ce后的早期诊断与本机excerpt反例
+
+这是当前有界交付，取代下文历史阶段的“下一步补首次诊断”说明。只读确认起始clean、HEAD及祖先为`8a2f0ce522dfbab4110e63e84e542f6660e6115e`，消费`/tmp/scholoom-round7-acceptance-SdxHy8/`的验收、计划、main-kernel.log、context-control.log及CI基线。未应用旧patch、同步别树或修改生产代码。context-session已接收不重做；报告旧Evidence历史授权、生态only-export、FileEdit来源、全部根工具/恢复/标签保持原样。第12组完成，但**最后正式组合为2通过/1失败**，取消等待尚未闭合，不以较早绿色覆盖。
+
+### 实际诊断增量
+
+`tests/execution-diagnostics.ts`增加`observeExecution(app,scope,model)`，在两个代表调用点（excerpt、委派取消）send及首次轮询之前安装。复用app变化与child_process事件和原execution-stages附件，不加采样sleep；同一观察器最多一个在途采样。SQLite只读、session限定，最多读100实例/17委派，保存32实例/16委派；指令和工具各最多16项，32样本/32子进程，初始样本及最近样本保留，超限计数，附件最多256KiB。只记录project/session/run/host/instance/委派身份、状态、模型请求**计数**、工具名、PID及spawn/exit code/signal；children可能是控制进程，实际worker PID以run_instances为准。无模型正文、工具输入输出、环境、原始argv或全库。
+
+`failure`固定首次失败时间及当时最近已完成样本的独立引用，不能当成失败瞬间的同步快照；后续样本/字节裁剪不丢该边界。finally停采并关闭只读DB，afterEach在失败或诊断开关启用时从缓存附加，即使所属应用/目录已清理也可保存。原`expectExecutionCompleted`复用采集器，业务断言仍直接读原app.snapshot，诊断SQL/解析失败不会成为新的通过条件；其原20秒完成等待及既有最多15秒诊断观察未加长。
+
+诊断snapshot单次预算500ms；首次超时后不再启动新读取，最多保留一条无法取消的原读取，不累积队列，也不等其完成阻断清理。DB启动/读取/关闭错误只记有界诊断码。Node的child_process发布时spawnfile可能尚为null，先记录创建、spawn后补PID/可执行名，防止诊断回调改变原执行。
+
+### 首次失败、受控实验与excerpt最小修正
+
+1. 先`pnpm --config.optimisticRepeatInstall=false --filter @scholoom/kernel... build`，日志`/tmp/scholoom-agent-round8-build.log`，完成后才测试；本轮未重建测试中的产物。第一版早期订阅在`agent-round8-excerpt-first`暴露诊断自身对尚未设置spawnfile的错误访问，1失败（非产品反例）；修正后首次真实5秒复现保留在`test-results/agent-round8-excerpt-diagnostic`及对应log。
+2. 实际附件显示：约3.565秒真实worker已运行且指令consumed，3.760秒模型请求为1、无工具调用，随后进入stopping；旧默认完成轮询仍失败。临时实验`/tmp/scholoom-agent-round8-probe-b9s16O/`保留原失败判定，仅在失败后有限观察：原轮询约4.03秒已返回失败，同一执行约4.458秒completed、实例exited、控制进程code0，仍只有1次模型请求，未重放。该实验结果仍**失败**，没有用继续观察覆盖原结论。临时配置初次缺type:module导致未装载的失败亦保留，非产品故障。
+3. 已安装Playwright1.63.0的`playwright-core/lib/coreBundle.js:4615`证实：下一轮询间隔会跨deadline时直接结束；默认末段1000ms间隔可使名义5秒窗口少采最后近1秒。故仅excerpt改为`intervals:[100,250]`，**仍是原5秒deadline**，保留四个摘录/批注内容及checkpoint结构化指令断言；没有加sleep、扩大统一时限或改变worker停止条件。`agent-round8-excerpt-poll`单项1/1通过。
+4. 独立只读审查指出诊断错误参与断言、无界snapshot等待、初始化清理与失败样本裁剪风险；均已修正。后续复核又指出race超时无法取消原读取，以及失败后观察可能等待无界业务snapshot；现首次超时停采、失败后只用有界诊断sample并重抛原错误，复核未发现该两项遗漏。审查者未代跑测试或改源码，现已关闭。
+5. `/tmp/scholoom-agent-round8-control-DnEtH1/`是明确临时诊断夹具，不进入正式测试或补丁。它在真实send之后、首次状态断言前主动抛错，**预期1失败**，afterEach仍保留1094字节execution-stages、首次failure边界和accepted/queued样本，应用清理成功。另一个诊断专用host snapshot永不返回的替身实验（不是业务执行替身）**1/1通过**：500ms预算后连续100次sample只产生1次底层读取，stop小于3秒上界；日志`agent-round8-control-bounded`。正式用例没有故意失败或新生产替身。
+
+### 正式验证及未闭合的具体阶段
+
+命令统一为现有Node Playwright入口，无安装/下载依赖、开发服务器或真实用户库。内部Kernel/broker/仓储/worker真实；excerpt的contextResources describe/check沿原测试模块替身，材料字节不读取，模型仅外部HTTP受控，不能把该测试当真实材料科研验收。
+
+最终命令：`PLAYWRIGHT_JSON_OUTPUT_NAME=/tmp/scholoom-agent-round8-final-results.json SCHOOLOOM_EXECUTION_DIAGNOSTICS=1 node node_modules/@playwright/test/cli.js test --config playwright.kernel.config.ts tests/kernel/agent-delegation.spec.ts tests/kernel/context-instructions.spec.ts --grep 'cancelling a child stops|real worker sends explicit excerpts|a later basis upgrade' --reporter=list,json --output=test-results/agent-round8-handoff`，**2通过/1失败（40.9秒）**，日志`/tmp/scholoom-agent-round8-handoff.log`。JSON保留成功及失败的4份execution-stages，均4–12KiB；不能从默认list成功时未落附件误认没有采集。
+
+- excerpt通过：最终completed、实例exited、模型请求1，原摘录/批注及checkpoint断言全部执行。basis-upgrade通过：原两轮上下文及历史保护、两次helper的stop/缓存均兼容。
+- 取消用例失败于首次running轮询，尚未调用cancel。最终失败边界约4.129秒，父worker running、指令consumed、模型请求1、delegate_agent streaming；停采前4.158秒已有委派accepted/结果missing，子instanceId已分配但尚无子run_instances登记，仅观测父控制进程。**不能称子worker已启动或取消失败**。此前另一次组合记录2次模型请求及第二控制进程spawn，时点不同，不能混成最终状态。
+- 分开保留早期取消单项1/1、`agent-round8-reviewed`组合3/3（38.8秒），以及其前后两次2通过/1失败；表现依赖启动进展，未据局部绿灯关闭平台项。没有改该取消测试的原断言/5秒期限。
+
+下一最小判别输入已具体化：同一真实工作包、childHold、首次running断言，在失败后保留边界，有限观察“accepted→子控制进程spawn→child onStart/run_instances→running”各点。比较名义5秒断言的末段盲区及真实父/子冷启动阶段，才能选择夹具分阶段条件或提交生产准入疑点。当前不修改admission、delegations白名单、报告来源、runtime追踪或bootstrap，不把未知阶段改成成功。主线另外三项large context/transfer及all kinds本轮未复验，仍开放，不据excerpt修正宣布四项全绿。
+
+### 新旧Windows与macOS证据
+
+旧完整基线仍是`39be88978d442757e278be326633049d0e2a82a2`/Checks40432749785：Linux709通过/9失败/23跳过，Windows641通过/54失败/39跳过/7未运行，macOS校准2通过、人工入口3通过/1失败。一次只读查询新自动CI（无触发/轮询）：8a2f0ce的Windows diagnosis40445841861已success，Checks40445842005当时macOS失败、Linux/Windows仍in_progress，后者不推定当前终态。
+
+实际Windows2025定向run命令：原`a later basis upgrade|Agent structure tools`各重复5次，共10通过（retry=0）；ownership16通过/3跳过；development owner2通过；desktop初装3通过。artifact12708068789/windows-execution-diagnostics内15份execution-stages为win32、最终completed、实例exited。**不包含本片取消或real worker excerpt两例**，不能借其成功关闭4.2/4.3或把8a代码当作已含本轮未提交诊断。新Checks当次尚无Windows artifact。新macOS同名关闭重连用例报`app.process().exitCode`读取undefined `_object`，行216；输入/日志交主线计算牵头，未并改。源证据在`/tmp/scholoom-ci-evidence-GL4yNV/{targeted-artifact-summary.json,diagnosis-execution.log,checks-macos.log,windows-execution-diagnostics.zip}`。
+
+tools类型、修改测试Biome error级、OpenSpec strict/schema、diff检查通过；产品schema/生成映射及业务文件均无变化，不重写映射或重跑无关全仓。无新增双宿主产品UI、目标Windows取消/恢复、发布或真实科研质量结论。临时项目只在其专属配置关闭后清理，控制探针及原trace/日志保留；所有执行/模型服务已收尾。
+
+交接包`/tmp/scholoom-agent-round8-handoff-sC9oqb/`为相对8a2f0ce的独立测试诊断/夹具与原tasks/design/delivery增量，含首败/受控/正式日志、JSON阶段摘要和补丁检查；不含临时故意失败用例。任务**28/32**，第12组按“可用诊断+具体分阶段发现”完成，4.2/4.3及6.1/6.2继续开放；取消首次等待和其他三项context明确未闭合。无提交/推送/PR/归档、别树操作或下一阶段展开。
+
 ## 4b13183后的最新CI诊断与首个共同根因修复
 
 这是当前续做状态。HEAD=`4b13183f7489d3cae12fd0a7d1a9e83fb33d7384`，祖先核对成功、起始clean；主线`/tmp/scholoom-round6-acceptance-dXuzCA/{acceptance.md,synchronized.json,sync-build-results.json,sync-kernel-results.json}`已证明本树同步、构建及execution-facts复验成功。M2/TaskPort和生态工具rememberCatalog持续授权修复已在共同基线，未重复接入或回退。下文A/B和旧CI分类是历史证据，最新基线由本节取代。当前只交第11组的诊断和已有契约内会话夹具修正，不以完整change未完否定该有界结果。

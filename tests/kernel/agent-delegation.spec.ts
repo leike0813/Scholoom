@@ -8,7 +8,7 @@ import { expect, test } from '@playwright/test';
 import { KernelApplication } from '../../apps/kernel/dist/application.js';
 import { ManagedNode, processMayBeAlive } from '../../packages/platform/dist/node.js';
 import type { DelegationRequest } from '../../packages/protocol/dist/index.js';
-import { expectExecutionCompleted } from '../execution-diagnostics.js';
+import { expectExecutionCompleted, observeExecution } from '../execution-diagnostics.js';
 import { delegationModel } from '../fixtures/delegation-model.js';
 
 class CapacityApplication extends KernelApplication {
@@ -243,7 +243,9 @@ for (const mode of ['forbiddenWrite', 'childMissing', 'repeat', 'conflict'] as c
 
 test('cancelling a child stops its actual work and keeps the parent and persisted result usable after restart', async () => {
   const f = await scenario({ childHold: true });
+  let diagnostics: ReturnType<typeof observeExecution> | undefined;
   try {
+    diagnostics = observeExecution(f.app, f.scope, f.model);
     await f.start();
     await expect
       .poll(async () => (await f.app.call('delegation.list', f.scope)).delegations[0]?.state)
@@ -270,6 +272,7 @@ test('cancelling a child stops its actual work and keeps the parent and persiste
     await expect.poll(async () => (await f.result()).state).toBe('cancelled');
     await expectExecutionCompleted(f.app, f.scope, f.model);
     const before = await f.result();
+    await diagnostics.stop();
     await f.app.close();
     const count = f.model.requests.length;
     const restarted = new KernelApplication(f.profile, f.settings);
@@ -284,7 +287,11 @@ test('cancelling a child stops its actual work and keeps the parent and persiste
     } finally {
       await restarted.close();
     }
+  } catch (error) {
+    diagnostics?.failure();
+    throw error;
   } finally {
+    await diagnostics?.stop();
     await f.close();
   }
 });
