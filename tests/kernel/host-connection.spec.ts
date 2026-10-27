@@ -164,18 +164,29 @@ test('transport loss cannot confirm an in-flight mutation or replay it on restar
     principal: { kind: 'human', id: 'caller' },
   } as const;
   try {
+    await expect(
+      f.host.call('wait', { value: 1 }, context, 'stable-domain-operation'),
+    ).rejects.toMatchObject({ code: 'unavailable' });
+    expect(f.host.status().unresolved).toEqual([]);
     await f.host.start();
     const mutation = f.host.call('wait', { value: 1 }, context, 'stable-domain-operation');
     const rejected = expect(mutation).rejects.toMatchObject({ code: 'outcomeUnknown' });
-    await expect.poll(() => f.host.status().unresolved).toContain('stable-domain-operation');
+    await expect.poll(f.caller).toBe('caller');
+    const accepted = JSON.parse(await readFile(join(f.directory, 'host-supervision.json'), 'utf8'));
+    expect(accepted.unresolved).toEqual(['stable-domain-operation']);
     await f.host.call('drop', { value: 1 }, context).catch(() => {});
     await rejected;
-    expect(await f.host.close()).toMatchObject({
+    const closed = await f.host.close();
+    expect(closed).toMatchObject({
       state: 'unknown',
       scopeStopped: true,
       unresolved: ['stable-domain-operation'],
     });
     await expect(f.create().start()).rejects.toMatchObject({ code: 'outcomeUnknown' });
+    await writeFile(
+      test.info().outputPath('mutation-loss.json'),
+      JSON.stringify({ caller: f.caller(), accepted, closed }, null, 2),
+    );
   } finally {
     await f.commands.close();
   }

@@ -1,5 +1,13 @@
 # 实现设计
 
+## 当前收敛：断联写入夹具的实际送达阶段（0b78815）
+
+本轮仅承接E4 Windows host-connection:159。源码中call先同步加入record.unresolved，再等待save，最后才peer.request；drop为读请求，不等待该save。因此内存未决标记是保守意图，不是持久化或送达证明。原Windows trace仅证明该轮询通过及拒绝码unavailable，缺RPC／host.invoke／原错误来源事件；不能宣称已经定位Windows运行时顺序。Linux真实固定host的单次save调度gate已校准同一允许顺序，错误为RPC连接已关闭；诊断gate不进入生产或长期回归。
+
+无新增公共行为／DTO或Module。复用HostConnection及既有固定host／sample.read回调：wait进入宿主invoke后先回调报到，再维持未完成；测试仅在实际回调到达后主动drop，同时核对监督文件稳定关联。派发前非ready调用仍明确unavailable且不增加未决；已经送达的写请求失联仍outcomeUnknown，关闭保留unknown／稳定关联，重启拒绝而不重放。不将所有错误改unknown，不清未决、不增加延迟／期限或生产钩子。
+
+写集仅tests/kernel/host-connection.spec.ts、其既有tests/fixtures/zotero-host/fixed-host.mjs及本change的design/tasks/delivery；HostConnection、RPC、kernel生命周期、协议、原值API与文献UI不改。验证先构建再跑原用例校准／报到断言红例／修正后最小监督矩阵，复用现有回调收尾、正常关闭及容量回归；不重跑BBT／TeX。当前Windows CI无修正后的目标结果，保留待验。
+
 ## 已批准的内核／Agent切片（8a2f0ce）
 
 用户D1–D3及本轮直接授权已闭合，无需再等同步／产品选择：仅已有唯一schema44 journalArticle原值的准确题名；普通CSL保存不双写；差异或不能比较时须明确采用原值，Agent按用户明示指令选择，不确定先询问。复用当前真实library权威、原包及监督，不新增确认token／来源表，不改元数据表单。本节具体契约替代下文候选／逐次人工确认的历史措辞。
