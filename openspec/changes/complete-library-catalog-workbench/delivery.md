@@ -1,5 +1,29 @@
 # 实际交付与交接
 
+## 2026-10-27：4312262配置／进程重启调查交回
+
+当前HEAD`4312262c1a1f432ccd706dd1eb6ff6468765fd4e`，开工前clean，未改变。主线`/tmp/scholoom-round9-acceptance-IER31D/{acceptance.md,main-ui-result.json}`已接收原单条GUI／unknown工作台重载；本轮按条件分支只完成**配置缺口调查及方案**，5.4a跨进程验收仍未完成，整体**24/30**。未应用旧patch、改业务／测试源码、创建另一server／launcher、安装依赖、启动服务或操作真实库／其他树；无提交／同步／推送／PR／归档。
+
+### 实际结论与修改
+
+现有`tests/ui/zotero-original.spec.ts`是测试内存配置→KernelApplication→startKernelServer→本机bootstrap代理路径，不经过独立CLI进程／serveKernel运行锁。serveKernel本身已接受isolatedZotero，但CLI parseArgs／start／serve、ensureKernel派生参数及桌面bootstrap均无隔离配置加载或传递。普通CLI重启后，zotero.result也因配置守卫返回unavailable，不能由仍在SQLite的回执推定GUI已可核查，更不能据此重放或改走绕过隔离检查的接口。
+
+只修改原四工件：investigation补逐符号／参数证据及现有测试边界；design给出提供者／配置归属、启动／授权／收尾及最小验收；tasks新增未勾5.4a及当前前置，更新失效CI等待；本delivery记录此次只读执行。现有规格／UI设计和业务行为未变，无需新delta或重建产物。
+
+建议主线选择**A：测试侧可信serveKernel子进程提供者**，复用现有IsolatedZotero、运行锁、endpoint、CLI status／stop和开发owner；配置由可信测试父进程显式持有并在每次新进程注入，不开放普通产品。**B：标准CLI start持久受控配置**是另一公共增量，需要主线先定加载／权限／绑定／撤销机制。A不等于B；没有把候选入口写成已提供或已获跨模块实施授权。精确候选文件／拥有者及committed／notFound、冻结identity／revision／requestId与CSL草稿的双宿主重启验收步骤见design首节。当前没有提供者，按用户“CLI根本不提供则止于方案”的要求停止，不擅自创建测试启动入口。
+
+### 平台追加事实
+
+已读取用户明确转交的`/tmp/scholoom-round9-acceptance-IER31D/macos-job-current.json`：同源码4312262的Checks40476577071，macOS job122096177783 **completed/success**，fallback／入口／人工双宿主步骤均成功。当前workflow人工步骤包含library.spec.ts；原列表同例已有新目标通过证据，3.2a不再写成“目标尚未实跑”，也不重复追查。完整组caf9025的Linux743／1／26、Windows687／41／42及原生定向分别作为历史基线输入，不能沿用旧4失败清单或据macOS成功关闭Windows／整项I6。本人早先只读查询截点job仍in_progress而人工步骤已success，保留于`/tmp/scholoom-library-restart-round9/ci-observed.json`，以主线追加的完整job证据为准。
+
+### 验证与停止点
+
+本轮只读命令为git status／rev-parse、rg／源码读取及`gh run view 40476577071 --json status,conclusion,headSha,jobs`；没有新的业务失败复现或内核／UI实跑，首次／最终业务结果沿上一节原delivery及主线验收，未改写为本轮通过。经验检索无相关条目。现有kernel定义中的“同进程显式serveKernel注入后CLI查询”、同app题名unknown与重建Application重新注入均只作源码证据，不补算跨进程通过。
+
+适用验证为`openspec validate complete-library-catalog-workbench --strict`、`openspec schema validate scholoom-dev`、当前apply instructions及`git diff --check`，实际日志在`/tmp/scholoom-library-restart-round9/`。本轮无需build／类型／UI回归，因为只更新四份OpenSpec Markdown，无生产／测试／schema变化；没有为凑进度重跑已绿14UI。候选方案尚未实施，因此没有真实配置进程重启、原包恢复或未知结果跨内核重启保证。
+
+可审查本轮文档patch位于`/tmp/scholoom-library-restart-round9/planning.patch`，仅相对4312262的这四工件，不是旧累计业务补丁。没有启动本轮进程、后台写树任务或辅助Agent。等待主线确认入口与提供者并在共同基线具备实际能力后再解除5.4a；完整4.1／4.2、1.4、I6／E6及科研质量仍开放。
+
 ## 2026-10-27：0b78815后的滚动观察与单条原值GUI
 
 本轮基线`0b788151b5e17665a26d9286dfd1d12f6e2e0c30`，开工前clean，HEAD未改变。前片已由主线接收、入dev并同步；本轮完成**3.2a／5.4，24/29**，只交下述两步，不勾完整4.1／4.2、1.4、6.1／6.2或生态E6。未应用旧patch、安装下载依赖、启动开发服务器、操作别树／真实用户库或执行Git提交／同步／推送／PR／归档。
