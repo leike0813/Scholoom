@@ -2,7 +2,7 @@
 
 ## 当前状态与成果
 
-当前有界续做起点为1026796d854b8f568c3e819f13268a9638980bc1，工作区干净。主线已保全本线成果、合入dev并快进同步全部七域实现，证据为 `/tmp/scholoom-round5-acceptance-WBreMJ/{acceptance.md,synchronized.json}`。TaskRef／TaskPanel／TaskPort、真实HarnessRecords委派恢复和programs均已在本树，旧“缺私有提供者／等同步”条件失效。只推进8.4真实联合及第9组退出诊断；历史记录保留，不重用旧累计patch或替代提供者。C1—C3、统一v6及其他域接线保持，Windows／历史CI及整个change最终交付仍开放。
+本轮起点为4b13183f7489d3cae12fd0a7d1a9e83fb33d7384，开始时工作区干净，主线已接收8.4及第9组诊断。正式输入为 `/tmp/scholoom-round6-acceptance-dXuzCA/{acceptance.md,synchronized.json,sync-build-results.json,sync-kernel-results.json}`，本轮只推进第10组的生命周期诊断及一次nativeTeX观察。TaskRef／TaskPanel／TaskPort、真实HarnessRecords委派恢复和programs已在本树，旧“缺私有提供者／等同步”条件失效。C1—C3、统一v6、各域接线及生态rememberCatalog持续外发授权修复均保留，未重用旧累计patch。Windows／macOS历史CI及整个change最终交付仍开放。
 
 第三轮同步证据仅保留当时结果：`/tmp/scholoom-sync-recovery-wyn13R/recovery.md`、`synchronized.json`及当时日志（主线65项内核／双宿主2项），不替代最新A/B验收。旧公共及累计patch均为历史工件，已合入共同1026796，不再次应用。用户允许本地补丁／提交；继续禁止推送、PR、归档、依赖下载／安装、真实库和开发服务器。
 
@@ -231,3 +231,48 @@ UI全程使用已有静态HTTP承载 /tmp/scholoom-sync-recovery-wyn13R/static-u
 交回目录 /tmp/scholoom-project-execution-round5-lJI3yA/：01-public-process-exit-diagnostics.patch只含两个公共源码及直接过程／命令测试；02-task-programs-joint-regression.patch只含真实联合UI回归；03-openspec-and-documentation.patch含本change及必要开发说明。README／manifest列基线、依赖和替身。全部是1026796后的增量，在本树仅反向git apply --check核对，未应用或回滚，不含旧累计实现或新提供者。
 
 本轮8.4、9.1—9.3完成，tasks为29/31；5.2历史CI／Windows身份与阶段证据、6.2整个change最终交付继续开放。历史nativeTeX unknown、公网准备、Windows／macOS实际分发、全仓CI及真实科研质量没有新增通过结论。达到用户A/B有界切片后停止，不提交／推送／PR／归档、同步其他树或展开环境新特性。
+
+## 第六轮：生命周期阶段诊断及一次nativeTeX观察
+
+### 实际结论与写集
+
+最新CI依据为6b22d60／Checks 40315429083，原始日志和平台清单分别是 `/tmp/scholoom-round6-acceptance-dXuzCA/ci-baseline-failures.log`、`ci-baseline-summary.json`。Linux内核689通过9失败16跳过，Windows628通过49失败30跳过，macOS入口3通过1失败；旧374项仅为历史。本轮证据目录为 `/tmp/scholoom-project-execution-round6-7zLloB/`。
+
+只读消费本仓库Windows artifact 12650865090（windows.zip及windows/两份lifecycle trace）、macOS artifact 12646907624（macos.zip及entrypoints-trace.zip）。Windows两例是在初批4个start返回后收到unknown、占用释放后3个返回未全running；artifact没有实际CLI错误／发现／锁／daemon日志，尚不能归因性能或系统机制。macOS的安全摘要entrypoints-safe-diagnostic.json明确只有一次launch：第一次连接等13s失败，随后finally关窗，未进入关闭后再次launch。原trace没有bootstrap／WS／DOM证据；“正在连接内核”不足以定位阶段。
+
+一次原 `render-authorization.spec.ts` 首跑通过，已有ManagedNode被动observer记录5个instance：全部收到stopped，controller code0／signal null，native最后R／code0／signal null，无unconfirmed。observer只观察既有窄字段，不读env、entry、参数或RPC正文；未安装TeX／uv，未再跑排版。这个结果只描述本次成功，不修复或解释历史nativeTeX unknown。
+
+公共源码仅 `apps/kernel/src/lifecycle.ts` 的inspect／ensure／serve诊断与 `bootstrap.ts` 的execFile错误上下文。沿原ErrorInfo.message末行有界JSON记录阶段、发现／锁／PID存活观察、握手、退出码／signal及耗时；消息保持原512上限。最终availability保留最后一次真实inspection；既有kernel.log记录应用加载、初始化、监听、发现发布、服务关闭、锁释放。没有新增状态、业务字段、日志框架、生产时限或重试。未改PID存活／归属、unknown／停止判据、容量、harness／模型／恢复内部；platform上一轮退出诊断无需新改动。
+
+直接夹具 `tests/kernel-fixture.ts` 提供安全结果投影、有界64KiB日志尾／最多64条固定阶段，CLI非JSON与停止未确认也保留安全观察，不复制凭据或原始stdout。lifecycle.spec.ts保留真实锁占用、并发／独立配置和停止，扩展引导失败、512上限、最后inspection、附件脱敏边界。entrypoints.spec.ts增加launch轮次、WS认证／状态回执、窗口关闭与关闭后查询附件；监听在firstWindow后开始，缺此前事件不作反证。开发说明的诊断入口同步。
+
+### 首次失败、诊断和最终验证
+
+所有命令在Linux、Node24.12.0、既有依赖上运行；pnpm带 `--config.optimisticRepeatInstall=false`，没有安装／下载依赖或启动开发服务器。先完成shared及最终kernel／desktop构建，再运行最终测试，测试期间没有重建。
+
+| 命令／阶段 | 实际结果与证据 |
+| --- | --- |
+| pnpm --config.optimisticRepeatInstall=false build:shared | 基线构建通过，/tmp/project-execution-round6-build-baseline.log；其后一次nativeTeX用例1/1通过，证据目录native-once.log、native-observation.jsonl、native-results |
+| 已构建基线上的新增诊断边界 | diagnostic-red.log两项失败：原错误没有所需锁／引导观察。原trace保留；这不是Windows／macOS根因复现 |
+| 初版kernel构建 | /tmp/project-execution-round6-kernel-build.log因exactOptionalPropertyTypes失败；已修可选观察字段。随后我漏核退出码启动的review-red.log被中断（exit130），**不作为有效红／绿证据**；本轮遗留隔离profile /tmp/scholoom-test-vNilYl已走正常协议确认停止，保留现场 |
+| pnpm --config.optimisticRepeatInstall=false --filter @scholoom/kernel build；同配置 --filter @scholoom/desktop build | 修正后均通过，/tmp/project-execution-round6-kernel-final-build.log、/tmp/project-execution-round6-desktop-build.log；此后无产物重建 |
+| node node_modules/@playwright/test/cli.js test --config playwright.kernel.config.ts tests/kernel/{lifecycle,platform-processes,process-admission}.spec.ts --output 证据目录/kernel-final-results | **27/27通过，3.9m**，kernel-final.log；真实独立配置／锁竞争、认证、停止、诊断／脱敏和既有controller未知／容量回归通过 |
+| xvfb-run -a，entrypoints.spec.ts --grep 'kernel CLI runs\|desktop loads React\|desktop closes without' | entrypoints-final.log首次2通过1失败：两次窗口均WS认证／status成功、同实例且exit0，30s总预算耗尽在最后CLI查询。仅校正定向夹具阶段预算后 **3/3通过**，entrypoints-budget.log（1.1m，关闭重开33.7s）。该次等待25s／总70s已通过，最终只补齐公式漏算的WS打开为28s／总76s；不重复已通过场景，无生产行为变化 |
+| 静态双宿主workbench.spec.ts，transport reconnect／CLI shutdown／kernel crash | ui-final.log首次2通过4失败及1条收尾错误。4次重试5s断言均在引导完成前失败：例如Browser停机重试02:17:03.629、5s断言结束，kernel 02:17:12.335才发布；仍在原bootstrap17s内。传输重连两宿主原时限通过；失败trace和原profile保留 |
+| 定向上述两个重试用例，--config 证据目录/ui-budget.config.mts | **Browser／Electron 4/4通过，2.4m**，ui-budget.log；各次真实停机／受控崩溃、人工重试、草稿保留通过，正常收尾无停止未确认错误。端口5647，独立ui-budget-profile，原静态承载；无模型／仓储替身 |
+| pnpm --config.optimisticRepeatInstall=false -r typecheck；tools tsc；architecture | 工作区类型通过，/tmp/project-execution-round6-typecheck.log；最终tools通过，/tmp/project-execution-round6-tools-budget.log；14模块253文件0 findings，/tmp/project-execution-round6-architecture.log |
+| 生成／格式／OpenSpec | 原生成器按最终schema格式归一核对8份映射通过，/tmp/project-execution-round6-generation.log；6份源码最终Biome通过，/tmp/project-execution-round6-biome-final.log，原导入格式失败单独保留。本change strict、scholoom-dev schema及最终diff检查通过，无正式规格改动或归档 |
+
+预算调整限上述定向夹具：现有bootstrap17s＋客户端WS打开3s／认证3s／status5s，生产入口28s；开发入口另有宿主连接11s及attach5s，44s。场景总预算另留两次窗口或停机后重启空间，不是承诺所有串行操作最坏耗时之和。没有统一加长断言／CI时限，也不据Linux证据关闭原平台失败。
+
+首轮smoke超时遗留的本轮进程2026814／profile /tmp/scholoom-test-g7aeKE已与trace中实例对应，正常stop确认stopped；安全快照smoke-timeout-cleanup.json保留。首轮UI失败profile后续真实inspect／stop均stopped，保留原目录；没有用PID猜测停止或删除现场。最终夹具正常退休自己配置，未留下登记项目而删除项目目录。未停止其他树或真实用户进程。
+
+### 审查、边界与交回
+
+Avicenna（gpt-6.1-sol/high）独立只读审查提出三项P2：JSON转义后512上限、最终availability丢失最后观察、launch／close附件缺口；已修正并复核闭合。另复核串行连接预算，补齐WS打开及开发宿主attach；最终复核未发现新增确证问题。审查未代跑测试；主代理核对首次失败、真实最终结果及不变控制判据。辅助已结束；最终owned-profile-status记录三份遗留隔离profile均stopped，5646／5647无监听，没有本轮kernel／静态承载残留。
+
+替身仅为：原render-authorization外部模型loopback受控响应；缺Node路径、真实SQLite锁持有子进程、已停止profile中的合成发现记录及纯附件内容用于诊断反例；现有platform失败用例沿上一轮受控native fixture。内部broker／仓储／worker／文件、真正Node／SQLite／WS、Browser／Electron与原生进程路径保持真实。静态承载不是Vite开发服务器，也不代表打包分发验收。
+
+交回同一证据目录：01-kernel-lifecycle-diagnostics.patch（公共源码及直接kernel／entrypoints夹具），02-ui-lifecycle-retry-fixtures.patch（依赖01的两个定向重试夹具），03-openspec-and-documentation.patch（本change及开发说明），README.md／manifest.json标明4b13183基线与消费顺序。只生成本轮增量，并用反向git apply --check核对，未应用／回滚、提交或同步任何树。
+
+10.1—10.3完成，5.2与6.2整项仍开放。下一目标是Windows两例的新安全CLI／锁／启动阶段附件，以及macOS第一次launch的bootstrap与WS回执；先据新事实确定局部修复，再真实目标验证。当前无充分平台因果，不交猜测式生产修复。macOS受管执行仍明确不可用，人工桌面重连应可用的目标独立保留；Linux通过不能替代该目标。没有新增全仓CI、Windows／macOS、历史nativeTeX根因或真实科研质量通过结论。本轮到此停止，不扩环境、Graph／角色、远端或发布范围。

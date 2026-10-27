@@ -10,6 +10,7 @@ import { privateDirectory } from '@scholoom/platform/node';
 import {
   type BootstrapResult,
   type ErrorInfo,
+  errorInfoSchema,
   isKernelEndpoint,
   type KernelEndpoint,
   type KernelStatus,
@@ -22,9 +23,48 @@ export { defaultDataDirectory } from './bootstrap.js';
 
 const cliPath = fileURLToPath(new URL('./cli.js', import.meta.url));
 
-function errorInfo(error: unknown): ErrorInfo {
-  if (error instanceof KernelClientError) return { code: error.code, message: error.message };
-  return { code: 'unavailable', message: 'Kernel lifecycle operation failed.' };
+type LifecycleObservation = {
+  phase: string;
+  discovery?: boolean;
+  lock?: 'free' | 'held' | 'missing';
+  instanceId?: string;
+  processId?: number | undefined;
+  processAlive?: boolean | undefined;
+  handshake?: string;
+  exitCode?: number | null;
+  exitSignal?: NodeJS.Signals | null;
+  systemCode?: string | undefined;
+  elapsedMs?: number;
+  lastState?: BootstrapResult['state'];
+  lastErrorCode?: string | undefined;
+  lastPhase?: string;
+};
+
+function errorInfo(error: unknown, observation?: LifecycleObservation): ErrorInfo {
+  const info: ErrorInfo =
+    error instanceof KernelClientError
+      ? { code: error.code, message: error.message }
+      : { code: 'unavailable', message: 'Kernel lifecycle operation failed.' };
+  if (!observation) return info;
+  const system = error as NodeJS.ErrnoException & { errcode?: number };
+  const detail = {
+    ...observation,
+    systemCode:
+      observation.systemCode ??
+      (typeof system?.code === 'string' && /^E[A-Z0-9_]+$/.test(system.code)
+        ? system.code.slice(0, 64)
+        : undefined),
+    sqliteCode: Number.isSafeInteger(system?.errcode) ? system.errcode : undefined,
+  };
+  const limit = errorInfoSchema.properties.message.maxLength;
+  let message = `${info.message}\n${JSON.stringify(detail)}`;
+  if (message.length > limit) {
+    delete detail.instanceId;
+    message = `${info.message}\n${JSON.stringify(detail)}`;
+  }
+  if (message.length > limit)
+    message = `Kernel lifecycle operation failed.\n${JSON.stringify(detail)}`;
+  return { ...info, message };
 }
 
 async function canonicalDirectory(directory: string, create = false): Promise<string | null> {
@@ -115,56 +155,88 @@ export function processIsAlive(pid: number): boolean {
 }
 
 export async function inspectKernel(directory: string): Promise<BootstrapResult> {
+  return inspect(directory, { phase: 'directory' });
+}
+
+async function inspect(
+  directory: string,
+  observation: LifecycleObservation,
+): Promise<BootstrapResult> {
   try {
     const canonical = await canonicalDirectory(directory);
     if (!canonical) return { state: 'stopped' };
+    observation.phase = 'discovery';
     const endpoint = await readEndpoint(canonical);
+    observation.discovery = endpoint !== null;
+    if (endpoint) {
+      observation.instanceId = endpoint.instanceId.slice(0, 256);
+      observation.processId = endpoint.processId;
+    }
+    observation.phase = 'lock';
     const lock = await lockState(canonical);
+    observation.lock = lock;
     if (lock === 'missing') {
       return endpoint
         ? {
             state: 'unknown',
-            error: { code: 'unavailable', message: 'Kernel ownership cannot be verified.' },
+            error: errorInfo(
+              new KernelClientError('unavailable', 'Kernel ownership cannot be verified.'),
+              observation,
+            ),
           }
         : { state: 'stopped' };
     }
     if (lock === 'free') {
-      return endpoint && processIsAlive(endpoint.processId)
+      observation.phase = 'process';
+      observation.processAlive = endpoint ? processIsAlive(endpoint.processId) : undefined;
+      return endpoint && observation.processAlive
         ? {
             state: 'unknown',
-            error: {
-              code: 'unavailable',
-              message: 'Recorded process has not been confirmed to exit.',
-            },
+            error: errorInfo(
+              new KernelClientError(
+                'unavailable',
+                'Recorded process has not been confirmed to exit.',
+              ),
+              observation,
+            ),
           }
         : { state: 'stopped' };
     }
     if (!endpoint) {
       return {
         state: 'unknown',
-        error: { code: 'unavailable', message: 'Configuration is occupied; kernel is not ready.' },
+        error: errorInfo(
+          new KernelClientError('unavailable', 'Configuration is occupied; kernel is not ready.'),
+          observation,
+        ),
       };
     }
-    if (!processIsAlive(endpoint.processId)) {
+    observation.phase = 'process';
+    observation.processAlive = processIsAlive(endpoint.processId);
+    if (!observation.processAlive) {
       return {
         state: 'unknown',
-        error: {
-          code: 'unavailable',
-          message: 'Configuration is occupied; waiting for current discovery information.',
-        },
+        error: errorInfo(
+          new KernelClientError(
+            'unavailable',
+            'Configuration is occupied; waiting for current discovery information.',
+          ),
+          observation,
+        ),
       };
     }
     const client = createKernelClient(endpoint);
+    observation.phase = 'connect';
     try {
       const status = await client.connect();
       return { state: 'running', endpoint: { ...endpoint, ...status } };
     } catch (error) {
-      return { state: 'unreachable', error: errorInfo(error) };
+      return { state: 'unreachable', error: errorInfo(error, observation) };
     } finally {
       client.dispose();
     }
   } catch (error) {
-    return { state: 'unknown', error: errorInfo(error) };
+    return { state: 'unknown', error: errorInfo(error, observation) };
   }
 }
 
@@ -205,6 +277,7 @@ export async function serveKernel(
   const file = await open(filename, 'a', 0o600);
   await file.close();
   const db = new DatabaseSync(filename, { timeout: 0 });
+  let report: ((phase: string) => void) | undefined;
   try {
     try {
       db.exec('PRAGMA journal_mode=DELETE; BEGIN EXCLUSIVE');
@@ -222,10 +295,27 @@ export async function serveKernel(
       startedAt: new Date().toISOString(),
       state: 'running',
     };
+    report = (phase) => {
+      try {
+        console.error(
+          JSON.stringify({
+            phase,
+            at: Date.now(),
+            instanceId: status.instanceId,
+            processId: process.pid,
+          }),
+        );
+      } catch {
+        // Diagnostics cannot change ownership or lifecycle results.
+      }
+    };
+    report('loading-application');
     let endpoint: KernelEndpoint;
     const { KernelApplication } = await import('./application.js');
     const application = new KernelApplication(canonical, options);
+    report('initializing-application');
     await application.initialize();
+    report('application-ready');
     const server = await startKernelServer(
       status,
       async () => {
@@ -236,8 +326,10 @@ export async function serveKernel(
       options.development,
     );
     endpoint = { ...status, url: server.url, token: server.token };
+    report('server-listening');
     try {
       await publishEndpoint(runtime, endpoint);
+      report('endpoint-published');
       process.send?.({ state: 'ready' });
       const onSignal = () => {
         void server.stop().catch(() => {
@@ -247,6 +339,7 @@ export async function serveKernel(
       process.once('SIGTERM', onSignal);
       process.once('SIGINT', onSignal);
       await server.closed;
+      report('server-closed');
       process.off('SIGTERM', onSignal);
       process.off('SIGINT', onSignal);
     } finally {
@@ -255,6 +348,7 @@ export async function serveKernel(
   } finally {
     if (db.isTransaction) db.exec('ROLLBACK');
     db.close();
+    report?.('lock-released');
   }
 }
 
@@ -262,7 +356,9 @@ export async function ensureKernel(
   directory: string,
   options: { development?: boolean } = {},
 ): Promise<BootstrapResult> {
-  let result = await inspectKernel(directory);
+  const started = Date.now();
+  let inspection: LifecycleObservation = { phase: 'directory' };
+  let result = await inspect(directory, inspection);
   if (result.state === 'running' || result.state === 'unreachable') return result;
   if (result.state === 'unknown' && result.error?.code !== 'unavailable') return result;
   const canonical = await canonicalDirectory(directory, true);
@@ -292,17 +388,33 @@ export async function ensureKernel(
         },
       );
       await log.close();
+      const launch: LifecycleObservation = {
+        phase: 'ready',
+        processId: child.pid,
+        handshake: 'none',
+      };
       try {
         await new Promise<void>((resolveReady, reject) => {
           const timer = setTimeout(
-            () => reject(new KernelClientError('startupFailed', 'Kernel startup timed out.')),
+            () => {
+              launch.phase = 'ready-timeout';
+              reject(new KernelClientError('startupFailed', 'Kernel startup timed out.'));
+            },
             Math.max(1, deadline - Date.now()),
           );
-          child.once('error', () => {
+          child.once('error', (error: NodeJS.ErrnoException) => {
+            launch.phase = 'spawn';
+            launch.systemCode =
+              typeof error.code === 'string' && /^E[A-Z0-9_]+$/.test(error.code)
+                ? error.code
+                : undefined;
             clearTimeout(timer);
             reject(new KernelClientError('startupFailed', 'Unable to start independent Node.'));
           });
-          child.once('exit', (code) => {
+          child.once('exit', (code, signal) => {
+            launch.phase = 'ready-exit';
+            launch.exitCode = code;
+            launch.exitSignal = signal;
             clearTimeout(timer);
             reject(
               new KernelClientError(
@@ -312,6 +424,8 @@ export async function ensureKernel(
             );
           });
           child.once('message', (message: { state?: string }) => {
+            launch.handshake =
+              message.state === 'ready' || message.state === 'busy' ? message.state : 'other';
             clearTimeout(timer);
             if (message.state === 'ready' || message.state === 'busy') resolveReady();
             else
@@ -324,23 +438,37 @@ export async function ensureKernel(
           });
         });
       } catch (error) {
-        return { state: 'unknown', error: errorInfo(error) };
+        return {
+          state: 'unknown',
+          error: errorInfo(error, { ...launch, elapsedMs: Date.now() - started }),
+        };
       } finally {
         if (child.connected) child.disconnect();
         child.unref();
       }
     }
-    result = await inspectKernel(canonical);
+    inspection = { phase: 'directory' };
+    result = await inspect(canonical, inspection);
     if (result.state === 'running' || result.state === 'unreachable') return result;
     if (result.state === 'unknown' && result.error?.code !== 'unavailable') return result;
     await delay(100);
   }
   return {
     state: 'unknown',
-    error: {
-      code: 'unavailable',
-      message: 'Kernel did not become available; existing ownership was preserved.',
-    },
+    error: errorInfo(
+      new KernelClientError(
+        'unavailable',
+        'Kernel did not become available; existing ownership was preserved.',
+      ),
+      {
+        ...inspection,
+        phase: 'availability',
+        lastPhase: inspection.phase,
+        elapsedMs: Date.now() - started,
+        lastState: result.state,
+        lastErrorCode: 'error' in result ? result.error?.code : undefined,
+      },
+    ),
   };
 }
 

@@ -1,12 +1,25 @@
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
-import { access, readFile, symlink, writeFile } from 'node:fs/promises';
+import { access, mkdir, readFile, symlink, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import { expect, test } from '@playwright/test';
+import { bootstrapKernel } from '../../apps/kernel/dist/bootstrap.js';
+import { inspectKernel } from '../../apps/kernel/dist/lifecycle.js';
 import { createKernelClient, KernelClientError } from '../../packages/client/dist/index.js';
-import { protocolVersion } from '../../packages/protocol/dist/index.js';
-import { cliPath, isolatedKernel, runKernel, runningKernel } from '../kernel-fixture.js';
+import {
+  errorInfoSchema,
+  isBootstrapResult,
+  protocolVersion,
+} from '../../packages/protocol/dist/index.js';
+import {
+  cliPath,
+  isolatedKernel,
+  kernelLifecycleDiagnostics,
+  kernelResultSummary,
+  runKernel,
+  runningKernel,
+} from '../kernel-fixture.js';
 
 test('queries and stops missing configurations without creating them', async () => {
   await isolatedKernel(async (directory) => {
@@ -19,9 +32,18 @@ test('queries and stops missing configurations without creating them', async () 
 
 test('concurrent entries share one canonical instance and separate configurations', async () => {
   await isolatedKernel(async (directory) => {
+    const started = performance.now();
     const replies = await Promise.all(
       Array.from({ length: 4 }, () => runKernel(directory, 'start')),
     );
+    await test.info().attach('lifecycle-initial-start', {
+      body: JSON.stringify({
+        elapsedMs: Math.round(performance.now() - started),
+        replies: replies.map(kernelResultSummary),
+        lifecycle: await kernelLifecycleDiagnostics(directory),
+      }),
+      contentType: 'application/json',
+    });
     const ids = replies.map((reply) => {
       expect(reply.state).toBe('running');
       return reply.state === 'running' ? reply.endpoint.instanceId : null;
@@ -38,6 +60,13 @@ test('concurrent entries share one canonical instance and separate configuration
     const restarted = await Promise.all(
       Array.from({ length: 4 }, () => runKernel(directory, 'start')),
     );
+    await test.info().attach('lifecycle-restart', {
+      body: JSON.stringify({
+        replies: restarted.map(kernelResultSummary),
+        lifecycle: await kernelLifecycleDiagnostics(directory),
+      }),
+      contentType: 'application/json',
+    });
     expect(restarted.every((reply) => reply.state === 'running')).toBe(true);
     expect(
       new Set(
@@ -95,12 +124,43 @@ test('entries wait for occupied stale discovery and compete after it is released
     const exited = once(holder, 'exit');
     try {
       await once(holder, 'message');
-      expect((await runKernel(directory, 'status')).state).toBe('unknown');
+      const occupied = await runKernel(directory, 'status');
+      expect(occupied.state).toBe('unknown');
+      expect(kernelResultSummary(occupied)).toMatchObject({
+        diagnostic: { discovery: true, lock: 'held', phase: 'process', processAlive: false },
+      });
+      await test.info().attach('lifecycle-occupied', {
+        body: JSON.stringify(kernelResultSummary(occupied)),
+        contentType: 'application/json',
+      });
+      const exhausted = await runKernel(directory, 'start');
+      expect(kernelResultSummary(exhausted)).toMatchObject({
+        state: 'unknown',
+        errorCode: 'unavailable',
+        diagnostic: {
+          phase: 'availability',
+          lastPhase: 'process',
+          discovery: true,
+          lock: 'held',
+          processAlive: false,
+        },
+      });
+      await test.info().attach('lifecycle-availability-deadline', {
+        body: JSON.stringify(kernelResultSummary(exhausted)),
+        contentType: 'application/json',
+      });
       const entries = Promise.all(Array.from({ length: 3 }, () => runKernel(directory, 'start')));
       await delay(500);
       holder.send('release');
       await exited;
       const results = await entries;
+      await test.info().attach('lifecycle-after-release', {
+        body: JSON.stringify({
+          replies: results.map(kernelResultSummary),
+          lifecycle: await kernelLifecycleDiagnostics(directory),
+        }),
+        contentType: 'application/json',
+      });
       expect(results.every((result) => result.state === 'running')).toBe(true);
       expect(
         new Set(
@@ -212,5 +272,79 @@ test('shutdown without a connected transport is unavailable', async () => {
     } finally {
       client.dispose();
     }
+  });
+});
+
+test('bootstrap failure diagnostics identify the Node launch without exposing its private path', async () => {
+  await isolatedKernel(async (directory) => {
+    const secret = 'private-bootstrap-value';
+    const result = await bootstrapKernel('inspect', {
+      dataDirectory: directory,
+      nodeExecutable: join(directory, secret, 'missing-node'),
+    });
+    expect(kernelResultSummary(result)).toMatchObject({
+      state: 'unknown',
+      errorCode: 'startupFailed',
+      diagnostic: { phase: 'node-bootstrap', systemCode: 'ENOENT', killed: false },
+    });
+    expect(JSON.stringify(result)).not.toContain(secret);
+    expect(JSON.stringify(result)).not.toContain(directory);
+  });
+});
+
+test('diagnostic attachments retain only allowlisted scalar lifecycle facts', () => {
+  const secret = 'private-connection-value';
+  const summary = kernelResultSummary({
+    state: 'unknown',
+    error: {
+      code: 'unavailable',
+      message: `unavailable\n${JSON.stringify({ phase: 'lock', token: secret, url: secret, nested: { token: secret }, lock: 'held' })}`,
+    },
+  });
+  expect(summary).toMatchObject({ diagnostic: { phase: 'lock', lock: 'held' } });
+  expect(JSON.stringify(summary)).not.toContain(secret);
+});
+
+test('escaped discovery identity cannot make lifecycle errors violate the error contract', async () => {
+  await isolatedKernel(async (directory) => {
+    const endpoint = await runningKernel(directory);
+    expect((await runKernel(directory, 'stop')).state).toBe('stopped');
+    const filename = join(directory, 'runtime', 'endpoint.json');
+    try {
+      // Stale discovery is evidence only, never authority to control this live test process.
+      await writeFile(
+        filename,
+        JSON.stringify({ ...endpoint, processId: process.pid, instanceId: '"'.repeat(256) }),
+      );
+      const result = await inspectKernel(directory);
+      expect(isBootstrapResult(result)).toBe(true);
+      expect(kernelResultSummary(result)).toMatchObject({
+        state: 'unknown',
+        errorCode: 'unavailable',
+        diagnostic: { phase: 'process', lock: 'free', processAlive: true },
+      });
+      if ('error' in result)
+        expect(result.error?.message.length).toBeLessThanOrEqual(
+          errorInfoSchema.properties.message.maxLength,
+        );
+    } finally {
+      await writeFile(filename, JSON.stringify(endpoint));
+    }
+  });
+});
+
+test('bounded lifecycle log attachments discard raw payload and unknown fields', async () => {
+  await isolatedKernel(async (directory) => {
+    const secret = 'private-log-value';
+    await mkdir(join(directory, 'runtime'));
+    await writeFile(
+      join(directory, 'runtime', 'kernel.log'),
+      `${secret.repeat(10000)}\n${JSON.stringify({ phase: 'endpoint-published', at: 42, instanceId: 'instance', processId: 1, token: secret, payload: secret })}\n`,
+    );
+    const rows = await kernelLifecycleDiagnostics(directory);
+    expect(rows).toEqual([
+      { phase: 'endpoint-published', at: 42, instanceId: 'instance', processId: 1 },
+    ]);
+    expect(JSON.stringify(rows)).not.toContain(secret);
   });
 });

@@ -240,6 +240,8 @@ pnpm kernel stop --data-dir /path/to/isolated-profile
 
 运行区的 `lifecycle.sqlite` 只承载系统排他锁，内核持锁至退出；`endpoint.json` 原子保存本次实例和连接资料，`kernel.log` 记录不含凭据的初始化诊断。锁文件持续保留，不能通过删除它来重启仍占用配置的进程。Node 24.12.0 会输出 `node:sqlite` 实验性告警。
 
+生命周期失败沿原错误码返回，错误消息末行JSON记录已观察到的阶段、发现／锁／PID存活事实或Node引导退出结果；不含token、连接URL、参数或私有bootstrap正文。`runtime/kernel.log` 的固定阶段可区分应用加载、初始化、监听、发现发布、服务关闭和锁释放。定向生命周期／入口测试附件只取安全字段和有界日志尾；窗口轮次和WS认证／状态回执分别记录，监听前缺事件不能证明未发生。`connecting` 本身不能区分引导与连接，也不证明macOS受管执行可用。
+
 Electron 通过窄 preload 桥请求内核引导：开发态主进程把请求转发给 electron-vite renderer 的 Vite 引导端点，生产态调用独立 Node CLI。内核使用 PATH 中的 `node`，也可由 `SCHOOLOOM_NODE_EXECUTABLE` 明确指定 Node 24；缺失或错误运行时显示启动失败，不使用 Electron 充当内核。目录包将 Node 入口和运行依赖保留在 `app.asar.unpacked/node_modules`，引导适配转换到真实路径；LangGraph SDK 内自带的打包代码由 afterPack 保留。目录包不附带 Node 可执行程序。已打包桌面默认使用 Electron `userData` 配置目录，显式 `SCHOOLOOM_DATA_DIR` 仍优先。
 
 Vite 启动时发现或启动受管调试内核；浏览器页面初次只查询，用户重试才允许重新启动。引导只接受本机同源请求，运行资料不写入 URL 或构建产物；静态文件与模块入口拒绝读取运行凭据。意外断线会有界重连并重新查询状态，认证或协议错误直接停止尝试。
