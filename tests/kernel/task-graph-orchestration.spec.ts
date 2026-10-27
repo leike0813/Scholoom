@@ -198,7 +198,19 @@ test('the product broker mounts the injected research seam with real task and pr
       role: 'product',
       principal: { kind: 'human', id: 'local' },
     });
-    expect(f.starts[0]?.input.materials).toEqual(expect.arrayContaining([f.read.entry]));
+    assert(result.inputSnapshot?.resource.path);
+    expect(f.starts[0]?.input.materials).toEqual(
+      expect.arrayContaining([
+        {
+          ref: result.inputSnapshot.resource.ref,
+          basis: result.inputSnapshot.resource.basis,
+          role: 'task-input',
+        },
+      ]),
+    );
+    expect(
+      JSON.parse(await readFile(join(f.project.path, result.inputSnapshot.resource.path), 'utf8')),
+    ).toMatchObject({ task: f.input.task, entry: f.read.entry, content: f.read.content });
     expect(
       (await f.app.call('tasks.read', { task: f.input.task })).metadata.links?.some(
         (link) => link.id === f.input.processOperationId,
@@ -309,6 +321,7 @@ test('task graphs derive current project and library evidence from the real entr
     expect(result.taskAssociation.state).toBe('confirmed');
     expect(f.starts).toHaveLength(1);
     expect(f.starts[0]?.context).toBe(f.context);
+    assert(result.inputSnapshot);
     expect(f.starts[0]?.input).toEqual({
       projectId: f.project.id,
       sessionId: input.sessionId,
@@ -318,7 +331,11 @@ test('task graphs derive current project and library evidence from the real entr
       version: input.version,
       config: input.config,
       materials: [
-        read.entry,
+        {
+          ref: result.inputSnapshot.resource.ref,
+          basis: result.inputSnapshot.resource.basis,
+          role: 'task-input',
+        },
         { ref: library.ref, basis: library.basis, role: 'source' },
         { ref: f.source.ref, basis: f.source.basis, role: 'source' },
       ],
@@ -329,7 +346,14 @@ test('task graphs derive current project and library evidence from the real entr
       join(f.project.path, `tasks/${input.processOperationId}.graph-call.md`),
       'utf8',
     );
-    expect(JSON.parse(pointer)).toEqual(result.call);
+    expect(JSON.parse(pointer)).toMatchObject({
+      ...result.call,
+      inputSnapshot: {
+        ref: result.inputSnapshot.resource.ref,
+        basis: result.inputSnapshot.resource.basis,
+        role: 'task-input',
+      },
+    });
     const saved = await f.tasks.read({ task: input.task });
     expect(saved.content.startsWith('\uFEFF')).toBe(true);
     expect(saved.content.slice(saved.content.indexOf('\r\n---\r\n') + '\r\n---\r\n'.length)).toBe(
@@ -439,7 +463,7 @@ test('an entry conflict after start retains the actual call, process file and ma
           'utf8',
         ),
       ),
-    ).toEqual(result.call);
+    ).toMatchObject(result.call);
     expect((await f.tasks.read({ task: f.input.task })).content).toBe(manual);
     expect(
       await f.app.call('resources.creation', {
@@ -476,7 +500,7 @@ test('a published entry whose history registration fails reports association unk
           'utf8',
         ),
       ),
-    ).toEqual(result.call);
+    ).toMatchObject(result.call);
     expect(
       (await f.tasks.read({ task: f.input.task })).metadata.links?.some(
         (link) => link.id === f.input.processOperationId,
@@ -516,13 +540,47 @@ for (const state of ['failed', 'unknown'] as const) {
       expect((await f.tasks.read({ task: f.input.task })).content).toBe(f.read.content);
       const saved = await readFile(join(f.project.path, path), 'utf8');
       if (state === 'failed') expect(saved).toBe('已有文件不得覆盖。');
-      else expect(JSON.parse(saved)).toEqual(result.call);
+      else expect(JSON.parse(saved)).toMatchObject(result.call);
       expect(f.starts).toHaveLength(1);
     } finally {
       await f.close();
     }
   });
 }
+
+test('unconfirmed input publication preserves its operation and never starts research', async () => {
+  const f = await fixture();
+  try {
+    f.app.projects
+      .get(f.project.id)
+      .database.exec(
+        "CREATE TRIGGER reject_input BEFORE INSERT ON file_references BEGIN SELECT RAISE(ABORT, 'synthetic input registration failure'); END",
+      );
+    await expect(f.graphs.run(f.input, f.context)).rejects.toMatchObject({
+      code: 'outcomeUnknown',
+    });
+    expect(f.starts).toHaveLength(0);
+    const operationId = `${f.input.processOperationId}_input`;
+    f.app.projects.get(f.project.id).database.exec('DROP TRIGGER reject_input');
+    expect(
+      await f.app.call('resources.creation', { projectId: f.project.id, operationId }),
+    ).toMatchObject({ operationId, state: 'complete' });
+    expect(
+      JSON.parse(
+        await readFile(
+          join(f.project.path, `tasks/${f.input.processOperationId}.graph-input.md`),
+          'utf8',
+        ),
+      ),
+    ).toMatchObject({ task: f.input.task, entry: f.read.entry, content: f.read.content });
+    await expect(
+      stat(join(f.project.path, `tasks/${f.input.processOperationId}.graph-call.md`)),
+    ).rejects.toMatchObject({ code: 'ENOENT' });
+    expect((await f.tasks.read({ task: f.input.task })).content).toBe(f.read.content);
+  } finally {
+    await f.close();
+  }
+});
 
 for (const outcome of [
   'unknown',

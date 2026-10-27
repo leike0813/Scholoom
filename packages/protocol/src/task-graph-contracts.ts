@@ -1,9 +1,43 @@
 import type { FromSchema } from 'json-schema-to-ts';
 import { type CallContext, errorInfoSchema } from './core.js';
 import { graphDefinitionSchema } from './graph-contracts.js';
-import { resourceCreationResultSchema, type resourceEvidenceSchema } from './resource-contracts.js';
-import { count, id, object, page, project } from './schema.js';
+import { resourceCreationResultSchema, resourceEvidenceSchema } from './resource-contracts.js';
+import { content, count, id, object, page, project } from './schema.js';
 import { taskRefSchema } from './task-contracts.js';
+
+export const taskGraphInputOperation = (processOperationId: string): string =>
+  `${processOperationId}_input`;
+
+export const taskGraphInputSnapshotSchema = object(
+  {
+    kind: { const: 'research-task-graph-input' },
+    formatVersion: { const: 1 },
+    task: taskRefSchema,
+    entry: resourceEvidenceSchema,
+    workItemId: id,
+    sessionId: id,
+    invocationId: id,
+    instructionId: id,
+    sources: {
+      type: 'array',
+      maxItems: 100,
+      items: object({ linkId: id, evidence: resourceEvidenceSchema }, ['linkId', 'evidence']),
+    },
+    content,
+  },
+  [
+    'kind',
+    'formatVersion',
+    'task',
+    'entry',
+    'sessionId',
+    'invocationId',
+    'instructionId',
+    'sources',
+    'content',
+  ],
+);
+export type TaskGraphInputSnapshot = FromSchema<typeof taskGraphInputSnapshotSchema>;
 
 export const taskGraphOperations = {
   'tasks.graphs': {
@@ -63,6 +97,7 @@ export const taskGraphOperations = {
           ['projectId', 'sessionId', 'invocationId', 'instructionId', 'runId'],
         ),
         process: resourceCreationResultSchema,
+        inputSnapshot: resourceCreationResultSchema.anyOf[0],
         taskAssociation: object(
           {
             state: { enum: ['confirmed', 'failed', 'unknown', 'pending'] },

@@ -121,7 +121,9 @@ SCHOOLOOM_UI_PORT=5343 node node_modules/@playwright/test/cli.js test --config p
 
 定向检查：`tests/kernel/research-tasks.spec.ts`（文件任务／人工组合／恢复）、`task-tools.spec.ts`（工具范围）、`research-task-agent.spec.ts`（真实内部执行与受控模型接续）、双宿主 `tests/ui/research-tasks.spec.ts`。构建与UI仍须分开，隔离配置及临时服务只收尾本轮归属。
 
-任务详情的“运行科研图”经`tasks.graphs/runGraph`使用当前选定会话。项目重读完整TaskRef、入口basis及sourceLinkIds，派生实际材料依据；调用回执保存为独立process材料，再条件更新任务入口。`TaskResearchPort`由科研所属适配注入，负责人工身份、空闲会话、执行授权及原调用去重；未注入时目录明确不可用，不注册测试图。当前注入端口验收不表示真实科研组合I1通过。启动未知保留原invocationId／instructionId／processOperationId；过程保存与任务关联分别核查，不能重跑代替补关联。
+任务详情的“运行科研图”经`tasks.graphs/runGraph`使用当前选定会话。项目重读完整TaskRef、入口basis、workItemId及sourceLinkIds，派生实际材料依据。Kernel默认TaskResearchPort经broker调用科研所属`research.graphs/requestGraph`，保留原人工身份、会话、执行授权及去重；Manual仍可独立使用，显式注入端口用于模块组合。生产目录保持空，不注册校准图。
+
+启动前通过原资源创建操作保存`tasks/<processOperationId>.graph-input.md`，操作身份为`<processOperationId>_input`。输入快照记录原TaskRef／入口Evidence、session／invocation／instruction、工作项、来源指针和入口正文，只作本次历史输入；库正文不复制，入口自己不能重复选择为实时来源。快照完整确认且入口重读未变后，Graph读取快照及所选来源的真实Evidence，容量沿实际图声明。调用回执再保存为独立process材料，包含原调用及快照引用，最后条件关联任务入口。启动未知保留原请求身份；过程保存与任务关联分别核查，不能重跑代替补关联。任务详情有界读取历史输入时保持原ref/basis，外部修改后明确拒绝。
 
 ## 文件修改记录与来源
 

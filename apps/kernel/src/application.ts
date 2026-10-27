@@ -321,6 +321,21 @@ export class KernelApplication extends ManualApplication {
   protected override checkExecutionContext(context: CallContext): void {
     this.harness.checkExecutionContext(context);
   }
+  protected override taskResearchPort(): TaskResearchPort {
+    return (
+      super.taskResearchPort() ?? {
+        graphs: async (input, context) => {
+          const result = await this.modulePort(context, 'projects').call('research.graphs', input);
+          return {
+            graphs: result.descriptions.map(({ definition, name }) => ({ definition, name })),
+            ...(result.nextOffset === undefined ? {} : { nextOffset: result.nextOffset }),
+          };
+        },
+        start: (input, context) =>
+          this.modulePort(context, 'projects').call('research.requestGraph', input),
+      }
+    );
+  }
   startGraph(
     input: HarnessModuleInputs['harness.startGraph'],
   ): Promise<HarnessModuleOutputs['harness.startGraph']> {

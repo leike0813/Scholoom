@@ -66,6 +66,8 @@ export function useBusinessSession(
     return {
       list: (input) => client.call('tasks.graphs', input),
       run: (input) => client.call('tasks.runGraph', input),
+      readInput: ({ ref, basis }) =>
+        client.call('resources.read', { ref, basis, encoding: 'utf8', limit: 262144 }),
     };
   }, [client, phase]);
   const [error, setError] = useState('');

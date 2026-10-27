@@ -115,6 +115,9 @@ export interface WorkbenchSession {
   fileRevision?: number;
   taskPort?: TaskPort;
   taskGraphs?: {
+    readInput: (
+      input: import('@scholoom/protocol').ResourceEvidence,
+    ) => Promise<import('@scholoom/protocol').ResourceOutputs['resources.read']>;
     list: (input: TaskGraphInputs['tasks.graphs']) => Promise<TaskGraphOutputs['tasks.graphs']>;
     run: (input: TaskGraphInputs['tasks.runGraph']) => Promise<TaskGraphOutputs['tasks.runGraph']>;
   };
