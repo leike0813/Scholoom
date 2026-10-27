@@ -14,6 +14,12 @@
 
 下一轮五条任务与两条等待按[共同计划](../../../.scratch/domain-development/parallel-development-plan.md#第十一轮验收后的安排)。主线先统筹公共取证字段／归属，项目补真实窗口侧，Agent补自有model-kernel执行侧，科研等两片共同合入再消费；计算取目标反例，文献做现有范围的Linux业务整合，阅读只做普通权限原生机制校准，生态等待。同步及实际发送回执在完成后补本节，不提前声明七树已启动。
 
+共同源码与计划已随`29cd7283388dfd752911eacb9c3bf8416031db15`推送。七树逐一快进至该基线，同步完成时全部clean；七树完整构建、包及tools类型、架构、生成器self-test均通过。定向首轮六树通过，Agent树context-session在browserContext.close写附件时遇到EDQUOT，派发守卫正确停止。原失败保留，仅将同一树、同一源码、同一用例的输出及TMPDIR迁到`/home/joshua/.cache/scholoom-round11-sync-L7WOJn/`补验，1/1通过（7.1秒），未改断言或期限。七个定向项各有通过依据，不称首轮7/7；raw与显式补验分别保存在sync-kernel-results／recheck／effective-results.json。首次同步调用的错误提交ID也被祖先校验在写树前拒绝，日志保留；实际同步基线以git核对的上述完整ID为准。
+
+完成全部检查后，派发前再次核对共同HEAD／clean、唯一Codex终端、GPT-6.1-Sol high及空输入，才发送七份原会话prompt，每份仅发一次。全部accepted；项目／科研两份API明确turn_started，其余五份保留API原始input_accepted，并以发送前空闲及发送后新的助手回复／Working／Compacting取独立活动依据，没有伪造API阶段。五条有界任务已交付，科研／生态接收等待指令，七个Orca卡片已按计划更新。证据为同目录prompts、dispatch-receipts、各树dispatch-start-evidence及final-dispatch-summary.json；没有新建终端或等待下一轮实现结束。
+
+新源码Windows diagnosis40591705558及Checks40591705520在派发前查询时仍运行，未记为通过。用户本轮无需手动同步。此收尾提交仅补本文件的同步／回执事实并使用`[skip ci]`，七树继续从已验证29cd728工作，不为回执文档再次同步已启动的树；主线验收范围及未完成事项保持上文边界。
+
 ## 第十轮主线验收
 
 主线起点8c2fd24，七树共同源码4312262。五树含untracked成果经临时index冻结、核对真实staging后建立本地检查点，再no-ff合入dev，五次无冲突；项目／科研按约无增量。接入时25个未有意修改的单线文件逐字节保留，之后主线修报告夹具、增加三个可信测试进程文件并更新所属OpenSpec、开发说明及并行计划。证据根`/tmp/scholoom-round10-acceptance-j1MosP/`保留snapshots、checkpoint-commits、source-preservation及逐树merge.log，没有reset／rebase、覆盖成果或推送工作树分支。
