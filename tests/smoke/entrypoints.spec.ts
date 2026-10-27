@@ -208,17 +208,18 @@ test('desktop closes without stopping kernel and a new window reconnects', async
         throw error;
       } finally {
         if (app) {
+          const child = app.process();
           note('desktop-close-requested');
           try {
             await closeDesktop(app);
           } finally {
             note(
-              app.process().exitCode !== null || app.process().signalCode !== null
+              child.exitCode !== null || child.signalCode !== null
                 ? 'desktop-exited'
                 : 'desktop-close-unconfirmed',
               {
-                exitCode: app.process().exitCode,
-                signal: app.process().signalCode,
+                exitCode: child.exitCode,
+                signal: child.signalCode,
               },
             );
             await test.info().attach(`desktop-close-${attempt}`, {

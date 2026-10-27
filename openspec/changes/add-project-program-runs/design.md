@@ -212,6 +212,14 @@ runtime合并还须保留Agent的instanceLifecycle.onStopping中childrenControll
 
 ## 待办边界
 
+### 共同8a2f0ce后的目标CI消费与采样修正
+
+正式输入为 `/tmp/scholoom-round7-acceptance-SdxHy8/`。39be889／40432749785的Windows并发入口在首批4个start返回后收到unknown；占锁释放竞争本轮已通过，不沿用上一轮“两例失败”。该基线没有本轮安全stage日志。8a2f0ce／40445841861的Windows execution diagnosis成功，但只覆盖开发所有权与初次Electron等定向路径，不含lifecycle并发两例。完整Checks 40445842005的运行中job不作通过结论。
+
+8a2f0ce的macOS已完成artifact 12708646055：两次窗口均连接、同实例，第一次关窗后内核仍running；失败为第二次关窗后诊断调用app.process()，Playwright已释放通道对象导致TypeError。最小修正限entrypoints夹具，在关窗前取得ChildProcess引用，后续退出观察只读此引用；不改变closeDesktop原有关闭／退出等待或生产行为。该反例能定位新失败，不推断更早macOS连接失败的根因；macOS受管执行不可用与人工入口可用分开验收。
+
+Windows采样限lifecycle直接夹具：各并发入口记录序号、startedAt／returnedAt及既有安全summary，全部入口结算后、断言前保存一次有界stage日志尾及sampledAt；CLI拒绝也先保存已知结果再抛出。占锁及availability附件移至断言前。用stage.at与入口返回时间比较先后，日志尾不完整及首窗监听前事实仍未知。不增加轮询、生产日志框架、时限、重试或锁／PID推断。先构建再运行改动的两条并发／占锁路径及真实Electron入口；必要故障注入只替测试观察API，不替内部内核／仓储／文件。Windows新Checks可用时消费已有artifact；没有目标结果则保留待验。
+
 ### 共同4b13183后的生命周期诊断切片
 
 最新CI是6b22d60／40315429083：Linux内核689通过9失败16跳过，Windows628通过49失败30跳过，macOS入口3通过1失败。原始日志与平台清单位于 `/tmp/scholoom-round6-acceptance-dXuzCA/`。Windows生命周期两例在并发start返回后断言unknown／非running；artifact仅有测试trace，未保留各CLI错误／发现锁详情。macOS失败实际发生于第一次launch的初始连接，不是已执行的关闭重开；trace没有bootstrap或WS到达记录。13s UI等待与bootstrap最长17s、随后连接分阶段等待的预算差异只能解释诊断缺失，不能据此认定根因或延长等待。
