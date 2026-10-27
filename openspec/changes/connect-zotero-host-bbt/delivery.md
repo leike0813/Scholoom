@@ -1,6 +1,35 @@
 # 实际交付与交接
 
-## 当前交付：E4断联写入夹具送达边界（R9）
+## 当前验收：同源码Windows实际送达监督子项（R10）
+
+当前HEAD为`4312262c1a1f432ccd706dd1eb6ff6468765fd4e`，起始clean，主线已保全接入R9并同步。本轮仅只读消费新共同源码Windows目标实跑，修改本tasks／delivery，不改生产或测试代码。**Windows未派发拒绝／实际送达后未知／稳定关联与重启不重放代表边界已通过，本监督子项闭合；完整E4／I6继续开放。** 下文R9的Windows待验和旧trace是当时交回事实，当前目标结果以本节为准。
+
+### 同源码、实际命令与结果
+
+- Run：本仓Windows execution diagnosis [40476577132](https://github.com/leike0813/Scholoom/actions/runs/40476577132)，headSha与当前HEAD完整相同；job `122096177677`（execution）。run已completed且总体failure，不能据此把每个步骤或用例计失败。
+- Host步骤：`Verify delivered host mutations retain uncertainty`，08:57:45–08:58:26 UTC（2026-10-27），success。原始命令为`pnpm --config.optimisticRepeatInstall=false exec playwright test --config playwright.kernel.config.ts tests/kernel/host-connection.spec.ts --workers=1 --output test-results/windows-host`，逐例24/24通过，39.5秒，无skip；第7项host-connection:159的失联写入例1.4秒通过。构建步骤`pnpm --config.optimisticRepeatInstall=false build:shared`已于08:54:12 UTC成功，先构建后运行目标，期间无重建。
+- 原始日志：主线交接`/tmp/scholoom-round9-acceptance-IER31D/windows-diagnosis.log`中host步骤38行与本轮`gh run view ... --job 122096177677 --log`下载逐字相同；不是只读workflow定义或以step success推定24项均通过。availability／Agent等其他步骤失败交所属线，本轮不归因或计关闭。
+- Artifact：`12721785916`，`windows-execution-diagnostics`，492078字节；只读下载至`/tmp/scholoom-zotero-r10-evidence-MzsXX9/windows-execution-diagnostics-12721785916.zip`。实际成员`windows-host/host-connection-transport--4a66c-ion-or-replay-it-on-restart/mutation-loss.json`已提取为同目录`mutation-loss.windows.json`，非旧caf9025／b2f3b50的trace。
+
+### 实际送达与稳定关联核对
+
+核对当前源测试及固定host：同一用例先在未ready时调用wait，断言unavailable且unresolved为空；启动后wait进入真实invoke，先通过已有sample.read回调报到，测试观察原caller后读取已持久监督文件，再主动drop。收到回调意味着实际handle已通过HostConnection的在途／scope／可信context核对，不以内存unresolved出现代替送达。Windows该用例完整通过，包含其后outcomeUnknown、关闭及新连接start拒绝不重放的断言。
+
+工件实际值：caller=`caller`；accepted.hostInstanceId=`616cb438-10e9-4f77-9907-ae8be021eb80`、commandInstanceId=`8abd8138-8b94-43fc-8a0f-eb715a3c4a9a`、unresolved=`[stable-domain-operation]`。closed仍为相同host／command实例，state=unknown、scopeStopped=true、pluginClosed=false、pendingCallbacks=0，稳定操作关联保持，reason=hostConnectionLost。该JSON未另存handle字符串或拒绝码／重启回执；这些边界的依据是同源码用例断言与逐例通过日志，不能伪称JSON直接记录了所有事件。正常关闭、回调超时仍跟踪／占容量、恢复占用及启动授权等其余原有监督用例也在这24项中，但不推广为所有原包、平台或生产路径已验收。
+
+真实／夹具边界沿R9：Windows真实受管Node固定host、认证WS、RpcPeer、OS原生归属和监督文件；固定host的wait挂起及drop断联是故障夹具，非BBT或共同库业务写入。正式回归没有R9临时save调度gate，没有模型或文献库替身。
+
+### 首次失败、校验与停点
+
+历史失败保留：Checks `40455958976`／caf9025完整Windows组中的原host-connection:159，预期outcomeUnknown而实际unavailable，见主线`ci-baseline-failures.log:2740`附近；更早R9红例及校准仍保留。该旧源码／旧trace不能证明本轮修正后结果。新4312262 host步骤本次首个目标实跑24/24通过，无本轮新的目标失败，也未通过重试／sleep／加timeout获得通过。
+
+本轮执行只读`gh run view`核run/head/job/逐例日志、`gh api .../actions/runs/40476577132/artifacts`核元数据及下载指定artifact，使用已有unzip读取目标成员。只消费远端先build后test证据，没有本地重建或重复监督／BBT／TeX测试。收尾OpenSpec strict、git diff --check及文档增量反向git apply --check通过；没有代码／schema变化，无需重跑类型／架构或生成映射。
+
+新Checks `40476577071`／4312262在本轮查询时仍in_progress，不把启动计通过，也不轮询等待其他线。用户指定最近完整组基线仍单列：40455958976／caf9025，Linux743通过1失败26跳过、Windows687通过41失败42跳过、macOS人工UI13通过1失败；原生定向和fallback／入口不替代完整组。本轮仅关闭上述Windows监督子项，不能把availability、Agent、并发启动、原包业务或完整E4／I6计关闭。
+
+证据、原始日志／run快照／artifact、精确成员来源及仅两份文档的增量补丁在`/tmp/scholoom-zotero-r10-evidence-MzsXX9/`，manifest列引用。R10完成后任务累计25/34，原2.3／4.2等完整前置继续开放。到本片验收记录交回即停止，没有生产实现、依赖安装／下载、开发服务器、真实用户库、Git同步／提交／push／PR／归档或其他树操作；仅下载了本仓安全CI工件。
+
+## 已接收：E4断联写入夹具送达边界（R9）
 
 基线及当前HEAD为`0b788151b5e17665a26d9286dfd1d12f6e2e0c30`，开始时clean。本轮按“第八轮验收后的收敛安排”只处理Windows host-connection:159的取证与夹具因果；原R8已接收，GUI由文献消费。R9三项完成后累计24/33，其余原任务及跨平台／生产／整体I6保持开放。本节替代旧轮的当前状态，不应用历史累计patch或修改已接收原值API。
 
