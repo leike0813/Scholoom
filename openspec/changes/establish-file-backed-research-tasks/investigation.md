@@ -92,3 +92,55 @@ flowchart LR
 可闭合：首批入口目录和格式、显式任务引用、按页发现、任务文件条件保存、材料导航、工作台接入、文件保存与入口关联分开核查。对应实现及验收见 design／tasks。
 
 不可闭合：W1／W3／W4的相应真实接线与整合，以及M2待审新协议。资料已收到的事项不再以“未收到文件”阻塞。任务元信息不被研究图、运行状态或会话替代，未知保存效果不自动重放，库读取无fallback。规划工件齐备不表示这些前置已就绪或已获实施授权。
+
+## 2026-10-28：file-workbench双宿主首模型计数的只读取证
+
+本片只调查Checks **40479176954**、源码 **8c2fd24534001a9724f9c008482d404c336a5a07** 的两个指定场景，不改源码／测试，不关闭4.1。当前树HEAD为938c33f2c9fcafb2cce11b0c165b2fb1e9a818c3；主线安排及原日志见`/tmp/scholoom-round10-acceptance-j1MosP/`。上述首轮规划的未接入描述只作历史；I1、4.4c及M2已接收，本片不重做。
+
+### 证据来源与承载
+
+只读GitHub API确认run/head及artifact **12728680109 / diagnostics-ubuntu-latest**（65,548,621字节、未过期），与主线ci-baseline日志／矩阵匹配。实际选取20个文件，包括两场景各Browser／Electron的trace、error-context及失败前手动截图；原ZIP目录共476项，没有本轮全局UI profile，也没有目标项目DB／checkpoint或worker stderr。证据根为 **`/tmp/scholoom-file-workbench-r10-jFEF4T/`**，以下相对路径均基于该根：
+
+- `run-source.json`、`artifact-source.json`保存API来源；`artifact-inventory.json`保存目录，`selected-manifest.json`保存20项大小及SHA256。
+- 四份trace在`selected/ui-5174/`下的`file-workbench-project-fil-79a6c-y-rename-trash-and-recovery-ui-{browser,electron}/trace.zip`及`file-workbench-resident-pr-7ae0b-preserve-each-project-draft-ui-{browser,electron}/trace.zip`，全部通过`unzip -t`。每份内嵌file-workbench源码均与CI／当前树逐字节相同。
+- `source-comparison.json`核对测试、model-kernel／model-server、UI fixture／RPC gate、Playwright配置、workflow及harness runtime／remote-agent／execution-driver，均与CI相同。当前lifecycle及kernel-fixture已有后续诊断增量，不能倒写为旧CI取证。
+- Browser trace的`1-trace.network`通过`response.content._file`指向kernel WebSocket JSONL；原帧提取为各自`trace-content/kernel-websocket.jsonl`，下文行号就是JSONL的一基行号。`focused-rpc.json`及根`bounded-evidence.json`保留所需请求／回执／身份／时序，剔除认证及configure载荷。Electron真实窗口没有同等网络记录。
+
+CI job122104867775的build步骤成功，步骤23实际运行`xvfb-run -a pnpm test:ui`并失败，artifact上传步骤27成功，原阶段摘取在`ci-step-source.json`。`playwright.ui.config.ts`起Vite renderer（5174）、单worker、零重试，Browser与真实Electron共用产品组件。两个场景导航`/`，没有开发样例参数；`startModelKernel`替换的是外部HTTP模型地址，内部serveKernel、broker、仓储和worker真实。没有在本机启动开发服务器或把这些场景放进普通静态产品重跑。静态承载的本机通过／失败均不能补该CI事实。
+
+### 每个场景的最早未闭合环节
+
+| 场景／宿主 | 已证发送及受理／首模型前状态 | 最早未闭合边界及归属 |
+| --- | --- | --- |
+| 预览、改名、回收恢复／Browser（原111行） | WS行267的`session.send`（RPC 130）09:52:21.455Z发送，268于21.472Z返回instructionId／runId；270、275的watch显示同指令accepted、同run queued、provider configured。原5秒poll结束仍计数0 | 已受理后至首个可计数模型HTTP之间；没有worker实例／PID、进程准入、initialize、consume或model.acquire证据。交Agent按下面绑定身份继续，不称文件保存失败 |
+| 同场景／Electron（原111行） | test.trace确认填消息、点击及poll期望1实际0，结束10:14:30.394Z；实际窗口`1-trace.network`为0字节，trace没有该窗口RPC／snapshot | 发送回执、项目/session/run及worker身份均缺证，不能套Browser身份或断定同因。公共UI夹具需要真实Electron窗口trace及清理前快照，Agent再核执行 |
+| 多项目草稿切换／Browser（原400行） | WS行392的`session.send`（RPC 195）09:52:49.163Z发送，393于49.181Z返回；395、400显示Alpha会话同指令accepted、同run queued、provider configured。原5秒poll结束计数0 | 同样只定位到受理后／首可计数HTTP前；不能据queued认定具体worker初始化或容量问题。交Agent独立按该run取证 |
+| 同场景／Electron（原400行） | test.trace确认切回Alpha、填消息、点击及poll期望1实际0，结束10:14:58.138Z；实际窗口network仍为0字节 | 尚无发送／受理身份链，先补公共夹具取证，不能将两个Browser run当作它的执行事实 |
+
+上述时间均为2026-10-27 UTC。Browser精确绑定如下，完整回执在`bounded-evidence.json`，无需从标题猜运行：
+
+| 字段 | 预览Browser | 多项目Browser |
+| --- | --- | --- |
+| projectId | `2225856a-c66b-4ca1-ade5-4b9eb63aaecc` | `217aec79-6e9e-41a4-9154-9e87b87aaa41` |
+| sessionId | `44b2bef7-dd5a-49ed-9807-f17117815941` | `a450364c-6390-4048-bd2f-4a8e45dd9f70` |
+| instructionId | `f72a6ade-97ee-4dc3-bff6-9e5b8e3381a5` | `60e13060-fff9-4044-8d4d-9bc94c3d0942` |
+| runId | `97a4c35d-dd58-4838-aec6-dfc229cc214e` | `cae289fd-3050-4899-b3fc-11059247d6b7` |
+| bootstrap kernel instance／PID | `9bccaf57-6452-436b-9711-831c847c0146`／23524 | `c0a9f4f4-cf48-47aa-b28f-28749f58d030`／23710 |
+
+bootstrap PID是内核进程，**不是worker PID**。最后实际watch分别在09:52:21.526Z和49.246Z，随后没有新的run进展回执；不能把早期queued快照扩大成持续逐阶段观测。原项目数据库已随finally清理，不能离线核其run_instances或checkpoint。
+
+Browser的`kernel.stopping`分别在WS行276（09:52:27.451Z）和401（09:52:55.098Z），晚于计数断言失败约1.1秒，符合finally的`stop()`。error-context在清理后显示“正在停止内核”“Not connected…草稿已保留”，不能倒推停机或保存报错是计数失败前的首因。
+
+### 实际文件动作及不能外推的结论
+
+第一场景在失败前已创建目录、文件及本地图片；Browser WS行71–72确认`files.save`创建空入口，139–140确认`resources.save`将221字符Markdown保存到`notes/draft.md`（fileId `309663cf-5603-4928-a20d-94567a0a9ccc`，新basis在回执）。顺序执行的磁盘内容断言通过，随后未保存段落仍在编辑器／预览、表格／公式／本地图片及远端图片阻止均已核对；两宿主保存了预览截图。新会话发送之后才会进入大文本／延迟测量、目录改名、回收恢复与重新打开项目，这些后续主体**没有执行**。新增段落只验证了草稿保留，不称它已落盘，也不能称本次失败丢失草稿。
+
+第二场景先以文件系统创建Alpha／Beta初始内容并登记可信项目／会话，已完成迟到创建保护、两个项目各自编辑及切回后草稿仍在的断言和截图。Browser这段UI没有files.save或resources.save请求；新草稿未要求保存，不能称保存失败。仅Alpha首条消息已发送；Beta后台发送、双项目运行标记、释放模型后完成和最终两请求断言均未到达。两宿主都不能据此宣称持久化／刷新恢复或后续消息隔离已通过。
+
+`model-server.ts:530–544`只在目标POST路径、完整JSON解析成功后将请求加入requests，再等待hold；因此hold=true不能解释已登记请求仍为0。但零计数也不能排除错误路径、JSON拒绝／未读全或更早阶段未完成。没有实际worker／模型准入记录，不把它定为同一个harness初始化缺陷。
+
+### 交回的窄取证边界
+
+Agent可从两份已绑定Browser回执继续核`Harness.send/schedule`（runtime.ts:970、1214）、`RemoteAgent`进程启动／`execution.initialize`（remote-agent.ts:284、418）、`execution.beforeModel`与`execution.consume`、`model.acquire`。send在指令事务及setRun后才返回（runtime.ts:1154–1189），成功回执与后续accepted快照证明领域受理，但不是worker已启动或模型已发出的证明。queued同样不能区分reservation、initialize、指令消费或模型排队；当前不在项目树并改这些提供者。
+
+公共UI夹具的缺口是实际Electron上下文未跟踪，且两场景在首次计数前没有附加所属run的阶段／容量／模型准入事实，finally又删掉项目／配置。需要绑定原项目/session/run、在清理前取得一次实际snapshot与worker阶段，并保留Electron窗口的RPC流；这只是本片交回的取证要求，没有新增探针或修改model-server／期限。项目提供者本片无确证保存、版本或草稿缺陷可修。两场景具有相同表面边界，不足以证明同因；达到上述精确缺证即停止。
