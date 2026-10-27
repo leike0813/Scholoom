@@ -1,5 +1,61 @@
 # 实际交付与交接
 
+## 938c33f后的完整附件路径及初始化窄观察
+
+起始clean，HEAD=`938c33f2c9fcafb2cce11b0c165b2fb1e9a818c3`；消费`/tmp/scholoom-round10-acceptance-j1MosP/`的验收、原冻结输入、main诊断和CI日志，没有重放旧patch或同步其他树。本轮第15组完成，change为38/42；4.2/4.3平台与6.1/6.2科研整项继续开放。**审查修正后的组合5/5通过**：原取消/excerpt/完整附件三例，加有/无观察器的初始化发送拒绝两例；此后只增强两例的故障命中断言并定向2/2通过。没有本增量Windows通过或真实科研质量结论。
+
+### 实际增量与职责
+
+- `literature-attachment-integration.spec.ts`：导入、reader、记录三个实际session各一个observer，全部保留到测试finally、内核清理前才stop。reader沿同session覆盖读取run与撤权新run；当前操作的observer保存首次错误，完整字节、PDF记录、撤权无新模型请求、路径及读取拒绝断言保留。`expectRunState`是本测试唯一的执行状态采样点，四段仍为原5/5/20/5秒，仅共用[100,250]间隔；批次等待未改，不再逐个断言补等待。
+- `tests/execution-diagnostics.ts`：明确`modelRequestsAtStart`，仍为每observer最多32样本/32进程/16标记/256KiB及500ms诊断读取预算；另有最多32条控制阶段，截断计数可见。新控制阶段与进程记录先用所属项目只读仓储核对instance/session/run，丢弃其他会话事件。移除全局child_process订阅；children现在记录实际worker PID、onStart时点与单列的controller退出码/信号，不含未归属的其他session进程。controller退出本身不替代完整停止证明，最终实例exited仍来自原生命周期。
+- `packages/harness/src/remote-agent.ts`：沿既有受校验IPC发布`scholoom.harness.execution`内部元数据，含onStart、initialize发送成功/响应/拒绝、beforeModel/consume/model.acquire请求与结果、controller退出。仅绑定instance、固定阶段及必要错误码/退出码；没有正文、载荷、令牌或密钥。sent在原发送Promise成功后才发，response是原有效初始化响应；不伪造独立worker监听就绪事件。原校验/授权/租约/异常/停止路径不变，无额外IPC调用、方法或DTO。
+- `architecture.json`仅登记harness原remote-agent适配文件的`diagnostics_channel` API，没有扩大其他文件/系统API或改守卫；最终内核manifest与本源文件一致。`execution-isolation.spec.ts`扩展两个发送拒绝回归，详见下文。其余修改仅为本change原design/tasks/delivery，无协议/生成映射、库/项目/报告业务或UI变化。
+
+设计依据与实际路径见[本片设计](design.md#附件完整路径与初始化观察938c33f)及原变更总览。模型计数为每个测试内HTTP夹具的累计数：完整路径observer起点0/2/4，撤权前后均9，不能把其他session增加的请求算入某一run。阶段mark是测试观察时点，控制事件由绑定实例的原调用链产生，均不用于猜测instruction/tool作者或赋予新权限。
+
+### 首次失败、审查与最终验证
+
+原始文件为`/tmp/scholoom-agent-round11-<名称>.{log,json}`；交接包`/tmp/scholoom-agent-round11-handoff-vi68Ey/`含精确命令、独立补丁、原始结果及有界附件。用户已提供同步构建，初次只改测试故复用该产物；修改生产窄观察后先构建，任何测试运行期间均未重建。
+
+| 名称 | 实际结果及证据边界 |
+| --- | --- |
+| `path-red` | 首个完整观察1失败，65行首导入completed等待；4872ms失败，工具complete/累计模型2，4876ms实例stopping，尚未到reader或撤权。与主线190行撤权失败分别保留，不拼接 |
+| `build` / `manifest-build` | 先`pnpm --config.optimisticRepeatInstall=false --filter @scholoom/kernel... build`；架构声明补齐后再单独构建kernel复制manifest，均通过，之后才测试 |
+| `combined` | 候选稿2通过/1失败，195行撤权新run等待failed。受理后3757ms初始化响应、3827ms消费确认、3901ms模型准入permissionDenied、4025ms原等待失败/4029ms实例stopping，HTTP仍9。属于审查前候选，不能作为最终发送异常语义或进程归属验收 |
+| `revoke-observed` | 独立/tmp观察运行1通过，原默认轮询自然通过，没有触发捕错后的继续观察：4375ms采样到同run failed/实例exited、4996ms原断言通过；请求不增、路径批次、两个读取拒绝全部执行。临时源码未进入正式补丁，不写成故意失败红测 |
+| `final` / `verified` | 统一采样后的两次候选组合各3/3；后一次是架构manifest更新后的复验。它们先于下面审查修正，不以绿色覆盖审查发现的发送/归属缺陷 |
+| `reviewed-build` / `reviewed` | 审查修正后重新构建依赖链，再运行最后组合，**5/5通过，52.2秒**。取消12.1秒、excerpt4.5秒、发送拒绝无/有观察器2.0/2.1秒、完整附件19.9秒；所有原字节、PDF记录、撤权无新请求与后续拒绝均执行 |
+| `send-confirmed` | 两个发送拒绝回归增加“恰好命中一次initialize拒绝”断言后定向**2/2通过**；未再重跑未变化的业务三例，不把此项加算成七个独立场景 |
+| `metadata-before-review` / `metadata-final` | 同一独立元数据自检对真实候选附件因未绑定进程记录而预期exit1；修正后的**7份附件**容量、字段和session/run/worker PID对应检查通过。这是附件自检数量，非额外科研/平台用例 |
+
+最终完整路径的reader观察覆盖两个不同run：撤权受理后529ms发送完成、3286ms初始化响应、3357ms消费确认、3422ms准入明确permissionDenied、4006ms controller退出，4044ms测试观察到failed，HTTP仍9；末样本两个实例均exited。导入/reader/记录的控制阶段18/28/30条、没有控制或进程条目丢弃；reader/记录样本分别丢弃7/8条旧样本，保留初始与最近窗口，截断明确可见。没有将未保留的样本当作完整原始时间线。
+
+最后组合命令：`SCHOOLOOM_EXECUTION_DIAGNOSTICS=1 PLAYWRIGHT_JSON_OUTPUT_NAME=/tmp/scholoom-agent-round11-reviewed.json node node_modules/@playwright/test/cli.js test --config playwright.kernel.config.ts tests/kernel/agent-delegation.spec.ts tests/kernel/context-instructions.spec.ts tests/kernel/literature-attachment-integration.spec.ts tests/kernel/execution-isolation.spec.ts --grep 'cancelling a child stops|real worker sends explicit excerpts|real RPC and Agent share material bytes|initialization send rejection reaches' --workers=1 --reporter=list,json --output=test-results/agent-round11-reviewed`。增强故障命中断言后同入口只选execution-isolation的两例，结果为send-confirmed。临时观察源码位于`/tmp/scholoom-agent-round11-revoke-probe-ZPGV6u/`，仅链接已有node_modules，没有安装/下载依赖；结果目录及隔离配置按原测试清理责任处理，不删除尚登记于活动配置的项目。
+
+独立原生辅助Agent按gpt-6.1-sol/high、fork_context:false只读核CI并审查改动，发现候选稿两个阻断：包装漏返`ManagedNode.send` Promise，以及重叠observer收集未归属进程。两者均为本轮候选问题，已修复并静态复核关闭，辅助Agent未写树/构建/测试，现已关闭。无订阅者直接返回原Promise，有订阅者也传播拒绝；发送拒绝两例使用真实kernel/受管进程/仓储，仅在明确的initialize传输边界注入resourceLimit拒绝，验证run失败、HTTP零请求、故障只命中一次，开启观察时没有假sent且保留原拒绝码。这两个负例的传输故障替身不算实际Windows根因或正向业务验收。
+
+静态检查：tools类型、Biome、architecture、OpenSpec strict/schema、diff通过；architecture最终14模块/0 findings/0 granted exceptions。首次architecture因缺该文件的新增Node API声明失败、两处Biome格式失败均保留日志，后续窄声明与格式已修正，没有削弱规则。补丁相对938c33f，临时index前向与当前树反向检查通过，真实index未改；生成类型沿未变schema，无整文件覆盖。
+
+### 同源码Windows事实与仍缺输入
+
+Windows diagnosis40540362546/job122316784767已于2026-10-27 16:35:26 UTC完成failure，head938c33f，availability步骤success、agent步骤failure。主线`windows-diagnosis.log`/`windows-diagnosis-failures.log`及安全artifact12751410950逐例一致；不能再称目标没跑，也不能认为这批旧附件已经有本轮新增控制事件：
+
+| 用例 | 实际首次失败与最后阶段 |
+| --- | --- |
+| cancel | 原258行首次父模型请求≥1仍0，5014ms失败；4951ms已观察指令consumed、4966ms run running，5017ms末样本模型0，无子委派，未执行取消验证 |
+| excerpt | 原603行completed等待，4857ms失败；4860ms仍queued/accepted，模型0 |
+| attachment | 原64行首导入completed等待，4954ms失败；4956ms仍queued/accepted，模型0，未到reader/记录/撤权 |
+
+三例均缺直接initialize发送/响应、worker监听就绪及model.acquire请求/准入结果；指令consumed只报告观察到的事实，不代替初始化响应证据。安全原附件与事实表在`/tmp/scholoom-windows-40540362546-txensd64/safe/`；本轮新增观察尚未在目标环境运行。下一次目标结果需按实际instance核：sent缺失先看onStart/准备阶段；sent存在而response缺失才定位到初始化等待区间；response/consume已有但模型0时再区分beforeModel或model.acquire请求/拒绝/等待。独立worker监听就绪时点若仍必需，交主线选择窄接点，不新增IPC语义或猜补kernel/bootstrap。这里只交证据和下一次定向判据，不用统一加时或修改取消逻辑。
+
+本轮给定完整基线为8c2fd24/Checks40479176954：Linux内核746通过26跳过、UI126通过32失败4跳过；Windows688通过42失败42跳过；macOS job成功。仅回执文档差异的4312262/40476577071中Windows727通过3失败42跳过，不将不同运行计数当新源码缺陷或据一次通过关闭稳定性。938c33f的Checks40540362614仅查询一次，2026-10-27 16:39:23 UTC仍in_progress/conclusion=null；没有主动触发重跑、推送或轮询其最终状态。
+
+### 停止与真实边界
+
+本片已达完整路径最小修正和必要检查停止点。正向三例内部kernel/RPC/broker、仓储、父子进程、文件/库及权限真实，只有外部模型HTTP受控；PDF是既有合成有效样本，excerpt沿原describe/check夹具，不是科研角色或质量评价。发送负例替身仅用于保护传输拒绝传播；不伪造执行身份、ToolRef或资源权威。TaskPort/FileEdit、旧摘录/save/undo及生态持续外发授权均保留。
+
+待输入仍为本增量Windows定向结果及平台整项、科研角色/guidance与真实I3质量，详见4.2/4.3、6.1/6.2。未跑全仓、UI/开发承载、分发包或macOS受管执行；不声明Windows修复。没有业务流程/期限/容量/unknown/锁归属放宽、其他树操作、真实库写入、新依赖或开发服务器；没有提交/推送/PR/归档或后台轮询。
+
 ## 4312262后的附件reader独立观察与局部修正
 
 本轮起始clean，HEAD=`4312262c1a1f432ccd706dd1eb6ff6468765fd4e`，直接使用已同步源码；消费`/tmp/scholoom-round9-acceptance-IER31D/`的验收、计划、原诊断组合、`diagnostic-stage-summary.json`、`attachment-import-observer.json`及更新后的Windows事实。第13组已接收，取消/excerpt不再沿更早的“尚未调用cancel”设置失败描述。第14组有界工作已完成，change为34/38，平台4.2/4.3与科研6.1/6.2仍开放。**最后正式组合仍为2通过/1失败**；闭合的是原第二个reader观察与轮询问题，未宣称整条附件路径通过。

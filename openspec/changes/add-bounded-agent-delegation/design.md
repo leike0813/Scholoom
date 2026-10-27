@@ -1,5 +1,19 @@
 # 实现设计
 
+## 附件完整路径与初始化观察（938c33f）
+
+共同源码938c33f已接收reader独立观察及采样修正。主线第十轮组合仍2通过/1失败：撤权后的新run缺证，不能由已停止的reader记录解释。本片先保留原断言和期限，将既有observer按导入/reader/记录三个实际session各装配一次，直到测试finally、内核清理前才全部stop。活跃阶段显式切换，首次错误只归当前操作所属observer；reader跨撤权新run保留同session快照中的实际run/instance/指令身份，不重发操作。阶段标记记录导入/字节/记录/撤权/拒绝的实际完成点，模型为夹具累计计数，以各observer起点及撤权前mark为基准。仍为最多三个有界观察器，不建立应用级全局缓存。
+
+Windows新诊断按938c33f真实逐例结果消费，与Linux后续撤权分开。若现有工件没有initialize发送/响应及首次模型边界，复用RemoteAgent可信IPC调度接点，以Node diagnostics_channel发布绑定instanceId、固定阶段名、可选OperationError码及控制进程退出码/信号；不新增IPC方法/DTO/权限、不发送初始化载荷、模型/工具内容或凭据。测试collector从所属项目只读仓储把instance映射到当前session/run，其他会话事件丢弃，最多32条控制阶段并显式计丢弃。sent表示原发送Promise已成功，response表示原初始化响应已校验返回；不把onStart登记running当worker就绪，也不新增worker监听就绪消息。消费确认及模型准入请求/返回/拒绝来自原经校验的调用链；原授权、超时、异常、租约与停止语义不变。
+
+写集限附件测试、execution-diagnostics、必要remote-agent窄观察及本change原工件。先取得完整路径首次失败再决定局部因果；未闭合不逐断言加时。生产观察若有修改则先构建再验证并冻结产物，复用原三例及必要IPC/诊断回归。共享IPC语义或kernel生命周期问题只交证据与方案，不并改；目标无新增实跑不记关闭。
+
+架构声明随上述窄观察同步：仅`architecture.json`中harness的`src/remote-agent.ts`原systemAdapter增加`diagnostics_channel`，不扩大其他文件/系统API或修改守卫；没有broker/IPC消费契约变化。此声明是新增Node观察API的实际登记，最终内核构建复制同一manifest。
+
+独立审查后的窄修正：IPC包装必须返回原发送Promise，initialize的sent只在该Promise成功后发布；没有订阅者时直接返回原Promise，发送拒绝不变成假送达或未处理错误。既有execution-isolation增加有/无观察器两个受控发送拒绝回归，内部实例/worker/仓储仍真实，只替换该次initialize传输的失败边界。重叠observer不再收集全局child_process；children仅由绑定实例的onStart/controller.exit事件、经所属session只读仓储核对后形成，PID来自实际RunInstance，controller退出码单独标注，不当完整停止证明。保留32条进程/控制阶段上界，不跨会话复制日志。此修正不要求新增平台访问口或IPC就绪方法。
+
+完整路径首次组合已捕获撤权新run：相对受理3757ms初始化响应、3827ms消费确认、3901ms模型准入permissionDenied、4025ms原等待失败，4029ms实例stopping且HTTP请求仍9。独立/tmp观察运行在4375ms采样到同run failed/实例exited，原默认轮询4996ms也自然通过，随后请求不增、路径批次与两个读取拒绝全部执行；该运行未触发故意失败或失败后观察，不把它写成红测。结合已核Playwright默认间隔可能在末段提前结束的机制，修正测试内唯一`expectRunState`：导入、reader、记录、撤权四个实际执行等待共用[100,250]采样；原5/5/20/5秒预算逐项保留，批次等待不改。不再逐个断言散装补采样，不改变生产期限或以诊断状态替代实际RPC断言。
+
 ## 第二个附件reader的独立取证（4312262）
 
 共同源码4312262已接收第13组分阶段启动及跨文件hook。主线`/tmp/scholoom-round9-acceptance-IER31D/{main-diagnostics-result.json,diagnostic-stage-summary.json,attachment-import-observer.json}`证明取消/excerpt通过，附件失败在第二会话readScope的completed等待；已停止的导入observer不能解释reader。当前只复用`observeExecution`，在该reader的session.send/首断言前安装新实例，标记发送受理、完成及原失败边界，在所属内核清理前stop以保留最终有界样本。样本按独立project/session/run/instance区分，模型请求计数为同一模型夹具累计值，以reader开始时样本为基准，不能把导入两次请求当reader请求。

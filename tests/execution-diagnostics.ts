@@ -1,4 +1,3 @@
-import type { ChildProcess } from 'node:child_process';
 import { channel } from 'node:diagnostics_channel';
 import { createRequire } from 'node:module';
 import { join } from 'node:path';
@@ -43,12 +42,15 @@ export function observeExecution(
   model: ModelServer,
 ) {
   const started = performance.now();
+  const modelRequestsAtStart = model.requests.length;
   const samples: Record<string, unknown>[] = [];
   const children: Record<string, unknown>[] = [];
+  const controls: Record<string, unknown>[] = [];
   const stages: { elapsedMs: number; name: string; modelRequests: number }[] = [];
   let droppedSamples = 0;
   let droppedChildren = 0;
   let droppedStages = 0;
+  let droppedControls = 0;
   let stopped = false;
   let snapshotTimedOut = false;
   let inFlight: Promise<string | undefined> | undefined;
@@ -173,44 +175,68 @@ export function observeExecution(
     });
     return inFlight;
   };
-  const topic = channel('child_process');
-  const exits = new Map<ChildProcess, () => void>();
-  const observe = (message: unknown) => {
-    const child = (message as { process: ChildProcess }).process;
-    if (!child || typeof child.once !== 'function') return;
-    if (children.length === 32) {
-      droppedChildren++;
-      return;
-    }
-    const item: Record<string, unknown> = {
-      processId: child.pid,
-      executable: child.spawnfile?.split(/[\\/]/).at(-1)?.slice(0, 128),
-      startedMs: Math.round(performance.now() - started),
-    };
-    children.push(item);
-    const spawn = () => {
-      Object.assign(item, {
-        processId: child.pid,
-        executable: child.spawnfile?.split(/[\\/]/).at(-1)?.slice(0, 128),
-        spawnedMs: Math.round(performance.now() - started),
+  const executionTopic = channel('scholoom.harness.execution');
+  const observeControl = (message: unknown) => {
+    const value = message as {
+      instanceId?: unknown;
+      phase?: unknown;
+      errorCode?: unknown;
+      controllerCode?: unknown;
+      controllerSignal?: unknown;
+    } | null;
+    if (typeof value?.instanceId !== 'string' || typeof value.phase !== 'string') return;
+    try {
+      const row = database
+        ?.prepare(
+          'SELECT i.run_id, i.value FROM run_instances i JOIN runs r ON r.id=i.run_id WHERE i.id=? AND r.sessionId=? LIMIT 1',
+        )
+        .get(value.instanceId, scope.sessionId) as { run_id: string; value: string } | undefined;
+      if (!row) return;
+      const elapsedMs = Math.round(performance.now() - started);
+      if (value.phase === 'onStart.response') {
+        const instance = JSON.parse(row.value) as RunInstance;
+        if (children.length === 32) droppedChildren++;
+        else
+          children.push({
+            instanceId: identity(value.instanceId),
+            runId: identity(row.run_id),
+            processId: instance.processId,
+            onStartMs: elapsedMs,
+          });
+      } else if (value.phase === 'controller.exit') {
+        const child = children.find((item) => item.instanceId === value.instanceId);
+        if (child)
+          Object.assign(child, {
+            controllerExitedMs: elapsedMs,
+            controllerCode:
+              value.controllerCode === null || Number.isSafeInteger(value.controllerCode)
+                ? value.controllerCode
+                : undefined,
+            controllerSignal:
+              value.controllerSignal === null
+                ? null
+                : typeof value.controllerSignal === 'string'
+                  ? value.controllerSignal.slice(0, 64)
+                  : undefined,
+          });
+      }
+      if (controls.length === 32) {
+        controls.splice(1, 1);
+        droppedControls++;
+      }
+      controls.push({
+        elapsedMs,
+        instanceId: identity(value.instanceId),
+        runId: identity(row.run_id),
+        phase: value.phase.slice(0, 64),
+        ...(typeof value.errorCode === 'string' ? { errorCode: value.errorCode.slice(0, 64) } : {}),
       });
       void sample();
-    };
-    const exit = (code: number | null, signal: NodeJS.Signals | null) => {
-      Object.assign(item, { endedMs: Math.round(performance.now() - started), code, signal });
-      exits.delete(child);
-      void sample();
-    };
-    const remove = () => {
-      child.off('exit', exit);
-      child.off('spawn', spawn);
-    };
-    exits.set(child, remove);
-    child.once('exit', exit);
-    child.once('spawn', spawn);
-    void sample();
+    } catch {
+      droppedControls++;
+    }
   };
-  topic.subscribe(observe);
+  executionTopic.subscribe(observeControl);
   const unsubscribe = app.subscribe((change) => {
     if (
       (!change.projectId || change.projectId === scope.projectId) &&
@@ -223,9 +249,7 @@ export function observeExecution(
   const stop = () =>
     (stopping ??= (async () => {
       unsubscribe();
-      topic.unsubscribe(observe);
-      for (const remove of exits.values()) remove();
-      exits.clear();
+      executionTopic.unsubscribe(observeControl);
       await inFlight;
       await sample();
       stopped = true;
@@ -243,12 +267,15 @@ export function observeExecution(
       JSON.stringify({
         platform: process.platform,
         ...scope,
+        modelRequestsAtStart,
         samples,
         children,
+        controls,
         stages,
         droppedSamples,
         droppedChildren,
         droppedStages,
+        droppedControls,
         failure,
         snapshotTimedOut,
       });
