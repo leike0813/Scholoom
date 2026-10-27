@@ -47,7 +47,10 @@ export const changeSchema = object(
   ['revision', 'resync'],
 );
 
+import { zoteroOperations } from './zotero.js';
+
 export const businessSchemas = {
+  ...zoteroOperations,
   ...delegationOperations,
   ...workbenchContextOperations,
   ...resourceCreationOperations,

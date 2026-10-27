@@ -216,7 +216,48 @@ export function createEnvironment(options: {
     descriptors.set(descriptor, descriptor);
     return descriptor;
   };
+  // The compatibility host is headless: retain and report progress rather than opening Zotero chrome.
+  const progressWindows = new Set<ProgressWindow>();
+  class ProgressWindow {
+    private headline = '';
+    private readonly entries = new Map<object, { text: string; percent: number }>();
+    readonly ItemProgress;
+    constructor() {
+      const entries = this.entries;
+      this.ItemProgress = class {
+        constructor(_icon: string, text: string) {
+          this.update({ text, percent: 0 });
+        }
+        private update(value: { text: string; percent: number }) {
+          entries.set(this, value);
+        }
+        setProgress(percent: number) {
+          if (!Number.isFinite(percent) || percent < 0 || percent > 100)
+            throw new Error('Invalid plugin progress');
+          this.update({ text: entries.get(this)?.text ?? '', percent });
+        }
+        setText(text: string) {
+          this.update({ text, percent: entries.get(this)?.percent ?? 0 });
+        }
+      };
+    }
+    changeHeadline(text: string) {
+      this.headline = text;
+    }
+    show() {
+      progressWindows.add(this);
+      options.diagnostic(`progress: ${this.headline}`);
+    }
+    close() {
+      progressWindows.delete(this);
+      options.diagnostic(
+        `progress closed: ${this.headline} ${JSON.stringify([...this.entries.values()])}`,
+      );
+      this.entries.clear();
+    }
+  }
   const zotero: Record<string, unknown> & { BetterBibTeX?: Plugin } = {
+    ProgressWindow,
     ...options.catalog.zotero,
     clientName: 'Zotero',
     version: versions.zotero.version,
@@ -454,6 +495,7 @@ export function createEnvironment(options: {
     failures,
     context: vm.createContext(globals) as Bootstrap,
     dispose() {
+      for (const progress of progressWindows) progress.close();
       for (const timer of timers) {
         clearTimeout(timer);
         clearInterval(timer);

@@ -102,10 +102,12 @@ import {
   type ResearchModuleOutputs,
   researchModuleOperations,
 } from '@scholoom/protocol/research';
+import type { ZoteroInputs, ZoteroPort } from '@scholoom/protocol/zotero';
 import { type CommandWorkspace, ManagedCommands } from './commands.js';
 import { executionResources } from './execution-resources.js';
 import { initializeProjectContainer } from './storage/project-container.js';
 import { WorkbenchContextStore } from './workbench-context.js';
+import { type IsolatedZotero, ZoteroOperations } from './zotero.js';
 
 const applicationSchemas: typeof editorPlatformOperations &
   typeof platformProgramOperations &
@@ -180,6 +182,7 @@ export type FileExecutionFacts = {
 };
 
 export type FoundationMethod =
+  | keyof ZoteroInputs
   | keyof ProgramsInputs
   | keyof ResourceInputs
   | keyof ResourceCreationInputs
@@ -196,6 +199,7 @@ export class ManualApplication {
   readonly programs: ProgramRuns;
   readonly programEnvironments: ProgramEnvironments;
   private readonly commandRunner: ManagedCommands;
+  private readonly zotero: ZoteroOperations;
   private readonly programWorkspaces = new Map<string, CommandWorkspace>();
   private readonly programControls = new Map<
     string,
@@ -227,6 +231,7 @@ export class ManualApplication {
   constructor(
     private readonly directory: string,
     private readonly taskResearch?: TaskResearchPort,
+    isolatedZotero?: IsolatedZotero,
   ) {
     this.broker.register('workbench-context', {
       'workbench.context.publish': ({ snapshot }, context) => {
@@ -273,6 +278,13 @@ export class ManualApplication {
       },
     );
     this.commandRunner = commands;
+    this.zotero = new ZoteroOperations(
+      join(directory, 'zotero'),
+      commands,
+      this.processes,
+      (context) => this.modulePort(context, 'kernel'),
+      isolatedZotero,
+    );
     this.registerProjectHandlers('command-platform', {
       'platform.command': (input, context) => commands.execute(input, context),
       'platform.programStart': (input, context) => {
@@ -823,6 +835,8 @@ export class ManualApplication {
     throw new OperationError('unavailable', '当前组合没有执行实例提供者。');
   }
   protected commandWorkspace(workspaceId: string): CommandWorkspace {
+    const zotero = this.zotero.workspace(workspaceId);
+    if (zotero) return zotero;
     const program = this.programWorkspaces.get(workspaceId);
     if (program) return program;
     return {
@@ -1099,6 +1113,10 @@ export class ManualApplication {
     return this.broker.consumer({ ...context, moduleId }, methods);
   }
   libraryTools(context: CallContext): LibraryToolPort {
+    const port = this.modulePort(context, 'harness');
+    return { call: port.call };
+  }
+  zoteroTools(context: CallContext): ZoteroPort {
     const port = this.modulePort(context, 'harness');
     return { call: port.call };
   }
@@ -1547,6 +1565,26 @@ export class ManualApplication {
     'library.status': async () => {
       return this.library.status();
     },
+    'zotero.fillKeys': async (input, context) => {
+      if (context.principal.kind === 'agent') this.checkExecutionContext(context);
+      return (await this.zotero.execute(
+        'zotero.fillKeys',
+        input,
+        context,
+      )) as BusinessOutputs['zotero.fillKeys'];
+    },
+    'zotero.export': async (input, context) => {
+      if (context.principal.kind === 'agent') this.checkExecutionContext(context);
+      return (await this.zotero.execute(
+        'zotero.export',
+        input,
+        context,
+      )) as BusinessOutputs['zotero.export'];
+    },
+    'zotero.result': async (input, context) => {
+      if (context.principal.kind === 'agent') this.checkExecutionContext(context);
+      return this.zotero.result(input, context);
+    },
     'library.createSourceInstance': async (input) => this.library.createSourceInstance(input),
     'library.record': async (input) => this.library.record(input),
     'library.recordHistory': async (input) => this.library.recordHistory(input),
@@ -1777,6 +1815,7 @@ export class ManualApplication {
     return this.broker.available(Object.keys(businessSchemas) as BusinessMethod[]);
   }
   async close(): Promise<void> {
+    await this.zotero.close();
     await this.commandRunner.close();
     await this.programs.close();
     await this.resourceReading.close();

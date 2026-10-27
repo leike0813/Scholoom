@@ -222,6 +222,7 @@
         "@scholoom/protocol/research",
         "@scholoom/protocol/programs",
         "@scholoom/protocol/library",
+        "@scholoom/protocol/zotero",
         "@scholoom/models"
       ],
       "systemAdapters": [
@@ -233,6 +234,9 @@
       "provides": [],
       "consumes": [
         "models.resolveProfile",
+        "zotero.fillKeys",
+        "zotero.export",
+        "zotero.result",
         "files.list",
         "files.changes",
         "files.edit",
@@ -412,12 +416,21 @@
           "apis": ["fs/promises"]
         },
         {
+          "path": "src/zotero.ts",
+          "apis": ["fs/promises"]
+        },
+        {
           "path": "src/storage/project-container.ts",
           "apis": ["fs", "fs/promises"]
         }
       ],
-      "provides": [],
+      "provides": ["zotero.fillKeys", "zotero.export", "zotero.result"],
       "consumes": [
+        "library.check",
+        "library.status",
+        "library.record",
+        "library.commitRecords",
+        "library.commitResult",
         "models.status",
         "projects.list",
         "project.fileRevision",
@@ -458,7 +471,7 @@
       "systemAdapters": [
         {
           "path": "src/main/**",
-          "apis": ["electron", "fs", "fs/promises", "vm", "process.env"]
+          "apis": ["electron", "fs", "fs/promises", "vm", "sqlite", "process.env"]
         },
         {
           "path": "src/preload/**",

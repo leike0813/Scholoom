@@ -29,6 +29,7 @@ async function main() {
       'instruction-id': { type: 'string' },
       trust: { type: 'boolean' },
       'backup-id': { type: 'string' },
+      input: { type: 'string' },
     },
   });
   if (values.info) {
@@ -70,6 +71,9 @@ async function main() {
       'cancel',
       'backup',
       'restore',
+      'zotero.fillKeys',
+      'zotero.export',
+      'zotero.result',
     ].includes(command ?? '')
   ) {
     const endpoint = await inspectKernel(directory);
@@ -81,6 +85,11 @@ async function main() {
       await client.connect();
       let result: unknown;
       switch (command) {
+        case 'zotero.fillKeys':
+        case 'zotero.export':
+        case 'zotero.result':
+          result = await client.call(command, JSON.parse(values.input ?? '{}'));
+          break;
         case 'project-open':
           result = await client.call('project.open', { path: values.path ?? '' });
           break;

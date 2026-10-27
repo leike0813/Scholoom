@@ -191,7 +191,12 @@ async function publishEndpoint(runtime: string, endpoint: KernelEndpoint): Promi
 
 export async function serveKernel(
   directory: string,
-  options: { modelEndpoint?: string; environment?: NodeJS.ProcessEnv; development?: boolean } = {},
+  options: {
+    modelEndpoint?: string;
+    environment?: NodeJS.ProcessEnv;
+    development?: boolean;
+    isolatedZotero?: import('./zotero.js').IsolatedZotero;
+  } = {},
 ): Promise<void> {
   const canonical = await canonicalDirectory(directory, true);
   if (!canonical) throw new Error('Missing data directory');

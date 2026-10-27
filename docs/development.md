@@ -81,7 +81,7 @@ Agent、能力子执行与 PDF 共用宿主持有的进程容量，默认活动 
 | Agent | 沿 `HarnessStorage`、领域端口及私有 worker 入口组合；参考 `harness-module.spec.ts`、`execution-isolation.spec.ts`，外部模型复用 `tests/model-server.ts` 的 loopback 受控响应 |
 | 科研计算 | `ProgramRuns`／`ProgramEnvironments` 在 ManualApplication 装配；`program-runs.spec.ts` 验证真实 Node／Python、运行记录与输出，`program-environments.spec.ts` 以相同端口替换执行和记录依赖；共同命令机制参考 `managed-commands.spec.ts` |
 | 阅读交互 | 沿共同资源和 editor 端口接入，参考 `resource-access.spec.ts`、`editor-runtime.spec.ts` 及 `tests/ui/resource-opening.spec.ts`；UI 使用共同 renderer URL 配置 |
-| Zotero 生态 | `host-connection.spec.ts`验证公共认证监督；`zotero-host-supervision.spec.ts`组合真实受管Electron／原BBT与显式样本Adapter；smoke验证原包及默认外壳。共同身份、正式键和提交查询仍未接线，生产不可用 |
+| Zotero 生态 | `host-connection.spec.ts`验证公共认证监督；`zotero-host-supervision.spec.ts`验证原包监督；`zotero-host.spec.ts`经真实共同库／broker／WS／受管Electron验证最多100条普通期刊补缺键、两格式导出和稳定回执。仅构造时明确供应的隔离库可用，真实用户库仍禁用 |
 
 表中内核用例位于 `tests/kernel/`，UI 与宿主外壳用例分别在 `tests/ui/`、`tests/smoke/`。窄端口内存替身受 TypeScript 检查，跨 broker／IPC 的输入输出继续经过原同源 schema；资源、文件及仓储的真实组合使用所属提供者，不用成功替身代替。
 
@@ -133,6 +133,10 @@ SCHOOLOOM_UI_PORT=5343 node node_modules/@playwright/test/cli.js test --config p
 
 `files.undo`仍撤销一次完整编辑。它核对稳定实体、完整after和原byteBasis，再按当前强依据发布；正常内部改名不会因ctime变化丢失撤销资格，后续内容／实体变化仍拒绝。成功形成新记录及revertsEditId；落盘或移至撤销保留区后历史登记失败返回outcomeUnknown。项目资源创建／执行保存只在实际登记可核查时返回可选editId，旧结果不猜，association仍表示执行成果关联。定向验证见`file-change-contracts.spec.ts`、`file-edit-origins.spec.ts`及原资源创建／身份测试；阅读差异消费者须同步提供者后独立接入。
 ## BBT 独立验收
+
+隔离共同库接线由可信宿主构造 `KernelApplication`／`serveKernel` 时供应 `isolatedZotero`（实际 `libraryId`、受管启动程序／参数、固定原包解包目录）；默认没有该配置，产品请求不能启用或改变原生路径。构造参数是开发隔离验收入口，不是用户库启用方式。`zotero.fillKeys` 接受 `libraryId`、稳定 `operationId` 及1–100个 `sourceId/revision`；已有操作返回`state: queried`及原回执，不执行新的选择，`notification: notRun`不恢复历史通知状态。`zotero.result` 使用共同 `requestId` 查询实际提交，未知时不得重放。`zotero.export` 接受同一选择及 `bibtex`／`biblatex`，返回文本和采用的条目修订／正式键／固定状态；宿主关闭后交付前重查权限和依据。文本最多256KiB，不隐式写入文件或补键。
+
+人工 CLI 为 `node apps/kernel/dist/cli.js zotero.fillKeys|zotero.export|zotero.result --data-dir <隔离配置> --input '<同源JSON>'`，消费已运行的隔离内核。harness 的 `fill_zotero_keys`／`export_zotero`／`read_zotero_result` 使用同一broker及执行主体。缺原值、非schema44普通期刊、复杂关系／字段形态均明确unavailable，不从CSL猜测；来源副本需共同新实例。Item与真实SQLite查询均为可丢弃投影，正式键只归共同库；一次补键汇集为一次共同事务，读回及通知失败与已提交结果分开。
 
 固定资源与原包来源记录在 `apps/zotero-host/resources/versions.json`；原 XPI 不随仓提交、不在启动时下载。准备指定 BBT 9.0.68 原发布包后执行：
 
@@ -244,7 +248,7 @@ Vite 启动时发现或启动受管调试内核；浏览器页面初次只查询
 
 工作台不再提供“停止内核”入口；停机经 CLI（`pnpm kernel stop`）或内核 RPC 完成，调试内核仍随最后一个调试宿主退出回收。受理或连接关闭不代表退出，界面和 CLI 核对实际状态后才显示停止；不能确认时显示结果未知并提供查询。收到明确停机后客户端不会自动重启，用户可重试连接。真实来源的指令、材料选择与未保存文件草稿按配置／项目／会话或文件保存在本地，可跨停机、断线及刷新恢复；本地存储不可用时退回内存。
 
-`pnpm dev:host` 启动隐藏宿主页面，供后续内部调试。宿主内部 DOM 用于兼容适配，不作为产品工作台。当前没有加载 Zotero 应用或插件。
+`pnpm dev:host` 启动默认隐藏宿主页面；显式隔离验收使用上述受管managed入口装载固定BBT原包。宿主内部DOM用于兼容适配，不作为产品工作台；不加载外部Zotero应用。
 
 格式和静态检查使用 Biome；`pnpm format` 会写回格式，`pnpm lint` 检查格式、lint 和 import 组织。生成目录及临时研究材料不纳入源码检查。
 
@@ -284,7 +288,7 @@ useStatusBarItem('reading', {
 
 题录列表按实际库及条目身份维护主选和多选，范围选择只覆盖当前已载入页；离开范围后清除当前选择，返回后按身份核对。集合导航按父级分页展开，`library.collections` 的 `parentId: null` 读取根集合，具体身份读取直接子项，未指定时读取扁平分页。列表列可调整显示、顺序及宽度，导航／列／滚动偏好和题录草稿按配置、窗口及实际库隔离，关闭tab后可恢复。旧题录及JSON导入草稿可显式恢复到空目标，旧值保留；保存状态跨tab卸载保留，迟到回执只处理原对象，丢弃重读先明确确认。原生CSL表单及题录上下文贡献已接线；右栏详情及完整Zotero映射仍待后续，不称完整B批。
 
-共同原值／键接口由`protocol/library-records.ts`提供：`library.createSourceInstance`按稳定请求登记新来源实例，`library.record`／`recordHistory`有界读取原值与正式键，`library.commitRecords`同事务提交最多100条已有题录、原值／来源关联／键及历史，`library.commitResult`查询稳定成功或拒绝结果。请求编码最多256KiB、单原值64KiB；键NFC／默认Unicode小写比较冲突，候选只补缺键且不固定，既有正式键只接受显式修改及有效revision。失败不拆成逐条成功，提交后才通知。库自身v3→v4升级保留旧副本，旧CSL扩展键不自动晋升为正式键；完整BBT SQL／saveTx、原子新建／删除／附件／组织操作及生态实际接入仍由后续交付承接。
+共同原值／键接口由`protocol/library-records.ts`提供：`library.createSourceInstance`按稳定请求登记新来源实例，`library.record`／`recordHistory`有界读取原值与正式键，`library.commitRecords`同事务提交最多100条已有题录、原值／来源关联／键及历史，`library.commitResult`查询稳定成功或拒绝结果。请求编码最多256KiB、单原值64KiB；键NFC／默认Unicode小写比较冲突，候选只补缺键且不固定，既有正式键只接受显式修改及有效revision。失败不拆成逐条成功，提交后才通知。库自身v3→v4升级保留旧副本，旧CSL扩展键不自动晋升为正式键；生态普通期刊隔离接线见上文，完整BBT SQL／saveTx及原子新建／删除／附件／组织操作继续由后续变更承接。
 
 首个摄取格式为 CSL JSON（可粘贴或选择本机 JSON 文件），一次不超过256KiB/1000条，单条题录不超过16KiB且有非空 title，其余扩展字段保留。手动建项也走同一摄取入口。批次受理返回稳定身份，逐项保存创建、复用、冲突或失败；合法项可先查用。相同 batchId 不同输入拒绝，内核中断保留记录，显式继续只处理未执行项，不重放成功项；中断原因可查询。
 

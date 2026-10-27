@@ -11,5 +11,5 @@
     "id": "better-bibtex@iris-advies.com",
     "asset": "https://github.com/retorquere/zotero-better-bibtex/releases/download/v9.0.68/zotero-better-bibtex-9.0.68.xpi"
   },
-  "validationScope": "Injected isolated sample Adapter; production common-library connection unavailable"
+  "validationScope": "Injected samples and explicitly configured isolated common-library journals; real user libraries remain unavailable"
 }

@@ -1,5 +1,51 @@
 # 实际交付与交接
 
+## 当前状态：共同库期刊切片
+
+2026-10-27，基线 `1026796d854b8f568c3e819f13268a9638980bc1`，起始工作区干净。用户直接授权本轮最多100条普通期刊隔离接线；未同步／等待文献实际提供者条件已失效。下文第三／四轮及更早待办为历史证据，不是当前阻塞。当前任务13/22，仅R5.1–R5.4本片完成；整个change、3.x完整条件、I6、生产启用和跨平台未关闭。
+
+### 实际接线与同源结果
+
+- `packages/protocol/src/zotero.ts` 复用真实library record／receipt／key schema，提供fillKeys/export/result及私有有界读回；`operations.ts`和生成business映射注册，未复制文献字段／正式键权威。schema44期刊字段／作者声明来自已归档固定schema调查，只接受明确原值，不逆猜CSL。
+- `apps/kernel/src/zotero.ts` 经真实broker消费read/write/send、record、commitRecords、commitResult；配置只在可信构造时明确绑定隔离libraryId、受管启动和固定原包目录。人工CLI与harness三个薄工具共用该handler和可信上下文。`manual.ts`只增workspace／handler／close，`application.ts`只增配置及构造器末尾生态端口，保留全部根工具和其他领域构造参数；architecture声明同步。
+- `apps/zotero-host/src/main/journal-catalog.ts` 实际执行SQLite SQL，Item/saveTx只在外层补键事务暂存候选，原包KeyManager.fill完成后一次共同commitRecords。已有正式键／pinned只读自library；同库全范围大小写冲突由library一次拒绝，不改名。SQL／Item／通知／BBT缓存可丢弃，未增加持久库权威。
+- `managed.ts` 使用真实认证WS／HostConnection／ManagedCommands／OS原生归属／Electron／Chromium Worker和未修改9.0.68原包。确认共同回执后通过单个私有读回，由kernel按原选择读取最多100条、累计512KiB；不放宽公共64次回调、停止保证或时限。BBT超过10条必经的ProgressWindow由headless进度记录承接，记录实际headline／百分比并在dispose收尾，不伪装可见Zotero窗口。
+- 提交成功而回读／通知失败返回committed回执和独立有界诊断；未知保留原operationId及监督事实，查询共同结果，不重放。已存在回执的fillKeys返回`queried`，不声称新选择已执行，也不伪造历史通知状态。导出在完整关闭后重新核对read/send及原revision/key/pinned，由kernel返回所用共同依据。
+
+对应原design依赖图：T21/T22的普通期刊实际提供者已接入，T31/T32/T41仅完成本片；更广映射、偏好事件、材料和生产保护维持开放。
+
+### 最终实际验证
+
+证据目录：`/tmp/scholoom-zotero-r5-evidence-mwaFJn/`，包含首次100条失败工件、最终kernel/smoke产物、日志、补丁及manifest。固定资产为用户提供的`/tmp/scholoom-zotero-bbt-assets/zotero-better-bibtex-9.0.68.xpi`，manifest实际核对version=9.0.68及id，官方来源沿`resources/versions.json`，每个夹具从原XPI独立解包；未下载或修改原包。仅Linux本机，隔离profile／库／项目／端口，项目与结果目录保留，测试自行关闭所属执行。
+
+最终构建先于测试，测试期间未重建共享产物：protocol／kernel使用已有`node_modules/.bin/tsc -p <tsconfig>`，host使用已有`electron-vite build`。此前共享依赖构建完成，最终14个包及tools全部`tsc --noEmit`通过。没有启动开发服务器。
+
+| 验证 | 实际结果 |
+| --- | --- |
+| kernel定向：zotero-host、host-connection、zotero-host-supervision、library-records、broker、architecture | **43/43**，1.8m，日志`final-kernel-tests.log` |
+| 本片6条真实整合（包含于43） | 100条中99条一次补缺键及一条固定键；两格式文本；共同original标题更正后保持键并刷新；真实CLI停止重启读回；未选中大小写键冲突全部拒绝；旧revision／缺原值／越库拒绝；快照受理后撤write及send；共同提交后观察故障保留unknown／查真实回执／不重放；真实harness工具 |
+| 原包smoke | **10/10**，44.8s，`xvfb-run -a env SCHOOLOOM_BBT_XPI=... node_modules/.bin/playwright test --config playwright.config.ts tests/smoke/zotero-host.spec.ts` |
+| 类型／生成／架构／OpenSpec | 14包＋tools通过；8份生成映射从最终schema独立重算一致；architecture零findings；OpenSpec strict通过。Biome零错误，6条警告均为未改动的harness非空断言 |
+
+新增整合内部kernel、library、broker、WS、受管命令、SQLite、文件和原包均真实；仅harness外部模型使用合成Anthropic响应。期刊内容及来源是合成输入，不是真实科研质量。未知样本在真实共同提交后让实际workbench事件订阅者抛错，持久回执仍committed；没有替换SQL/provider或制造假回执。既有H1/supervision的显式样本Adapter仍属替身，其通过不冒充本轮真实提供者结果。
+
+### 首次失败、诊断与审查
+
+1. 初次构建遇TS泛型展开／无效错误码，收窄实际消费端口及上下文类型后修复，未缩减共同事务。初次宿主启动未ready并保留unknown；定位CJS产物外置了仅import导出的workspace入口，改为构建时内联既有workspace依赖。未修改原包或用普通spawn回退。
+2. 首次实际事务和文本成功后，测试因列表顺序假设及BBT title case转换失败；改为按固定标题选择合成对象、按语义核对文本，保留固定H1引用键oracle。
+3. 首次100条返回committed＋刷新失败，回执／99条键已持久化。先尝试顺序回调仍失败，继续定位到每操作累计64回调上限；改为一个私有读回回调，kernel内部有界读取真实provider。首次失败产物见`first-100-results`；最终100条回归保护此边界，未扩大容量或超时。
+4. 曾在一次TS检查失败后误跑4条诊断用例；这次4/4不计最终验收。最终类型修复后重新构建，再完成上述43/43及10/10。首次／中间日志均保留，不把它们覆盖为成功。
+5. 首次带`--config.optimisticRepeatInstall=false`的pnpm构建仍触发自身锁文件核对及本地workspace链接整理，日志下载0、added0、版本未升级。后续改用已有直接工具入口，未再触发；本轮没有主动执行install命令。新增依赖声明仅指向已有client/protocol workspace包，锁文件没有新增外部版本。
+6. 原生只读scout（gpt-6.1-sol/high）核对接口／原子提交／权限／未知边界，主Agent复核并采纳queried区分、共同committed读回闸门和kernel导出依据。其“receipt必须有error/results”判断与当前schema的外层required不符，且稳定回执已严格等值实跑，不改共同契约；其快照来源疑问由交付前相等复核和kernel权威回填处理。scout未跑测试，最终验收由本会话执行；已关闭该只读子Agent，无写入子任务。
+
+### 可审查增量与停止边界
+
+补丁位于本证据目录：`01-contracts.patch` → `02-host.patch` → `03-integration.patch` → `04-docs.patch`，另有完整`round5.patch`。共同依赖是已同步的1026796；不应用历史累计补丁、不复制其他树私有实现。01提供protocol/schema/export及生成映射；02为生态私有宿主／workspace资源声明；03为kernel/harness/architecture和必要回归；04为本change及开发入口文档。完整反向`git apply --check`及diff检查用于核对补丁覆盖当前增量；无提交／push／PR／archive。
+
+剩余：CSL单独编辑到Zotero原值的同步映射、复杂类型／关系、多原值选择、resetKeyOnChange事件、显式来源重绑定UI、E5材料写回、E6删除恢复、新建／删除／附件／组织事务、自动／外部导出及迁入不在本片。缓存更正本轮验证的是共同original字段修订，不能据此宣称全部共同题录映射完成。未知监督仍保护目录，稳定committed结果查询不会自动清除监督未决状态；恢复／清理策略须后续明确范围。
+
+尚需主线决定下一片的字段同步及完整I6验收范围；Windows/macOS、全仓CI、真实科研质量与真实用户库启用无新增通过结论。本轮在补丁及本记录交回处停止，不自动展开下一阶段。
+
 ## 第四轮验收E1修复
 
 2026-10-26，主线`/tmp/scholoom-round4-acceptance-JCUBNw/acceptance.md`及`host-callback-repro.mts/.log`确认P2：外层300ms超时后丢失仍活跃callback，2000ms关闭可误报完整closed。本节E1是验收问题编号，不关闭文献E1–E3／E6。当前HEAD仍为`eaf38be1ac2d350120805859175fc82cf9c36927`，0519904已在树内；只针对前轮已有工作区做增量，没有同步、回滚或覆盖既有成果。
