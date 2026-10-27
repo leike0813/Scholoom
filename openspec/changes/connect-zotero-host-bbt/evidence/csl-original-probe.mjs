@@ -71,8 +71,10 @@ async function capture(name) {
   const exports = {};
   for (const format of ['bibtex', 'biblatex']) {
     const input = { libraryId: configuration.libraryId,
-      sources: readback.map(({ record }) => ({ sourceId: record.sourceId, revision: record.revision })), format };
+      sources: readback.map(({ record }) => ({ sourceId: record.sourceId, revision: record.revision,
+        expression: { kind: 'zotero-original', identity: record.originals[0].identity } })), format };
     const result = await app.call('zotero.export', input);
+    assert.equal(result.state, 'exported');
     exports[format] = result;
     await save(`${name}.${format}.bib`, result.text);
   }

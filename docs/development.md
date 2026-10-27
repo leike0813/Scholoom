@@ -136,7 +136,9 @@ SCHOOLOOM_UI_PORT=5343 node node_modules/@playwright/test/cli.js test --config p
 
 隔离共同库接线由可信宿主构造 `KernelApplication`／`serveKernel` 时供应 `isolatedZotero`（实际 `libraryId`、受管启动程序／参数、固定原包解包目录）；默认没有该配置，产品请求不能启用或改变原生路径。构造参数是开发隔离验收入口，不是用户库启用方式。`zotero.fillKeys` 接受 `libraryId`、稳定 `operationId` 及1–100个 `sourceId/revision`；已有操作返回`state: queried`及原回执，不执行新的选择，`notification: notRun`不恢复历史通知状态。`zotero.result` 使用共同 `requestId` 查询实际提交，未知时不得重放。`zotero.export` 接受同一选择及 `bibtex`／`biblatex`，返回文本和采用的条目修订／正式键／固定状态；宿主关闭后交付前重查权限和依据。文本最多256KiB，不隐式写入文件或补键。
 
-人工 CLI 为 `node apps/kernel/dist/cli.js zotero.fillKeys|zotero.export|zotero.result --data-dir <隔离配置> --input '<同源JSON>'`，消费已运行的隔离内核。harness 的 `fill_zotero_keys`／`export_zotero`／`read_zotero_result` 使用同一broker及执行主体。缺原值、非schema44普通期刊、复杂关系／字段形态均明确unavailable，不从CSL猜测；来源副本需共同新实例。Item与真实SQLite查询均为可丢弃投影，正式键只归共同库；一次补键汇集为一次共同事务，读回及通知失败与已提交结果分开。
+`zotero.inspect({libraryId,sources:[{sourceId,revision}]})`读取同修订的共同CSL及唯一原值，返回identity、正式键和题名equal/different；其余字段始终notComparable。`zotero.export`未选表达时返回selectionRequired及核对依据，不启动宿主或返回文本。明确采用原值时，每个source传`expression:{kind:'zotero-original',identity:{instanceId,libraryLocator,objectKey}}`；成功返回exported及实际表达依据。Agent可按用户明示指令选择，不确定先询问，boolean不能代替表达选择。仅题名相同不表示全条目一致。`zotero.replaceTitle({libraryId,requestId,sourceId,revision,identity,title})`独立替换准确原题名，保留CSL及其他原值／身份／正式键；使用共同CAS和稳定回执，未知只按原requestId查询。
+
+人工 CLI 为 `node apps/kernel/dist/cli.js zotero.inspect|zotero.replaceTitle|zotero.fillKeys|zotero.export|zotero.result --data-dir <隔离配置> --input '<同源JSON>'`，消费已运行的隔离内核。harness 的 `inspect_zotero_originals`／`replace_zotero_original_title`／`fill_zotero_keys`／`export_zotero`／`read_zotero_result` 使用同一broker及执行主体，成功返回继续登记共同库身份供后续模型准入和重启核查read/send。缺原值、非schema44普通期刊、复杂关系／字段形态均明确unavailable，不从CSL猜测；来源副本需共同新实例。Item与真实SQLite查询均为可丢弃投影，正式键只归共同库；一次补键汇集为一次共同事务，读回及通知失败与已提交结果分开。
 
 固定资源与原包来源记录在 `apps/zotero-host/resources/versions.json`；原 XPI 不随仓提交、不在启动时下载。准备指定 BBT 9.0.68 原发布包后执行：
 

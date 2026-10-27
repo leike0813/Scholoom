@@ -238,6 +238,8 @@
         "zotero.fillKeys",
         "zotero.export",
         "zotero.result",
+        "zotero.inspect",
+        "zotero.replaceTitle",
         "files.list",
         "files.changes",
         "files.edit",
@@ -425,10 +427,17 @@
           "apis": ["fs", "fs/promises"]
         }
       ],
-      "provides": ["zotero.fillKeys", "zotero.export", "zotero.result"],
+      "provides": [
+        "zotero.fillKeys",
+        "zotero.export",
+        "zotero.result",
+        "zotero.inspect",
+        "zotero.replaceTitle"
+      ],
       "consumes": [
         "library.check",
         "library.status",
+        "library.get",
         "library.record",
         "library.commitRecords",
         "library.commitResult",
