@@ -240,7 +240,14 @@ importers:
         specifier: 0.31.11
         version: 0.31.11
 
-  apps/zotero-host: {}
+  apps/zotero-host:
+    dependencies:
+      '@scholoom/client':
+        specifier: workspace:*
+        version: link:../../packages/client
+      '@scholoom/protocol':
+        specifier: workspace:*
+        version: link:../../packages/protocol
 
   packages/broker:
     dependencies:

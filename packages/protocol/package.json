@@ -5,6 +5,10 @@
   "license": "AGPL-3.0-only",
   "type": "module",
   "exports": {
+    "./zotero": {
+      "types": "./dist/zotero.d.ts",
+      "import": "./dist/zotero.js"
+    },
     "./host": {
       "types": "./dist/host.d.ts",
       "import": "./dist/host.js"

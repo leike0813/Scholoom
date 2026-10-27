@@ -6,6 +6,22 @@
 
 ## ADDED Requirements
 
+### Requirement: 现有普通期刊的隔离共同接线
+
+首个真实共同库切片 SHALL 仅对内核明确供应的隔离 libraryId 开放，默认不可用，产品参数不能选择原生执行路径或启用真实用户库。选择 SHALL 为1–100个不重复sourceId/revision；需要唯一schema 44 journalArticle原值及本片可映射的字段／作者／空关系，不从CSL反推。返回不可用时保留原值，来源副本使用新的共同来源实例，不按locator静默重绑定。
+
+补缺键 SHALL 将原包全部Item.saveTx汇集为一次共同commitRecords；共同库检查全库大小写不敏感冲突，保留已有键和固定状态。确认回执后才更新派生SQL并发通知；回读及通知有界，不以100个并发回调突破公共容量。通知失败保留committed回执与诊断，新操作重建投影。导出 SHALL 返回格式、文本及所用sourceId/revision/正式键/固定状态，在宿主关闭后交付前复查有效read/send和选择依据。
+
+#### Scenario: 未选中对象占用候选键
+
+- **WHEN** 原包为选择中的缺键条目生成候选，而同库未选中对象持有大小写不同的同名正式键
+- **THEN** 一次共同事务全部拒绝，全部所选修订及键保持原样，不自动改名或覆盖该固定键
+
+#### Scenario: 保存已确认而结果观察失败
+
+- **WHEN** 共同事务已经提交，但回调或结果观察失败
+- **THEN** 调用保留unknown及原操作身份，查询共同commitResult核对；不得重放提交或清空原监督未决事实。已存在回执的fillKeys再次请求以queried返回该原操作回执，不执行新的选择，notRun只表示本次没有发通知，不推定原通知结果
+
 ### Requirement: 独立认证及操作范围的公共监督
 
 兼容宿主监督 SHALL 可脱离BBT、programs和文献业务独立校准，使用共同受管命令及原生退出确认，不以普通spawn或PID消失代替归属。一次性私有启动供应 SHALL 在准入和再次授权后通过有界stdin提供，不进入argv、环境、日志或renderer；认证绑定kernel、host、command实例及协议，拒绝旧或错误身份。command started、应用ready、插件正常关闭与原生scope停止 SHALL 分别确认。

@@ -81,6 +81,7 @@ import type {
   ResourceSaveResult,
 } from '@scholoom/protocol/resources';
 import { resourceCreationOperations, resourceOperations } from '@scholoom/protocol/resources';
+import type { ZoteroPort } from '@scholoom/protocol/zotero';
 import type Database from 'better-sqlite3';
 import { CompositeBackend, FilesystemBackend, registerHarnessProfile } from 'deepagents';
 import { and, desc, eq, gt, lt, or, sql } from 'drizzle-orm';
@@ -109,6 +110,7 @@ import type { HarnessRecords } from './records.js';
 import { RemoteAgent } from './remote-agent.js';
 import * as tables from './schema.js';
 import { createTaskTools } from './task-tools.js';
+import { zoteroTools } from './zotero-tools.js';
 
 registerHarnessProfile('anthropic', {
   generalPurposeSubagent: { enabled: false },
@@ -534,6 +536,7 @@ export class Harness {
       port(context: CallContext): ProgramToolsPort;
       settle(context: CallContext): Promise<void>;
     },
+    private readonly zotero?: (context: CallContext) => ZoteroPort,
   ) {}
 
   async initialize(): Promise<void> {
@@ -2758,6 +2761,7 @@ export class Harness {
               },
             })),
             ...(this.programs ? programTools(this.programs.port(fileContext)) : []),
+            ...(this.zotero ? zoteroTools(this.zotero(fileContext)) : []),
             {
               name: 'describe_program_material',
               description:

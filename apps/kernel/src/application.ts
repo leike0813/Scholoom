@@ -41,6 +41,7 @@ import type {
 import { ResearchRecords, ResearchRuntime } from '@scholoom/research/node';
 import { executionGraphs } from './execution-graphs.js';
 import { type FileExecutionFacts, type FoundationMethod, ManualApplication } from './manual.js';
+import type { IsolatedZotero } from './zotero.js';
 
 type RuntimeMethod = Exclude<
   keyof BusinessInputs,
@@ -68,9 +69,10 @@ export class KernelApplication extends ManualApplication {
       fileExecutionFacts?: (context: CallContext) => FileExecutionFacts | undefined;
       taskResearch?: TaskResearchPort;
       delegationRoles?: readonly DelegationRole[];
+      isolatedZotero?: IsolatedZotero;
     } = {},
   ) {
-    super(directory, options.taskResearch);
+    super(directory, options.taskResearch, options.isolatedZotero);
     this.originFacts = options.fileExecutionFacts;
     process.env.LANGSMITH_TRACING = 'false';
     process.env.LANGCHAIN_TRACING_V2 = 'false';
@@ -245,6 +247,7 @@ export class KernelApplication extends ManualApplication {
         },
         settle: (context) => this.programs.settleExecution(context),
       },
+      (context) => this.zoteroTools(context),
     );
     this.broker.register('runtime', this.handlers);
     this.broker.register('runtime-internal', {

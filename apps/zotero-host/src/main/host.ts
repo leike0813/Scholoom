@@ -16,6 +16,7 @@ type State =
   | 'closed'
   | 'unknown';
 type Options = {
+  scope?: 'injected-adapter' | 'isolated-library-journals';
   packageDirectory: string;
   profileDirectory: string;
   dateFormats: string;
@@ -61,7 +62,7 @@ export class ZoteroHost {
     return {
       state: this.state,
       stage: this.stage,
-      scope: 'injected-adapter' as const,
+      scope: this.options.scope ?? 'injected-adapter',
       versions: { zotero: versions.zotero.version, bbt: versions.bbt.version },
       runtime: {
         node: process.versions.node,
@@ -70,7 +71,13 @@ export class ZoteroHost {
       },
       diagnostics: [...this.diagnostics],
       pluginErrors: this.pluginErrors.map((error) => ({ ...error })),
-      production: { available: false as const, missing: [...missing] },
+      production: {
+        available: false as const,
+        missing:
+          this.options.scope === 'isolated-library-journals'
+            ? ['deleteRestore', 'complexMappings', 'sourceRebinding']
+            : [...missing],
+      },
     };
   }
 

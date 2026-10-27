@@ -5,6 +5,10 @@
   "license": "AGPL-3.0-only",
   "description": "Scholoom Zotero compatibility host",
   "main": "out/main/index.cjs",
+  "dependencies": {
+    "@scholoom/client": "workspace:*",
+    "@scholoom/protocol": "workspace:*"
+  },
   "scripts": {
     "build": "electron-vite build",
     "typecheck": "tsc --noEmit -p tsconfig.json",
