@@ -1,5 +1,26 @@
 # 调查依据
 
+## 2026-10-28：938c33f消费真实进程提供者
+
+当前HEAD`938c33f2c9fcafb2cce11b0c165b2fb1e9a818c3`，开工前clean。主线已选择并同步A：`tests/isolated-kernel.ts::startIsolatedKernel`与`tests/fixtures/isolated-kernel-process.mjs`。旧“等待配置选择／提供者”只描述4312262阶段；普通生产CLI持久恢复B仍未提供，不能混同。
+
+### 实际提供者及消费者复核
+
+- helper先核canonical目录stopped，fork自有child，私有IPC显式传IsolatedZotero；子入口调用真实serveKernel，ready后核实际PID并持有development owner。stop以原owner.shutdown绑定原instanceId，等自有child **close**，最后只用CLI status核对；不调用重新发现的CLI stop，不放宽锁／停止／unknown规则。本线没有修改这些共享符号。
+- 原GUI测试的bootstrap代理保留，但权威从直接KernelApplication／startKernelServer改为helper的真实endpoint。准备app关闭后，所有get／record／history／update与授权检查经可更新的当前RPC port；重启不再读取已关闭的准备仓储。bootstrap动态返回当前endpoint，WS传输门在新URL上重新安装，原窗口及origin保持。
+- 真实BBT9.0.68原包来自已有本地XPI，实际宿主仍沿/usr/bin/xvfb-run与已安装Electron及本树managed.cjs。默认缺配置先在准备app核unavailable；已运行进程的错库请求、撤read，以及实际错误绑定配置重启分别验证拒绝，不把错误写作notFound。只有notFound本身保留原pending，无重放。
+- 两个关键分支均跨stop／child退出／显式注入新进程／reload：真实已提交回执丢失查committed，未送达请求查notFound。冻结对象包括原libraryId、sourceId、来源identity三字段、观测revision、requestId、title及完整dirty CSL草稿／旧revision；runtime instanceId和PID可变，来源实例不得改绑。记录／键／历史按真实RPC读回，不代写回执。
+
+本轮首跑与独立审查补强后的最终双宿主均2/2通过，每宿主四个实际PID／runtime instanceId，保留在各自original-actions.json。补强专门在committed查询处理完成后再保存CSL，真实RPC仍携带旧revision并被contentChanged拒绝；notFound完成后也与同一原始CSL快照比较，不以查询后的新快照掩盖推进。缺配置拒绝在关闭前的真实准备app核对，错误绑定／撤read在真实RPC进程核对；没有把全部拒绝场景冒称普通CLI无配置重启测试。具体命令与证据边界见本轮delivery。
+
+共享／桌面／宿主已有构建入口与产物已由主线在本树复验：`/tmp/scholoom-round10-acceptance-j1MosP/sync-build-results.json`中literature-workbench code=0，日志为该包正式转交的sync-build.log。本片不改生产源码，按用户指令直接使用当前产物，先tools类型／Biome后单个原GUI双宿主测试，运行中不重建，不重复14UI或旧macOS列表。构建的复用不冒充本轮重新构建结果。
+
+### 当前CI输入边界
+
+读取正式交接的ci-baseline-*／ci-failure-matrix.json：8c2fd24／Checks40479176954，Linux内核746通过26跳过、UI126通过32失败4跳过，Windows内核688通过42失败42跳过，macOS job成功；只回执差异的4312262／40476577071中Windows727通过3失败42跳过。计数差异不能证明新增源码缺陷或统一根因；不沿用旧4失败清单，不以一次通过关闭启动稳定性。本片没有调查开发承载或以普通静态产品运行开发样例，不处理其他域UI失败。
+
+新Checks40540362614的只读head／步骤截点保存在`/tmp/scholoom-library-process-round10/ci-observed.json`，不以启动或其他平台步骤替代本片真实原包／GUI结果。Windows execution diagnosis仍按实际授权场景另记，不主动触发全仓重跑或等待其他线。
+
 ## 2026-10-27：4312262可信配置／进程重启缺口
 
 本树HEAD为`4312262c1a1f432ccd706dd1eb6ff6468765fd4e`，开工前clean。已消费`/tmp/scholoom-round9-acceptance-IER31D/{acceptance.md,main-ui-result.json}`及当前源码；前片单条GUI／unknown重载只查询已接收。本轮仅核配置／真实进程重启，以下为源码调查，未执行新业务或重跑已绿UI。

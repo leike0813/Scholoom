@@ -9,10 +9,10 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { _electron, type ElectronApplication } from '@playwright/test';
 import { KernelApplication } from '../../apps/kernel/dist/application.js';
-import { startKernelServer } from '../../apps/kernel/dist/server.js';
 import type { IsolatedZotero } from '../../apps/kernel/dist/zotero.js';
-import { protocolVersion } from '../../packages/protocol/dist/index.js';
+import type { KernelClient } from '../../packages/client/dist/index.js';
 import { closeDesktop } from '../desktop-fixture.js';
+import { type IsolatedKernel, startIsolatedKernel } from '../isolated-kernel.js';
 import { createSession, expect, test } from './fixture.js';
 import { rendererOrigin } from './renderer-url.js';
 import { armRpcGate, installRpcGate, releaseRpcGate } from './rpc-gate.js';
@@ -43,30 +43,32 @@ test('single original actions use the real library and BBT, preserve CSL drafts,
     ],
   };
   const profile = join(root, 'profile');
-  const app = new KernelApplication(profile, { isolatedZotero: configuration, environment: {} });
-  let kernel: Awaited<ReturnType<typeof startKernelServer>> | undefined;
+  const app = new KernelApplication(profile, { environment: {} });
+  let port: Pick<KernelClient, 'call'> = app;
+  let preparing = true;
+  let kernel: IsolatedKernel | undefined;
   let proxy: ReturnType<typeof createServer> | undefined;
   let desktop: ElectronApplication | undefined;
   try {
     await app.initialize();
-    await app.call('library.grant', { read: true, write: true, send: true, autoBackup: false });
-    const libraryId = (await app.call('library.status', {})).id;
+    await port.call('library.grant', { read: true, write: true, send: true, autoBackup: false });
+    const libraryId = (await port.call('library.status', {})).id;
     configuration.libraryId = libraryId;
-    const instance = await app.call('library.createSourceInstance', {
+    const instance = await port.call('library.createSourceInstance', {
       requestId: randomUUID(),
       libraryId,
       label: 'Synthetic UI journal source',
     });
-    const batch = await app.call('library.ingest', {
+    const batch = await port.call('library.ingest', {
       batchId: randomUUID(),
       origin: 'synthetic',
       version: 'published',
       json: JSON.stringify([{ title: 'Preserved journal' }, { title: 'Unsupported original' }]),
     });
     await expect
-      .poll(async () => (await app.call('library.batch', { batchId: batch.id })).batch.state)
+      .poll(async () => (await port.call('library.batch', { batchId: batch.id })).batch.state)
       .toBe('completed');
-    const rows = (await app.call('library.list', { limit: 100 })).sources;
+    const rows = (await port.call('library.list', { limit: 100 })).sources;
     const source = rows.find((row) => row.metadata.title === 'Preserved journal');
     const unsupported = rows.find((row) => row.metadata.title === 'Unsupported original');
     assert(source && unsupported);
@@ -86,7 +88,7 @@ test('single original actions use the real library and BBT, preserve CSL drafts,
     };
     const citationKey = { value: 'ScholoomPreserved2026', pinned: true };
     expect(
-      await app.call('library.commitRecords', {
+      await port.call('library.commitRecords', {
         libraryId,
         requestId: randomUUID(),
         changes: [
@@ -119,8 +121,8 @@ test('single original actions use the real library and BBT, preserve CSL drafts,
       },
       author: [{ literal: 'Synthetic Research Consortium' }],
     };
-    const seeded = await app.call('library.get', { sourceId: source.id });
-    await app.call('library.update', {
+    const seeded = await port.call('library.get', { sourceId: source.id });
+    await port.call('library.update', {
       sourceId: source.id,
       revision: seeded.revision,
       metadata: savedMetadata,
@@ -128,31 +130,32 @@ test('single original actions use the real library and BBT, preserve CSL drafts,
       collectionIds: seeded.collectionIds,
       relatedIds: seeded.relatedIds,
     });
-    const record = () => app.call('library.record', { libraryId, sourceId: source.id });
+    const record = () => port.call('library.record', { libraryId, sourceId: source.id });
     const history = async () =>
-      (await app.call('library.recordHistory', { libraryId, sourceId: source.id })).records.filter(
+      (await port.call('library.recordHistory', { libraryId, sourceId: source.id })).records.filter(
         (entry) => entry.kind === 'original',
       );
     const before = await record();
     const historyBefore = await history();
-    const status = {
-      protocolVersion,
-      nodeVersion: process.versions.node,
-      processId: process.pid,
-      instanceId: randomUUID(),
-      dataDirectory: profile,
-      startedAt: new Date().toISOString(),
-      state: 'running' as const,
-    };
-    kernel = await startKernelServer(status, () => app.close(), app);
-    const endpoint = { ...status, url: kernel.url, token: kernel.token };
+    await expect(
+      port.call('zotero.result', { libraryId, requestId: randomUUID() }),
+    ).rejects.toMatchObject({ code: 'unavailable' });
+    await app.close();
+    preparing = false;
+    kernel = await startIsolatedKernel(profile, configuration);
+    port = kernel.client;
+    const processes = [{ instanceId: kernel.endpoint.instanceId, processId: kernel.child.pid }];
     // Only bootstrap is supplied here; rendererOrigin serves the built product assets.
     proxy = createServer(async (request, response) => {
       try {
         if (request.url === '/__scholoom/kernel/bootstrap') {
+          if (!kernel) {
+            response.writeHead(503).end();
+            return;
+          }
           response
             .writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' })
-            .end(JSON.stringify({ state: 'running', endpoint }));
+            .end(JSON.stringify({ state: 'running', endpoint: kernel.endpoint }));
           return;
         }
         const result = await fetch(new URL(request.url ?? '/', rendererOrigin));
@@ -189,48 +192,52 @@ test('single original actions use the real library and BBT, preserve CSL drafts,
     let loss: 'receipt' | 'request' | undefined;
     let droppedReceipt: Record<string, unknown> | undefined;
     let forwardedTitles = 0;
-    await ui.routeWebSocket(kernel.url, (route) => {
-      const server = route.connectToServer();
-      const pending = new Map<string, string>();
-      route.onMessage((message) => {
-        const frame = JSON.parse(message.toString());
-        if (frame.method?.startsWith('zotero.') || frame.method === 'library.update') {
-          calls.push({ method: frame.method, params: frame.params });
-          pending.set(String(frame.id), frame.method);
-        }
-        if (frame.method === 'zotero.replaceTitle') {
-          if (loss === 'request') {
-            loss = undefined;
-            void route.close({ code: 1011, reason: 'Request delivery lost' });
-            void server.close();
-            return;
+    const routeKernel = async () => {
+      assert(kernel);
+      await ui.routeWebSocket(kernel.endpoint.url, (route) => {
+        const server = route.connectToServer();
+        const pending = new Map<string, string>();
+        route.onMessage((message) => {
+          const frame = JSON.parse(message.toString());
+          if (frame.method?.startsWith('zotero.') || frame.method === 'library.update') {
+            calls.push({ method: frame.method, params: frame.params });
+            pending.set(String(frame.id), frame.method);
           }
-          forwardedTitles += 1;
-        }
-        server.send(message);
-      });
-      server.onMessage((message) => {
-        const frame = JSON.parse(message.toString());
-        const method = pending.get(String(frame.id));
-        if (method) {
-          pending.delete(String(frame.id));
-          if (frame.result) replies.push({ method, result: frame.result });
-          if (frame.error) errors.push({ method, code: frame.error.data?.code });
-          if (
-            method === 'zotero.replaceTitle' &&
-            loss === 'receipt' &&
-            frame.result?.state === 'committed'
-          ) {
-            loss = undefined;
-            droppedReceipt = frame.result;
-            void route.close({ code: 1011, reason: 'Committed receipt lost' });
-            void server.close();
-            return;
+          if (frame.method === 'zotero.replaceTitle') {
+            if (loss === 'request') {
+              loss = undefined;
+              void route.close({ code: 1011, reason: 'Request delivery lost' });
+              void server.close();
+              return;
+            }
+            forwardedTitles += 1;
           }
-        }
-        route.send(message);
+          server.send(message);
+        });
+        server.onMessage((message) => {
+          const frame = JSON.parse(message.toString());
+          const method = pending.get(String(frame.id));
+          if (method) {
+            pending.delete(String(frame.id));
+            if (frame.result) replies.push({ method, result: frame.result });
+            if (frame.error) errors.push({ method, code: frame.error.data?.code });
+            if (
+              method === 'zotero.replaceTitle' &&
+              loss === 'receipt' &&
+              frame.result?.state === 'committed'
+            ) {
+              loss = undefined;
+              droppedReceipt = frame.result;
+              void route.close({ code: 1011, reason: 'Committed receipt lost' });
+              void server.close();
+              return;
+            }
+          }
+          route.send(message);
+        });
       });
-    });
+    };
+    await routeKernel();
     await installRpcGate(ui);
     const titleCalls = () => calls.filter((call) => call.method === 'zotero.replaceTitle');
     const exportCalls = () => calls.filter((call) => call.method === 'zotero.export');
@@ -252,6 +259,33 @@ test('single original actions use the real library and BBT, preserve CSL drafts,
         .click();
       if (!(await originals.evaluate((element) => (element as HTMLDetailsElement).open)))
         await originals.locator('summary').click();
+    };
+    const frozenDraft = () =>
+      ui.evaluate((sourceId) => {
+        const read = (kind: string) => {
+          const key = Object.keys(localStorage).find((key) => key.endsWith(`|${kind}|${sourceId}`));
+          if (!key) throw new Error('Missing frozen operation or CSL draft');
+          return JSON.parse(localStorage.getItem(key) ?? '{}');
+        };
+        return { pending: read('original-title').pending, csl: read('metadata') };
+      }, source.id);
+    const restart = async (nextConfiguration = configuration) => {
+      assert(kernel);
+      const previous = kernel;
+      await previous.stop();
+      expect(await previous.exited).toEqual({ code: 0, signal: null });
+      kernel = undefined;
+      kernel = await startIsolatedKernel(profile, nextConfiguration);
+      port = kernel.client;
+      expect(kernel.endpoint.instanceId).not.toBe(previous.endpoint.instanceId);
+      expect(kernel.child.pid).not.toBe(previous.child.pid);
+      expect((await port.call('library.status', {})).id).toBe(libraryId);
+      processes.push({ instanceId: kernel.endpoint.instanceId, processId: kernel.child.pid });
+      await routeKernel();
+      await ui.reload();
+      await expect(ui.getByRole('status', { name: '连接状态' })).toContainText('已连接');
+      expect(ui.url()).toBe(url);
+      await openOriginal();
     };
     await openOriginal();
     const inspect = originals.getByRole('button', { name: '核对所选原值', exact: true });
@@ -359,7 +393,7 @@ test('single original actions use the real library and BBT, preserve CSL drafts,
     const firstOriginal = { ...original, fields: { ...original.fields, title: correctedTitle } };
     expect(first.originals).toEqual([firstOriginal]);
     expect(first.citationKey).toEqual(citationKey);
-    expect((await app.call('library.get', { sourceId: source.id })).metadata).toEqual(
+    expect((await port.call('library.get', { sourceId: source.id })).metadata).toEqual(
       savedMetadata,
     );
     await expect.poll(async () => JSON.parse(await draft.inputValue())).toEqual(unsaved);
@@ -372,7 +406,7 @@ test('single original actions use the real library and BBT, preserve CSL drafts,
       before.revision,
     );
     await expect.poll(async () => JSON.parse(await draft.inputValue())).toEqual(unsaved);
-    expect((await app.call('library.get', { sourceId: source.id })).metadata).toEqual(
+    expect((await port.call('library.get', { sourceId: source.id })).metadata).toEqual(
       savedMetadata,
     );
 
@@ -385,12 +419,12 @@ test('single original actions use the real library and BBT, preserve CSL drafts,
     await armRpcGate(ui, 'zotero.replaceTitle');
     await submit.click();
     await ui.waitForFunction(() => !!Reflect.get(globalThis, '__scholoomRpcGate').held);
-    const current = await app.call('library.get', { sourceId: source.id });
+    const current = await port.call('library.get', { sourceId: source.id });
     const externalMetadata = {
       ...current.metadata,
       abstract: 'External CSL update during held original write',
     };
-    await app.call('library.update', {
+    await port.call('library.update', {
       sourceId: source.id,
       revision: current.revision,
       metadata: externalMetadata,
@@ -417,7 +451,7 @@ test('single original actions use the real library and BBT, preserve CSL drafts,
     const secondOriginal = { ...original, fields: { ...original.fields, title: conflictTitle } };
     expect(second.originals).toEqual([secondOriginal]);
     expect(second.citationKey).toEqual(citationKey);
-    expect((await app.call('library.get', { sourceId: source.id })).metadata).toEqual(
+    expect((await port.call('library.get', { sourceId: source.id })).metadata).toEqual(
       externalMetadata,
     );
     await expect.poll(async () => JSON.parse(await draft.inputValue())).toEqual(unsaved);
@@ -452,9 +486,11 @@ test('single original actions use the real library and BBT, preserve CSL drafts,
     ]);
     expect(afterLostReceipt.citationKey).toEqual(citationKey);
     expect(await history()).toHaveLength(historyBefore.length + 3);
-    await ui.reload();
-    await expect(ui.getByRole('status', { name: '连接状态' })).toContainText('已连接');
-    await openOriginal();
+    const committedDraft = await frozenDraft();
+    expect(committedDraft.pending).toEqual(unknownRequest);
+    expect(committedDraft.csl.revision).toBe(before.revision);
+    await restart();
+    expect(await frozenDraft()).toEqual(committedDraft);
     await expect(originals).toContainText(unknownTitle);
     await expect.poll(async () => JSON.parse(await draft.inputValue())).toEqual(unsaved);
     expect(titleCalls()).toHaveLength(4);
@@ -472,6 +508,17 @@ test('single original actions use the real library and BBT, preserve CSL drafts,
     await expect(operationStatus).toBeVisible();
     expect(await record()).toEqual(afterLostReceipt);
     expect(titleCalls()).toHaveLength(4);
+    await expect(check).toHaveCount(0);
+    const casFailures = errors.filter((entry) => entry.method === 'library.update').length;
+    await detail.getByRole('button', { name: '保存题录更正', exact: true }).click();
+    await expect
+      .poll(() => errors.filter((entry) => entry.method === 'library.update').length)
+      .toBe(casFailures + 1);
+    expect(errors.at(-1)).toEqual({ method: 'library.update', code: 'contentChanged' });
+    expect(calls.filter((entry) => entry.method === 'library.update').at(-1)?.params.revision).toBe(
+      committedDraft.csl.revision,
+    );
+    expect((await frozenDraft()).csl).toEqual(committedDraft.csl);
 
     await inspect.click();
     await expect
@@ -491,9 +538,11 @@ test('single original actions use the real library and BBT, preserve CSL drafts,
     assert(undelivered);
     expect(titleCalls()).toHaveLength(5);
     expect(forwardedTitles).toBe(4);
-    await ui.reload();
-    await expect(ui.getByRole('status', { name: '连接状态' })).toContainText('已连接');
-    await openOriginal();
+    const undeliveredDraft = await frozenDraft();
+    expect(undeliveredDraft.pending).toEqual(undelivered);
+    expect(undeliveredDraft.csl).toEqual(committedDraft.csl);
+    await restart();
+    expect(await frozenDraft()).toEqual(undeliveredDraft);
     await check.click();
     await expect
       .poll(() => queryReplies().at(-1)?.result)
@@ -501,6 +550,9 @@ test('single original actions use the real library and BBT, preserve CSL drafts,
         requestId: undelivered.requestId,
         state: 'notFound',
       });
+    await expect(check).toBeEnabled();
+    expect(await frozenDraft()).toEqual(undeliveredDraft);
+    expect((await frozenDraft()).csl).toEqual(committedDraft.csl);
     await inspect.click();
     await expect(title).toHaveValue('Undelivered title must not be retried');
     await expect(title).toBeDisabled();
@@ -511,7 +563,7 @@ test('single original actions use the real library and BBT, preserve CSL drafts,
     expect(titleCalls()).toHaveLength(5);
     expect(await record()).toEqual(afterLostReceipt);
     expect(await history()).toHaveLength(historyBefore.length + 3);
-    expect((await app.call('library.get', { sourceId: source.id })).metadata).toEqual(
+    expect((await port.call('library.get', { sourceId: source.id })).metadata).toEqual(
       externalMetadata,
     );
 
@@ -561,9 +613,48 @@ test('single original actions use the real library and BBT, preserve CSL drafts,
       await originals.locator('summary').click();
     await expect(originals.getByRole('alert')).toContainText('草稿');
     await expect(ui.getByRole('region', { name: '文献库', exact: true })).toBeVisible();
+    const queryInput = { libraryId, requestId: String(undelivered.requestId) };
+    await expect(
+      port.call('zotero.result', { ...queryInput, libraryId: randomUUID() }),
+    ).rejects.toMatchObject({ code: 'unavailable' });
+    await port.call('library.grant', { read: false, write: true, send: true, autoBackup: false });
+    await expect(port.call('zotero.result', queryInput)).rejects.toMatchObject({
+      code: 'permissionDenied',
+    });
+    await port.call('library.grant', { read: true, write: true, send: true, autoBackup: false });
+    const wrongLibraryId = randomUUID();
+    await restart({ ...configuration, libraryId: wrongLibraryId });
+    expect(await frozenDraft()).toEqual(undeliveredDraft);
+    const errorsBefore = errors.filter((entry) => entry.method === 'zotero.result').length;
+    await check.click();
+    await expect
+      .poll(() => errors.filter((entry) => entry.method === 'zotero.result').length)
+      .toBe(errorsBefore + 1);
+    expect(errors.at(-1)).toEqual({ method: 'zotero.result', code: 'unavailable' });
+    await expect(originals.getByRole('alert')).toContainText('unavailable');
+    await expect(
+      port.call('zotero.result', { ...queryInput, libraryId: wrongLibraryId }),
+    ).rejects.toMatchObject({ code: 'instanceMismatch' });
+    expect(await frozenDraft()).toEqual(undeliveredDraft);
+    expect(titleCalls()).toHaveLength(5);
+    expect(await record()).toEqual(afterLostReceipt);
+    expect(await history()).toEqual(finalHistory);
     await writeFile(
       info.outputPath('original-actions.json'),
-      JSON.stringify({ calls, errors, before, afterLostReceipt, history: finalHistory }, null, 2),
+      JSON.stringify(
+        {
+          calls,
+          errors,
+          before,
+          afterLostReceipt,
+          history: finalHistory,
+          processes,
+          committedDraft,
+          undeliveredDraft,
+        },
+        null,
+        2,
+      ),
     );
   } finally {
     try {
@@ -578,7 +669,7 @@ test('single original actions use the real library and BBT, preserve CSL drafts,
           );
       } finally {
         if (kernel) await kernel.stop();
-        else await app.close();
+        else if (preparing) await app.close();
       }
     }
   }

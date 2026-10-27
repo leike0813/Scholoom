@@ -1,10 +1,14 @@
 # 执行任务
 
+## 938c33f后的5.4a消费
+
+主线已同步真实`startIsolatedKernel`，A配置前置具备。本轮直接扩原zotero-original双宿主场景：关闭准备app后全程真实RPC，已提交回执丢失／未送达分别跨真实stop、child close及显式注入重启查询，核冻结pending与CSL旧依据、键／历史不变；拒绝缺配置／错库／撤read。只改所属测试与原工件，不改helper／CLI或重跑14UI，B仍未交付。
+
 ## 4312262后的配置／进程重启边界
 
 本轮已核对真实CLI→ensureKernel→serve及现有UI注入路径。CLI没有isolatedZotero可信配置加载／传递能力；按用户条件只交investigation／design中的提供者及候选方案，不创建新server／launcher或跨模块配置，不重复已绿14UI。原macOS列表同例已有4312262新目标通过证据；不再调查旧失败。
 
-- [ ] 5.4a **测试侧进程提供者已具备，待消费验收**：使用主线`tests/isolated-kernel.ts::startIsolatedKernel`及既有单条原值GUI，验证冻结identity／revision／requestId与CSL草稿跨真实内核进程重启仍可核查且不重放。A的窄身份／生命周期测试已通过；真实原包、双宿主committed／notFound及撤权／错误库恢复仍未验，不能据夹具通过勾本项。实际停止绑定原instanceId，不调用重新发现的CLI stop；B标准CLI持久配置不在本片，见design首节。
+- [x] 5.4a 已消费主线startIsolatedKernel，在原GUI单个场景用实际BBT9.0.68与每宿主四次真实内核进程启动验证A。committed／notFound均跨原实例stop、child close及同库显式注入重启，冻结identity／revision／requestId与完整dirty CSL保持；查询后实际CSL保存仍以旧revision被CAS拒绝。缺配置、错误库请求、撤read及错误绑定重启均拒绝而不假作notFound；无重放、原值／键／历史不污染。首轮2/2、独立审查补强后最终双宿主2/2通过，日志见delivery；不改共享helper，B及完整4.1／4.2／I6／E6仍开放。
 
 ## 0b78815后的有界GUI消费者
 
@@ -68,7 +72,7 @@ flowchart LR
 - [x] 1.2a 逐份消费阅读材料／报告design、ContextItem同源增量及项目AuxiliaryPane实际源码，核对R1边界与右栏符号、taskNavigator／活动task及多窗口fixture合并点，精确路径见investigation；不再等待同一设计重复转交。
 - [x] 1.2b 已闭合独立题录贡献的精确100项DTO、范围／主选、16项材料独立预算、修订／授权及三类模型准入复查、提供者清单和独立增量顺序；真实实现与验证由5.1记录，历史候选补丁不再代表当前接线状态。
 - [x] 1.3 P1按原B／F分批边界核对：本批列显示／顺序／宽度，查询排序留F；不实施未经确认的新排序，保留服务端默认顺序，依据见design及本轮主线协调计划。
-- [ ] 1.4 当前完整输入为caf9025／Checks40455958976：Linux743通过／1失败／26跳过，Windows687通过／41失败／42跳过；原生定向另列，不用旧4失败清单或数量推同因果。4312262新macOS job及原列表同例已成功，但新Checks整体／Windows未据此关闭；附件阶段仍由Agent协查。精确证据见investigation首节，本线不改共同期限／unknown／停止保护。
+- [ ] 1.4 当前完整输入为8c2fd24／Checks40479176954：Linux内核746通过26跳过、UI126通过32失败4跳过，Windows内核688通过42失败42跳过，macOS job成功。文档差异的4312262旧run Windows727通过3失败42跳过不能据数量推新增源码缺陷或启动稳定。938c33f新Checks的head／步骤截点见investigation；附件／共同初始化由所属线协查，不把本机5.4a通过当平台关闭。
 
 ## 2. 稳定选择与对象草稿：首批独立成果
 
@@ -108,4 +112,4 @@ flowchart LR
 
 ## 续做入口
 
-5.4原GUI及unknown重载已接收；主线已交付A的可信测试进程提供者，下一片直接消费并验5.4a，不再重复配置缺口调查。完整映射4.1／4.2、Windows1.4及整体6.x／生态E6保持开放；未知操作只查询不重放，不新增B生产配置或真实库接线，不归档或启动后续大阶段。
+共同源码938c33f已实际消费，5.4a的A真实进程／原包／双宿主子片已验证，原配置缺口等待不再适用；当前25/30，达到本轮边界停止。完整映射4.1／4.2、Windows1.4及整体6.x／生态E6保持开放；未知操作只查询不重放，不新增B生产配置或真实库接线，不归档或自动启动后续阶段。
