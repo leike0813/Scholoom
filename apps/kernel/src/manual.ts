@@ -745,9 +745,14 @@ export class ManualApplication {
       },
     });
   }
-  async initialize(): Promise<void> {
+  async initialize(report: (phase: string) => void = () => {}): Promise<void> {
+    report('initializing-library');
     await this.library.initialize();
+    report('library-initialized');
+    report('initializing-projects');
     await this.projects.initialize();
+    report('projects-initialized');
+    report('initializing-program-records');
     try {
       const registered: unknown = JSON.parse(
         readFileSync(join(this.directory, 'projects.json'), 'utf8'),
@@ -775,7 +780,10 @@ export class ManualApplication {
       }
     }
     this.programs.initialize(this.projects.all().map((store) => store.project.id));
+    report('program-records-initialized');
+    report('initializing-program-environments');
     await this.programEnvironments.initialize();
+    report('program-environments-initialized');
   }
   private registerProjectHandlers<K extends keyof ApplicationInputs>(
     owner: string,

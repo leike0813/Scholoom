@@ -408,3 +408,45 @@ Ptolemy保持gpt-6.1-sol/high、无上下文fork，先只读定位来源候选�
 当前5.2的精确输入：新源码Windows事件必须实际给出可核origin，才能关闭来源观察子项；本轮历史10条仍保持未归因。并发还需要新父preparationMs／spawnedAt及子准备／busy日志，再按原装配归属定位初始化提供者；若需要各域初始化耗时，由主线统筹对应窄取证，本片不猜定案。历史TeX无新根因、不重跑。源不同或未实跑不记目标关闭，不因新CI出现一组正样本结束稳定性核查。
 
 交回同目录01-kernel-startup-observation.patch、02-availability-provenance.patch、03-openspec-evidence.patch及README／manifest；前两份独立，第三份记录两者。只反向git apply --check，不应用或回滚。第13组完成，41/43，5.2／6.2继续开放。本轮测试／隔离进程正常收尾，辅助已结束；不提交／推送／PR／归档、同步其他树或扩新的环境／Graph／科研角色／SSH／发布。
+
+## 第十轮：Windows来源校准回执与初始化提供者取证
+
+### 输入及实际结论
+
+本轮起点938c33f2c9fcafb2cce11b0c165b2fb1e9a818c3，工作区干净，未自行同步或应用旧patch。已读第十轮安排、计算职责、阶段约定及原工件，apply初始41/43。正式输入 `/tmp/scholoom-round10-acceptance-j1MosP/`；本轮独立结果目录 `/tmp/scholoom-project-execution-round10-nF7LUq/`。只读查询本仓库run／artifact，没有触发CI。
+
+- 同源码Windows diagnosis40540362546／job122316784767已完成；head精确匹配。原windows-diagnosis.log的availability步骤 **6/6通过**：无发现占锁38.3s、活发现占锁28.3s、RPC声明3.1s、实际来源正负校准498ms、Node进程校准75ms、不可用入口3.4s。实际Windows校准调用真实privateDirectory并断言来源已识别、PID／真实exit0／阶段均满足原允许条件；同名非来源PowerShell仍拒绝。不可用测试保留全窗口计数、所有事件严格分类、五拒绝入口零派发及无消息／run、load=false与容量断言。因此关闭“源码映射漏识别”窄子项，不关闭并发稳定性，不反填历史10条事件身份。
+- artifact12751410950已下载为windows-diagnosis.zip。成功availability步骤未显式写文件，现有list reporter／retain-on-failure与上传路径没有保存其JSON；execution-report仅含最早repeat步骤，不能据其他report补造origin具体枚举或逐事件值。通过日志及对应真实断言是本轮目标依据；为补这个精确取证缺口，本片将既有来源／不可用／并发附件显式写入测试输出并按路径附加，不改workflow或采集更多私有信息。
+- 8c2fd24／Checks40479176954的Windows artifact12726536151已下载为windows-8c2.zip，指定并发trace的安全JSON提取为8c2-concurrent-safe.json。**首批4入口均running同实例PID832；失败在重启批次**。旧实例server-closed／lock-released后，新PID1412以本批最早caller startedAt为0：loading +7.018s、initializing +11.863s、启动者ready-timeout回执 +13.003s、最后采样 +13.428s。跟随者的最后观察仍是旧发现PID832死亡／锁held，不证明旧进程仍持锁。未有父prepare／spawn及域内时点，不能从总耗时认定CPU、锁或某模块根因。431完整组正例、431独立诊断反例及8c2重启分别记录，不拼时间线。
+- diagnosis的Agent三例失败在首模型请求／产物观察，属Agent线；native、host、development owner及Electron步骤成功仅限其实际场景。本轮Checks40540362614查询截点仍为Linux／Windows内核步骤运行中、macOS成功，见checks-query.json；不继续轮询、不将启动或不同run的计数当通过。
+
+### 实际变化与归属
+
+按原design先落第14组，再实施。`ManualApplication.initialize(report?)` 对library、projects、program-records（含登记核查／同步恢复）、program-environments的实际装配调用报告固定开始／完成；`KernelApplication.initialize(report?)` 下传并报告harness及同步research初始化。`serveKernel` 仅向initialize传入既有受保护report，构造器／根工具／各域恢复及内部机制不改。无参旧调用沿原行为。所有阶段使用同一真实instanceId／PID和时点；只有持锁者进入，busy候选不产生提供者阶段。缺少完成只表示采样时尚未观察到完成，不能声称永久阻塞。
+
+直接等待调用为library.initialize、projects.initialize、programEnvironments.initialize、harness.initialize。前两者分别包含私有目录／SQLite及材料初始化、系统项目／登记项目打开；环境读取现有配置，harness核查待交付材料和旧run。当前没有目标提供者时点，未改它们内部、worker初始化或HostConnection；下一步须先核新标记，再由所属域提供内部必要取证。回调只输出固定phase，不输出argv、环境、路径、项目、异常正文或凭据；不新增状态权威、schema、依赖或日志框架。
+
+`tests/kernel-fixture.ts` 只扩展固定phase白名单，仍读末尾64KiB／最多64条。`lifecycle.spec.ts` 扩展现有真实并发用例，核同一实例／PID的提供者开始完成及有序时间，原alias、独立配置、停止／重启保留；原脱敏用例保留未知字段剔除。并发、来源和不可用三类安全JSON落在各自outputPath，成功用例也保留；来源谓词和全局计数不变。开发说明同步诊断入口，原控制时序／设计图未改变，不新增正式规格行为或生成映射。
+
+### 实际命令、首次失败与验证边界
+
+Linux Node24.12.0、已有依赖；生产源码修改后先构建kernel，测试期间没有重建产物。未安装／下载依赖，未开开发服务器或访问用户库。仅下载获授权的本仓库CI artifact。
+
+| 命令／操作 | 实际结果及证据 |
+| --- | --- |
+| `pnpm --config.optimisticRepeatInstall=false --filter @scholoom/kernel build` | 通过，build-kernel.log；不重复构建共同未改包／桌面 |
+| `node node_modules/@playwright/test/cli.js test --config playwright.kernel.config.ts tests/kernel/lifecycle.spec.ts --grep 'concurrent entries share\|diagnostic attachments\|bounded lifecycle' --output <结果目录>/lifecycle-results` | **3/3通过，44.7s**，lifecycle.log；真实并发／alias／独立配置／重启及新阶段归属、脱敏通过 |
+| 同入口两文件 `tests/kernel/platform-availability.spec.ts tests/kernel/lifecycle.spec.ts --grep 'child process observation recognizes\|unavailable execution refuses\|occupied configuration preserves live' --output <结果目录>/observation-results` | **3/3通过，41.2s**，observation.log；活holder释放竞争及三份显式JSON文件存在已核查。此前生命周期测试结束后才运行本组，没有并行改测试或重建 |
+| `node node_modules/typescript/bin/tsc --noEmit -p tsconfig.tools.json` | 最终通过，tools-final.log；新增数组元素收窄已由编译器确认 |
+| 六份源码Biome／architecture | 格式首次仅availability新增writeFile分行不符，biome-final.log保留原失败；内置patch修正后biome-verified.log通过。架构14模块254文件0 findings，architecture.log |
+| OpenSpec／diff | 已获取delivery instructions，strict及scholoom-dev schema通过；最终diff检查，无正式schema／生成类型变化，相关生成检查不适用 |
+
+本机两组测试首跑均通过；CI首次失败仍沿主线原日志和本轮8c2 trace保留，没有重试、sleep或加宽期限。真实范围为CLI／broker／仓储／文件／SQLite锁、Node子进程、loopback连接及真实模块装配；占锁测试仅夹具自有holder／发现记录／拒绝端口可控。Linux不可用场景仍只替换原availability getter，实际来源安全拒绝路径真实；Windows ACL正负分支本机不适用，实际目标依据为40540362546。无模型替身参与本片生命周期测试，不把Linux spawned=0当Windows ACL效果证据。
+
+Locke原生辅助使用gpt-6.1-sol/high、fork_context:false，仅只读追踪等待点及独立复核源diff，未构建／测试／写树。未发现确定缺陷；其提出的TS收窄待验已通过tools编译。父核对同步program／research也可记录调用耗时，但不是await边界；64条尾部上限可能丢弃较早批次，故附件按批采样，缺失早期事件不作未发生证明。
+
+### 仍需输入及停止点
+
+源映射观察窄项已关闭；5.2／6.2和完整change继续开放。精确下一输入是主线接入本片后Windows同一失败run／新子PID的父preparationMs／spawnedAt、子preparing-runtime／runtime-prepared／loading／initializing及各提供者开始完成原始安全JSON。只有这些到达后才判断实际等待提供者；若落入harness／项目／库内部，交相应所有者具体调用与时点，不自行重构。当前不支持提出生产机制修复，生产10s期限、unknown、容量、完整停止、PID观察及锁归属均未变。
+
+交回本结果目录的01-kernel-initialization-observation.patch、02-diagnostic-fixtures.patch、03-openspec-and-development.patch及README／manifest，按01→02→03接入；只核反向可应用性，不应用或回滚补丁。第14组完成，44/46，5.2／6.2仍开放。没有重复TeX、全仓／全UI、macOS／Windows本机测试或包分发，历史TeX根因及目标新观察回执保持开放。完成本片后停止，不提交／推送／PR／归档、操作其他树或扩展环境／SSH／Graph／科研角色。

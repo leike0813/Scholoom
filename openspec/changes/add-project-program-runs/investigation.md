@@ -59,6 +59,14 @@ flowchart LR
 
 ### 当前CI基线（2026-10-27）
 
+本轮938c33f正式输入为 `/tmp/scholoom-round10-acceptance-j1MosP/`，最新已完成Checks为8c2fd24／40479176954：Linux内核746通过26跳过、UI126通过32失败4跳过；Windows内核688通过42失败42跳过；macOS job成功。本轮只读下载Windows artifact12726536151，实际lifecycle反例发生在重启批次：首批4入口均running同实例PID832；旧实例server-closed／lock-released后，新PID1412到loading（本批+7.018s）、initializing（+11.863s），启动者ready-timeout回执+13.003s，最后采样+13.428s。跟随者最后观察旧发现PID832死亡且锁held，不表示旧进程仍持锁或新进程归属不明。缺少父prepare／spawn及初始化各提供者时点，不能倒推耗时根因。
+
+同源码938c33f Windows诊断40540362546已完成，head精确匹配，artifact12751410950已只读核对：availability六例全通过，含Windows原生privateDirectory来源正负校准、两种占锁、真实RPC与不可用入口零派发。断言严格保留来源／阶段／进程／真实exit0；窄来源校准关闭，不把历史10条未归因事件补造为ACL。成功步骤未显式落盘的JSON不在artifact内，具体origin枚举及准备耗时仍无原始附件值；本片将既有安全附件显式保留。Agent三例失败均在首模型／产物观察边界，归Agent线，不作为生命周期根因。Checks40540362614查询截点Linux／Windows仍在内核步骤、macOS成功；不轮询或触发重跑。
+
+Application.initialize真实等待入口为ManualApplication内library.initialize、projects.initialize、programEnvironments.initialize，以及KernelApplication内harness.initialize；另有登记核查／programs恢复及research同步初始化。只在这些既有装配调用前后增加固定安全标记，具体域内部提供者尚无目标时点证据，不改harness或HostConnection。下一输入须为同run／新子PID的父preparationMs／spawnedAt、子准备／loading／initializing及提供者开始／完成，不能拼接下列历史样本。
+
+### 第九轮CI消费（历史）
+
 本轮指定基线为caf9025／[40455958976](https://github.com/leike0813/Scholoom/actions/runs/40455958976)：Linux743通过1失败26跳过；Windows687通过41失败42跳过；macOS人工UI13通过1失败、fallback2及入口4通过。原日志与精确并发摘录在 `/tmp/scholoom-round9-acceptance-IER31D/`，不沿用旧4失败清单或按用例总数推因果。Windows artifact 12715580670已只读下载至 `/tmp/scholoom-project-execution-round9-RRtTUQ/windows-checks-caf9025.zip`。首批4入口实际2个running同实例、2个unknown／availability／held／无discovery；第一个unknown调用回执在发现发布前6ms，另一个在发布后87ms返回，回执仍是最后一次held／无discovery观察，最后检查的确切时刻未记录。不是已连接实例回退，也不是旧occupied的PID判断。
 
 同源码4312262的[Windows诊断40476577132](https://github.com/leike0813/Scholoom/actions/runs/40476577132)已完成，artifact 12721785916与主线原始windows-diagnosis.log／failures.log均消费。锁／availability组3通过2失败：无发现占锁、RPC声明、Node观察器通过；活发现前段归属通过，释放后三入口为两个unknown／held／无discovery和一个ready-timeout／handshake none，最后采样仅到新PID4436的应用初始化；不能声称该内核永不就绪或锁失效。unavailable的10个事件实际相位7／2／1、退出0，但来源false，依旧未放行；没有由名称／相位推定来源。Agent步骤三个失败归所属线，本线不改推进／来源。

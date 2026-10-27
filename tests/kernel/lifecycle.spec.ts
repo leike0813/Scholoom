@@ -44,8 +44,10 @@ async function observedStarts(directory: string, label: string, count: number) {
     }),
   );
   const lifecycle = await kernelLifecycleDiagnostics(directory);
+  const path = test.info().outputPath(`${label}.json`);
+  await writeFile(path, JSON.stringify({ entries, sampledAt: Date.now(), lifecycle }));
   await test.info().attach(label, {
-    body: JSON.stringify({ entries, sampledAt: Date.now(), lifecycle }),
+    path,
     contentType: 'application/json',
   });
   return results.map((result) => {
@@ -71,6 +73,25 @@ test('concurrent entries share one canonical instance and separate configuration
       return reply.state === 'running' ? reply.endpoint.instanceId : null;
     });
     expect(new Set(ids).size).toBe(1);
+    const initialization = (await kernelLifecycleDiagnostics(directory)).filter(
+      (row) => row.instanceId === ids[0],
+    );
+    for (const provider of [
+      'library',
+      'projects',
+      'program-records',
+      'program-environments',
+      'harness',
+      'research',
+    ]) {
+      const begin = initialization.find((row) => row.phase === `initializing-${provider}`);
+      const end = initialization.find((row) => row.phase === `${provider}-initialized`);
+      expect(begin?.processId).toBe(
+        replies[0]?.state === 'running' ? replies[0].endpoint.processId : undefined,
+      );
+      expect(end?.processId).toBe(begin?.processId);
+      expect(end?.at).toBeGreaterThanOrEqual(begin?.at ?? Number.POSITIVE_INFINITY);
+    }
     const alias = join(directory, 'alias');
     await symlink(directory, alias, process.platform === 'win32' ? 'junction' : 'dir');
     const same = await runKernel(alias, 'start');
@@ -408,11 +429,12 @@ test('bounded lifecycle log attachments discard raw payload and unknown fields',
     await mkdir(join(directory, 'runtime'));
     await writeFile(
       join(directory, 'runtime', 'kernel.log'),
-      `${secret.repeat(10000)}\n${JSON.stringify({ phase: 'preparing-runtime', at: 40, processId: 1, token: secret })}\n${JSON.stringify({ phase: 'endpoint-published', at: 42, instanceId: 'instance', processId: 1, token: secret, payload: secret })}\n`,
+      `${secret.repeat(10000)}\n${JSON.stringify({ phase: 'preparing-runtime', at: 40, processId: 1, token: secret })}\n${JSON.stringify({ phase: 'initializing-harness', at: 41, instanceId: 'instance', processId: 1, provider: secret })}\n${JSON.stringify({ phase: 'endpoint-published', at: 42, instanceId: 'instance', processId: 1, token: secret, payload: secret })}\n`,
     );
     const rows = await kernelLifecycleDiagnostics(directory);
     expect(rows).toMatchObject([
       { phase: 'preparing-runtime', at: 40, processId: 1 },
+      { phase: 'initializing-harness', at: 41, instanceId: 'instance', processId: 1 },
       { phase: 'endpoint-published', at: 42, instanceId: 'instance', processId: 1 },
     ]);
     expect(rows[0]?.instanceId).toBeUndefined();

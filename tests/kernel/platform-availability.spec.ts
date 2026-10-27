@@ -4,7 +4,7 @@ import { type ChildProcess, spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { channel } from 'node:diagnostics_channel';
 import { once } from 'node:events';
-import { mkdir, mkdtemp, readFile, rm, symlink } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { basename, join } from 'node:path';
 import { expect, test } from '@playwright/test';
@@ -195,12 +195,17 @@ test('child process observation recognizes real private directory provenance and
       }
       await rm(root, { recursive: true });
     } finally {
-      await test.info().attach('private-directory-provenance', {
-        body: JSON.stringify({
+      const path = test.info().outputPath('private-directory-provenance.json');
+      await writeFile(
+        path,
+        JSON.stringify({
           diagnostic,
           spawned: observation.spawned,
           events: observation.events,
         }),
+      );
+      await test.info().attach('private-directory-provenance', {
+        path,
         contentType: 'application/json',
       });
     }
@@ -442,8 +447,13 @@ test('unavailable execution refuses work before spawning and keeps manual files,
       }
       await rm(root, { recursive: true });
     } finally {
+      const path = test.info().outputPath('unavailable-execution-processes.json');
+      await writeFile(
+        path,
+        JSON.stringify({ spawned: observation.spawned, events: observation.events }),
+      );
       await test.info().attach('unavailable-execution-processes', {
-        body: JSON.stringify({ spawned: observation.spawned, events: observation.events }),
+        path,
         contentType: 'application/json',
       });
     }
