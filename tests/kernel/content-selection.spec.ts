@@ -31,10 +31,12 @@ test.beforeAll(async () => {
         };
         const client={};
         const initial='Hello preview\\n\\n| Header |\\n| --- |\\n| real cell |\\n\\n![Actual image](plot.png "Plot title")';
+        let visualRevision=0;
+        window.visualRevision=()=>visualRevision;
         function App(){
           const [content,setContent]=React.useState(initial),[visual,setVisual]=React.useState('Hello visual'),
             [markdownSelection,setMarkdownSelection]=React.useState(null),
-            [visualSelection,setVisualSelection]=React.useState(null),[mounted,setMounted]=React.useState(true);
+            [visualSelection,setVisualSelection]=React.useState({revision:0,value:null}),[mounted,setMounted]=React.useState(true);
           window.setMarkdown=setContent; window.unmountViews=()=>setMounted(false);
           return <><p id="outside">Outside text</p>{mounted&&<>
             <MarkdownPreview content={content} documentKey="fixture" basePath="paper.md" resourceRevision={0}
@@ -42,10 +44,11 @@ test.beforeAll(async () => {
               openFile={()=>{}} openExternal={()=>{}} onSelection={setMarkdownSelection}/>
             <VisualEditor client={client} projectId="project" path="paper.md" content={visual} readOnly={false}
               onChange={setVisual} onError={()=>{}} onPending={()=>{}} onSave={()=>{}}
-              registerFlush={flush=>window.flushVisual=flush} onSelection={setVisualSelection}/>
+              registerFlush={flush=>window.flushVisual=flush}
+              onSelection={value=>setVisualSelection({revision:++visualRevision,value})}/>
           </>}
           <output id="markdown-selection">{JSON.stringify(markdownSelection)}</output>
-          <output id="visual-selection">{JSON.stringify(visualSelection)}</output></>;
+          <output id="visual-selection" data-revision={visualSelection.revision}>{JSON.stringify(visualSelection.value)}</output></>;
         }
         createRoot(document.getElementById('root')).render(<App/>);`,
       resolveDir: desktop,
@@ -88,6 +91,7 @@ test.beforeAll(async () => {
                 setMarkdown:async()=>({unrecognized:[],example_lists:false,unparsed_meta:{}}),
                 getSelectedText:()=>state.doc.textBetween(state.selection.from,state.selection.to),
                 getSelection:()=>({from:state.selection.from,to:state.selection.to}),
+                getImagePosition:()=>position('image'),
                 getStateJson:()=>state.toJSON(),
                 getMarkdown:()=>new Promise((resolve,reject)=>{
                   window.finishConversion=()=>resolve({code:state.doc.textContent});
@@ -152,7 +156,17 @@ async function selectText(element: Locator, keyboard = false) {
 }
 
 async function visualAction(page: Page, action: string) {
-  await page.evaluate((name) => Reflect.get(window, 'visualFixture')[name](), action);
+  const observation = await page.evaluate((name) => {
+    Reflect.get(window, 'visualFixture')[name]();
+    return {
+      revision: Reflect.get(window, 'visualRevision')(),
+      committed: Number(document.getElementById('visual-selection')?.getAttribute('data-revision')),
+      selection: Reflect.get(window, 'visualFixture').getSelection(),
+    };
+  }, action);
+  await expect.poll(async () => Number(await page.locator('#visual-selection').getAttribute('data-revision')))
+    .toBeGreaterThanOrEqual(observation.revision);
+  return observation;
 }
 
 test('Markdown contributes only its own text and explicitly chosen real table/image objects', async ({
@@ -396,11 +410,23 @@ test('visual selection-only transactions, explicit tables and image snapshots pr
   expect(table).toMatchObject({ kind: 'object', providerId: 'visual', name: '表格' });
   expect(table.semantics).toContain('real cell');
   expect(table.semantics).toContain('Actual table caption');
-  await visualAction(page, 'image');
+  const imageAction = await visualAction(page, 'image');
   const image = JSON.parse(await output.innerText());
   expect(image).toMatchObject({ kind: 'object', providerId: 'visual', name: 'Visual title' });
+  expect(image.objectId).not.toBe(table.objectId);
   expect(image.semantics).toContain('actual.png');
+  expect(image.semantics).toContain('Actual caption');
   expect(image.semantics).toContain('figure-1');
+  const selected = await page.evaluate(() => {
+    const editor = Reflect.get(window, 'visualFixture');
+    return { ...editor.getSelection(), imagePosition: editor.getImagePosition() };
+  });
+  expect(selected.from).toBe(selected.imagePosition);
+  expect(selected.to - selected.from).toBe(1);
+  await test.info().attach('visual-selection-commit', {
+    body: JSON.stringify({ imageAction, selected, tableId: table.objectId, imageId: image.objectId }),
+    contentType: 'application/json',
+  });
   await visualAction(page, 'edit');
   await expect(output).toHaveText('null');
   await expect

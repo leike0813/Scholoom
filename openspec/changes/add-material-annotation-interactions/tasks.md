@@ -1,6 +1,6 @@
 # 执行任务
 
-当前已核对共同HEAD为4b13183f7489d3cae12fd0a7d1a9e83fb33d7384；主线同步及复验证据见`/tmp/scholoom-round6-acceptance-dXuzCA/`。旧等待同步和累计补丁失效。本轮消费真实委派FileEdit来源，扩展4.2／4.5同一文件父子历史、Evidence衔接及人工重叠／整次undo验证；修正Windows内容选择夹具的生成JS路径转义，不改业务选择。指令／工具及科研理由仍按实际记录未知，不改提供者。当前11/15项，任务以下列复选框为准，实际结果见[delivery](delivery.md)。
+当前已核对共同HEAD为0b788151b5e17665a26d9286dfd1d12f6e2e0c30；消费第八轮共同验收与最新CI输入，不应用旧补丁。本轮仅收敛2.2的visualAction选择／React提交夹具：等待真实选择回调对应的输出提交，核对图片对象identity、原图注及实际ProseMirror位置，保留表格、pending draft与失败保护。当前11/15项，不改材料提供者或关闭完整I5；报告隔离另沿独立change。
 
 第四轮主线接受M3局部成果，但独立内核首轮为34通过／1失败，失败项单独原时限复验1通过，不能合并称一次全绿。首个nativeTeX job unknown的控制进程退出根因仍开放；本轮最多一次有界观察已结束，不改停止保证、容量或时限。诊断证据及下一窄公共方案见investigation／delivery第四轮；4.6的局部交付不关闭5.2的该限制。
 
