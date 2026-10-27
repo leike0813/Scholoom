@@ -1,5 +1,35 @@
 # 实现设计
 
+## 4312262后的重启接线方案（候选，未实施）
+
+本轮当前路径和源码证据见investigation首节：UI夹具直接注入Application／KernelServer；serveKernel有可信构造参数，普通CLI start／serve及bootstrap没有isolatedZotero配置加载／传递。**不能满足本轮条件实施分支，停止在此方案。** 原单条GUI及页面重载保持已接收，不用它们代表内核进程重启保证。
+
+需主线确认的是验收入口及共享配置归属，不是新的题名／导出产品政策：
+
+| 候选 | 最小提供者／写集 | 可以证明与限制 |
+| --- | --- | --- |
+| A：仅测试侧可信serveKernel进程入口（建议） | 建议共同工程／计算生命周期维护者提供`tests/fixtures/isolated-kernel-process.ts`一类测试入口；生态核对现有IsolatedZotero配置和原包路径，文献只消费夹具扩展原GUI场景。所有文件名为建议，当前未新增。 | 使用现有serveKernel、真实运行锁／endpoint及独立Node进程，CLI status／stop真实；不新增普通产品配置。重启由同一可信测试父进程重新注入配置，**不证明标准CLI start持久恢复配置**。 |
+| B：标准CLI start也恢复受控隔离配置 | 主线另定有界公共配置增量，生命周期／bootstrap／CLI共同拥有加载／传播；生态负责可接受宿主配置及包约束，文献仍只消费。 | 才能证明普通CLI启动配置恢复；必须先定配置的创建／读取权限、绑定／失效及撤销机制，范围超过本线当前授权。不能只加任意路径／JSON／环境开关或从metadata读取。 |
+
+推荐A承接本轮仅测试目标；若主线要求验收必须从标准CLI start发起，应先交付B的公共契约，不能将A的结果改称B。两者均未发布／接入，本轮不替共同工程定案。
+
+### A的最小可审查接法
+
+1. 配置只由可信测试父进程创建并持有，复用现有IsolatedZotero类型`{libraryId, executable, args, packageDirectory}`，不新增协议DTO或第二配置权威。原包／可执行入口沿既有固定BBT夹具和已有依赖解析；库、包、profile及工作台origin均在本轮隔离根下。先用共同库API完成样本／来源／固定键准备并关闭准备app，取得真实libraryId；不得复制真实库、用来源副本或原operation.json自报授权。
+2. 新测试进程入口仅调用已有`serveKernel(canonicalProfile, {development:true, isolatedZotero:trustedConfig})`，无新KernelServer或provider。测试父进程通过私有IPC发送自身构造的配置；入口不成为生产CLI选项／renderer可见配置。重启时仍由父进程显式提供同一固定配置，拒绝实际libraryId不匹配；生产无配置仍unavailable，read／write／send及受管执行能力仍由现有领域检查。
+3. 复用既有运行锁、发现、状态／stop和开发owner。静态UI启动前先确认配置内核ready并由父进程持有开发owner，再让原Browser／Electron和静态bootstrap附着同目录。停止时用真实CLI stop并等待原进程退出／锁释放，再启动新进程；若unknown／停止未确认则停在核查，不清锁、不补启动或加时限。新instanceId／PID与旧进程退出分别记证；原libraryId／来源identity及同一工作台origin保持。此入口需要共同工程认可后才能创建，不在当前树私自实现。
+4. 文献消费者只复用现有CatalogOriginalActions、drafts、zotero.result与单一CSL草稿，不改业务源码来适配假配置。保持工作台窗口／origin稳定，页面reload重新引导当前实际endpoint；不把关闭新建窗口后的新工作台身份当同一草稿恢复保证。
+
+### 提供者具备后才执行的最小验证
+
+先共同／宿主／桌面构建，再冻结产物，扩展原zotero-original场景，不重跑无关14UI：
+
+- 在实际库原值更正已提交后丢失真实回执，保存冻结identity／revision／requestId及未保存CSL。真实CLI stop→确认完整退出→可信入口重建原配置进程→同origin工作台reload；只调用原zotero.result得到committed，题名／其他原值／键及历史无重复，CSL草稿／旧保存依据不变。
+- 原请求未送达同样跨重启查询notFound，继续保留pending且不重放；另核缺配置／库不匹配或read撤销时拒绝，不能把unavailable当notFound。模型无需参与，broker／SQLite／文件／锁／子进程和原包真实，传输门仅控制送达／回执丢失。
+- 两宿主使用同一真实CLI／serveKernel进程路径。收尾只停自有执行，结果目录内登记项目保留至配置退役；safe诊断仅记录阶段、实例／PID、授权与稳定结果，不输出token或bootstrap正文。原包仍限已验Linux，macOS不可用和其他平台目标边界不放宽。
+
+未实施的文件／符号：上述测试进程提供者、现有CLI／bootstrap的可选配置契约（仅B需要）、原GUI重启场景。库权威／zotero协议／结果语义／生产期限不属于本片写集。主线确认提供者／入口、交付并同步后才解除5.4a；本轮无新增行为，所以不改变delta规格。
+
 ## 0b78815后的滚动提交边界与单条原值消费者
 
 本树共同源码0b788151b5e17665a26d9286dfd1d12f6e2e0c30且开工前clean，前片已接收并同步。先处理macOS原失败：原日志旧:683实际断言scrollTop返回200，不是列宽。代码先同步设置scrollTop后立即读属性，未等待原生scroll触发虚拟列表更新／偏好保存。验证先观察当前可见列表及其虚拟行提交，再保留原分页返回的精确滚动断言；不改生产数值、超时或加sleep。当前同一基线新CI的macOS步骤已通过，不能据此声称改动前稳定复现或新改动已在macOS通过。

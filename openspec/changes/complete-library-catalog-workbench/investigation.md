@@ -1,5 +1,33 @@
 # 调查依据
 
+## 2026-10-27：4312262可信配置／进程重启缺口
+
+本树HEAD为`4312262c1a1f432ccd706dd1eb6ff6468765fd4e`，开工前clean。已消费`/tmp/scholoom-round9-acceptance-IER31D/{acceptance.md,main-ui-result.json}`及当前源码；前片单条GUI／unknown重载只查询已接收。本轮仅核配置／真实进程重启，以下为源码调查，未执行新业务或重跑已绿UI。
+
+### 当前实际路径
+
+| 入口／符号 | 实际参数与事实 | 对重启证据的影响 |
+| --- | --- | --- |
+| `tests/ui/zotero-original.spec.ts:34,46,147` | 测试端构造IsolatedZotero并传入KernelApplication，随后直接startKernelServer；本机bootstrap代理只返回该实际endpoint，其他资产来自静态renderer。 | 真实broker／SQLite／原BBT与页面重载成立；没有经过serveKernel的运行锁、endpoint发布或独立内核子进程重启。 |
+| `apps/kernel/src/application.ts:65,77,80`、`lifecycle.ts:264,270,315` | KernelApplication和serveKernel均接受可选isolatedZotero，后者确实复用同一Application及运行锁／server。 | 这是已有可信构造seam，参数由调用进程内存提供；不是CLI持久配置加载器。 |
+| `apps/kernel/src/cli.ts:16,149,164` | parseArgs没有隔离宿主配置项；serve只传development，start也只传development给ensureKernel。 | 普通CLI不能创建／恢复带隔离原包配置的内核；能查询预先由其他可信调用者注入的服务，不等于能启动它。 |
+| `apps/kernel/src/lifecycle.ts:357,375` | ensureKernel派生cli.js serve，参数只有canonical data-dir及可选development；无isolatedZotero传递／加载。 | 即使进程继承相同目录，重启的新Application也不恢复构造参数。 |
+| `apps/kernel/src/bootstrap.ts:21,83`、`apps/desktop/kernel-bootstrap.ts:56` | bootstrap只提供目录、Node入口及development；开发owner沿CLI start/status附着。 | 现有UI引导不补注入隔离配置，也不能从capabilities推定配置已存在。 |
+| `apps/kernel/src/zotero.ts:57,66` | check先核configuration及实际libraryId；result同样先check，再读library.commitResult。 | 普通CLI重启后，原库回执可能仍在SQLite，但zotero.result会因缺隔离配置返回unavailable。不能把它当notFound／结果丢失或安全重放。 |
+| `apps/kernel/src/zotero.ts:239`及`apps/zotero-host/src/main/managed.ts:18` | operation.json是已授权单次导出的原包派生投影／profile配置；BBT_PACKAGE等宿主环境只服务原包入口。 | 不是内核启动配置或授权来源，不能读该文件来自动启用内核。 |
+
+`tests/kernel/zotero-host.spec.ts:327`先关闭准备app，再在同一测试进程显式调用serveKernel(...isolatedZotero)并让CLI查询／导出；它证明现有seam可用，不是CLI start跨进程配置恢复。:698的题名unknown样本查询同一个app；:893的重建Application仍再次显式传配置。这些定义不填补当前缺口，本轮也未重跑冒充新结果。
+
+当前CatalogOriginalActions以实际库／窗口／sourceId保存冻结pending请求：包含原identity三字段、观测revision及requestId，查询只用原libraryId／requestId；CSL仍走唯一草稿及旧CAS依据。新内核runtime instanceId不能替换原Zotero来源instanceId，重启不能重建来源实例、推进原revision或补交旧写入。配置缺失时保持原操作待核查及真实错误，不绕过zotero.result隔离检查。
+
+**结论：CLI现有配置根本没有该能力。** 按用户本轮条件停止在原design的具体方案；5.4a实际跨进程验收受阻，不能通过新写测试launcher、另一server、普通生产启用或现有14UI重跑伪造闭合。
+
+### 平台输入与追加目标事实
+
+完整基线输入为caf9025／Checks40455958976：Linux完整组743通过／1失败／26跳过，Windows完整组687通过／41失败／42跳过；Windows原生定向16通过／3跳过、Linux原生19通过分别记录。macOS旧人工13通过／1失败、fallback2／2、入口4／4；不按数量推同因果，不沿用旧4失败清单。
+
+用户追加且已读取`/tmp/scholoom-round9-acceptance-IER31D/macos-job-current.json`：Checks40476577071、head4312262、macOS job122096177783 **completed/success**，fallback、入口及双宿主人工工作台步骤均success。`.github/workflows/checks.yml:74`明确人工步骤包含platform-availability及library.spec.ts，因此原列表同例已有新目标通过证据，不再重复追查旧失败。它不覆盖Linux-only原包导出或未知回执跨内核重启，也不是完整Checks／Windows通过。前一只读查询的截点保留在`/tmp/scholoom-library-restart-round9/ci-observed.json`，以此次更新的主线原始job证据为准；不轮询其他线或触发重跑。
+
 ## 2026-10-27：0b78815后的真实失败与原值GUI接口
 
 当前正式共同源码`0b788151b5e17665a26d9286dfd1d12f6e2e0c30`且开工前clean，主线接收／同步／定向复验见`/tmp/scholoom-round8-acceptance-UrXA7y/`。原日期子片、生态inspect／replaceTitle／expression、报告及授权修复均已在本树，旧“生态新接口未同步”属于历史，不再阻塞本轮消费者。
