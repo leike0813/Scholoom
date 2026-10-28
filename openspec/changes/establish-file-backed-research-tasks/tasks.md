@@ -83,3 +83,8 @@ flowchart TD
 ## 9. 共同整合后的任务消费与后端CI夹具
 
 - [x] 9.1 保留6b22d60／40315429083的Linux／Windows两项project-backend失败及本树固定红例，按当前完整执行来源契约修正测试内资格seam。broker、FileEdit来源及项目锁／CAS／最终授权真实，Manual生产不装harness或默认human；保护等待撤权拒绝、人工访问和无关目录改名。先build后原两例及相关后端／任务／真实worker边界最小回归，记录首次失败、最终结果和Linux以外未复验范围，再更新同一delivery并交有界增量后停止。
+
+## 10. 有界窗口观察片
+
+- [x] 10.1 沿design第10节新增按需uiRpc fixture与窄窗口观察helper，白名单投影当前真实uiPage的发送／受理／快照身份与时点；固定队列／字段／关联上限、丢弃和缺证计数，不采正文／token／原始通用帧，不包装或重放业务发送。两指定file-workbench场景在原清理前幂等冻结附件，保留原helper和业务行为，完成安全／故障模块自检及类型／lint检查。
+- [x] 10.2 复用已构建静态产品，在独立缓存根／TMPDIR下仅运行resident project sessions场景最小双宿主一次；保持原断言和期限，核真实点击、请求／回执／快照映射及失败时安全附件，原失败照实交回。记录CI目标一次状态、模拟边界、首次／最终结果和原delivery，交独立增量后停止；不由诊断片关闭业务CI或4.1。

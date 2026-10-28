@@ -292,3 +292,15 @@ TaskGraphs核对入口和来源后，通过已有resources.create保存`tasks/<p
 最新CI为6b22d60／40315429083，两项project-backend失败在当前源码复现。原测试以未装harness的Manual和缺session/run/instance的合成调用保存，被FileEdit来源检查提前拒绝，尚未走到原撤权／无关目录场景。修正只在`tests/kernel/project-backend.spec.ts`增加自含`BackendApplication`测试资格seam：绑定完整项目／会话／run／instance并核对Agent主体。继承真实broker、fileOrigin及ProjectStore保存锁／依据／最终权限检查；不覆盖来源、不改生产Manual默认unavailable、不改harness资格提供者。两个场景的项目／profile保留于各自结果目录；等待后撤销信任仍拒绝，人工编辑可用，无关目录改名不阻断notes保存。生产执行来源另由已有真实worker回归核对；测试资格seam本身不称真实harness身份。
 
 本轮没有新增业务行为或协议，不改delta specs／生成映射或生产装配。以原两例红绿、整份后端、任务／工具、真实委派及来源边界作最小验证；Linux通过不关闭Windows实际CI失败，全仓与其他平台不自动重跑。结果见同一delivery末节，到有界增量交回停止。
+
+## 10. 29cd728上的窗口侧公共UI取证
+
+本片按第十一轮主线明确的数据边界实现测试诊断，解决上轮Electron实际窗口network为空的缺口。只改`tests/ui/fixture.ts`的按需观察生命周期、一个`ui-rpc-observer.ts`窄helper，以及file-workbench两个指定场景的诊断挂载／清理前保存；不改任何现有业务helper签名、多窗口登记或生产preload／client／协议。Agent拥有model-kernel及执行侧，本片不依赖未合入实现，也不写那些文件。不是新产品行为，无需新增正式业务规格或生成映射。
+
+观察接口接受真实Playwright Page，以page的websocket／framesent／framereceived事件取得当前窗口实际流量；Electron传入uiPage真实窗口，不能传默认空页。只处理session.send、workbench.watch／snapshot，按每连接RPC ID关联请求与响应。投影请求projectId／sessionId／instructionId、真实回执instructionId／runId／结构化errorCode，以及快照revision、session／run身份和状态、最多8条最近用户指令的身份／状态。所有值重新白名单构造，不保留文字、材料、凭据、URL、token或原始通用帧，不修改／重放任何发送。
+
+边界固定为最多128条观察（保留最近项并计丢弃）、每连接32个待回执请求、最多32个连接；字段长度沿同源id上限1024，过长身份明确不采而不截短冒充。帧超2MiB、无效字段、解析／监听失败及超量均有有界计数，未见连接／相关流量明确缺证。同连接出现重复待回执ID时，停止该连接后续关联并计入丢弃，不能任选响应归属。时点是测试端收到窗口事件的本地Date.now及相对performance时点，不冒充worker或内核执行阶段。队列溢出不触发重试或扩大限额。
+
+新增按需uiRpc fixture依赖现有uiPage，仅两个指定场景申请，其他UI不增加采集。场景finally在release模型／stop内核前调用save；save冻结并移除本观察器监听，幂等保存`ui-window-rpc.json`为TestInfo附件，fixture兜底调用，不覆盖此前冻结结果。save返回可选存储／附件错误，场景继续原清理；fixture在Playwright记录原业务失败后报告该错误，避免finally异常覆盖原断言。两个场景的登记项目目录保留到所属配置退役。初始Electron连接若早于监听，会如实缺证；测试本来就会导航／重新连接，监听在该导航前挂载。
+
+验证先做窄模块安全自检（只模拟观察事件，不算业务验收）：非白名单及正文不落盘、响应归属、错误码、溢出／断开／监听失败、save幂等。然后只复用resident project sessions场景跑Browser／真实Electron各一次，保持原断言及90秒期限，复用已构建静态产品和真实模型内核。原断言失败也保存同次有界附件，不改harness、model-server或等待参数凑通过；根据实际回执分别报告业务结果与诊断覆盖。全部工件及TMPDIR使用`/home/joshua/.cache`下本轮独立根，保留登记项目到配置退役；本片不重跑全UI。原4.1继续等待。

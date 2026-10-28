@@ -10,12 +10,14 @@ import {
 import { createDevelopmentKernel } from '../../apps/kernel/dist/bootstrap.js';
 import { closeDesktop } from '../desktop-fixture.js';
 import { rendererUrl } from './renderer-url.js';
+import { observeUiRpc, type UiRpcObserver } from './ui-rpc-observer.js';
 
 type UiHost = 'browser' | 'electron';
 
 type UiFixtures = {
   uiHost: UiHost;
   uiPage: Page;
+  uiRpc: UiRpcObserver;
   downloadFile: (action: () => Promise<unknown>, destination: string) => Promise<void>;
 };
 const desktops = new WeakMap<Page, ElectronApplication>();
@@ -60,6 +62,13 @@ export const test = base.extend<UiFixtures>({
     } finally {
       await owner.dispose();
     }
+  },
+  uiRpc: async ({ uiPage }, use, info) => {
+    const observer = observeUiRpc(uiPage);
+    await use(observer);
+    // Fixture teardown runs after Playwright records any original test failure.
+    const error = await observer.save(info);
+    if (error) throw error;
   },
   downloadFile: async ({ uiPage }, use) => {
     await use(async (action, destination) => {
