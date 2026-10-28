@@ -18,6 +18,20 @@
 
 新代表场景的日期端点静态取官方输入1987-08-03／2003-10-23，circa=1取date_Uncertain；题名、出版者、作者与未知嵌套为明确合成夹具。预期更正只改变publisher、结束日及circa，不由新映射自身生成预期。真实产品导入文件与保存，真实CLI内核重启及原会话工具读取；模型HTTP受控，内部不替换。任务和结果仍维护原tasks／delivery。
 
+## ba29ee61：新Mac滚动回执与本机因果实验
+
+新目标为29cd728／Checks40591705520的Browser分页返回200→0，原746行；同run Electron通过。正式输入`/home/joshua/.cache/scholoom-round12-acceptance-NagGbw/ci-failures.log`与该run的artifact12774334158（diagnostics-macos-latest）。本轮只提取目标error-context及trace，保存在`/home/joshua/.cache/scholoom-literature-round12-adT7WM/`；并以git核对该test及CatalogItemList从29cd728到本轮共同源码未变，没有用旧431一次通过代替新回执。
+
+按Playwright1.63已安装的snapshot节点引用规则还原目标列表：95897.597ms时第一页占位700px；95901.785ms记录原生scrollTop200；95994.890ms仍为200且虚拟首行从index0变到index5。后续第二页占位140px，返回时先0px空载入、再700px第一页，实际poll持续0。各snapshot为同一主frame1280×720，见`mac-snapshot-facts.json`及读取脚本`mac-snapshots.mjs`；trace没有真实clientHeight、restoredRange或草稿写入，不能从700px占位推实际几何或Mac内部根因。
+
+调用链已核：useLibraryRead按请求key隐藏不匹配响应，仅存最近一次响应；“已选0项”也可能是空载入，不能证明下一页响应提交。CatalogItemList按entries是否非空恢复DOM，旧实现要等下一RAF才令restoredRange可写；独立虚拟列表的原生scroll listener可以先更新投影。React保存handler仍拒绝该段滚动，离页又不补存。原场景只等虚拟行变化，尚不能证明保存门或草稿已提交。
+
+原静态产品自然运行Linux两宿主2/2，未自然复现。随后在原单个场景用可释放的浏览器RAF门延后恢复后的frame，仍由真实DOM派发scroll、真实内部库响应驱动列表。RED Browser1失败：7540.9ms setter请求及实际位置为200，clientHeight136／scrollHeight700；7541.5ms原生scroll及虚拟首行更新，但无save事件、滚动草稿为空。释放frame后翻页返回，恢复setter请求0且原精确200断言失败。证据在`ui-red/.../catalog-scroll-observation.json`和原trace；该实验排除其自身的滚动能力不足／隐藏对象，证明一个“有效滚动早于保存门”的产品窗口，但不证明Mac同run内部时序必然相同。
+
+将恢复与原保存门放到layout effect同一DOM提交阶段，移除RAF空窗后，原延后frame场景GREEN双宿主2/2。`green-scroll-facts.json`记录Browser136／700与Electron161／700下的真实scroll200、紧随save200及再次恢复200。测试侧帧门保持原ID到重排原生ID映射，取消覆盖释放后待执行回调；只控制浏览器回调时点，不替换库、请求、草稿结果或投影。临时scrollTop setter探针已从最终测试删除，完整RED仍保留；最终诊断有界记录原生scroll／实际保存及几何，跨reload保留前段观测。
+
+本机/tmp配额使一次zsh heredoc诊断命令失败；改为bash及本轮cache TMPDIR，未清理旧目录或显示锁。DISPLAY=:99 xdpyinfo预检通过，未启动或停止共享X服务。仅一次核新Checks40613967267，head e3c815b与提供输入一致，截点整体／Linux／Windowsin_progress、Mac job completed/failure；没有该job指定场景的新消费结论，不再查询或等待。修复后Mac仍未验，完整平台／分发／科研质量与原字段不支持边界保持。
+
 ## 2026-10-28：938c33f消费真实进程提供者
 
 当前HEAD`938c33f2c9fcafb2cce11b0c165b2fb1e9a818c3`，开工前clean。主线已选择并同步A：`tests/isolated-kernel.ts::startIsolatedKernel`与`tests/fixtures/isolated-kernel-process.mjs`。旧“等待配置选择／提供者”只描述4312262阶段；普通生产CLI持久恢复B仍未提供，不能混同。
