@@ -1,5 +1,11 @@
 # 实际交付与交接
 
+## 第十五轮主线接收独立提供者规划
+
+`add-linux-isolated-report-provider`规划已保全合入，冻结两轴无确证问题；主线接收六个宿主窄操作、分片封存和唯一准入恢复方向，并在该change design记录归属。下一片只推进1.2固定native／已核架构／默认拒绝syscall策略与控制器失联真实校准，2.x待证明后实施；本轮没有生产platform或浏览器接线，新change仅完成接口审查1.1，不提前创建实现delivery。
+
+调查指出的ProgramRuns旧恢复计数回调由计算线独立任务R16.1处理，报告线不并改manual／admission。两份规划的接续授权文段曾有一项P2，主线统一后独立复核已关闭；证据在`/home/joshua/.cache/scholoom-round15-acceptance/`。原报告6/13、2.1b／I5、活动页unavailable及浏览器／跨平台／分发／文本与可访问性边界保持开放，没有把规划或CLI ready提升为保证通过。
+
 ## 第十四轮验收后的独立提供者规划交接（58eda140）
 
 本轮先确认HEAD=`58eda1404fcc60036ce0e0f3ce30d5453ce1ee30`且clean，读取AGENTS、原tasks／delivery、共同计划第十四轮及scholoom-dev／当前instructions。主线已选Linux普通权限独立提供者先行；没有同名／等价活动change，已新建[add-linux-isolated-report-provider](../add-linux-isolated-report-provider/proposal.md)，完成proposal／investigation／specs／design／tasks规划。新change没有生产实现、没有delivery，公共签名仍按其1.1交主线审，不自动apply。

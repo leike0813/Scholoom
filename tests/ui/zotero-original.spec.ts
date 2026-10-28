@@ -133,9 +133,11 @@ test('single original actions use the real library and BBT, preserve CSL drafts,
       );
     const before = await record();
     const historyBefore = await history();
-    await expect(
-      port.call('zotero.result', { libraryId, requestId: randomUUID() }),
-    ).rejects.toMatchObject({ code: 'unavailable' });
+    const missingRequestId = randomUUID();
+    expect(await port.call('zotero.result', { libraryId, requestId: missingRequestId })).toEqual({
+      requestId: missingRequestId,
+      state: 'notFound',
+    });
     await app.close();
     preparing = false;
     kernel = await startIsolatedKernel(profile, configuration);
@@ -612,7 +614,7 @@ test('single original actions use the real library and BBT, preserve CSL drafts,
     const queryInput = { libraryId, requestId: String(undelivered.requestId) };
     await expect(
       port.call('zotero.result', { ...queryInput, libraryId: randomUUID() }),
-    ).rejects.toMatchObject({ code: 'unavailable' });
+    ).rejects.toMatchObject({ code: 'instanceMismatch' });
     await port.call('library.grant', { read: false, write: true, send: true, autoBackup: false });
     await expect(port.call('zotero.result', queryInput)).rejects.toMatchObject({
       code: 'permissionDenied',
@@ -621,13 +623,15 @@ test('single original actions use the real library and BBT, preserve CSL drafts,
     const wrongLibraryId = randomUUID();
     await restart({ ...configuration, libraryId: wrongLibraryId });
     expect(await frozenDraft()).toEqual(undeliveredDraft);
+    const repliesBefore = queryReplies().length;
     const errorsBefore = errors.filter((entry) => entry.method === 'zotero.result').length;
     await check.click();
-    await expect
-      .poll(() => errors.filter((entry) => entry.method === 'zotero.result').length)
-      .toBe(errorsBefore + 1);
-    expect(errors.at(-1)).toEqual({ method: 'zotero.result', code: 'unavailable' });
-    await expect(originals.getByRole('alert')).toContainText('unavailable');
+    await expect.poll(() => queryReplies().length).toBe(repliesBefore + 1);
+    expect(queryReplies().at(-1)?.result).toEqual({
+      requestId: undelivered.requestId,
+      state: 'notFound',
+    });
+    expect(errors.filter((entry) => entry.method === 'zotero.result')).toHaveLength(errorsBefore);
     await expect(
       port.call('zotero.result', { ...queryInput, libraryId: wrongLibraryId }),
     ).rejects.toMatchObject({ code: 'instanceMismatch' });

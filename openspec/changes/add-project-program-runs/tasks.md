@@ -2,6 +2,10 @@
 
 用户已授权实现及必要依赖链接、隔离环境／双宿主测试，并选择逐次人工“移交后台”。本轮允许本地补丁或提交；不推送、PR、归档、安装新依赖、写真实用户库或运行常驻开发服务器。双宿主复用已构建产物及隔离静态夹具。跨线输入与历史CI诊断按实际证据分别记录。
 
+## 下一片：恢复归属统一计入准入
+
+- [ ] R16.1 第十五轮报告调查指出`ManualApplication`的ProgramRuns.retainUnknown回调仍以私有Set去重并仅在有空位时创建匿名永久reservation。主线决定先修这一既定契约内缺口：直接按实际commandInstanceId使用唯一ProcessAdmission.retainUnknown，去除重复计数路径，不新增容量或结清API。先用真实ProgramRuns恢复及共享准入构造满额时登记未知归属、释放无关live槽后仍占用、重复身份不重复计数的红例，再修局部装配并核既有宿主丢失／副本恢复和HostConnection代表回归。计算线仅拥有manual.ts该回调／私有Set、必要program-runs／process-admission测试及本change记录；不改libraryHandlers、admission.ts、原生监督、生产期限或报告提供者。Windows启动缺证另行保留，不能把本片通过称为Windows已修。
+
 ```mermaid
 flowchart TD
   A[1.1 同源运行契约] --> B[1.2 共同程序控制与观察]

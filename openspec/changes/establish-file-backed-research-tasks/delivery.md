@@ -1,5 +1,11 @@
 # 实际交付与交接
 
+## 第十五轮主线回归与下一片
+
+本树按等待指令无增量。主线组合新启动诊断后运行首文件双宿主：Browser通过，Electron在`file-workbench.spec.ts:210`失败。该次已经取得模型请求并取消，改名、回收、恢复后的编辑器仍可见最新草稿；点击保存后磁盘保持旧正文，原5秒持久化断言失败。不能称草稿已丢失，也不能由指令／run专用uiRpc没有保存事件推断未发送；保存请求、basis及结果链仍需核查。
+
+原始证据为`/home/joshua/.cache/scholoom-round15-acceptance/{main-ui.log,main-ui.json,ui-results/file-workbench-project-fil-79a6c-y-rename-trash-and-recovery-ui-electron/}`。项目fixture在该根tmp内，属于稳定cache路径；测试自有执行已按finally关闭，登记项目及现场保留。生产renderer相对58eda14无修改，这一事实不解释失败因果。整合组5/6未计全绿，下一片R16.1优先定位并修复此保存回归，保留原持久化断言及身份／冲突留稿保证；4.1真实库提供者继续等待，旧queued／onStart缺证不据此关闭。
+
 ## 第十四轮主线验收
 
 本轮两工件已保全合入，规范及规格审查无确证问题；两宿主首文件现场的真实发送／受理身份及缺失执行阶段接收。原断言后清理的unavailable不用于补前5秒时间线，未把未执行的改名／回收写成文件损失。本域无源码修复依据，不重跑旧trace或已绿多项目场景。

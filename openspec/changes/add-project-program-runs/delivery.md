@@ -1,5 +1,13 @@
 # 实际交付与交接
 
+## 第十五轮主线验收及恢复计数后续
+
+显示helper／回归／CI准备及原记录已保全合入，冻结两轴审查0确证问题。主线完整构建／类型通过，无DISPLAY条件运行真实新Xvfb的Electron renderer／忙Worker完整收尾及两个拒绝反例，3/3通过；旧流式stderr保留生效，未把新CI依赖准备视为旧127根因已证。58eda14／Checks40630840280的Linux仍758通过／1失败／26跳过，失败仍旧显示预检127；本轮新准备尚待后续目标回执。
+
+报告规划另发现manual.ts的ProgramRuns恢复回调仅在有空位时创建匿名永久租约。主线核对当前代码和commandInstanceId调用，决定下一片R16.1先以真实恢复／满额回归复现，再统一沿现有ProcessAdmission.retainUnknown登记，不新建结清API或修改报告提供者。此次验收没有提前实现或宣称该风险已修。
+
+58eda14／Windows专项40630840362保留原失败：重复路径10项、ownership16通过／3跳过、host24项通过；availability5通过／1失败，isolated-kernel3通过／1失败，Agent三例均失败；owner2项、Electron入口3项通过。真实isolated-kernel停在readyTimeout／preparing-runtime，根因未明，目标组不计全绿。主线原日志与本轮命令在`/home/joshua/.cache/scholoom-round15-acceptance/`，计算原小工件继续在自身稳定cache；5.2／6.2保持开放。
+
 ## 第十四轮主线验收
 
 Windows专项触发范围及完整四场景步骤已保全合入，两轴审查无本线确证问题；安全JSON沿既有artifact，未引入平行白名单或改原失败条件。主线复用同源产物再次运行四场景4/4，tools／架构检查通过。新workflow步骤尚未取得Windows目标回执，不以Linux结果或旧专项成功关闭5.2／6.2。

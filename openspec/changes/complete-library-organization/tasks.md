@@ -1,6 +1,6 @@
 # 执行任务
 
-本轮只完成C1规划，下列均未实施；apply所需工件齐备即停止，不创建delivery。授权及首片完成判据见[proposal](proposal.md)，接口、文件／符号与测试边界见[design](design.md)，后续C分支的具体决策输入见[investigation](investigation.md)。本片不关闭完整C或B的1.4／6.1／6.2。
+规划轮只完成C1工件，下列均未实施，没有提前创建delivery。第十五轮主线接收规划，下一片实施范围为1.1／1.2／2.1／2.2，完成后按实际结果交回；公共客户端、恢复和UI兼容性沿后续依赖推进。授权及首片完成判据见[proposal](proposal.md)，接口、文件／符号与测试边界见[design](design.md)，后续C分支方向亦见design。本片不关闭完整C或B的1.4／6.1／6.2。
 
 ```mermaid
 flowchart TD
@@ -17,7 +17,7 @@ flowchart TD
 
 ## 1. 同源契约与持久化基础
 
-- [ ] 1.1 文献线在`protocol/library-organization.ts`及现有library声明／导出中定义四端口、OrganizationChange／Receipt／明细分页和operation语义。按design落实字段意图、身份／safe-integer修订、100项、精确标签／集合语义、输入及依据预算、read／write权限和错误分类；不改旧RecordReceipt或root工具名单。完成依据：同源schema及生成器自检／类型守卫通过，代表契约测试覆盖省略与清空、重复身份、无组织字段、超限及新旧回执区分，生成映射由最终schema核对；不以未注册叶声明称实际接线。
+- [ ] 1.1 文献线在`protocol/library-organization.ts`及现有library具名导出中定义四端口、OrganizationChange／Receipt／明细分页和operation语义，先供领域提供者独立测试；公共操作聚合与business／client注册留3.1随真实handler完成。按design落实字段意图、身份／safe-integer修订、100项、精确标签／集合语义、输入及依据预算、read／write权限和错误分类；不改旧RecordReceipt或root工具名单。完成依据：同源schema及生成器自检／类型守卫通过，代表契约测试覆盖省略与清空、重复身份、无组织字段、超限及新旧回执区分；不以未注册叶声明称实际接线。
 - [ ] 1.2 依赖1.1，在library v4→v5增加`record_operations.kind`和`organization_edits`，提取最小私有RecordReceipts复用原查找／冻结输入／持久结果；不搬原authority业务，不另存结果权威。完成依据：真实v4独立夹具升级前备份、旧行默认authority、旧请求及旧JSON结果原样保留；同ID跨kind拒绝、旧commitResult不返回新回执，原值／正式键／固定状态及history回归通过。复用现有迁移故障测试，仅扩展版本及数据保留样本；迁移编号实施前核当前journal，不覆盖其他已合入迁移。
 
 ## 2. 真实领域提供者
@@ -38,4 +38,4 @@ flowchart TD
 
 ## 续做入口
 
-首次实施前取`openspec instructions apply --change complete-library-organization --json`，从1.1→1.2→2.1推进最小可验增量；新schema先于生产实现。当前没有实施授权。调查的附件独立化／reading来源／移父碰撞／名称格式／ResourceRef库绑定待主线决定，不阻塞本片，不提前实现。必需调查输入及字节实验保存在Git／[调查所列cache根](investigation.md)，不依赖当前/tmp；没有本change实际执行结果可续接。
+首次实施前取`openspec instructions apply --change complete-library-organization --json`，沿已授权1.1→1.2→2.1→2.2推进；新schema先于生产实现。附件独立化／reading来源／移父碰撞／名称格式／ResourceRef库绑定方向已由主线写入design，具体迁移及消费者规格另片完成，本片不提前实现。必需调查输入及字节实验保存在Git／[调查所列cache根](investigation.md)，不依赖当前/tmp；目前没有本change实际业务执行结果可续接。

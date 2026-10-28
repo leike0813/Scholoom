@@ -60,10 +60,10 @@ flowchart LR
 
 另外静态发现`manual.ts::ProgramRuns.retainUnknown`目前用独立Set及有空位时匿名永久reservation，不同于HostConnection的retainUnknown；该旧消费者不在本change修复写集。提交主线核对，提供者不能借用该回调作为恢复权威，也不覆盖programs／v6／TaskPort的现有装配。
 
-当前可作出的设计选择是不扩展普通ManagedCommands权限，单独增加platform深模块，复用共享准入和原监督保证；具体公共签名待主线审，native策略／恢复先校准，领域冻结字节和浏览器注册分别依赖其真正提供者。未知不阻止写出规划，但阻止相应任务进入生产可用。
+主线已接收独立platform深模块、六操作及共享准入恢复的接口方向，决定见design第1节；普通ManagedCommands权限保持原契约。下一片先校准native策略／失联恢复，领域冻结字节和浏览器注册分别依赖其真正提供者。未知不阻止写出规划，但阻止相应任务进入生产可用。
 
 ## 结论与承接
 
 采用已定Linux普通权限方向；本轮只形成实施所需工件。没有新生产接线、模型、库、UI／浏览器或OS实跑。目标Windows／Mac及浏览器分发／呈现决策保持开放，原报告6/13、2.1b／I5不变。CI只消费共同计划第十四轮已有回执：f4ab1e5／40622631905的Linux758通过1失败26跳过（显示预检127，业务未进入）、Windows688通过53失败44跳过，Mac人工入口／UI等job成功；这些不证明隔离提供者。本轮未查询／等待／触发CI或重建已验产物。
 
-design列明确签名、所有权及独立验收；tasks先审公共接口和真正OS前置，后实施机制／恢复，验收不能用未执行项或模拟OS关闭保证。新change到apply.requires齐备即停，不创建delivery、不自动apply。
+design列明确签名、所有权及独立验收；接口审查已完成，tasks下一片只推进1.2真正OS前置校准，后实施机制／恢复。验收不能用未执行项或模拟OS关闭保证；规划轮没有创建delivery，后续按实际执行记录。

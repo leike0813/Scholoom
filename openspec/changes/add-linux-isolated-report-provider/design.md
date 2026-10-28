@@ -2,7 +2,7 @@
 
 ## 变更总览
 
-已定方向是独立Linux platform提供者；以下为可审查实施方案，**公共签名尚待主线审查，尚无生产实现**。普通权限条件不足即unavailable，不安装／改委托。本模块交付范围不是报告呈现：原change 2.1b／I5及活动页保持开放，不选择画面流、浏览器分发、Windows或Mac实现。
+已定方向是独立Linux platform提供者。第十五轮主线接收六操作及唯一准入／恢复的接口方向；**尚无生产实现**。下一片先完成1.2真实校准，未通过前不实现或注册生产操作。普通权限条件不足即unavailable，不安装／改委托。本模块交付范围不是报告呈现：原change 2.1b／I5及活动页保持开放，不选择画面流、浏览器分发、Windows或Mac实现。
 
 ```mermaid
 flowchart LR
@@ -23,7 +23,11 @@ flowchart LR
 
 ## 方案与接口
 
-### 1. 权威与最小公共签名（交主线审查）
+### 1. 权威与最小公共签名
+
+第十五轮主线接口审查决定：采用下列六个窄操作、唯一instanceId和分片封存；仅可信宿主装配使用，首片不加入产品业务／harness／CLI白名单。新protocol叶模块及platform提供者由阅读交互线负责，`admission.ts`的恢复结清亦由该线在1.2证明后实施，计算线本轮不写这些符号。宿主生产初始化屏障及报告冻结字节Adapter继续由主线组织后续接入，本片只在独立真实broker夹具验收。
+
+首个策略限定已核架构的固定原生程序，采用Linux seccomp默认拒绝、仅开放该样本必要系统调用的白名单，不增加依赖。固定程序和必要运行库均须由可信登记给出；未知架构或无法加载策略即unavailable。浏览器、动态可选策略和通用程序入口不属于该校准。1.2必须先证明独立停止及持久身份可核查，再进入2.x；不先增加`settleRecovered`后补证明。
 
 ReportResources仍核清单、ref／basis和来源授权；冻结字节Adapter必须从原`ResourcePort.read`按原basis重新取得全部字节、核path-ref及前后授权。其实现不在本change业务写集；模块独立测试可用固定批准字节和撤权回调替代。平台只接字节、视图内相对位置和宿主登记策略，不接领域ref、原生路径、任意argv／env或文件系统代理。域内读写、外发与模型queue／final／restart权威均保持原路径。
 
@@ -57,7 +61,7 @@ stop({instanceId}): Promise<Status>;
 
 数量／大小引用现有`reportLimits`：最多入口＋32依赖，入口256KiB、依赖8MiB、总32MiB。`put`建议原始字节单片≤256KiB并校严格base64，含JSON封装仍须≤`limits.frameBytes`；顺序offset无缺口／覆盖，出错查`get.next`，不自动重传未知分片。队列仅保存有界manifest；取得ProcessReservation.ready后才接受字节，准备实例占同一槽位，避免无界暂存。未完成／撤销的准备实例有明确关闭责任及沿原等待／生命周期的有界收尾，不新增延长生产期限。
 
-宿主构造器注入`{admission, privateRoot, programs, policies, authorize, records}`：前四项可信宿主绑定，`authorize(instanceId)`为执行端闭包，在stage、排队后、封存及最终gate前复核当前领域批准状态，不能来自payload自报。跨模块调用仍经同一broker；闭包仅在宿主装配内部，不跨IPC传函数／原生句柄。待主线决定是否接入宿主注册表；本change先提供模块及独立真实broker夹具，不改现有生产操作白名单。
+宿主构造器注入`{admission, privateRoot, programs, policies, authorize, records}`：前四项可信宿主绑定，`authorize(instanceId)`为执行端闭包，在stage、排队后、封存及最终gate前复核当前领域批准状态，不能来自payload自报。跨模块调用仍经同一broker；闭包仅在宿主装配内部，不跨IPC传函数／原生句柄。本change先提供模块及独立真实broker夹具，不改现有生产操作白名单；宿主生产注册由主线在后续接入片处理。
 
 每实例同时绑定宿主原取消／撤权信号；运行后撤权由宿主停止新增交付并请求完整stop，输出／结果交付前仍核当前授权。get仅返回安全状态，不返回原字节；已进入进程的字节不能被“撤回”，其收尾按同一范围及unknown规则处理。页面不拥有信号或重授权能力，不以平台check通过替代持续领域授权。
 
@@ -160,6 +164,6 @@ sequenceDiagram
 
 ## 待办边界
 
-主线已选Linux先行，不再向用户重复询问。仍需主线审：同源六操作与分阶段字节传输、settleRecovered最小增量、首个native策略及独立失联停止／持久scope身份。推荐先实现可独立验收的provider／真实native夹具，保持生产报告注册关闭；这些契约未审或策略保证不足时，对应任务保留阻断，不自行扩权限或自动apply。
+主线已接收六操作、分阶段字节传输和settleRecovered方向，具体归属及首个native策略见本design第1节。下一片只完成1.2的真实syscall及独立失联停止／持久scope身份校准，结果交回后再实施provider；保持生产报告注册关闭。策略保证不足时对应实现继续阻断，不自行扩权限或进入2.x。
 
 浏览器的全部进程／运行库、分发维护、共同呈现／原生文本与可访问性、预算及Windows／Mac属于后续明确范围；本模块不能预设像素流来消除这些要求。原报告冻结字节消费者另片实施，并继续逐次核read/send与模型最终准入，不把临时私有字节准备当项目成果权威。

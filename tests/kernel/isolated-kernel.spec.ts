@@ -44,7 +44,7 @@ test('trusted IPC configuration survives explicit process replacement without st
     });
     await expect(
       first.client.call('zotero.result', { ...request, libraryId: randomUUID() }),
-    ).rejects.toMatchObject({ code: 'unavailable' });
+    ).rejects.toMatchObject({ code: 'instanceMismatch' });
     // A competing helper must neither attach to nor clean up the first process.
     await expect(startIsolatedKernel(directory, configuration)).rejects.toThrow();
     expect((await first.client.status()).instanceId).toBe(first.endpoint.instanceId);

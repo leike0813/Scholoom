@@ -432,6 +432,30 @@ f4ab1e5／[Checks40622631905](https://github.com/leike0813/Scholoom/actions/runs
 
 本轮调度回执：验收及决策已推送为`58eda1404fcc60036ce0e0f3ce30d5453ce1ee30`；七树先保全快进、核f4ab1e5生产源码与产物一致，tools类型／架构及各一项定向共7项均通过，再发送五任务／两等待。七份均受理；两份API确认turn_started，其余五份保留API原值并独立观察Working／Compacting。最终五任务线活动，项目／科研两线确认Git／cache接续输入后停止等待；模型均Codex／gpt-6.1-sol／high。Prompt、回执及原始启动观察在同一证据根，不为本纯文档回执再次同步已恢复的树。
 
+## 第十五轮验收后的安排
+
+五树37文件已冻结、逐树建立检查点并合入dev；项目／科研两树按等待指令无增量。Standards与Spec两轴对冻结成果均0确证问题。主线按批准N1契约迁移isolated-kernel及zotero-original四处旧断言，保留撤权、草稿与不重放保护；补充规划决定时发现一项接续授权文段P2，统一任务／设计／提议／调查后独立复核关闭。证据根为`/home/joshua/.cache/scholoom-round15-acceptance/`，仍无现有/tmp内容前置。
+
+主线完整构建、全包及tools类型、架构、八份生成映射、15份change strict和schema通过；受影响12个源码／测试文件Biome通过并保留6条原有warning。内核定向15/15，包括N1普通CLI三例、启动诊断五例、隔离内核四例及真实新Xvfb完整后代／两个显示拒绝三例。先构建后冻结测试，没有把共享DISPLAY通过冒充新Xvfb通过。
+
+双宿主整合UI首轮**5/6部分通过**：真实BBT原值动作2/2、普通委派打开报告2/2，首文件Browser通过；Electron走过模型请求／取消、改名／回收／恢复后，编辑器仍有最新草稿，最终保存的磁盘断言失败。没有证明草稿丢失或保存RPC未发送，原专用uiRpc仅含指令／run。生产renderer本轮无差异也不能解释失败因果。原trace、模型附件及项目均在本轮cache，交项目R16.1优先修；本轮有界实现接收，不将整体文件路径或整合组记作全绿。
+
+58eda14／[Checks40630840280](https://github.com/leike0813/Scholoom/actions/runs/40630840280)的Linux仍758通过／1失败／26跳过，旧新Xvfb预检127；macOS降级4项通过，入口3通过／1失败，后续人工UI未运行。新Mac失败在entrypoints新窗口重连的内核启动，不替代此前f4ab1e5滚动／人工工作台通过事实；原6份小工件已保全。Windows完整job按当前实际状态另记，不等待或推定结果。[Windows专项40630840362](https://github.com/leike0813/Scholoom/actions/runs/40630840362)失败：重复路径10、ownership16通过／3跳过、host24、owner2及Electron入口3通过，availability5通过／1失败，isolated-kernel3通过／1失败，Agent3失败。Windows真实readyTimeout停在preparing-runtime，原失败不与受控例混算。
+
+用户委托主线选择后，C1采用真实组织提供者先行，先不发布没有handler的公共端口；后续附件、阅读、冲突、显示名称／格式及显式库资源身份方向归C1 design维护，具体迁移仍另片。Linux报告接口方向已接收，先校准固定native与默认拒绝syscall及失联收尾，后实施生产提供者，不提前增加恢复结清或开放浏览器。报告调查的旧ProgramRuns恢复计数路径由主线核代码后单列计算任务，复用唯一admission而不另造容量。
+
+| 开发线 | 下一片及所有权 | 停止边界 |
+| --- | --- | --- |
+| 项目 | R16.1：核本轮Electron恢复后保存失败，拥有FileEditor／文件资源控制必要局部及原首文件场景 | 缺保存链证据先最小取证，保留版本核查／草稿／持久化断言，不放宽期限或静默覆盖；4.1仍等真实库提供者 |
+| 文献 | C1的1.1／1.2／2.1／2.2：叶契约、迁移／共同回执、真实原子组织与撤销重做 | 3.1 handler／公共客户端、3.2恢复和3.3UI后续接入；不并改manual／资源协议，不夹带后续附件／D／E |
+| 计算 | R16.1：ProgramRuns恢复归属按实际commandInstanceId接入既有ProcessAdmission.retainUnknown | 先满额／释放无关live槽及重复恢复红例，再修manual该回调／私有Set；不写admission／native／报告或顺带扩大Windows诊断 |
+| Agent | 消费58eda14 Windows三个Agent失败的同次执行事实；新共同源码目标回执若已完成可一次查询取证 | 无新证据不叠诊断、不重跑旧绿例或回填startup；不并改项目file-workbench、isolated-kernel／CI，17.2／18.2开放 |
+| 阅读交互 | Linux提供者1.2：固定native真实syscall／迟到能力与控制器失联校准 | 实验源码及原始结果在自有cache，仓库只工件及原报告链接；2.x待证，不写生产platform／schema／浏览器，活动报告继续unavailable |
+| 生态 | N2精确规划：唯一宿主设置、可信离线资源、加载／冷启动及恢复屏障，沿原四工件 | 不先写settings／loader或任意程序入口，不重跑N1／原包旧绿组、不启真实用户库 |
+| 科研 | 继续等明确Graph／角色或具体领域缺陷 | 只核共同HEAD及Git／cache接续入口后停止，不自定科研流程或轮询CI |
+
+先提交推送共同验收及决定，七树保全快进，按实际harness／kernel源码变化更新对应产物并完成必要定向验证，再向原Codex／gpt-6.1-sol／high终端实际发送六任务／一等待。同步检查与本轮UI部分通过分别记录，不能用七树定向绿例覆盖原失败；macOS入口及完整平台仍开放，完整changes与真实科研质量不自动归档。调度回执仅补主线原记录，不再次同步已启动的树。
+
 ## 首轮 Agent 的共同起始任务
 
 各线采用下述共同要求，并附上本文件中该开发线的小节：

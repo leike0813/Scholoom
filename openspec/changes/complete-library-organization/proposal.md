@@ -30,4 +30,4 @@ B 批已交付稳定选择和类型化题录，但现有 library.update 只更�
 
 - [文献职责](../../../.scratch/domain-development/issues/02-literature-knowledge-scope.md#answer)、[C分批计划](../../../.scratch/domain-development/library-foundation-plan.md#四实施批次文件与验收)、[#13存储与变更](../../../.scratch/scholoom-foundations/issues/13-storage-and-change-model.md#answer)、[材料引用红线](../../../.scratch/domain-development/issues/03-project-research-assets-scope.md#库引用完整性红线)。
 - 以共同源码 `58eda1404fcc60036ce0e0f3ce30d5453ce1ee30` 开工，B字段父项已接收；B整体和完整平台仍开放。主线本轮委托技术局部选择，跨模块产品缺口以证据和推荐交回。
-- 本轮用户只授权调查及 `scholoom-dev` 实施规划，止于 apply 所需工件，不授权实施本 change 或创建 delivery。无依赖安装／下载、服务启动、真实库、Git提交／同步／推送／PR／归档；接续输入和结果使用 Git／cache，不依赖当前 `/tmp`。
+- 规划轮授权调查及 `scholoom-dev` 工件，止于 apply 所需集合，没有提前实施或创建 delivery。第十五轮主线接收后，下一片实施范围以[tasks](tasks.md)的1.1／1.2／2.1／2.2为准；无依赖安装／下载、开发服务器、真实库或工作树自行Git提交／同步／推送／PR／归档授权。接续输入和结果使用 Git／cache，不依赖当前 `/tmp`。
