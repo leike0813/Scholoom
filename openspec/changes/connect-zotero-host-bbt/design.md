@@ -1,5 +1,15 @@
 # 实现设计
 
+## 当前夹具收敛：真实原包的测试显示前置（ba29ee6）
+
+原同步失败的trace注解定位到round12的sync-tmp/scholoom-library-bbt-vZkRMr；只读operation.json为固定键JRNL0002的revision3导出快照，监督记录scopeStopped=true、pluginClosed=false、unresolved=[]，没有该次Xvfb stderr或插件ready证据。现场保留，不初始化该配置、不重放或清锁。其他Xvfb补验有/tmp锁写入失败，而:99可读；这些不能反推原同次超时的唯一根因。当前实际缺口是四个测试强制新Xvfb且没有显示预检。
+
+按codebase-design复用现有runCommand／HostConnection seam，不新增生产launcher或环境权限。唯一tests/fixtures/zotero-host/display.ts提供异步electronTestCommand(entry,tail,environment=process.env)：有DISPLAY时用xdpyinfo实际预检，失败即明确测试环境缺证；仅缺DISPLAY时用原xvfb-run -a运行xdpyinfo预检能否创建，stderr保留。预检走现有受管runCommand及完整原生收尾，有限5秒预算只适用于测试环境诊断，不改生产期限。可用后返回现有/usr/bin/env的命令参数，显式传递所选DISPLAY／必要XAUTHORITY及TMPDIR，再直接执行Electron或原xvfb-run；不向生产DTO增env，也不放开白名单。参数尾部原样保留，kernel仍追加operation.json。
+
+四消费者仅替换构造命令：zotero-host、zotero-host-supervision、zotero-host-scope、ui/zotero-original。scope仍运行真实Browser／renderer／忙Worker，取消后核全部metrics PID退出；已有共享DISPLAY再用xdpyinfo核其仍可用，不把显示服务纳入自有执行。缺显示的新Xvfb属于原受管命令树，不能以仅主PID消失代替完整停止。
+
+只改测试／fixture及本change。复用已验构建，不重建生产产物。最小验证为原显式选择／独立题名真实library/broker/原BBT两格式代表例，原包正常／shutdown-error监督，scope完整归属和两个前置拒绝输入；UI仅复验对应双宿主单条原值场景，沿静态已构建产品和现有可信进程夹具。工件/TMPDIR均在独立cache根；不重跑24项或整个BBT历史，不以这些结果关闭完整E4／I6、CLI持久配置或跨平台原包。
+
 ## 当前收敛：断联写入夹具的实际送达阶段（0b78815）
 
 本轮仅承接E4 Windows host-connection:159。源码中call先同步加入record.unresolved，再等待save，最后才peer.request；drop为读请求，不等待该save。因此内存未决标记是保守意图，不是持久化或送达证明。原Windows trace仅证明该轮询通过及拒绝码unavailable，缺RPC／host.invoke／原错误来源事件；不能宣称已经定位Windows运行时顺序。Linux真实固定host的单次save调度gate已校准同一允许顺序，错误为RPC连接已关闭；诊断gate不进入生产或长期回归。

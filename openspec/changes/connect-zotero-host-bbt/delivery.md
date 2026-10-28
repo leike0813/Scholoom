@@ -1,6 +1,55 @@
 # 实际交付与交接
 
-## 当前验收：同源码Windows实际送达监督子项（R10）
+## 当前交付：真实原包测试显示前置（R13）
+
+2026-10-28，起始clean，HEAD `ba29ee61ac6f8700cfe6a9fbaa529a8a7a75aad1`。本轮按主线第十二轮安排只修测试显示前置，复用已构建且同源的共享／kernel／desktop／zotero-host产物；没有生产源码或协议变化、重建或依赖变更。R13三项完成后累计28/37；完整E4／I6、CLI持久配置、跨平台原包及真实用户库继续开放。
+
+### 原失败现场与不能证明的因果
+
+先只读主线`/home/joshua/.cache/scholoom-round12-acceptance-NagGbw/zotero-ecosystem/sync-kernel.log`、对应trace及注解中的`sync-tmp/scholoom-library-bbt-vZkRMr`。operation为JRNL0002／revision3／固定键的原值导出快照；原监督host=b71f00f5-ba41-4865-91dd-3084c16e8d5c、command=1d5379b2-37af-45bf-aa82-b40099536378，scopeStopped=true、pluginClosed=false、unresolved=[]。这是读导出，没有待提交写operationId；没有初始化或重放该配置、清锁或修改其记录。只读副本在本轮证据根original-{operation,supervision}-readonly.json。
+
+原记录及trace没有该次Xvfb stderr／ready证据。主线另一次`xvfb-nolock-probe.log`有/tmp锁文件写入失败且:99已预检，但不能据相似错误给原次超时定唯一根因。本轮在全新cache配置／profile／身份上运行原夹具，baseline.log再次Host wait expired／hostStartupFailed、收尾未确认；该新现场同样保留，不重试原配置。可证明的测试缺口是四处强制新Xvfb且没有显示预检；受管环境白名单也不自动继承DISPLAY、XAUTHORITY或TMPDIR。
+
+### 实际修改及所有权
+
+- 新`tests/fixtures/zotero-host/display.ts::electronTestCommand`服务全部四个实际消费者。已有DISPLAY用真实xdpyinfo预检；失败即以display preflight明确环境缺证，不另起显示。仅缺DISPLAY时以原xvfb-run -a -e /dev/stderr运行xdpyinfo，确认可创建后才返回对应宿主命令；失败保留有限stderr。预检复用现有runCommand及原生完整归属／收尾，5秒仅为测试环境探测预算，不改生产期限或停止保证。
+- helper返回现有`/usr/bin/env`及显式TMPDIR／所选DISPLAY／必要XAUTHORITY参数，再exec既有Electron或原xvfb-run；统一解析Electron、no-sandbox、entry及尾参，kernel仍在尾部追加operation.json。无自制launcher、普通spawn兜底、生产env字段或system access放开。
+- 四消费者仅替换命令构造：kernel的zotero-host、zotero-host-supervision、zotero-host-scope和UI的zotero-original。scope保留真实Browser／renderer及ready后忙Worker、取消并等待runCommand拒绝、核全部metrics PID退出；再核共享DISPLAY仍可连接。没有单列Worker PID或把显示服务纳入自有scope，没有停止共享:99。
+- scope文件增加两个代表前置拒绝：已有不可达DISPLAY不改投新显示；缺DISPLAY且新Xvfb临时目录不可用时在Electron启动前报环境失败。其他产品／领域符号、表单、授权、unknown／稳定查询、容量和锁保护均未改。design顶部已先落本片方案；无新增产品行为，不改正式规格或另建公共契约。
+
+### 实际命令、首次失败与最终结果
+
+证据根`/home/joshua/.cache/scholoom-zotero-r13-viZvn3/`；TMPDIR为其tmp子目录，所有新配置／库／profile及结果保留。已有本地XPI `/tmp/scholoom-zotero-bbt-assets/zotero-better-bibtex-9.0.68.xpi`实际manifest核version=9.0.68及插件id，仅读取／隔离解包，未下载或改成员。Node24.12.0／Electron44.5.1，Linux及已预检DISPLAY=:99；测试期间没有重建产物。
+
+| 验证 | 实际结果／首次失败保留 |
+| --- | --- |
+| 原夹具新配置单跑explicit original selection | 1失败；baseline.log／baseline-results。Host wait expired、hostStartupFailed及原包收尾未确认，与主线旧现场分别保留 |
+| 首轮必要内核组合 | kernel-first.log：5通过1失败，34.3秒。原包明确选择／独立题名／两格式及两种监督、两种前置拒绝均通过；scope在全部PID退出后因本轮漏import execFileSync失败，非停止或原包失败 |
+| scope修正后仅该项复跑 | scope-final.log：1/1通过，3.0秒。补import，没有改断言、时限或重跑其余已绿原包例。本片六项各有最终通过依据，不称首组一次6/6 |
+| 静态产品单条原值UI双宿主 | ui-first.log在临时.ts配置加载阶段因import.meta模块格式失败，未启动用例；改临时.mts后ui-second.log：2/2通过，2.9分钟，两个宿主各约1.2分钟，原90秒用例预算不变 |
+| tools／格式／架构 | tools-first.log的缺execFileSync错误随上述import修正；tools-final.log为tsc --noEmit -p tsconfig.tools.json通过。biome-first.log保留两个格式差异，内置apply_patch修正后biome-final.log检查5文件0警告；architecture.log为14模块254文件0发现 |
+| 收尾 | OpenSpec strict及git diff --check通过；完整增量含新helper，反向git apply --check通过。无schema／生成映射变化，不重跑24项、全BBT、TeX或全仓CI |
+
+内核首组命令（环境前缀均为上述TMPDIR、DISPLAY=:99及SCHOOLOOM_BBT_XPI）：
+
+```sh
+node_modules/.bin/playwright test --config playwright.kernel.config.ts tests/kernel/zotero-host.spec.ts tests/kernel/zotero-host-scope.spec.ts tests/kernel/zotero-host-supervision.spec.ts --grep 'explicit original selection|display preparation|existing managed commands reclaim|actual managed BBT' --workers=1 --output=<证据根>/kernel-first-results
+node_modules/.bin/playwright test --config playwright.kernel.config.ts tests/kernel/zotero-host-scope.spec.ts --grep 'existing managed commands reclaim' --workers=1 --output=<证据根>/scope-final-results
+```
+
+UI用证据根playwright.ui.config.mts沿原UI配置仅替换静态承载／绝对路径／独立输出，端口42569，执行`playwright test --config=<该文件> tests/ui/zotero-original.spec.ts --workers=1`。承载为用户指定static-ui.mjs、当前树构建产品和原可信startIsolatedKernel；没有DEV样例或开发服务器。原UI动作、CSL草稿／CAS及请求／回执丢失／重启查询断言均保留，没有复制文献实现或复写其fixture。
+
+真实边界：共同library／broker／SQLite、受管原生进程、HostConnection认证WS、Electron／Worker和未修改BBT实际导出。题录／来源实例是合成输入，私有监督例继续标注injected adapter；shutdown-error及UI传输丢失是原有明确故障注入，不替代共同库权威。没有外部模型科研质量结论。original-title.json、original-actions.json及监督工件保留实际原值／CSL／固定键／回执及进程依据；当前成功代表例最终scopeStopped=true、pluginClosed=true、unresolved=[]，fresh-supervision.json与失败baseline目录分列。原同步unknown现场仍未关闭或改写。
+
+### 审查、限制与交回
+
+只读辅助Agent（gpt-6.1-sol/high、fork_context:false）给出四调用点、白名单及scope边界，主Agent抽查并实现。自查entry／尾参顺序、受认证stdin供应、原生归属与清理：env直接exec保留受管树，显示服务不属于执行；预检异常不是业务成功或自动安装／提权／清配额理由。收尾:99仍可读，本轮静态server已退出，UI窗口与可信内核／原包执行由各原fixture收尾；不删除登记项目或旧轮目录。
+
+新Xvfb成功创建路径在本机未验；已验新建前置失败和已有显示真实路径，不据Linux样本承诺无DISPLAY环境或跨平台原包。原同次超时唯一原因仍缺stderr，不能回填已确认插件关闭。最新用户提供基线29cd728／40591705520的Linux内核750通过26跳过、UI126通过32失败6跳过，Windows723通过11失败42跳过及macOS人工UI13通过1失败，均与本轮结果分列；未查询／等待新CI或触发全仓测试。
+
+本片增量与manifest在本证据根，依赖ba29ee6既有受管／库／原包接线，写集仅一个测试helper、四消费者及本change三份文档。停止于本片Linux显示适配及真实原包／对应UI代表例交回；完整E4／I6、CLI持久配置、其他字段／多来源／自动同步、E6及真实用户库均未启用或关闭。无生产源码、依赖安装／下载、提交／push／PR／归档、Git同步或他树操作。
+
+## 已接收：同源码Windows实际送达监督子项（R10）
 
 当前HEAD为`4312262c1a1f432ccd706dd1eb6ff6468765fd4e`，起始clean，主线已保全接入R9并同步。本轮仅只读消费新共同源码Windows目标实跑，修改本tasks／delivery，不改生产或测试代码。**Windows未派发拒绝／实际送达后未知／稳定关联与重启不重放代表边界已通过，本监督子项闭合；完整E4／I6继续开放。** 下文R9的Windows待验和旧trace是当时交回事实，当前目标结果以本节为准。
 
