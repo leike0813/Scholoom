@@ -1,5 +1,11 @@
 # 实际交付与交接
 
+## 第十二轮主线验收
+
+6.1b五文件增量已保全合入，独立两轴审查无确证缺陷。主线完整构建后用已合入的新model-kernel运行原整合：Browser通过，Electron首次显示服务启动失败，复用预检通过的已有DISPLAY后通过。真实产品入口收录／更正、集合／列／多选、原会话工具读取及手动／模型内核重启读回均执行，外部模型受控，未代写工具结果。首次与补验分别在`/home/joshua/.cache/scholoom-round12-acceptance-NagGbw/main-ui*`及electron-recheck，不称一次2/2。
+
+本片32类型／44文本／22角色／四日期键的具体已交付与不支持表达清单接收，不能把它当Zotero逆映射或CLI持久配置已提供。新29cd728／Checks40591705520的Mac人工UI13通过／1失败，实际Browser分页返回时scrollTop预期200／实际0（原746行），是新的目标负例；旧431通过不能关闭它。下一片聚焦该场景保存／投影／几何／恢复边界，不重复已绿6.1b或混成列宽。父4.1／4.2、Windows、完整6.x／分发与科研质量仍保持原不足。
+
 ## 29cd728：6.1b Linux真实业务整合
 
 开工核HEAD`29cd7283388dfd752911eacb9c3bf8416031db15`且clean；本轮只完成6.1b，当前**26/31**。未改生产源码或共享fixture／model-kernel／execution-diagnostics，也未重跑5.4a／14UI。写集为`tests/ui/context-bridge.spec.ts`及本change的design／investigation／tasks／delivery五文件。原spec已有题录更正、当前选择及持久化契约，本片只补整合证明，没有新协议或正式规格变化。

@@ -457,6 +457,8 @@ UI 测试期间保持源码和共享包构建产物稳定；改动或重新构�
 
 原值恢复的可信测试进程由`tests/isolated-kernel.ts::startIsolatedKernel(directory, configuration)`提供：父进程先准备隔离库，每次经私有IPC显式注入现有IsolatedZotero，子进程调用真实serveKernel，父持有development owner。停止通过绑定原instanceId的客户端shutdown，等待自有子进程close，再用CLI status核对；不使用重新发现实例的CLI stop，未知时保留配置且不接管接替实例。`tests/kernel/isolated-kernel.spec.ts`只验配置门、身份和进程替换，不运行BBT；原包及GUI恢复由文献场景另验，不代表普通CLI配置持久恢复。
 
+模型UI夹具`tests/model-kernel.ts::startModelKernel`保留可调用的异步stop，真实子进程经私有IPC启动serveKernel；停止绑定原实例并等自有child close。失败或停止时保存`model-kernel-execution`安全附件，按所属project／session／run／instance关联初始化、指令消费、模型准入和首输出；HTTP请求数没有观察者时为null，准入事件不等于已发送HTTP。`tests/ui/fixture.ts`的按需`uiRpc`观察真实uiPage的发送、回执和快照，场景在关闭内核前调用save，保存错误由fixture收尾报告。两端都明确数量／时间上限、丢弃及缺证，不能用早期queued快照推断永久阻塞或将内核PID当worker PID。
+
 `tests/ui/report-isolation.spec.ts`是未采纳隔离候选的调查入口，仅在`SCHOOLOOM_REPORT_ISOLATION_PROBE=1`时运行。它记录实际HTTP／UDP、宿主访问、桥及CPU样本，包含已知STUN外发反例；用例通过表示调查可重复，不表示产品已隔离。生产活动报告保持不可用，正式承载仍按报告change设计。
 
 同一隔离配置会在多个 UI 用例间重启内核，已登记的测试项目随结果目录保留到该配置退役；删除目录前须先解除空闲项目登记，或确认整个配置及内核已结束。缺失的登记项目仍须按程序恢复规则保留未知占用，测试不能放宽此保护。项目名按用例及宿主区分，项目定位优先稳定身份。
@@ -464,6 +466,8 @@ UI 测试期间保持源码和共享包构建产物稳定；改动或重新构�
 真实开发命令及模型 UI 验收位于 `tests/smoke/development.spec.ts`：普通场景使用浏览器5315／Electron CDP 9315，live 场景使用5316／9316，Electron renderer 使用本轮服务的实际 URL。显式运行 `SCHOOLOOM_LIVE_MODEL_TEST=1 pnpm test:smoke tests/smoke/development.spec.ts --grep 'live MiniMax' --output test-results/development-live`；Key 仅经环境注入，不录 trace，保存合成成果作为验收附件。Linux 命令自动化使用 electron-vite 的 `NO_SANDBOX=1` 环境选项，与既有 Playwright Electron 启动设置一致；产品默认 sandbox 设置不变，本机通过不代表目标平台 OS sandbox 或分发包已验收。
 
 无图形会话的 Linux 需要 Xvfb 和 Electron 所需动态库，使用 `xvfb-run -a pnpm check`。Smoke 检验工程入口，UI 测试检验共同界面行为；业务契约、科研效果、原生能力和插件支持仍须相应真实场景验收。
+
+图形验收先用`xdpyinfo`核对当前DISPLAY；已有可用显示服务时可直接运行测试，只关闭本轮窗口，不停止共享显示服务。新建Xvfb须保留stderr并先验证显示连接。TMPDIR可将Node／Playwright工件迁到独立磁盘目录，但Xvfb锁文件仍写`/tmp`；配额导致锁写入或Electron启动失败属于环境准备失败，不记为业务回归。原失败与环境补验分别保留，不清理其他轮次的工件来掩盖失败。
 
 `pnpm package:dir` 构建并分别生成两个 Electron 目录包，输出到 `release/desktop` 和 `release/zotero-host`。桌面包包含内核、执行桥、原生依赖与 PDF WASM，仍要求本机 Node 24；不生成签名安装器或尚未实现的科研执行工具。`SCHOOLOOM_PACKAGED_DESKTOP=<实际桌面可执行文件>` 可让既有入口 smoke 启动该分发包；`SCHOOLOOM_PACKAGED_KERNEL=<解包的 @scholoom/kernel 目录> pnpm test:kernel tests/kernel/cli-runtime.spec.ts` 验证包内实际图、工具、持久化及 PDF 解析。本机目录包通过不替代目标平台签名、安装后及恢复验收。
 

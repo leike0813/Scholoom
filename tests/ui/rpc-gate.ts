@@ -1,4 +1,4 @@
-import type { Page } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
 
 export async function installRpcGate(page: Page): Promise<void> {
   await page.addInitScript(() => {
@@ -59,6 +59,9 @@ export async function armRpcGate(page: Page, method: string, operation = ''): Pr
 }
 
 export async function releaseRpcGate(page: Page, fail = false): Promise<void> {
+  await expect
+    .poll(() => page.evaluate(() => !!Reflect.get(globalThis, '__scholoomRpcGate')?.held))
+    .toBe(true);
   await page.evaluate((fail) => {
     Reflect.get(globalThis, '__scholoomRpcGate').release(fail);
   }, fail);

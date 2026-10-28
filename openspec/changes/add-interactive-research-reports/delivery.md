@@ -1,5 +1,11 @@
 # 实际交付与交接
 
+## 第十二轮主线接收原生校准
+
+本轮四份原生校准工件已保全合入，两轴独立审查无确证夸大。主线核实际conditions-matrix及原始数据索引：普通用户独立scope的CPU节流、64MiB内存／16进程、有限多代整组停止与本机loopback正反样本成立；首轮TCP计数缺口和网络窄补验分开保留。没有在主线重跑OS实验或将脚本自检当新平台实跑，原四scope已收尾证据保持。
+
+这解除的是本机前置机制的部分不确定性，尚未证明最小文件视图、继承FD／Unix socket代理、浏览器、外部DNS、崩溃恢复或双宿主呈现。下一片只校准上述文件／句柄边界，仓库仍仅更新原工件，不接生产Adapter／协议／UI，不决定画面流或部署权限。2.1b／完整I5及活动页unavailable保持；具体临时证据和许可边界沿本change原调查及共同计划第十二轮。
+
 ## 第十一轮验收后的本机原生校准（29cd728）
 
 2026-10-28先核HEAD=`29cd7283388dfd752911eacb9c3bf8416031db15`及clean，读AGENTS／共同计划第十一轮安排／原design/tasks/delivery及当前apply instructions；实际执行后取得delivery instructions。仅执行用户明确授权的候选A普通权限前置，仓库仍只改原investigation／design／tasks／delivery。任务保持6/13、正式2.1b及活动报告继续unavailable；没有采用画面流或新的产品架构。

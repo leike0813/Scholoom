@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { basename, join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
@@ -10,7 +10,8 @@ import { armRpcGate, installRpcGate, releaseRpcGate } from './rpc-gate.js';
 
 test('user invokes a declared research capability and opens its checked report', async ({
   uiPage,
-}) => {
+  uiRpc,
+}, info) => {
   test.setTimeout(60000);
   const model = await createModelServer();
   const stop = await startModelKernel(process.env.SCHOOLOOM_UI_DATA_DIR as string, model.url);
@@ -71,14 +72,18 @@ test('user invokes a declared research capability and opens its checked report',
         .getByRole('button', { name: '打开成果 analysis.md', exact: true }),
     ).toBeVisible();
   } finally {
-    await stop();
-    await model.close();
-    await rm(project, { recursive: true });
+    try {
+      await uiRpc.save(info);
+    } finally {
+      await stop();
+      await model.close();
+    }
   }
 });
 
 test('user configures, edits safely and receives a real persisted Agent result', async ({
   uiPage,
+  uiRpc,
 }, info) => {
   test.setTimeout(60000);
   const runtimeErrors: string[] = [];
@@ -246,9 +251,12 @@ test('user configures, edits safely and receives a real persisted Agent result',
     await uiPage.reload();
     await expect(composer).toHaveValue(draft);
   } finally {
-    await stop();
-    await model.close();
-    await rm(project, { recursive: true });
+    try {
+      await uiRpc.save(info);
+    } finally {
+      await stop();
+      await model.close();
+    }
   }
 });
 

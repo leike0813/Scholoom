@@ -1,5 +1,21 @@
 # 实际交付与交接
 
+## 第十二轮主线验收
+
+主线起点1b8e9b2，七树共同源码29cd728。五树含新文件的完整增量经临时index冻结、核对真实staging、建立本地检查点后逐线no-ff合入dev，均无文本冲突；科研／生态按约无增量。接入时29个单线文件逐字节保留。后续主线只补harness观察消费者／登记项目保留、共享RPC测试闸门等待及开发说明／原交付／共同计划。证据根`/home/joshua/.cache/scholoom-round12-acceptance-NagGbw/`保留snapshots、source.patch、checkpoint-commits、source-preservation和原始命令结果；没有reset／rebase或覆盖成果。
+
+Standards／Spec由两位gpt-6.1-sol／high原生辅助分别只读审查，冻结增量无确证缺陷；harness观察／项目保留小改动追加核查也无确证问题。主线完整build、全包及tools类型、架构14模块254文件0findings、10份冻结改动源码Biome、8份生成映射、13个change strict及scholoom-dev schema通过；内核组合9/9通过，覆盖新helper四例及取消／excerpt／发送拒绝／完整附件。后续仅测试侧修改，补tools及两文件格式检查通过，测试期间不重建同树产物。
+
+窗口与执行公共提供者已共同接入。文件／首科研调用在Browser、Electron四份实际场景按project／session／instruction／run匹配，cross-observer-results.json记录原附件；文件的取消状态与科研的completed分别保持，不能互相替代。科研观察各丢弃六条旧控制事件，明确有界采样边界。文献6.1b真实产品导入／更正／选择／工具／内核重启也取得两个宿主的通过依据。模型只有外部HTTP受控，内部UI／broker／仓储／worker／授权和文件真实；不是科研质量或新生产Graph验收。
+
+UI首组8项为3通过／5失败：四个Electron在显示服务启动前失败，另一个Browser在普通会话后续执行5秒等待仍失败。新Xvfb日志证实`/tmp`用户配额使锁文件写入失败；独立无锁探针也按实际权限拒绝，未提权或改系统配置。会话原有DISPLAY经xdpyinfo预检后可用，仅使用它启动／关闭自有窗口，未停止共享显示服务。Electron补组四项为3通过／1失败，后者是独立No held RPC：release时请求尚未被闸门实际接住。核全部调用方后，主线在唯一releaseRpcGate等待真实held再释放，保留原5秒预算及成功／拒绝行为；文件／普通会话Electron定向2/2通过。首次、环境补验及根因修正分别保存在main-ui、electron-recheck、gate-recheck；不称一次8/8。
+
+八个不同宿主场景中七个有通过依据，Browser普通会话后续执行仍开放。其实际run已经记录consume／model.acquire及最终completed，但原断言时点、UI投影和清理之间的因果尚未闭合，不将最终状态倒填为当时UI已完成。安全摘要在browser-session-execution-summary.json；下一片由Agent按同次身份核查。首模型前排队、RPC闸门和该后续执行是不同边界，均保留原失败，不合成共同根因。
+
+已完成29cd728／Checks40591705520：Linux内核750通过26跳过、UI126通过32失败6跳过；Windows内核723通过11失败42跳过；Mac人工UI13通过1失败，降级4／入口4通过。Windows diagnosis40591705558的availability6/6及原始提供者JSON接收，Agent三例失败。不同运行计数不证明源码改善因果或稳定性关闭。Mac新增滚动200→0交文献，isolated-kernel失败原因／退出丢失交计算实施已审候选A。报告scope／配额／有限原生样本交付只作本机机制校准，最小文件视图／继承FD仍待验，活动报告unavailable不变。
+
+下一轮五任务／两等待沿[共同计划](../../../.scratch/domain-development/parallel-development-plan.md#第十二轮验收后的安排)，先提交推送、同步复验，再发送原终端。desktop／zotero-host生产源码本轮未改，七树可复用29cd728已验同源产物；复用前查源码差异及renderer产物，仍重建共享包／内核并执行全包／tools类型、架构、生成自检和定向回归。具体同步／发送回执实际完成后再补，不提前宣布完成。完整changes、跨平台分发、CLI持久配置及科研质量保持原不足；macOS受管执行仍不可用。
+
 ## 第十一轮主线验收
 
 主线起点68a5f76，七树源码938c33f。六树含untracked增量经临时index冻结、核对实际staging后建立本地检查点，再逐线no-ff合入dev，均无冲突；生态按约等待无增量。33个单线文件在接入时逐字节保留，后续只更新原工件及共同计划。`/tmp/scholoom-round11-acceptance-Jx5Oez/`保存inventory、snapshots、source.patch、checkpoint-commits、source-preservation及CI与验证日志；没有reset／rebase、覆盖成果或推送工作树分支。

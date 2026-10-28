@@ -1,5 +1,11 @@
 # 实际交付与交接
 
+## 第十二轮主线接收与共同消费
+
+七文件观察增量已保全合入，两路独立审查无确证缺陷。主线第一file-workbench场景Browser通过；Electron首次显示服务启动失败，复用预检通过的已有DISPLAY后通过。其后共享RPC闸门修正的Electron文件场景再次通过，成功／拒绝分支保留。窗口发送回执与自有model-kernel附件按同次project／session／instruction／run匹配，两宿主均已观察实际推进，不再以旧Electron模型0作为当前第一场景的结论。
+
+原始结果及cross-observer-results在`/home/joshua/.cache/scholoom-round12-acceptance-NagGbw/`，有界采样不是完整事件历史。第二resident项目会话场景尚未进入本次共同UI组合，下一片由本线独立核查；不重复第一场景或在研提供者等待。4.1的真实库删除／恢复及主题知识仍未提供，完整change不关闭。
+
 ## 第十一轮主线接收与下一片
 
 本轮两文档的只读取证已冻结合入，独立规范／规格审查无确证夸大；不将文档接收当作旧CI修复。最新完整CI及逐例矩阵在`/tmp/scholoom-round11-acceptance-Jx5Oez/`。下一片由本线提供真实Browser／Electron窗口的发送／受理／快照安全观察，Agent线独立提供model-kernel执行观察，字段和所有权按[共同计划](../../../.scratch/domain-development/parallel-development-plan.md#第十一轮验收后的安排)。两片先独立交付再由主线关联；本线不并改harness或model-kernel，原4.1提供者仍等待。

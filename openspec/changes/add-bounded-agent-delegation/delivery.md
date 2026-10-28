@@ -1,5 +1,13 @@
 # 实际交付与交接
 
+## 第十二轮主线验收
+
+可信model-kernel／无Playwright核心已保全合入，Standards／Spec独立审查无确证缺陷。完整构建后主线组合9/9通过，包含四个新helper回归、取消／excerpt／发送拒绝及完整附件路径。原异步stop、实例接替保护、真实close、IPC失联后的已受理执行及脱敏／有界语义保持；不是Windows或科研质量验收。
+
+主线与窗口侧共同核对文件／科研首例的Browser、Electron四份同次project／session／instruction／run，全部匹配。科研控制事件各显式丢弃六条，不能按未保留项作未发生证明。文献／文件／科研关键路径双宿主均有通过依据；额外普通会话Browser在后续执行等待仍失败，其同run已记录消费／准入及最终completed，原失败时刻与UI投影因果尚未闭合。Electron另遇No held RPC，主线在唯一共享releaseRpcGate等真实held后再释放，定向文件／会话两项通过；没有放宽业务断言或期限。
+
+证据`/home/joshua/.cache/scholoom-round12-acceptance-NagGbw/`的main-kernel、main-ui、electron-recheck、gate-recheck、cross-observer-results及browser-session-execution-summary。首次显示服务／闸门／执行失败分别保留，不称一次全绿。下一片沿共同计划收敛该Browser后续会话；Windows初始化前的另一边界不混因，42/46及平台／质量整项保持原不足。
+
 ## 29cd728后的可信自有model-kernel诊断
 
 起始HEAD=`29cd7283388dfd752911eacb9c3bf8416031db15`、clean；消费主线`/tmp/scholoom-round11-acceptance-Jx5Oez/`的正式验收与共同计划，没有重放旧增量或自行同步。本片第16组完成，累计42/46；4.2/4.3平台与6.1/6.2科研整项仍开放。实际设计见[可信自有观察](design.md#可信自有model-kernel观察29cd728)，不改变原变更总览中的业务/权限/停止契约。
