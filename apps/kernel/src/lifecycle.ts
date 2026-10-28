@@ -17,6 +17,7 @@ import {
   limits,
   protocolVersion,
 } from '@scholoom/protocol';
+import { loadHostSettings } from './host-settings.js';
 import { startKernelServer } from './server.js';
 
 export { defaultDataDirectory } from './bootstrap.js';
@@ -311,7 +312,13 @@ export async function serveKernel(
     report('loading-application');
     let endpoint: KernelEndpoint;
     const { KernelApplication } = await import('./application.js');
-    const application = new KernelApplication(canonical, options);
+    const application = new KernelApplication(canonical, {
+      ...options,
+      zoteroRuntime: {
+        kernelInstanceId: status.instanceId,
+        settings: await loadHostSettings(canonical),
+      },
+    });
     report('initializing-application');
     await application.initialize(report);
     report('application-ready');

@@ -4,6 +4,8 @@
 
 本文件为M2实施设计。2026-10-26用户关闭D1–D3并恢复本线实施：粗粒度可信来源、原整次FileEdit撤销、有界changes／edit与editId。HEAD77cd078已含0519904，来源见`/tmp/scholoom-sync-recovery-wyn13R/recovery.md`。复用projects保存模块和既有收据，精确工具token不实施。
 
+本次cb5f7ed已接入真实执行／委派事实、MaterialChangeView及Agent历史工具，不再等待提供者同步。3.3沿既有execution-facts与material-delegation-history验证实际子worker创建、父worker读取并修改同一fileId、可信委派链／前后Evidence、人工重叠拒绝、整次undo和原会话随后get_file_changes/read_file_edit/read_file读回；只有外部模型响应受控。未知指令／工具及修改理由仍按原来源契约显示未知，不新增精确token，也不以负责Agent可查询冒充已消费。
+
 ```mermaid
 flowchart LR
   Product[已认证人工入口] --> Binder[宿主可信来源绑定]

@@ -42,6 +42,10 @@ flowchart LR
 
 ### 原包装配N2：精确实施规划（7aff2c7）
 
+2026-10-29当前实施已获新派发授权（cb5f7ed），取代下列R16“阶段停止”历史状态。N2.1–3已按本节接入实际代码；资源／真实父实例／窄环境及beforeLaunch装配也已实现，但Linux普通原包在实际Chromium sandbox前置失败，N2.4／5保持未验收，见delivery。当前API签名与设计一致；资源解析另用受限HostLaunchEnvironment类型派生实际返回，不接受业务env。新动作／启动前检查settings未变化；已受理操作的回调、提交及交付只复核实际library身份和实时授权，设置不是撤权通道。
+
+主线批准的唯一独立对照在全新配置及复制的host诊断入口中仅选择`--disable-setuid-sandbox`，采集renderer process.sandboxed与/proc namespace／Seccomp；实际在renderer创建前报No usable sandbox，未取得sandbox证明。生产资源配方仍无该flag或no-sandbox；未以提权、安装、改旧profile或放宽scope保证处理。只可由主线依据后续目标事实决定配方，不凭官方开关描述、ready或缺少renderer证据宣布安全可用。
+
 第十六轮主线接收本规划并审定以下接缝方向：复用唯一ProcessAdmission，recoverHostSupervision独立于设置／资源，在Manual初始化首步先完成旧scope记账；库初始化后再绑定，KernelApplication沿super.initialize后再恢复harness。serve的真实status.instanceId仅向可信构造链供应；HostConnection只透传DISPLAY／XAUTHORITY／操作TMPDIR和稳定beforeLaunch。配置目录绑定、冷启动快照、无效配置仍恢复及scope已停不占原生槽沿下文。未实施前签名仍为设计，N2.1仍需补相应delta及核实现接点，不能勾为完成。本轮阶段停止，不授权或派发N2生产实现。
 
 本节落实已定D14-2／3=A，不重新选择设置归属或资源交付。本轮仅规划，下面的文件／类型／方法均为待实施设计；当前源码事实见investigation的N2节。此次只改investigation／design／tasks／已有delivery，未改delta spec；新持久化及恢复行为在实施前由N2.1补入本change delta并经主线核对，不用当前CLI ready声称新增行为已实现或正式规格已同步。

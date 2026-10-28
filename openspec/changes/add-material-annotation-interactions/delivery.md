@@ -1,5 +1,29 @@
 # 实际交付与交接
 
+## 2026-10-29 主线接收补充
+
+本批材料消费者已进入主线共同源码，并由主线完成本机 Linux 联合验证。以下补充主线接收事实；原实施轮次、首次失败及未验边界保留，任务范围仍以 [tasks](tasks.md) 为准，最终验收与提交由父 Agent 负责。本次整理已重新取得本 change 的 delivery instructions，仅核对已有证据，未重新运行构建或测试。
+
+本节证据根为 `/home/joshua/.cache/scholoom-finish-active/`：
+
+| 主线实际验证 | 结果与证据 |
+| --- | --- |
+| `playwright.kernel.config.ts` 联合内核组 | `main-final-kernel.json`／`.log`：118/118 通过，0 skipped／unexpected／flaky，retries=0。包含 `file-edit-origins.spec.ts` 的 10 项来源、条件保存、历史与整次撤销回归；118 是跨域联合总数，不全归本 change |
+| `main-final-ui.config.mts` 静态产品双宿主组 | `main-final-ui.json`／`.log`：10/10 通过，Browser、Electron 各 5 项，0 skipped／unexpected／flaky，retries=0。其中 HTML 阅读、真实批注进入共同 composer 后保存并查历史、真实父子委派修改及人工重叠／整次 undo 三个场景各在两宿主通过；其余为文献组织和任务来源场景，不重复计为材料用例 |
+| 共同构建与静态检查 | `main-all-desktop-build.log` 记录 desktop 构建完成；`main-final-lint.log` 无 error，保留既有 114 warnings／39 infos；`main-final-architecture.log` 为 14 模块、263 文件、0 findings、0 granted exceptions |
+
+`main-joint-stats.json` 与两份原始 JSON 统计一致。内部阅读器、composer、broker、worker、FileEdit、文件及双宿主为真实接线，模型响应仅在外部 HTTP 边界受控；本轮选定场景补充主线接收，不替代下文 EPUB、图片、PDF 及其他保护路径的既有分轮证据。
+
+`material-independent-review.md` 对本批材料／来源增量的 P0–P3 确证发现均为 0，并独立核对既有双宿主 SQLite／磁盘结果：子创建、父读改、人工修改、撤销人工修改及新 run 工具读回相互一致。审查覆盖其所列版本和范围，不称重新执行过本次主线联合组。
+
+本批仍为 M1 库正文只读、材料 I5 与粗粒度 M2 消费。库正文写回、sidecar 转换、精确工具 token、差异块撤销、报告浏览器／UI 隔离、科研质量及三平台分发均不随本次接收扩大。历史 TeX unknown 与 Electron 首 run 准入失败保留原诊断责任，联合通过不补造其根因或关闭旧 CI 失败。
+
+## 本次现有任务验收（cb5f7ed）
+
+当前HEAD为cb5f7ed30f69b45301c83f296268578051b84e0b，开始clean。本次按主线明确选择的M1库正文只读分支完成4.1／4.4，真实粗粒度M2与材料I5的消费者、原接口及必要检查已实跑；结果和首次失败分轮见末节。只读范围不包含附件正文写回或sidecar转正文，阅读记录不冒充正文修订。生产变化只有DocumentReader点选图片的串行优先，未改库／项目权威、来源、harness准入或生产Graph。
+
+所有当前输入、诊断、配置、项目及可重建入口均在 `/home/joshua/.cache/scholoom-finish-active/research-graph-runtime/`；下文旧/tmp路径仅为历史证据。CLI任务完成不表示科研质量、完整平台或报告隔离完成，未提交／推送／归档。
+
 ## 第九轮：选区夹具观察修正
 
 从共同源码0b78815继续，仅修改`tests/kernel/content-selection.spec.ts`：选区动作等待实际revision提交，并核对图片对象身份、原图注及位置，避免选择图片后仍读取前一个表格对象。生产选择逻辑未改，pending draft和显式表格保护保留。作者8项通过；主线共同构建结束后在35项HostConnection／选区／平台组合中复验本文件8/8通过。原始结果为`/tmp/scholoom-round9-acceptance-IER31D/main-kernel.log`及main-kernel-results；主线只作格式整理，未增加重试、固定sleep或平台跳过。
@@ -8,7 +32,7 @@ Linux本地通过不关闭caf9025的旧CI失败，也不证明Windows目标通�
 
 ## 当前状态与成果
 
-当前共同基线为`4b13183f7489d3cae12fd0a7d1a9e83fb33d7384`，原成果已有主线检查点并合入dev，第六轮同步证据在`/tmp/scholoom-round6-acceptance-dXuzCA/`；没有应用旧累计补丁或重新同步。本轮在已接入M2消费者上补真实父子委派联合证据及Windows夹具修正，当前仍11/15项：1.1–3.3及4.2／4.3／4.5／4.6；M1的4.1／4.4及完整5.1／5.2开放。本轮无新提交、同步、推送、PR、归档、依赖安装或真实用户库操作，任务以[tasks](tasks.md)为准，不宣称整个change或全部I5完成。
+以下为4b13183阶段历史：第六轮已补真实父子委派证据及Windows夹具修正，当时11/15项，M1及5.x尚开放。第六轮同步证据在`/tmp/scholoom-round6-acceptance-dXuzCA/`。本次状态以上节和末节为准，未重放历史补丁；任务以[tasks](tasks.md)为准。
 
 已接入：
 
@@ -98,13 +122,13 @@ git diff --check
 
 ## 未完成事项与下一步
 
-主线包及公共交接的精确消费路径和字段依据见[investigation第二阶段](investigation.md#主线正式输入消费第二阶段)及[design公共增量](design.md#主线第二阶段交接与公共增量)。已收到本轮明确转交的输入，不代替仍缺的提供者定案：
+历史交接路径和字段见[investigation第二阶段](investigation.md#主线正式输入消费第二阶段)及[design公共增量](design.md#主线第二阶段交接与公共增量)；当前不再等待已合入的公共提供者：
 
-- M1：生态Reader／sidecar／PDF字节及保存／SQL／通知／键保护调查已接收，关闭未收到调查。历史Reader写sidecar而非PDF、H1领域Adapter为替身，不能代替文献实际新材料版本、提交／未知结果查询及sidecar转换契约；4.1／4.4仍开放。
-- M2：项目快照提供CallContext／任务引用事实，未提供新FileEdit归因DTO；“关联字段草稿”不是执行归因。已交付可信执行者、指令集合、工具记录、局部撤销及变化查询的精确需求，等待项目／Agent确认。仍不显示推断的Agent作者／理由。
-- M3：第三轮主线已采纳B新增只读render产物ref，4.6完成实际提供者和消费者验证。输出绑定自己的生产job和输入basis，不借失败新job解释旧lastSuccess。局部验证不关闭M1／M2或完整I5，公共dev接入仍由主线验收。
+- M1按本批只读验收，未来正文修订／sidecar转换需正式提交与版本保留／unknown契约；本次不提供或假称写回。
+- M2真实执行／委派提供者及阅读消费已接入，原会话真实工具已核查整次undo；精确指令／工具token、差异块撤销和科研意见状态机后续，不显示推断理由。
+- M3既有只读PDF产物及原job／input依据保留，不重做提供者。旧TeX单次unknown的公共进程根因仍沿所属计算任务，不因本批验证关闭。
 
-继续执行时先读本记录和tasks，按所属提供者输入核对对应规格，再使用`openspec instructions apply --change add-material-annotation-interactions --json`。依赖和隔离UI验证授权继续有效；整合完成后才完成5.1／5.2并考虑归档。
+主线仍负责接入及最终验收；后续实施须有明确新任务，不在本树自行归档或扩生产Graph／角色。实际命令及真实／替身边界见末节。
 
 实际科研质量、三平台分发及macOS受管执行未验收。没有提交／推送／归档；当前记录是可续做交接，不是最终完成声明。
 
@@ -297,4 +321,45 @@ Pascal辅助扩展kernel测试，Epicurus辅助独立组件样本，均保持gpt
 
 可审查本地补丁及manifest位于`/tmp/scholoom-m2-delivery-QT6Tkf/`，比较点1026796到当前工作区，包含新增组件测试。没有新公共协议／提供者补丁，不用旧累计包，也未自行接其他分支。补丁检查只证明可应用；本轮运行证据来自当前真实树。
 
-4.2及4.5闭合，累计11/15。5.x本轮M2子范围已审查／验证，但M1库正文提交、真实委派细分联合、报告生产API／HTML写／页面隔离及完整I5仍开放。未知撤销保护为当前文件视图内状态，本轮未新建跨窗口操作日志；完整关闭／重启等更大恢复验收仍沿所属权威及未完成5.x，不扩范围。达到本轮切片后停止；未提交、推送、PR、归档、安装依赖或写真实库，未验全仓CI、跨平台／分发及真实科研质量。
+该阶段4.2／4.5闭合，当时累计11/15；上述结果及旧未知状态保留为历史。本次M1只读／真实委派／材料I5按下节实际范围验收，不把旧阶段状态作为新的等待门。
+
+## 本次实际结果、修正与交接
+
+### 实现及真实消费者
+
+主线已在本dispatch明确采纳4.4本批只读分支。核正式workbench-resources、literature-reading／attachments及真实ResourceAccess／ReadingRecordPort后，proposal／design／delta／tasks明确排除附件正文修订和sidecar转正文。原EPUB／HTML场景在库write=true时真实调用resources.save并取得permissionDenied；原ref／basis与原字节保持，真实restricted项目文件及项目列表没有自动替代物，原阅读记录继续保存、重开、撤权与失效定位。此为人工资源请求验收，不冒称模型自由规划的正文修订能力。
+
+tests/ui/material-delegation-history.spec.ts扩原真实链：子worker首次创建、父worker实际读改同一fileId、MaterialChangeView显示真实父子origin／Evidence，人工重叠拒绝旧undo后安全撤销人工整次修改；不自动产生模型请求／新run，原composer草稿保留。用户再发送新指令，同一会话新run通过get_file_changes/read_file_edit/read_file取得实际undo身份、前后文及当前正文，核对磁盘和最新edit不变。未修改共享model-kernel、rpc-gate、file-workbench、project-ui保存函数、FileEdit或委派权威，精确指令／工具和理由仍unknown。
+
+唯一生产修正是DocumentReader内部图片队列：用户点选目标优先于尚未开始的同页图片，仍单在途、每页最多8图、单图1MiB，保留原可见性／授权／版本与Blob清理。普通任务FIFO、失败继续，章节切换清目标；不抢断在途，不改deadline或容量。原HTML末图断言保留，未新增私有顺序断言。开发说明与UI设计仅同步实际只读和修改历史行为。
+
+### 命令、环境与分轮结果
+
+R为 `/home/joshua/.cache/scholoom-finish-active/research-graph-runtime/`，所有命令先export TMPDIR=$R。使用Node24.12.0及已有锁定工具；UI端口6021，每轮独立SCHOOLOOM_UI_DATA_DIR及output，DISPLAY=:99每轮先xdpyinfo。静态配置由本树cwd运行 `node /home/joshua/.cache/scholoom-round13-acceptance/create-ui-config.mjs "$R/ui.config.mts"` 生成；承载为已保全static-ui，无开发服务器。项目保留到所属配置退役，原三处提前删除已移除。
+
+| 实际命令／范围 | 结果及R下证据 |
+| --- | --- |
+| `node node_modules/@playwright/test/cli.js test --config playwright.kernel.config.ts tests/kernel/execution-facts.spec.ts tests/kernel/material-history.spec.ts --output "$R/kernel-baseline"` | 7/7，31.5秒；kernel-baseline.log。1项真实worker，6项为可替换端口的组件测试 |
+| 同kernel入口 resource-access／literature-reading，grep `common resources preserve\|shared reading notes\|missing material retains` | 3/3，15.3秒；readonly-kernel.log，真实ManualApplication／库与记录 |
+| 同kernel入口 resource-creation／resource-identity | 9/9，10.2秒；identity-partial-kernel.log，真实保存／未知回执／部分关联及实体保护 |
+| 静态UI，material-delegation-history／material-interactions，grep `real parent and delegated\|real document annotation` | 原基线4/4，3.1分钟；ui-baseline.log |
+| 静态UI，document-reading／material-delegation-history／material-interactions／pdf-reading | 首轮11通过／5失败，6.9分钟；ui-final.log及ui-final/，不称全绿 |
+| 修正受限项目与登记目录后，document-reading／material-delegation-history／material-interactions的12项 | 11通过／1失败，5.5分钟；ui-corrected.log。真实M2新链两宿主通过；剩Browser HTML末图 |
+| 单独HTML两宿主，显式滚动实验 | 1通过／1失败，1.4分钟；ui-html-final-selected.log，否定纯视口解释。此前grep误用起始锚点未选到测试，保留ui-html-final.log，不计业务运行 |
+| image-probe被动观察 | v2真实Browser反例及有界JSON见investigation。初次缓存脚本CJS解析失败未运行；改缓存ESM后v1通过但无持久JSON，不作为根因证据；v2保留实际请求／相交元数据和原失败 |
+| 在apps/desktop执行 `node ../../node_modules/electron-vite/bin/electron-vite.js build` | 通过，最后renderer 1分35秒；desktop-build.log。生产修改后先构建，之后不再重建 |
+| 构建后静态UI，document-reading／material-interactions，grep `reader shares real\|a real document annotation` | **6/6，3.6分钟**；ui-reader-production.log及结果，涵盖EPUB、HTML及真实批注保存的两宿主，原期限不变 |
+| `node node_modules/typescript/bin/tsc --noEmit -p apps/desktop/tsconfig.json` 及 `-p tsconfig.tools.json` | 均通过；reader-types.log、tools-final.log |
+| `node scripts/check-architecture.ts`、`node packages/protocol/scripts/contract-types.mjs --self-test`、改动4个TS／TSX的Biome check | 均通过；architecture-final.log为14模块／257文件／0 findings，contract-self-test.log、biome-complete.log。协议schema／映射未改 |
+
+所有UI命令使用 `node node_modules/@playwright/test/cli.js test --config "$R/ui.config.mts"`，相应文件／grep如表，独立profile及output路径见同名日志。后续Electron验证显式设置ELECTRON_OVERRIDE_DIST_PATH为本树已存在node_modules/.pnpm/electron@44.5.1/node_modules/electron/dist，ELECTRON_SKIP_BINARY_DOWNLOAD=1。首次基线直接进入Electron包index.js时打印Downloading Electron binary并自动调用其install.js；这是启动前漏查的隐式行为，已上报主线并保留原日志，不能据日志判断实际走远端下载还是缓存，未将其隐藏为“从未进入安装”。后续绑定路径排除该分支，没有显式安装、升级或改锁文件。
+
+### 首败、审查与限制
+
+四个新增M1断言首败来自application文件入口无权限，已修为真实restricted项目；不放宽生产。首轮Electron的另一失败发生在首run admission等待，未进入委派／材料修改。同次project/session/run及诊断路径见investigation，modelRequests=null不是0；已交主线，后续成功不证明该次queued根因。三个旧用例删除仍登记目录的修正按主线决定独立处理，未将两者强绑因果。
+
+Browser HTML反例经被动真实请求与原生IntersectionObserver确认：目标已可见，但串行页图逐项约0.8秒，目标排在最后，显式滚动不能解决。只做本域优先调度，未增加并发、时限、sleep或测试重试。原反例、截图和每轮失败全部保留；未合并不同源码／轮次为一次全绿。
+
+独立原生辅助Agent使用gpt-6.1-sol/high、无历史fork，只读核M1契约并审查来源／undo／新测试，发现上述application夹具P2；修正后复核。新DocumentReader局部静态审查无确证P1/P2，确认单在途、清理、失败继续及不放宽容量；未将静态审查当运行证明。父Agent完成构建及真实双宿主，辅助Agent已关闭。material-history组件的可见性开关不证明真实断网／完整卸载／跨窗口恢复；实际权威由真实UI／kernel链证明，模型仅外部HTTP受控，无内部成功替身。
+
+本次完成本批只读M1、材料I5及真实粗粒度M2消费；不包含库正文写回、sidecar转换、精确工具token、差异块撤销、报告隔离、真实科研质量、完整平台稳定性或分发。原TeX单次unknown与首run公共准入失败继续交所属提供者。两个change的strict、scholoom-dev schema及diff检查通过；本批15/15和来源7/7的勾选只表示各自当前约定范围完成，不代替主线验收或归档授权。独立增量为R下`material-consumers.patch`，交接入口为`RESULT.md`、`manifest.json`及最终apply／validation日志；不提交、同步他树、推送、PR或归档。

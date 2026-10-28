@@ -1,6 +1,16 @@
 import { execFile, execFileSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
-import { mkdtemp, readdir, writeFile } from 'node:fs/promises';
+import {
+  chmod,
+  cp,
+  lstat,
+  mkdir,
+  mkdtemp,
+  readdir,
+  readFile,
+  realpath,
+  writeFile,
+} from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -9,10 +19,12 @@ import { expect, test } from '@playwright/test';
 import { KernelApplication } from '../../apps/kernel/dist/application.js';
 import { inspectKernel, serveKernel, stopKernel } from '../../apps/kernel/dist/lifecycle.js';
 import type { IsolatedZotero } from '../../apps/kernel/dist/zotero.js';
+import { createKernelClient } from '../../packages/client/dist/index.js';
 import type { ZoteroOutputs, ZoteroSnapshot } from '../../packages/protocol/dist/zotero.js';
 import { expectExecutionCompleted } from '../execution-diagnostics.js';
 import { delegationOutput } from '../fixtures/delegation-model.js';
 import { electronTestCommand } from '../fixtures/zotero-host/display.js';
+import { cliPath, runKernel } from '../kernel-fixture.js';
 import { createModelServer } from '../model-server.js';
 
 test.skip(process.platform !== 'linux', 'Bounded Linux managed Electron calibration');
@@ -38,6 +50,7 @@ function exported(result: ZoteroOutputs['zotero.export']) {
 async function fixture(
   options: ConstructorParameters<typeof KernelApplication>[1] = {},
   count = 3,
+  persistent = false,
 ) {
   const directory = await mkdtemp(join(tmpdir(), 'scholoom-library-bbt-'));
   test.info().annotations.push({ type: 'isolated-fixture', description: directory });
@@ -46,12 +59,24 @@ async function fixture(
   const configuration: IsolatedZotero = {
     libraryId: '',
     packageDirectory,
-    ...(await electronTestCommand(
-      new URL('../../apps/zotero-host/out/main/managed.cjs', import.meta.url),
-    )),
+    ...(persistent
+      ? {
+          executable: fileURLToPath(
+            new URL('../../node_modules/electron/dist/electron', import.meta.url),
+          ),
+          args: [
+            fileURLToPath(new URL('../../apps/zotero-host/out/main/managed.cjs', import.meta.url)),
+          ],
+        }
+      : await electronTestCommand(
+          new URL('../../apps/zotero-host/out/main/managed.cjs', import.meta.url),
+        )),
   };
   const root = join(directory, 'configuration');
-  const app = new KernelApplication(root, { ...options, isolatedZotero: configuration });
+  const app = new KernelApplication(root, {
+    ...options,
+    ...(!persistent ? { isolatedZotero: configuration } : {}),
+  });
   await app.initialize();
   await app.call('library.grant', { read: true, write: true, send: true, autoBackup: false });
   const libraryId = (await app.call('library.status', {})).id;
@@ -121,6 +146,135 @@ async function fixture(
     );
   return { app, directory, root, configuration, libraryId, sources, selection };
 }
+
+test('ordinary persistent host settings cold-start the unchanged package and retain the common commit across restart', async () => {
+  test.skip(
+    process.env.SCHOOLOOM_ZOTERO_NATIVE_COLD !== '1',
+    'Explicit offline native-layout calibration',
+  );
+  const f = await fixture({}, 3, true);
+  let preparing = true;
+  try {
+    const before = await f.selection();
+    await f.app.close();
+    preparing = false;
+    const resourceRoot = join(f.root, 'native-resources', 'zotero-journals-v1');
+    await mkdir(resourceRoot, { recursive: true, mode: 0o700 });
+    await cp(await realpath('node_modules/electron/dist'), join(resourceRoot, 'electron'), {
+      recursive: true,
+      dereference: true,
+    });
+    await cp('apps/zotero-host/out', join(resourceRoot, 'host/out'), { recursive: true });
+    await cp('apps/zotero-host/resources', join(resourceRoot, 'host/resources'), {
+      recursive: true,
+    });
+    await cp(f.configuration.packageDirectory, join(resourceRoot, 'bbt'), { recursive: true });
+    // Offline preparation of these new, known-source copies; the production resolver never fixes permissions.
+    const protectCopy = async (path: string): Promise<void> => {
+      const info = await lstat(path);
+      if (info.isSymbolicLink()) throw new Error('Unexpected link in offline resource copy');
+      await chmod(path, info.mode & 0o777 & ~0o022);
+      if (info.isDirectory())
+        for (const name of await readdir(path)) await protectCopy(join(path, name));
+    };
+    await protectCopy(resourceRoot);
+    await writeFile(
+      join(f.root, 'host-settings.json'),
+      JSON.stringify({
+        version: 1,
+        kernelDirectory: await realpath(f.root),
+        zotero: {
+          enabled: true,
+          scope: 'isolated-library-journals',
+          libraryId: f.libraryId,
+          resourceId: 'journals-local-v1',
+          resources: [{ id: 'journals-local-v1', layout: 'linux-x64-electron-managed-v1' }],
+        },
+      }),
+      { mode: 0o600 },
+    );
+    const operationId = randomUUID();
+    let committed: ZoteroOutputs['zotero.result'] | undefined;
+    for (const boundary of ['cold', 'restart']) {
+      const running = await runKernel(f.root, 'start');
+      if (running.state !== 'running') throw new Error(JSON.stringify(running));
+      const client = createKernelClient(running.endpoint);
+      try {
+        await client.connect();
+        const rows = () =>
+          Promise.all(
+            f.sources.map((source) =>
+              client.call('library.record', { libraryId: f.libraryId, sourceId: source.id }),
+            ),
+          );
+        if (boundary === 'cold') {
+          const { stdout } = await promisify(execFile)(
+            process.execPath,
+            [
+              cliPath,
+              'zotero.fillKeys',
+              '--data-dir',
+              f.root,
+              '--input',
+              JSON.stringify({
+                libraryId: f.libraryId,
+                operationId,
+                sources: before.map(({ sourceId, revision }) => ({ sourceId, revision })),
+              }),
+            ],
+            { timeout: 30000 },
+          );
+          const result = JSON.parse(stdout) as ZoteroOutputs['zotero.fillKeys'];
+          expect(result.state).toBe('committed');
+          committed = result.receipt;
+          expect(committed?.state).toBe('committed');
+        }
+        expect(
+          await client.call('zotero.result', { libraryId: f.libraryId, requestId: operationId }),
+        ).toEqual(committed);
+        const records = await rows();
+        expect(records.at(-1)).toEqual(before.at(-1));
+        expect(
+          records
+            .slice(0, -1)
+            .map((record, index) => record.revision - (before[index]?.revision ?? 0)),
+        ).toEqual([1, 1]);
+        expect(records.every((record) => record.citationKey)).toBe(true);
+        if (boundary === 'cold')
+          for (const format of ['bibtex', 'biblatex'] as const) {
+            const output = exported(
+              await client.call('zotero.export', {
+                libraryId: f.libraryId,
+                sources: originalSources(records),
+                format,
+              }),
+            );
+            expect(output.text).toContain('ScholoomPreserved2026');
+            await writeFile(test.info().outputPath(`cold.${format}`), output.text);
+          }
+        const supervision = JSON.parse(
+          await readFile(join(f.root, 'zotero/host-supervision.json'), 'utf8'),
+        );
+        expect(supervision).toMatchObject({
+          kernelInstanceId: running.endpoint.instanceId,
+          scopeStopped: true,
+          pluginClosed: true,
+          unresolved: [],
+        });
+        await writeFile(
+          test.info().outputPath(`${boundary}-receipts.json`),
+          JSON.stringify({ records, committed, supervision }, null, 2),
+        );
+      } finally {
+        client.dispose();
+        expect((await runKernel(f.root, 'stop')).state).toBe('stopped');
+      }
+    }
+  } finally {
+    if (preparing) await f.app.close();
+    else expect((await runKernel(f.root, 'stop')).state).toBe('stopped');
+  }
+});
 
 test('explicit original selection and independent title replacement preserve the common CSL and other original values', async () => {
   const f = await fixture();

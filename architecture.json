@@ -37,6 +37,9 @@
       "sourceRoot": "src",
       "allows": ["@scholoom/protocol"],
       "systemAdapters": [
+        { "path": "src/isolated-report-controller.ts", "apis": ["child_process", "fs/promises"] },
+        { "path": "src/isolated-report-records.ts", "apis": ["fs", "fs/promises"] },
+        { "path": "src/isolated-reports.ts", "apis": ["fs", "fs/promises"] },
         {
           "path": "src/command.ts",
           "apis": ["process.env"]
@@ -421,6 +424,14 @@
         {
           "path": "src/zotero.ts",
           "apis": ["fs/promises"]
+        },
+        {
+          "path": "src/host-settings.ts",
+          "apis": ["fs/promises"]
+        },
+        {
+          "path": "src/zotero-resources.ts",
+          "apis": ["fs", "fs/promises", "process.env"]
         },
         {
           "path": "src/storage/project-container.ts",

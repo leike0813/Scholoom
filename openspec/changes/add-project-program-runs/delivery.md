@@ -1,5 +1,13 @@
 # 实际交付与交接
 
+## 主线606ae82真实Windows结果（2026-10-29）
+
+已推送`606ae829720e5c0709198a6e36839929ae4fda5b`并消费专项run40729861762／job122962932735／artifact12835411610。真实isolated组4/4，包括首次ready与实际进程替换／restart；真实ACL四样本及Utility模块干扰组5/5，原protected／owner／当前主体FullControl Allow／文件继承断言均通过。八次设置ACL的PowerShell为166–194ms，仍使用cmdlet的只读验证器为14–23秒，不能概括为所有PowerShell已提速。权限语义、生产期限、停止及容量保护未改，独审`windows-acl-constructor-review.md`无发现。对应首次启动／重启及权限候选已取得目标证据，取代下一节“尚未实跑”的时间点状态。
+
+同次HostConnection24项、ownership16通过／3跳过、availability6项、owner2项及Electron首屏重复3项通过。Agent代表仅1/3，两个失败均已启动真实worker但在initialize响应前耗尽原5秒窗口，不能作为子取消或附件读写故障，也不能用旧专项3/3抵消。专项整体failure保留。完整Checks40729861720在本次查询仍运行，macOS job成功，Linux／Windows未结算；不以专项或构建代替完整平台结果。5.2／6.2保持开放，等相关完整回执及剩余Agent阶段证据核对后再收口。
+
+原始状态、artifact和日志在`/home/joshua/.cache/scholoom-finish-active/windows-606ae82-*`，两失败精确同次时间线见`agent-delegation/windows-606ae82/report.md`。没有再次下载旧包、安装依赖或扩大执行权限。
+
 ## 主线Windows对照接收及最小候选
 
 2026-10-29主线将七文件对照增量以f976b67提交推送并消费其专项40723824443：真实isolated3/4，唯一业务失败仍首次启动、重启未到；四ACL样本权限／命令回执通过但12次PS各约12秒，同run完整CLI快路径反证这是所有Windows调用的固有成本。Agent三条代表3/3、HostConnection24、owner2、Electron入口重复3通过；具体scope与原始输入见investigation当前节及`/home/joshua/.cache/scholoom-finish-active/project-execution/windows-f976b67/report.md`。完整Checks与该专项分开，不计为全平台通过。

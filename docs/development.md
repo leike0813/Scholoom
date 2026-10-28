@@ -81,7 +81,7 @@ Agent、能力子执行与 PDF 共用宿主持有的进程容量，默认活动 
 | Agent | 沿 `HarnessStorage`、领域端口及私有 worker 入口组合；参考 `harness-module.spec.ts`、`execution-isolation.spec.ts`，外部模型复用 `tests/model-server.ts` 的 loopback 受控响应 |
 | 科研计算 | `ProgramRuns`／`ProgramEnvironments` 在 ManualApplication 装配；`program-runs.spec.ts` 验证真实 Node／Python、运行记录与输出，`program-environments.spec.ts` 以相同端口替换执行和记录依赖；共同命令机制参考 `managed-commands.spec.ts` |
 | 阅读交互 | 沿共同资源和 editor 端口接入，参考 `resource-access.spec.ts`、`editor-runtime.spec.ts` 及 `tests/ui/resource-opening.spec.ts`；UI 使用共同 renderer URL 配置 |
-| Zotero 生态 | `host-connection.spec.ts`验证公共认证监督；`zotero-host-supervision.spec.ts`验证原包监督；`zotero-host.spec.ts`经真实共同库／broker／WS／受管Electron验证最多100条普通期刊补缺键、两格式导出和稳定回执。原包操作仅构造时明确供应的隔离库可用；`cli-runtime.spec.ts`独立验证普通CLI只读回执接续，真实用户库仍禁用 |
+| Zotero 生态 | `host-connection.spec.ts`验证公共监督及初始化恢复；`zotero-host-supervision.spec.ts`验证原包监督；`zotero-host.spec.ts`的可信注入组合已验最多100条普通期刊补键／两格式／回执。`cli-runtime.spec.ts`验证私有设置的普通冷启动／题名／接续及N1；固定离线原包新配方仍受sandbox前置阻断，不以注入例代替，真实用户库仍禁用 |
 
 表中内核用例位于 `tests/kernel/`，UI 与宿主外壳用例分别在 `tests/ui/`、`tests/smoke/`。窄端口内存替身受 TypeScript 检查，跨 broker／IPC 的输入输出继续经过原同源 schema；资源、文件及仓储的真实组合使用所属提供者，不用成功替身代替。
 
@@ -133,14 +133,20 @@ SCHOOLOOM_UI_PORT=5343 node node_modules/@playwright/test/cli.js test --config p
 
 `files.changes({projectId,fileId,afterEditId?,limit?})`返回有界摘要和coverage，默认25，上限100；`files.edit({projectId,fileId,editId})`读取指定完整记录。续页只传cursor及limit，不再传顶层锚点；cursor固定项目／fileId、初始锚点状态、首屏保留上下界和续页位置，窗口下界被裁剪后明确失效。anchor missing、retention unknown/pruned及current changedOrUnrecorded分别表示覆盖缺口，不能把空页当完整无变化。负责Agent的`get_file_changes/read_file_edit`只读当前可信项目，子实例暂不开放任意历史正文。
 
-`files.undo`仍撤销一次完整编辑。它核对稳定实体、完整after和原byteBasis，再按当前强依据发布；正常内部改名不会因ctime变化丢失撤销资格，后续内容／实体变化仍拒绝。成功形成新记录及revertsEditId；落盘或移至撤销保留区后历史登记失败返回outcomeUnknown。项目资源创建／执行保存只在实际登记可核查时返回可选editId，旧结果不猜，association仍表示执行成果关联。定向验证见`file-change-contracts.spec.ts`、`file-edit-origins.spec.ts`及原资源创建／身份测试；阅读差异消费者须同步提供者后独立接入。
+`files.undo`仍撤销一次完整编辑。它核对稳定实体、完整after和原byteBasis，再按当前强依据发布；正常内部改名不会因ctime变化丢失撤销资格，后续内容／实体变化仍拒绝。成功形成新记录及revertsEditId；落盘或移至撤销保留区后历史登记失败返回outcomeUnknown。项目资源创建／执行保存只在实际登记可核查时返回可选editId，旧结果不猜，association仍表示执行成果关联。阅读差异消费者沿实际MaterialChangeView使用同一提供者；真实父子worker、人工重叠拒绝、整次undo及负责会话的新指令工具读回见`tests/ui/material-delegation-history.spec.ts`，来源事实见`tests/kernel/execution-facts.spec.ts`。单次指令／工具及科研理由缺证据仍未知。
+
+库附件正文在本批材料交互中保持只读，即使库write已授权也不开放`resources.save`。已有阅读记录沿原库记录和材料版本保存，不是正文修订，也不自动复制成项目替代。`tests/ui/document-reading.spec.ts`及`tests/kernel/resource-access.spec.ts`核对真实保存拒绝、原字节／版本、记录、重开与失效；未来正文写回须另有正式提供者及授权。
 ## BBT 独立验收
 
-隔离共同库接线由可信宿主构造 `KernelApplication`／`serveKernel` 时供应 `isolatedZotero`（实际 `libraryId`、受管启动程序／参数、固定原包解包目录）；默认没有该配置，产品请求不能启用或改变原生路径。构造参数是开发隔离验收入口，不是用户库启用方式。`zotero.fillKeys` 接受 `libraryId`、稳定 `operationId` 及1–100个 `sourceId/revision`；已有操作返回`state: queried`及原回执，不执行新的选择，`notification: notRun`不恢复历史通知状态。`zotero.result` 使用共同 `requestId` 查询实际提交，未知时不得重放。`zotero.export` 接受同一选择及 `bibtex`／`biblatex`，返回文本和采用的条目修订／正式键／固定状态；宿主关闭后交付前重查权限和依据。文本最多256KiB，不隐式写入文件或补键。
+隔离共同库可由可信宿主构造 `KernelApplication`／`serveKernel` 时供应 `isolatedZotero` 进行专用测试，普通入口则由持锁的serve读取私有 `host-settings.json`，在library初始化后核实际库ID；默认禁用。schema唯一源为`apps/kernel/src/host-settings.ts`，首版只支持显式隔离期刊库、单一固定Linux x64离线资源登记，资源目录固定在本配置`native-resources/zotero-journals-v1/`，不接受业务请求的程序、env或root，不执行grant或创建第二份库／键权威。没有settings写端口或安装器，可信操作者须在确认停机后离线准备；真实用户库仍未开放。
+
+所有配置分支在programs／harness恢复前先核`zotero/host-supervision.json`。原生scope未知按原command实例保留共同容量；原生已停而插件／领域未决只保护生态启动门和profile，不虚占原生槽。坏记录保留原证据，不以设置、PID或notFound清unknown。设置变化只阻止新动作／启动，已受理回调继续按真实库身份及实时授权收尾。原包路径依赖受信固定资源及实际可用的Chromium sandbox；本机普通原包配方已因SUID／userns sandbox前置失败，不能据普通绑定、独立题名或旧注入测试通过宣布完整原包装配可用，也不默认添加no-sandbox。kernel私有日志记录同次失败及scope／plugin／callback事实。
+
+`zotero.fillKeys` 接受 `libraryId`、稳定 `operationId` 及1–100个 `sourceId/revision`；已有操作返回`state: queried`及原回执，不执行新的选择，`notification: notRun`不恢复历史通知状态。`zotero.result` 使用共同 `requestId` 查询实际提交，未知时不得重放。`zotero.export` 接受同一选择及 `bibtex`／`biblatex`，返回文本和采用的条目修订／正式键／固定状态；宿主关闭后交付前重查权限和依据。文本最多256KiB，不隐式写入文件或补键。
 
 `zotero.inspect({libraryId,sources:[{sourceId,revision}]})`读取同修订的共同CSL及唯一原值，返回identity、正式键和题名equal/different；其余字段始终notComparable。`zotero.export`未选表达时返回selectionRequired及核对依据，不启动宿主或返回文本。明确采用原值时，每个source传`expression:{kind:'zotero-original',identity:{instanceId,libraryLocator,objectKey}}`；成功返回exported及实际表达依据。Agent可按用户明示指令选择，不确定先询问，boolean不能代替表达选择。仅题名相同不表示全条目一致。`zotero.replaceTitle({libraryId,requestId,sourceId,revision,identity,title})`独立替换准确原题名，保留CSL及其他原值／身份／正式键；使用共同CAS和稳定回执，未知只按原requestId查询。
 
-人工 CLI 为 `node apps/kernel/dist/cli.js zotero.inspect|zotero.replaceTitle|zotero.fillKeys|zotero.export|zotero.result --data-dir <隔离配置> --input '<同源JSON>'`，消费已运行的内核。其中只读 `zotero.result` 不要求native配置：先普通 `start --data-dir <隔离配置>`，再 `zotero.result --data-dir <同一配置> --input '{"libraryId":"<原库ID>","requestId":"<原请求ID>"}'`；普通stop/start后仍查唯一library.commitResult。查询前后核read／当前库身份，Agent另核send及有效执行；committed／rejected保留原修订，notFound不证明无效果，不启动host或重放／清unknown。其他四项仍需可信隔离构造配置，普通CLI不加载原包设置。harness 的 `inspect_zotero_originals`／`replace_zotero_original_title`／`fill_zotero_keys`／`export_zotero`／`read_zotero_result` 使用同一broker及执行主体，成功返回继续登记共同库身份供后续模型准入和重启核查read/send。缺原值、非schema44普通期刊、复杂关系／字段形态均明确unavailable，不从CSL猜测；来源副本需共同新实例。Item与真实SQLite查询均为可丢弃投影，正式键只归共同库；一次补键汇集为一次共同事务，读回及通知失败与已提交结果分开。
+人工 CLI 为 `node apps/kernel/dist/cli.js zotero.inspect|zotero.replaceTitle|zotero.fillKeys|zotero.export|zotero.result --data-dir <隔离配置> --input '<同源JSON>'`，消费已运行的内核。其中只读 `zotero.result` 不要求native配置：先普通 `start --data-dir <隔离配置>`，再 `zotero.result --data-dir <同一配置> --input '{"libraryId":"<原库ID>","requestId":"<原请求ID>"}'`；普通stop/start后仍查唯一library.commitResult。查询前后核read／当前库身份，Agent另核send及有效执行；committed／rejected保留原修订，notFound不证明无效果，不启动host或重放／清unknown。其他四项仍需可信隔离构造或私有设置绑定；inspect／独立replaceTitle不启动原包，显式补键／导出还需上述资源和sandbox前置。harness 的 `inspect_zotero_originals`／`replace_zotero_original_title`／`fill_zotero_keys`／`export_zotero`／`read_zotero_result` 使用同一broker及执行主体，成功返回继续登记共同库身份供后续模型准入和重启核查read/send。缺原值、非schema44普通期刊、复杂关系／字段形态均明确unavailable，不从CSL猜测；来源副本需共同新实例。Item与真实SQLite查询均为可丢弃投影，正式键只归共同库；一次补键汇集为一次共同事务，读回及通知失败与已提交结果分开。
 
 固定资源与原包来源记录在 `apps/zotero-host/resources/versions.json`；原 XPI 不随仓提交、不在启动时下载。准备指定 BBT 9.0.68 原发布包后执行：
 
@@ -203,6 +209,14 @@ macOS 完整能力恢复另立变更：Darwin 不支持 kqueue 自动后代跟�
 产物缓存按项目限制为 256 MiB／64 份；单个产物最多 128 MiB、单文件最多 64 MiB、资源最多 1000 个。已有稿件按替换后的净占用准入，提交余量最多 128 MiB／1 份，切换成功后回收可淘汰旧版。缓存保护最后成功产物、最近 5 分钟读取的产物及导出；受保护的暂留产物仍计入后续准入，历史收据保留，过期产物查询返回 `notFound`。
 
 相关验证入口为 `pnpm build`、`pnpm test:kernel tests/kernel/editor.spec.ts tests/kernel/editor-runtime.spec.ts tests/kernel/editor-source.spec.ts` 和 `pnpm test:ui tests/ui/writing-editor.spec.ts tests/ui/writing-editor-recovery.spec.ts tests/ui/writing-editor-pdf.spec.ts tests/ui/file-workbench.spec.ts`。`test:ui` 使用项目既有 Chromium 与真实 Electron 双宿主场景，覆盖学术内容往返、待转换草稿恢复、QMD／多文件 TeX PDF 预览及导出；文件工作台场景核对共享草稿、冲突、结构变化、主题与长稿输入性能。BibTeX 题名沿 Pandoc 的书目语义转换，需要保留大小写的题名使用花括号保护，例如 `title={{Independent Evidence}}`。独立组件与实际内核产物验证另有对应测试；各层实际结果及平台边界见交付记录。
+
+### 独立 Linux 受限原生提供者
+
+`@scholoom/platform/node` 的 `IsolatedReportProvider` 是宿主专用深模块，契约从 `@scholoom/protocol/isolation` 派生；仅独立私有 broker 装配六个 `platform.reportIsolation.*` 操作，尚未注册到产品、harness 或报告页面。宿主注入同一 `ProcessAdmission`、私有目录、固定静态 ELF 程序／策略及当前授权闭包，按 `initialize → stage → put → start/get/stop → close` 使用；重启先恢复原记录及占用，不自动重放。
+
+当前唯一策略为 Linux x86_64 固定原生程序，使用已有普通用户 systemd scope、bwrap、seccomp、pidfd 与可信 controller exec 观察。`check`检查登记及工具前置；每次启动仍在 G 前核真实 CPU／memory／swap／pids 与完整门策略，缺任何条件不放行。预算必须显式登记，测试的20%／64MiB／swap0／16tasks不成为产品默认。字节仅存私有准备视图，原 `ReportResources`／`ResourceAccess` 仍负责 ref／basis／read/send，当前未接领域冻结字节 Adapter。
+
+原生适配随 `packages/platform/build-process-scope.mjs` 构建，保留普通命令及其他平台原分支。先通过 `SCHOOLOOM_ISOLATION_TEST_CACHE` 与 `TMPDIR` 指定自己的 cache，再用 `node tests/fixtures/isolated-report-native/rebuild.mjs` 编译独立固定输入，然后运行 `isolated-report-provider.spec.ts`、`isolated-report-records.spec.ts`、`isolation-contracts.spec.ts` 与 `process-admission.spec.ts`。真实OS组需要明确提供该cache及已有systemd／bwrap／委托条件；没有设置时默认内核组合只跑其不可用保护，跳过OS组不代表隔离验收通过。实际命令、首次失败及范围见[提供者交付](../openspec/changes/add-linux-isolated-report-provider/delivery.md)。浏览器进程图、报告 UI、文本／可访问性、分发及 Windows／macOS 均不由该原生模块声明通过。
 
 ## 项目程序运行
 
@@ -296,7 +310,7 @@ useStatusBarItem('reading', {
 
 共同原值／键接口由`protocol/library-records.ts`提供：`library.createSourceInstance`按稳定请求登记新来源实例，`library.record`／`recordHistory`有界读取原值与正式键，`library.commitRecords`同事务提交最多100条已有题录、原值／来源关联／键及历史，`library.commitResult`查询稳定成功或拒绝结果。请求编码最多256KiB、单原值64KiB；键NFC／默认Unicode小写比较冲突，候选只补缺键且不固定，既有正式键只接受显式修改及有效revision。失败不拆成逐条成功，提交后才通知。库自身v3→v4升级保留旧副本，旧CSL扩展键不自动晋升为正式键；生态普通期刊隔离接线见上文，完整BBT SQL／saveTx及原子新建／删除／附件／组织操作继续由后续变更承接。
 
-文献详情的“原值与导出”只消费当前单选：明确核对已保存CSL、准确原值身份／修订及不可比较部分，题名更正先预览再提交，仅改原值title。未保存CSL及旧保存依据保留，随后保存仍沿CAS冲突／明确重读。导出须明确采用所示原值，仅exported返回只读文本，selectionRequired无文本；格式／修订／选择变化清除确认和旧输出。未知更正回执按原requestId调用zotero.result，不重放，notFound仍保留未决操作。普通内核仅开放上述有授权的只读回执核查，其他生态动作仍默认不可用；可信隔离双宿主夹具使用构造注入、真实broker／库及未修改BBT，未开放产品配置开关、真实用户库或macOS受管执行。
+文献详情的“原值与导出”只消费当前单选：明确核对已保存CSL、准确原值身份／修订及不可比较部分，题名更正先预览再提交，仅改原值title。未保存CSL及旧保存依据保留，随后保存仍沿CAS冲突／明确重读。导出须明确采用所示原值，仅exported返回只读文本，selectionRequired无文本；格式／修订／选择变化清除确认和旧输出。未知更正回执按原requestId调用zotero.result，不重放，notFound仍保留未决操作。普通内核默认仅有授权的只读回执，独立inspect／题名需上述私有隔离绑定，原包操作仍受资源／sandbox前置约束；已验双宿主夹具使用可信构造注入、真实broker／库及未修改BBT，不能代替普通持久原包GUI通过，未开放产品设置开关、真实用户库或macOS受管执行。
 
 首个摄取格式为 CSL JSON（可粘贴或选择本机 JSON 文件），一次不超过256KiB/1000条，单条题录不超过16KiB且有非空 title，其余扩展字段保留。手动建项也走同一摄取入口。批次受理返回稳定身份，逐项保存创建、复用、冲突或失败；合法项可先查用。相同 batchId 不同输入拒绝，内核中断保留记录，显式继续只处理未执行项，不重放成功项；中断原因可查询。
 

@@ -6,6 +6,43 @@
 
 ## ADDED Requirements
 
+### Requirement: 私有宿主设置的冷启动绑定
+
+普通CLI及desktop bootstrap SHALL 由持有配置锁的同一kernel加载唯一私有host-settings.json；宿主设置只绑定当前配置目录、实际共同libraryId和一个可信离线固定资源，不改变read/write/send授权。设置缺失或显式禁用不启用生态四动作；无效、未知版本、不安全或错配置目录的设置不得作为默认有效配置，人工共同库及zotero.result仍可用。设置不得从libraryMeta、endpoint、日志或旧凭据重建。
+
+原包及宿主路径 SHALL 从配置内固定私有资源布局派生，业务请求不得提供executable、args、env、root、脚本或凭据；设置不得持久化短期监听地址、token或操作handle。只有明确绑定的隔离合成期刊库进入本片，真实用户库保护及平台限制保持。库初始化后绑定核实际libraryId；inspect及独立replaceTitle不因无需使用的原包或显示缺失而被停用。
+
+#### Scenario: 普通冷启动及重启
+
+- **WHEN** 可信操作者离线准备有效私有设置和固定资源后，通过普通CLI或desktop bootstrap冷启动，再stop/start而不供应测试IPC
+- **THEN** 同一设置及当前共同库重建绑定，原包按显式动作惰性启动，真实父kernel实例用于认证；原值、正式键及稳定回执沿同一library权威保持
+
+#### Scenario: 设置或资源失效
+
+- **WHEN** 设置读取失败、未知字段、配置目录或库不符，或需原包动作的固定资源／显示不可用
+- **THEN** 相应动作明确拒绝，库身份不符为instanceMismatch，权限拒绝保持原语义；不自动grant、换资源、重启、安装或回退无隔离执行，N1按当前库查询原回执不受native不可用影响
+
+#### Scenario: 启动后配置变化
+
+- **WHEN** 新生态动作或容量等待后的启动核查发现设置不再等于冷启动快照，或固定资源已失效
+- **THEN** 拒绝新的原包派发并要求显式重启；已受理回调仍按原归属及实时库授权收尾，不丢弃unknown或重放
+
+### Requirement: 初始化先恢复遗留宿主准入事实
+
+内核 SHALL 在任何programs／harness执行恢复或新准入前核查既有host监督记录，并将未知原生scope按旧commandInstanceId幂等计入唯一共同ProcessAdmission；设置缺失、禁用、无效、错库或资源缺失均不得跳过该核查。损坏、不安全、不可读或超限的单host记录 SHALL 保留原证据并保守记入单个未知scope，不创建listener、连接或杀死旧进程，不依据PID或新配置释放占用。
+
+scope已确认停止但插件／领域结果未确认 SHALL 只阻止生态重启，不虚占原生活动槽。原生未知须先完成记账才能受理其他执行，按剩余容量运行；无法建立记账时不得发布可受理执行的入口。查询共同回执及notFound不解除监督unknown，首片不提供强制清理或恢复占用释放接口。
+
+#### Scenario: 满容量或设置禁用时恢复
+
+- **WHEN** 原host原生scope未确认，新内核在任意设置分支初始化，或同一记录被重复核查
+- **THEN** 在其他执行准入前按原身份保留一次占用，满容量也不漏计；无关live槽释放后仍保留旧scope，不经普通等待期限释放
+
+#### Scenario: 只有领域未决或记录损坏
+
+- **WHEN** 旧scope已停但插件／操作未决，或监督文件不可读／损坏
+- **THEN** 前者保护生态启动门而不占原生槽；后者保守记入单scope且原文件不被cleanup覆盖；人工库和只读原结果查询不因插件结果未知被替换为假成功
+
 ### Requirement: 有界核对共同CSL与唯一期刊原值
 
 zotero.inspect SHALL 对最多100条选定sourceId／共同revision读取真实library.get及record，核对同一修订和唯一schema44 journalArticle原值identity。结果编码最多256KiB，题名比较明确equal或different，其余字段保持notComparable；不从相同revision或题名推出全条目一致，不扫描全库或无限重读。

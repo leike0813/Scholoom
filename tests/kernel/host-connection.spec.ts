@@ -3,8 +3,10 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, test } from '@playwright/test';
+import { KernelApplication } from '../../apps/kernel/dist/application.js';
 import { ManagedCommands } from '../../apps/kernel/dist/commands.js';
-import { HostConnection } from '../../apps/kernel/dist/host-connection.js';
+import { HostConnection, recoverHostSupervision } from '../../apps/kernel/dist/host-connection.js';
+import { loadHostSettings } from '../../apps/kernel/dist/host-settings.js';
 import { ProcessAdmission } from '../../packages/platform/dist/node.js';
 import { fixture } from '../managed-command-fixture.js';
 
@@ -19,6 +21,79 @@ const echo = {
   result: valueSchema,
   semantics: { effect: 'read', returns: 'result', waitMs: 5000 },
 } as const;
+
+test('application startup retains the previous host scope before library and other execution initialization', async () => {
+  const f = await hostFixture();
+  let app: KernelApplication | undefined;
+  try {
+    await f.host.start();
+    const previous = await readFile(join(f.directory, 'host-supervision.json'), 'utf8');
+    // Real host intent, with the later stopped observation deliberately unavailable to the new kernel.
+    expect((await f.host.close()).scopeStopped).toBe(true);
+    class StartupApplication extends KernelApplication {
+      admission() {
+        return this.processes.status;
+      }
+      checkAgain(directory: string) {
+        return recoverHostSupervision({ directory, admission: this.processes });
+      }
+    }
+    for (const mode of ['absent', 'disabled', 'invalid', 'plugin-only']) {
+      const root = join(f.directory, `next-kernel-${mode}`);
+      const directory = join(root, 'zotero');
+      await mkdir(directory, { recursive: true, mode: 0o700 });
+      const evidence =
+        mode === 'plugin-only'
+          ? JSON.stringify({ ...JSON.parse(previous), scopeStopped: true })
+          : previous;
+      await writeFile(join(directory, 'host-supervision.json'), evidence, { mode: 0o600 });
+      if (mode === 'disabled' || mode === 'invalid')
+        await writeFile(
+          join(root, 'host-settings.json'),
+          mode === 'invalid'
+            ? '{invalid'
+            : JSON.stringify({ version: 1, kernelDirectory: root, zotero: { enabled: false } }),
+          { mode: 0o600 },
+        );
+      const next = new StartupApplication(root, {
+        zoteroRuntime: { kernelInstanceId: 'new-kernel', settings: await loadHostSettings(root) },
+      });
+      app = next;
+      const expected = mode === 'plugin-only' ? 0 : 1;
+      const initialize = next.library.initialize.bind(next.library);
+      next.library.initialize = async () => {
+        expect(next.admission().active).toBe(expected);
+        await initialize();
+      };
+      await next.initialize();
+      const again = await next.checkAgain(directory);
+      expect(again.state).toBe('blocked');
+      if (again.state === 'blocked') {
+        expect(again.nativeScope).toBe(expected ? 'unknown' : 'stopped');
+        if (expected) expect(again.retainedId).toBe(JSON.parse(previous).commandInstanceId);
+      }
+      expect(next.admission().active).toBe(expected);
+      expect(await readFile(join(directory, 'host-supervision.json'), 'utf8')).toBe(evidence);
+      const libraryId = (await next.call('library.status', {})).id;
+      expect(await next.call('zotero.result', { libraryId, requestId: 'old-operation' })).toEqual({
+        requestId: 'old-operation',
+        state: 'notFound',
+      });
+      await expect(
+        next.call('zotero.inspect', {
+          libraryId,
+          sources: [{ sourceId: 'not-selected', revision: 0 }],
+        }),
+      ).rejects.toMatchObject({ code: 'outcomeUnknown' });
+      await next.close();
+      app = undefined;
+    }
+  } finally {
+    await app?.close();
+    await f.host.close();
+    await f.commands.close();
+  }
+});
 async function hostFixture(
   mode = 'normal',
   callback?: () => Promise<void>,
@@ -482,6 +557,7 @@ test('recovery retains capacity for an unconfirmed native scope without consulti
       pluginClosed: false,
       unresolved: [],
     }),
+    { mode: 0o600 },
   );
   await expect(f.host.start()).rejects.toMatchObject({ code: 'outcomeUnknown' });
   expect(f.admission.status.active).toBe(1);
@@ -502,6 +578,7 @@ test('unknown scope recovery cannot lose its hold when the active capacity is al
       pluginClosed: false,
       unresolved: [],
     }),
+    { mode: 0o600 },
   );
   await expect(f.host.start()).rejects.toMatchObject({ code: 'outcomeUnknown' });
   active.release();
@@ -528,6 +605,7 @@ test('recovery does not count a still-retained command reservation twice in the 
       pluginClosed: false,
       unresolved: [],
     }),
+    { mode: 0o600 },
   );
   await expect(f.host.start()).rejects.toMatchObject({ code: 'outcomeUnknown' });
   expect(f.admission.status.active).toBe(1);

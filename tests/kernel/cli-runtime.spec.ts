@@ -2,12 +2,23 @@ import assert from 'node:assert/strict';
 import { execFile, fork } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { once } from 'node:events';
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { writeFileSync } from 'node:fs';
+import {
+  chmod,
+  mkdir,
+  mkdtemp,
+  readFile,
+  realpath,
+  rm,
+  symlink,
+  writeFile,
+} from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
 import { expect, test } from '@playwright/test';
 import { KernelApplication } from '../../apps/kernel/dist/application.js';
+import { checkUnchanged, loadHostSettings } from '../../apps/kernel/dist/host-settings.js';
 import { createKernelClient } from '../../packages/client/dist/index.js';
 import {
   type BusinessMethod,
@@ -21,6 +32,239 @@ import { createModelServer } from '../model-server.js';
 import { PAGE_ONE_TEXT, syntheticPdf } from '../pdf-fixture.js';
 
 const execute = promisify(execFile);
+
+function hostSettings(kernelDirectory: string, libraryId: string) {
+  return {
+    version: 1,
+    kernelDirectory,
+    zotero: {
+      enabled: true,
+      scope: 'isolated-library-journals',
+      libraryId,
+      resourceId: 'journals-local-v1',
+      resources: [{ id: 'journals-local-v1', layout: 'linux-x64-electron-managed-v1' }],
+    },
+  };
+}
+
+test('private Zotero settings reject unsafe or stale input without defaulting to an active binding', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'scholoom-host-settings-'));
+  const filename = join(root, 'host-settings.json');
+  expect((await loadHostSettings(root)).state).toBe('disabled');
+  const valid = hostSettings(await realpath(root), randomUUID());
+  await writeFile(filename, JSON.stringify(valid), { mode: 0o600 });
+  const snapshot = await loadHostSettings(root);
+  assert(snapshot.state === 'loaded');
+  await checkUnchanged(snapshot);
+  for (const value of [
+    { ...valid, version: 2 },
+    { ...valid, kernelDirectory: join(root, 'other') },
+    { ...valid, executable: process.execPath },
+    { ...valid, zotero: { ...valid.zotero, resourceId: 'missing' } },
+    {
+      ...valid,
+      zotero: { ...valid.zotero, resources: [{ ...valid.zotero.resources[0], root: root }] },
+    },
+  ]) {
+    await writeFile(filename, JSON.stringify(value));
+    expect((await loadHostSettings(root)).state).toBe('invalid');
+    await expect(checkUnchanged(snapshot)).rejects.toMatchObject({ code: 'unavailable' });
+  }
+  for (const bytes of ['{bad-json', ' '.repeat(16385)]) {
+    await writeFile(filename, bytes);
+    expect((await loadHostSettings(root)).state).toBe('invalid');
+    expect(await readFile(filename, 'utf8')).toBe(bytes);
+  }
+  await writeFile(filename, JSON.stringify({ ...valid, zotero: { enabled: false } }));
+  expect((await loadHostSettings(root)).state).toBe('disabled');
+  if (process.platform !== 'win32') {
+    await writeFile(filename, JSON.stringify(valid));
+    await chmod(filename, 0o644);
+    expect((await loadHostSettings(root)).state).toBe('invalid');
+    const linked = join(root, 'linked');
+    await mkdir(linked);
+    await symlink(filename, join(linked, 'host-settings.json'));
+    expect((await loadHostSettings(linked)).state).toBe('invalid');
+  }
+});
+
+test('ordinary cold start binds Zotero originals from private settings and reloads only after stop/start', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'scholoom-zotero-cold-'));
+  test.info().annotations.push({ type: 'isolated-fixture', description: root });
+  const app = new KernelApplication(root);
+  let prepared = true;
+  try {
+    await app.initialize();
+    await app.call('library.grant', { read: true, write: true, send: true, autoBackup: false });
+    const libraryId = (await app.call('library.status', {})).id;
+    const batch = await app.call('library.ingest', {
+      batchId: randomUUID(),
+      origin: 'synthetic',
+      version: 'published',
+      json: JSON.stringify([{ title: 'Saved CSL' }]),
+    });
+    await expect
+      .poll(async () => (await app.call('library.batch', { batchId: batch.id })).batch.state)
+      .toBe('completed');
+    const source = (await app.call('library.list', {})).sources[0];
+    assert(source);
+    const instance = await app.call('library.createSourceInstance', {
+      libraryId,
+      requestId: randomUUID(),
+      label: 'Synthetic cold-start source',
+    });
+    const original = {
+      identity: { instanceId: instance.id, libraryLocator: 'local', objectKey: 'COLD0001' },
+      schemaVersion: '44',
+      itemType: 'journalArticle',
+      fields: { title: 'Original before cold start', date: '2026', extra: 'Retained' },
+      creators: [{ creatorType: 'author', firstName: 'Ada', lastName: 'Chen' }],
+      relations: {},
+    };
+    await app.call('library.commitRecords', {
+      libraryId,
+      requestId: randomUUID(),
+      changes: [
+        {
+          sourceId: source.id,
+          revision: source.revision,
+          original,
+          key: { value: 'Cold2026', pinned: true, intent: 'explicit' },
+        },
+      ],
+    });
+    let before = await app.call('library.record', { libraryId, sourceId: source.id });
+    await app.close();
+    prepared = false;
+    const settings = hostSettings(await realpath(root), libraryId);
+    await writeFile(join(root, 'host-settings.json'), JSON.stringify(settings), { mode: 0o600 });
+    const accepted = new KernelApplication(root, {
+      zoteroRuntime: { kernelInstanceId: randomUUID(), settings: await loadHostSettings(root) },
+    });
+    await accepted.initialize();
+    let changed = false;
+    const detach = accepted.subscribe((change) => {
+      if (!changed && change.libraryChanged) {
+        changed = true;
+        writeFileSync(
+          join(root, 'host-settings.json'),
+          JSON.stringify({ ...settings, zotero: { enabled: false } }),
+        );
+      }
+    });
+    const ordinaryOriginal = {
+      ...original,
+      fields: { ...original.fields, title: 'Accepted original title' },
+    };
+    try {
+      const result = await accepted.call('zotero.replaceTitle', {
+        libraryId,
+        requestId: randomUUID(),
+        sourceId: source.id,
+        revision: before.revision,
+        identity: original.identity,
+        title: ordinaryOriginal.fields.title,
+      });
+      expect(result.state).toBe('committed');
+      expect(changed).toBe(true);
+      before = await accepted.call('library.record', { libraryId, sourceId: source.id });
+      expect(before.originals).toEqual([ordinaryOriginal]);
+      await expect(
+        accepted.call('zotero.inspect', {
+          libraryId,
+          sources: [{ sourceId: source.id, revision: before.revision }],
+        }),
+      ).rejects.toMatchObject({ code: 'unavailable' });
+    } finally {
+      detach();
+      await accepted.close();
+    }
+    // Only an offline replacement and new kernel may pick up the enabled binding again.
+    await writeFile(join(root, 'host-settings.json'), JSON.stringify(settings));
+    const requestId = randomUUID();
+    for (const boundary of ['enabled', 'disabled']) {
+      const running = await runKernel(root, 'start');
+      assert(running.state === 'running', JSON.stringify(running));
+      const client = createKernelClient(running.endpoint);
+      try {
+        await client.connect();
+        const input = { libraryId, sources: [{ sourceId: source.id, revision: before.revision }] };
+        if (boundary === 'enabled') {
+          const { stdout } = await execute(
+            process.execPath,
+            [cliPath, 'zotero.inspect', '--data-dir', root, '--input', JSON.stringify(input)],
+            { timeout: 20000 },
+          );
+          expect(JSON.parse(stdout).sources[0].original).toEqual(ordinaryOriginal);
+          const receipt = await client.call('zotero.replaceTitle', {
+            libraryId,
+            requestId,
+            sourceId: source.id,
+            revision: before.revision,
+            identity: original.identity,
+            title: 'Explicit cold-start title',
+          });
+          expect(receipt.state).toBe('committed');
+          const after = await client.call('library.record', { libraryId, sourceId: source.id });
+          expect(after).toMatchObject({
+            revision: before.revision + 1,
+            citationKey: before.citationKey,
+          });
+          expect(after.originals).toEqual([
+            { ...original, fields: { ...original.fields, title: 'Explicit cold-start title' } },
+          ]);
+          expect((await client.call('library.get', { sourceId: source.id })).metadata.title).toBe(
+            'Saved CSL',
+          );
+          await writeFile(
+            join(root, 'host-settings.json'),
+            JSON.stringify({ ...settings, zotero: { enabled: false } }),
+          );
+        }
+        await expect(client.call('zotero.inspect', input)).rejects.toMatchObject({
+          code: 'unavailable',
+        });
+        expect(await client.call('zotero.result', { libraryId, requestId })).toMatchObject({
+          state: 'committed',
+          requestId,
+        });
+      } finally {
+        client.dispose();
+        expect((await runKernel(root, 'stop')).state).toBe('stopped');
+      }
+    }
+  } finally {
+    if (prepared) await app.close();
+    expect((await runKernel(root, 'stop')).state).toBe('stopped');
+  }
+});
+
+test('a private native binding for another library refuses native actions while N1 still reads the current library', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'scholoom-zotero-wrong-library-'));
+  await writeFile(
+    join(root, 'host-settings.json'),
+    JSON.stringify(hostSettings(await realpath(root), randomUUID())),
+    { mode: 0o600 },
+  );
+  const app = new KernelApplication(root, {
+    zoteroRuntime: { kernelInstanceId: randomUUID(), settings: await loadHostSettings(root) },
+  });
+  try {
+    await app.initialize();
+    const libraryId = (await app.call('library.status', {})).id;
+    await expect(
+      app.call('zotero.inspect', {
+        libraryId,
+        sources: [{ sourceId: 'not-selected', revision: 0 }],
+      }),
+    ).rejects.toMatchObject({ code: 'instanceMismatch' });
+    expect(await app.call('zotero.result', { libraryId, requestId: 'original-operation' })).toEqual(
+      { requestId: 'original-operation', state: 'notFound' },
+    );
+  } finally {
+    await app.close();
+  }
+});
 
 test('ordinary CLI queries Zotero receipts without native configuration across restart', async () => {
   const root = await mkdtemp(join(tmpdir(), 'scholoom-cli-zotero-'));

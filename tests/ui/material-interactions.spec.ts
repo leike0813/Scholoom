@@ -1,6 +1,6 @@
 /// <reference lib="dom" />
 import assert from 'node:assert/strict';
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { basename, join } from 'node:path';
 import { createKernelClient } from '../../packages/client/dist/index.js';
@@ -318,7 +318,6 @@ test('project and library images share real region selection while revoked conte
     await expect(context).toContainText('2 个附加项');
   } finally {
     client.dispose();
-    await rm(root, { recursive: true, force: true });
   }
 });
 
@@ -330,37 +329,33 @@ test('Markdown selections keep semantic boundaries through the real shared compo
     join(root, 'dose.md'),
     'Dose 1\n\n2 mg\n\nLine 3  \n4 mg\n\n| Dose | Empty | Amount |\n| --- | --- | --- |\n| 10 | | 20 |\n',
   );
-  try {
-    await uiPage.goto(rendererUrl);
-    await expect(uiPage.getByRole('status', { name: '连接状态' })).toContainText('已连接');
-    await addProject(uiPage, root);
-    await createSession(uiPage, basename(root));
-    await uiPage.getByRole('treeitem', { name: '打开文件 dose.md', exact: true }).dblclick();
-    await uiPage.getByRole('button', { name: '预览', exact: true }).click();
-    const body = uiPage.locator('.markdown-preview-body');
-    await expect(body.locator('table')).toContainText('20');
-    await body.evaluate((element) => {
-      const range = document.createRange();
-      range.selectNodeContents(element);
-      window.getSelection()?.removeAllRanges();
-      window.getSelection()?.addRange(range);
-      element.dispatchEvent(new PointerEvent('pointerup', { bubbles: true }));
-    });
-    await uiPage.getByRole('button', { name: '附加选区', exact: true }).click();
-    const context = uiPage
-      .locator('.agent-dock')
-      .getByRole('region', { name: '附加上下文', exact: true });
-    await context.getByLabel('查看附加上下文', { exact: true }).click();
-    await context.locator('details.menu details summary').click();
-    const quote = await context.getByRole('blockquote').textContent();
-    expect(quote).toMatch(/Dose 1\s+2 mg/);
-    expect(quote).toMatch(/Line 3\s+4 mg/);
-    expect(quote).toMatch(/10\s+20/);
-    expect(quote).not.toMatch(/Dose 12|Line 34|1020/);
-    expect(quote?.split(/\n+/).map((row) => row.split('\t'))).toContainEqual(['10', '', '20']);
-  } finally {
-    await rm(root, { recursive: true, force: true });
-  }
+  await uiPage.goto(rendererUrl);
+  await expect(uiPage.getByRole('status', { name: '连接状态' })).toContainText('已连接');
+  await addProject(uiPage, root);
+  await createSession(uiPage, basename(root));
+  await uiPage.getByRole('treeitem', { name: '打开文件 dose.md', exact: true }).dblclick();
+  await uiPage.getByRole('button', { name: '预览', exact: true }).click();
+  const body = uiPage.locator('.markdown-preview-body');
+  await expect(body.locator('table')).toContainText('20');
+  await body.evaluate((element) => {
+    const range = document.createRange();
+    range.selectNodeContents(element);
+    window.getSelection()?.removeAllRanges();
+    window.getSelection()?.addRange(range);
+    element.dispatchEvent(new PointerEvent('pointerup', { bubbles: true }));
+  });
+  await uiPage.getByRole('button', { name: '附加选区', exact: true }).click();
+  const context = uiPage
+    .locator('.agent-dock')
+    .getByRole('region', { name: '附加上下文', exact: true });
+  await context.getByLabel('查看附加上下文', { exact: true }).click();
+  await context.locator('details.menu details summary').click();
+  const quote = await context.getByRole('blockquote').textContent();
+  expect(quote).toMatch(/Dose 1\s+2 mg/);
+  expect(quote).toMatch(/Line 3\s+4 mg/);
+  expect(quote).toMatch(/10\s+20/);
+  expect(quote).not.toMatch(/Dose 12|Line 34|1020/);
+  expect(quote?.split(/\n+/).map((row) => row.split('\t'))).toContainEqual(['10', '', '20']);
 });
 
 test('real visual and Markdown selections keep unsaved text and objects in the shared draft across reload', async ({
@@ -371,76 +366,69 @@ test('real visual and Markdown selections keep unsaved text and objects in the s
   const content =
     '# Selection\n\nHello visual.\n\n| Method | Value |\n| --- | --- |\n| A | 42 |\n\nEnergy $x^2$ done.\n';
   await writeFile(join(root, 'paper.qmd'), content);
-  try {
-    await uiPage.goto(rendererUrl);
-    await expect(uiPage.getByRole('status', { name: '连接状态' })).toContainText('已连接');
-    await addProject(uiPage, root);
-    await createSession(uiPage, basename(root));
-    await uiPage.getByRole('treeitem', { name: '打开文件 paper.qmd', exact: true }).dblclick();
-    await uiPage.getByRole('button', { name: '可视编辑', exact: true }).click();
-    const visual = uiPage.getByRole('region', { name: '可视编辑器', exact: true });
-    const prose = visual.locator('.ProseMirror[contenteditable="true"]').first();
-    await expect(prose).toContainText('Hello visual.', { timeout: 45000 });
-    await prose.locator('table').click();
-    await visual.getByRole('button', { name: '选择当前表格', exact: true }).click();
-    await uiPage.getByRole('button', { name: '附加对象', exact: true }).click();
-    const context = uiPage
-      .locator('.agent-dock')
-      .getByRole('region', { name: '附加上下文', exact: true });
-    await expect(context).toContainText('1 个附加项');
-    await prose.press('ControlOrMeta+End');
-    await prose.press('Enter');
-    await uiPage.keyboard.insertText('Unsubmitted selection.');
-    await prose.press('Home');
-    await prose.press('Shift+End');
-    await uiPage.getByRole('button', { name: '附加选区', exact: true }).click();
-    await expect(context).toContainText('2 个附加项');
-    await context.getByLabel('查看附加上下文', { exact: true }).click();
-    await expect(context.locator('details.menu details summary')).toContainText([
-      '表格',
-      '草稿摘录',
-    ]);
-    await context.getByLabel('查看附加上下文', { exact: true }).click();
-    await uiPage.getByRole('button', { name: '预览', exact: true }).click();
-    await expect(uiPage.getByRole('region', { name: 'Markdown 预览', exact: true })).toContainText(
-      'Unsubmitted selection.',
-    );
-    await uiPage.getByRole('button', { name: '选择表格', exact: true }).click();
-    await uiPage.getByRole('button', { name: '附加对象', exact: true }).click();
-    await expect(context).toContainText('3 个附加项');
-    const formula = uiPage.locator('.markdown-preview-body > p').filter({ hasText: 'Energy' });
-    await formula.evaluate((element) => {
-      const text = document
-        .createTreeWalker(element.querySelector('.katex-html') as Element, NodeFilter.SHOW_TEXT)
-        .nextNode() as Text;
-      const range = document.createRange();
-      range.setStart(element.firstChild as Node, 0);
-      range.setEnd(text, text.length);
-      window.getSelection()?.removeAllRanges();
-      window.getSelection()?.addRange(range);
-      element.dispatchEvent(new PointerEvent('pointerup', { bubbles: true }));
-    });
-    await expect(uiPage.getByRole('button', { name: '附加选区', exact: true })).toBeDisabled();
-    await expect(uiPage.getByRole('alert')).toContainText('完整公式');
-    await expect(context).toContainText('3 个附加项');
-    await formula.evaluate((element) => {
-      const range = document.createRange();
-      range.selectNodeContents(element);
-      window.getSelection()?.removeAllRanges();
-      window.getSelection()?.addRange(range);
-      element.dispatchEvent(new PointerEvent('pointerup', { bubbles: true }));
-    });
-    await uiPage.getByRole('button', { name: '附加选区', exact: true }).click();
-    await expect(context).toContainText('4 个附加项');
-    expect(await readFile(join(root, 'paper.qmd'), 'utf8')).toBe(content);
-    await uiPage.reload();
-    await expect(uiPage.getByRole('status', { name: '连接状态' })).toContainText('已连接');
-    await expect(context).toContainText('4 个附加项');
-    await uiPage.getByRole('treeitem', { name: '打开文件 paper.qmd', exact: true }).dblclick();
-    await expect(
-      uiPage.getByRole('textbox', { name: '文件内容 paper.qmd', exact: true }),
-    ).toContainText('Unsubmitted selection.');
-  } finally {
-    await rm(root, { recursive: true, force: true });
-  }
+  await uiPage.goto(rendererUrl);
+  await expect(uiPage.getByRole('status', { name: '连接状态' })).toContainText('已连接');
+  await addProject(uiPage, root);
+  await createSession(uiPage, basename(root));
+  await uiPage.getByRole('treeitem', { name: '打开文件 paper.qmd', exact: true }).dblclick();
+  await uiPage.getByRole('button', { name: '可视编辑', exact: true }).click();
+  const visual = uiPage.getByRole('region', { name: '可视编辑器', exact: true });
+  const prose = visual.locator('.ProseMirror[contenteditable="true"]').first();
+  await expect(prose).toContainText('Hello visual.', { timeout: 45000 });
+  await prose.locator('table').click();
+  await visual.getByRole('button', { name: '选择当前表格', exact: true }).click();
+  await uiPage.getByRole('button', { name: '附加对象', exact: true }).click();
+  const context = uiPage
+    .locator('.agent-dock')
+    .getByRole('region', { name: '附加上下文', exact: true });
+  await expect(context).toContainText('1 个附加项');
+  await prose.press('ControlOrMeta+End');
+  await prose.press('Enter');
+  await uiPage.keyboard.insertText('Unsubmitted selection.');
+  await prose.press('Home');
+  await prose.press('Shift+End');
+  await uiPage.getByRole('button', { name: '附加选区', exact: true }).click();
+  await expect(context).toContainText('2 个附加项');
+  await context.getByLabel('查看附加上下文', { exact: true }).click();
+  await expect(context.locator('details.menu details summary')).toContainText(['表格', '草稿摘录']);
+  await context.getByLabel('查看附加上下文', { exact: true }).click();
+  await uiPage.getByRole('button', { name: '预览', exact: true }).click();
+  await expect(uiPage.getByRole('region', { name: 'Markdown 预览', exact: true })).toContainText(
+    'Unsubmitted selection.',
+  );
+  await uiPage.getByRole('button', { name: '选择表格', exact: true }).click();
+  await uiPage.getByRole('button', { name: '附加对象', exact: true }).click();
+  await expect(context).toContainText('3 个附加项');
+  const formula = uiPage.locator('.markdown-preview-body > p').filter({ hasText: 'Energy' });
+  await formula.evaluate((element) => {
+    const text = document
+      .createTreeWalker(element.querySelector('.katex-html') as Element, NodeFilter.SHOW_TEXT)
+      .nextNode() as Text;
+    const range = document.createRange();
+    range.setStart(element.firstChild as Node, 0);
+    range.setEnd(text, text.length);
+    window.getSelection()?.removeAllRanges();
+    window.getSelection()?.addRange(range);
+    element.dispatchEvent(new PointerEvent('pointerup', { bubbles: true }));
+  });
+  await expect(uiPage.getByRole('button', { name: '附加选区', exact: true })).toBeDisabled();
+  await expect(uiPage.getByRole('alert')).toContainText('完整公式');
+  await expect(context).toContainText('3 个附加项');
+  await formula.evaluate((element) => {
+    const range = document.createRange();
+    range.selectNodeContents(element);
+    window.getSelection()?.removeAllRanges();
+    window.getSelection()?.addRange(range);
+    element.dispatchEvent(new PointerEvent('pointerup', { bubbles: true }));
+  });
+  await uiPage.getByRole('button', { name: '附加选区', exact: true }).click();
+  await expect(context).toContainText('4 个附加项');
+  expect(await readFile(join(root, 'paper.qmd'), 'utf8')).toBe(content);
+  await uiPage.reload();
+  await expect(uiPage.getByRole('status', { name: '连接状态' })).toContainText('已连接');
+  await expect(context).toContainText('4 个附加项');
+  await uiPage.getByRole('treeitem', { name: '打开文件 paper.qmd', exact: true }).dblclick();
+  await expect(
+    uiPage.getByRole('textbox', { name: '文件内容 paper.qmd', exact: true }),
+  ).toContainText('Unsubmitted selection.');
 });

@@ -61,7 +61,7 @@ flowchart TD
 ## 5. 明确等待的输入与CI前置
 
 - [x] 5.1 已消费主线正式设计及源码输入；历史路径和符号冲突记录于design。共同1026796已合入全部七域源码，当前executionResources／taskPort／delegationOptions／programs、根工具、三域restore及task／programs标签均在本树；不再等待同步或使用旧累计补丁。真实联合操作另由8.4验收，不把代码合入当作实际整合完成。
-- [ ] 5.2 沿固定run／head和实际stage收敛平台缺口。当前已消费f976b67／专项40723824443的真实isolated3/4（首启失败、重启未到）与ACL四样本通过；12次PS各约12秒，而同run完整环境CLI快，支持去除共同cmdlet依赖的最小候选，未证明唯一根因。主线已将privateDirectory两处New-Object换为同类型.NET直接构造，SID／owner／DACL／继承／错误及期限保持，原Windows权限例增加Utility干扰并保持真实DACL读回；本机Linux四对照4/4、类型／独审通过，等待新Windows真实首启／重启及权限结果。历史1c84937完整组700通过／63失败／44跳过与旧TeX／分发分别保留，libuv和实际布尔已反证缺SystemRoot／PATH推断，不放宽停止／容量、锁或重试。
+- [ ] 5.2 沿固定run／head和实际stage收敛平台缺口。606ae82／专项40729861762已验真实isolated4/4（首次启动及实际替换／重启）和真实ACL5/5（含Utility干扰）；setter八次PS166–194ms，原SID／owner／受保护DACL／继承／错误及生产期限不变，独审无发现。同次Agent1/3，两例在initialize响应前耗尽原窗口，原失败及同次时间线保留，不归取消／附件缺陷。完整Checks40729861720查询时Linux／Windows仍运行、macOS成功，相关平台回执未收齐前不关闭。旧f976b67／1c84937及TeX／分发结果独立保留，不放宽停止／容量、锁或重试。
 
 5.1的输入核对不意味着新增报告适配属于本change；只有共同符号冲突或相关必要回归才阻塞对应整合，其他任务不串行等待。
 

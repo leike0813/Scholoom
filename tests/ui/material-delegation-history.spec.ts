@@ -32,11 +32,24 @@ test('real parent and delegated edits reach material history and whole undo prot
   };
   const childText = '# Report\n\nObserved 42 from the original material.\n';
   const parentText = '# Report\n\nParent checked observation 42 from the delegated report.\n';
+  let inspect:
+    | { projectId: string; fileId: string; editId: string; afterEditId: string }
+    | undefined;
   // Only model responses are scripted; both workers, saves, origins and the history UI are real.
   const model = await createModelServer({
     respond: ({ user, calls }) => {
       const body = model.requests.at(-1);
       assert(body);
+      if (inspect) {
+        const { projectId, fileId, editId, afterEditId } = inspect;
+        if (!calls.includes('get_file_changes'))
+          return { tool: { name: 'get_file_changes', input: { projectId, fileId, afterEditId } } };
+        if (!calls.includes('read_file_edit'))
+          return { tool: { name: 'read_file_edit', input: { projectId, fileId, editId } } };
+        if (calls.at(-1) !== 'read_file')
+          return { tool: { name: 'read_file', input: { file_path: '/report.md' } } };
+        return { text: 'Checked the actual undo and current delegated report.' };
+      }
       if (user.includes('PARENT_DELEGATION')) {
         if (!calls.includes('delegate_agent'))
           return { tool: { name: 'delegate_agent', input: work } };
@@ -289,6 +302,38 @@ test('real parent and delegated edits reach material history and whole undo prot
     expect(model.requests).toHaveLength(requestsBeforeUndo);
     expect((await client.call('workbench.snapshot', scope)).run?.id).toBe(runBeforeUndo);
     await expect(composer).toHaveValue(draft);
+    inspect = { ...historyInput, editId: undo.editId, afterEditId: parentChange.editId };
+    await composer.fill('Inspect the human correction and whole undo without changing the report.');
+    await uiPage.getByRole('button', { name: '发送指令', exact: true }).click();
+    await expect
+      .poll(
+        async () => {
+          const current = await client.call('workbench.snapshot', scope);
+          return current.run?.id !== runBeforeUndo && current.run?.state === 'completed';
+        },
+        { timeout: 25000 },
+      )
+      .toBe(true);
+    const messages = (await client.call('workbench.snapshot', scope)).messages;
+    const queried = messages.findLast((message) => message.tool?.name === 'get_file_changes');
+    const readUndo = messages.findLast((message) => message.tool?.name === 'read_file_edit');
+    const readReport = messages.findLast((message) => message.tool?.name === 'read_file');
+    for (const message of [queried, readUndo, readReport]) expect(message?.state).toBe('complete');
+    expect(JSON.parse(queried?.tool?.output ?? '{}').changes).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ editId: undo.editId, revertsEditId: human.editId }),
+      ]),
+    );
+    expect(JSON.parse(readUndo?.tool?.output ?? '{}')).toMatchObject({
+      id: undo.editId,
+      revertsEditId: human.editId,
+      before: overlap,
+      after: parentText,
+      origin: { kind: 'human' },
+    });
+    expect(readReport?.tool?.output).toContain('Parent checked observation 42');
+    expect(await readFile(join(root, 'report.md'))).toEqual(originalBytes);
+    expect((await client.call('files.changes', historyInput)).changes[0]?.editId).toBe(undo.editId);
     await info.attach('material-delegation-history', {
       body: JSON.stringify({
         scope,
@@ -299,6 +344,7 @@ test('real parent and delegated edits reach material history and whole undo prot
         human,
         undo,
         detail,
+        followUp: { queried, readUndo, readReport },
       }),
       contentType: 'application/json',
     });

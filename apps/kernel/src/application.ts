@@ -42,7 +42,7 @@ import type {
 import { ResearchRecords, ResearchRuntime } from '@scholoom/research/node';
 import { executionGraphs } from './execution-graphs.js';
 import { type FileExecutionFacts, type FoundationMethod, ManualApplication } from './manual.js';
-import type { IsolatedZotero } from './zotero.js';
+import type { IsolatedZotero, ZoteroRuntime } from './zotero.js';
 
 type RuntimeMethod = Exclude<
   keyof BusinessInputs,
@@ -75,9 +75,10 @@ export class KernelApplication extends ManualApplication {
       taskResearch?: TaskResearchPort;
       delegationRoles?: readonly DelegationRole[];
       isolatedZotero?: IsolatedZotero;
+      zoteroRuntime?: ZoteroRuntime;
     } = {},
   ) {
-    super(directory, options.taskResearch, options.isolatedZotero);
+    super(directory, options.taskResearch, options.isolatedZotero, options.zoteroRuntime);
     this.originFacts = options.fileExecutionFacts;
     process.env.LANGSMITH_TRACING = 'false';
     process.env.LANGCHAIN_TRACING_V2 = 'false';

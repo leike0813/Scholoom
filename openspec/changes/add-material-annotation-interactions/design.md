@@ -2,7 +2,7 @@
 
 ## 变更总览
 
-共同基线4b13183已包含七域源码和本线M3／图片／报告模块，旧公共接入及同步门已失效。M1仍缺文献提交提供者；M2已具备真实FileEdit来源（含可信委派）、Evidence、稳定fileId摘要查询／选定正文及整次undo，本轮补父子联合证据。未核实的单次指令／工具及科研修改理由继续未知，不将整个change宣称已交付。
+本轮共同基线cb5f7ed已包含M3／图片、真实FileEdit来源及委派提供者，旧公共同步门已失效。主线本次明确采纳4.4只读分支：M1库正文继续只读，附件正文写回和sidecar转正文排除本批；阅读记录仍由原库保存。M2复用Evidence、有界稳定fileId查询及整次undo，验证真实父子联合和撤销后的实际工具读回。未核实的单次指令／工具及科研修改理由继续未知。
 
 ```mermaid
 flowchart LR
@@ -21,11 +21,19 @@ flowchart LR
   RV --> S
   P --> H
   L --> H
-  M1[文献材料修订及提交 待输入] -.-> L
+  M1[本批库正文只读 阅读记录独立] --> L
   M2[projects files.changes/edit/undo 真实来源与依据] --> H
 ```
 
 ## 方案与接口
+
+### 本批M1范围与当前验收
+
+主线在当前dispatch的“M1边界决定及真实验收要求”明确选择本批只读。正式workbench-resources规定无正文保存能力时只读，ResourceAccess对library描述固定write=false、readingRecords=true，save拒绝非project来源；library.commitRecords是题录字段提交，不是正文修订。保留原ref/materialVersionId/basis、库记录修订与read/write/send授权，不创建第二正文或自动复制项目替代。未来正文修订仍需文献／生态提供实际提交、旧版本保留、冲突／撤权及unknown查询契约，不能用私有摄取函数或阅读记录代替。
+
+复用既有resource-access及真实PDF／EPUB／HTML阅读场景，核对库write授权不扩大正文能力、修订请求明确被拒、原材料和当前工作域文件不变、记录保存及关闭重开／失效／撤权。真实material-delegation-history在既有父子worker、父读改、人工重叠拒绝与整次undo之后补原会话get_file_changes/read_file_edit/read_file读回，不改FileEdit权威或精确token范围。仅补关键缺失断言，不新增生产接口或重复测试框架。
+
+HTML图片分页的真实反例表明，用户点选的末图会排在同组其他图片之后等待串行读取。DocumentReader保留单个在途读取、每页最多8图和单资源1MiB上限，只在内部队列将明确点选的图片放到尚未开始的读取之前；不打断在途请求，不取消其他视图，不绕过原可见性／授权／版本核对。视图内目标随章节／版本切换清除，不新增跨端字段。原HTML双宿主场景保护这一用户可观察行为，不断言私有排队顺序或增加期限。
 
 ### 复用与模块深度
 
@@ -168,7 +176,7 @@ origin由宿主绑定：human／system仅显示真实principal与module，execut
 
 验证先shared／desktop build，再真实Manual／Kernel既有file-edit-origins相关场景及双宿主从人工保存、阅读批注／普通执行修改、历史选择、人工重叠、旧撤销拒绝、正确整次撤销到负责session查询的固定路径。只替换外部模型，broker／SQLite／worker／文件真实；注册项目位于结果目录且保留到隔离配置退役。静态承载使用`/tmp/scholoom-sync-recovery-wyn13R/static-ui.mjs`，不启开发服务。覆盖分页／迟到响应／旧记录的组件夹具只证明消费边界，不冒充生产权限。
 
-M1、报告生产／隔离和委派细分联合均保持后续边界；TeX退出诊断交计算线，不重跑无目标实验。
+M1正文写回与报告生产／隔离保持后续边界；真实委派粗粒度联合按本轮验收，精确指令／工具因果不扩展。TeX退出诊断交计算线，不重跑无目标实验。
 
 #### 第二阶段历史需求（不再作为同步门）
 

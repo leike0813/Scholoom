@@ -87,6 +87,35 @@ for (const format of ['epub', 'html'] as const) {
         attachmentId: material.id,
         materialVersionId: material.materialVersionId,
       };
+      const locator = { source: 'library' as const, ...reference };
+      const descriptor = await client.call('resources.describe', { locator });
+      expect(descriptor.capabilities).toMatchObject({ write: false, readingRecords: true });
+      const workspace = await client.call('project.create', {
+        path: info.outputPath('readonly-workspace'),
+        trust: 'restricted',
+      });
+      const workFiles = { projectId: workspace.id, path: '' };
+      const beforeFiles = (await client.call('files.list', workFiles)).entries;
+      const beforeProjects = (await client.call('workbench.snapshot', {})).projects.map(
+        (project) => project.id,
+      );
+      await expect(
+        client.call('resources.save', {
+          ref: descriptor.ref,
+          basis: descriptor.basis,
+          content: 'This requested library body revision must remain blocked.',
+        }),
+      ).rejects.toMatchObject({ code: 'permissionDenied' });
+      expect((await client.call('files.list', workFiles)).entries).toEqual(beforeFiles);
+      expect(
+        (await client.call('workbench.snapshot', {})).projects.map((project) => project.id),
+      ).toEqual(beforeProjects);
+      expect(await client.call('resources.describe', { locator })).toMatchObject({
+        ref: descriptor.ref,
+        basis: descriptor.basis,
+        capabilities: { write: false, readingRecords: true },
+      });
+      expect(await readFile(path)).toEqual(bytes);
       await uiPage.goto(rendererUrl);
       await expect(uiPage.getByRole('status', { name: '连接状态' })).toContainText('已连接');
       await createSession(uiPage);

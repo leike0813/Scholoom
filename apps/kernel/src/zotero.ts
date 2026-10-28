@@ -22,7 +22,9 @@ import {
   zoteroOperations,
 } from '@scholoom/protocol/zotero';
 import type { ManagedCommands } from './commands.js';
-import { HostConnection } from './host-connection.js';
+import { HostConnection, type HostRecovery, recoverHostSupervision } from './host-connection.js';
+import { checkUnchanged, type HostSettingsRead } from './host-settings.js';
+import { resolveZoteroResource } from './zotero-resources.js';
 
 export type IsolatedZotero = {
   libraryId: string;
@@ -30,6 +32,7 @@ export type IsolatedZotero = {
   args: readonly string[];
   packageDirectory: string;
 };
+export type ZoteroRuntime = { kernelInstanceId: string; settings: HostSettingsRead };
 type Methods =
   | 'library.get'
   | 'library.status'
@@ -49,18 +52,54 @@ export class ZoteroOperations {
   private host: HostConnection | undefined;
   private running = false;
   private closing = false;
+  private recovery: Promise<HostRecovery> | undefined;
+  private recovered: HostRecovery | undefined;
+  private binding: Extract<HostSettingsRead, { state: 'loaded' }> | undefined;
+  private bindingError: OperationError | undefined;
   constructor(
     private readonly directory: string,
     private readonly commands: ManagedCommands,
     private readonly admission: ProcessAdmission,
     private readonly port: (context: CallContext) => Port,
     private readonly configuration?: IsolatedZotero,
+    private readonly runtime?: ZoteroRuntime,
   ) {}
+  recover(): Promise<HostRecovery> {
+    this.recovery ??= recoverHostSupervision({
+      directory: this.directory,
+      admission: this.admission,
+    }).then((result) => {
+      this.recovered = result;
+      return result;
+    });
+    return this.recovery;
+  }
+  bind(settings: HostSettingsRead | undefined, actualLibraryId: string): void {
+    if (settings?.state === 'invalid') {
+      this.bindingError = new OperationError('unavailable', settings.error.message);
+    } else if (settings?.state === 'loaded') {
+      if (this.configuration)
+        throw new OperationError('invalidRequest', '不能同时供应两套原生宿主绑定。');
+      if (settings.settings.zotero.libraryId !== actualLibraryId)
+        this.bindingError = new OperationError(
+          'instanceMismatch',
+          '宿主设置与当前共同库身份不符。',
+        );
+      else this.binding = settings;
+    }
+  }
   workspace(id: string) {
     return this.host?.instanceId === id ? this.host.workspace() : undefined;
   }
   private async check(port: Port, libraryId: string, write: boolean, send: boolean) {
-    if (!this.configuration || this.configuration.libraryId !== libraryId)
+    if (this.recovered?.state === 'blocked')
+      throw new OperationError('outcomeUnknown', '旧宿主仍需核查；共同回执请按原ID查询。');
+    if (this.bindingError) throw this.bindingError;
+    if (this.binding) {
+      if (this.binding.settings.zotero.libraryId !== libraryId)
+        throw new OperationError('instanceMismatch', '宿主绑定与请求共同库不符。');
+      await checkUnchanged(this.binding);
+    } else if (!this.configuration || this.configuration.libraryId !== libraryId)
       throw new OperationError('unavailable', '仅开放宿主配置中明确指定的隔离期刊库。');
     await this.checkLibrary(port, libraryId, write, send);
   }
@@ -129,7 +168,7 @@ export class ZoteroOperations {
     const port = this.port(context);
     await this.check(port, request.libraryId, false, context.principal.kind === 'agent');
     const { sources } = await this.read(port, request);
-    await this.check(port, request.libraryId, false, context.principal.kind === 'agent');
+    await this.checkLibrary(port, request.libraryId, false, context.principal.kind === 'agent');
     return { sources };
   }
   async replaceTitle(
@@ -148,8 +187,10 @@ export class ZoteroOperations {
         libraryId: request.libraryId,
         requestId: request.requestId,
       });
-      if (previous.state !== 'notFound')
+      if (previous.state !== 'notFound') {
+        await this.checkLibrary(port, request.libraryId, false, send);
         return { requestId: request.requestId, state: 'queried', receipt: previous };
+      }
       const { sources } = await this.read(port, {
         libraryId: request.libraryId,
         sources: [{ sourceId: request.sourceId, revision: request.revision }],
@@ -157,7 +198,7 @@ export class ZoteroOperations {
       const selected = sources[0];
       if (!selected || !isDeepStrictEqual(selected.original.identity, request.identity))
         throw new OperationError('contentChanged', '所选原值身份已变化。');
-      await this.check(port, request.libraryId, true, send);
+      await this.checkLibrary(port, request.libraryId, true, send);
       const commit: LibraryInputs['library.commitRecords'] = {
         libraryId: request.libraryId,
         requestId: request.requestId,
@@ -182,7 +223,7 @@ export class ZoteroOperations {
           '原值题名更正结果未确认；请按原requestId查询，不重放。',
         );
       }
-      await this.check(port, request.libraryId, false, send);
+      await this.checkLibrary(port, request.libraryId, false, send);
       return { requestId: request.requestId, state: receipt.state, receipt };
     } finally {
       this.running = false;
@@ -219,8 +260,10 @@ export class ZoteroOperations {
         libraryId: input.libraryId,
         requestId: operationId,
       });
-      if (previous.state !== 'notFound')
+      if (previous.state !== 'notFound') {
+        await this.checkLibrary(port, input.libraryId, false, send);
         return { operationId, state: 'queried', receipt: previous, notification: 'notRun' };
+      }
     }
     let snapshot: ZoteroSnapshot = [];
     if (!fill) {
@@ -234,7 +277,7 @@ export class ZoteroOperations {
           throw new OperationError('contentChanged', '所选导出表达的原值身份已变化。');
       }
       if (request.sources.some((source) => !source.expression)) {
-        await this.check(port, request.libraryId, false, true);
+        await this.checkLibrary(port, request.libraryId, false, true);
         return { state: 'selectionRequired', sources: readback.sources };
       }
       if (readback.records.some((record) => !record.citationKey))
@@ -251,11 +294,20 @@ export class ZoteroOperations {
         journalOriginal(record);
         snapshot.push(record);
       }
-    const configuration = this.configuration;
+    const registration = this.binding?.settings.zotero.resources[0];
+    if (this.binding && !registration)
+      throw new OperationError('unavailable', '缺少宿主资源登记。');
+    const resource =
+      this.binding && registration
+        ? await resolveZoteroResource(registration, this.binding.settings.kernelDirectory)
+        : undefined;
+    const configuration = resource ?? this.configuration;
     if (!configuration) throw new OperationError('unavailable', '未配置隔离宿主。');
     await mkdir(this.directory, { recursive: true, mode: 0o700 });
     const profile = join(this.directory, randomUUID());
     await mkdir(profile, { mode: 0o700 });
+    const temporary = join(profile, 'tmp');
+    await mkdir(temporary, { mode: 0o700 });
     const filename = join(profile, 'operation.json');
     const serialized = JSON.stringify({
       profile,
@@ -269,12 +321,19 @@ export class ZoteroOperations {
     if (this.closing) throw new OperationError('shuttingDown', '隔离宿主正在关闭。');
     const host = new HostConnection({
       directory: this.directory,
-      kernelInstanceId: randomUUID(),
+      kernelInstanceId: this.runtime?.kernelInstanceId ?? randomUUID(),
       scope: 'isolated-library-journals',
       commands: this.commands,
       admission: this.admission,
       executable: configuration.executable,
       args: [...configuration.args, filename],
+      ...(resource
+        ? { launchEnvironment: { ...resource.displayEnvironment, TMPDIR: temporary } }
+        : {}),
+      beforeLaunch: async () => {
+        await this.check(port, input.libraryId, fill, send);
+        await resource?.beforeLaunch();
+      },
       operations: { [method]: zoteroOperations[method] },
       callbacks: {
         contracts: {
@@ -331,7 +390,12 @@ export class ZoteroOperations {
         },
         call: async (method, params, caller) => {
           const current = this.port(caller);
-          await this.check(current, input.libraryId, method === 'library.commitRecords', send);
+          await this.checkLibrary(
+            current,
+            input.libraryId,
+            method === 'library.commitRecords',
+            send,
+          );
           if (method === 'zotero.readCommitted') {
             const receipt = await current.call('library.commitResult', {
               libraryId: input.libraryId,
@@ -380,15 +444,22 @@ export class ZoteroOperations {
       problem = error;
     }
     const closed = await host.close();
-    if (closed.state !== 'closed')
+    if (closed.state !== 'closed') {
+      // Keep same-attempt startup/stop evidence in the private kernel log; CLI transport may sanitize errors.
+      try {
+        console.error(JSON.stringify({ phase: 'zotero-host-stop-unconfirmed', ...closed }));
+      } catch {
+        // Diagnostic output cannot change the unknown verdict or release ownership.
+      }
       throw new OperationError(
         'outcomeUnknown',
         `宿主收尾未确认；核查原操作及监督记录。${String(problem ?? '')} ${closed.reason ?? ''} ${closed.diagnostics}`.slice(
           -512,
         ),
       );
+    }
     if (!result) throw problem;
-    await this.check(port, input.libraryId, false, send);
+    await this.checkLibrary(port, input.libraryId, false, send);
     if (!fill) {
       for (const before of snapshot) {
         const after = await port.call('library.record', {
@@ -398,6 +469,7 @@ export class ZoteroOperations {
         if (!isDeepStrictEqual(before, after))
           throw new OperationError('contentChanged', '导出期间题录版本或正式键变化。');
       }
+      await this.checkLibrary(port, input.libraryId, false, send);
       return {
         ...result,
         sources: snapshot.map((record) => ({

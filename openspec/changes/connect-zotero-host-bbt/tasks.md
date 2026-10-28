@@ -1,6 +1,10 @@
 # 执行任务
 
-## 当前轮：N2精确实施规划
+## 当前轮：N2实施（cb5f7ed）
+
+2026-10-29，完成现有change的新指令已取代下面R16的阶段停止。N2.1–3已实现并验证；N2.4的装配代码已接入，但普通Linux原包被实际Chromium sandbox前置阻断，N2.4／5仍未完成。当前证据与2.1–5.2差距见delivery最新节，不据局部绿例勾完整E4／I6。
+
+### R16规划接收依据（历史）
 
 起点`7aff2c763504f0ddf3b2304eb6ea18b7ef0e389c`、clean；N1和两个消费者已由主线接收，不重放旧候选补丁。此次只写原investigation／design／tasks／已有delivery，D14-2／3已定A，不写生产settings／loader或新增delta。本轮规划工件不是N2实施授权，完整E4／I6仍开放。
 
@@ -8,15 +12,17 @@
 - [x] R16.2 在原design细化唯一host-settings.json叶schema／固定单资源布局、冷启动读取及失效、初始化前恢复屏障与公共hook签名／消费者；不新增第二配置权威、任意程序入口或默认库授权。
 - [x] R16.3 完成原四工件核对／OpenSpec strict及diff，实际调查后取delivery instructions更新同一记录，导出独立规划补丁及Git／cache接续入口后停止；不把规划写成N2执行或关闭2.3／3.1／E4／I6。
 
-### 后续N2有界任务：本轮未执行
+### N2有界实施任务
 
-以下为原2.3／3.1剩余接线的局部拆分，完成标准以design N2节为准；取得下一片授权及公共接口审查后执行，不能把本轮规划勾成实现。
+以下为原2.3／3.1剩余接线的局部拆分，完成标准以design N2节及当前派发授权为准；执行证据沿同一delivery，目标OS缺证不勾完成。
 
-- [ ] N2.1 主线审查恢复函数、两处初始化调用、真实父kernel实例、窄环境／beforeLaunch及路径绑定语义；据批准范围补本change delta的持久绑定／恢复场景，确认生态与计算／Agent各自共享符号。完成依据：签名／错误／启动顺序与规格一致，不实施通用settings或分发范围。
-- [ ] N2.2 最小独立公共切片：从HostConnection抽recoverHostSupervision，ZoteroOperations.recover接Manual.initialize首步，在任何programs／harness恢复准入前完成真实同一ProcessAdmission记账。复用fixed-host扩实际旧unknown、满槽／释放无关槽／幂等恢复、disabled／invalid配置仍恢复、scope已停不占槽及坏记录保留代表例；先红后修，按影响build后测试。不需要settings／BBT／显示，不改计算线programs回调，不新增解除unknown／全局停用机制。
-- [ ] N2.3 私有叶设置与固定资源登记：按design schema实现host-settings.ts及zotero-resources.ts有界读／校验；serve持锁读取一次，library初始化后host-only绑定当前ID。复用cli-runtime／isolated-kernel代表验证缺失、无效、安全文件、错库／错目录、未知资源及stop/start一致，其他领域／N1可用且不自动grant；离线可信准备，无网络写端口、任意执行参数或新配置台账。
+- [x] N2.1 主线审查恢复函数、两处初始化调用、真实父kernel实例、窄环境／beforeLaunch及路径绑定语义；据批准范围补本change delta的持久绑定／恢复场景，确认生态与计算／Agent各自共享符号。完成依据：签名／错误／启动顺序与规格一致，不实施通用settings或分发范围。
+- [x] N2.2 最小独立公共切片：从HostConnection抽recoverHostSupervision，ZoteroOperations.recover接Manual.initialize首步，在任何programs／harness恢复准入前完成真实同一ProcessAdmission记账。复用fixed-host扩实际旧unknown、满槽／释放无关槽／幂等恢复、disabled／invalid配置仍恢复、scope已停不占槽及坏记录保留代表例；先红后修，按影响build后测试。不需要settings／BBT／显示，不改计算线programs回调，不新增解除unknown／全局停用机制。
+- [x] N2.3 私有叶设置与固定资源登记：按design schema实现host-settings.ts及zotero-resources.ts有界读／校验；serve持锁读取一次，library初始化后host-only绑定当前ID。复用cli-runtime／isolated-kernel代表验证缺失、无效、安全文件、错库／错目录、未知资源及stop/start一致，其他领域／N1可用且不自动grant；离线可信准备，无网络写端口、任意执行参数或新配置台账。
 - [ ] N2.4 消费已接入N2.2／3，供应真实status.instanceId，透传仅宿主可供应的DISPLAY／XAUTHORITY／操作TMPDIR及稳定beforeLaunch，按固定Linux离线配方接实际受管Electron／原BBT。先证同次ready及完整停止，不增加未记槽probe／普通spawn／sandbox逃逸；显示／sandbox或平台能力不满足时保留原失败交主线，依赖分支不假成功。
 - [ ] N2.5 普通入口整合：合成profile离线设置→关闭准备实例→普通CLI及desktop bootstrap冷启动→显式原包共同操作→stop/start不注入配置后核持久键／原值／回执及两格式，核未知原ID不重放、持续撤权及资源／设置变更。内部均真实，Agent仅外部HTTP可控；安排独立审查、按实际结果更新开发入口及原delivery。Linux新配方和普通持久装配未通过前不勾本项；Windows／分发／真实库及整体E4／I6不随之关闭。
+
+N2.3复用cli-runtime完成普通start／stop／start、真实原值题名提交、CSL／键不变、错库／设置失效及N1回执；资源单元样本仅校验布局／权限，不冒充原包。N2.4原始配方报SUID helper不可用；主线批准的唯一新配置对照仅在测试禁用SUID fallback，仍报No usable sandbox且没有renderer证据，未改生产配方。旧unknown/profile均保留；无原生槽虚占或重放。P2已受理回调误核设置的问题已通过真实共同提交红／绿及独立复核修复。
 
 ```mermaid
 flowchart LR
@@ -42,7 +48,7 @@ flowchart LR
 
 58eda140本树完成N1实现及三个代表回归；第十五轮主线已迁移isolated-kernel／zotero-original四处断言并实际通过内核15/15及原值双宿主2/2，见delivery主线回执。原候选已接入，不再应用历史cache补丁，也不再等待相同消费者输入；整合UI其他场景5/6仍部分失败。
 
-N2沿原2.3／3.1承接，主线已选共同kernel宿主设置及可信离线固定资源；具体schema、加载／恢复接点和目标资源仍待后续细化。N1不依赖N2实现；不因library provider已有或方向已定而假称普通原包装配就绪。
+N2沿原2.3／3.1承接，schema／加载／恢复接点已有当前实现，目标原包仍受真实sandbox前置阻断。N1不依赖原包ready；不因library provider已有或独立绑定通过而假称普通原包装配就绪。
 
 ## 已接收：原包测试显示前置适配
 
@@ -142,9 +148,9 @@ flowchart LR
 
 来源实例／原值／正式键及现有对象原子提交提供者已从1026796本树真实消费，普通期刊成果见R5；以下原任务保留更广的映射、材料和完整整合条件，不再等待相同公共源码或设计。
 
-- [ ] 2.1 【普通期刊E1/E2真实提供者已消费；复杂映射及E5写回仍开放】接收文献线来源命名空间、原类型／字段与Extra保留、正式键／固定状态和冲突schema及真实端口，核对复制库、重复接入、删除重入与恢复区分。本轮已分别读取主线快照中的材料与报告design及实际位置schema，sidecar／PDF新版本与报告边界见investigation第二阶段交接；不再等待重复设计输入，不合并两个change。完成依据：受影响的共同接口由提供者确认，生态不另存正式键、项目继续用共同指针；E5后续材料写回仍待提供者，不阻塞不读材料的BBT样本。
+- [ ] 2.1 【普通期刊E1/E2真实提供者已消费；复杂映射及E5写回仍开放】接收文献线来源命名空间、原类型／字段与Extra保留、正式键／固定状态和冲突schema及真实端口，核对复制库、重复接入、删除重入与恢复区分。材料与报告design及实际位置schema已有，sidecar／PDF新版本与报告边界见investigation第二阶段交接；当前本树还有protocol/library的reading契约及MaterialReading实际实现，不能泛称未收到提供者。完成依据：受影响共同接口与生态映射联合核查，生态不另存正式键、项目继续用共同指针；本change尚无Zotero Reader／PDF写回适配和E5联合验收，不阻塞不读材料的BBT样本，也不据设计或端口存在勾全项。
 - [ ] 2.2 【普通期刊一次共同原子提交及稳定查询已实跑；更广事务仍开放】消费文献所属schema／provider，核对`save/saveTx/executeTransaction`的原子范围、revision、授权、稳定结果及通知。原包逐条fill／原子fillMissing反例已交，不再待选逐条缩减方案。完成依据：实际同源提供者及失败／未知提交实跑，不编共同事务假Adapter或假回执。
-- [ ] 2.3 【Linux隔离共同装配已实跑；生产装配及跨平台仍开放】P0已同步，R3.1–R3.4提供独立认证／stdin／实例／双向RPC／ready／正常shutdown／恢复及原包吞错修复。当前只有明确样本装配，共同文献及产品角色的实际接线继续随2.1／2.2和3组推进；Windows另验，macOS不可用。公共增量独立交回供主线接入，不用普通spawn或PID消失替代原生保证，不把局部closed当整体确认。
+- [ ] 2.3 【已验注入装配；普通绑定已验，原包普通配方受阻】R3.1–R3.4提供独立认证／stdin／实例／双向RPC／ready／正常shutdown／恢复及原包吞错修复；Windows公共HostConnection24项已由主线接收，不再称全部未验。当前N2.1–3补普通设置／初始化恢复，但真实普通原包被同次sandbox错误阻断；Windows原包／正式装配仍未验，macOS受管执行不可用。不用普通spawn或PID消失替代原生保证，不把scopeStopped当pluginClosed。
 - [x] 2.4 【E6保持生产阻塞】核对并在能力状态中准确表达题录／附件删除、操作者及恢复／重新入库提供者的实际可用性。完成依据：缺少保护时真实用户库仍不可启用，不把备份副本恢复替代对象恢复，不以未发现引用宣称可安全撤回。此任务验收的是限制确实生效，无需本change实现删除恢复；待E6实际能力齐备后，生产启用由后续变更承接。1组及隔离I6可继续，本change不实施迁入。
 
 ## 3. 共同权威接线与保存一致性
@@ -166,4 +172,4 @@ flowchart LR
 
 ## 续做入口
 
-先读delivery最新N2规划节及design／investigation，当前起点7aff2c7。N1及两个消费者已接收，不重放历史patch、不重跑旧绿色组。D14-2／3方向已定，N2精确schema／资源布局及hook按本轮design交主线审查；下一片建议先N2.1／2的独立恢复屏障，不写设置框架或扩大平台访问。运行输入只取Git／cache，本轮根`/home/joshua/.cache/scholoom-zotero-n2-97Zf3t/`；现有/tmp非接续前置。本轮到规划交回停止，不因CLI ready执行上述后续任务。完整E4／I6、E5/E6、其他字段／多来源、自动同步、生产装配及真实用户库仍开放。
+先读delivery最新cb5f7ed实施节及design／investigation。N2.1–3已实现，N2.4／5目标sandbox受阻；不重放旧unknown操作或再试未经批准的flag／权限。当前cache为`/home/joshua/.cache/scholoom-finish-active/zotero-ecosystem/`，含原失败、真实回读、一次对照及可审增量，现有/tmp非前置。主线决定目标／生产配方后才能继续原包及双宿主整合，不把旧注入fixture或本轮39/50进度当完整change通过。完整E4／I6、E5/E6、其他字段／多来源、自动同步、生产装配及真实用户库仍开放。

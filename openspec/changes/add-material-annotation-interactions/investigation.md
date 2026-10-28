@@ -109,3 +109,28 @@ M1只关闭“未收到生态阅读写回调查”，仍等待文献实际材料
 达到最多一轮边界，不再循环跑。下一窄入口为platform `process-controller.ts`的native scope状态管道及stop catch、`processes.ts`的controller exit：先审查最小公共诊断增量，在既有failure reason/detail和outcomeUnknown诊断文本保留controller exit code/signal、instanceId／ready pid、是否收到stopped，以及native stop失败detail／最后P/R/E和scope exit状态；不要扩ErrorInfo DTO或另建日志框架。沿现有command／process测试验证正常stopped、scope非0／signal、controller提前退出时unknown及reservation仍未释放。该平台增量仅为待主线审核方案，本树未实施、不改变停止／容量保证。
 
 第五轮共同基线1026796已实际同步并包含M2提供者和本线M3／图片／报告独立模块。M2的真实粗粒度来源、Evidence、fileId有界摘要及整次undo已在本轮消费，见design当前M2节及delivery第五轮；前文“等待M2／公共接入”仅记录历史，不能再作为阻塞。M1仍缺正文提交；委派细分联合、报告生产／隔离及完整I5开放。历史TeX unknown诊断交计算线，本轮未重复。基础综合不等待报告完成。
+
+## 现有任务收尾：M1只读与真实M2消费者
+
+本次共同HEAD为cb5f7ed30f69b45301c83f296268578051b84e0b，开始clean。主线当前dispatch明确采纳4.4本批只读分支：库正文修订、sidecar转正文及其提交契约排除本批，阅读记录不冒充正文修订。该决定已同步proposal／design／delta／tasks，不把库正文写回称为完成。
+
+### 正式规格与实际提供者
+
+- 正式workbench-resources规定没有正文保存能力时只读，阅读记录继续归原库；literature-reading保留原材料版本、可信作者、修订与unknown查询，literature-attachments不允许不同字节重绑旧材料证据。
+- ResourceAccess.describe的library分支固定write=false、readingRecords=true；save在取得项目保存端口前拒绝非project来源。ResourceLibraryPort仅描述／读取，ReadingRecordPort独立提供记录保存；library.commitRecords是题录字段提交，私有commitMaterial是摄取，不能当正文修订提供者。
+- DocumentReader／PdfReader通过appendContextItem贡献当次选区，通过prepareReadingRecord及原adapter保存库记录；saveReadingRecord不修改附件字节。
+- 原EPUB／HTML用例增加真实resources.describe/save核查：库write已授权仍拒正文保存，原ref/basis／字节不变，实际受限项目文件及项目列表不增加替代。此证明限于真实人工资源请求及共同阅读器，不是模型自由规划的正文修订流程。
+
+当前正式执行／委派origin、beforeEvidence／afterEvidence、editId／revertsEditId及files.changes/edit/undo均已接入。execution-facts使用实际父子worker旁观真实资源调用；material-delegation-history通过原GUI／composer完成子创建、父实际读改同一fileId、可信父子来源／Evidence、人工重叠拒绝及整次undo。本次补原会话新run经get_file_changes/read_file_edit/read_file读回实际撤销与当前正文，不把可查询或模型结束语当已消费。只有外部HTTP模型受控；精确指令／工具及理由缺证据仍未知。
+
+material-history六项为可替换端口的组件验证，不证明真实WebSocket断连、完整卸载／重启或跨窗口恢复；真实草稿、撤权、失效位置、关闭重开和记录分离由双宿主阅读器／材料用例证明，实际落盘、未知／部分关联与实体替换由原resource-creation／resource-identity验证。原TeX单次unknown及报告生产隔离仍是所属提供者边界，不借本批关闭。
+
+### 本轮反例与局部修正
+
+所有原始结果和独立输入位于 `/home/joshua/.cache/scholoom-finish-active/research-graph-runtime/`，无当前/tmp前置。新增16项组合首轮11通过／5失败：四项在新增files.list(application)处被真实权限拒绝，未到正文保存；已改为结果目录下真实restricted项目，不改权限。另一项Electron首run queued，诊断位于ui-final/material-delegation-histor-0b333-ects-overlapping-human-work-ui-electron/model-kernel-f984e421-c1c2-457a-af32-6bb9e53ab52f.json：project0e92162c-dae9-4049-9ab8-5173f8accc8d、session66cbb9e5-9698-4b0a-98c8-0adcc1063d26、run1e5a4d82-b9d7-4108-acf9-5b0bd6c99a63。schedule.admission.request后到收尾才以shuttingDown拒绝，无实例／children／controls，modelRequests=null不是0。已交主线，不改harness准入或以后续通过解释原失败。
+
+另核material-interactions三例finally删除仍登记项目，按主线确认仅移除该删除及无效finally，项目保留到配置退役；不将这一修正认定为queued根因。修正组合真实M2新链两宿主通过，唯一剩余失败是Browser HTML末图。
+
+HTML原用例中，用户选择“显示图片 附图18”后末图未在原期限内呈现；显式滚动实验仍失败。缓存image-probe的v2被动观察保留为results-v2/document-probe-v2-html-rea-e3c2f-s-through-the-product-entry-ui-browser/image-observation.json：末组5图全部isIntersecting=true，真实readDocumentResource逐项返回68字节，每次约0.8秒，目标image:19排在15–18后；最终响应接近／越过原断言边界。该数据否定单纯视口假设，不是读取权限或图像解码失败。v2只旁观真实WebSocket请求／响应元数据和原生IntersectionObserver，不替换响应或改变回调判断。
+
+DocumentReader据此仅将用户明确点选图片插到尚未开始的图片任务之前，保留单在途读取、每页8图、单图1MiB及原可见性／授权／版本核对。章节切换清目标，在途请求不被抢断；未增加超时、并发容量或重试。原HTML断言保持，不锁定私有队列顺序。生产改动后先构建desktop，再冻结产物运行相关双宿主；实际结果见delivery。

@@ -1,15 +1,17 @@
 import { randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
-import { open } from 'node:fs/promises';
+import { lstat, open } from 'node:fs/promises';
 import { join } from 'node:path';
 import { RpcPeer } from '@scholoom/broker/rpc';
 import {
   atomicPrivateFile,
+  failure,
   type ProcessAdmission,
   privateDirectory,
 } from '@scholoom/platform/node';
 import {
   type CallContext,
   compileContract,
+  type ErrorInfo,
   limits,
   type OperationContract,
   OperationError,
@@ -49,12 +51,114 @@ function bounded<T>(promise: Promise<T>, ms: number): Promise<T> {
 }
 type Contracts = Readonly<Record<string, OperationContract>>;
 type State = 'idle' | 'starting' | 'ready' | 'closing' | 'closed' | 'unknown';
+export type HostLaunchEnvironment = Readonly<
+  Partial<Record<'DISPLAY' | 'XAUTHORITY' | 'TMPDIR', string>>
+>;
+export type HostRecovery =
+  | { state: 'clear'; previous?: HostRecord }
+  | {
+      state: 'blocked';
+      previous?: HostRecord;
+      nativeScope: 'stopped' | 'unknown';
+      retainedId?: string;
+      error: ErrorInfo;
+    };
+
+/** Read and account before admission, even when native settings are absent or invalid. */
+export async function recoverHostSupervision(options: {
+  directory: string;
+  admission: Pick<ProcessAdmission, 'retainUnknown'>;
+}): Promise<HostRecovery> {
+  const fallback = `host:${options.directory}`;
+  let previous: HostRecord;
+  try {
+    const directory = await lstat(options.directory).catch((error: NodeJS.ErrnoException) => {
+      if (error.code === 'ENOENT') return undefined;
+      throw error;
+    });
+    if (!directory) return { state: 'clear' };
+    if (
+      !directory.isDirectory() ||
+      directory.isSymbolicLink() ||
+      (process.platform !== 'win32' &&
+        ((directory.mode & 0o022) !== 0 || directory.uid !== process.getuid?.()))
+    )
+      throw new OperationError('unavailable', 'Unsafe host supervision directory');
+    const filename = join(options.directory, 'host-supervision.json');
+    const info = await lstat(filename).catch((error: NodeJS.ErrnoException) => {
+      if (error.code === 'ENOENT') return undefined;
+      throw error;
+    });
+    if (!info) return { state: 'clear' };
+    if (
+      !info.isFile() ||
+      info.isSymbolicLink() ||
+      (process.platform !== 'win32' &&
+        ((info.mode & 0o022) !== 0 || info.uid !== process.getuid?.()))
+    )
+      throw new OperationError('unavailable', 'Unsafe host supervision record');
+    const file = await open(filename, 'r');
+    let value: unknown;
+    try {
+      const opened = await file.stat();
+      if (opened.dev !== info.dev || opened.ino !== info.ino || opened.size > 65536)
+        throw new OperationError('tooLarge', 'Host record changed or exceeds capacity');
+      const buffer = Buffer.alloc(65537);
+      let size = 0;
+      while (size < buffer.length) {
+        const { bytesRead } = await file.read(buffer, size, buffer.length - size, size);
+        if (!bytesRead) break;
+        size += bytesRead;
+      }
+      if (size > 65536) throw new OperationError('tooLarge', 'Host record exceeds capacity');
+      value = JSON.parse(buffer.subarray(0, size).toString('utf8'));
+    } finally {
+      await file.close();
+    }
+    if (!isHostRecord(value))
+      throw new OperationError('invalidRequest', 'Invalid supervision record');
+    previous = value as HostRecord;
+    if (previous.scopeStopped && previous.pluginClosed && !previous.unresolved.length)
+      return { state: 'clear', previous };
+  } catch (error) {
+    options.admission.retainUnknown(fallback);
+    return {
+      state: 'blocked',
+      nativeScope: 'unknown',
+      retainedId: fallback,
+      error: failure(error),
+    };
+  }
+  if (!previous.scopeStopped) {
+    const retainedId =
+      previous.commandInstanceId === 'not-started' ? fallback : previous.commandInstanceId;
+    options.admission.retainUnknown(retainedId);
+    return {
+      state: 'blocked',
+      previous,
+      nativeScope: 'unknown',
+      retainedId,
+      error: { code: 'outcomeUnknown', message: 'Previous host still requires reconciliation' },
+    };
+  }
+  return {
+    state: 'blocked',
+    previous,
+    nativeScope: 'stopped',
+    error: {
+      code: 'outcomeUnknown',
+      message: 'Previous plugin or operation still requires reconciliation',
+    },
+  };
+}
 type Options = {
   directory: string;
   kernelInstanceId: string;
   executable: string;
   args: readonly string[];
   scope: string;
+  launchEnvironment?: HostLaunchEnvironment;
+  beforeLaunch?: () => Promise<void>;
   commands: Pick<ManagedCommands, 'start' | 'cancel'>;
   admission: ProcessAdmission;
   operations: Contracts;
@@ -101,7 +205,6 @@ export class HostConnection {
   private readonly sockets = new Set<WebSocket>();
   private writes: Promise<void> = Promise.resolve();
   private storeFailed = false;
-  private recoveryHeld = false;
   private recoveryBlocked = false;
   private ownedIntent = false;
   private starting: Promise<ReturnType<HostConnection['status']>> | undefined;
@@ -149,6 +252,8 @@ export class HostConnection {
       directory: this.options.directory,
       executables: new Map([['host', this.options.executable]]),
       launchInput: this.launchInput,
+      ...(this.options.launchEnvironment ? { env: this.options.launchEnvironment } : {}),
+      ...(this.options.beforeLaunch ? { beforeLaunch: this.options.beforeLaunch } : {}),
     };
   }
   private launchInput = async (commandInstanceId: string) => {
@@ -193,15 +298,6 @@ export class HostConnection {
     this.error ??= code;
     this.ready.reject(new OperationError('outcomeUnknown', code));
   }
-  private retainUnknownScope() {
-    if (this.recoveryHeld) return;
-    this.recoveryHeld = true;
-    this.options.admission.retainUnknown(
-      this.record.commandInstanceId === 'not-started'
-        ? `host:${this.options.directory}`
-        : this.record.commandInstanceId,
-    );
-  }
   start() {
     if (this.state !== 'idle')
       return Promise.reject(new OperationError('invalidRequest', 'Use a fresh host connection'));
@@ -218,35 +314,14 @@ export class HostConnection {
       throw new OperationError('shuttingDown', 'Host startup was interrupted');
   }
   private async initialize() {
-    await privateDirectory(this.options.directory);
-    this.ensureStarting();
-    try {
-      const file = await open(join(this.options.directory, 'host-supervision.json'), 'r');
-      let previous: unknown;
-      try {
-        if ((await file.stat()).size > 65536)
-          throw new OperationError('tooLarge', 'Host record exceeds capacity');
-        previous = JSON.parse(await file.readFile('utf8'));
-      } finally {
-        await file.close();
-      }
-      if (!isHostRecord(previous))
-        throw new OperationError('invalidRequest', 'Invalid supervision record');
-      const record = previous as HostRecord;
-      if (!record.scopeStopped || !record.pluginClosed || record.unresolved.length) {
-        this.record = record;
-        if (!record.scopeStopped) this.retainUnknownScope();
-        this.fail('previousHostRequiresReconciliation');
-        throw new OperationError('outcomeUnknown', 'Previous host still requires reconciliation');
-      }
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
-        this.recoveryBlocked = true;
-        if (!this.record.scopeStopped) this.retainUnknownScope();
-        this.fail('supervisionRecoveryFailed');
-        throw error;
-      }
+    const recovery = await recoverHostSupervision(this.options);
+    if (recovery.state === 'blocked') {
+      if (recovery.previous) this.record = recovery.previous;
+      this.recoveryBlocked = true;
+      this.fail('supervisionRecoveryFailed');
+      throw new OperationError(recovery.error.code, recovery.error.message);
     }
+    await privateDirectory(this.options.directory);
     this.ensureStarting();
     const server = new WebSocketServer({
       host: '127.0.0.1',

@@ -1,5 +1,13 @@
 import { execFileSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  chmodSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -54,4 +62,41 @@ if (process.platform === 'win32') {
   );
 } else {
   throw new Error(`The platform process supervisor does not support ${process.platform}.`);
+}
+
+if (process.platform === 'linux' && process.arch === 'x64') {
+  const cache = process.env.TMPDIR ?? tmpdir();
+  mkdirSync(cache, { recursive: true });
+  const scriptModified = statSync(fileURLToPath(import.meta.url)).mtimeMs;
+  for (const name of ['isolated-report-scope', 'isolated-report-gate']) {
+    const nativeSource = join(root, 'native', `${name}.c`);
+    const nativeOutput = join(root, 'dist', name);
+    if (
+      existsSync(nativeOutput) &&
+      statSync(nativeOutput).mtimeMs >= Math.max(statSync(nativeSource).mtimeMs, scriptModified)
+    )
+      continue;
+    const flags = ['-std=c11', '-O2', '-Wall', '-Wextra', '-Werror'];
+    if (name === 'isolated-report-gate') {
+      flags.push(
+        '-nostdlib',
+        '-static',
+        '-fno-stack-protector',
+        '-fno-builtin',
+        '-fno-pie',
+        '-no-pie',
+        '-Wl,-e,_start',
+      );
+    }
+    execFileSync(process.env.CC ?? 'cc', [...flags, nativeSource, '-o', nativeOutput], {
+      stdio: 'inherit',
+      env: {
+        ...process.env,
+        TMPDIR: cache,
+        XDG_CACHE_HOME: cache,
+        CCACHE_DIR: join(cache, 'ccache'),
+      },
+    });
+    chmodSync(nativeOutput, 0o755);
+  }
 }

@@ -17,6 +17,10 @@
       "types": "./dist/report-contracts.d.ts",
       "import": "./dist/report-contracts.js"
     },
+    "./isolation": {
+      "types": "./dist/platform-isolation.d.ts",
+      "import": "./dist/platform-isolation.js"
+    },
     "./resources": {
       "types": "./dist/resources.d.ts",
       "import": "./dist/resources.js"

@@ -1,5 +1,63 @@
 # 实际交付与交接
 
+## 主线接收与资源边界整改（2026-10-29）
+
+主线已接入本轮N2.1–3，并保留N2.4／5的原失败。独立审查发现bootstrap未纳入资源集合、启动前重新采纳替换资源两项P2，现统一以初始化时的固定集合与见证核查：固定树有界遍历4096项，成员及祖先核类型、uid、权限和真实位置，bootstrap为必需普通文件；资源目录以NOFOLLOW／O_DIRECTORY打开并通过自有目录FD枚举，版本文件从同一经核对FD有界读取64KiB+1，读前后及扫描末尾复核见证。资源树内使用完整文件见证，树外祖先绑定dev／ino／birthtime，避免无关kernel状态变化误拒绝；末次路径及持有FD都重查权限，所有句柄在finally关闭。未以路径存在替代对象身份或扩大原包执行权限。
+
+`/home/joshua/.cache/scholoom-finish-active/zotero-resource-rereview.md`末节确认两项祖先追加发现均修正、限定复核无新增发现。主线先构建冻结产物，`main-final-kernel.{log,json}`为118/118（0跳过／失败／flaky），覆盖普通CLI／恢复／HostConnection／报告及材料相关内部接线；`main-final-ui.{log,json}`为10/10双宿主。随后两项祖先修正仅重建kernel并补跑`zotero-resources.spec.ts`，`zotero-resources-final21.{log,json}`为21/21（0跳过／失败／flaky），涵盖扫描中替换目录、祖先权限变更及无关状态写入；不把此前118项算作这两项修正已实跑。最终tools类型和资源Biome分别见`main-final-tools2.log`、`zotero-resources-final-biome.log`。架构与根lint已通过，旧warnings／infos保留。
+
+主线另在全新隔离配置显式指定现有系统sandbox helper做一次环境对照；Electron仍报自身SUID helper前置失败，renderer未ready，scopeStopped=true、pluginClosed=false、observations为空。原始输入与结果为本轮生态cache的`sandbox-system-helper*`；同进程stop的unknown保留，脚本退出后独立inspect才确认stopped（`sandbox-system-helper-after-exit.json`）。未改helper权限、安装、提权或增加no-sandbox，未重放旧未知操作。本轮资源安全整改不解决该OS前置，39/50和完整E4／I6继续开放。
+
+## 当前交回：N2.1–3已实施，N2.4／5真实原包受阻（cb5f7ed）
+
+2026-10-29，起点`cb5f7ed30f69b45301c83f296268578051b84e0b`且clean。新派发明确授权实施，取代下文第十六轮阶段停止；本节是实际中途交付，历史规划保留作依据。已完成N2.1规格补齐、N2.2独立恢复及N2.3私有绑定；N2.4装配代码已接，但实际普通原包配方未达到ready，N2.5普通原包／desktop整合未通过。当前apply为39/50，剩余11项。主线已明确要求冻结已验证增量、按原完整目标`failed`交回，不再试flag、安装、提权或改sandbox权限；原答复保存于本轮cache的`coordinator-final-scope.log`。完整E4／I6及change仍开放。
+
+本轮证据根为`/home/joshua/.cache/scholoom-finish-active/zotero-ecosystem/`（以下相对证据路径均在此根）。TMPDIR、profile、合成库、结果与调查脚本均在其中；固定输入为Git中的源码／构建入口、已装依赖，以及`/home/joshua/.cache/scholoom-round13-acceptance/preserved-tmp/zotero-better-bibtex-9.0.68.xpi`。不依赖当前/tmp，不改旧profile或真实用户库。可重建命令、独立补丁和文件清单见该根`report.md`、`increment.patch`与`manifest.json`。
+
+### 已实现接线与审查修复
+
+- `HostConnection`抽出`recoverHostSupervision`／`HostRecovery`，恢复与设置／资源分离；`ZoteroOperations.recover`在`ManualApplication.initialize`首步完成同一ProcessAdmission记账，library就绪后`bind`，原super之后的harness恢复顺序保留。missing／disabled／invalid配置均先核旧监督；幂等保留旧command身份、坏记录与未知事实，scope已停但plugin未决不占原生槽。不连接旧进程、不按PID猜停机、不重放领域操作。
+- 新私有叶`host-settings.ts`以唯一schema派生类型，有界16KiB、配置目录绑定、未知字段拒绝、私有所有权／权限核查及冻结快照。新`zotero-resources.ts`只接受固定Linux x64离线布局，资源根由kernel目录派生；核固定成员、路径／权限、Electron与BBT版本，惰性提供稳定`beforeLaunch`。没有公共写端口、凭据、库grant或请求自报exec／env／root；合成资源单测只证明验证行为，不证明可执行包可用。
+- `serveKernel`供应真实`status.instanceId`和设置读取结果，经`KernelApplication`构造尾参到生态接点；HostConnection仅透传可信DISPLAY／XAUTHORITY和操作私有TMPDIR。architecture仅登记两叶Module的原生适配。普通CLI已能冷启动绑定真实合成库、inspect／独立replaceTitle及stop/start重读设置；N1回执查询始终独立。原包操作才惰性核资源；没有新增生产Xvfb、普通spawn或sandbox绕过参数。
+- 独立只读审查发现P2：共同提交已成功后若设置变化，已受理callback／交付误用`checkUnchanged`会拒绝既成结果。`settings-changed-red.log`先复现；修复将初始入口／beforeLaunch的设置检查与已受理操作的实时`checkLibrary`分开，仍核当前库、read/write/send及有效执行，导出revision重读后也复核。`reviewed.log`真实提交红／绿例通过，CSL、键和其他原值不变；审查复核无残留发现。设置不是撤权渠道，库授权继续有效。两名辅助均gpt-6.1-sol/high、无历史fork，已关闭；最终判断由父负责。
+
+设计仍以原N2初始化顺序图及唯一设置表为事实源；本轮补delta的恢复／持久绑定场景，不改正式规格、公共DTO或library权威。`manual.ts`仅生态构造／初始化接点，`application.ts`／`lifecycle.ts`仅zoteroRuntime供应，未改别域handler及恢复。
+
+### 实际验证、首次失败与结果
+
+生产修改后先使用已装TypeScript构建kernel再测试，最终源码对应`build-reviewed.log`；测试期间没有重建共享产物。以下批次有重叠，不能相加成不同用例总数；原始日志保留各阶段源码与首失败。
+
+| 入口／证据 | 实际结果与边界 |
+| --- | --- |
+| `node node_modules/typescript/bin/tsc -p apps/kernel/tsconfig.json`；tools的`--noEmit -p tsconfig.tools.json` | 最后构建及tools类型通过，`build-reviewed.log`／`types-reviewed.log`。首次`build-first.log`的schema validator不提供TS guard错误已修，未降类型约束 |
+| Playwright kernel的cli-runtime、host-connection恢复代表及zotero-resources | `independent.log`：23 passed (1.8m)，含真实普通CLI／库及N1/P1、恢复和合成资源验证；不是原包通过 |
+| HostConnection实际送达、未知不重放、读／写callback超时及容量、同owner恢复、停止持久化失败；错库 | `boundary.log`：9 passed (29.6s)，原unknown／完整停止保证保留 |
+| 最后P2修复后CLI设置变化及恢复／坏记录／满槽／幂等代表 | `reviewed.log`：7 passed (40.2s)。`settings-changed-red.log`为旧行为失败；`recovery-red.log`为initialize前未保留活动槽的首红例。另`recovery-final.log`曾4失败：有效旧记录夹具受umask002写为664，按原安全契约显式0600后通过，未放宽生产校验 |
+| opt-in普通持久原包：`SCHOOLOOM_ZOTERO_NATIVE_COLD=1`，`tests/kernel/zotero-host.spec.ts`的ordinary persistent例 | `native-first.log`先被新复制Electron目录775拒绝，尚未启动host；仅新私有副本移除组写位后`native-second.log`仍失败。增加私有同次诊断并构建后，`native-diagnostic.log`／`native-host-failure.log`取得SUID sandbox原始错误。未达到ready／两格式／重启断言，不以CLI清洗后的unavailable猜根因 |
+| 保留失败现场后普通CLI重启，只查询原operationId | `inspect-failed-native.mjs`、`failed-native-readback.json/.log`：notFound；native仍outcomeUnknown，共同revision／键／原值和监督记录不变。没有重放、换ID或清unknown；notFound不证明无效果 |
+| 主线批准的唯一新配置sandbox对照 | `sandbox-contrast.mjs`、`sandbox-contrast-result.json/.log`／`sandbox-contrast-summary.json`：只在缓存副本加诊断、仅该实验加`--disable-setuid-sandbox`，实际No usable sandbox，renderer未创建，observations=[]、sandboxProven=false、verdict=unavailable。未把flag带入生产，未证实具体userns／LSM根因 |
+| 最终结构／格式／生成检查 | `architecture-final.log`：14 modules／259 files／0 findings；最终Biome、生成归一一致性、strict、schema及diff结果见`report.md`。这些不能代替原包实跑或跨平台验收 |
+
+第一次原包失败的profile由`native-profile.json`定位：`tmp/scholoom-library-bbt-5Tf77y/configuration`。原始stderr为`setuid_sandbox_host.cc:166`，要求chrome-sandbox的root owner／4755；同次监督为scopeStopped=true、pluginClosed=false、pendingCallbacks=0。获准对照仅禁用SUID fallback，仍在renderer前报No usable sandbox；其路径由`sandbox-contrast-directory.json`定位。上游开关依据保留在`chromium-switches.cc`及`.base64`，描述本身不证明当前环境具备安全sandbox。
+
+两次均保留真实unknown／旧记录，不以scopeStopped冒充pluginClosed。对照同进程serve的最初stop为unknown（脚本自身仍活），await serve关闭并且脚本退出后独立inspect才确认stopped；`sandbox-contrast-summary.json`同时保留initialInProcessStop与afterProcessExit。原操作只读查询脚本亦完成stop；不清锁、删目录或停止共享显示。没有UI服务、外部模型付费调用、依赖安装或真实用户库访问。
+
+内部library／broker／CLI／WS／ManagedCommands／文件与原生归属均真实；恢复测试的fixed-host是声明的Node协议夹具，资源单测是未执行的合成文件，P1代表例只替换外部HTTP模型。原包例使用未修改BBT9.0.68和已装Electron，但新普通配方被OS前置阻断；独立对照的复制host仅加观察，不是生产运行成功。旧隔离注入绿色不抵消该失败。Windows原包、本轮desktop GUI、macOS managed及正式分发未通过或未运行。
+
+### 原2.1–5.2的实际差距与续做
+
+| 原任务 | 已有成果与仍缺完成依据 |
+| --- | --- |
+| 2.1 E1／E2／E5 | 普通期刊来源实例／schema44原值／正式键共同provider已实际消费，reading契约与MaterialReading也已在树中；复杂映射、Zotero Reader sidecar／PDF新字节写回及E5联合验收未完成。不能再泛称“未收到文献／阅读设计”，也不据端口存在关闭写回 |
+| 2.2 E3事务 | 已验最多100条／256KiB现有题录一次共同原子commitRecords、CAS及稳定结果查询；创建／删除／附件／组织等广范围save事务未适配，不能以逐条提交或fixture SQL冒充 |
+| 2.3 E4装配 | 既有注入原包／Linux监督及主线Windows公共HostConnection24项已接收；本轮普通绑定／先恢复已验，新普通原包sandbox受阻。Windows原包／正式分发未验，macOS受管执行不可用 |
+| 3.1 同源与人工／Agent入口 | 既有真实broker／认证WS／共同库／原工具及N1已验；普通新配置的原包入口没有ready，不以inspect／replaceTitle或旧注入覆盖整个生产入口 |
+| 3.2 SQL／保存／缓存 | 既有普通期刊派生SQL、CAS、固定键、通知／缓存及共同提交读回已验；更广Item／事务／材料映射尚缺，无第二库权威 |
+| 4.1–4.2 真正整合 | 既有隔离真实路径证据保留；本轮普通冷启动原包两格式／重启与desktop组合未完成，完整跨平台原包及I6继续开放 |
+| 5.1–5.2 审查／最终交付 | 本独立片已有审查、P2红绿及必要构建检查；此记录是中途交接。完整proposal判据、跨模块整合及最终验收由主线负责，原整体任务不勾 |
+
+下一步先由主线解决Linux目标sandbox前置或明确新的受审配方，再在**全新**隔离身份验证N2.4的ready／插件关闭和N2.5普通CLI／desktop两格式／重启；旧未知操作只查原ID，不重放，不自动解除。主线指令与本轮完整任务失败结果一致；独立N2.1–3可审收，不据39/50或静态检查宣称整体完成。E6删除恢复、真实用户库、其他字段／多来源、外部接口、自动同步及正式分发仍不在已验范围。
+
 ## 第十六轮主线接收
 
 四份N2规划工件已保全提交并合入dev，两轴冻结审查均0确证发现。主线核当前Manual／KernelApplication初始化、HostConnection旧恢复及serve实例来源，接收独立恢复→叶设置／固定资源→真实原包装配→普通入口整合顺序，接缝决定已写回design。N2.1仍需规格补齐及实际签名核对，N2.2–5均未实施；本轮不再派发开发，不将规划接收算作生产接线。

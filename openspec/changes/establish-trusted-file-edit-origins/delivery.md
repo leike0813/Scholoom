@@ -1,6 +1,18 @@
 # 实际交付与交接
 
+## 2026-10-29 主线接收补充
+
+可信来源提供者及本批 3.3 真实消费者已进入主线共同源码。本次重新取得本 change 的 delivery instructions，核对主线已有证据后补充接收记录；原提供者与消费者交付历史保持原样，最终验收与提交由父 Agent 负责。
+
+证据根为 `/home/joshua/.cache/scholoom-finish-active/`。`main-final-kernel.json`／`.log` 的跨域联合组为 118/118，其中 `file-edit-origins.spec.ts` 10 项全部通过，覆盖可信来源核查、取消／撤权、历史窗口、重命名与身份保护、登记失败及真实 worker 后续查询。`main-final-ui.json`／`.log` 为 Browser、Electron 各 5 项、合计 10/10；两宿主的 `material-delegation-history` 均通过真实子创建→父读改→人工重叠拒绝旧撤销→撤销人工整次修改→原会话新 run 工具读回。两组均 0 skipped／unexpected／flaky、retries=0，统计与 `main-joint-stats.json` 一致；118／10 是联合总数，不全归本 change。
+
+`material-independent-review.md` 对本批材料／来源增量无 P0–P3 确证发现，并核对既有双宿主持久结果及后续真实工具回执。共同 desktop 构建、lint 与架构证据统一见[材料 change 主线接收补充](../add-material-annotation-interactions/delivery.md#2026-10-29-主线接收补充)：lint 无 error、既有 114 warnings／39 infos；架构 14 模块、263 文件、0 findings。审查本身只读，本次整理未重跑测试或构建。
+
+接收范围仍为可信粗粒度来源、有界查询、整次 FileEdit 撤销及真实消费者；内部 broker／worker／仓储真实，外部模型响应受控。精确指令／工具因果、科研理由、差异块撤销、科研质量及三平台验收没有扩大。历史首 run 准入失败与 TeX unknown 保留原责任和证据，后续通过不解释其根因；任务勾选仍以 [tasks](tasks.md) 为准。
+
 ## 当前状态与成果
+
+本次从共同cb5f7ed继续，3.3真实提供者／消费者已具备并通过本树实际组合：真实子worker→文件→父实际读改→MaterialChangeView→人工重叠拒绝→整次undo→原会话新run经get_file_changes/read_file_edit/read_file核查当前正文及真实撤销。只有外部HTTP模型受控，不注入假委派来源，不扩精确指令／工具token。当前实证、失败与可重建入口见末节；以下2026-10-26记录为原提供者交付历史。
 
 2026-10-26本轮交付M2提供者局部闭环，保持活动，不归档。用户已确认D1粗粒度可信来源、D2整次FileEdit撤销、D3有界changes／edit与明确editId；精确工具token后续。恢复HEAD为`77cd078a12d7d10e5007ccc32ffc89110d954f39`，git确认`0519904`及`b838402`为祖先；公共恢复验收见`/tmp/scholoom-sync-recovery-wyn13R/recovery.md`。本轮没有同步、reset／rebase／切分支、安装或真实库写入。
 
@@ -37,12 +49,22 @@ Linux，Node24.12.0，pnpm11.10.0；使用已有依赖、隔离项目／库／pr
 
 ## 未完成事项与下一步
 
-按[tasks](tasks.md)保留3.3：Agent所属真实逐推进指令／委派事实提供者尚未接入，阅读MaterialChangeView／I5尚无本轮真实消费证据。原快照资料已收到，信息阻塞解除不等于提供者装配。精确工具token、差异块撤销、永久审计与科研意见状态机不在本轮。当前粗粒度可证明来源不能称精确因果。
+3.3的实际提供者及MaterialChangeView消费现已接入并验证，任务依据见末节。精确工具token、差异块撤销、永久审计与科研意见状态机仍在本批范围外；当前粗粒度来源不能称精确因果。
 
-本轮M2补丁还需主线审查、dev接入与消费者同步；不在本树自行同步他树。Windows／macOS、完整CI、真实科研质量和跨域I5没有新增通过结论。任务侧I1交付另在原任务change记录，不以其注入科研端口替代真实科研worker。
+原M2提供者已进入共同源码；本次真实消费者测试及工件增量交主线最终审查和整合，不在本树自行同步他树。本次材料I5的双宿主机械验证见材料change交付，不代表Windows／macOS、完整CI或真实科研质量通过。任务侧I1交付另在原任务change记录，不以其注入科研端口替代真实科研worker。
 
 ## 收尾核对
 
 实际资源保存／创建的editId及执行来源在原association失败的三种样本中核对，`/tmp/scholoom-round3-resource.log`为10/10。全部8份生成映射和格式化schema生成输出一致，`/tmp/scholoom-round3-contract-consistency.log`；最终tools／projects noEmit与增量Biome通过。M2与原任务change strict、scholoom-dev schema及diff空白检查均通过，不同步正式规格。
 
 交接目录`/tmp/scholoom-research-task-round3/`的001为公共提供者，002为任务消费侧；任务专属来源转发随002保留，001新增核心不依赖私有任务实现。补丁文本基线为本树77cd078，裸dev接入仍由主线按符号组合及独立验证，不以本树通过代称dev通过。临时index／object存储按序应用核对可精确重建所有当前改动，实际索引及HEAD保持原状。完整依赖和公共符号见该目录README／manifest，本轮到此交回，不展开3.3。
+
+## 本次3.3真实消费交付
+
+已读取当前apply及实际执行后的delivery instructions，当前HEAD为cb5f7ed，原提供者没有重做。消费者使用正式executionFacts／FileEdit、真实broker／受管worker／项目仓储；材料history组件只作补充接口验证，不冒充真实执行。实际父子实例、委派链、同fileId的父beforeEvidence=子afterEvidence、真实human origin及revertsEditId均有结构断言；原会话新指令的工具输出及磁盘字节核对证明实际消费，不从通知或模型说明推断。
+
+证据根为 `/home/joshua/.cache/scholoom-finish-active/research-graph-runtime/`。execution-facts＋material-history为7/7，其中6项是组件端口测试；原双宿主基线4/4。新增组合首次11通过／5失败，另一轮11通过／1失败分别记录，不能合并为一次全绿；修正组合的material-delegation-history两宿主均通过新链，输出保存scope、delegation、FileEdit/Evidence、human／undo及followUp真实工具消息。readonly-kernel3/3、identity-partial-kernel9/9补充所属身份、权限与部分保存。精确命令与其他材料I5结果统一引用[材料change本次delivery](../add-material-annotation-interactions/delivery.md#本次实际结果修正与交接)，避免另存重复账本。
+
+独立只读审查已核真实来源／undo与工具回读，未发现伪造委派或旧工具历史蒙混通过；发现的M1夹具P2已按真实权限修正。相关desktop／tools类型、架构、schema生成器self-test与Biome通过；来源schema、提供者、FileEdit／保存／undo权威未改。UIReader的唯一生产局部及其构建另归材料change，不把它当来源提供者改动。
+
+一次Electron首run queued在schedule.admission等待，未进入本域消费；project/session/run、原始附件及modelRequests=null的缺证边界已交主线，后续通过不关闭该公共失败。首次Electron包入口隐式调用install.js及后续显式绑定现存binary的情况也如实记材料delivery，不称本轮从未进入安装。所有当前输入／结果／补丁在Git或本轮cache，无当前/tmp前置；未提交、推送、同步他树或归档，完整平台与科研质量仍未验收。

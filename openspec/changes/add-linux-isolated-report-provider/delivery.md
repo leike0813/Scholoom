@@ -1,5 +1,84 @@
 # 实际交付与交接
 
+## 2026-10-29 主线接收补充
+
+独立 native provider 增量已进入主线共同源码，并由主线在本机 Linux x86_64 显式准备 native fixtures 后完成真实 OS 联合验证。本次已重新取得本 change 的 delivery instructions，只补充已有主线结果；下文 1.2 校准与独立实施的原失败、修正及证据边界保留，最终验收与提交由父 Agent 负责。
+
+证据根为 `/home/joshua/.cache/scholoom-finish-active/`：
+
+| 主线实际验证 | 结果与证据 |
+| --- | --- |
+| platform 原生与 TypeScript 构建 | 主线已完成构建，日志为 `main-platform-native-build.log`、`main-platform-ts-build.log`；两份日志为空，不将空日志本身当作独立退出码证明 |
+| 固定 native 样本重建 | `main-native-fixture-build.log` 指向本轮 `main-native-fixtures/isolated-report-native/probe`，真实 OS 组使用显式 `SCHOOLOOM_ISOLATION_TEST_CACHE` 输入 |
+| `playwright.kernel.config.ts` 联合组 | `main-final-kernel.json`／`.log`：118/118，0 skipped／unexpected／flaky、retries=0。其中 provider 真实 OS 组 17/17，另有未登记程序拒绝用例、两项真实记录回归、三项隔离契约及九项 ProcessAdmission 回归；118 为跨域联合总数，不全归 provider |
+| 共同构建与静态检查 | `main-all-desktop-build.log` 记录 desktop 构建完成；`main-final-lint.log` 无 error，保留既有 114 warnings／39 infos；`main-final-architecture.log` 为 14 模块、263 文件、0 findings、0 granted exceptions |
+
+`main-joint-stats.json` 与原始结果一致。`main-final-ui.json`／`.log` 另记真实 Browser／Electron 联合 10/10、无 skipped／unexpected／flaky；该组覆盖材料、文献组织与任务来源，不是报告 provider 的浏览器或 UI 验收。
+
+当前 `tests/kernel/isolated-report-provider.spec.ts` 的真实 OS 组仅在 Linux x86_64 且显式设置 `SCHOOLOOM_ISOLATION_TEST_CACHE` 时运行。普通 CI 未准备该输入时跳过此组，不能据 CI 通过宣称 OS 保证通过；本轮主线显式 cache 下 17 项实际通过，与缺输入跳过分别记录。记录存储及契约检查也不冒充真实 scope 执行。
+
+独立审查 `provider-independent-review.md` 尾部“冻结修正窄复核”确认原 P1（缺 config 覆盖原 index）与 P2（合法长 ID 写出后超读取预算）的致因已修，限定复核范围无新增 P0–P3。两项对应真实记录回归在本次联合组通过；迟到 running 的保护仍按该报告的源码结论表述，不冒充人工竞态实跑。原 34 通过／1 失败及后续 17/17 的历史不改写，窄复核也不扩为对当前全部源码、原生链或全部故障时序的重新审查。
+
+主线接收仅覆盖平台内部 `platform.reportIsolation.check/stage/put/start/get/stop` 六操作及已列的独立 native 保证。真实 broker、唯一准入、私有文件、controller、scope、namespace、seccomp 和信号链使用固定合成批准字节／可信登记程序／可控授权闭包；生产宿主注册与恢复屏障装配、ReportResources 冻结字节 Adapter、报告浏览器完整进程图、报告 UI／文本／可访问性和分发仍未接入或未验。原报告 2.1b／I5 与活动页 unavailable 保持，Windows／macOS、机器重启及科研质量不由本次接收关闭。本次整理未运行测试、构建或服务，任务进度仍以 [tasks](tasks.md) 为准。
+
+## 本次独立 provider 实施（cb5f7ed3）
+
+2026-10-29，从共同`cb5f7ed30f69b45301c83f296268578051b84e0b`、起始clean直接实施已授权2.1–3.3；当前仍在同一HEAD，无提交／同步／推送。使用本地OpenSpec apply与codebase-design，实际执行后重新取得delivery instructions。独立提供者、同源隔离叶、原生controller／gate、构建、共享恢复结清及对应真实测试已形成；宿主产品注册、ReportResources冻结字节消费者、报告UI和浏览器均未接线。
+
+实际写集与入口：
+
+- `protocol/platform-isolation.ts`及`@scholoom/protocol/isolation`：六操作、严格清单／路径、数量／字节／frame和canonical base64；类型均从schema派生，没有全局operations增量。
+- `platform/isolated-reports.ts`：唯一reservation覆盖排队／准备／执行，按已持久offset与物理见证写入／封存，领域授权在排队后及G前复查；同ID只核原意图，不重放。
+- `isolated-report-records.ts`：目录FD固定私有写入，配置绑定原根身份，真实flock单writer，文件／目录同步，索引最多4096条且统一1MiB读写预算；缺配置而已有记录时拒绝恢复，保留证据。
+- `isolated-report-controller.ts`与两份C：真实用户scope及CPU／memory／swap／pids读回，sealed memfd复制到只读私有视图，非白名单FD关闭及默认拒绝seccomp。可信controller在G前跟踪唯一gate；内核TRACEEXEC事件才确认实际exec，继续跟踪且不detach，EXITKILL不足即拒绝放行。目标仍禁止ptrace。gate pidfd观察根退出，完整子孙与原scope确认分开。
+- `ProcessAdmission.settleRecovered`：仅原recovered世代可结清，拒绝／迟到／live确认不释放；live未知承诺保持pending。停止记录持久化后才暴露stopConfirmed并释放或结清，记录失败仍请求真实范围停止。恢复控制使用固定原cgroup目录FD，避免按同名unit或旧PID发信号。
+
+design总览图中的provider、记录、原生门、scope与恢复链由真实独立模块实现；ReportResources→批准字节Adapter仍是虚线。版本与文件冻结见`/home/joshua/.cache/scholoom-finish-active/research-interaction/frozen-source.json`；原生scope blob为`f95e82b0f6b002a70e843a484111acbf33ece978`，与独立审查读取版本相同。只支持登记的Linux x86_64静态native策略，预算全部由可信登记提供，样本预算不成为产品默认。
+
+### 实际命令及结果
+
+所有临时输入、配置、记录、样本、结果与补丁位于`/home/joshua/.cache/scholoom-finish-active/research-interaction/`，命令显式设置该根为TMPDIR／SCHOOLOOM_ISOLATION_TEST_CACHE。没有当前`/tmp`旧内容前置；正式测试样本、host夹具和重建入口在Git写集中。
+
+```sh
+export TMPDIR=/home/joshua/.cache/scholoom-finish-active/research-interaction
+export SCHOOLOOM_ISOLATION_TEST_CACHE="$TMPDIR"
+node tests/fixtures/isolated-report-native/rebuild.mjs
+node node_modules/typescript/bin/tsc -p packages/protocol/tsconfig.json
+node packages/platform/build-process-scope.mjs
+node node_modules/typescript/bin/tsc -p packages/platform/tsconfig.json
+node node_modules/typescript/bin/tsc --noEmit -p apps/kernel/tsconfig.json
+node node_modules/typescript/bin/tsc --noEmit -p tsconfig.tools.json
+node scripts/check-architecture.ts
+node packages/protocol/scripts/contract-types.mjs --self-test
+```
+
+以上构建／类型通过，architecture为14模块、261文件、0 findings；完整日志为`final-build-*`、`final-type-*`、`final-architecture.log`。最终phase投影一行保护后只重建受影响platform TS，再固定产物跑provider全组，见`phase-projection-final-build.log`。未重建无源码变化的desktop／宿主，也没有UI、全仓CI或跨平台运行。生成器原始`--patch`给出既有格式差异；经现有Biome格式化后七份生成映射完全一致，见`final-contract-normalized-check.json`，未应用该补丁或改其他域映射。
+
+| 执行 | 实际结果与证据 |
+| --- | --- |
+| 首次编译 | 原生-Werror因缩进失败，`native-first/build.log`；TS首次缺O_CLOEXEC声明／exactOptionalPropertyTypes，`platform-ts-first.log`；均在运行相关样本前修正 |
+| 原生门诊断 | `native-first/probe-first.log`及`probe-bindfd.log`保留ro-bind-data执行ENOENT／deleted memfd解析失败；改私有复制再整体只读重挂。原生执行、mount与exec相关trace仍在同目录；没有把门到达当样本科研成功 |
+| 首批20项 | `test-suite1.log`：18通过、2失败，分别为停止可见性早于持久回执、as-pid-1控制器丢失后范围仍活。`loss-observation.log`与对应根的`controller-loss-first.json`记录到四个真实存活program，随后按原范围收尾；未延时期限定通过 |
+| reaper／根退出修正 | `reaper-directed.log`：2通过、detached-exit仍失败。保留可信reaper并在门前固定gate pidfd后收尾；`provider-suite3.log`八项通过，但其CLOEXEC推断仍不足，未作为最终执行保证 |
+| exec事件真实校准 | 主线明确采纳TRACEEXEC／EXITKILL；`provider-trace-first.log`16通过，`exec-cancel-and-native-settle.log`2通过，含实际门前取消无exec事实、原cgroup句柄完整停止。未放宽目标syscall策略 |
+| 首个35项组合 | `final-kernel.log`：34通过、1失败；provider私有根初始化前被夹具stderr写入，新空根保护正确拒绝，详见失败根及`${config}.stderr`修正边界。原测试原期限定向复验`host-boundary-recheck.log`1通过；没有写成35项首轮全绿 |
+| 最终provider | `provider-final.log`：17/17通过，含只读固定样本实际syscall拒绝、特殊文件／替换／原inode内容变化、排队撤权、detached后代、快速exit与非零退出、controller／host SIGKILL、门前取消、复制配置、恢复持久化失败／原占用、原cgroup正向停止与失配不杀 |
+| 其余最终组合项 | 上述35项中的真实记录2项、schema3项、ProcessAdmission9项及原ManagedCommands／HostConnection4项均通过。没有为最终一行phase投影重复无关组；其余模块复用对应同源已验产物 |
+
+组合实际命令为`node node_modules/@playwright/test/cli.js test --config playwright.kernel.config.ts`，文件包括`isolated-report-provider.spec.ts`、`isolated-report-records.spec.ts`、`isolation-contracts.spec.ts`、`process-admission.spec.ts`、`managed-commands.spec.ts`、`host-connection.spec.ts`，并用grep限制为本模块全组与既有控制器丢失／恢复满额／同内核不重复／停止落盘失败代表例。完整argv保存在同根复建／核查入口；结果目录为`final-kernel-results/`及`provider-final/`。未加retry、统一sleep或延长生产／测试时限。
+
+### 独立审查与边界
+
+主线安排Hume独立只读审查，报告`/home/joshua/.cache/scholoom-finish-active/provider-independent-review.md`。确认的P1（config丢失覆盖原index）与P2（合法长ID索引写出后不可恢复）均按根因修正，`isolated-report-records.spec.ts`用真实文件／native flock回归：保留非空原index并拒绝重绑定，以及合法多字节ID在写前达到统一预算仍可完整重读。长索引采用明确的磁盘格式夹具，只验存储恢复／追加，未冒充真实scope或停止授权。原生scope与gate冻结blob同审查版本；最终记录修正及其他冻结文件供主线最终验收。
+
+broker、admission、私有记录、controller、bwrap、namespace、seccomp、真实配额、文件、scope及信号均真实。替身仅有固定合成批准字节、可信登记测试程序、可控领域授权闭包；没有生产ReportResources/ref／basis/read/send消费者、真实用户库、模型或工作台。目标无可授权的SCM接收通道，真实recvmsg等调用EACCES；误暴露通道的危险正控制由已接收1.2提供，不把本轮无通道／未执行动作说成G后实际收包校准。
+
+`audit-owned.mjs`只读核本cache登记的59个自有unit及原cgroup，`owned-scopes-final.json`为0个意外活动范围；失败根原记录保持原状，不用修改旧unknown来制造完成。临时调查代码仅作cache证据；生产实现为本树深模块，未复制三轮实验作为第二提供者。没有安装／提权／改系统委托、用户数据、Git提交／推送／PR／archive或其他树操作。
+
+本片完成独立native provider的本地实现与验证，主线最终接收仍由主线执行；后续只能消费此冻结增量。生产宿主注册／启动恢复屏障装配、ReportResources冻结字节Adapter、浏览器策略及完整进程图、报告UI／文本／可访问性／分发、Windows／macOS、机器重启及真实科研质量均未验。原报告2.1b／I5及活动页面继续unavailable，不因此归档或开始下一模块。
+
+## 既有1.2校准与主线接收记录
+
 ## 第十六轮主线接收
 
 主线接收1.2的本机固定native校准及三阶段完整证据，独立Spec审查未发现超出本轮授权的交付声明。默认拒绝策略、原生三代／setsid归属、controller／宿主失联两种收尾可作为下一片实现依据；两个原失败保留，gateReleased只代表意图，scope样本预算不成为产品默认预算。

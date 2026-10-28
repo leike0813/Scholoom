@@ -1,5 +1,13 @@
 # 实际交付与交接
 
+## 主线606ae82 Windows阶段复核（2026-10-29）
+
+专项run40729861762／job122962932735、head`606ae829720e5c0709198a6e36839929ae4fda5b`及artifact12835411610已按原日志核对。Agent代表1/3：excerpt通过，cancel和首附件失败；真实isolated4/4及ACL5/5不替代这两项。同次完整Checks40729861720仍运行，不能用旧专项3/3或跨次计数判断稳定性。
+
+只读取证为`/home/joshua/.cache/scholoom-finish-active/agent-delegation/windows-606ae82/report.md`、`facts.json`及原trace解码入口。cancel原窗口4796ms、首附件4993ms，二者准入均已返回，实际worker分别PID1868／8556且实例已登记。execution.prepare分别3103／3269ms，initialize在observer起点3585／3732ms发送；至首次失败4844／5007ms，响应、consumed及模型准入均未观测，HTTP0。全部采样丢弃／未核身份／超时为0；最后采样只在失败后4／2ms，不能证明之后永远未完成，也不能将queued解读为未启动worker。取消尚未派发委派，附件尚未导入／保存，不能归为后段业务缺陷。
+
+现有公开send回执、snapshot.run.id及精确instructionId的consumed状态可用于区分设置阶段，且消费来自持久checkpoint后确认；它不证明HTTP、业务完成或完整停止。本包没有观测到消费，尚不能选准备预算或宣称该候选修复有效。原内核用例总上限60秒及模型／业务5秒断言保持，未加等待、重发或改生产期限。若推进，先在同一有界run校准消费／模型／完成／停止时点，再确定设置边界；4.2／4.3、17.2／18.2及科研角色／质量继续开放。
+
 ## cb5f7ed普通委派分阶段验收
 
 本轮Dispatch task_9084391183cc/ctx_4e69a24bea78沿原change实施，起始HEAD=`cb5f7ed30f69b45301c83f296268578051b84e0b`且clean。已读当前apply/contextFiles及原delivery，采用openspec-apply-change/codebase-design；主线ask明确批准真实子执行终态与原5秒UI刷新分阶段。本片完成第20组，51/57；**旧17.2最后152ms、18.2缺工具行、4.2/4.3平台、6.1/6.2科研角色及质量均未关闭**。未重放旧补丁、同步或改其他线文件。

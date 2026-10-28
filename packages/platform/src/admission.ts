@@ -10,7 +10,7 @@ type Waiting = { start(): void; cancel(): void };
 /** Host-owned process slots include reservations; child work never waits behind its parent. */
 export class ProcessAdmission {
   private active = 0;
-  private readonly recovered = new Set<string>();
+  private readonly recovered = new Map<string, symbol>();
   private readonly owners = new Set<string>();
   private readonly waiting: Waiting[] = [];
   constructor(
@@ -41,7 +41,24 @@ export class ProcessAdmission {
   retainUnknown(instanceId: string): void {
     if (!instanceId) throw new OperationError('invalidRequest', '恢复归属身份不能为空。');
     if (this.owners.has(instanceId)) return;
-    this.recovered.add(instanceId);
+    if (!this.recovered.has(instanceId)) this.recovered.set(instanceId, Symbol());
+  }
+
+  /** Stop confirmation applies only to the recovery generation present when it was bound. */
+  settleRecovered(instanceId: string, stopped: Promise<void>): void {
+    const generation = this.recovered.get(instanceId);
+    if (!instanceId || generation === undefined)
+      throw new OperationError('invalidRequest', '执行归属尚未登记为恢复占用。');
+    void stopped.then(
+      () => {
+        if (this.recovered.get(instanceId) !== generation) return;
+        this.recovered.delete(instanceId);
+        if (this.status.active < this.limit) this.waiting.shift()?.start();
+      },
+      () => {
+        /* Unconfirmed recovery keeps its slot. */
+      },
+    );
   }
 
   reserve(wait = false, instanceId?: string): ProcessReservation {

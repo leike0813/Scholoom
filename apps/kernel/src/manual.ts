@@ -114,7 +114,7 @@ import { type CommandWorkspace, ManagedCommands } from './commands.js';
 import { executionResources } from './execution-resources.js';
 import { initializeProjectContainer } from './storage/project-container.js';
 import { WorkbenchContextStore } from './workbench-context.js';
-import { type IsolatedZotero, ZoteroOperations } from './zotero.js';
+import { type IsolatedZotero, ZoteroOperations, type ZoteroRuntime } from './zotero.js';
 
 const applicationSchemas: typeof editorPlatformOperations &
   typeof platformProgramOperations &
@@ -238,6 +238,7 @@ export class ManualApplication {
     private readonly directory: string,
     private readonly taskResearch?: TaskResearchPort,
     isolatedZotero?: IsolatedZotero,
+    private readonly zoteroRuntime?: ZoteroRuntime,
   ) {
     this.broker.register('workbench-context', {
       'workbench.context.publish': ({ snapshot }, context) => {
@@ -290,6 +291,7 @@ export class ManualApplication {
       this.processes,
       (context) => this.modulePort(context, 'kernel'),
       isolatedZotero,
+      zoteroRuntime,
     );
     this.registerProjectHandlers('command-platform', {
       'platform.command': (input, context) => commands.execute(input, context),
@@ -745,8 +747,14 @@ export class ManualApplication {
     });
   }
   async initialize(report: (phase: string) => void = () => {}): Promise<void> {
+    report('checking-zotero-supervision');
+    const zoteroRecovery = await this.zotero.recover();
+    report(
+      zoteroRecovery.state === 'clear' ? 'zotero-supervision-clear' : 'zotero-supervision-blocked',
+    );
     report('initializing-library');
     await this.library.initialize();
+    this.zotero.bind(this.zoteroRuntime?.settings, this.library.status().id);
     report('library-initialized');
     report('initializing-projects');
     await this.projects.initialize();

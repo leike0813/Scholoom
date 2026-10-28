@@ -50,3 +50,11 @@ flowchart LR
 ## 结论与承接
 
 读取工具收据不等于能跨IPC绑定文件保存。已选方案先保存可证明的人工／执行事实，缺精确工具和指令作用域时明确未知；若后续要求精确工具归因，仍须验证宿主令牌逐调用传递，不能用run变量或任选指令补齐。实际独立测试、故障验证与审查由tasks／delivery承接。
+
+## cb5f7ed真实提供者与消费者到位
+
+当前dispatch授权完成3.3。KernelApplication.executionFacts沿实际CallContext与harness持久委派关系核对四元组，FileEdit保存路径取得可信快照；MaterialChangeView、files.changes/edit/undo及Agent历史工具均已合入本树，不再等待另一树或复制私有实现。
+
+本轮execution-facts使用实际父子worker旁观原资源调用；material-delegation-history经产品composer完成子创建、父实际读改同一fileId、可信来源／Evidence、人工重叠拒绝及整次undo，再由原会话新run用get_file_changes/read_file_edit/read_file核查实际撤销和当前正文。只有外部模型受控，内部broker／worker／仓储／文件真实；精确指令／工具与修改理由仍未知，不扩token。
+
+该场景Electron一次首run停在schedule.admission等待，未到本域消费行为；同次诊断保留并交主线，后续真实消费通过不关闭原公共失败或平台稳定性。材料I5其他实际／组件证据和限制见材料change本次investigation及delivery。全部当前证据与可重建入口在 `/home/joshua/.cache/scholoom-finish-active/research-graph-runtime/`，旧/tmp仅为历史。

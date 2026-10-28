@@ -2,7 +2,17 @@
 
 ## 变更总览
 
-已定方向是独立Linux platform提供者。第十五轮主线接收六操作及唯一准入／恢复的接口方向；**尚无生产实现**。下一片先完成1.2真实校准，未通过前不实现或注册生产操作。普通权限条件不足即unavailable，不安装／改委托。本模块交付范围不是报告呈现：原change 2.1b／I5及活动页保持开放，不选择画面流、浏览器分发、Windows或Mac实现。
+已定方向是独立Linux platform提供者。1.1／1.2已接收；本次`cb5f7ed3`起点授权实施2.1–3.3，限定同源叶、独立provider、原生controller／构建、唯一准入恢复结清与真实broker/native测试。普通权限条件不足即unavailable，不安装／改委托。原报告2.1b／I5及活动页保持开放，不选择画面流、浏览器分发、Windows或Mac实现。
+
+### 本次启动门与持久化细化
+
+六个操作维持原签名，未注册到全局operations／harness／工作台。可信程序以宿主登记的固定静态ELF字节、固定参数和版本绑定首个`linux-x64-static-v1`策略；预算由登记提供，无产品默认预算。`stage`只有有界清单，同一reservation取得后才创建私有字节文件；每次实际写入将普通文件的dev／ino／size／mtime／ctime见证与offset一起持久保存，跨调用替换或原inode内容变化在封存前拒绝。程序、gate及素材封存后按原见证复制为sealed memfd，再由bwrap复制到私有视图并整体只读重挂；这些物理见证不替代领域basis。
+
+本机`--ro-bind-data`承载静态ELF执行返回ENOENT，`--ro-bind-fd`不能解析deleted memfd；固定字节转私有`--file`再`--remount-ro /`已在真实native链证明可执行与只读。保留bwrap可信reaper；试验`--as-pid-1`留下控制器失联后的存活程序，已弃用，不能以容量仍占用掩盖这一保证失败。controller在门前只从自己的可信后代中核唯一`/gate`、取得pidfd，跟踪根退出后仍收尾全部后代；没有PID消失即释放的分支。
+
+主线在本dispatch明确采纳可信controller的真实exec事件校准：G前对唯一等待gate使用`PTRACE_SEIZE`与`TRACEEXEC | EXITKILL`，只有内核exec-stop可确认`gateReleased`，继续同一被跟踪生命周期且不detach。CLOEXEC状态管道仅作gate准备／失败通知，EOF不再充当执行证明。该前置失败时不发送G；目标seccomp仍默认拒绝ptrace及所有迟到能力，未增加目标权限或依赖。门前取消、快速退出、controller／宿主丢失和停止／容量均需真实回归，未取得前不声明此新增保证已交付。
+
+私有记录目录及实例目录用保持打开的目录FD固定，原路径替换即拒绝，原子写包含文件sync、rename、目录sync；配置ID绑定根目录dev／ino，复制目录不能重绑定原scope。原生flock持有者实现单writer，锁丢失阻断新增交付。记录索引上限4096条，达到上限明确resourceLimit，不扫全文件系统。scope intent先于spawn，boot／InvocationID／cgroup物理身份和controller出生见证先于G，停止回执持久化先于可见stopConfirmed和原admission结清。unknown仍保留lease；停止记录失败也要尝试停止已知范围。恢复停止通过已核原cgroup目录FD的`cgroup.kill`及原对象`cgroup.events`核查，避免按同名unit或旧PID发送信号；恢复副本、身份失配不控制原范围。
 
 ```mermaid
 flowchart LR
@@ -31,7 +41,7 @@ flowchart LR
 
 ReportResources仍核清单、ref／basis和来源授权；冻结字节Adapter必须从原`ResourcePort.read`按原basis重新取得全部字节、核path-ref及前后授权。其实现不在本change业务写集；模块独立测试可用固定批准字节和撤权回调替代。平台只接字节、视图内相对位置和宿主登记策略，不接领域ref、原生路径、任意argv／env或文件系统代理。域内读写、外发与模型queue／final／restart权威均保持原路径。
 
-建议增加`packages/protocol/src/platform-isolation.ts`为唯一同源schema与`FromSchema`类型来源，叶导出`@scholoom/protocol/isolation`；本轮只给以下签名，不写schema。操作前缀拟为`platform.reportIsolation`，仅授予可信宿主Adapter，不能放进harness工具或全局工作台／CLI白名单。
+`packages/protocol/src/platform-isolation.ts`为唯一同源schema与`FromSchema`类型来源，叶导出`@scholoom/protocol/isolation`；以下只说明形状，实际类型从该源派生。操作前缀为`platform.reportIsolation`，仅授予可信宿主Adapter，不能放进harness工具或全局工作台／CLI白名单。
 
 ```ts
 // 建议形状；字段最终从同源schema派生，不能独立维护此DTO。
@@ -135,7 +145,7 @@ sequenceDiagram
 
 ## 文件变化
 
-以下均为未来实施写集，本轮只写OpenSpec。共享符号按主线审核后分工，不与计算线并行写原监督逻辑。
+本次按下列归属实施独立模块。宿主产品注册、领域冻结字节及浏览器相关行继续后置；共享符号只改本片明确部分，不与计算线并行写原监督逻辑。
 
 | 文件／符号 | 归属及目的 |
 | --- | --- |
@@ -160,7 +170,7 @@ sequenceDiagram
 
 同策略的固定三代／setsid程序已分别完成controller与独立宿主SIGKILL：完整登记范围收尾、13个已知出生身份及八unit的追加只读核查通过；活动期持久身份匹配，失配／事后仅只读返回unknown。观察器未区分空事件和目录消失的原始分支，结论仅用组合证据。本轮临时gateReleased字段表示放行意图，实际发送／执行确认及崩溃窗口留2.4，不能照搬字段或由reader释放容量。1.2仅固定native本机校准，不接生产admission或2.x；报告继续unavailable。
 
-未来先build共享包及platform原生适配，再冻结产物跑最小测试；使用已有依赖、独立cache/TMPDIR／配置／所有unit，仅收尾自己实例。首次失败、实际修正、被拒启动／动作未执行、模块替身及未验分别留原delivery。规划轮只运行OpenSpec及diff检查，不重复已绿CPU／OOM／FD样本或产品UI。
+按影响先build共享包及platform原生适配，再冻结产物跑最小测试；使用已有依赖、独立cache/TMPDIR／配置／所有unit，仅收尾自己实例。首次失败、实际修正、被拒启动／动作未执行、模块替身及未验分别留原delivery。不重复既有CPU／OOM负载或无本片UI变化的产品UI。
 
 1. **模块／契约：** 固定独立字节、分片offset／超界／重复、封存后写拒绝、排队后撤权、同inode内容变化由领域Adapter拒绝；所有phase、错误结果和broker权限从最终schema验证。领域Adapter可替换，不算生产库授权通过。
 2. **真实Linux策略：** 复用三cache原生源码作为独立预期，抽取最少固定输入到正式fixture；用新provider真实内部链核高FD／stdio／SCM、socket／特殊文件／namespace／syscall旁路、固定只读字节。已有CPU/OOM绿例不机械重跑，适配实现改变边界时只选必要代表，真实限制读回必须每次发生。
@@ -172,6 +182,6 @@ sequenceDiagram
 
 ## 待办边界
 
-主线已接收六操作、分阶段字节传输和settleRecovered方向，具体归属及首个native策略见本design第1节。下一片只完成1.2的真实syscall及独立失联停止／持久scope身份校准，结果交回后再实施provider；保持生产报告注册关闭。策略保证不足时对应实现继续阻断，不自行扩权限或进入2.x。
+本次实施2.x／3.x独立提供者，具体完成依据由tasks及实际delivery维护；先前1.2的失败与窄结论继续保留。报告注册、领域冻结字节Adapter与呈现不在本片，提供者完成也不开放活动报告。策略保证不足仍阻断，不扩权限。
 
 浏览器的全部进程／运行库、分发维护、共同呈现／原生文本与可访问性、预算及Windows／Mac属于后续明确范围；本模块不能预设像素流来消除这些要求。原报告冻结字节消费者另片实施，并继续逐次核read/send与模型最终准入，不把临时私有字节准备当项目成果权威。

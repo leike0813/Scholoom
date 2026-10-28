@@ -37,6 +37,7 @@ function DocumentImage({
   resourceId,
   alt,
   active,
+  priority,
   enqueue,
 }: {
   port: WorkbenchResourcePort;
@@ -45,7 +46,8 @@ function DocumentImage({
   resourceId: string | undefined;
   alt: string;
   active: boolean;
-  enqueue: (job: () => Promise<void>) => void;
+  priority: boolean;
+  enqueue: (job: () => Promise<void>, priority: boolean) => void;
 }) {
   const element = useRef<HTMLSpanElement>(null);
   const [visible, setVisible] = useState(false);
@@ -99,12 +101,12 @@ function DocumentImage({
       } catch (reason) {
         if (current) setError(messageOf(reason));
       }
-    });
+    }, priority);
     return () => {
       current = false;
       if (url) URL.revokeObjectURL(url);
     };
-  }, [port, resource, sectionId, resourceId, active, visible, retry, enqueue]);
+  }, [port, resource, sectionId, resourceId, active, visible, retry, priority, enqueue]);
   return (
     <span ref={element} className="document-image">
       {image && active ? (
@@ -206,9 +208,23 @@ export function DocumentReader({
   const [recordsOpen, setRecordsOpen] = useState(true);
   const [focusRange, setFocusRange] = useState<TextLocation>();
   const [imagePage, setImagePage] = useState(0);
-  const imageQueue = useRef(Promise.resolve());
-  const enqueueImage = useCallback((job: () => Promise<void>) => {
-    imageQueue.current = imageQueue.current.then(job, job);
+  const [requestedImage, setRequestedImage] = useState<number>();
+  const imageQueue = useRef<{ running: boolean; pending: Array<() => Promise<void>> }>({
+    running: false,
+    pending: [],
+  });
+  const enqueueImage = useCallback((job: () => Promise<void>, priority: boolean) => {
+    const queue = imageQueue.current;
+    if (priority) queue.pending.unshift(job);
+    else queue.pending.push(job);
+    if (queue.running) return;
+    queue.running = true;
+    const next = () => {
+      const read = queue.pending.shift();
+      if (read) void read().then(next, next);
+      else queue.running = false;
+    };
+    next();
   }, []);
   const article = useRef<HTMLElement>(null);
   useEffect(() => {
@@ -389,6 +405,7 @@ export function DocumentReader({
     setLoading(true);
     setSelection(undefined);
     setImagePage(0);
+    setRequestedImage(undefined);
     setActionError('');
     const input: ResourceDocumentInputs['readDocumentSection'] = {
       sectionId: target.sectionId,
@@ -560,7 +577,10 @@ export function DocumentReader({
           type="button"
           key={index}
           className="btn"
-          onClick={() => setImagePage(Math.floor((imageIndexes.get(index) ?? 0) / 8))}
+          onClick={() => {
+            setRequestedImage(index);
+            setImagePage(Math.floor((imageIndexes.get(index) ?? 0) / 8));
+          }}
         >
           显示图片 {node.alt ?? ''}
         </button>
@@ -575,6 +595,7 @@ export function DocumentReader({
           resourceId={node.resourceId}
           alt={node.alt ?? '图片'}
           active={active}
+          priority={requestedImage === index}
           enqueue={enqueueImage}
         />
       );
