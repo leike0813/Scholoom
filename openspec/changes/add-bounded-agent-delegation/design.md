@@ -1,5 +1,11 @@
 # 实现设计
 
+## 执行子进程的窄模块入口（2026-10-29）
+
+606ae82目标取证显示两例在initialize响应前耗尽原窗口，未定位唯一Windows根因。主线另核到默认`execution-worker.ts`及其`execution-graphs.ts`从`@scholoom/harness/node`聚合导入，实际加载宿主runtime／records／RemoteAgent及模块级登记；这些不是worker执行所需职责。新进程交错测量中，聚合入口稳定加载1440个文件，执行驱动与图注册器组合1298个；本机Linux无hook导入三样本中位耗时2929ms／2177ms。仅证明该依赖路径的多余成本，不推断Windows消耗组成或承诺5秒端到端完成。
+
+最小修正以`@scholoom/harness/worker`直接导出既有execution-driver，并从同一graph-registry公开ExecutionGraphs；内核两处改消费窄出口，architecture准确允许该依赖。宿主仍用node原出口，图身份／登记、执行控制、工具／权限、checkpoint及全部期限不变，不启动第二worker、不缓存进程或改变父子隔离。现有Windows专项触发覆盖这四个真实源码输入；原5秒断言／60秒用例预算保持。先构建harness及kernel，再运行真实默认worker的取消／摘录／附件及必要图接续代表，独立审查后以目标Windows结果判断是否有助于剩余失败。
+
 ## 普通委派终态与UI刷新验收（cb5f7ed）
 
 第16轮Electron普通委派同次失败与旧18.2缺工具行不同。原5秒详情断言的绝对窗口为1793195072083–1793195077098；同scope observer起点1793195067954，子onStart 4304ms、initialize响应7229ms、成果保存确认7973ms、report工具完成8194ms、controller退出9014ms、委派completed/available首次观测9020ms，距断言结束仅124ms。window附件仅含指令/run摘要，最后watch响应不能证明委派详情已收到/应用终态；保留该缺证，不猜定UI故障或轮询遗漏。原sample/control有12/8条裁剪，保留事件可证明各自阶段，缺事件不能证明未发生。

@@ -381,6 +381,7 @@
       "sourceRoot": "src",
       "allows": [
         "@scholoom/harness/node",
+        "@scholoom/harness/worker",
         "@scholoom/programs/node",
         "@scholoom/editor/node",
         "@scholoom/research/node",

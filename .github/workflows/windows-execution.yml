@@ -17,6 +17,10 @@ on:
       - tests/kernel/isolated-startup-acl.spec.ts
       - tests/kernel/private-files.spec.ts
       - packages/platform/src/private-files.ts
+      - packages/harness/package.json
+      - packages/harness/src/execution-driver.ts
+      - apps/kernel/src/execution-worker.ts
+      - apps/kernel/src/execution-graphs.ts
       - tests/fixtures/isolated-kernel-acl.mjs
       - tests/fixtures/isolated-kernel-process.mjs
       - tests/fixtures/isolated-kernel-diagnostic.mjs

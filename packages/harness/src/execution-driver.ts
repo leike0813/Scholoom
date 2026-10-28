@@ -25,6 +25,8 @@ import { executionFiles } from './files.js';
 import { decodeFrameworkMessage, encodeFrameworkMessage } from './framework-messages.js';
 import { ExecutionGraphs, type GraphDriver } from './graph-registry.js';
 
+export { ExecutionGraphs } from './graph-registry.js';
+
 /** Starts host IPC for the current worker process. Entry modules call it; importing it has no effect. */
 export function startExecutionWorker(graphs = new ExecutionGraphs()): void {
   registerHarnessProfile('anthropic', {

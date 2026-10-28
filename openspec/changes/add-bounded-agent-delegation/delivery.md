@@ -1,5 +1,15 @@
 # 实际交付与交接
 
+## 主线窄worker入口候选及本机复验（2026-10-29）
+
+主线沿上述Windows精确阶段继续核实际依赖，确认默认内核worker及图注册器导入宿主聚合`@scholoom/harness/node`。只读新进程对照保存在`/home/joshua/.cache/scholoom-finish-active/worker-entry-profile/`：修改前冻结dist三次交错裸导入中位数为node2929ms、driver＋registry2177ms，文件数1440／1298；有hook的加载集合与无hook耗时分别保存，不从hook时长推产品性能。聚合多出的宿主runtime／records／RemoteAgent及模块登记不属执行worker职责。
+
+候选仅新增`@scholoom/harness/worker`包出口直接指向既有execution-driver，由同一文件公开原ExecutionGraphs；默认内核worker与注册模块改导入该出口，architecture允许准确路径。无新wrapper或独立注册权威，原控制、checkpoint、工具、权限、进程及所有期限保持；宿主继续用node出口。Windows专项触发补真实四输入，不改原5秒断言／60秒用例预算。
+
+先构建harness、kernel，再冻结产物运行原cancel／excerpt／附件三个代表，`worker-entry-real.{log,json}`为Linux3/3、44.8秒，0跳过／失败／flaky、retries=0；内部真实worker、取消／停止／重启、持久资源及RPC不替换，模型仅外部HTTP受控。grep未匹配research-graphs用例，未计作图组通过。`worker-entry-architecture.log`／`worker-entry-biome.log`通过；`worker-context-tools.log`通过。独立只读候选接口／副作用审查见该profile根report，无发现。
+
+本片修的是确证多余依赖，不宣称它是Windows原失败唯一根因；目标新回执尚待取得。前节606ae82及旧失败保持，4.2／4.3、17.2／18.2与科研范围未由本机3/3关闭。所有新输入／证据在Git及cache，不依赖当前/tmp。
+
 ## 主线606ae82 Windows阶段复核（2026-10-29）
 
 专项run40729861762／job122962932735、head`606ae829720e5c0709198a6e36839929ae4fda5b`及artifact12835411610已按原日志核对。Agent代表1/3：excerpt通过，cancel和首附件失败；真实isolated4/4及ACL5/5不替代这两项。同次完整Checks40729861720仍运行，不能用旧专项3/3或跨次计数判断稳定性。
