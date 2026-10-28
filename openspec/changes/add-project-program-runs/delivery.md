@@ -19,7 +19,7 @@
 
 ## 当前状态与成果
 
-当前续做起点为ba29ee61ac6f8700cfe6a9fbaa529a8a7a75aad1，开始时工作区干净，主线已接收第15组并保全合入／同步复验。正式输入为 `/home/joshua/.cache/scholoom-round12-acceptance-NagGbw/`，第16组结果见文末“第十二轮”：已实施公共isolated-kernel诊断A，安全负例3项及原进程替换／文件尾2项本机通过，测试变更复用既有构建。来源观察子项已交付，5.2／6.2及实际Windows启动根因保持开放，等待接入后同一失败run／子PID的安全原因与前后收据。TaskPort／FileEdit、各域恢复、工具／标签、唯一库权威、未保存CSL及报告旧摘录／save／undo／来源授权均保留。未修改生产机制、重跑TeX／全仓／UI或使用旧累计patch。
+当前续做起点为f4ab1e5f1ed17ae9af656c1f9945005a2786d911，开始时工作区干净，主线已接收第16组并完成同步构建／tools及定向验证。正式输入为 `/home/joshua/.cache/scholoom-round13-acceptance/`，本轮第17组只接入既有Windows专项workflow，完整四场景本机通过；未发现安全JSON附件缺口，测试／生产源码未改。新采样步骤尚无Windows目标回执，5.2／6.2及历史启动根因继续开放。新输入／payload／结果均在Git或本轮cache，现有/tmp不是接续前置。TaskPort／FileEdit、库权威、CSL草稿及报告授权不变，不重放补丁、同步其他树或触发CI。
 
 第三轮同步证据仅保留当时结果：`/tmp/scholoom-sync-recovery-wyn13R/recovery.md`、`synchronized.json`及当时日志（主线65项内核／双宿主2项），不替代最新A/B验收。旧公共及累计patch均为历史工件，已合入共同1026796，不再次应用。用户允许本地补丁／提交；继续禁止推送、PR、归档、依赖下载／安装、真实库和开发服务器。
 
@@ -537,3 +537,27 @@ Fermat对新增design候选再作只读复核，stdio／日志来源、清理前
 Archimedes原生辅助保持gpt-6.1-sol/high、fork_context:false，仅写isolated-kernel.spec.ts及新受控入口，父拥有helper／共用解析器、设计及所有实跑。父将超长样本增至约512KiB并核对JSON分隔符计入容量；收尾自查补分开的exit观察，辅助两次只读复核父代码，未发现确定的泄漏、有界性、清理归属或预算缺陷，未代跑验收。新增exit仅记录，原ended／exited和等待／清理仍由close驱动。原生产unknown／容量／完整停止／锁及Agent／项目夹具保持，不改model-kernel或harness。
 
 交回01-isolated-kernel-diagnostics.patch（共用解析及helper）、02-isolated-kernel-regressions.patch（直接测试及新入口）、03-openspec-evidence.patch，依赖顺序01→02→03。不应用／回滚或混入旧累计补丁，只核反向可应用性。第16组完成，50/52；公共诊断A的本机行为已交付，5.2／6.2仍开放，主线接入后的Windows同一失败run／自有子PID原原因、阶段及前后收据仍待验。诊断补齐不代表历史启动根因或整体科研质量关闭。到本片边界停止，不提交／推送／PR／归档、同步其他树或继续扩环境／平台。
+
+## 第十三轮：Windows专项采样入口
+
+本轮HEAD为f4ab1e5，开始时工作区干净；已读AGENTS、共同计划第十三轮及原交付，apply初始50/52。正式证据根 `/home/joshua/.cache/scholoom-round13-acceptance/`，本轮独立根 `/home/joshua/.cache/scholoom-project-execution-round13-E9XEZH/`。全部命令在当前cwd，以bash先export TMPDIR到本轮cache；没有读取现有/tmp作为输入，历史路径不重用。实际执行后已获取delivery instructions，仍沿本tasks／delivery交回。
+
+原Windows失败来自e3c815b／Checks40613967267：主线windows-ci-current.log:2937—2951保留isolated-kernel旧单例首次start:34的ready-ipc失败及清理后owned child closed，不能反推自然退出或根因；本次完整Windows组692通过46失败42跳过。旧专项40613967285虽全job成功，但workflow没有新spec步骤，不构成新诊断通过。没有以专项或本机绿色关闭5.2，也未查询／等待新CI。
+
+实际只改 `.github/workflows/windows-execution.yml`：新增tests/isolated-kernel.ts、tests/kernel-fixture.ts、tests/kernel/isolated-kernel.spec.ts及两个可信process／diagnostic .mjs入口的五条push.paths。新增“Observe isolated kernel startup and owned-child cleanup”，在availability后、Agent前，沿`if: '!cancelled()'`。命令不使用旧名字grep，直接执行完整spec、单worker、独立output `test-results/windows-isolated-kernel`；当前--list明确原真实配置／进程替换、exit、wait及解析器共四场景。旧首批repeat步骤条件、15分钟job预算、测试60秒预算及44秒就绪预算、零重试、权限、依赖和其余步骤均未改。
+
+既有profile安全JSON已写在test.info.outputPath下，自动位于新output目录。既有actions/upload-artifact@v4仍用!cancelled条件上传test-results/，新步骤普通失败后仍执行上传，且原retain-on-failure trace／零重试保留首失败；后续步骤使用不同output，不覆盖它。本机实际得到exit、wait和旧stop保护的三份安全JSON，分别792／810／2895字节，artifact-audit.json记录路径／安全结构和依赖实路径。没有发现需改helper／子入口／测试的实际附件缺口，因此它们及唯一解析器全未改；没有新增日志白名单或CI体系。
+
+| 实际命令／检查 | 结果及证据 |
+| --- | --- |
+| `node node_modules/@playwright/test/cli.js test --config playwright.kernel.config.ts tests/kernel/isolated-kernel.spec.ts --list` | 当前 **4项**，cases.log；明确不是旧单例选择器 |
+| 同入口完整spec `--workers=1 --output <本轮根>/isolated-results` | **4/4通过，1.4m**，isolated.log：真实配置／竞争／替换及旧stop保护30.3s、exit83ms、原预算wait44.0s、解析器10ms。首次运行即通过，没有调整预算、重试或跑全仓 |
+| `node node_modules/typescript/bin/tsc --noEmit -p tsconfig.tools.json` | 通过，tools.log。只改workflow／文档，复用本树同步已验构建，没有重建或安装依赖 |
+| `node <本轮根>/check-workflow.mjs` | 通过，workflow-static.log。复用已安装yaml2.9.1做唯一键YAML解析；核五条路径、四场景命令、步骤位置／条件及artifact范围，去掉本片新增内容后与HEAD原workflow结构完全一致，原预算／权限／其余步骤未变 |
+| OpenSpec／diff | 本change strict、scholoom-dev schema和最终diff／补丁检查通过；无正式spec、schema／生成映射或产品模块变化 |
+
+本机Linux Node24.12.0。真实配置／替换走已有kernel／broker／库／文件和真实进程；exit／wait仅在可信测试入口替换为固定诊断流，仍真实fork／IPC／exit／close；解析器为固定安全字节校准。未启BBT、模型、UI／显示或开发服务器，不用Linux代替Windows；未运行生产构建、全仓或图形测试。原失败日志保留在主线cache，本轮测试未有新的失败，不伪造红绿。
+
+独立可复验脚本入口为本轮check-workflow.mjs；case列表、命令日志、artifact-audit.json、结果／profile和补丁均在本轮cache。审计确认所需源码、可信入口、构建产物和Playwright／TypeScript／yaml实路径均不在/tmp；不依赖旧static-ui、XPI、oracle或显示服务，因此无需复制／访问它们。后续若开展UI／BBT，应另用主线cache保全入口，本片没有使用旧路径。测试配置及材料保留至配置退役，不清理旧目录。
+
+Hubble原生辅助保持gpt-6.1-sol/high、fork_context:false，只读复核workflow、四场景和输出路径，未发现确证问题，未改文件或代跑验收；父执行并接收结果。辅助已关闭，本轮自有进程收尾后交回01-windows-isolated-kernel-workflow.patch及02-openspec-evidence.patch、README／manifest，仅当前基线独立增量，不含旧累计patch。下一步由主线接入并正常push后消费同源码Windows该新步骤的四场景、首失败trace及诊断JSON；没有新目标回执就保持未验。5.2／6.2、Windows启动稳定性和完整change保持开放；到此停止，不自行提交／同步／push／PR／归档或触发workflow。

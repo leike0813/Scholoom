@@ -11,6 +11,11 @@ on:
       - tests/kernel/literature-attachment-integration.spec.ts
       - tests/kernel/host-connection.spec.ts
       - tests/fixtures/zotero-host/fixed-host.mjs
+      - tests/isolated-kernel.ts
+      - tests/kernel-fixture.ts
+      - tests/kernel/isolated-kernel.spec.ts
+      - tests/fixtures/isolated-kernel-process.mjs
+      - tests/fixtures/isolated-kernel-diagnostic.mjs
       - tests/kernel/lifecycle.spec.ts
       - tests/kernel/platform-availability.spec.ts
       - tests/kernel/harness.spec.ts
@@ -51,6 +56,9 @@ jobs:
       - name: Verify lock and unavailable execution observations
         if: '!cancelled()'
         run: pnpm --config.optimisticRepeatInstall=false exec playwright test --config playwright.kernel.config.ts tests/kernel/lifecycle.spec.ts tests/kernel/platform-availability.spec.ts --grep 'occupied configuration preserves|kernel declares|child process observation|unavailable execution refuses' --workers=1 --output test-results/windows-availability
+      - name: Observe isolated kernel startup and owned-child cleanup
+        if: '!cancelled()'
+        run: pnpm --config.optimisticRepeatInstall=false exec playwright test --config playwright.kernel.config.ts tests/kernel/isolated-kernel.spec.ts --workers=1 --output test-results/windows-isolated-kernel
       - name: Observe cancellation setup excerpts and attachment reader
         if: '!cancelled()'
         run: pnpm --config.optimisticRepeatInstall=false exec playwright test --config playwright.kernel.config.ts tests/kernel/agent-delegation.spec.ts tests/kernel/context-instructions.spec.ts tests/kernel/literature-attachment-integration.spec.ts --grep 'cancelling a child|real worker sends explicit excerpts|real RPC and Agent share material bytes' --workers=1 --output test-results/windows-agent
