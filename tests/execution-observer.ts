@@ -21,6 +21,20 @@ const phases = new Set([
     ['request', 'response', 'rejected'].map((state) => `${method}.${state}`),
   ),
 ]);
+const startupPhases = new Set([
+  'schedule.admission.request',
+  'schedule.admission.response',
+  'schedule.admission.rejected',
+  'execution.prepare.request',
+  'execution.prepare.rejected',
+  'execution.stream.request',
+  'remote.prepare.request',
+  'worker.start.request',
+  'worker.start.response',
+  'worker.start.rejected',
+  'onStart.request',
+  'onStart.rejected',
+]);
 const errorCodes: ReadonlySet<string> = new Set(errorInfoSchema.properties.code.enum);
 const observationCodes: ReadonlySet<string> = new Set([
   ...errorCodes,
@@ -43,11 +57,14 @@ export function createExecutionObserver(
   const samples: Record<string, unknown>[] = [];
   const children: Record<string, unknown>[] = [];
   const controls: Record<string, unknown>[] = [];
+  const startup: Record<string, unknown>[] = [];
   const stages: { elapsedMs: number; name: string; modelRequests: number | null }[] = [];
   let droppedSamples = 0;
   let droppedChildren = 0;
   let droppedStages = 0;
   let droppedControls = 0;
+  let droppedStartup = 0;
+  let unverifiedStartup = 0;
   let stopped = false;
   let snapshotTimedOut = false;
   let inFlight: Promise<string | undefined> | undefined;
@@ -172,12 +189,53 @@ export function createExecutionObserver(
   const executionTopic = channel('scholoom.harness.execution');
   const observeControl = (message: unknown) => {
     const value = message as {
+      projectId?: unknown;
+      sessionId?: unknown;
+      runId?: unknown;
+      requestedInstanceId?: unknown;
       instanceId?: unknown;
       phase?: unknown;
       errorCode?: unknown;
       controllerCode?: unknown;
       controllerSignal?: unknown;
     } | null;
+    if (typeof value?.phase === 'string' && startupPhases.has(value.phase)) {
+      if (value.projectId !== scope.projectId || value.sessionId !== scope.sessionId) return;
+      try {
+        if (typeof value.runId !== 'string' || value.runId.length > 128) throw new Error();
+        const row = database
+          ?.prepare('SELECT id FROM runs WHERE id=? AND sessionId=? LIMIT 1')
+          .get(value.runId, scope.sessionId);
+        if (!row) throw new Error();
+        const instructions = database
+          .prepare(
+            'SELECT id FROM instructions WHERE runId=? AND sessionId=? ORDER BY seq DESC LIMIT 17',
+          )
+          .all(value.runId, scope.sessionId) as { id: string }[];
+        if (startup.length === 32) {
+          startup.splice(1, 1);
+          droppedStartup++;
+        }
+        startup.push({
+          elapsedMs: Math.round(performance.now() - started),
+          phase: value.phase,
+          runId: identity(value.runId),
+          instructionIds: instructions.slice(0, 16).map((i) => i.id),
+          instructionsTruncated: instructions.length > 16,
+          ...(typeof value.requestedInstanceId === 'string' &&
+          value.requestedInstanceId.length <= 128
+            ? { requestedInstanceId: value.requestedInstanceId }
+            : {}),
+          ...(typeof value.errorCode === 'string' && errorCodes.has(value.errorCode)
+            ? { errorCode: value.errorCode }
+            : {}),
+        });
+        void sample();
+      } catch {
+        unverifiedStartup++;
+      }
+      return;
+    }
     if (typeof value?.instanceId !== 'string' || typeof value.phase !== 'string') return;
     if (!phases.has(value.phase)) {
       droppedControls++;
@@ -259,7 +317,7 @@ export function createExecutionObserver(
         remember({ samplingError: 'databaseCloseFailed' });
       }
     })());
-  const body = () => {
+  const body = (maxBytes = 256 * 1024) => {
     const payload = () =>
       JSON.stringify({
         platform: process.platform,
@@ -269,17 +327,32 @@ export function createExecutionObserver(
         samples,
         children,
         controls,
+        startup,
         stages,
         droppedSamples,
         droppedChildren,
         droppedStages,
         droppedControls,
+        droppedStartup,
+        unverifiedStartup,
         failure,
         snapshotTimedOut,
       });
-    while (Buffer.byteLength(payload()) > 256 * 1024 && samples.length > 2) {
+    while (Buffer.byteLength(payload()) > maxBytes && samples.length > 2) {
       samples.splice(1, 1);
       droppedSamples++;
+    }
+    while (Buffer.byteLength(payload()) > maxBytes && startup.length > 2) {
+      startup.splice(1, 1);
+      droppedStartup++;
+    }
+    for (const entry of startup) {
+      const ids = entry.instructionIds as string[];
+      while (Buffer.byteLength(payload()) > maxBytes && ids.length) {
+        ids.pop();
+        entry.instructionsTruncated = true;
+        entry.omittedInstructionIds = Number(entry.omittedInstructionIds ?? 0) + 1;
+      }
     }
     return payload();
   };

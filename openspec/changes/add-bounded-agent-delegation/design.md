@@ -1,5 +1,29 @@
 # 实现设计
 
+## 受理至onStart的共同启动阶段（58eda140）
+
+三份e3c815b/40613967267现场只证明各自受理及早期queued；两个首文件例的独立HTTP计数为0，委派例计数未观测。原collector按应用变更/控制事件采样，没有周期性heartbeat；首样本后直到清理unavailable不能当连续状态。原控制事件最早在RemoteAgent的onStart返回后发布，且collector必须查到run_instances行；该行恰在onStart中登记，所以原生controller/worker可能已创建而仍没有可核记录。现有材料无法选择三例的实际阻塞分支，窗口观察不含工具消息，服务端工具快照不证明renderer工具送达。
+
+```mermaid
+flowchart LR
+  A[指令和run持久受理] --> B[schedule等待真实reservation.ready]
+  B --> C[execute准备模型与checkpoint及工具]
+  C --> D[RemoteAgent准备工具schema]
+  D --> E[ManagedNode.start调用与返回]
+  E --> F[onStart登记实际instance及PID]
+  F --> G[initialize响应和consume及模型准入]
+```
+
+只沿既有scholoom.harness.execution增加scheduler准入request/response/rejected、普通execute准备/stream进入、Remote准备、ManagedNode.start request/response/rejected及onStart request/rejected。ManagedNode.start返回表示原方法成功返回，不新增worker监听就绪或IPC合同；调用到返回之间的原生细分仍归已有平台事实。prepare/stream只描述原调用位置，不修改调度、模型授权、checkpoint、Native/Graph流程、停止或期限。
+
+源码细分：process-controller在收到原生R并成功发送load后就回ready；process-bootstrap随后import入口、startExecutionWorker注册处理器，再回loaded，controller才放行startupFrames。因此worker.start.response/onStart不表示模块已载入，initialize.sent也只是原发送Promise成功；initialize.response才是原有效处理回执。init发送到响应区间仍可能包括模块导入/驱动注册/初始化，现有接口不能将这三者拆开。本片不新增跨模块loaded观察合同，若下一次证据精确落此区间再向主线提出窄增量。
+
+在remote-agent保留一个内部发布函数与可选diagnosticScope，runtime用实际project/session/run提供；普通root/子执行复用instanceLifecycle，注册图仅传同源scope。collector同一接点增加最多32条startup窗口：先匹配所属project/session，再查持久runs及instructions验证run/指令身份。登记前仅记录requestedInstanceId，无PID/已运行推断；onStart后的controls/children仍按原instance表验证，不放宽原归属规则。未知run/查询失败单列unverifiedStartup，容量丢弃显式计数；白名单固定阶段与错误码，不存正文/凭据/原始帧，不新建RPC、第二观察框架或逐UI文件加逻辑。
+
+校准沿已有execution-isolation可信fixture：使用真实ProcessAdmission容量预留使已受理run停在ready前，读真实queued/accepted与0 HTTP、无onStart；释放本测试预留后，运行真实worker及受控HTTP到完成，核startup与实际instance控制事件关联、原错误和脱敏边界。此控制只用于辨别诊断盲区，不冒充CI根因；不以整个Agent耗时作5秒产品SLA，不修改原UI业务断言或预算。先构建harness/内核再最小校准和必要现有helper回归，测试期间冻结产物；所有工件在cache，不依赖旧/tmp。
+
+startup保留完整指令身份，不将合法1024字符身份截成128字符前缀。body在原256KiB预算内先裁旧样本，再裁startup中间条目并计丢弃；仍不足时逐个省略完整instructionId，记录omittedInstructionIds及instructionsTruncated，不输出可碰撞的前缀身份。可信model-kernel使用同一body的224KiB分配，为240KiB子文件生命周期封装留空间，不复制裁剪实现。两个容量校准输入覆盖共享128字符前缀的两条真实指令，以及16条长Unicode真实指令的字节上限；后一情形允许阶段窗口明确裁剪，不能当完整时间线。
+
 ## 后续会话的UI完成等待（ba29ee61）
 
 本片消费第十二轮正式主线证据，沿真实`user configures, edits safely...`场景的后续session/run核对原断言失败、执行observer的startedAt+elapsed、controller退出、workbench.watch送达和UI状态应用。当前共同源码已包含两端提供者及RPC闸门修正；不重放旧patch，不改项目fixture/file-workbench或计算生命周期夹具，不把Electron最初No held RPC、Windows尚未消费的启动等待与本机后续run合因。

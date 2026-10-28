@@ -47,11 +47,12 @@ test('legacy model kernel records owned execution stages without model text or c
       const session = await client.call('session.create', { projectId: 'application' });
       sessions.push(session.id);
       // A real session-scoped change also exercises the observer cap without extra executions.
-      await client.call('session.rename', {
-        projectId: 'application',
-        sessionId: session.id,
-        title: `Observed ${index}`,
-      });
+      if (index > 1)
+        await client.call('session.rename', {
+          projectId: 'application',
+          sessionId: session.id,
+          title: `Observed ${index}`,
+        });
       if (index > 1) continue;
       const scope = { projectId: 'application', sessionId: session.id };
       await client.call('session.send', {
@@ -87,6 +88,12 @@ test('legacy model kernel records owned execution stages without model text or c
         (item: { sessionId: string }) => item.sessionId === sessionId,
       );
       assert(captured);
+      expect(
+        captured.startup.some(
+          (item: { phase: string }) => item.phase === 'schedule.admission.request',
+        ),
+      ).toBe(true);
+      expect(captured.unverifiedStartup).toBe(0);
       expect(captured.modelRequestsAtStart).toBe(null);
       const controls = captured.controls as { phase: string; instanceId: string; runId: string }[];
       for (const phase of [

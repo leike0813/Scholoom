@@ -107,7 +107,7 @@ import {
 import { programTools } from './program-tools.js';
 import { ProjectBackend } from './project-backend.js';
 import type { HarnessRecords } from './records.js';
-import { RemoteAgent } from './remote-agent.js';
+import { publishExecutionStage, RemoteAgent } from './remote-agent.js';
 import * as tables from './schema.js';
 import { createTaskTools } from './task-tools.js';
 import { zoteroTools } from './zotero-tools.js';
@@ -1229,7 +1229,15 @@ export class Harness {
     controller.signal.addEventListener('abort', cancelReservation, { once: true });
     const done = Promise.resolve()
       .then(async () => {
-        await reservation.ready;
+        const scope = { projectId: project.id, sessionId: run.sessionId, runId: run.id };
+        publishExecutionStage(scope, 'schedule.admission.request');
+        try {
+          await reservation.ready;
+        } catch (error) {
+          publishExecutionStage(scope, 'schedule.admission.rejected', undefined, error);
+          throw error;
+        }
+        publishExecutionStage(scope, 'schedule.admission.response');
         controller.signal.throwIfAborted();
         entered = true;
         if (run.graph)
@@ -1237,7 +1245,7 @@ export class Harness {
         else await this.execute(project, run, controller.signal, resume, reservation);
       })
       .catch((error) => {
-        if (!entered)
+        if (!entered) {
           this.setRun(project, {
             ...run,
             state: controller.signal.aborted
@@ -1248,6 +1256,7 @@ export class Harness {
             error: modelFailure(error),
             remoteOutcome: 'unknown',
           });
+        }
       })
       .finally(() => {
         controller.signal.removeEventListener('abort', cancelReservation);
@@ -1629,6 +1638,7 @@ export class Harness {
         : undefined;
       const executionResources = this.executionResources;
       const remote = new RemoteAgent({
+        diagnosticScope: { projectId: project.id, sessionId: run.sessionId, runId: run.id },
         ...(model ? { model } : {}),
         backend: new ProjectBackend(
           this.projectFiles(context),
@@ -1784,6 +1794,7 @@ export class Harness {
     let checkpointDb: Database.Database | undefined;
     const checkpointClaims: Array<() => void> = [];
     const instanceId = randomUUID();
+    const diagnosticScope = { projectId: project.id, sessionId: run.sessionId, runId: run.id };
     const buffers = new Map<string, string>();
     const persistedAt = new Map<string, number>();
     const inFlightTools = new Set<Promise<unknown>>();
@@ -1814,6 +1825,7 @@ export class Harness {
         .all()
         .some(({ value }) => value.parentInstanceId === instanceId && value.state !== 'exited');
     try {
+      publishExecutionStage(diagnosticScope, 'execution.prepare.request', instanceId);
       signal.throwIfAborted();
       await this.port(project)['project.check']({ projectId: project.id, access: 'send' });
       const libraryContextKey = `library-context:${run.sessionId}`;
@@ -2345,6 +2357,7 @@ export class Harness {
               .run();
         };
         return {
+          diagnosticScope,
           authorize: () => this.checkExecutionContext({ ...fileContext, instanceId: id }),
           onStart: (owned: import('@scholoom/platform/node').ManagedNode) => {
             if (!owned.identity)
@@ -3384,6 +3397,7 @@ export class Harness {
         );
       }
       rootRequested = true;
+      publishExecutionStage(diagnosticScope, 'execution.stream.request', instanceId);
       for await (const event of agent.streamEvents(input, { ...config, version: 'v2' })) {
         signal.throwIfAborted();
         if (event.event === 'on_chat_model_stream') {
@@ -3466,6 +3480,8 @@ export class Harness {
         throw new OperationError('outcomeUnknown', '能力子执行尚未确认停止。');
       this.setRun(project, { ...run, state: 'completed', remoteOutcome: 'completed' });
     } catch (error) {
+      if (!rootRequested)
+        publishExecutionStage(diagnosticScope, 'execution.prepare.rejected', instanceId, error);
       await this.delegationManager(project)
         .stopParent(instanceId)
         .catch(() => {
