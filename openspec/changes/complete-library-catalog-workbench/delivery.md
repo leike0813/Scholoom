@@ -1,5 +1,51 @@
 # 实际交付与交接
 
+## f4ab1e5f：4.1／4.2既定字段与表单父项验收收尾
+
+本轮开工核HEAD`f4ab1e5f1ed17ae9af656c1f9945005a2786d911`且clean。只更新本change原tasks／delivery，**4.1、4.2父项关闭，29/32**；其余为1.4及完整6.1／6.2。没有生产、测试、规格、设计或公共夹具／workflow改动，也没有新产品范围选择。此前父项“留作覆盖／验收收尾”是已交付a–d子项的重复待办；本轮逐项核证后移除该重复等待，不把字段验收等同全平台、完整change或科研质量。
+
+### 覆盖表及实际差距
+
+| 既定契约 | 独立依据与当前消费路径 | 覆盖与边界 |
+| --- | --- | --- |
+| 32 CSL类型 | 固定Zotero10.0.5 schema44的csl.types；protocol/library-metadata.ts→CatalogItemForm类型目录 | 键集合完全一致，无重复或遗漏。40个原Zotero类型的多对一投影不能据此逆推原类型。 |
+| 44文本字段与适用类型 | schema44的47文本目标减citation-key／note／历史shortTitle；utilities_item.js的baseField及类型特例，固定film／computerProgram／patent／case输入 | 全键及适用范围无漏项；title-short不覆盖shortTitle，genre不改条目type，references不改关联身份。software.language及词典／百科ISSN三个适用项比固定投影更宽，属已有CSL编辑能力，不表示Zotero原值映射。 |
+| 22创建者角色 | schema44姓名映射的唯一目标及主角色author回退；同源角色目录→同一表单／moveCatalogCreator | 无键或适用范围遗漏。family／given／literal显式更正、机构／单名、角色移动及组内排序均保留完整对象；四个通用角色已有更宽类型范围，不重建Zotero跨角色orderIndex。 |
+| 四日期键与数字范围／circa | issued／accessed／submitted／original-date；固定CSL1.0.2 schema、官方两端／uncertain样本及citeproc-js1.4.61条件 | 四键齐全；literal、1–2个正整数端点与各端连续精度、布尔／数值0／1 circa均有明确编辑。现有日期目录不按条目类型限制，不能据此声称原Zotero每类均有对应字段。 |
+| 完整草稿、保存与权威保护 | LibraryTab的同一个CatalogItemForm／完整JSON草稿→真实library.ingest／update；LiteratureCatalog的开放schema、DOI／16KiB、授权／CAS／历史 | 类型切换仅改明确键，未知嵌套及未编辑属性保留；非法数字／原生badInput不破坏草稿。原值、来源、正式键／固定状态属于library独立记录，CSL更正不双写；代表测试验证冲突、reload及真实领域关闭重开读回。 |
+
+**没有发现本范围内尚未满足的已定合同。** 以下是明确保留边界，不另列实现缺口：九个可含数字的文本目标volume／issue／page／edition／chapter-number／collection-number／number／number-of-pages／number-of-volumes既有数字值继续JSON核查；额外CSL类型／角色、available-date／event-date、复杂姓名属性、日期数字字符串／开放末端／BCE／季节／非公历／raw或literal混合不自动转换。未知circa如字符串"0"不猜作false；支持的数字端点可局部更正而保留该标记。任意开放metadata可保留并不证明符合CSL标准。Zotero逆映射、Extra解析、别名合并、原值同步、CLI持久配置及C—I仍不在本片范围。
+
+### 独立输入与核查可复现性
+
+必需oracle现为`/home/joshua/.cache/scholoom-round13-acceptance/preserved-oracles/`，`manifest.json`列11文件及旧／新路径；本轮核11个cache目标均存在。元数据组为`scholoom-library-metadata-round6/{schema44.json,utilities_item.js,upstream-oracle.json,upstream-probe.mjs}`，schema commit70c3aa98627413d6a30dca955886eafbde085ce9、utilities commit1dd38e27edf81e9d9c4161c957b7efb7f5681ac3；日期组为`scholoom-library-date-round7/`中的CSL schema、四份官方样本、citeproc属性源码及standard-probe.mjs。只用这些保全输入，未读取旧/tmp内容。
+
+本轮结果根`/home/joshua/.cache/scholoom-literature-round13-ke1Xiw/`：`catalog-scope-audit.mjs`为可重跑的只读目录调查，`catalog-scope-audit.json`列全部32／44／22／4键、字段／角色／日期的独立上游投影与实际适用类型、原始missing／extra。预期来自schema／转换器而非产品声明，所有missing为0；已存在的更宽CSL能力完整列出，不把这些extra伪称Zotero可逆。父Agent核查了别名处理、适用范围特例及原数据来源，最终关闭判断由父承担。
+
+辅助使用原生gpt-6.1-sol／high、fork_context:false，只读对照目录；为保全必要调查代码，另明确授权它仅新建上述cache脚本与JSON，没有仓库写入。辅助已完成并关闭。输入及脚本不在当前/tmp，主线可直接从cache复核，不依赖本会话或旧暂存目录。
+
+### 实际验证与接线边界
+
+以下R为`/home/joshua/.cache/scholoom-round13-acceptance`。所有命令先`export TMPDIR=/home/joshua/.cache/scholoom-literature-round13-ke1Xiw/tmp`，使用已有Node／依赖。同步构建与类型／架构证据复用R的`literature-workbench/sync-build.log`（SYNC BUILD TYPECHECK AND ARCHITECTURE PASSED）；本片无生产／测试改动，不重复构建，测试期间产物冻结。
+
+| 命令／依据 | 实际结果 |
+| --- | --- |
+| `node <R>/preserved-oracles/scholoom-library-metadata-round6/upstream-probe.mjs`；`node <R>/preserved-oracles/scholoom-library-date-round7/standard-probe.mjs` | 首次均通过，`upstream-probe.log`／`standard-probe.log`。4份固定转换样本及官方日期／circa输入独立核对，不把产品输出当预期。 |
+| `node <本轮根>/catalog-scope-audit.mjs` | 退出0、passed=true，完整目录无漏项；字段／角色／日期更宽适用性分别3／66／60对，原始差异保留并解释，无新增产品白名单或schema约束。 |
+| `node node_modules/@playwright/test/cli.js test --config playwright.kernel.config.ts tests/kernel/catalog-metadata.spec.ts tests/kernel/literature-catalog.spec.ts --grep 'typed field edits\|remaining native CSL\|numeric CSL date\|circa is explicitly\|simple CSL date\|creator role changes\|native CSL alias\|typed CSL changes retain' --output <本轮根>/kernel --reporter=list` | **首次8/8，8.5秒**，`kernel.log`。真实LiteratureCatalog／SQLite／文件，覆盖明确字段、姓名对象与顺序、数字范围／circa、非法及复杂值保留、原值／固定键、CAS及关闭重开历史读回。 |
+| `node <R>/create-ui-config.mjs <本轮根>/ui-generated.config.mts`；`xdpyinfo`；`SCHOOLOOM_UI_PORT=5996 SCHOOLOOM_UI_DATA_DIR=<本轮根>/profile node node_modules/@playwright/test/cli.js test --config <本轮根>/ui.config.mts tests/ui/library.spec.ts --grep 'native CSL fields and ordered host names\|manual typed fields, creators and calendar parts'` | 显示预检通过；**首次双宿主4/4，1.7分钟**，`display-preflight.log`／`ui.log`／`ui.json`。两场景分别覆盖原生字段／host及手动字段／日期／badInput／冲突草稿，没有重复滚动或业务整合组。 |
+| OpenSpec strict／scholoom-dev schema、apply进度及diff／patch检查 | 通过，`openspec-strict.log`／`openspec-schema.log`／`apply-final.json`／`diff-check.log`／`patch-check.log`。只关闭4.1／4.2，不因CLI ready关闭剩余项。 |
+
+UI配置由主线cache生成器在本cwd生成，薄包装仅指定cache输出／JSON报告及保留配置的停止收尾；静态入口是`<R>/preserved-tmp/static-ui.mjs`。内部客户端、broker、领域、持久库及双宿主组件真实；样本为合成隔离数据，原值／键准备也走真实commitRecords。模型未参与、无工具结果或UI状态替身。上游probe的ItemFields／CreatorTypes是schema查询facade，citeproc条件为VM内独立片段；它们不是Zotero宿主、生产引用渲染或原日期／Extra解析验证。
+
+本轮没有首次失败或修复代码，所有选定检查首跑通过；未制造RED。当前UI为真实保存／CAS／页面reload，内核代表测试为领域仓储关闭重开，不能写成本轮新CLI进程配置恢复。既有6.1b、5.4a、滚动及主线诊断修正2/2证据保持原范围，未机械重跑，library.spec中的catch、空观察及save参数有界副本完全未改。
+
+### 交回与未验
+
+未查询或轮询新CI；正式平台输入沿R及共同计划第十三轮，Windows专项成功不替完整组692通过／46失败／42跳过，Mac新滚动源码未验。字段父项无新增决策要问；1.4、完整6.1／6.2的平台／独审判据、CLI持久配置、三平台分发与科研质量继续开放，不自动推进C—I。
+
+交回`<本轮根>/field-coverage-closeout.patch`，只含本change tasks／delivery，基线依赖f4ab1e5f，无新公共补丁顺序。结束时5996无监听、profile内核stopped，自有UI／静态服务及窗口已收尾；隔离配置／库留cache，不删除登记目录，不停止共享显示。未安装／升级／下载依赖、操作真实用户库／其他树、同步／提交／推送／PR／归档。已核必需输入、调查脚本、配置、日志和补丁均在Git或cache；旧/tmp路径仅留作历史证据。
+
 ## 第十三轮主线验收
 
 本轮六文件已保全合入。Standards两项P2及Spec一项P2对应两个实际缺陷：诊断finally异常覆盖原失败，以及每事件枚举全部localStorage。主线删除全存储读取，save只记录原参数的有界副本；缺失观察按空数组处理，诊断错误独立annotation，client仍finally释放。独立内存故障注入核EDQUOT、页面关闭、未安装观察及1000无关存储项，原错误均保留、无全存储读取；只读复核关闭两项。原滚动200断言及期限未变。
