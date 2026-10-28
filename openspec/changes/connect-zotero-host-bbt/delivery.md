@@ -1,5 +1,13 @@
 # 实际交付与交接
 
+## 首批Linux I6接收与Windows私有输入定位（2026-10-29）
+
+按用户确认的首批范围，主线已完成2.1／2.2／3.1／4.1，当前45/50。除下节真实普通入口、百条事务、冲突、两格式及重启外，最终`zotero-final-i6`两例**2/2，29.8秒**覆盖实际harness工具和提交后观察丢失。后者真实共同commit已成功，原ID查询得原回执、不重放；监督继续保留scopeStopped=true、pluginClosed=false及原unresolved关联，查询不清unknown。前者实际父worker调用原生态工具并取得原包结果，只有模型HTTP受控。原始`.bib`／JSON、持久记录和监督证据都在cache对应目录。原值权威10/10及映射核对见所属delivery；这里不声称Windows、完整生命周期或真实科研质量通过。
+
+推送`6218d7f`后，Windows专项run40782057133的zotero-original job123145932489已完成：独立共同事务**8/8**，原包Electron生命周期**8通过／2个原有平台不适用跳过**；两个真实共同BBT调用均在managed入口解析私有启动封套时失败，`JSON.parse(input)`报Unexpected end of JSON input。原生scope已停，但pluginClosed=false，保留unknown；没有把根进程退出或生命周期替身通过当共同接线通过。原日志`windows-zotero-first-job.log`、artifact12857658005保留，job整体failure。
+
+当前新增仅测试的Windows最小输入对照：同一runCommand／原生Job／program模式／launchInput，输入为固定合成字符串，只落盘receivedBytes；默认环境与固定ELECTRON_NO_ATTACH_CONSOLE=1分别观察。它不读取认证token或改生产参数，不预判环境变量就是根因。workflow在原包步骤前运行该对照、失败仍保留后续原包结果并上传；代码静态／类型核查后交目标验证，未运行的Windows结果不能计通过。Linux报告sandbox与其他全仓平台状态单列，3.2／2.3／4.2／5.x仍按原未完判据推进。
+
 ## 首批范围确认、事务归属与派生SQL保护（2026-10-29）
 
 用户明确按既定首批范围完成，茉莉花、复杂映射及Reader写回另立变更，承接见[后续提议](../extend-zotero-ecosystem-compatibility/proposal.md)。原包兼容与共同文献权威要求不变；Windows原包、完整I6和原任务3.2／4.2／5.x仍须其真实结果，不由范围确认自动勾选。
