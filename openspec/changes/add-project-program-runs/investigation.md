@@ -59,6 +59,16 @@ flowchart LR
 
 ### 当前CI基线（2026-10-27）
 
+第十一轮起点29cd728，正式输入 `/tmp/scholoom-round11-acceptance-Jx5Oez/`。已完成Checks40540362614／938c33f：Linux内核748通过26跳过、UI125通过33失败6跳过；Windows内核677通过55失败42跳过；macOS job成功。本轮Windows artifact12754788905显示**并发首批**四入口均unknown，持锁PID3188的父prepare541ms、spawn相对本批+3.729s，子准备+7.018s／完成+7.584s、loading+7.589s、initializing+11.471s；启动者回执+13.204s，采样+13.340s。其余PID7040／7056／5244实际busy；没有ready、退出或更细提供者回执，只知该次采样缺失，不能称死锁／永久阻塞。旧head尚无提供者标记，与上轮8c2重启失败分别保留。
+
+同run的isolated-kernel首次start（spec:34）在ready-ipc失败，清理后“owned child closed”；实际PID、清理前是否已close、退出code／signal、原始原因和最后阶段均缺失。trace只有测试错误和上下文，保留profile不在上传artifact内。源码确认helper忽略stderr，子入口直接serveKernel也不创建kernel.log；裸catch丢弃超时／提前退出／IPC／非ready状态的区别。因此确证的是公共fixture诊断丢失，非实际启动根因。本线仅交design内最小候选与反例，不改tests/isolated-kernel.ts或其归属策略。
+
+本轮对新源码CI各仅查询一次：diagnosis40591705558／29cd728已完成，availability6项通过，artifact12775017470实际保留来源和两种占锁释放后的安全JSON；Checks40591705520查询时Linux／Windows仍在内核步骤、macOS job失败（该新失败阶段未调查，不沿用旧run成功）。新通过样本PID6348／5876各有完整提供者开始完成；library分别569／688ms、projects873／871ms、program-environments282／294ms、harness279／290ms，不能据此归因旧失败。旧负例与新正例不拼时间线。新增来源附件实际给出source正例、unresolved同名负例和当前run的初始化7／人工准备2／保存1条真实exit0；不重查或反填历史10条。
+
+本轮证据位于 `/home/joshua/.cache/scholoom-project-execution-round11-dVkuM9/`，下载／解压及TMPDIR均在本轮自有cache根，不清理旧目录。没有生产／测试源码变化、构建或产品测试；只核对已获目标artifact与源码。缺本轮完整Windows组同一失败run／子PID的提供者时点即停止，不后台轮询。公共fixture诊断候选须主线接入验证，原5.2／6.2开放。
+
+### 第十轮CI消费（历史）
+
 本轮938c33f正式输入为 `/tmp/scholoom-round10-acceptance-j1MosP/`，最新已完成Checks为8c2fd24／40479176954：Linux内核746通过26跳过、UI126通过32失败4跳过；Windows内核688通过42失败42跳过；macOS job成功。本轮只读下载Windows artifact12726536151，实际lifecycle反例发生在重启批次：首批4入口均running同实例PID832；旧实例server-closed／lock-released后，新PID1412到loading（本批+7.018s）、initializing（+11.863s），启动者ready-timeout回执+13.003s，最后采样+13.428s。跟随者最后观察旧发现PID832死亡且锁held，不表示旧进程仍持锁或新进程归属不明。缺少父prepare／spawn及初始化各提供者时点，不能倒推耗时根因。
 
 同源码938c33f Windows诊断40540362546已完成，head精确匹配，artifact12751410950已只读核对：availability六例全通过，含Windows原生privateDirectory来源正负校准、两种占锁、真实RPC与不可用入口零派发。断言严格保留来源／阶段／进程／真实exit0；窄来源校准关闭，不把历史10条未归因事件补造为ACL。成功步骤未显式落盘的JSON不在artifact内，具体origin枚举及准备耗时仍无原始附件值；本片将既有安全附件显式保留。Agent三例失败均在首模型／产物观察边界，归Agent线，不作为生命周期根因。Checks40540362614查询截点Linux／Windows仍在内核步骤、macOS成功；不轮询或触发重跑。

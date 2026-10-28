@@ -8,7 +8,7 @@
 
 ## 当前状态与成果
 
-本轮起点为4312262c1a1f432ccd706dd1eb6ff6468765fd4e，开始时工作区干净，主线已接收第12组并保全合入／同步复验。正式输入为 `/tmp/scholoom-round9-acceptance-IER31D/`，本轮只推进第13组的实际Windows反例与窄启动诊断，不重跑TeX或全仓。TaskRef／TaskPort、各域恢复、工具／标签、唯一库权威与未保存CSL、既有报告／生态持续授权均保留。报告frame／network-trap仍是未完成调查夹具，无2.1或生产页面通过结论。本轮修正后的Windows来源／启动取证及整个change最终交付仍开放，未重用旧累计patch。
+当前续做起点为29cd7283388dfd752911eacb9c3bf8416031db15，开始时工作区干净，主线已接收第14组并保全合入／同步复验。正式输入为 `/tmp/scholoom-round11-acceptance-Jx5Oez/`，第15组结果见文末“第十一轮”：分别消费938c33f完整Windows负例及29cd728已完成诊断正例，仅更新原工件，47/49，5.2／6.2保持开放。来源观察子项已交付，仍缺新完整组同一失败run／PID的提供者时点；公共fixture诊断候选交主线，未修改归属或启动机制。TaskPort／FileEdit、各域恢复、工具／标签、唯一库权威、未保存CSL及报告旧摘录／save／undo／来源授权均保留。没有复跑TeX、全仓或UI，没有重用旧累计patch或扩大产品结论。
 
 第三轮同步证据仅保留当时结果：`/tmp/scholoom-sync-recovery-wyn13R/recovery.md`、`synchronized.json`及当时日志（主线65项内核／双宿主2项），不替代最新A/B验收。旧公共及累计patch均为历史工件，已合入共同1026796，不再次应用。用户允许本地补丁／提交；继续禁止推送、PR、归档、依赖下载／安装、真实库和开发服务器。
 
@@ -456,3 +456,37 @@ Locke原生辅助使用gpt-6.1-sol/high、fork_context:false，仅只读追踪�
 源映射观察窄项已关闭；5.2／6.2和完整change继续开放。精确下一输入是主线接入本片后Windows同一失败run／新子PID的父preparationMs／spawnedAt、子preparing-runtime／runtime-prepared／loading／initializing及各提供者开始完成原始安全JSON。只有这些到达后才判断实际等待提供者；若落入harness／项目／库内部，交相应所有者具体调用与时点，不自行重构。当前不支持提出生产机制修复，生产10s期限、unknown、容量、完整停止、PID观察及锁归属均未变。
 
 交回本结果目录的01-kernel-initialization-observation.patch、02-diagnostic-fixtures.patch、03-openspec-and-development.patch及README／manifest，按01→02→03接入；只核反向可应用性，不应用或回滚补丁。第14组完成，44/46，5.2／6.2仍开放。没有重复TeX、全仓／全UI、macOS／Windows本机测试或包分发，历史TeX根因及目标新观察回执保持开放。完成本片后停止，不提交／推送／PR／归档、操作其他树或扩展环境／SSH／Graph／科研角色。
+
+## 第十一轮：完整Windows负例与新阶段正例分开交回
+
+### 起点、输入与真实结果
+
+本轮HEAD为29cd7283388dfd752911eacb9c3bf8416031db15，开始时工作区干净，未自行同步或重放旧patch。已读第十一轮安排、AGENTS、scholoom-dev及原工件，apply初始44/46。正式输入 `/tmp/scholoom-round11-acceptance-Jx5Oez/` 的ci-jobs.json／ci-failures.log／ci-failure-matrix.json及验收资料；本轮独立证据根 `/home/joshua/.cache/scholoom-project-execution-round11-dVkuM9/`，下载、解压及TMPDIR均使用本轮cache，不清理他人或旧轮目录。
+
+| run／head／实际场景 | 已核事实与边界 |
+| --- | --- |
+| Checks40540362614／938c33f，Windows artifact12754788905，并发首批 | 四入口均unknown，持锁子PID3188／instance34031cee-ce35-4796-8356-8d12a887c621。以本批最早caller为0：父spawn +3.729s，prepare541ms；子preparing +7.018s、runtime-prepared +7.584s、loading +7.589s、initializing +11.471s；启动者ready-timeout回执 +13.204s、最后采样 +13.340s。另三个子PID7040／7056／5244明确busy。没有ready／退出／域提供者记录，旧head尚未加入提供者标记，不推定死锁／CPU／锁故障，也不与8c2重启混批。原JSON为938c33f-concurrent-safe.json，分段摘要为938c33f-concurrent-timeline.json |
+| 同run／head，isolated-kernel首次启动 | CI定位spec:34，首次start在ready-ipc失败，错误只说明清理后自有child已close。trace没有子PID、退出code／signal、原始失败类别或最后阶段，保留profile未进入artifact；未知不填0／成功。938c33f-isolated-safe.json记录缺失字段及边界，不把“closed”解释为自然提前退出，不把46.2s场景总耗时当根因 |
+| diagnosis40591705558／29cd728，job122497329509，artifact12775017470 | 已完成、head精确匹配。availability **6/6通过**，两种占锁释放后实际PID6348／5876分别有完整提供者标记；library569／688ms、projects873／871ms、program-environments282／294ms、harness279／290ms，同步program-records0／0ms、research1／1ms。源JSON在new-availability，逐批摘要29cd728-providers-positive.json；这是本轮真正的Windows标记可消费证据，不能替代并发首批失败回执 |
+| 同新诊断实际来源附件 | 原生正例origin=source、同名PowerShell负例unresolved；当前不可用场景10事件为初始化7／人工准备2／保存1，均真实PID、source及exit0／null signal／exited。拒绝入口没有事件，实际全窗口约束仍保留。29cd728-origin-safe.json及原JSON保留；不重查或反填历史10条未归因事件。来源窄项保持已交付 |
+| 唯一当下状态查询 | 新Checks40591705520的Linux／Windows仍在内核步骤，macOS job已失败（具体阶段未在本片调查，不能沿用旧run成功）；新diagnosis整体失败位于Agent三例，availability、native、host等步骤按实际分列。ci-query-summary.json明确为首轮工具输出的派生摘要，原diagnosis日志已保存；没有再次查询状态或等待结果 |
+
+### 公共fixture诊断缺陷及主线候选
+
+只读追踪确认：tests/isolated-kernel.ts:35忽略stderr，fixtures/isolated-kernel-process.mjs直接调用serveKernel；serveKernel.report只console.error，真正打开kernel.log的是ensureKernel父启动路径，本次fork没有该路径。因此直接读取保留目录的kernel.log不能得到本次阶段，还可能混入旧启动。helper:143的裸catch丢弃ready超时、自然提前close、IPC错误和非ready state的区别；waitForExit收据也未报告。以上确证**诊断丢失**，不等于已经定位实际启动根因或归属机制错误。
+
+原design“共同29cd728后的两类启动失败证据与公共夹具候选”给出主线最小方案A：保留所有原身份／停止／期限，先记录固定失败原因及清理前close／ready事实，另记清理kill请求和实际close收据；仅将stderr改为始终排空的有界管道，复用固定phase／标量过滤规则，重建本次child安全摘要，丢弃原始／超长／非JSON内容及敏感额外字段，清理前落盘。候选B为安全IPC，须主线协调子入口和ready分流，改动面较大，故优先A待主线审核。本线没有修改helper、子入口、Agent的model-kernel／remote-agent或项目UI fixture。
+
+待主线实施的反例明确区分ready前exit1和无ready至原预算后父清理；后者不能被报告成自然提前退出。另核超长无换行、合法JSON夹私有字段、旧目录残留与原竞争／接替者保护。反例尚未执行，候选未启用。没有通过加时、sleep、重试、清锁或PID推断制造闭合。
+
+### 实际操作、验证与停止
+
+本轮实际命令为：各一次 `gh run view 40591705558 --json headSha,status,conclusion,jobs`、`gh run view 40591705520 --json headSha,status,conclusion,jobs`（输出用jq收窄）；`gh api .../actions/runs/<id>/artifacts`及下载artifact12754788905／12775017470；`gh run view 40591705558 --log`；仅解压两个旧目标trace及新availability子目录。目标head、用例／断言和原JSON字段已交叉核查，安全派生摘要与原工件并存。Node脚本核对原artifact结构／当前来源事件真实收据通过，这是取证校验，不计本机产品测试通过。
+
+没有生产／测试源码变化，因此按本轮纪律不重建相同产物、不重复Linux绿测试或双宿主UI。没有新产品测试、模型或程序替身；CI内部真实／夹具边界沿对应原场景：占锁holder／拒绝端口可控，不可用只替原availability getter，isolated配置中的不存在host路径只校准门禁且不启动BBT。没有Windows／macOS本机实跑、TeX、全仓／全UI或分发验证。只用已有工具，未安装／下载依赖或启开发服务器。
+
+Fermat原生辅助为gpt-6.1-sol/high、fork_context:false，限定只读本根helper／直接用例；父抽查确认stderr不落kernel.log，并纠正过程中“第二次start”的临时假设：原trace和spec:34明确是首次。辅助最终确认该结论及候选边界，未写树、构建或代验CI。Experience限定经验检索未命中，没有借用外项目结论。原控制时序图未变，无同源schema／生成映射或正式规格变化。最终OpenSpec strict、schema及diff检查结果随本目录保存。
+
+Fermat对新增design候选再作只读复核，stdio／日志来源、清理前后退出及候选A的归属／保密／原预算边界未发现确定错误；父接受为待实施方案，非修复结论。本轮没有启动任何产品进程或写树辅助任务，辅助已关闭。
+
+本轮仅四份原OpenSpec工件变更，交01-openspec-evidence.patch与README／manifest，只有当前29cd728的文档增量，不含任何旧累计业务patch；反向可应用性仅check，不执行。第15组完成，47/49，5.2／6.2与目标平台稳定性保持开放。下一输入精确为新完整Windows组**同一失败run／新子PID**的提供者时点，或主线对公共fixture候选A的审核与有界反例结果；没有这些输入不选机制修复。来源观察等已接收子项不回退。到此停止，不后台轮询、提交／推送／PR／归档、操作其他树或真实用户库。
