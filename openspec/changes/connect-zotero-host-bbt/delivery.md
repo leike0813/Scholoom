@@ -1,5 +1,13 @@
 # 实际交付与交接
 
+## Windows私有stdin的固定源码机制与fd 0修正
+
+固定Electron44.5.1官方源码表明Windows GUI初始化无条件将process.stdin替换为立即EOF的模拟流；控制台环境变量与日志开关不会取消替换，精确commit／Node／Chromium来源见[调查报告](../../../.scratch/scholoom-foundations/research/electron-windows-private-stdin.md)。第二次目标run40783183335／job123149728204的合成对照实际读到默认及ELECTRON_NO_ATTACH_CONSOLE两组均0字节，期望26字节；两个共同库原包例仍以空封套失败。其日志`windows-electron-stdin-red-job.log`保留，未把变量当修复。
+
+主线保留原command-worker／一时私有launchInput／继承管道／原生Job和认证，将managed入口改为公开fs.createReadStream读取fd 0。highWaterMark=8193，实际输入累计超过8192即拒绝；按原字节保留Buffer后一次UTF8解析，不因分片拆坏字符。JSON.parse错误改为固定无载荷诊断，防止语法异常带回启动token；connectHost原schema、实例、token认证与启动期限不变，没有新增argv／环境凭据、临时token文件或自动fallback。Windows最小对照现用模拟process.stdin的0字节作负对照，真实fd 0须取得26字节，均沿同一program／launchInput／Job，源码及原失败保留。
+
+独立`fd0-bootstrap-independent-review.md`无P1/P2，229项内存检查核8192字节边界、分片、解析无凭据回显及原连接验证，不能代替Windows实跑。harness／host及tools类型、host构建和相关Biome通过；初始host类型错误已用同源HostBootstrap消除，未放宽校验。前一版Linux原包1/1、44.9秒；最终Buffer聚合版`zotero-fd0-final-linux` **1/1，45.9秒**，覆盖实际百条补键、更正、两格式和重启。本节在目标回执前仍不关闭2.3／4.2；Windows最终结果尚待对应提交的CI，不把Linux通过当Windows修复已验。
+
 ## 首批Linux I6接收与Windows私有输入定位（2026-10-29）
 
 按用户确认的首批范围，主线已完成2.1／2.2／3.1／4.1，当前45/50。除下节真实普通入口、百条事务、冲突、两格式及重启外，最终`zotero-final-i6`两例**2/2，29.8秒**覆盖实际harness工具和提交后观察丢失。后者真实共同commit已成功，原ID查询得原回执、不重放；监督继续保留scopeStopped=true、pluginClosed=false及原unresolved关联，查询不清unknown。前者实际父worker调用原生态工具并取得原包结果，只有模型HTTP受控。原始`.bib`／JSON、持久记录和监督证据都在cache对应目录。原值权威10/10及映射核对见所属delivery；这里不声称Windows、完整生命周期或真实科研质量通过。

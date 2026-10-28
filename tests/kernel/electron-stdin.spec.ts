@@ -7,8 +7,8 @@ import { expect, test } from '@playwright/test';
 import { runCommand } from '../../packages/platform/dist/node.js';
 
 test.skip(process.platform !== 'win32', 'Windows Electron private stdin calibration');
-for (const detachConsole of [false, true]) {
-  test(`owned Electron receives a synthetic envelope with no-attach-console=${detachConsole}`, async () => {
+for (const reader of ['simulated', 'fd0'] as const) {
+  test(`owned Electron private input through ${reader}`, async () => {
     const directory = await mkdtemp(join(tmpdir(), 'scholoom-electron-stdin-'));
     const executable: string = createRequire(import.meta.url)('electron');
     const input = 'synthetic-private-envelope';
@@ -17,6 +17,7 @@ for (const detachConsole of [false, true]) {
         executable,
         args: [
           fileURLToPath(new URL('../fixtures/zotero-host/stdin.cjs', import.meta.url)),
+          reader,
           directory,
         ],
         cwd: directory,
@@ -24,7 +25,6 @@ for (const detachConsole of [false, true]) {
         program: true,
       },
       {
-        env: detachConsole ? { ELECTRON_NO_ATTACH_CONSOLE: '1' } : {},
         launchInput: async () => input,
       },
     );
@@ -32,10 +32,10 @@ for (const detachConsole of [false, true]) {
       await readFile(join(directory, 'stdin-observation.json'), 'utf8'),
     );
     await test.info().attach('stdin-observation', {
-      body: JSON.stringify({ detachConsole, code: result.code, ...observation }),
+      body: JSON.stringify({ reader, code: result.code, ...observation }),
       contentType: 'application/json',
     });
     expect(result.code).toBe(0);
-    expect(observation.receivedBytes).toBe(Buffer.byteLength(input));
+    expect(observation.receivedBytes).toBe(reader === 'simulated' ? 0 : Buffer.byteLength(input));
   });
 }

@@ -1,7 +1,9 @@
+import { createReadStream } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { connectHost } from '@scholoom/client/host';
 import { OperationError } from '@scholoom/protocol/core';
+import type { HostBootstrap } from '@scholoom/protocol/host';
 import type { LibraryInputs, LibraryOutputs } from '@scholoom/protocol/library';
 import type { ZoteroInputs, ZoteroSnapshot } from '@scholoom/protocol/zotero';
 import { app } from 'electron';
@@ -17,10 +19,17 @@ app.on('window-all-closed', () => {});
 async function main() {
   const config = JSON.parse(await readFile(process.argv.at(-1) as string, 'utf8')) as Configuration;
   app.setPath('userData', config.profile);
-  let input = '';
-  for await (const bytes of process.stdin) {
-    input += bytes;
-    if (Buffer.byteLength(input) > 8192) throw new Error('Bootstrap exceeds capacity');
+  const chunks: Buffer[] = [];
+  let inputBytes = 0;
+  // Electron replaces process.stdin with a simulated EOF stream on Windows.
+  for await (const bytes of createReadStream('', {
+    fd: 0,
+    autoClose: false,
+    highWaterMark: 8193,
+  })) {
+    inputBytes += bytes.length;
+    if (inputBytes > 8192) throw new Error('Bootstrap exceeds capacity');
+    chunks.push(bytes);
   }
   await app.whenReady();
   const catalog = new JournalCatalog(config.snapshot);
@@ -33,7 +42,13 @@ async function main() {
     rendererDirectory: join(__dirname, '../renderer'),
     preload: join(__dirname, '../preload/index.cjs'),
   });
-  const session = await connectHost(JSON.parse(input), {
+  let bootstrap: HostBootstrap;
+  try {
+    bootstrap = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+  } catch {
+    throw new Error('Host bootstrap is not valid JSON');
+  }
+  const session = await connectHost(bootstrap, {
     scope: 'isolated-library-journals',
     async initialize() {
       const status = await host.start();

@@ -1,13 +1,18 @@
 const { app } = require('electron');
-const { writeFileSync } = require('node:fs');
+const { createReadStream, writeFileSync } = require('node:fs');
 const { join } = require('node:path');
 
 const directory = process.argv.at(-1);
+const reader = process.argv.at(-2);
 app.setPath('userData', directory);
 app.on('window-all-closed', () => {});
 async function main() {
   let receivedBytes = 0;
-  for await (const chunk of process.stdin) {
+  const stream =
+    reader === 'fd0'
+      ? createReadStream('', { fd: 0, autoClose: false, highWaterMark: 4097 })
+      : process.stdin;
+  for await (const chunk of stream) {
     receivedBytes += Buffer.byteLength(chunk);
     if (receivedBytes > 4096) throw new Error('Synthetic envelope too large');
   }

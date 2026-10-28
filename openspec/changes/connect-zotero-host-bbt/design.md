@@ -2,6 +2,8 @@
 
 ## Windows原包验收接线
 
+Windows GUI的process.stdin由固定Electron原生初始化替换为EOF模拟流，详见[一手源码报告](../../../.scratch/scholoom-foundations/research/electron-windows-private-stdin.md)。宿主统一通过公开fs有界读取继承fd 0：不新增第二传输，原launchInput、同一Job、实例／token认证及期限保持。输入按字节限额收齐后一次UTF8解析，非法JSON不回显载荷；控制台变量不作为修复。Windows同源合成负／正对照与真实共同库原包须分别通过，不能以Node fixed-host或普通smoke代替。
+
 现有Linux原包结果不替代Windows。复用同一JournalCatalog、真实library／broker／受管Electron用例与既有宿主smoke；测试display helper在Windows直接返回Electron可执行文件，不经Xvfb、不加Linux参数。两个测试消费者通过同一archive helper使用系统.NET读取固定可信原XPI，字节对照仍读取原成员，不改包内容；Linux继续原unzip路径。普通持久布局的cold用例仍限已登记的Linux布局，不冒充Windows产品装配。
 
 windows-execution增加独立zotero-original job，沿原锁文件、Node24和Electron构建，在runner临时目录下载官方固定BBT9.0.68并显式供应；原manifest版本／ID检查继续生效。先运行共同事务及原包补键／冲突，再运行真实Electron正常关闭、初始化中断、忙操作及失联smoke，原每项期限及unknown保护不变。仅外部安装／下载为CI准备，业务库均为合成；本机不能给Windows通过结论，须消费实际目标回执。写集限上述测试helper／两个消费者、原workflow和本change记录，不新增产品配置或绕过受管监督。
