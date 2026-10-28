@@ -3,7 +3,7 @@ import { mkdir, readFile } from 'node:fs/promises';
 import { basename, join } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import { createKernelClient } from '../../packages/client/dist/index.js';
-import type { DelegationRequest } from '../../packages/protocol/dist/index.js';
+import type { DelegationRecord, DelegationRequest } from '../../packages/protocol/dist/index.js';
 import { observationErrorCode } from '../execution-observer.js';
 import { delegationModel } from '../fixtures/delegation-model.js';
 import { runningKernel } from '../kernel-fixture.js';
@@ -153,7 +153,68 @@ for (const cancel of [false, true]) {
         model.release();
         await expect(details.getByRole('status')).toContainText('已取消');
       } else {
-        await expect(details.getByRole('status')).toContainText('已完成');
+        if (!sessionId) throw new Error('Selected session unavailable');
+        const setupStartedAt = Date.now();
+        let terminalObservedAt: number | undefined;
+        let uiAssertionStartedAt: number | undefined;
+        let observed: DelegationRecord | undefined;
+        let uiOutcome = 'notStarted';
+        try {
+          // Real worker execution precedes the five-second UI refresh check.
+          await expect
+            .poll(
+              async () => {
+                observed = await client.call('delegation.get', {
+                  projectId: project.id,
+                  sessionId,
+                  delegationId: work.delegationId,
+                });
+                return observed.state;
+              },
+              { timeout: 20000, intervals: [100, 250] },
+            )
+            .toBe('completed');
+          terminalObservedAt = Date.now();
+          uiAssertionStartedAt = Date.now();
+          uiOutcome = 'failed';
+          await expect(details.getByRole('status')).toContainText('已完成');
+          uiOutcome = 'passed';
+        } finally {
+          const uiAssertionEndedAt = uiAssertionStartedAt ? Date.now() : undefined;
+          await test
+            .info()
+            .attach('delegation-completion-boundary', {
+              body: JSON.stringify({
+                projectId: project.id,
+                sessionId,
+                delegationId: work.delegationId,
+                setupStartedAt,
+                terminalObservedAt,
+                uiAssertionStartedAt,
+                uiAssertionEndedAt,
+                uiOutcome,
+                modelRequestsAtSend,
+                modelRequestsAtBoundary: model.requests.length,
+                observed: observed
+                  ? {
+                      id: observed.id,
+                      parentRunId: observed.parentRunId,
+                      parentInstanceId: observed.parentInstanceId,
+                      childInstanceId: observed.childInstanceId,
+                      state: observed.state,
+                      resultState: observed.resultState,
+                    }
+                  : undefined,
+              }),
+              contentType: 'application/json',
+            })
+            .catch(() =>
+              test.info().annotations.push({
+                type: 'execution-diagnostic-unavailable',
+                description: 'writeFailed',
+              }),
+            );
+        }
         await expect.poll(() => readFile(join(path, 'report.md'), 'utf8')).toContain('Observed 42');
         await details.getByRole('button', { name: '打开委派成果 report.md', exact: true }).click();
         await expect(

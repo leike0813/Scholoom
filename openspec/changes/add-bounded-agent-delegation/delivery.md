@@ -1,5 +1,46 @@
 # 实际交付与交接
 
+## cb5f7ed普通委派分阶段验收
+
+本轮Dispatch task_9084391183cc/ctx_4e69a24bea78沿原change实施，起始HEAD=`cb5f7ed30f69b45301c83f296268578051b84e0b`且clean。已读当前apply/contextFiles及原delivery，采用openspec-apply-change/codebase-design；主线ask明确批准真实子执行终态与原5秒UI刷新分阶段。本片完成第20组，51/57；**旧17.2最后152ms、18.2缺工具行、4.2/4.3平台、6.1/6.2科研角色及质量均未关闭**。未重放旧补丁、同步或改其他线文件。
+
+### 原失败、决定及实际修正
+
+正式输入为`/home/joshua/.cache/scholoom-round16-integration/ui-results/agent-delegation-user-obse-362c0-ains-the-conversation-draft-ui-electron/`同次trace/model-kernel/ui-window-rpc；冻结测试文本与当前修改前相同。原156行DOM断言绝对窗口1793195072083–1793195077098；该session observer起点1793195067954，子onStart4304、initialize响应7229、保存确认7973、report工具完成8194、controller退出9014、委派completed/available观测9020ms，距原失败124ms。末watch响应只有指令/run摘要，不能证明委派详情终态的送达/DOM时点；原12条sample/8条control裁剪不隐瞒，不将缺事件当未发生。不把旧失败与本机新成功run拼接，具体本片设计及既有因果图见[design](design.md#普通委派终态与ui刷新验收cb5f7ed)。
+
+主线明确批准：多进程冷启动、多模型/工具和完整停止没有全链5秒SLA。`tests/ui/agent-delegation.spec.ts`普通成功分支仅增加同一project/session/delegationId的真实`delegation.get`终态设置等待，20秒有界预算沿现有执行完成夹具，intervals=[100,250]，计入原120秒总上限；再执行原5秒DOM完成断言及文件字节、打开成果、输入/reload草稿断言。取消分支不变，不主动刷新UI、不重发、不从文件或模型口述猜终态。不宣称accepted→完成的原5秒起点不变，不修改生产/全局期限。真实执行未完成仍失败；UI不刷新、成果缺失、草稿丢失仍由原对应断言发现。
+
+同场景沿原附件入口增加`delegation-completion-boundary`，保存设置/终态/UI原断言时刻、同源run/父子instance和HTTP累计数；有界标量，无正文、凭据、全库、第二观察器或新RPC。finally保存边界且不吞原断言。无生产/schema/生成类型变化；不改file-workbench/窗口fixture/rpc-gate/isolated-kernel/CI。主线负责最终独立整合审查，本片不以修正设置契约冒称已证原renderer故障。
+
+### 实跑、首次失败与真实边界
+
+独立根`A=/home/joshua/.cache/scholoom-finish-active/agent-delegation`；所有命令export TMPDIR=A、bash执行。Linux/Node24.12.0，内部broker/仓储、权限、文件、真实受管父子/完整停止、Browser及Electron/preload均真实；仅delegationModel的外部HTTP响应受控，无付费产品模型或内部权威mock。gpt-6.1-sol/high、无历史fork辅助只读核投影调用链后已关闭，未编辑/运行测试。
+
+| 操作 | 首次结果与最终结果 |
+| --- | --- |
+| 原样Electron | cache配置首轮缺type=module，加载时SyntaxError、未进入产品动作（original-ui.log）。仅为独立cache补package.json后原测试1/1通过，37.1秒，original-ui-module.log/original-ui.json；不是重跑业务红例刷绿，未重现旧失败 |
+| 修改后代表回归 | staged-ui.log/staged-ui.json：Browser32.7秒、Electron44.7秒，2/2通过，总1.7分钟，retries=0。未重跑不变的取消分支或其他旧绿组 |
+| 边界/成果/退出审计 | Browser真实终态设置4739ms，原UI断言46ms；Electron5060/96ms，累计模型均8（发送起点0）。同scope/delegation父子实例/PID不同，controller均已退出，completed/available、实际report字节核对通过；kernel childClosed=true，端口6017关闭。离线审计首轮误将attachments当结果根导致ENOENT，result-audit-first.log保留；仅修脚本路径后result-audit.log通过，无产品重跑 |
+| 静态/规格 | 直接已安装tools tsc通过；单文件Biome退出0、保留原SCHOOLOOM_UI_DATA_DIR非空断言warning；change strict、scholoom-dev schema及git diff通过。只改测试/工件，复用已验同源产物，未构建，不把复用记为重建 |
+
+测试命令：`export TMPDIR=A; DISPLAY=:99 SCHOOLOOM_UI_PORT=6017 SCHOOLOOM_UI_DATA_DIR=A/staged-profile PLAYWRIGHT_JSON_OUTPUT_NAME=A/staged-ui.json node node_modules/@playwright/test/cli.js test --config A/playwright.ui.config.ts tests/ui/agent-delegation.spec.ts --grep 'opens its saved report' --workers=1 --reporter=list,json --output A/staged-results`；原样使用original-profile/original-results并加`--project ui-electron`。配置在本树cwd用`node /home/joshua/.cache/scholoom-round13-acceptance/create-ui-config.mjs A/playwright.ui.config.ts`生成，A/package.json声明type=module；只用静态已构建产品，无开发服务器。每次图形前xdpyinfo :99通过（display-preflight-*.log），未启停共享显示；测试期间不重建。类型入口`node node_modules/typescript/bin/tsc --noEmit -p tsconfig.tools.json`，Biome直接用已安装node_modules/@biomejs/biome/bin/biome。
+
+离线入口：`node A/analyze-original.mjs`从原cache生成original-failure-summary.json；`node A/audit-results.mjs`核新两宿主边界、同源真实父子/保存报告/退出和6017关闭，生成result-audit.json。profile、登记项目/报告及结果均保留，没有删除项目目录或当前/tmp接续前置。
+
+### 新Windows正式交接与未完成项
+
+计算线统一获取、主线明确转交`/home/joshua/.cache/scholoom-finish-active/project-execution/`的agent-three-failures.log、windows-job-122861144463.log、windows-artifact-12827896108.zip、checks-40701191661.json。核head=`1c84937346effef407ed01378f35873338790294`、run40701191661/job122861144463；完整kernel700通过/63失败/44跳过，smoke/UI skipped。只消费三个本线目标，不自行查询/下载/轮询，不按计数推共同根因或移用旧专项绿例。
+
+| 目标 | 同次阶段（各自observer相对ms） | 边界 |
+| --- | --- | --- |
+| cancel:258 | admission6→6、prepare6→stream1777、worker.start1911→2295/onStart2296；initialize2300→4895，consume4950→4952；failure4997、末样本4999 running/consumed/HTTP0 | 未到委派/child/cancel；已初始化但未记录模型准入请求，不称子取消故障 |
+| excerpt:603 | admission11→11、prepare13→1828、worker.start1984→2319/onStart2321；initialize.sent2346，failure4848、末样本4850 queued/accepted/HTTP0，无response | 已有真实实例；仍缺模块载入/帧放行/handler区间，不猜worker未创建或初始化未发送 |
+| 附件首导入:68 | admission61→61、prepare64→1857、worker.start1977→2355/onStart2356；initialize.sent2391，failure4864、末样本4867 queued/accepted/HTTP0，无response | 未到工具、reader或撤权，不归附件读写故障，与Linux终态/UI设置是不同层 |
+
+三例原名义5秒predicate的实际窗口4989/4834/4798ms；没有同次完成证据，不仅据窗口不足猜修轮询。samples/controls/startup/未核身份计数均0、snapshotTimedOut=false。`A/windows-three-facts.json`保存完整project/session/instruction/run/instance、绝对断言窗口及原附件路径，三份trace/stage只展开在A/windows，未复制他树私有源码。尚无确证本域生产根因，不加观测/期限或改harness/driver/原生机制；初始化载入/handler跨模块缺证交主线，计算线环境校准另由其负责。4.2/4.3仍未完成；科研角色及真实质量由主线定案，通用worker不抵6.1/6.2。
+
+已在实际执行后取当前delivery instructions；独立补丁`A/delegation-ui-phases-cb5f7ed.patch`、检查摘要`A/checks.json`及耐久报告`A/report.md`。临时index前向/当前树反向补丁检查及真实index不变核对；最终只改本测试/design/tasks/delivery四文件。自有执行/静态承载/worker已结束，6017关闭，辅助已关闭，无后台轮询。未提交/同步/push/PR/archive，停止交主线最终验收。
+
 ## 第十六轮主线接收与阶段停止
 
 本树两份Windows取证工件已保全提交并合入，独立Standards／Spec各0确证发现。7aff2c7专项40643346320的cancel通过、excerpt及附件失败均沿原同次事实；完整组和专项不混算。ready不等于模块loaded，已有下一窄观察建议尚未实施。本change维持49/55，不归档。
