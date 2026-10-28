@@ -1,5 +1,33 @@
 # 实际交付与交接
 
+## 第十三轮验收后的高FD／接收通道调查（f4ab1e5）
+
+2026-10-28先核HEAD=`f4ab1e5f1ed17ae9af656c1f9945005a2786d911`且clean，读取原AGENTS、共同计划第十三轮安排、本change原工件、scholoom-dev及apply；执行后取得当前delivery instructions。只续做已授权有限Linux调查，仓库写集为原investigation／design／tasks／delivery；未改生产、协议、UI或测试源码，未同步／重放旧patch／提交。任务仍6/13、活动报告unavailable，2.1b／I5及目标／旧版本Adapter保持开放。
+
+**已交回：** 预执行高FD关闭门、可信stdio及普通文件映射门的有限正反样本。高256／1024文件、目录／迁移及259 SCM通道危险对照真实生效；关闭后同类动作真实EBADF，0–2实际ENOTSOCK。误将接收socket放到2仍能传入文件／迁移句柄，stdio门另在进入前退出77拒绝配置；拒绝场景未进入payload，不算逐动作OS拒绝。真实类型／身份检查拒绝socket／目录／FIFO／symlink及不符普通文件，批准FD经ro-bind-data得到固定只读字节。数值／PID／限额和完整条件矩阵只由investigation首节维护；design保留架构目标图及本片策略输入，不表示正式ReportView／桥或生产Adapter已接入。
+
+全部必要接续文件在`/home/joshua/.cache/scholoom-report-gate-round14-DocB5o/`：`gate-launcher.c`、`gate-payload.c`、`gate-calibration.mjs`、二进制、合成数据、原stdout／stderr与`gate-first-result.json`。前片cache原生源码仅只读参考，本轮不依赖旧二进制或现有/tmp内容；bwrap内部/tmp是本轮私有tmpfs。没有UI前置或对旧static-ui入口的依赖，也未读BBT原包。临时样本明确保留为调查工件，不进入生产或形成第二套业务实现。
+
+实际命令使用以下独立根；复跑须新建根并保全原输入，不在本根覆盖首轮结果：
+
+```sh
+GATE_CALIBRATION_ROOT=/home/joshua/.cache/scholoom-report-gate-round14-DocB5o
+export TMPDIR="$GATE_CALIBRATION_ROOT"
+node --check "$GATE_CALIBRATION_ROOT/gate-calibration.mjs"
+node "$GATE_CALIBRATION_ROOT/gate-calibration.mjs" "$GATE_CALIBRATION_ROOT"
+node "$GATE_CALIBRATION_ROOT/check-gate-evidence.mjs" "$GATE_CALIBRATION_ROOT"
+```
+
+`prerequisites.json`核普通权限和现成工具；每个launcher在scope内先实读20%CPU／64MiB／swap0／16tasks，控制端另读被测源／目标限额。唯一原生轮先以已有`cc -O2 -Wall -Wextra -std=c11`编译两份C，均退出0、stderr为空，再运行有限对照，控制器退出0。无第二轮native、CPU／OOM压力或外网扩大。`check-gate-evidence.mjs`只读取既有结果，以固定合成marker、真实errno、SCM回执及源／目标成员核对，并只读核全部六unit／已知cgroup路径，`evidence-check-first.log`通过；不是另一轮平台实跑。
+
+**首次失败与审查处理：** 辅助首编译遗漏TMPDIR、编译器写/tmp遭EDQUOT，保留`gate-payload.build.log`；改为cache后成功，失败时未启动样本。launcher首编译两处缩进warning和当时源码另存；执行前补括号／分行消除，未删首次日志。原生轮没有失败／重试。辅助自查及另一原生独立只读审查均未再运行样本；后者指出unsafe先经258迁移，故只有独立stdio-leak作为SCM跨组迁移证明。又指出首轮对已卸载五unit的`cgroupExists:false`是空ControlGroup默认值；原字段及输入保持不改，一致性复核另用六条原preflight路径实查，实际收据在`gate-conditions-matrix.json.cleanup`。没有为修观察而改变停止或容量保证。
+
+**归属／清理：** mapping自然退出0，三payload经固定Q自然退出0，拒绝启动为77；最后目标仅余可信guardian，明确stop该本轮unit退出0，systemd-run以SIGTERM结束。全部六unit inactive／not-found，六条实际旧cgroup路径已查不存在，控制端原cgroup未变，自有Unix socket服务已关闭。只收尾本次唯一unit／服务，未停共享显示／他人scope。未凭源scope空或根PID消失认定完整停止，也未接生产统一容量。
+
+OS／systemd／bwrap／FD传递／迁移真实；固定C程序、合成诱饵、FIFO及自有socket是调查输入，不能当生产仓储／worker／ResourceRef授权接线。未读真实凭据／库或profile，未安装／下载／提权／改系统或委托／启动开发服务器，没有浏览器、UI、外部DNS或Windows／Mac实跑。只改文档复用主线已验产物，未重复产品构建、tools／类型、生成映射、kernel或双宿主；适用收尾为本change strict、scholoom-dev schema、diff和独立补丁reverse-check，同根保留实际日志。未查询／触发／后台等待CI；最新主线回执范围沿investigation。
+
+**停止与未决：** 本轮只收敛遗留高FD／接收通道及特殊文件映射的有限反例，可信launcher尚非生产提供者。迟到能力／syscall策略、恶意诊断篡改／并发内容版本、控制器丢失恢复／unknown与容量组合、全网络和浏览器完整进程图仍缺证。请主线审独立platform Adapter的最小职责与下一窄校准，OS部署／呈现／分发维护及预算继续由用户／主线决定，不采用画面流。本change 2.1b／2.2／3.x、完整I5及科研质量不关闭；无push／PR／archive、其他工作树操作或真实库访问。
+
 ## 第十三轮主线验收
 
 本轮四份调查工件已冻结保全合入，独立两轴审查未发现本线确证问题。继承FD、宿主Unix／TCP代理、只读socket与cgroup迁移反例接收；没有接生产Adapter、浏览器或公共协议，活动报告继续unavailable，2.1b／I5仍开放。主线未重复有限原生实验或把其他绿色UI作为报告承载验收。
