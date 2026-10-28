@@ -1,5 +1,11 @@
 # 实际交付与交接
 
+## 4eb7fb6 Windows后续事实（2026-10-29）
+
+专项40739213209／job122995911799已结束为cancelled：isolated4/4、Agent代表3/3、HostConnection25、owner2及ownership16通过／3跳过；availability5通过／1失败（释放占锁后的三入口未全running），ACL4通过／1失败（首个minimal探针probeDeadline）。新失败没有可下载trace，不能归为旧首启／ACL setter问题或声称全平台已稳定；Electron重复1通过／1中断／1未运行。本次15分钟附近取消导致最终上传未执行，artifact清单为空；原日志及metadata已保全在本轮cache的`worker-entry-windows-*`。
+
+主线增加ACL之后的启动诊断提前上传点，测试／生产期限和15分钟job预算不变，待真实新附件后分别核上述两失败；没有修改锁、权限或放宽停止／容量。本change 5.2／6.2继续开放，不把新代表通过或旧606权限通过当作完整收尾。
+
 ## 主线606ae82真实Windows结果（2026-10-29）
 
 已推送`606ae829720e5c0709198a6e36839929ae4fda5b`并消费专项run40729861762／job122962932735／artifact12835411610。真实isolated组4/4，包括首次ready与实际进程替换／restart；真实ACL四样本及Utility模块干扰组5/5，原protected／owner／当前主体FullControl Allow／文件继承断言均通过。八次设置ACL的PowerShell为166–194ms，仍使用cmdlet的只读验证器为14–23秒，不能概括为所有PowerShell已提速。权限语义、生产期限、停止及容量保护未改，独审`windows-acl-constructor-review.md`无发现。对应首次启动／重启及权限候选已取得目标证据，取代下一节“尚未实跑”的时间点状态。

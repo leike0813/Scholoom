@@ -1,5 +1,13 @@
 # 实际交付与交接
 
+## 4eb7fb6真实Windows接收：代表已绿，专项未通过（2026-10-29）
+
+已消费run40739213209／job122995911799，head`4eb7fb66e3ade436250763826fd31b16e1d80310`。原cancel、excerpt及附件代表3/3（54秒），原5秒断言及60秒用例上限未变；同次前置重复10项、ownership16通过／3跳过、HostConnection25项、isolated首次启动／重启4项、owner2项通过。不能将源码和环境不同的606ae82两红改写成新代码必然或永远稳定，也不据此声称旧152ms缺证已补齐。
+
+专项结论为cancelled，不是success。两个明确失败仍保留：lifecycle“undiscovered ownership”在释放锁后的三入口结果并非全running（spec:246）；首个minimal ACL探针在原期限返回probeDeadline（spec:118），其余三ACL对照及setter干扰通过。前者不能凭末断言判断启动、连接还是投影，后者不证明DACL不正确或setter慢。Electron重复仅1通过／1中断／1未跑，末在创建约15分钟时收到取消；没有目标完整trace可用，artifact列表为0，不能补造缺失附件或从总时长推唯一故障机制。
+
+原job日志、run metadata／最终steps及空artifact清单只下载一次，位于`/home/joshua/.cache/scholoom-finish-active/worker-entry-windows-*`。为下一次保全这些失败，workflow仅在ACL组之后、剩余Agent／desktop检查之前增加独立`windows-startup-diagnostics`上传点；保留原最终上传及15分钟job预算、全部测试断言与生产期限。该上传改动尚无目标回执，不算补回本次trace。4.2／4.3及相关平台整项保持开放，科研及历史缺证亦不随3/3关闭。
+
 ## 主线窄worker入口候选及本机复验（2026-10-29）
 
 主线沿上述Windows精确阶段继续核实际依赖，确认默认内核worker及图注册器导入宿主聚合`@scholoom/harness/node`。只读新进程对照保存在`/home/joshua/.cache/scholoom-finish-active/worker-entry-profile/`：修改前冻结dist三次交错裸导入中位数为node2929ms、driver＋registry2177ms，文件数1440／1298；有hook的加载集合与无hook耗时分别保存，不从hook时长推产品性能。聚合多出的宿主runtime／records／RemoteAgent及模块登记不属执行worker职责。
