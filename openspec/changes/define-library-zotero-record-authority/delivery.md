@@ -1,5 +1,13 @@
 # 实际交付与交接
 
+## 首批范围确认与最终领域验收
+
+2026-10-29，用户对本change的2.3与生态proposal范围冲突明确选择“按既定首批范围完成，后置功能另立变更”。本change以真实共同原值／来源实例／正式键／有界原子提交及首批BBT普通期刊消费收尾，当前10/10；茉莉花、复杂映射和Reader写回已登记到[后续提议](../extend-zotero-ecosystem-compatibility/proposal.md)，仍未交付。没有把BBT结果改称茉莉花通过，也未修改数据保护规格。
+
+共同数据保护、迁移与恢复沿下节的真实7/7及独立authority-audit。其后固定BBT9.0.68在真实library／broker／受管Electron上的两例回归**2/2，49.7秒**：一次共同补键及两格式／重启，以及未选中键冲突整组拒绝、旧修订／缺映射／撤权拒绝。命令为`DISPLAY=:99 TMPDIR=/home/joshua/.cache/scholoom-finish-active/tmp SCHOOLOOM_BBT_XPI=/home/joshua/.cache/scholoom-round13-acceptance/preserved-tmp/zotero-better-bibtex-9.0.68.xpi pnpm test:kernel tests/kernel/zotero-host.spec.ts --grep 'real library/broker/managed original BBT|unselected case-insensitive key collision' --output /home/joshua/.cache/scholoom-finish-active/creators-bbt-regression --reporter=line`，同根log保留。内部领域提供者真实，未接触真实用户库；普通持久CLI及产品静态入口的独审和产物沿生态N2.5记录。
+
+本结论是公共文献权威首批验收，后续宿主事务安全修正及原包回归仍由生态change验收；不等于整个生态change、目标分发、完整CI或科研质量通过。本轮已再次取得delivery instructions，下面9/10及等待范围决定的描述为此前验收状态，由本节及当前tasks取代。
+
 ## 主线收尾：公共权威9/10，茉莉花仍开放
 
 2026-10-29主线核对现有真实提供者及生态消费，原“待公共接入／生态未消费”已经失效。独立源码核对在`/home/joshua/.cache/scholoom-finish-active/authority-audit.md`；本轮补齐同locator／objectKey不同instance、未登记来源整组拒绝、过期显式解除固定及真实独立备份恢复的数据保护证据，仅修改原`tests/kernel/library-records.spec.ts`，不增加第二提供者。
