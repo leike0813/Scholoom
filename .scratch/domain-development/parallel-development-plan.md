@@ -495,6 +495,10 @@ f4ab1e5／[Checks40622631905](https://github.com/leike0813/Scholoom/actions/runs
 
 主线将先提交推送以上收尾，再保全快进七树；根据实际生产差异重建protocol／library／kernel及desktop，复用未变其他依赖和zotero-host，完成tools／架构及最小定向检查。所有Agent保持等待，不为验证发送开发任务，也不删除工作树或清理用户`/tmp`。同步结果实际完成后回填；完整跨平台分发、远程部署、活动报告和科研质量未完成。
 
+本轮同步回执：集成与归档已推送为`1c84937346effef407ed01378f35873338790294`。七树均保全快进到该提交、保持clean，各自重建protocol／library／kernel／desktop，复用未变依赖与zotero-host；tools类型及架构全部通过，每树一项定向检查合计7/7通过。检查分别覆盖N1读取撤权、文件身份替换、原program归属重复恢复、真实worker启动、最终受理、真实子执行读取报告及组织原子性。完整命令与回执见本轮cache的synchronized.json、sync-build-results.json、sync-kernel-results.json及各树日志；同步通过不覆盖主线UI7/8的原失败。
+
+本纯文档回执同步七树，源码和已验产物保持1c84937，不重复构建。各树卡片标记本轮成果已整合／等待下一阶段，保留未完成业务及平台缺口；没有向任何终端发送新Prompt、恢复开发或删除工作树。新源码触发[Checks40701191661](https://github.com/leike0813/Scholoom/actions/runs/40701191661)，查询时仍运行中，未作为本轮目标平台通过依据。主线与七树的最终HEAD／clean核对及卡片原回执保存在synchronized-final.json与orca-closeout-cards.json，后续从当前Git／正式规格和所属tasks／delivery接续。
+
 ## 首轮 Agent 的共同起始任务
 
 各线采用下述共同要求，并附上本文件中该开发线的小节：
