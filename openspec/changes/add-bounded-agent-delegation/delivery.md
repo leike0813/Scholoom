@@ -1,5 +1,46 @@
 # 实际交付与交接
 
+## ba29ee61后的后续会话完成取证
+
+本轮起始HEAD=`ba29ee61ac6f8700cfe6a9fbaa529a8a7a75aad1`、clean，较已验e3c815b仅两份Markdown；旧增量已在共同源码，没有重放patch或自行同步。实际成果是本场景的有界被动UI观察，**旧Browser失败的根因未关闭**。17.1/17.3完成，17.2保留精确缺证；累计44/49，原4.2/4.3、6.1/6.2继续开放。设计见[后续会话UI完成等待](design.md#后续会话的ui完成等待ba29ee61)。没有业务、期限或轮询修复结论。
+
+### 旧失败已核事实与缺口
+
+消费`/home/joshua/.cache/scholoom-round12-acceptance-NagGbw/`的main-ui-result、browser-session-execution-summary、原trace/model附件、electron-recheck及gate-recheck，不读取其他树在研成果。原Browser后续run为`e1500862-ba94-4fff-81be-26c821a25889`，session为`7b7f0733-8ea8-4b93-8b51-0069c02494a8`，capture startedAt=1793148994298。相对该capture，初始化响应3828ms、消费确认3924ms、首次准入4003ms、模型输出4041ms、controller code0退出4857ms、4875ms首次采到同run completed/实例exited。它不是首模型0或子取消失败。
+
+原测试层断言窗口为1793148994304–1793148999325，原预算5000ms；原浏览器最后一次UI采样1793148999173仍running，与仓储completed样本处于同一显示毫秒，距断言失败约152ms，不能给两者强排先后。原包没有该次ui-window-rpc或watch completed送达/DOM应用记录；最终仓储completed不能证明原deadline内UI已完成。安全来源、trace锚点、JSON定位及独立身份表保留在本轮`main-original-timeline.json`，没有以其他运行补旧时间线。
+
+Electron显示服务失败、provided-display的No held RPC及gate-recheck通过分开核实：最新gate场景通过且有两个实际session的watch completed，不能解释原Browser。共同RPC闸门修正已保留，本轮没有重做或修改它。
+
+### 实际增量与验证
+
+唯一测试源码增量为`tests/ui/harness.spec.ts`：在第二会话发送前，对实际选中project/session及“执行状态”单节点安装MutationObserver，最多32条白名单状态变化，显式丢弃计数/节点连接状态；只存身份、墙钟时点和状态，不存标题、指令、正文、材料或凭据。另存原断言起止/outcome与该测试HTTP模型累计计数。诊断读取/附件写入失败不会替换原断言错误；硬总超时下附件可能不完整，不承诺该情况已取证。监听不刷新UI、不发业务RPC，结束即解除，不做全DOM监听。原完成断言、5秒预算、60秒总预算及所有后续持久化/权限/草稿断言保留。
+
+复用已合入的uiRpc/model-kernel附件，通过实际session.send受理、同scope唯一run及原仓储instruction/instance核对，不新增RPC/schema或生产诊断接点。DOM附件自身不声称知道run；同次三端关联由隔离结果自检完成。没有改窗口fixture、file-workbench、isolated-kernel、kernel-fixture或其他领域符号。
+
+本轮根`/home/joshua/.cache/scholoom-agent-round13-EtWYyz/`（R）保存所有新工件与TMPDIR。Linux/Node24.12.0/已有依赖，复用主线已验共享/内核及同源桌面产物；只改测试，未重复构建。静态产品承载为用户指定`/tmp/scholoom-sync-recovery-wyn13R/static-ui.mjs`，不是DEV样例。DISPLAY=:99的xdpyinfo预检通过，无新Xvfb或共享显示服务操作；各组独立profile/项目/5973–5975端口，项目与工件保留，生命周期清理仅针对自有内核/窗口/静态承载。
+
+| 组 | 实际结果及边界 |
+| --- | --- |
+| `baseline` | 本树原样Browser **1/1通过，45.9秒**；未改原断言，不将自然通过写成旧失败已修 |
+| `observed` | 候选双宿主 **2/2通过，46.6/57.4秒**，同次三端关联及脱敏/上限自检通过。显式调查候选分支没有触发；该组绿色不能验证其余量计算 |
+| 审查修正 | 原生gpt-6.1-sol/high、fork_context:false辅助发现P2：测试函数起点遗漏fixture耗时，候选失败后1500ms等待可能让总超时盖过原错误。核已装TestInfo公开类型无startTime且duration结束前为0，直接删除追加等待，不依赖私有时钟或新fixture |
+| `final` | 删除候选等待后的普通模式双宿主 **2/2通过，47.4/57.1秒，总126.95秒**；原完整场景断言执行，未加sleep/重试/timeout。最终只读复核无确证阻断，辅助未实跑测试/构建或查询CI，现已关闭 |
+
+最终同次时间线相对各自原断言开始：Browser仓储completed首次样本4640ms、watch completed送达4690ms、DOM completed观察4693ms、原断言4897ms通过；Electron分别4491/4539/4545/4867ms。新正例watch到DOM为3/6ms，不能拿它补旧失败最后152ms。两端各一个真实后续run，模型累计3→6；UI/控制/样本/window丢弃计数均0，两个内核最终childClosed且phase=stopped。结果与安全字段自检在`final-timeline.json`、`final-timeline-check.log`，候选组另存，不合并运行。
+
+最终实际命令：`TMPDIR=R SCHOOLOOM_UI_DATA_DIR=R/final-profile SCHOOLOOM_UI_PORT=5975 DISPLAY=:99 PLAYWRIGHT_JSON_OUTPUT_NAME=R/final.json node node_modules/@playwright/test/cli.js test --config R/ui.config.mts tests/ui/harness.spec.ts --grep 'user configures, edits safely' --project ui-browser --project ui-electron --workers=1 --reporter=list,json --output=R/final-results`（R按上文展开）。配置仅把原UI webServer替换为已构建静态承载，不替换业务。精确命令/原结果、profile核查与补丁检查在同根。
+
+tools类型、单文件Biome、architecture（14模块/0 findings/0 granted exceptions）、OpenSpec strict/schema及diff检查通过；没有schema/生成类型改动，不重复运行生成或全仓检查。独立增量`R/harness-completion-observation-ba29ee61.patch`含本测试与原design/tasks/delivery；临时index前向cached及当前树反向检查通过，真实index未改，没有提交。
+
+### 停止点与后续判据
+
+本轮不调整等待：缺的是原失败同run在1793148999173–1793148999325间的watch completed送达与DOM completed时点。新观察已能在相同场景取得这些点；需以后真实失败同次附件才能区分：DOM在原deadline内已完成且最后轮询遗漏，才有依据修唯一局部采样；若watch/DOM在deadline后完成，则不能在本轮5秒约束下猜补；若watch已送达而DOM持续不应用，再交对应投影证据。旧附件不能重建这些事实，本轮无需泛泛等待其他线或重复跑绿色场景，17.2保持开放交回。
+
+内部UI/RPC/broker、仓储、受管进程、文件和权限真实；仅外部模型HTTP受控。沿原测试的RPC闸门、SQLite登记失败trigger及Electron目录选择替身均为明确故障/宿主输入夹具，未伪造执行身份或科研成果质量。主线已完成29cd728/Checks40591705520的Linux750/26、UI126/32/6与Windows723/11/42及macOS分项，仅按其正式回执引用；Windows diagnosis40591705558的availability6/6/安全JSON与Agent三例失败分开。e3c815b新run40613967285/40613967267在派发记录仅in_progress，本轮未查询，不推断当前完成状态或通过；不把Windowsinitialize/consume前边界与本片合因。
+
+未跑全仓、新Windows/macOS目标、分发包或科研质量；完整change/I3/I5/I6未关闭。原TaskPort/FileEdit、库权威、CSL草稿、旧摘录/save/undo及来源授权保持。无依赖安装、开发服务、真实库、其他树操作、Git同步/提交/推送/PR/归档。完成本窄诊断与具体缺证交接后停止。
+
 ## 第十二轮主线验收
 
 可信model-kernel／无Playwright核心已保全合入，Standards／Spec独立审查无确证缺陷。完整构建后主线组合9/9通过，包含四个新helper回归、取消／excerpt／发送拒绝及完整附件路径。原异步stop、实例接替保护、真实close、IPC失联后的已受理执行及脱敏／有界语义保持；不是Windows或科研质量验收。

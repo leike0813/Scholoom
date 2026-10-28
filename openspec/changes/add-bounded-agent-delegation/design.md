@@ -1,5 +1,15 @@
 # 实现设计
 
+## 后续会话的UI完成等待（ba29ee61）
+
+本片消费第十二轮正式主线证据，沿真实`user configures, edits safely...`场景的后续session/run核对原断言失败、执行observer的startedAt+elapsed、controller退出、workbench.watch送达和UI状态应用。当前共同源码已包含两端提供者及RPC闸门修正；不重放旧patch，不改项目fixture/file-workbench或计算生命周期夹具，不把Electron最初No held RPC、Windows尚未消费的启动等待与本机后续run合因。
+
+先保留原5秒UI断言取证，用实际身份及同次时点区分执行未结束、投影未送达/未应用与轮询遗漏。复用现有安全字段/容量/落盘入口；仅在旧工件不足时增加本场景必要观察。若需首失败后继续观察，只允许显式调查模式、原60秒总预算内读取同一run，仍抛出首个原错误，不重发指令，不把调查运行记为通过。证据闭合后才补本节具体因果并修唯一局部观察，业务断言及5秒预算保持；否则交精确缺证及最小方案。
+
+写集限`tests/ui/harness.spec.ts`、必要执行observer/model-kernel窄接点及原工件；不新增RPC/schema或修改业务/UI状态权威。测试改动复用主线已验构建产物，若确需生产改动则按影响先构建再测试。使用独立cache根/TMPDIR、profile/项目/端口，静态已构建产品承载，先核DISPLAY=:99；保留登记项目及首次失败。最小验收是该同次因果闭合与原场景双宿主代表复验，已有机械结果不关闭平台/科研整项。
+
+已消费的旧Browser同次证据：后续capture startedAt=1793148994298，4875ms首次读到completed/exited；原UI断言从1793148994304到1793148999325，最后UI采样在1793148999173仍running，与仓储completed采样处于同一毫秒。原包无该次ui-window-rpc，不能证明watch送达或React应用；本树原样Browser已自然通过，不能用新运行补旧缺证。当前仅增加本场景后续run的被动DOM观察：绑定实际选中project/session与执行状态单节点，MutationObserver只存白名单状态变化和时点（最多32条，截断可见），首断言起止/原失败及累计模型计数另记。复用现有uiRpc/model-kernel附件关联真实instruction/run/instance，不保存标题/正文，不观察全DOM或修改窗口fixture。候选失败后1500ms调查等待未进入最终稿：公开TestInfo没有包含fixture耗时的实时startTime/deadline，按测试函数入口计时会误算余量；现有正例没有触发该分支，不能以绿色掩盖此风险。最终立即重抛原断言错误，不追加等待或依赖Playwright私有时钟。若此次仍只有正例与历史缺证，则不推定轮询根因、不修等待。
+
 ## 可信自有model-kernel观察（29cd728）
 
 本片按第十一轮主线分工提供执行侧事实，不改项目线拥有的窗口fixture。保留`startModelKernel(directory, endpoint)`返回可调用异步stop；旧调用无需变化，helper在初始化失败及stop时自动保存有界附件。只使用原serveKernel，不新建业务server或Zotero配置launcher。现有serveKernel没有应用实例观察注入，可信测试子入口对原KernelApplication.initialize作一次透传hook，保留原实现/参数/结果/错误，初始化成功后恢复hook并订阅实际应用；不替换业务、授权、worker或仓储。
