@@ -15,6 +15,15 @@ export {
   catalogEditorTypes,
   cslMetadataSchema,
 } from './library-metadata.js';
+export {
+  libraryOrganizationOperations,
+  type OrganizationChange,
+  type OrganizationInputs,
+  type OrganizationOutputs,
+  type OrganizationReceipt,
+  organizationLimits,
+  validateOrganization,
+} from './library-organization.js';
 export * from './library-records.js';
 
 export const strings = { type: 'array', items: id, maxItems: 100, uniqueItems: true } as const;
