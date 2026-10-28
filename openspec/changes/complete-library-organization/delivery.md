@@ -1,5 +1,47 @@
 # 实际交付与交接
 
+## 主线接收与联合验证
+
+2026-10-29主线接收十文件增量，四公共handler与主线报告授权改动按符号合并，未覆盖生态装配。独立审查核对真实CLI、领域事务、未知回执、备份恢复及双宿主草稿保护，未发现核心接线缺陷；报告为`/home/joshua/.cache/scholoom-finish-active/organization-independent-review.md`。工作线RPC1/1、领域19/19与双宿主2/2证据保留。主线先构建protocol／client／kernel，随后真实组织RPC、三项迁移及三项原值联合**7/7、47.1秒**，包括本轮新增加的恢复保护；命令／JSON／日志见同根`library-main-joint.{log,json}`及authority交付当前节。tools类型、architecture和生成声明比对通过，C1按其有界判据9/9完成，不将B平台或C2–I计作已交付。
+
+## cb5f7ed：C1公共接线、真实恢复与工作台兼容性收尾
+
+用户“完成现有change任务”的新授权取代此前只阶段收尾／不再派发的边界。本树开工HEAD为`cb5f7ed30f69b45301c83f296268578051b84e0b`且clean，没有应用旧累计patch；本轮补齐3.1／3.2／3.3及4.1／4.2的执行和必要验收，**C1有界任务9/9完成**，待主线统一整合验收。当前状态以tasks及本节为准，下方第十六轮和此前记录保留为历史证据，不再作为当前等待条件。
+
+### 实际成果与完成判据
+
+- `protocol/library.ts::librarySchemas`组合已有四叶声明，唯一生成器更新`business-types.ts`输入／输出映射；client与模块继续引用原schema，不维护第二套DTO。四方法同时接入`ManualApplication.foundationHandlers`，保留所有原handler／构造参数／恢复与根工具。Agent调用以可信principal核执行context，取消在进入领域前检查，领域持续核read／write及当前库身份；没有新增root工具或扩展send授权。
+- 新`tests/kernel/library-organization-rpc.spec.ts`通过真实普通CLI运行锁、KernelClient、WS/RPC、broker及library：准备两个题录／集合、开放未知CSL、独立原值／固定键、实际托管附件及阅读记录，原子组织、差异分页、undo／redo均经公共端口。对应proposal判据1–3，实际diff四个成员由独立输入明确核对。
+- 传输代理仅丢送达／回执。已提交丢回执返回outcomeUnknown后，用原请求ID在真实stop/start后的新进程查得committed，原条目修订未重复增加；未送达请求持续notFound且没有重放。已核终态后另明确测试同ID重复提交只返原结果、不使undo变成redo；不把这个已知终态验证称为unknown自动重试。
+- 真正调用`library.backup/restore`后从独立恢复配置启动第三个CLI进程：new libraryId、read=true／write=false／send=false，原组织记录可审计；重授write后仍拒绝旧origin撤销。旧材料／版本／阅读记录／原值／固定键／authority回执保持，恢复附件实际字节可读。副本明确新请求独立成功，原库后续更正保持。对应proposal判据4，不使用修改meta身份的夹具代替恢复。
+- 原`library.spec.ts`单一场景扩展真实`library.organize`，双宿主核选择／主选／完整dirty CSL、跨窗口刷新、旧revision保存冲突、迟到失败归原对象及显式保留／丢弃重读。没有新GUI结构、第二草稿、保存台账、跨DOM读取或批量界面；UI设计和语义token无变化。对应3.3兼容性，不冒充C2组织GUI。
+
+独立只读审查核对了契约、四handler、生成映射、恢复来源、unknown及实际测试结果，无确证实施缺陷；建议补核差异页实际内容已落实。真实公共提供者及必要本机证据满足本change的有界完成判据5。完整C后续附件／关系、B的平台／独审余项、生态原包持久配置及科研质量仍不在本轮关闭范围。
+
+### 命令、首次失败及最终结果
+
+本节`R=/home/joshua/.cache/scholoom-finish-active/literature-workbench`；所有操作先`export TMPDIR="$R/tmp"`，Node24及已有依赖。生产修改后先最小构建protocol／client／kernel／desktop，再冻结同树产物运行测试，未边测边构建，没有运行pnpm、安装依赖或开发服务器。
+
+| 实际入口 | 结果与证据 |
+| --- | --- |
+| `node node_modules/typescript/bin/tsc -p packages/protocol/tsconfig.json`；同入口`-p packages/client/tsconfig.json`／`-p apps/kernel/tsconfig.json`；desktop目录`node ../../node_modules/electron-vite/bin/electron-vite.js build` | 均通过，`build-{protocol,client,kernel,desktop}.log`。仅更新受影响编译产物；复用共同已验library及其余共享包，没有冒称全量重建。 |
+| `node node_modules/@playwright/test/cli.js test --config playwright.kernel.config.ts tests/kernel/library-organization-rpc.spec.ts --output "$R/rpc-red" --reporter=list` | 初始RED：共同已验旧产物尚未注册四个capability，原assert失败，11.7秒；`rpc-red.log`及trace。自有CLI正常停止，不把它当既有提供者回归。 |
+| 同RPC命令，`--output "$R/rpc-green"` | 首次接线实跑35.8秒后在末尾历史整对象断言失败。`get`含当前attachmentState投影，history保留历史题录值，不能拿当前附件投影作历史oracle；保留版本／完整metadata／组织字段断言和附件身份／实际字节检查，未改生产代码。`rpc-green.log`及trace保留。 |
+| 同RPC命令，`--output "$R/rpc-final"` | **1/1，41.6秒**，实际场景36.2秒；`rpc-final.log`。真实CLI三次启动及停止、丢回执／未送达、差异、undo／redo、备份恢复、副本授权／origin、原库后续成果及原authority均核对。无sleep、重试或放宽原60秒预算。 |
+| `node node_modules/@playwright/test/cli.js test --config playwright.kernel.config.ts tests/kernel/{library-organization,library-organization-contract,library-record-migration,library-records}.spec.ts --output "$R/kernel-regression" --reporter=list` | **19/19，14.6秒**，`kernel-regression.log`。公共聚合后的原子失败、长旧值预算、namespace、迁移、并发代次、修订上限及旧authority回归；没有写主线拥有的authority测试文件。 |
+| `node /home/joshua/.cache/scholoom-round13-acceptance/create-ui-config.mjs "$R/ui-base.config.mts"`；`xdpyinfo -display :99`；`DISPLAY=:99 SCHOOLOOM_UI_PORT=6011 SCHOOLOOM_UI_DATA_DIR="$R/ui-profile" node node_modules/@playwright/test/cli.js test --config "$R/ui.config.mts" tests/ui/library.spec.ts --grep 'library object drafts and selection survive organization'` | 显示预检通过；静态已构建产品双宿主**首次2/2，1.1分钟**，Browser19.6秒、Electron25.3秒；`display-ui.log`、`ui-first.log`、`ui.json`、`ui-results/`。wrapper仅迁结果到cache，没有替换内部权威。原90秒场景预算及冲突／草稿保护保持。 |
+| `node node_modules/typescript/bin/tsc --noEmit -p tsconfig.tools.json`；Biome check受影响5个TS文件；`node scripts/check-architecture.ts` | 均通过，`tools-types-final.log`、`biome-final.log`、`architecture.log`，14模块／257文件、0 findings／exceptions。初次lint仅发现新测试空解构及排版，按既有工具修正，原`biome.log`保留；内置apply_patch应用所有既有文件修改。 |
+| 同源生成器`--self-test`／`--patch`只写cache，`node "$R/check-contracts.mjs"` | 八份生成声明核对通过；四公共方法存在，root工具名单未增加。`contracts-check.log`，既有纯格式提案未应用；business增量由最终schema生成，未整文件覆盖公共映射。 |
+| 当前delivery/apply instructions、OpenSpec strict／scholoom-dev schema、diff及独立增量核查 | 结果保存在同根`delivery-instructions-final.json`、`apply-final.json`、`openspec-strict.log`、`openspec-schema.log`、`diff-check.log`及`patch-check.json`；任务完成仍以实际结果而非CLI状态为准。 |
+
+### 真实／替身边界与交回
+
+内部CLI生命周期／运行锁、客户端、RPC、broker、领域、SQLite和材料文件全部真实；没有模型参与、付费模型调用、库／工具结果／UI状态替身。外部受控部分仅为新测试局部WS代理的送达／回执丢失及原UI传输门的受理时序，失败仍来自真实领域CAS；没有新launcher或另一server/provider。辅助保持原生gpt-6.1-sol/high、fork_context:false，只写指定UI场景后只读核代码／结果，父负责实际运行和最终判断。
+
+可重建入口为`bash "$R/reproduce.sh"`，报告及独立补丁为`$R/report.md`／`$R/library-organization-complete.patch`；依赖共同cb5f7ed，与先前累计patch无关。公共聚合／business映射及manual四handler应一起接入；文献所有权仅这些符号，未碰主线报告历史及生态构造／initialize／zoteroRuntime。新schema、库provider及v5迁移来自共同基线，不重复搬迁。
+
+`owned-status.json`确认本轮RED／首绿／最终RPC的原库／副本及UI配置全部stopped，6011无监听；登记项目、配置、profile及结果留在cache，不删除目录留下登记，不停止共享:99。必需脚本、独立输入和结果在Git／cache，无现有/tmp内容前置。辅助和本轮自有执行已结束；不提交／同步／推送／PR／归档，到C1边界停止等待主线整合验收。未新增Windows／macOS、完整分发、C2–I或科研质量结论。
+
 ## 第十六轮主线接收
 
 六树增量已冻结保全、检查点提交并合入dev；Standards／Spec两轴独立审查均0确证发现。共同产物完成完整构建、全包／tools类型、架构14模块／257文件0 findings／exceptions、八份生成映射及14个受影响文件Biome。组织／契约／迁移／原authority19/19、旧集合及早期库迁移3/3在主线再次通过，分别纳入44/44与18/18两个组合。原命令、冻结对象及结果在`/home/joshua/.cache/scholoom-round16-integration/`，接续无需现有`/tmp`。

@@ -3,6 +3,7 @@ import type { FromSchema } from 'json-schema-to-ts';
 import { catalogSelectionOperations } from './catalog-selection.js';
 import type { CallArguments } from './core.js';
 import { cslMetadataSchema } from './library-metadata.js';
+import { libraryOrganizationOperations } from './library-organization.js';
 import { libraryRecordOperations } from './library-records.js';
 import { array, count, flag, id, object, page, text } from './schema.js';
 
@@ -518,6 +519,7 @@ export const libraryImportProjectFilesSchema = object(
 
 export const librarySchemas = {
   ...libraryRecordOperations,
+  ...libraryOrganizationOperations,
   'library.attachment': {
     semantics: { effect: 'read', returns: 'result', waitMs: 5000 },
     params: object({ attachmentId: id }, ['attachmentId']),

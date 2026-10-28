@@ -863,7 +863,9 @@ test('library selection, collection navigation and columns survive bounded view 
   }
 });
 
-test('library object drafts stay isolated across windows and late failures', async ({ uiPage }) => {
+test('library object drafts and selection survive organization across windows and late failures', async ({
+  uiPage,
+}) => {
   test.setTimeout(90000);
   const client = createKernelClient(
     await runningKernel(process.env.SCHOOLOOM_UI_DATA_DIR as string),
@@ -878,13 +880,29 @@ test('library object drafts stay isolated across windows and late failures', asy
       batchId: randomUUID(),
       version: 'published',
       origin: 'synthetic',
-      json: JSON.stringify([{ title: `${prefix}-甲` }, { title: `${prefix}-乙` }]),
+      json: JSON.stringify([
+        {
+          title: `${prefix}-甲`,
+          type: 'article-journal',
+          author: [{ family: '王', given: '小明', extension: { retained: true } }],
+          issued: { 'date-parts': [[2026, 7, 23]], extension: { season: '夏' } },
+          extension: { nested: ['已保存未知值'] },
+        },
+        { title: `${prefix}-乙` },
+      ]),
     });
     await expect
       .poll(async () => (await client.call('library.batch', { batchId: batch.id })).batch.state)
       .toBe('completed');
     const source = (await client.call('library.list', { query: `${prefix}-甲` })).sources[0];
     if (!source) throw new Error('Missing draft sample');
+    const libraryId = (await client.call('library.status', {})).id;
+    const collection = await client.call('library.saveCollection', { name: `组织目标-${suffix}` });
+    const draft = {
+      ...source.metadata,
+      abstract: '原窗口草稿',
+      extension: { nested: ['未保存未知值', { retained: true }] },
+    };
     await installRpcGate(uiPage);
     await uiPage.goto(rendererUrl);
     const legacyImport = `scholoom.draft.v1:${process.env.SCHOOLOOM_UI_DATA_DIR}|library|import`;
@@ -907,14 +925,14 @@ test('library object drafts stay isolated across windows and late failures', asy
     await panel.getByLabel('查找题录', { exact: true }).fill(prefix);
     await panel.getByRole('option', { name: `查看题录 ${prefix}-甲`, exact: true }).click();
     const json = detail.getByLabel('题录 CSL JSON', { exact: true });
-    await json.fill(JSON.stringify({ title: `${prefix}-甲`, abstract: '跨卸载提交' }));
+    await json.fill(JSON.stringify({ ...source.metadata, abstract: '跨卸载提交' }));
     await armRpcGate(uiPage, 'library.update');
     await detail.getByRole('button', { name: '保存题录更正', exact: true }).click();
     await uiPage.getByRole('button', { name: '关闭 文献库', exact: true }).click();
     await uiPage.getByRole('button', { name: '文献库', exact: true }).click();
     await openLibraryDetails(uiPage);
     await expect(detail.getByRole('button', { name: '保存题录更正', exact: true })).toBeDisabled();
-    await json.fill(JSON.stringify({ title: `${prefix}-甲`, abstract: '原窗口草稿' }));
+    await json.fill(JSON.stringify(draft));
     await releaseRpcGate(uiPage);
     await expect
       .poll(
@@ -924,26 +942,68 @@ test('library object drafts stay isolated across windows and late failures', asy
     await uiPage.getByRole('button', { name: '关闭 文献库', exact: true }).click();
     await uiPage.getByRole('button', { name: '文献库', exact: true }).click();
     await openLibraryDetails(uiPage);
-    await expect(json).toHaveValue(/原窗口草稿/);
+    await expect.poll(async () => JSON.parse(await json.inputValue())).toEqual(draft);
     other = await openWorkbenchWindow(uiPage);
     await other.goto(rendererUrl);
     await other.getByRole('button', { name: '文献库', exact: true }).click();
     await openLibraryDetails(other);
     const otherPanel = other.getByRole('region', { name: '文献库', exact: true });
     const otherDetail = other.getByRole('region', { name: '题录详情', exact: true });
+    const otherJson = otherDetail.getByLabel('题录 CSL JSON', { exact: true });
     await otherPanel.getByLabel('查找题录', { exact: true }).fill(prefix);
     await otherPanel.getByRole('option', { name: `查看题录 ${prefix}-甲`, exact: true }).click();
-    await expect(otherDetail.getByLabel('题录 CSL JSON', { exact: true })).not.toHaveValue(
-      /原窗口草稿/,
-    );
+    await expect(otherJson).not.toHaveValue(/原窗口草稿/);
+    await panel.getByRole('option', { name: `查看题录 ${prefix}-乙`, exact: true }).click();
+    const primaryRow = panel.getByRole('option', { name: `查看题录 ${prefix}-甲`, exact: true });
+    await primaryRow.click({ modifiers: ['ControlOrMeta'] });
+    await expect(panel.getByRole('status', { name: '题录选择' })).toContainText('已选 2 项');
+    await expect.poll(async () => JSON.parse(await json.inputValue())).toEqual(draft);
     const latest = await client.call('library.get', { sourceId: source.id });
-    await client.call('library.update', {
-      sourceId: source.id,
-      revision: latest.revision,
-      metadata: { ...source.metadata, abstract: '外部修订' },
-      tags: source.tags,
-      collectionIds: source.collectionIds,
-      relatedIds: source.relatedIds,
+    const tags = [`已组织-${suffix}`];
+    expect(
+      await client.call('library.organize', {
+        libraryId,
+        requestId: randomUUID(),
+        changes: [
+          {
+            sourceId: source.id,
+            revision: latest.revision,
+            tags,
+            collectionIds: [collection.id],
+          },
+        ],
+      }),
+    ).toMatchObject({
+      state: 'committed',
+      results: [{ sourceId: source.id, status: 'applied', revision: latest.revision + 1 }],
+    });
+    await expect(
+      detail.getByText(`稳定身份 ${source.id} · 修订号 ${latest.revision + 1}`, { exact: false }),
+    ).toBeVisible();
+    await expect(
+      otherDetail.getByText(`稳定身份 ${source.id} · 修订号 ${latest.revision + 1}`, {
+        exact: false,
+      }),
+    ).toBeVisible();
+    await expect
+      .poll(async () => JSON.parse(await otherJson.inputValue()))
+      .toEqual(latest.metadata);
+    await expect(primaryRow).toHaveAttribute('aria-selected', 'true');
+    await expect(
+      panel.getByRole('option', { name: `查看题录 ${prefix}-乙`, exact: true }),
+    ).toHaveAttribute('aria-selected', 'true');
+    await expect(panel.getByRole('status', { name: '题录选择' })).toContainText('已选 2 项');
+    await expect(panel.getByRole('status', { name: '题录选择' })).toContainText(
+      `主选 ${prefix}-甲`,
+    );
+    await expect.poll(async () => JSON.parse(await json.inputValue())).toEqual(draft);
+    const organized = await client.call('library.get', { sourceId: source.id });
+    expect(organized).toMatchObject({
+      id: source.id,
+      revision: latest.revision + 1,
+      metadata: latest.metadata,
+      tags,
+      collectionIds: [collection.id],
     });
     await armRpcGate(uiPage, 'library.update');
     await detail.getByRole('button', { name: '保存题录更正', exact: true }).click();
@@ -954,16 +1014,24 @@ test('library object drafts stay isolated across windows and late failures', asy
     await expect(json).toHaveValue(/另一个对象草稿/);
     await expect(detail.getByRole('alert')).toHaveCount(0);
     await panel.getByRole('option', { name: `查看题录 ${prefix}-甲`, exact: true }).click();
-    await expect(json).toHaveValue(/原窗口草稿/);
+    await expect.poll(async () => JSON.parse(await json.inputValue())).toEqual(draft);
     await expect(detail.getByRole('alert')).toContainText('变化');
+    expect(await client.call('library.get', { sourceId: source.id })).toEqual(organized);
     await uiPage.getByRole('button', { name: '关闭 文献库', exact: true }).click();
     await uiPage.getByRole('button', { name: '文献库', exact: true }).click();
     await openLibraryDetails(uiPage);
-    await expect(json).toHaveValue(/原窗口草稿/);
+    await expect.poll(async () => JSON.parse(await json.inputValue())).toEqual(draft);
     await detail.getByRole('button', { name: '重新读取题录', exact: true }).click();
     const confirm = detail.getByRole('alertdialog', { name: '确认丢弃题录草稿' });
     await confirm.getByRole('button', { name: '保留草稿', exact: true }).click();
-    await expect(json).toHaveValue(/原窗口草稿/);
+    await expect.poll(async () => JSON.parse(await json.inputValue())).toEqual(draft);
+    await detail.getByRole('button', { name: '重新读取题录', exact: true }).click();
+    await confirm.getByRole('button', { name: '丢弃并重新读取', exact: true }).click();
+    await expect.poll(async () => JSON.parse(await json.inputValue())).toEqual(latest.metadata);
+    await expect(detail.getByLabel('题录标签', { exact: true })).toHaveValue(tags.join(', '));
+    await expect(detail.getByLabel(`集合 ${collection.name}`, { exact: true })).toBeChecked();
+    await expect(detail.getByRole('alert')).toHaveCount(0);
+    expect(await client.call('library.get', { sourceId: source.id })).toEqual(organized);
   } finally {
     await other?.close();
     client.dispose();

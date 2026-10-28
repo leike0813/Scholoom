@@ -61,6 +61,13 @@ export type Inputs = {
   >;
   'library.ingest': FromSchema<(typeof businessSchemas)['library.ingest']['params']>;
   'library.list': FromSchema<(typeof businessSchemas)['library.list']['params']>;
+  'library.organizationEdit': FromSchema<
+    (typeof businessSchemas)['library.organizationEdit']['params']
+  >;
+  'library.organizationResult': FromSchema<
+    (typeof businessSchemas)['library.organizationResult']['params']
+  >;
+  'library.organize': FromSchema<(typeof businessSchemas)['library.organize']['params']>;
   'library.pdfInfo': FromSchema<(typeof businessSchemas)['library.pdfInfo']['params']>;
   'library.readAttachment': FromSchema<
     (typeof businessSchemas)['library.readAttachment']['params']
@@ -89,6 +96,9 @@ export type Inputs = {
   >;
   'library.restore': FromSchema<(typeof businessSchemas)['library.restore']['params']>;
   'library.resume': FromSchema<(typeof businessSchemas)['library.resume']['params']>;
+  'library.revertOrganization': FromSchema<
+    (typeof businessSchemas)['library.revertOrganization']['params']
+  >;
   'library.saveCollection': FromSchema<
     (typeof businessSchemas)['library.saveCollection']['params']
   >;
@@ -239,6 +249,13 @@ export type Outputs = {
   >;
   'library.ingest': FromSchema<(typeof businessSchemas)['library.ingest']['result']>;
   'library.list': FromSchema<(typeof businessSchemas)['library.list']['result']>;
+  'library.organizationEdit': FromSchema<
+    (typeof businessSchemas)['library.organizationEdit']['result']
+  >;
+  'library.organizationResult': FromSchema<
+    (typeof businessSchemas)['library.organizationResult']['result']
+  >;
+  'library.organize': FromSchema<(typeof businessSchemas)['library.organize']['result']>;
   'library.pdfInfo': FromSchema<(typeof businessSchemas)['library.pdfInfo']['result']>;
   'library.readAttachment': FromSchema<
     (typeof businessSchemas)['library.readAttachment']['result']
@@ -267,6 +284,9 @@ export type Outputs = {
   >;
   'library.restore': FromSchema<(typeof businessSchemas)['library.restore']['result']>;
   'library.resume': FromSchema<(typeof businessSchemas)['library.resume']['result']>;
+  'library.revertOrganization': FromSchema<
+    (typeof businessSchemas)['library.revertOrganization']['result']
+  >;
   'library.saveCollection': FromSchema<
     (typeof businessSchemas)['library.saveCollection']['result']
   >;

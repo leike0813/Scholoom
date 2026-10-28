@@ -1781,6 +1781,26 @@ export class ManualApplication {
     'library.recordHistory': async (input) => this.library.recordHistory(input),
     'library.commitRecords': async (input) => this.library.commitRecords(input),
     'library.commitResult': async (input) => this.library.commitResult(input),
+    'library.organize': async (input, context) => {
+      if (context.principal.kind === 'agent') this.checkExecutionContext(context);
+      context.signal?.throwIfAborted();
+      return this.library.organize(input);
+    },
+    'library.organizationResult': async (input, context) => {
+      if (context.principal.kind === 'agent') this.checkExecutionContext(context);
+      context.signal?.throwIfAborted();
+      return this.library.organizationResult(input);
+    },
+    'library.organizationEdit': async (input, context) => {
+      if (context.principal.kind === 'agent') this.checkExecutionContext(context);
+      context.signal?.throwIfAborted();
+      return this.library.organizationEdit(input);
+    },
+    'library.revertOrganization': async (input, context) => {
+      if (context.principal.kind === 'agent') this.checkExecutionContext(context);
+      context.signal?.throwIfAborted();
+      return this.library.revertOrganization(input);
+    },
     'library.grant': async (input) => {
       return this.library.grant(input);
     },

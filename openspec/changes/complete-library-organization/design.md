@@ -23,7 +23,7 @@ flowchart LR
   DB --> Copy[现有SQLite备份和新身份副本]
 ```
 
-第十五轮已实施叶契约及library内四个方法，实际提供者结果见[delivery](delivery.md)。图中公共客户端／宿主注册仍为3.1目标，未发布公共操作；真实进程恢复及UI兼容性分别留3.2／3.3。以下保留完整C1目标设计，不将领域直调验收写成整条公共路径已接线。
+叶契约及library内四个方法已接入公共同源聚合与宿主broker，完整C1调用图已由真实KernelClient／RPC／CLI重启／独立副本及既有工作台双宿主验证，实际结果及旧阶段边界见[delivery](delivery.md)。C1仅完成本设计的集合成员／标签原子提供者及可逆记录，后续C的附件／关系模型不随本片关闭；没有新增root工具或批量GUI。
 
 ## 方案与接口
 
@@ -37,7 +37,7 @@ flowchart LR
 
 ### 2. 同源DTO
 
-唯一schema源为`packages/protocol/src/library-organization.ts`。1.1提供叶schema、派生类型／验证器及library具名导出供提供者独立测试；3.1与实际handler一起组合公共操作并生成business／client映射，不提前发布尚无handler的端口。下列已有叶定义及领域实现，尚未注册公共接口。
+唯一schema源为`packages/protocol/src/library-organization.ts`。1.1提供叶schema、派生类型／验证器及library具名导出；3.1将同一声明组合到librarySchemas，生成business映射并同时注册实际handler，客户端继续引用同源类型。下列四个公共接口均有真实提供者及调用验收，root工具名单保持不变。
 
 | 方法 | 输入 | 输出与语义 |
 | --- | --- | --- |
@@ -119,7 +119,7 @@ library v4→v5新增：
 | `packages/library/src/record-receipts.ts` | 文献：只提取当前回执查找、冻结输入检查及持久化，不移动原值／键业务计划。 |
 | `packages/library/src/organization.ts`；`catalog.ts`的组合方法／commitRecords回执调用／initialize版本门 | 文献：组织deep module及私有store seam，复用源校验／历史，保留原catalog其他职责。 |
 | `packages/library/src/schema.ts`、`migrations/0004_organization.sql`及meta journal／必要schema快照 | 文献：kind和依据表、v4→v5原子迁移。编号实施前若被其他已合入迁移占用，重取当前序号，不覆盖。 |
-| `apps/kernel/src/manual.ts::libraryHandlers`四项及可信context检查；最终schema生成的business/client／module映射 | 文献符号增量，所有原handler／TaskPort／programs／resources等装配保留；先同源生成，不手写第二套类型。 |
+| `apps/kernel/src/manual.ts::foundationHandlers`四个library方法及可信context检查；最终schema生成的business映射与原client／module派生类型 | 文献符号增量，所有原handler／TaskPort／programs／resources等装配保留；先同源生成，不手写第二套类型。 |
 | `tests/kernel/library-organization.spec.ts`、`library-records.spec.ts`／`library-record-migration.spec.ts`必要扩展、原catalog测试 | 文献：契约、真实client／broker、legacy不回退、迁移／副本／故障边界。 |
 | `tests/ui/library.spec.ts`中的一个已有草稿／选择代表场景 | 文献：新领域动作触发旧UI时的兼容性回归，不新造批量GUI；不改fixture／rpc-gate／model-kernel。主线诊断catch、空观察、有界save参数保留。 |
 | `docs/development.md`文献操作分节、本文／tasks，实施后同change delivery | 记录真实入口及边界，不更新正式规格或虚构交付；无UI结构变化无需现在改视觉事实源。 |
@@ -136,7 +136,7 @@ library v4→v5新增：
 
 ## 待办边界
 
-C1没有待产品选择的阻塞。第十五轮主线已接收本规划，下一片授权实施1.1／1.2及2.1／2.2，先交同源契约、迁移和真实组织提供者；3.1后的公共客户端、恢复及UI兼容性继续按任务依赖另行验收。不能把本片readiness写成完整C已闭合。集合结构更改、关系批量与元数据撤销继续独立切片；D／E关系前置仍开放，不为项目等待跳批或伪造删除证据。
+C1没有待产品选择的阻塞；本轮按用户“完成现有change任务”的授权补齐3.1–4.2，交回本地完整C1结果由主线整合验收，不以CLI状态或本机结果宣称完整C／平台发布已闭合。集合结构更改、附件关系、关系批量与元数据撤销仍独立切片；D／E关系前置仍开放，不为项目等待跳批或伪造删除证据。
 
 ### 后续关系方向
 
