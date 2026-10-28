@@ -1,8 +1,10 @@
 import { randomUUID } from 'node:crypto';
 import { mkdir, readFile } from 'node:fs/promises';
 import { basename, join } from 'node:path';
+import { setTimeout as delay } from 'node:timers/promises';
 import { createKernelClient } from '../../packages/client/dist/index.js';
 import type { DelegationRequest } from '../../packages/protocol/dist/index.js';
+import { observationErrorCode } from '../execution-observer.js';
 import { delegationModel } from '../fixtures/delegation-model.js';
 import { runningKernel } from '../kernel-fixture.js';
 import { startModelKernel } from '../model-kernel.js';
@@ -12,6 +14,7 @@ import { rendererUrl } from './renderer-url.js';
 for (const cancel of [false, true]) {
   test(`user observes actual delegation, ${cancel ? 'cancels its child' : 'opens its saved report'} and retains the conversation draft`, async ({
     uiPage,
+    uiRpc,
   }) => {
     test.setTimeout(120000);
     const root = test.info().outputPath('projects');
@@ -50,14 +53,98 @@ for (const cancel of [false, true]) {
       await expect(uiPage.getByRole('status', { name: '连接状态' })).toContainText('已连接');
       await addProject(uiPage, path);
       await createSession(uiPage, basename(path));
+      const sessionId = await uiPage
+        .getByRole('button', { name: /^打开会话 /, pressed: true })
+        .evaluate(
+          (button) => button.closest('[data-session-id]')?.getAttribute('data-session-id'),
+          undefined,
+          { timeout: 500 },
+        )
+        .catch(() => undefined);
       const composer = uiPage.getByRole('textbox', { name: '研究指令', exact: true });
       await composer.fill('PARENT_DELEGATION');
+      const modelRequestsAtSend = model.requests.length;
       await uiPage.getByRole('button', { name: '发送指令', exact: true }).click();
       await expect(composer).toHaveValue('');
       await composer.fill('Retained user draft');
       await uiPage.getByRole('button', { name: '展开 Agent 会话', exact: true }).click();
       const tool = uiPage.locator('details.tool-call').filter({ hasText: 'Ran delegate_agent' });
-      await expect(tool).toHaveCount(1);
+      const assertionStartedAt = Date.now();
+      let outcome = 'failed';
+      try {
+        await expect(tool).toHaveCount(1);
+        outcome = 'passed';
+      } finally {
+        // Keep the first verdict/time; a diagnostic read cannot turn it into a pass.
+        const assertionEndedAt = Date.now();
+        const modelRequestsAtAssertionEnd = model.requests.length;
+        const timeout = new AbortController();
+        let snapshotStatus = sessionId ? 'pending' : 'missingSession';
+        let snapshotErrorCode: string | undefined;
+        const snapshot = await Promise.race([
+          sessionId
+            ? client
+                .call('workbench.snapshot', { projectId: project.id, sessionId })
+                .then((value) => {
+                  if (snapshotStatus !== 'pending') return undefined;
+                  const result = {
+                    observedAt: Date.now(),
+                    projectId: value.session?.projectId,
+                    sessionId: value.session?.id,
+                    run: value.run ? { id: value.run.id, state: value.run.state } : undefined,
+                    instructions: value.messages
+                      .filter((m) => m.role === 'user')
+                      .slice(-16)
+                      .map((m) => ({ id: m.id, state: m.state })),
+                    tools: value.messages
+                      .filter((m) => m.role === 'tool')
+                      .slice(-16)
+                      .map((m) => ({ id: m.id, name: m.tool?.name, state: m.state })),
+                  };
+                  snapshotStatus = 'observed';
+                  return result;
+                })
+                .catch((error) => {
+                  if (snapshotStatus === 'pending') {
+                    snapshotStatus = 'rejected';
+                    snapshotErrorCode = observationErrorCode(error);
+                  }
+                  return undefined;
+                })
+            : Promise.resolve(undefined),
+          delay(500, undefined, { signal: timeout.signal })
+            .then(() => {
+              if (snapshotStatus === 'pending') snapshotStatus = 'timedOut';
+            })
+            .catch(() => undefined),
+        ]);
+        timeout.abort();
+        await test
+          .info()
+          .attach('delegation-tool-boundary', {
+            body: JSON.stringify({
+              projectId: project.id,
+              sessionId,
+              delegationId: work.delegationId,
+              assertionStartedAt,
+              assertionEndedAt,
+              outcome,
+              modelRequestsAtSend,
+              modelRequestsAtAssertionEnd,
+              snapshot,
+              snapshotStatus,
+              snapshotErrorCode,
+              snapshotUnavailable: !snapshot,
+            }),
+            contentType: 'application/json',
+          })
+          .catch(() =>
+            test.info().annotations.push({
+              type: 'execution-diagnostic-unavailable',
+              description: 'writeFailed',
+            }),
+          );
+      }
       await tool.locator(':scope > summary').click();
       const details = tool.getByRole('region', { name: '委派详情' });
       if (cancel) {
@@ -78,10 +165,14 @@ for (const cancel of [false, true]) {
       await expect(uiPage.getByRole('status', { name: '连接状态' })).toContainText('已连接');
       await expect(composer).toHaveValue('Retained user draft');
     } finally {
-      model.release();
-      client.dispose();
-      await stop();
-      await model.close();
+      try {
+        await uiRpc.save(test.info());
+      } finally {
+        model.release();
+        client.dispose();
+        await stop();
+        await model.close();
+      }
     }
   });
 }
