@@ -39,6 +39,11 @@ test('atomic records preserve raw values and pinned keys, reject case conflicts 
       ],
       relations: { related: ['OTHERKEY'] },
     };
+    const copyOriginal = {
+      ...original,
+      identity: { ...original.identity, instanceId: copy.id },
+      fields: { ...original.fields, title: '原乙' },
+    };
     const initial = {
       requestId: randomUUID(),
       libraryId,
@@ -52,6 +57,7 @@ test('atomic records preserve raw values and pinned keys, reject case conflicts 
         {
           sourceId: b.id,
           revision: b.revision,
+          original: copyOriginal,
           key: { value: 'Other2024', pinned: true, intent: 'candidate' as const },
         },
       ],
@@ -60,15 +66,49 @@ test('atomic records preserve raw values and pinned keys, reject case conflicts 
     const receipt = catalog.commitRecords(initial);
     expect(receipt.error).toBeUndefined();
     expect(receipt.state).toBe('committed');
-    expect(catalog.record({ libraryId, sourceId: b.id }).citationKey).toEqual({
-      value: 'Other2024',
-      pinned: false,
+    expect(catalog.record({ libraryId, sourceId: a.id }).originals).toEqual([original]);
+    expect(catalog.record({ libraryId, sourceId: b.id })).toMatchObject({
+      citationKey: { value: 'Other2024', pinned: false },
+      originals: [copyOriginal],
     });
     expect(notices).toBe(count + 1);
     expect(catalog.commitRecords(initial)).toEqual(receipt);
     expect(notices).toBe(count + 1);
     const currentA = catalog.get(a.id),
       currentB = catalog.get(b.id);
+    const historyBefore = catalog.history({ sourceId: a.id }).sources;
+    const recordsBefore = catalog.recordHistory({ libraryId, sourceId: a.id }).records;
+    const unregisteredRequest = {
+      requestId: randomUUID(),
+      libraryId,
+      changes: [
+        {
+          sourceId: a.id,
+          revision: currentA.revision,
+          metadata: { ...currentA.metadata, title: '未登记来源不能部分保存' },
+        },
+        {
+          sourceId: b.id,
+          revision: currentB.revision,
+          original: {
+            ...copyOriginal,
+            identity: { ...copyOriginal.identity, instanceId: randomUUID() },
+          },
+        },
+      ],
+    };
+    const unregistered = catalog.commitRecords(unregisteredRequest);
+    expect(unregistered).toMatchObject({ state: 'rejected', error: { code: 'notFound' } });
+    expect(catalog.commitResult({ libraryId, requestId: unregisteredRequest.requestId })).toEqual(
+      unregistered,
+    );
+    expect(catalog.get(a.id)).toEqual(currentA);
+    expect(catalog.get(b.id)).toEqual(currentB);
+    expect(catalog.record({ libraryId, sourceId: a.id }).originals).toEqual([original]);
+    expect(catalog.record({ libraryId, sourceId: b.id }).originals).toEqual([copyOriginal]);
+    expect(catalog.history({ sourceId: a.id }).sources).toEqual(historyBefore);
+    expect(catalog.recordHistory({ libraryId, sourceId: a.id }).records).toEqual(recordsBefore);
+    expect(notices).toBe(count + 1);
     const rejected = catalog.commitRecords({
       requestId: randomUUID(),
       libraryId,
@@ -95,8 +135,6 @@ test('atomic records preserve raw values and pinned keys, reject case conflicts 
       json: JSON.stringify([{ title: '占用DOI', DOI: '10.1234/occupied' }]),
     });
     await expect.poll(() => catalog.batch({ batchId: third.id }).batch.state).toBe('completed');
-    const historyBefore = catalog.history({ sourceId: a.id }).sources;
-    const recordsBefore = catalog.recordHistory({ libraryId, sourceId: a.id }).records;
     const noticesBefore = notices;
     const rolledBack = catalog.commitRecords({
       requestId: randomUUID(),
@@ -146,6 +184,31 @@ test('atomic records preserve raw values and pinned keys, reject case conflicts 
       originals: [original],
     });
     expect(catalog.get(a.id).metadata).toEqual({ ...a.metadata, title: '新甲' });
+    const beforeUnpin = catalog.get(a.id);
+    const beforeUnpinHistory = catalog.history({ sourceId: a.id }).sources;
+    const beforeUnpinRecords = catalog.recordHistory({ libraryId, sourceId: a.id }).records;
+    const beforeUnpinNotices = notices;
+    const staleUnpin = catalog.commitRecords({
+      libraryId,
+      requestId: randomUUID(),
+      changes: [
+        {
+          sourceId: a.id,
+          revision: currentA.revision,
+          metadata: { ...beforeUnpin.metadata, title: '过期解除固定不能更正题录' },
+          original: { ...original, fields: { ...original.fields, title: '不能更正原值' } },
+          key: { value: 'UnpinnedReplacement', pinned: false, intent: 'explicit' },
+        },
+      ],
+    });
+    expect(staleUnpin).toMatchObject({ state: 'rejected', error: { code: 'contentChanged' } });
+    expect(catalog.get(a.id)).toEqual(beforeUnpin);
+    expect(catalog.record({ libraryId, sourceId: a.id })).toEqual(record);
+    expect(catalog.history({ sourceId: a.id }).sources).toEqual(beforeUnpinHistory);
+    expect(catalog.recordHistory({ libraryId, sourceId: a.id }).records).toEqual(
+      beforeUnpinRecords,
+    );
+    expect(notices).toBe(beforeUnpinNotices);
     await catalog.close();
     catalog = new LiteratureCatalog(root, () => notices++);
     await catalog.initialize();
@@ -158,6 +221,128 @@ test('atomic records preserve raw values and pinned keys, reject case conflicts 
   } finally {
     await catalog.close();
     await rm(root, { recursive: true });
+  }
+});
+
+test('authority backup restores original values, pinned keys and receipts into an independently authorized copy', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'scholoom-record-backup-'));
+  test.info().annotations.push({ type: 'authority-backup-fixture', description: root });
+  const catalog = new LiteratureCatalog(join(root, 'profile'), () => {});
+  let copy: LiteratureCatalog | undefined;
+  try {
+    await catalog.initialize();
+    catalog.grant({ read: true, write: true, send: true, autoBackup: false });
+    const libraryId = catalog.status().id;
+    const batch = catalog.ingest({
+      batchId: randomUUID(),
+      origin: 'synthetic',
+      version: 'published',
+      json: JSON.stringify([{ title: '备份前题录' }]),
+    });
+    await expect.poll(() => catalog.batch({ batchId: batch.id }).batch.state).toBe('completed');
+    const source = catalog.list({}).sources[0];
+    if (!source) throw new Error('Missing backup sample');
+    const instance = catalog.createSourceInstance({
+      libraryId,
+      requestId: randomUUID(),
+      label: '独立备份来源',
+    });
+    const original = {
+      identity: { instanceId: instance.id, libraryLocator: 'users/local', objectKey: 'BACKUP01' },
+      schemaVersion: '44',
+      itemType: 'book',
+      fields: { title: '备份前原值', date: '2024年春', extra: '保留原行' },
+      creators: [{ creatorType: 'author', lastName: '研究所', fieldMode: 1, orderIndex: 0 }],
+      relations: {},
+    };
+    const request = {
+      libraryId,
+      requestId: randomUUID(),
+      changes: [
+        {
+          sourceId: source.id,
+          revision: source.revision,
+          original,
+          key: { value: 'BeforeBackup', pinned: true, intent: 'explicit' as const },
+        },
+      ],
+    };
+    const receipt = catalog.commitRecords(request);
+    expect(receipt.state).toBe('committed');
+    const before = catalog.get(source.id);
+    const recordBefore = catalog.record({ libraryId, sourceId: source.id });
+    expect(recordBefore).toMatchObject({
+      citationKey: { value: 'BeforeBackup', pinned: true },
+      originals: [original],
+    });
+    const historyBefore = catalog.recordHistory({ libraryId, sourceId: source.id });
+    const backup = await catalog.backup();
+    const laterRequest = {
+      libraryId,
+      requestId: randomUUID(),
+      changes: [
+        {
+          sourceId: source.id,
+          revision: before.revision,
+          metadata: { ...before.metadata, title: '备份后的成果' },
+          original: { ...original, fields: { ...original.fields, title: '后续原值' } },
+          key: { value: 'AfterBackup', pinned: true, intent: 'explicit' as const },
+        },
+      ],
+    };
+    const laterReceipt = catalog.commitRecords(laterRequest);
+    expect(laterReceipt.state).toBe('committed');
+    const later = catalog.get(source.id);
+    const laterRecord = catalog.record({ libraryId, sourceId: source.id });
+    const laterHistory = catalog.recordHistory({ libraryId, sourceId: source.id });
+    const restored = await catalog.restore(backup.id, join(root, 'restored'));
+    copy = new LiteratureCatalog(restored.directory, () => {});
+    await copy.initialize();
+    const restoredCatalog = copy;
+    const restoredId = copy.status().id;
+    expect(restoredId).not.toBe(libraryId);
+    expect(copy.status()).toMatchObject({
+      read: true,
+      write: false,
+      send: false,
+      autoBackup: true,
+    });
+    expect(copy.get(source.id)).toEqual(before);
+    expect(copy.record({ libraryId: restoredId, sourceId: source.id })).toEqual(recordBefore);
+    expect(copy.recordHistory({ libraryId: restoredId, sourceId: source.id })).toEqual(
+      historyBefore,
+    );
+    expect(copy.commitResult({ libraryId: restoredId, requestId: request.requestId })).toEqual(
+      receipt,
+    );
+    expect(copy.commitResult({ libraryId: restoredId, requestId: laterRequest.requestId })).toEqual(
+      {
+        requestId: laterRequest.requestId,
+        state: 'notFound',
+      },
+    );
+    expect(() => restoredCatalog.record({ libraryId, sourceId: source.id })).toThrow(
+      expect.objectContaining({ code: 'instanceMismatch' }),
+    );
+    expect(() =>
+      restoredCatalog.commitRecords({
+        ...laterRequest,
+        libraryId: restoredId,
+        requestId: randomUUID(),
+      }),
+    ).toThrow(expect.objectContaining({ code: 'permissionDenied' }));
+    expect(copy.record({ libraryId: restoredId, sourceId: source.id })).toEqual(recordBefore);
+    expect(catalog.get(source.id)).toEqual(later);
+    expect(catalog.record({ libraryId, sourceId: source.id })).toEqual(laterRecord);
+    expect(catalog.recordHistory({ libraryId, sourceId: source.id })).toEqual(laterHistory);
+    expect(catalog.commitResult({ libraryId, requestId: request.requestId })).toEqual(receipt);
+    expect(catalog.commitResult({ libraryId, requestId: laterRequest.requestId })).toEqual(
+      laterReceipt,
+    );
+    expect(catalog.status()).toMatchObject({ id: libraryId, read: true, write: true, send: true });
+  } finally {
+    await copy?.close();
+    await catalog.close();
   }
 });
 

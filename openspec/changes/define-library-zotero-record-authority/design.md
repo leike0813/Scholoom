@@ -30,7 +30,7 @@ flowchart LR
 
 复用LiteratureCatalog、共同SQLite事务及历史、broker授权、LibrarySource身份／revision。新增职责集中在文献内部的提交权威；GUI与生态均消费同一结果，不在UI或兼容宿主再建持久权威。生态保留数字ID、SQL兼容映射和原包生命周期，其HostCatalog注入夹具不是生产实现。插件SQL必须翻译到被批准的领域操作，禁止提供任意库SQL执行口。
 
-精确DTO唯一事实源为`packages/protocol/src/library-records.ts`，端口已在本树manual/broker注册；尚未由dev接入或生态消费。字段语义：
+精确DTO唯一事实源为`packages/protocol/src/library-records.ts`，端口已在dev的manual/broker注册，并由真实ZoteroOperations／JournalCatalog消费；BBT普通期刊已验，茉莉花仍待原包接入。字段语义：
 
 - `identity { instanceId, libraryLocator, objectKey }`：来源实例由登记分配，三元组唯一关联一个Scholoom sourceId。本机itemID只在生态映射；新的登记requestId分配新实例，不自动重绑定。
 - `OriginalRecord { identity, schemaVersion, itemType, fields, creators, relations }`：schemaVersion明确原schema，fields为原字段而非CSL别名；creators按原序保留完整姓名／角色／fieldMode／orderIndex及扩展对象，日期和Extra原样保存；relations是原关系，不推定共同材料引用。未知JSON值可核查，不执行字段名或数字ID。
@@ -77,7 +77,7 @@ sequenceDiagram
 
 库v3→v4升级先保存`before-migration-v3.sqlite`，沿既有Drizzle journal执行`0003_record_authority.sql`，不从CSL、origin或citation-key猜补原值／来源／正式键。缺少原值保持明确缺失，旧字段继续原样可读；不兼容未来版本停止写入并保留现场。独立v3夹具核对旧副本和重启，当前project公共v5→v6迁移不变。恢复仍创建独立副本保护后续成果。
 
-可替换依赖：生态可用受控原对象／候选键验证文献契约，不需要完整插件宿主；文献本身、SQLite事务、授权和修订不可用替身代替最终独立验收。诊断沿requestId、库／sourceId、实际revision、拒绝code和提交状态；不记录敏感原文。真正原包保存、SQL及通知需生态接入后单独整合；本树不声称已收到真实provider。
+可替换依赖：生态可用受控原对象／候选键验证文献契约，不需要完整插件宿主；文献本身、SQLite事务、授权和修订不可用替身代替最终独立验收。诊断沿requestId、库／sourceId、实际revision、拒绝code和提交状态；不记录敏感原文。真实BBT保存、SQL及通知已有独立整合证据，普通产品sandbox与茉莉花接入仍须分别完成。
 
 ## 阻塞与交回
 

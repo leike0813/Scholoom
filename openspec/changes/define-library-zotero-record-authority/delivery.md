@@ -1,5 +1,23 @@
 # 实际交付与交接
 
+## 主线收尾：公共权威9/10，茉莉花仍开放
+
+2026-10-29主线核对现有真实提供者及生态消费，原“待公共接入／生态未消费”已经失效。独立源码核对在`/home/joshua/.cache/scholoom-finish-active/authority-audit.md`；本轮补齐同locator／objectKey不同instance、未登记来源整组拒绝、过期显式解除固定及真实独立备份恢复的数据保护证据，仅修改原`tests/kernel/library-records.spec.ts`，不增加第二提供者。
+
+| 保护契约 | 当前实际依据 |
+| --- | --- |
+| 原值与CSL分离、来源身份不误合并 | 真实SQLite记录测试分别读回两实例原值；CSL更正保留原值；未登记instance使整批拒绝，先项CSL、原值、键、历史和通知不变 |
+| 固定键、大小写与并发修订 | 原候选只补缺键且不固定，冲突整体拒绝；过期revision显式解除固定／改键同时带CSL和原值仍整体拒绝，当前键及所有历史保持 |
+| 原子提交、通知及稳定回执 | 真实SQL第二项失败后第一项题录／原值／键／历史回滚，通知不增加；重放只返原回执；真实Manual／broker百条及限额拒绝可查询 |
+| 迁移与独立恢复 | 真实v3→当前v5保留旧CSL及迁移副本，不晋升旧键；未来版本拒写；v4组织迁移保留authority回执。真实backup／restore恢复原值、固定键、历史和回执，取得新库身份及read=true／write=false／send=false，源库备份后的成果保持 |
+| 真实生态消费 | ZoteroOperations及JournalCatalog复用同源record／receipt及一次共同commit；既有R13原始结果的两个真实BBT9.0.68消费者通过，核对来源在上述独立报告。不是HostCatalog成功替身，也不代表茉莉花或普通产品sandbox通过 |
+
+本轮辅助原值三项首次实跑3/3，日志、JSON及隔离恢复副本见`authority-tests/report.md`。主线合并C1公共接线后先构建protocol／client／kernel，再运行真实组织RPC、三项迁移及三项原值，**7/7，47.1秒**；命令为`TMPDIR=/home/joshua/.cache/scholoom-finish-active/tmp PLAYWRIGHT_JSON_OUTPUT_FILE=/home/joshua/.cache/scholoom-finish-active/library-main-joint.json node node_modules/@playwright/test/cli.js test --config playwright.kernel.config.ts tests/kernel/library-organization-rpc.spec.ts tests/kernel/library-records.spec.ts tests/kernel/library-record-migration.spec.ts --workers=1 --reporter=line,json --output /home/joshua/.cache/scholoom-finish-active/library-main-joint`，日志为同根`library-main-joint.log`。当前tools类型、architecture（14模块／257文件／0 findings）、生成器自检与生成声明格式化比对通过；相关构建及检查日志均在该cache根，不依赖现有/tmp。
+
+已按实际结果完成1.2／2.1／2.2／3.1／3.2，当前9/10。**2.3仍未完成**：任务文字包含茉莉花真实原包消费者，而现有生态proposal将其留待后续；正在明确范围，未以BBT替代、静态调查代替或默默勾选。来源重绑定UI及未开放事务继续按原首片限制，不将它们计作已交付。普通产品sandbox、Windows／macOS分发、全仓CI及真实科研质量未据本轮通过；本change尚不归档。
+
+下文为2026-10-26首片记录，其中等待接入和4/10仅指当时状态；旧/tmp路径仅历史，不是当前续做输入。
+
 ## 当前状态与成果
 
 2026-10-26，用户已明确恢复实施。当前工作点为已同步`70be8bfcda5ab1453c20428f9eb3b367d90ed0b7`，0519904祖先；只操作本树，没有自行同步其他树、安装依赖、提交／推送／PR或归档。完成本轮首片1.2a、2.1a、2.2a，连同既定政策1.1共**4/10**；完整change与I6未完成。
