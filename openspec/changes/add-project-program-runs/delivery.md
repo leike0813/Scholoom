@@ -1,5 +1,13 @@
 # 实际交付与交接
 
+## 0b5c5e3完整Checks回执及下一次窄取证（2026-10-29）
+
+完整run40745284164已结算failure，与Windows专项分开。Windows job123017309438为内核789通过／5失败／85跳过，失败分别为capability-isolation的另一会话5秒内仍running、library-organization副本附件状态changed、lifecycle并发重启四入口未running，以及workbench-integration两场景5秒内无首模型请求。Linux job123017310197内核835通过／44跳过、smoke6通过／11跳过，UI137通过／25失败／6跳过；macOS job123017310142为success。Windows／Linux失败后均未完成目录包，本change5.2／6.2保持开放。
+
+原始两份job日志、状态与artifact清单及一次下载解包均在本轮cache的`checks-0b5-*`。Windows重启附件显示新赢家仍在initializing-projects时原10秒期限到达，不能据此归为旧ACL首启问题；副本附件字节完整、恢复指纹确已重绑，具体运行时字段变化尚无证据。独立局部报告`windows-organization-restore-diagnosis.md`据原trace／数据库提出重复ACL写入导致ctime变化的待证假设，不作为根因接受。
+
+为区分该机制，仅将现有private-files测试的第二次privateDirectory移至已创建probe文件之后，附前后lstat／fstat五字段、内容保持布尔；原两个ACL调用数、完整权限断言及期限均保留。tools类型、两文件Biome和diff通过，尚待Windows目标结果，不修改生产权限或材料指纹。Linux UI生命周期复现及其修正另沿主线继续，不能由内核835通过关闭UI。
+
 ## 0b5c5e3 Windows新专项接收（2026-10-29）
 
 run40745283855／job123017308323完整success，逐组74通过／3个既有不适用跳过／0失败。新两份锁释放竞争均三路running、同一赢家实例；四份ACL对照正常退出且权限断言通过，八次setter约200–215ms。isolated4、HostConnection25、Agent代表3、owner2、ownership16及Electron重复3分别有实际成功记录，早期及最终诊断上传已实跑。精确阶段、样本与缺证以[Agent主线接收](../add-bounded-agent-delegation/delivery.md#0b5c5e3-windows专项完整通过2026-10-29)及本轮cache的`windows-startup-success-review.md`为准。

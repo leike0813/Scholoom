@@ -1,5 +1,9 @@
 # 实际交付与交接
 
+## 完整Checks结算仍失败（2026-10-29）
+
+run40745284164已结算：Mac success，Windows内核789通过／5失败／85跳过，Linux内核835通过／44跳过且UI137通过／25失败／6跳过，详见[共同平台回执](../add-project-program-runs/delivery.md#0b5c5e3完整checks回执及下一次窄取证2026-10-29)。本change代表在专项的正例不扩大为完整平台；4.2／4.3、17.2／18.2及科研质量仍按实际任务保持开放。
+
 ## 0b5c5e3 Windows专项完整通过（2026-10-29）
 
 主线接收run40745283855／job123017308323，head`0b5c5e37a7d7caca22ed11a16f2e4d32896ab8b4`，结论success。逐组日志合计74通过／3个既有平台不适用跳过／0失败：前置重复10、ownership16、HostConnection25、availability6、isolated4、ACL5、Agent代表3、owner2及Electron重复3。早期及最终上传均成功，最终artifact12841689572已一次下载解包至本轮cache的`startup-evidence-artifact/`；原始状态／日志及独立事实提取`windows-startup-success-review.md`可核对，不把HTML首组10项当全部累计报告。

@@ -39,14 +39,29 @@ test('Windows private directories retain exclusive inheritable access without se
   const helper = new URL('../../packages/platform/dist/node.js', import.meta.url).href;
   const source = [
     `import { privateDirectory, atomicPrivateFile } from ${JSON.stringify(helper)};`,
-    'await privateDirectory(process.argv[1]);',
+    'import { lstat, open } from "node:fs/promises";',
+    'import { join } from "node:path";',
+    'const fingerprint = (s) => [s.dev, s.ino, s.size, s.mtimeNs, s.ctimeNs].map(String);',
     'await privateDirectory(process.argv[1]);',
     'await atomicPrivateFile(process.argv[1], "probe.txt", "private");',
+    'const path = join(process.argv[1], "probe.txt");',
+    'const before = fingerprint(await lstat(path, { bigint: true }));',
+    'await privateDirectory(process.argv[1]);',
+    'const after = fingerprint(await lstat(path, { bigint: true }));',
+    'const file = await open(path, "r");',
+    'try { console.log(JSON.stringify({ before, after, opened: fingerprint(await file.stat({ bigint: true })), contentUnchanged: (await file.readFile("utf8")) === "private" })); } finally { await file.close(); }',
   ].join('\n');
-  await execute(process.execPath, ['--input-type=module', '-e', source, directory], {
+  const probe = await execute(process.execPath, ['--input-type=module', '-e', source, directory], {
     env: environment,
     windowsHide: true,
   });
+  const metadata = JSON.parse(probe.stdout);
+  await testInfo.attach('repeated-private-directory-metadata', {
+    body: JSON.stringify(metadata),
+    contentType: 'application/json',
+  });
+  expect(metadata.contentUnchanged).toBe(true);
+  expect(metadata.opened).toEqual(metadata.after);
 
   const script = [
     '$ErrorActionPreference = "Stop"',

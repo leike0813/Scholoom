@@ -1,5 +1,9 @@
 # 实际交付与交接
 
+## 完整Checks新结论（2026-10-29）
+
+run40745284164现为failure，Mac success；Windows内核5失败、后续UI未运行，Linux内核835通过／44跳过、UI137通过／25失败／6跳过。精确回执及原始证据入口见[共同平台记录](../add-project-program-runs/delivery.md#0b5c5e3完整checks回执及下一次窄取证2026-10-29)。不继续沿用下节in_progress时间点作当前结论；1.4／6.1／6.2保持开放。
+
 ## 最新平台输入（2026-10-29）
 
 0b5c5e3的Windows专项40745283855已完整成功，74通过／3个既有不适用跳过，含Agent三代表及Electron初始加载重复3/3；精确证据及缺证见[主线接收](../add-bounded-agent-delegation/delivery.md#0b5c5e3-windows专项完整通过2026-10-29)。该组不含catalog双宿主工作台及目录包，不替代1.4的完整目标验证。完整Checks40745284164查询仍in_progress，Mac job已success，Windows／Linux未结算；本机业务及独审证据继续沿下节，不机械重跑或提前关闭1.4／6.1／6.2。
