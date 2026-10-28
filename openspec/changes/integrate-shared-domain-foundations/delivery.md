@@ -16,6 +16,14 @@ UI首组8项为3通过／5失败：四个Electron在显示服务启动前失败�
 
 下一轮沿[共同计划](../../../.scratch/domain-development/parallel-development-plan.md#第十二轮验收后的安排)，先提交推送、同步复验，再发送原终端。desktop／zotero-host生产源码本轮未改，七树可复用29cd728已验同源产物；复用前查源码差异及renderer产物，仍重建共享包／内核并执行全包／tools类型、架构、生成自检和定向回归。同步首次六树定向通过，生态真实BBT宿主启动失败且停止未确认；硬编码新Xvfb前置与本机已证实的锁写入问题需生态进一步核查，不只凭错误文本定根因。原失败现场／unknown保持，不当作BBT通过，Node监督补核也不能替代原包。该新输入使下一轮调整为六任务／一等待，生态承担显示前置与原包夹具，科研等待明确流程。具体同步／发送回执实际完成后再补，不提前宣布完成。完整changes、跨平台分发、CLI持久配置及科研质量保持原不足；macOS受管执行仍不可用。
 
+共同源码与计划已随`e3c815b3af6bd4b9718820f641b10bab57a69b24`推送，七树先逐一快进，同步时全部clean。源码差异和renderer产物存在检查通过，复用未改的桌面／宿主构建；七树共享包／内核重建、全包及tools类型、架构／生成自检全部通过。定向首轮六树通过、生态真实BBT失败，派发守卫正确停止；生态另用真实Node固定宿主监督代表例补核1/1（2.8秒），原BBT未知现场和失败完整保留。sync-kernel-results.json、sync-host-result.json及显式effective-results分别记录，后者只作本轮所需同步范围核查，realBbtVerified=false，不拼成一次七树原包全绿。
+
+该新输入使生态由等待转为明确任务，主线另推`ba29ee61ac6f8700cfe6a9fbaa529a8a7a75aad1`，只更新两份Markdown。核对差异仅此两文档、源码／测试相同后，七树再次只快进该元数据；保留原同步记录为synchronized-initial.json，新的synchronized.json明确sourceHead=e3c815b，不重跑相同产物构建或抹去先前失败。
+
+全部范围核查完成后，再核七树共同HEAD、clean、唯一Codex终端、GPT-6.1-Sol high及空输入，才发送七份原会话prompt，每份仅一次。全部accepted；项目／科研两份API明确turn_started，其余五份保留原input_accepted，以发送前空闲及之后新的助手回复／Working／Compacting留独立活动依据，不伪造API阶段。六条有界任务已派发，科研收到等待指令；七个Orca卡片已更新。实际全文与回执在同根prompts、dispatch-receipts、各树dispatch-start-evidence及final-dispatch-summary，没有新建终端或等待下一轮实现结束。
+
+新源码Windows diagnosis40613967285及Checks40613967267在提交后查询截点仍运行，尚未验收，不据启动记通过。用户本轮无需手动同步；此最后提交只补本文件实际回执并使用[skip ci]，六条已恢复任务仍从已验证源码及ba29ee6元数据继续，不为回执文档再次同步。Browser后续会话、真实BBT宿主、Mac滚动和其他平台／质量开放项保持上文边界。
+
 ## 第十一轮主线验收
 
 主线起点68a5f76，七树源码938c33f。六树含untracked增量经临时index冻结、核对实际staging后建立本地检查点，再逐线no-ff合入dev，均无冲突；生态按约等待无增量。33个单线文件在接入时逐字节保留，后续只更新原工件及共同计划。`/tmp/scholoom-round11-acceptance-Jx5Oez/`保存inventory、snapshots、source.patch、checkpoint-commits、source-preservation及CI与验证日志；没有reset／rebase、覆盖成果或推送工作树分支。
