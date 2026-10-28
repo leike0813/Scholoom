@@ -474,3 +474,66 @@ Browser的`resources/baeb595d70247eab97deb9252f188622.jsonl`一基251／252行�
 同模型gpt-6.1-sol／high只读辅助Agent仅核源码及边界，未改文件／运行测试，已关闭；父端完成两份原现场提取、身份与时点核对。两例原CI失败保持未修复，HTTP／执行instance／阶段和最终DOM均按上述具体缺证开放，不判共同根因。4.1库删除／恢复与主题知识提供者、完整change及平台整项保持开放；I1／4.4c既有接收不变。达到本轮两现场有界交回后停止，不因缺执行端事实自行扩写集。
 
 收尾：OpenSpec strict、scholoom-dev schema及git diff空白检查通过，`openspec-{strict,schema}.log`保留；最终apply为**31/32、ready**，仅4.1未勾，不表示两例CI失败已修。可审查增量`/home/joshua/.cache/scholoom-file-r14/001-ci-first-file-evidence.patch`直接依赖f4ab1e5f，只含本change的tasks／delivery；`patch-manifest.json`记录前后hash，`patch-verification.log`记录临时index正向check、当前树反向check及真实HEAD／index未变。`final-scope.log`复核8份输入hash、2个原trace、分析入口及本轮无残留执行；所有必要工件均在Git或上述cache，现有/tmp可迁移而不影响本片接续。未提交／推送／PR／归档，停止于交回两条原run的执行侧具体缺证。
+
+## 2026-10-28：R16.1 恢复后的草稿条件保存
+
+### 已实现结果及边界
+
+开始HEAD `7aff2c763504f0ddf3b2304eb6ea18b7ef0e389c`、git clean。沿“第十五轮验收后的安排”处理新的恢复后保存失败，与此前queued／onStart缺证分开。最终原首文件场景和新增的一项关键交错回归，Browser／真实Electron **4/4通过、2.1分钟**；服务端条件保存／稳定身份 **6/6通过**。没有重跑第二resident场景或全仓CI，不把局部绿色称为完整change或平台通过。
+
+唯一生产改动是`project-ui.tsx`中FileEditor.save的既有文件分支：仍在flush后固定提交草稿和原source，预检复用原`readResource`的describe→read→describe强读取，取得实际同ref／basis、可读的基础正文。只有该已验证基础正文与原source的fileId、正文相同且未截断、仍可写，才以验证后的ref／basis单次调用port.save。基础正文与提交草稿分别比较，允许同身份／同基础正文在恢复后更新依据，拒绝真实基础正文变化或身份替换；之后再发生的变化仍由服务端CAS拒绝。不依赖后台reload更新document.source的完成时序，不按路径覆盖、不写入重试或自动放宽权限。新建分支、保存后的重读及“仅确实保存当前草稿才清除草稿”逻辑保持。
+
+复用已有深层资源读取实现，不新增协议、DTO、保存模块、来源hook或状态权威，也不修改文件／库提供者、harness、model-kernel或共享RPC闸门。新增预检读取沿现有262144字节上限，截断拒绝；界面结构、视觉与状态文案未变，无需UI设计或正式规格变化。
+
+测试写集只在原`file-workbench.spec.ts`：首场景的读取闸门移到实际写入之后，另增`a pending file save preserves content accepted by a later reload`。新回归使用既有闸门挂起保存describe，人工改盘并经真实“重新读取”接纳新正文，释放后等保存结束，核磁盘和编辑器保留新正文。它保护旧submitted不能配新正文basis回写的真实边界，不镜像实现私有结构；没有删除或放宽原持久化、5秒断言、90秒场景预算和输入／取消性能门槛。
+
+### 原失败、同类复现与独立复核
+
+主线R15的5/6首轮结果、Electron原trace／错误／窗口及模型附件保全到`original/`，逐文件来源／SHA256见`original-inputs.json`。原场景确实走过模型请求／取消、改名／回收／恢复，恢复后的精确textbox包含草稿，点击保存完成后原210行磁盘仍是初始正文。原窗口观察只记录指令／run，Electron Page network和保存时DOM均缺失，**不能证明原次未发resources.save，也不能倒写原次与本片新复现的RPC细因相同**。
+
+先在cache保存原首场景的隔离诊断副本，保留原断言／期限、真实内部模块及固定模型边界，只加当前真实uiPage的窄观察：六种文件／资源方法、128条事件、每连接16待回执、2MiB帧上限，记录ref／basis、回执／错误码、RPC正文长度及合成草稿标记，不存正文、凭据、token或原始帧。FileEditor状态仅取最多4个视图及各4条有界错误提示；仅供本片调查，未并入公共观察器或产品。`file-save-diagnostic.spec.ts`、`observe-save.ts`及配置／ESM声明均在本轮cache。
+
+首次加载因cache目录未声明ESM，按CommonJS解析而报broker/rpc未导出、未发现测试；`diagnostic-red.log`保留，未进入业务。补临时`package.json`的type=module后，**Electron同类红例1/1失败（37.1秒）**，仍为原恢复后磁盘持久化断言，`diagnostic-first.log`／trace未覆盖。
+
+新红例中project `ab613897-5db9-4b6a-baef-5db5ee5b35b7`、fileId `8c22ab60-6513-4255-bfe6-a28ce00fe0e5`的restore回执complete，目标`recovered/draft.md`，草稿始终保留。后台四个最终describe响应178–181与保存describe182使用同一ref／新basis且可写；保存点击后前端显示依据变化拒绝，恢复后没有resources.save。观察丢弃／解析异常均0，`diagnostic-conclusion.json`与原`file-save-observation.json`保留逐项时点。原实现把source对象固定在await describe之前，后台reload更新共享source后，局部对象仍是旧依据；界面路径／草稿可先于已验证source就绪。本次复现和源码共同闭合这个共享竞态，不以专用uiRpc白名单的缺项推“未发送”。诊断snapshot中旧字段bytes实际为DOM text.length，**不能当UTF-8提交字节数**；这里只用其草稿／提示状态，RPC bytes来自Buffer.byteLength。
+
+独立只读复核指出，仅后移source读取可能让旧submitted配上真正新正文的basis。新增确定性交错用例对这一候选固定红：**Browser1/1失败**，新正文已被重读接纳，保存结束却被旧正文覆盖，见`guard-red.log`／trace。保留初始source并核最新source的候选消除了该覆盖，但双宿主组仍**3/4部分通过**，原Electron210行仍失败（`ui-green.log`），证明依赖后台刷新时序仍不稳。最终方案因此复用完整强读取独立验证，不继续叠加时间等待或分支补丁。
+
+完整预检首次运行又有**2通过／2失败**（`ui-verified.log`）：新保护用例两端通过，原首场景两端在更早的76行落盘断言失败。原因已由调用顺序闭合：旧测试在保存前挂住下一次resources.read，原来用于延迟写入后的重读，现在先拦住新增预检，尚未写入就等待磁盘。只迁移场景控制点为先挂resources.save并确认实际held，再挂后续resources.read并释放写入；原落盘断言之后仍确认读回held、继续输入、再释放，保留“写入后继续编辑不被迟到重读覆盖”的边界。共享闸门本体未改、原持久化断言及期限未减，最终同组4/4通过；这次失败属于测试控制点迁移，未当作新文件数据缺陷。
+
+同模型原生辅助Agent只读调查原现场并审查并发方案，发现上述候选覆盖风险后，父端以真实回归固定红。最终完整读取方案复核通过，见`review-verified-read.md`；辅助Agent未代跑测试／改文件，已关闭。最终闸门迁移由父端核对实际held顺序和原断言，并双宿主实跑，不将早期候选审查当作最终UI验收。
+
+### 实际命令与验证
+
+本轮根`/home/joshua/.cache/scholoom-file-r16/`（下记`<root>`）。Linux／Node24.12.0／Playwright1.63.0，沿已有依赖；每次payload前在bash中export TMPDIR=`<root>/tmp`，每组图形实跑前xdpyinfo预检当前DISPLAY=:99并保留`display-*.log`。静态配置由本树cwd运行`node /home/joshua/.cache/scholoom-round13-acceptance/create-ui-config.mjs <root>/base-ui.config.mts`生成；底层static-ui位于已保全cache。独立端口5992、各轮profile、项目和结果，不启动开发服务器、不接真实用户库、不停共享显示。
+
+| 命令／范围 | 实际结果及证据 |
+| --- | --- |
+| `pnpm --config.optimisticRepeatInstall=false --filter @scholoom/desktop build` | 各生产候选改变后构建，首次与中间日志`build-desktop.log`／`build-final.log`；最终完整预检构建通过，`build-verified-read.log`（1分33秒）。各次测试均在对应构建完成后进行，测试期间无重建；仅迁移测试闸门复用最终产物 |
+| `node node_modules/typescript/bin/tsc --noEmit -p apps/desktop/tsconfig.json`及`-p tsconfig.tools.json` | 最终通过，`type-verified-desktop.log`／`type-final-tools.log`；未改调用方接口 |
+| `node node_modules/@biomejs/biome/bin/biome check apps/desktop/src/renderer/src/workbench/project-ui.tsx tests/ui/file-workbench.spec.ts` | 最终2文件通过，`lint-final.log` |
+| 隔离诊断配置，`--project ui-electron` | 首次模块前置失败及同类业务红分开保留，如上；原始断言未变，观察器不是业务替身 |
+| 原UI配置、仅新增交错例、`--project ui-browser` | 候选覆盖反例1失败，`guard-red.log`；未用绿色静默覆盖该反例 |
+| 下列最终首场景＋必要新边界双宿主命令 | **4/4，2.1分钟**，`ui-final.log`。Browser首场景29.3秒／新边界16.9秒，Electron首场景32.6秒／新边界22.0秒；此前3/4及2/4均保留 |
+| Playwright kernel入口选resource-access／resource-identity及下述grep | **6/6，15.8秒**，`kernel-guards.log`：无harness共同资源／过期basis、同内容替换在queued和publishing两阶段、复用路径不投递旧身份、排队读取的身份变化、超大HTML只读。未放松服务端条件保存或权限 |
+| `openspec instructions delivery --change establish-file-backed-research-tasks --json` | 实施后取得`delivery-instructions-final.json`，更新同一记录，未新建长期账本 |
+
+最终UI命令：
+
+```sh
+export TMPDIR=<root>/tmp
+xdpyinfo > <root>/display-final.log 2>&1
+SCHOOLOOM_UI_PORT=5992 SCHOOLOOM_UI_DATA_DIR=<root>/profile-final \
+node node_modules/@playwright/test/cli.js test --config <root>/base-ui.config.mts tests/ui/file-workbench.spec.ts \
+--grep 'project files share draft preview and survive directory rename, trash and recovery|a pending file save preserves content accepted by a later reload' --output <root>/ui-final
+```
+
+内核命令为`node node_modules/@playwright/test/cli.js test --config playwright.kernel.config.ts tests/kernel/resource-access.spec.ts tests/kernel/resource-identity.spec.ts --grep 'common resources preserve ownership|same-content replacement|text from a reused path|queued byte reads|oversized project HTML' --output <root>/kernel-guards`。`<root>/diagnostic.config.mts`、`file-save-diagnostic.spec.ts`、`observe-save.ts`和type=module的package.json保留初始诊断入口；它是7aff原首场景加窄观察的冻结测试副本，不是另一套业务实现。其早期读取闸门对应旧保存路径，不能在最终预检构建上直接当作相同验收；最终可重建入口是上方仓库原测试＋base-ui配置。旧候选构建已经被最终构建替代，原红／部分结果以日志和trace为证，不宣称在最终产物上重现旧结果。
+
+外部模型仅用既有受控HTTP夹具；UI、broker、项目仓储、资源、文件恢复／保存、worker及取消均走实际内部接线。新增回归以既有闸门明确控制RPC时序，内部提供者真实；人工外部改盘只作用于该用例隔离项目。六份主线输入、诊断与回归代码／结果、静态入口均在Git／cache，无当前/tmp前置；登记项目保留至配置退役，不清理旧轮数据。本轮未改FileEdit来源、TaskPort、程序生命周期、授权或库权威。
+
+到R16.1局部保存修复及独立增量交回停止。旧CI queued／onStart缺证、macOS入口、Windows及平台稳定性、真实科研质量本轮均未验；不以本机绿色替代其原回执。4.1仍待真实库删除／恢复与主题知识提供者，项目文件回收恢复通过不能代替库删除分类，完整change保持开放。最终OpenSpec／diff、补丁与自有执行收尾见本节末记录。
+
+收尾：原顶部R16.1已按当前apply位置完成，临时重复任务已移除，最终**32/33、ready**，仅4.1开放。OpenSpec strict／scholoom-dev schema、架构及diff检查通过，分别见`openspec-{strict,schema}.log`、`architecture.log`和补丁核对；架构0 findings／0 exceptions，无契约或生成映射变化。`final-source-products.json`记录最终被测源码及构建入口hash，收尾复核未变。端口5992释放、无自有根残留进程，七份实际model-kernel记录均stopped／childClosed／code0（`owned-kernel-close.json`）；登记项目保留，配置由原globalTeardown退役，辅助Agent已关闭。
+
+独立增量`/home/joshua/.cache/scholoom-file-r16/001-restored-file-save.patch`直接依赖7aff2c7，只含FileEditor.save、原场景控制点／一项必要回归、原tasks／delivery四文件；`patch-manifest.json`记录前后SHA256，`patch-verification.log`记录临时index正向check、工作树反向check及真实HEAD／index未变。必要原输入、调查代码和静态承载均在Git／cache；没有安装／下载依赖、真实用户库、共享显示操作、提交／推送／PR／归档或额外同步，到本片交回即停止。
