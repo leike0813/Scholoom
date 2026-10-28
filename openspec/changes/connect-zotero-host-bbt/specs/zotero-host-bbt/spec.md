@@ -27,6 +27,14 @@
 - **WHEN** 新生态动作或容量等待后的启动核查发现设置不再等于冷启动快照，或固定资源已失效
 - **THEN** 拒绝新的原包派发并要求显式重启；已受理回调仍按原归属及实时库授权收尾，不丢弃unknown或重放
 
+### Requirement: 受控系统sandbox helper
+
+Linux固定布局的`electron/chrome-sandbox` MAY 显式链接到已安装的`/opt/google/chrome/chrome-sandbox`，仅此槽位例外。系统目标 SHALL 为root:root、4755的普通文件，目标及祖先不得为链接，祖先须root拥有且组／其他人不可写；本地链接须当前操作者拥有且目标精确。资源解析及每次启动前 SHALL 核对目标、权限及同一身份，变更时拒绝原启动，不自动重新采纳或修权限；其余资源保持私有无链接规则，不从任意业务路径或环境选helper。
+
+#### Scenario: 受控系统helper失效
+- **WHEN** 唯一helper槽位指向其他目标，或已核系统helper／祖先／链接在启动前变化
+- **THEN** 原启动明确拒绝，不能沿其他外链或无sandbox方式继续；已受理操作及原生停止仍按原归属核查
+
 ### Requirement: 初始化先恢复遗留宿主准入事实
 
 内核 SHALL 在任何programs／harness执行恢复或新准入前核查既有host监督记录，并将未知原生scope按旧commandInstanceId幂等计入唯一共同ProcessAdmission；设置缺失、禁用、无效、错库或资源缺失均不得跳过该核查。损坏、不安全、不可读或超限的单host记录 SHALL 保留原证据并保守记入单个未知scope，不创建listener、连接或杀死旧进程，不依据PID或新配置释放占用。
@@ -207,7 +215,7 @@ committed／rejected SHALL 保留原共同提交回执及修订，不用当前�
 
 生态适配 SHALL 消费共同领域已经确认的CSL／原值分离契约；只更正CSL不得触发未明确选择的原值、原类型、日期原文、创建者形态／角色／完整顺序、Extra或来源身份的自动改写。正式键及固定状态继续由共同权威保护，不随CSL更正或BBT缓存重算改变。共同revision SHALL 仅作为修订／读取依据，不被当作两个表达语义一致的证明。
 
-本要求不确定新的导出默认选择／差异确认／CSL投影政策。相关备选及待用户决定项在design的D1–D3，本轮没有批准或实现新同步行为。
+导出的显式原值选择及独立原题名更正沿本规格相应要求，已确认的D1–D3见design。CSL保存不自动同步原值；其他字段／多来源的自动同步政策不由本要求扩展。
 
 #### Scenario: 仅更正CSL题名
 

@@ -78,6 +78,13 @@ export async function createWorkers(options: {
           fail('Worker result is not a bounded JSON message');
           return;
         }
+        if (
+          data &&
+          typeof data === 'object' &&
+          Reflect.get(data, 'kind') === 'debug' &&
+          typeof Reflect.get(data, 'message') === 'string'
+        )
+          options.diagnostic(`Worker: ${Reflect.get(data, 'message')}`);
         for (const listener of instances.get(id)?.listeners ?? []) listener({ data });
       } catch (error) {
         fail(String(error));

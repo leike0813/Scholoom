@@ -1,5 +1,13 @@
 # 调查依据
 
+## 普通Electron与既有系统helper校准（2026-10-29）
+
+主线在全新cache中复制Electron44.5.1，排除原不具备root权限的helper，仅让自身`chrome-sandbox`槽位链接到本机已有`/opt/google/chrome/chrome-sandbox`（root:root、4755，前后身份不变）。没有安装、sudo、修改系统权限、加入no-sandbox或加载插件／用户库；这是普通兼容宿主前置，与报告bwrap全进程隔离是不同目标。生产资源校验器仍拒绝该链接，因此不称N2.4通过。
+
+证据根`/home/joshua/.cache/scholoom-finish-active/zotero-system-sandbox-calibration/`。首次观察器把Electron自设`DBUS_SESSION_BUS_ADDRESS=disabled:`误判为宿主DBus泄漏，主动stop；其后的GPU失败位于收尾窗口，不能独立归因。后续仅允许这一精确sentinel，保留原白名单及20%CPU／512MiB／swap0／128tasks／30秒限额。`report-capture.md`实际到达main、renderer及可信页面，preload sandboxed/contextIsolated均true；renderer的NNP1／Seccomp2／filter1／CapEff0及NSpid两层均为实际OS读回。外部读取namespace链接被EACCES拒绝，保留缺证，不能因此改写为没有sandbox。
+
+最后一轮仅为普通显示路径：先`:99` xdpyinfo通过，使用产品普通Electron启动参数、仅增加可信DISPLAY和必要XAUTHORITY，不启动或停止共享显示。`report-display.md`／`facts-display.json`记录renderer NSpid为2922457／4、上述sandbox正证据及同一scope归属；`capturePage()`确实执行后返回UnknownVizError，stderr仅DBus警告、没有本轮GPU fatal。原unit／cgroup及八个已见PID出生身份均已收尾，helper元数据未变。截图未产出；没有原包ready、生产固定资源校验及完整生命周期／布局验收，N2.4／5和整体E4／I6继续开放。现有roothelper若进入产品，须先明确受控系统依赖、唯一允许槽位及每次启动的身份／权限见证，不能泛化放开资源树链接或root所有权。
+
 ## N2续做调查：持久绑定与初始化恢复（7aff2c7）
 
 2026-10-28，HEAD `7aff2c763504f0ddf3b2304eb6ea18b7ef0e389c`，起始clean。N1.2及两个消费者已由主线接收：共同内核15/15、真实BBT原值动作双宿主2/2；整合UI总计5/6，其中项目文件Electron保存失败交项目R16.1，不能记为整合全绿。实际回执入口为`/home/joshua/.cache/scholoom-round15-acceptance/`及delivery的第十五轮主线验收。本轮只读源码与测试定义，不复跑上述绿色组或操作任何库。

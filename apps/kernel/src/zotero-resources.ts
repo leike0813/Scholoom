@@ -1,5 +1,13 @@
 import { type BigIntStats, constants } from 'node:fs';
-import { type FileHandle, lstat, open, opendir, readFile, realpath } from 'node:fs/promises';
+import {
+  type FileHandle,
+  lstat,
+  open,
+  opendir,
+  readFile,
+  readlink,
+  realpath,
+} from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { fileFingerprint } from '@scholoom/platform/node';
 import { OperationError } from '@scholoom/protocol/core';
@@ -64,6 +72,54 @@ export async function resolveZoteroResource(
     ];
     const versionBytes = 65536;
     const directoryIdentity = (stat: BigIntStats) => `${stat.dev}:${stat.ino}:${stat.birthtimeNs}`;
+    const sandboxLink = join(root, 'electron', 'chrome-sandbox');
+    const systemSandbox = '/opt/google/chrome/chrome-sandbox';
+    const sandboxWitness = async (anchored = sandboxLink): Promise<string> => {
+      const link = await lstat(anchored, { bigint: true });
+      if (
+        !link.isSymbolicLink() ||
+        link.uid !== BigInt(uid) ||
+        (await readlink(anchored)) !== systemSandbox ||
+        (await realpath(sandboxLink)) !== systemSandbox
+      )
+        throw new OperationError('unavailable', 'Zotero 系统 sandbox 链接不符合固定布局。');
+      const witnesses = [fileFingerprint(link)];
+      let target: BigIntStats | undefined;
+      for (const path of ['/', '/opt', '/opt/google', '/opt/google/chrome', systemSandbox]) {
+        const stat = await lstat(path, { bigint: true });
+        const file = path === systemSandbox;
+        if (
+          stat.isSymbolicLink() ||
+          stat.uid !== 0n ||
+          (file
+            ? !stat.isFile() || stat.gid !== 0n || (stat.mode & 0o7777n) !== 0o4755n
+            : !stat.isDirectory() || (stat.mode & 0o022n) !== 0n) ||
+          (await realpath(path)) !== path
+        )
+          throw new OperationError('unavailable', 'Zotero 系统 sandbox 目标或祖先权限不安全。');
+        witnesses.push(
+          file
+            ? fileFingerprint(stat)
+            : `${directoryIdentity(stat)}:${stat.uid}:${stat.gid}:${stat.mode}`,
+        );
+        if (file) target = stat;
+      }
+      const handle = await open(
+        systemSandbox,
+        constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK,
+      );
+      try {
+        if (
+          !target ||
+          fileFingerprint(await handle.stat({ bigint: true })) !== fileFingerprint(target) ||
+          fileFingerprint(await lstat(anchored, { bigint: true })) !== fileFingerprint(link)
+        )
+          throw new OperationError('unavailable', 'Zotero 系统 sandbox 在核查中变化。');
+      } finally {
+        await handle.close();
+      }
+      return witnesses.join('|');
+    };
     const privateAccess = (path: string, stat: BigIntStats) =>
       stat.uid === BigInt(uid) && (stat.mode & (path === directory ? 0o077n : 0o022n)) === 0n;
     const scan = async (): Promise<Map<string, string>> => {
@@ -72,10 +128,16 @@ export async function resolveZoteroResource(
         const witnesses = new Map<string, string>();
         const stability = new Map<string, string>();
         const files = new Set<string>();
+        let sandbox: string | undefined;
         const member = async (path: string, requireDirectory = false, anchored = path) => {
           if (witnesses.size >= 4096)
             throw new OperationError('unavailable', 'Zotero 固定资源成员超过核查范围。');
           const stat = await lstat(anchored, { bigint: true });
+          if (path === sandboxLink && stat.isSymbolicLink()) {
+            sandbox = await sandboxWitness(anchored);
+            witnesses.set(path, sandbox);
+            return stat;
+          }
           if (
             stat.isSymbolicLink() ||
             (requireDirectory ? !stat.isDirectory() : !stat.isFile() && !stat.isDirectory()) ||
@@ -151,6 +213,8 @@ export async function resolveZoteroResource(
               throw new OperationError('unavailable', 'Zotero 资源目录绑定已变化。');
           }
         }
+        if (sandbox && (await sandboxWitness()) !== sandbox)
+          throw new OperationError('unavailable', 'Zotero 系统 sandbox 在核查中变化。');
         return witnesses;
       } catch (error) {
         if (error instanceof OperationError) throw error;

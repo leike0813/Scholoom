@@ -9,6 +9,8 @@ import {
   readdir,
   readFile,
   realpath,
+  symlink,
+  unlink,
   writeFile,
 } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -17,6 +19,7 @@ import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import { expect, test } from '@playwright/test';
 import { KernelApplication } from '../../apps/kernel/dist/application.js';
+import { bootstrapKernel } from '../../apps/kernel/dist/bootstrap.js';
 import { inspectKernel, serveKernel, stopKernel } from '../../apps/kernel/dist/lifecycle.js';
 import type { IsolatedZotero } from '../../apps/kernel/dist/zotero.js';
 import { createKernelClient } from '../../packages/client/dist/index.js';
@@ -178,6 +181,9 @@ test('ordinary persistent host settings cold-start the unchanged package and ret
         for (const name of await readdir(path)) await protectCopy(join(path, name));
     };
     await protectCopy(resourceRoot);
+    const sandboxHelper = join(resourceRoot, 'electron', 'chrome-sandbox');
+    await unlink(sandboxHelper);
+    await symlink('/opt/google/chrome/chrome-sandbox', sandboxHelper);
     await writeFile(
       join(f.root, 'host-settings.json'),
       JSON.stringify({
@@ -194,9 +200,16 @@ test('ordinary persistent host settings cold-start the unchanged package and ret
       { mode: 0o600 },
     );
     const operationId = randomUUID();
+    const unknownOperationId = randomUUID();
     let committed: ZoteroOutputs['zotero.result'] | undefined;
     for (const boundary of ['cold', 'restart']) {
-      const running = await runKernel(f.root, 'start');
+      const running =
+        boundary === 'cold'
+          ? await runKernel(f.root, 'start')
+          : await bootstrapKernel('ensure', {
+              dataDirectory: f.root,
+              nodeExecutable: process.execPath,
+            });
       if (running.state !== 'running') throw new Error(JSON.stringify(running));
       const client = createKernelClient(running.endpoint);
       try {
@@ -207,6 +220,12 @@ test('ordinary persistent host settings cold-start the unchanged package and ret
               client.call('library.record', { libraryId: f.libraryId, sourceId: source.id }),
             ),
           );
+        expect(
+          await client.call('zotero.result', {
+            libraryId: f.libraryId,
+            requestId: unknownOperationId,
+          }),
+        ).toMatchObject({ state: 'notFound' });
         if (boundary === 'cold') {
           const { stdout } = await promisify(execFile)(
             process.execPath,
@@ -240,18 +259,17 @@ test('ordinary persistent host settings cold-start the unchanged package and ret
             .map((record, index) => record.revision - (before[index]?.revision ?? 0)),
         ).toEqual([1, 1]);
         expect(records.every((record) => record.citationKey)).toBe(true);
-        if (boundary === 'cold')
-          for (const format of ['bibtex', 'biblatex'] as const) {
-            const output = exported(
-              await client.call('zotero.export', {
-                libraryId: f.libraryId,
-                sources: originalSources(records),
-                format,
-              }),
-            );
-            expect(output.text).toContain('ScholoomPreserved2026');
-            await writeFile(test.info().outputPath(`cold.${format}`), output.text);
-          }
+        for (const format of ['bibtex', 'biblatex'] as const) {
+          const output = exported(
+            await client.call('zotero.export', {
+              libraryId: f.libraryId,
+              sources: originalSources(records),
+              format,
+            }),
+          );
+          expect(output.text).toContain('ScholoomPreserved2026');
+          await writeFile(test.info().outputPath(`${boundary}.${format}`), output.text);
+        }
         const supervision = JSON.parse(
           await readFile(join(f.root, 'zotero/host-supervision.json'), 'utf8'),
         );
@@ -265,6 +283,62 @@ test('ordinary persistent host settings cold-start the unchanged package and ret
           test.info().outputPath(`${boundary}-receipts.json`),
           JSON.stringify({ records, committed, supervision }, null, 2),
         );
+        if (boundary === 'restart') {
+          const input = {
+            libraryId: f.libraryId,
+            sources: originalSources(records),
+            format: 'bibtex' as const,
+          };
+          const pending = client.call('zotero.export', input).then(
+            (value) => ({ value }),
+            (error: unknown) => ({ error }),
+          );
+          await expect
+            .poll(async () => {
+              const current = JSON.parse(
+                await readFile(join(f.root, 'zotero/host-supervision.json'), 'utf8'),
+              );
+              return (
+                current.commandInstanceId !== supervision.commandInstanceId &&
+                current.scopeStopped === false
+              );
+            })
+            .toBe(true);
+          await client.call('library.grant', {
+            read: true,
+            write: false,
+            send: false,
+            autoBackup: false,
+          });
+          const outcome = await pending;
+          expect(outcome).toHaveProperty('error');
+          if (!('error' in outcome)) throw new Error('Revoked export returned data');
+          const code = (outcome.error as { code: string }).code;
+          expect(['permissionDenied', 'outcomeUnknown']).toContain(code);
+          expect(await rows()).toEqual(records);
+          expect(
+            await client.call('zotero.result', { libraryId: f.libraryId, requestId: operationId }),
+          ).toEqual(committed);
+          if (code === 'outcomeUnknown') {
+            await client.call('library.grant', {
+              read: true,
+              write: true,
+              send: true,
+              autoBackup: false,
+            });
+            await expect(client.call('zotero.export', input)).rejects.toMatchObject({
+              code: 'outcomeUnknown',
+            });
+          }
+          const stopped = JSON.parse(
+            await readFile(join(f.root, 'zotero/host-supervision.json'), 'utf8'),
+          );
+          expect(stopped.scopeStopped).toBe(true);
+          await writeFile(
+            test.info().outputPath('revoked-export.json'),
+            JSON.stringify({ code, supervision: stopped }, null, 2),
+          );
+        }
       } finally {
         client.dispose();
         expect((await runKernel(f.root, 'stop')).state).toBe('stopped');

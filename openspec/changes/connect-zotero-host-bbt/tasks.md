@@ -2,7 +2,7 @@
 
 ## 当前轮：N2实施（cb5f7ed）
 
-2026-10-29，完成现有change的新指令已取代下面R16的阶段停止。N2.1–3已实现并验证；N2.4的装配代码已接入，但普通Linux原包被实际Chromium sandbox前置阻断，N2.4／5仍未完成。当前证据与2.1–5.2差距见delivery最新节，不据局部绿例勾完整E4／I6。
+2026-10-29，主线已接收N2.1–5：固定Linux普通原包与真实产品静态bootstrap入口、持久回执／两格式、持续撤权及unknown保护均有实际结果和独审，41/50。原sandbox／缓存失败保留在delivery，不能用旧阶段停止描述当前状态；更广2.1–5.2及Windows原包仍按各自判据开放，不据本片勾完整E4／I6。
 
 ### R16规划接收依据（历史）
 
@@ -19,10 +19,10 @@
 - [x] N2.1 主线审查恢复函数、两处初始化调用、真实父kernel实例、窄环境／beforeLaunch及路径绑定语义；据批准范围补本change delta的持久绑定／恢复场景，确认生态与计算／Agent各自共享符号。完成依据：签名／错误／启动顺序与规格一致，不实施通用settings或分发范围。
 - [x] N2.2 最小独立公共切片：从HostConnection抽recoverHostSupervision，ZoteroOperations.recover接Manual.initialize首步，在任何programs／harness恢复准入前完成真实同一ProcessAdmission记账。复用fixed-host扩实际旧unknown、满槽／释放无关槽／幂等恢复、disabled／invalid配置仍恢复、scope已停不占槽及坏记录保留代表例；先红后修，按影响build后测试。不需要settings／BBT／显示，不改计算线programs回调，不新增解除unknown／全局停用机制。
 - [x] N2.3 私有叶设置与固定资源登记：按design schema实现host-settings.ts及zotero-resources.ts有界读／校验；serve持锁读取一次，library初始化后host-only绑定当前ID。复用cli-runtime／isolated-kernel代表验证缺失、无效、安全文件、错库／错目录、未知资源及stop/start一致，其他领域／N1可用且不自动grant；离线可信准备，无网络写端口、任意执行参数或新配置台账。
-- [ ] N2.4 消费已接入N2.2／3，供应真实status.instanceId，透传仅宿主可供应的DISPLAY／XAUTHORITY／操作TMPDIR及稳定beforeLaunch，按固定Linux离线配方接实际受管Electron／原BBT。先证同次ready及完整停止，不增加未记槽probe／普通spawn／sandbox逃逸；显示／sandbox或平台能力不满足时保留原失败交主线，依赖分支不假成功。
-- [ ] N2.5 普通入口整合：合成profile离线设置→关闭准备实例→普通CLI及desktop bootstrap冷启动→显式原包共同操作→stop/start不注入配置后核持久键／原值／回执及两格式，核未知原ID不重放、持续撤权及资源／设置变更。内部均真实，Agent仅外部HTTP可控；安排独立审查、按实际结果更新开发入口及原delivery。Linux新配方和普通持久装配未通过前不勾本项；Windows／分发／真实库及整体E4／I6不随之关闭。
+- [x] N2.4 消费已接入N2.2／3，供应真实status.instanceId，透传仅宿主可供应的DISPLAY／XAUTHORITY／操作TMPDIR及稳定beforeLaunch，按固定Linux离线配方接实际受管Electron／原BBT。先证同次ready及完整停止，不增加未记槽probe／普通spawn／sandbox逃逸；显示／sandbox或平台能力不满足时保留原失败交主线，依赖分支不假成功。
+- [x] N2.5 普通入口整合：合成profile离线设置→关闭准备实例→普通CLI及desktop bootstrap冷启动→显式原包共同操作→stop/start不注入配置后核持久键／原值／回执及两格式，核未知原ID不重放、持续撤权及资源／设置变更。内部均真实，Agent仅外部HTTP可控；安排独立审查、按实际结果更新开发入口及原delivery。Linux新配方和普通持久装配未通过前不勾本项；Windows／分发／真实库及整体E4／I6不随之关闭。
 
-N2.3复用cli-runtime完成普通start／stop／start、真实原值题名提交、CSL／键不变、错库／设置失效及N1回执；资源单元样本仅校验布局／权限，不冒充原包。N2.4原始配方报SUID helper不可用；主线批准的唯一新配置对照仅在测试禁用SUID fallback，仍报No usable sandbox且没有renderer证据，未改生产配方。旧unknown/profile均保留；无原生槽虚占或重放。P2已受理回调误核设置的问题已通过真实共同提交红／绿及独立复核修复。
+N2.3复用cli-runtime完成普通start／stop／start、真实原值题名提交、CSL／键不变、错库／设置失效及N1回执；资源单元样本仅校验布局／权限，不冒充原包。N2.4最初的SUID／userns失败及其对照保留；随后受控系统helper及缓存等待修正已按真实原包验收，当前证据见delivery最新节。旧unknown/profile均保留；无原生槽虚占或重放。P2已受理回调误核设置的问题已通过真实共同提交红／绿及独立复核修复。
 
 ```mermaid
 flowchart LR
@@ -150,7 +150,7 @@ flowchart LR
 
 - [ ] 2.1 【普通期刊E1/E2真实提供者已消费；复杂映射及E5写回仍开放】接收文献线来源命名空间、原类型／字段与Extra保留、正式键／固定状态和冲突schema及真实端口，核对复制库、重复接入、删除重入与恢复区分。材料与报告design及实际位置schema已有，sidecar／PDF新版本与报告边界见investigation第二阶段交接；当前本树还有protocol/library的reading契约及MaterialReading实际实现，不能泛称未收到提供者。完成依据：受影响共同接口与生态映射联合核查，生态不另存正式键、项目继续用共同指针；本change尚无Zotero Reader／PDF写回适配和E5联合验收，不阻塞不读材料的BBT样本，也不据设计或端口存在勾全项。
 - [ ] 2.2 【普通期刊一次共同原子提交及稳定查询已实跑；更广事务仍开放】消费文献所属schema／provider，核对`save/saveTx/executeTransaction`的原子范围、revision、授权、稳定结果及通知。原包逐条fill／原子fillMissing反例已交，不再待选逐条缩减方案。完成依据：实际同源提供者及失败／未知提交实跑，不编共同事务假Adapter或假回执。
-- [ ] 2.3 【已验注入装配；普通绑定已验，原包普通配方受阻】R3.1–R3.4提供独立认证／stdin／实例／双向RPC／ready／正常shutdown／恢复及原包吞错修复；Windows公共HostConnection24项已由主线接收，不再称全部未验。当前N2.1–3补普通设置／初始化恢复，但真实普通原包被同次sandbox错误阻断；Windows原包／正式装配仍未验，macOS受管执行不可用。不用普通spawn或PID消失替代原生保证，不把scopeStopped当pluginClosed。
+- [ ] 2.3 【已验注入装配及Linux普通绑定／原包；Windows原包仍未验】R3.1–R3.4提供独立认证／stdin／实例／双向RPC／ready／正常shutdown／恢复及原包吞错修复；Windows公共HostConnection结果已由主线接收，不再称全部未验。N2.1–5完成普通设置／初始化恢复及固定Linux原包装配；Windows原包／正式装配仍未验，macOS受管执行不可用。不用普通spawn或PID消失替代原生保证，不把scopeStopped当pluginClosed。
 - [x] 2.4 【E6保持生产阻塞】核对并在能力状态中准确表达题录／附件删除、操作者及恢复／重新入库提供者的实际可用性。完成依据：缺少保护时真实用户库仍不可启用，不把备份副本恢复替代对象恢复，不以未发现引用宣称可安全撤回。此任务验收的是限制确实生效，无需本change实现删除恢复；待E6实际能力齐备后，生产启用由后续变更承接。1组及隔离I6可继续，本change不实施迁入。
 
 ## 3. 共同权威接线与保存一致性
@@ -172,4 +172,4 @@ flowchart LR
 
 ## 续做入口
 
-先读delivery最新cb5f7ed实施节及design／investigation。N2.1–3已实现，N2.4／5目标sandbox受阻；不重放旧unknown操作或再试未经批准的flag／权限。当前cache为`/home/joshua/.cache/scholoom-finish-active/zotero-ecosystem/`，含原失败、真实回读、一次对照及可审增量，现有/tmp非前置。主线决定目标／生产配方后才能继续原包及双宿主整合，不把旧注入fixture或本轮39/50进度当完整change通过。完整E4／I6、E5/E6、其他字段／多来源、自动同步、生产装配及真实用户库仍开放。
+先读delivery最新普通原包／产品入口节及design／investigation。N2.1–5已接收，当前41/50；证据根为`/home/joshua/.cache/scholoom-finish-active/`，原失败仍在zotero-ecosystem及各阶段目录，现有/tmp非前置。后续沿2.1–5.2的复杂映射／事务、完整I6及真实原包平台矩阵推进，不重放旧unknown、不扩大执行参数或权限；E6真实库生产启用由后续变更承接，不以本片进度宣布整个change完成。

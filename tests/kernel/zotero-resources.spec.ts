@@ -204,3 +204,69 @@ test('missing DISPLAY fails only when resolving resources', async () => {
     code: 'unavailable',
   });
 });
+
+test('the fixed system sandbox link is witnessed and replacement refuses the original launch', async () => {
+  const helper = '/opt/google/chrome/chrome-sandbox';
+  const installed = await fs.promises.lstat(helper).catch((error: NodeJS.ErrnoException) => {
+    if (error.code === 'ENOENT') return undefined;
+    throw error;
+  });
+  test.skip(!installed, 'Requires the already installed root-owned system sandbox helper');
+  const f = await fixture();
+  const link = join(f.root, 'electron', 'chrome-sandbox');
+  await symlink(helper, link);
+  const launch = await resolveZoteroResource(registration, f.directory);
+  await launch.beforeLaunch();
+  await rename(link, `${link}-original`);
+  await symlink(join(f.root, 'bbt', 'bootstrap.js'), link);
+  await expect(launch.beforeLaunch()).rejects.toMatchObject({ code: 'unavailable' });
+});
+
+for (const fault of ['wrong-target', 'wrong-slot'] as const) {
+  test(`system sandbox rejects ${fault} without expanding other resource links`, async () => {
+    const f = await fixture();
+    const link = join(
+      f.root,
+      fault === 'wrong-slot' ? 'host/resources/chrome-sandbox' : 'electron/chrome-sandbox',
+    );
+    await symlink(
+      fault === 'wrong-target'
+        ? join(f.root, 'bbt', 'bootstrap.js')
+        : '/opt/google/chrome/chrome-sandbox',
+      link,
+    );
+    await expect(resolveZoteroResource(registration, f.directory)).rejects.toMatchObject({
+      code: 'unavailable',
+    });
+  });
+}
+
+test('beforeLaunch rejects a safe permission change to a system sandbox ancestor', async () => {
+  const helper = '/opt/google/chrome/chrome-sandbox';
+  const installed = await fs.promises.lstat(helper).catch((error: NodeJS.ErrnoException) => {
+    if (error.code === 'ENOENT') return undefined;
+    throw error;
+  });
+  test.skip(!installed, 'Requires the already installed root-owned system sandbox helper');
+  const f = await fixture();
+  await symlink(helper, join(f.root, 'electron', 'chrome-sandbox'));
+  const launch = await resolveZoteroResource(registration, f.directory);
+  const original = fs.promises.lstat;
+  let observed = false;
+  fs.promises.lstat = (async (path, options) => {
+    const stat = await original(path, options);
+    if (path === '/opt/google/chrome' && typeof stat.mode === 'bigint') {
+      observed = true;
+      return Object.assign(stat, { mode: stat.mode & ~0o200n });
+    }
+    return stat;
+  }) as typeof original;
+  syncBuiltinESMExports();
+  try {
+    await expect(launch.beforeLaunch()).rejects.toMatchObject({ code: 'unavailable' });
+    expect(observed).toBe(true);
+  } finally {
+    fs.promises.lstat = original;
+    syncBuiltinESMExports();
+  }
+});

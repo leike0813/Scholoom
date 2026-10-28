@@ -1,5 +1,29 @@
 # 实际交付与交接
 
+## N2.5普通入口整合接收（2026-10-29）
+
+主线据以下互补结果及独立审查完成N2.5，当前41/50，完整E4／I6及其他原任务继续开放。不是把不同profile拼成一次执行：同profile的普通CLI／共用bootstrap冷启动与重启由bbt-idb-wait三轮3/3证明；追加未知ID及撤权由bbt-native-authority-final1/1（59.1秒，用例46.6秒）证明。后者在restart末观察新command已登记后撤write/send，未交付文本、records及原共同回执不变；实际发生在插件启动前，返回outcomeUnknown，scopeStopped=true／pluginClosed=false。恢复grant仍拒绝原生新请求，未知记录没有清除。首版错误要求所有阶段都返回permissionDenied的失败保留于bbt-native-authority.log；当前分别接受受理阶段合法的permissionDenied／outcomeUnknown，均要求拒绝且数据不变，不扩大成功条件。
+
+产品入口证据另在native-product-entry-tuescq：接受脚本native-product-entry.mjs对先前已停止的合成配置调用真实library.backup/restore，获得不同libraryId，显式授权后关闭准备实例，离线重绑本机设置及已验固定资源。既有静态harness读取实际构建Workbench并调用产品kernelBootstrap.configureServer；冷引导发生于该真实插件准备，页面随后POST原同源bootstrap端点并显示已连接。实际页面响应的endpoint用于真实KernelClient两格式原包导出，489／510字节产物均含三条题录及预置固定键；监督kernel实例与页面响应一致，scopeStopped／pluginClosed均true、unresolved空，静态宿主exit0、普通CLI stop为stopped。不声称点击UI导出按钮、浏览器产品部署或正式Electron分发通过。
+
+设置／失效／错库的普通入口三例bbt-settings-joint为3/3（40.8秒）；资源身份／权限／替换25/25及原初始化恢复／共同查询证据继续适用。docs/development.md更新实际普通布局、唯一helper依赖、缓存等待与命令入口。native-bbt-independent-review逐项核新增撤权／unknown、设置与资源结果，再读产品静态入口脚本、真实bundle／产品plugin／facts及两份产物，补齐设计表要求的产品静态承载入口，无新增确证P项。无测试IPC或原包结果替身、无开发服务器／依赖安装／真实库／产品模型调用；所有输入及结果均在Git／cache。
+
+## 普通原包冷启动、bootstrap接续与缓存删除修正（2026-10-29）
+
+真实Linux普通布局已越过sandbox前置，但初始system-helper-bbt及bbt-native-bootstrap均在cold fillKeys失败。新增有界Worker debug／dump诊断后，bbt-idb-observation三次一通过／两失败，两失败明确记录IndexedDB delete blocked；原9.0.68的DatabaseFactory在blocked立即拒绝字符串，主侧只见unspecified。blocked发生于Cache.close后的删除阶段，确切连接／事务释放时序未逐项观察，不能据此推断唯一未释放连接。SQL last-modified缺列错误被原包catch并返回空值，不能把该warning当作致命事件唯一根因；本片未编造修改时间、改原XPI或伪造缓存。
+
+自有worker-bridge对固定BetterBibTeXCache的blocked只留诊断并继续等待同一native request；原success／error不拦截，其他数据库不变，没有重复delete或新期限。原30秒启动与unknown收尾保持。事件边界测试bbt-bridge-selfcheck为1/1，明确blocked不完成、success／error原样交付及其他数据库不变，indexedDB为显式EventTarget替身。host构建／类型及tools类型、Biome通过，architecture为14模块／264文件、0 findings，strict通过。
+
+最终bbt-idb-wait真实重复三次全部通过（3/3、2.6分钟，零跳过／重试／flaky）：新隔离配置离线准备并关闭准备实例→普通CLI start及fillKeys→真实两格式导出→stop→desktop共用bootstrapKernel ensure重新起进程→查原共同回执、不重放写入→再次两格式原包导出→stop。三套cold／restart JSON共同提交和records一致，两个补键各一次revision、原固定键完整保持，六阶段kernel实例均与各自监督记录对应，scopeStopped／pluginClosed均true、unresolved为空。共12份实际导出文件保留；bootstrap API接线真实，尚未运行正式打包Electron桌面入口，不能将其写为分发验收。历史bbt-worker-diagnostic的重启监督身份断言失败保留：当时重启仅查询共同回执未启动新host，当前用真实export触发后才核新实例。
+
+系统helper例外仅资源树唯一槽位链接至既有root管理目标；25/25资源校验包含原21保护、固定目标／错槽／链接替换及安全权限变化。独审初轮P2系统祖先见证缺权限已修为同一identity加uid／gid／mode并复核闭合，无目录mtime依赖。native-bbt-independent-review核诊断、原包／普通设置、两阶段真实导出和完整停止，缓存等待追加审查及最终三轮证据核对无新增确证P项。主线据同次ready和完整停止接受N2.4；N2.5另经上节追加整合接收，Windows及更广Item／事务／Reader范围不由本组三次关闭。失败配置及unknown记录均保留在cache，不清旧记录或重放旧操作。
+
+## 系统helper普通窗口的新证据（2026-10-29）
+
+主线对既有系统helper的固定槽位链接已验证普通Electron确实到达sandboxed renderer：NNP1、Seccomp2、filter1、CapEff0和两层NSpid均有实际记录。显示预检通过后，普通窗口同样到达renderer，但capturePage返回UnknownVizError；没有把namespace的EACCES或截图错误当作sandbox未开启。两轮自有scope／cgroup／已见PID均收尾，原始观察器误判DBus sentinel的失败保留。精确事实及cache入口见[investigation](investigation.md#普通electron与既有系统helper校准2026-10-29)。
+
+没有改生产资源树校验、调用原BBT或用户库，也没有把这组结果当报告全浏览器OS隔离。N2.4／5仍须受控系统依赖方案、真实原包ready及正常停止／重启；现有39/50不变，不用额外普通spawn或全局放开链接绕过。
+
 ## 主线接收与资源边界整改（2026-10-29）
 
 主线已接入本轮N2.1–3，并保留N2.4／5的原失败。独立审查发现bootstrap未纳入资源集合、启动前重新采纳替换资源两项P2，现统一以初始化时的固定集合与见证核查：固定树有界遍历4096项，成员及祖先核类型、uid、权限和真实位置，bootstrap为必需普通文件；资源目录以NOFOLLOW／O_DIRECTORY打开并通过自有目录FD枚举，版本文件从同一经核对FD有界读取64KiB+1，读前后及扫描末尾复核见证。资源树内使用完整文件见证，树外祖先绑定dev／ino／birthtime，避免无关kernel状态变化误拒绝；末次路径及持有FD都重查权限，所有句柄在finally关闭。未以路径存在替代对象身份或扩大原包执行权限。

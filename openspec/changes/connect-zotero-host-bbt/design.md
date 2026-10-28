@@ -1,5 +1,19 @@
 # 实现设计
 
+## 固定原包Worker的缓存删除等待
+
+普通真实原包在cache reset-reopen阶段偶发失败。补回原Worker debug／dump诊断后，三次独立样本一通过两失败，两失败均观察到IndexedDB delete blocked；原9.0.68在该通知立即reject字符串，导致主侧只见unspecified。原包未修改。blocked表示删除仍在等待连接释放，不能当成删除成功；宿主必须等待同一native request的success／error，永久阻塞仍由原30秒启动期限失败并沿原unknown收尾。
+
+兼容处理只在自有worker-bridge：deleteDatabase原函数调用一次，返回同一request；仅固定BetterBibTeXCache的blocked通知留诊断且不交原包的立即拒绝监听器，其他数据库不变，success／error不拦截、不伪造、不重试。单条dump先限512字符，debug沿原2MiB消息边界和32条有界diagnostic；不放宽文件、网络、实例、停止及容量。测试以EventTarget替身核真实完成事件前不成功／错误可见及其他库不变，另以未修改原包在真实Electron／受管范围／普通CLI和桌面共用bootstrap重复核启动、两格式、回执和完整停止。结果与未完成任务见delivery。
+
+## N2.4普通宿主的受控系统sandbox helper（2026-10-29）
+
+普通窗口两次实际校准已取得renderer sandbox正证据，见investigation当前节。主线选用已有系统helper的窄依赖：固定资源树内仅`electron/chrome-sandbox`可为当前操作者拥有的符号链接，目标必须精确为`/opt/google/chrome/chrome-sandbox`，不接受业务路径、环境变量、相对目标或其他链接。系统helper须普通可执行文件、root:root、4755；目标及每层祖先不得为链接，目录须root拥有且组／其他人不可写。只读取和使用已安装文件，不安装、chmod、提权、复制root文件或关闭sandbox。
+
+变化集中在`apps/kernel/src/zotero-resources.ts`既有有界扫描：该单槽位核链接本身、固定目标、祖先及打开句柄，见证纳入原资源集合；扫描末及原beforeLaunch重新核对同一身份、权限和目标，系统升级／链接替换使原启动拒绝。其他成员仍沿原私有所有权及无链接要求，整个根目录／入口／BBT不可扩大例外。普通Electron自身校验helper协议并在真实ready核版本；不另起未记槽的探测进程，不改变ProcessAdmission或停止归属。不存在安全系统helper时保留原拒绝或原生userns失败，不用普通spawn兜底。
+
+写集仅上述资源模块、原`tests/kernel/zotero-resources.spec.ts`、普通原包配方的既有fixture及本change事实源。先核原21项不退化，再检查唯一允许槽位的实际已安装helper、错误目标及解析后替换拒绝；正例依赖实际目标条件，未满足须明确不可用。冻结影响构建后才运行同次原BBT ready／完整停止，随后才进入普通CLI／desktop重启整合，独立安全审查完成前不关闭N2.4／5。截图错误不作为普通宿主ready的替代证明；报告全浏览器隔离、正式分发及Windows不随本片扩大。
+
 ## 普通入口结果核查与原包装配分片
 
 本轮基线7aff2c7，N1.2及两个消费者已由第十五轮主线实际接收，原红例及限定验收见delivery。D14-1／2／3均已选A，本轮只细化下述N2精确规划，不同时扩产品分发。原调查及五类身份／授权区别保留在investigation，当前核查见其N2续做节。已绿原包／显示／UI不重做；普通持久原包装配及完整E4／I6保持开放。
@@ -42,13 +56,13 @@ flowchart LR
 
 ### 原包装配N2：精确实施规划（7aff2c7）
 
-2026-10-29当前实施已获新派发授权（cb5f7ed），取代下列R16“阶段停止”历史状态。N2.1–3已按本节接入实际代码；资源／真实父实例／窄环境及beforeLaunch装配也已实现，但Linux普通原包在实际Chromium sandbox前置失败，N2.4／5保持未验收，见delivery。当前API签名与设计一致；资源解析另用受限HostLaunchEnvironment类型派生实际返回，不接受业务env。新动作／启动前检查settings未变化；已受理操作的回调、提交及交付只复核实际library身份和实时授权，设置不是撤权通道。
+2026-10-29，N2.1–5已按本节接入并由主线验收；系统helper、原包缓存等待及真实产品静态承载入口的实施／原失败／最终结果见delivery。当前API签名与设计一致；资源解析另用受限HostLaunchEnvironment类型派生实际返回，不接受业务env。新动作／启动前检查settings未变化；已受理操作的回调、提交及交付只复核实际library身份和实时授权，设置不是撤权通道。Windows原包、正式分发、真实用户库及完整E4／I6仍按原任务开放。
 
 主线批准的唯一独立对照在全新配置及复制的host诊断入口中仅选择`--disable-setuid-sandbox`，采集renderer process.sandboxed与/proc namespace／Seccomp；实际在renderer创建前报No usable sandbox，未取得sandbox证明。生产资源配方仍无该flag或no-sandbox；未以提权、安装、改旧profile或放宽scope保证处理。只可由主线依据后续目标事实决定配方，不凭官方开关描述、ready或缺少renderer证据宣布安全可用。
 
-第十六轮主线接收本规划并审定以下接缝方向：复用唯一ProcessAdmission，recoverHostSupervision独立于设置／资源，在Manual初始化首步先完成旧scope记账；库初始化后再绑定，KernelApplication沿super.initialize后再恢复harness。serve的真实status.instanceId仅向可信构造链供应；HostConnection只透传DISPLAY／XAUTHORITY／操作TMPDIR和稳定beforeLaunch。配置目录绑定、冷启动快照、无效配置仍恢复及scope已停不占原生槽沿下文。未实施前签名仍为设计，N2.1仍需补相应delta及核实现接点，不能勾为完成。本轮阶段停止，不授权或派发N2生产实现。
+已实施的接缝方向：复用唯一ProcessAdmission，recoverHostSupervision独立于设置／资源，在Manual初始化首步先完成旧scope记账；库初始化后再绑定，KernelApplication沿super.initialize后再恢复harness。serve的真实status.instanceId仅向可信构造链供应；HostConnection只透传DISPLAY／XAUTHORITY／操作TMPDIR和稳定beforeLaunch。配置目录绑定、冷启动快照、无效配置仍恢复及scope已停不占原生槽沿下文；相应delta和真实验证已随N2.1–5接收。
 
-本节落实已定D14-2／3=A，不重新选择设置归属或资源交付。本轮仅规划，下面的文件／类型／方法均为待实施设计；当前源码事实见investigation的N2节。此次只改investigation／design／tasks／已有delivery，未改delta spec；新持久化及恢复行为在实施前由N2.1补入本change delta并经主线核对，不用当前CLI ready声称新增行为已实现或正式规格已同步。
+本节落实已定D14-2／3=A，下面的配置／恢复接口对应当前实现，适用增量见本change delta，实际验收见delivery；正式规格同步与归档另行核对，不由CLI ready代替。
 
 #### 唯一持久文件与受限登记
 
@@ -398,12 +412,12 @@ H1的实际Interface见 `src/main/host.ts`：构造参数是可信资源目录�
 
 ### 拥有与消费的契约
 
-以下生态操作名及字段为本线拟提供的 Interface，尚未存在于源码。将集中在 `packages/protocol/src/zotero.ts` 的同源声明，语义与等待策略随声明派生。业务与内部传输复用载荷，不各建一套DTO。E1–E3涉及的领域载荷必须引用文献线提供的schema；表中的语义要求不是已收到的接口定义。
+当前五个生态操作及回调由`packages/protocol/src/zotero.ts`同源声明，领域载荷引用library-records，业务与内部传输复用它们；实际DTO、结果及等待策略以该声明为准。以下表保留更广接口设计，未注册的`zotero.status`仍是候选，不据此宣称已实现新端口；既有操作的接线与未完验收见tasks。
 
 | 提供给谁／操作 | 请求字段及语义 | 结果及错误 |
 | --- | --- | --- |
-| 人与Agent：`zotero.status` | 宿主由配置／可信连接确定，不允许传可执行路径或原包路径 | host实例、生命周期状态、Zotero／BBT／资源版本、可用操作、受阻前置、失败阶段及有界错误；不含token、本机凭据或完整路径 |
-| 人与Agent：`zotero.fillKeys` | `libraryId` 是共同库身份；`sources` 明确列 `sourceId` 与所读 `revision`；每次1–100条。`operationId`只作为所属领域提交核查的稳定关联，不能把RPC id当它。只补缺键，无replace参数 | 按条目返回未修改／已确认保存／冲突／失败／未知，附共同实际revision及正式键；回执形状、operationId归属及查询入口受E2/E3阻塞，不先实现生态自有提交台账 |
+| 人与Agent：`zotero.status`（候选，未注册） | 宿主由配置／可信连接确定，不允许传可执行路径或原包路径 | host实例、生命周期状态、Zotero／BBT／资源版本、可用操作、受阻前置、失败阶段及有界错误；不含token、本机凭据或完整路径 |
+| 人与Agent：`zotero.fillKeys` | `libraryId` 是共同库身份；`sources` 明确列 `sourceId` 与所读 `revision`；每次1–100条。`operationId`只作为所属领域提交核查的稳定关联，不能把RPC id当它。只补缺键，无replace参数 | operationId、committed／rejected／unchanged／queried状态、实际共同receipt及notification；unchanged无新提交。未知抛outcomeUnknown，按原ID查询唯一共同回执，不另设生态台账 |
 | 人与Agent：`zotero.export` | 同样的库与条目依据、`format=bibtex/biblatex`；来源数据不由调用方整份上传；无输出本机路径 | 原包实际文本、格式、所用共同对象和修订；UTF-8结果最多256KiB，超限`tooLarge`，不静默截断。不可核对版本返回`contentChanged`，无正式键提供者`unavailable` |
 | 宿主生命周期：`start/close` | 仅宿主装配调用，可信实例资格、已登记私有配置与固定资源清单 | 返回受管状态及退出确认；不是普通产品／插件可用的任意进程控制方法。准确平台接入受E4阻塞 |
 

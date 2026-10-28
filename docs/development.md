@@ -81,7 +81,7 @@ Agent、能力子执行与 PDF 共用宿主持有的进程容量，默认活动 
 | Agent | 沿 `HarnessStorage`、领域端口及私有 worker 入口组合；参考 `harness-module.spec.ts`、`execution-isolation.spec.ts`，外部模型复用 `tests/model-server.ts` 的 loopback 受控响应 |
 | 科研计算 | `ProgramRuns`／`ProgramEnvironments` 在 ManualApplication 装配；`program-runs.spec.ts` 验证真实 Node／Python、运行记录与输出，`program-environments.spec.ts` 以相同端口替换执行和记录依赖；共同命令机制参考 `managed-commands.spec.ts` |
 | 阅读交互 | 沿共同资源和 editor 端口接入，参考 `resource-access.spec.ts`、`editor-runtime.spec.ts` 及 `tests/ui/resource-opening.spec.ts`；UI 使用共同 renderer URL 配置 |
-| Zotero 生态 | `host-connection.spec.ts`验证公共监督及初始化恢复；`zotero-host-supervision.spec.ts`验证原包监督；`zotero-host.spec.ts`的可信注入组合已验最多100条普通期刊补键／两格式／回执。`cli-runtime.spec.ts`验证私有设置的普通冷启动／题名／接续及N1；固定离线原包新配方仍受sandbox前置阻断，不以注入例代替，真实用户库仍禁用 |
+| Zotero 生态 | `host-connection.spec.ts`验证公共监督及初始化恢复；`zotero-host-supervision.spec.ts`验证原包监督；`zotero-host.spec.ts`的可信注入组合已验最多100条普通期刊补键／两格式／回执，Linux普通离线布局已验CLI／共用bootstrap、补键／重启导出及完整关闭。`cli-runtime.spec.ts`验证私有设置的普通冷启动／题名／接续及N1；真实用户库仍禁用，Windows原包及正式分发另验 |
 
 表中内核用例位于 `tests/kernel/`，UI 与宿主外壳用例分别在 `tests/ui/`、`tests/smoke/`。窄端口内存替身受 TypeScript 检查，跨 broker／IPC 的输入输出继续经过原同源 schema；资源、文件及仓储的真实组合使用所属提供者，不用成功替身代替。
 
@@ -140,7 +140,11 @@ SCHOOLOOM_UI_PORT=5343 node node_modules/@playwright/test/cli.js test --config p
 
 隔离共同库可由可信宿主构造 `KernelApplication`／`serveKernel` 时供应 `isolatedZotero` 进行专用测试，普通入口则由持锁的serve读取私有 `host-settings.json`，在library初始化后核实际库ID；默认禁用。schema唯一源为`apps/kernel/src/host-settings.ts`，首版只支持显式隔离期刊库、单一固定Linux x64离线资源登记，资源目录固定在本配置`native-resources/zotero-journals-v1/`，不接受业务请求的程序、env或root，不执行grant或创建第二份库／键权威。没有settings写端口或安装器，可信操作者须在确认停机后离线准备；真实用户库仍未开放。
 
-所有配置分支在programs／harness恢复前先核`zotero/host-supervision.json`。原生scope未知按原command实例保留共同容量；原生已停而插件／领域未决只保护生态启动门和profile，不虚占原生槽。坏记录保留原证据，不以设置、PID或notFound清unknown。设置变化只阻止新动作／启动，已受理回调继续按真实库身份及实时授权收尾。原包路径依赖受信固定资源及实际可用的Chromium sandbox；本机普通原包配方已因SUID／userns sandbox前置失败，不能据普通绑定、独立题名或旧注入测试通过宣布完整原包装配可用，也不默认添加no-sandbox。kernel私有日志记录同次失败及scope／plugin／callback事实。
+所有配置分支在programs／harness恢复前先核`zotero/host-supervision.json`。原生scope未知按原command实例保留共同容量；原生已停而插件／领域未决只保护生态启动门和profile，不虚占原生槽。坏记录保留原证据，不以设置、PID或notFound清unknown。设置变化只阻止新动作／启动，已受理回调继续按真实库身份及实时授权收尾。原包路径依赖受信固定资源及实际可用的Chromium sandbox；kernel私有日志记录同次失败及scope／plugin／callback事实。
+
+Linux离线布局仅允许`electron/chrome-sandbox`这一槽位链接到既有`/opt/google/chrome/chrome-sandbox`。链接须当前操作者拥有；系统目标须root:root、4755普通文件，目标及root拥有且不可被组／其他人写入的祖先均不得为链接。扫描末及每次启动前复核同一身份和权限，其他资源不开放链接；系统升级或资源变化要求重新核查，不在运行中修权限、安装helper或加入no-sandbox。没有这个安全系统依赖且原生userns也不可用时，保留拒绝。普通原包CLI与桌面共用bootstrap入口已在隔离合成库通过，正式打包桌面、其他平台及真实用户库未由此验收。
+
+固定BBT的缓存删除收到IndexedDB blocked时，宿主桥保留诊断并等待同一原生请求的success／error，仍受原30秒启动期限约束；blocked不表示成功，不重试删除、不改原XPI。Worker debug与dump进入原有界诊断，查询`ZoteroHost.status()`可核缓存阶段；永久阻塞或原生错误仍失败并沿原监督保留unknown。资源与事件边界入口为`zotero-resources.spec.ts`、`zotero-worker-bridge.spec.ts`。普通持久原包校准先预检现有DISPLAY，使用持久TMPDIR，并显式设置`SCHOOLOOM_ZOTERO_NATIVE_COLD=1`及`SCHOOLOOM_BBT_XPI`运行`tests/kernel/zotero-host.spec.ts --grep 'ordinary persistent host settings'`；默认测试不复制或启用该布局。
 
 `zotero.fillKeys` 接受 `libraryId`、稳定 `operationId` 及1–100个 `sourceId/revision`；已有操作返回`state: queried`及原回执，不执行新的选择，`notification: notRun`不恢复历史通知状态。`zotero.result` 使用共同 `requestId` 查询实际提交，未知时不得重放。`zotero.export` 接受同一选择及 `bibtex`／`biblatex`，返回文本和采用的条目修订／正式键／固定状态；宿主关闭后交付前重查权限和依据。文本最多256KiB，不隐式写入文件或补键。
 
