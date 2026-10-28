@@ -456,6 +456,10 @@ f4ab1e5／[Checks40622631905](https://github.com/leike0813/Scholoom/actions/runs
 
 先提交推送共同验收及决定，七树保全快进，按实际harness／kernel源码变化更新对应产物并完成必要定向验证，再向原Codex／gpt-6.1-sol／high终端实际发送六任务／一等待。同步检查与本轮UI部分通过分别记录，不能用七树定向绿例覆盖原失败；macOS入口及完整平台仍开放，完整changes与真实科研质量不自动归档。调度回执仅补主线原记录，不再次同步已启动的树。
 
+目标CI补充回执：58eda14／Checks40630840280现已全部结束且failure，Windows完整内核694通过／47失败／44跳过，后续smoke／UI未运行，不能与专项或其他源码计数混算。新共同源码7aff2c7自动触发[Checks40643346195](https://github.com/leike0813/Scholoom/actions/runs/40643346195)和[Windows专项40643346320](https://github.com/leike0813/Scholoom/actions/runs/40643346320)，本轮未等待其目标验收；旧平台失败继续保留。
+
+本轮调度回执：验收与安排已推送为`7aff2c763504f0ddf3b2304eb6ea18b7ef0e389c`，七树先保全快进，分别重建受影响harness／kernel、复用未变的其他依赖／renderer／zotero-host，tools／架构及定向共8/8通过，之后才向原七终端发送六任务／一等待。七份原指令均受理，两份API记录turn_started，其余五份另有独立活动观察，API原值不改。随后Agent、文献及等待中的科研三个会话因429终止；只对两条工作任务各发一次明确续接，最终六任务线均观察为Working，科研等待安排不变，其确认因429未完成。没有更换gpt-6.1-sol／high或盲重发原任务；文献树额外的已结束规划辅助终端未被发送任务。原Prompt、两次续接、持久requestId、活动观察及安全收尾在同一cache根。本纯回执不再同步已开始工作的树，UI5/6及平台失败仍保留。
+
 ## 首轮 Agent 的共同起始任务
 
 各线采用下述共同要求，并附上本文件中该开发线的小节：
