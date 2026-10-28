@@ -430,6 +430,8 @@ f4ab1e5／[Checks40622631905](https://github.com/leike0813/Scholoom/actions/runs
 
 先推送共同验收和决策，七树保全快进、核源码与已验产物一致并完成必要类型／定向验证，再向原Codex／gpt-6.1-sol／high会话发送五任务／两等待。只有需要新生产改动时重建受影响产物。完整changes、Linux／Windows稳定性、报告承载和科研质量继续开放；纯回执不再次同步已启动的树。
 
+本轮调度回执：验收及决策已推送为`58eda1404fcc60036ce0e0f3ce30d5453ce1ee30`；七树先保全快进、核f4ab1e5生产源码与产物一致，tools类型／架构及各一项定向共7项均通过，再发送五任务／两等待。七份均受理；两份API确认turn_started，其余五份保留API原值并独立观察Working／Compacting。最终五任务线活动，项目／科研两线确认Git／cache接续输入后停止等待；模型均Codex／gpt-6.1-sol／high。Prompt、回执及原始启动观察在同一证据根，不为本纯文档回执再次同步已恢复的树。
+
 ## 首轮 Agent 的共同起始任务
 
 各线采用下述共同要求，并附上本文件中该开发线的小节：
