@@ -2,7 +2,7 @@
 
 ## 普通入口结果核查与原包装配分片
 
-调查基线为f4ab1e5，尚无新生产实现。用户授权主线决定待选问题后，主线选定D14-1 A、D14-2 A、D14-3 A；N1进入下一实施片，N2先沿统一宿主设置和离线固定资源细化契约，不同时扩产品分发。源码证据及五类身份／授权区别见[investigation当前节](investigation.md#当前调查普通cli重启与原包装配缺口f4ab1e5)。R13原包／显示／UI已接收，不重做；普通装配及完整E4／I6保持开放。
+调查基线为f4ab1e5，N1.2在58eda140共同基线上实施，限定验证及消费者断言迁移交接见delivery最新节。用户授权主线决定待选问题后，主线选定D14-1 A、D14-2 A、D14-3 A；N2先沿统一宿主设置和离线固定资源细化契约，不同时扩产品分发。源码证据及五类身份／授权区别见[investigation当前节](investigation.md#当前调查普通cli重启与原包装配缺口f4ab1e5)。R13原包／显示／UI已接收，不重做；普通原包装配及完整E4／I6保持开放。
 
 ### 下一实施片N1：普通CLI重启后只读共同回执
 
@@ -12,12 +12,14 @@ Interface保持`zotero.result({libraryId,requestId})`及现有committed／reject
 
 实现边界：将当前共同库授权／身份核查与native-isolation要求清楚分开，只有result走前者；不能给check增加含义混杂的force／skipAuth开关。先核read，Agent还核send／活动执行；核library.status.id与请求一致，调用实际commitResult，再复核返回前授权。不存在原包配置、资源、DISPLAY或旧host无法重启不阻塞此只读查询；其余inspect／replaceTitle／fillKeys／export四项保持当前隔离门及全部权限，不从N1推定允许普通用户库操作。
 
+N1.2局部设计：原`check`保留native门，再复用抽出的`checkLibrary`做原授权／身份核查；`result`只走`checkLibrary`，查询前后均调用。Agent的有效执行复用kernel已消费的`harness.executionFacts`（必须verified），不新增DTO或宿主回调；原handler入口核查继续保留。返回前最后核执行事实及signal，避免查询期间资格撤回后交付。测试只注入提交后观察故障和读取后撤权的时序，实际回执仍由真实library产生；普通CLI例无私有IPC／native配置，P1例仅替换外部模型HTTP。
+
 committed／rejected只说明原共同事务的稳定结果；results中的revision／键属于原提交，不用当前record重算覆盖。同requestId不表示当前新输入已执行，不要求插件正常关闭才能查。notFound只表示当前提供者无可查回执，不能证明未知效果不存在，不自动重放、更换requestId、重生成键、启动host或清除host-supervision.json。原宿主unknown／容量／恢复门照旧，export及unchanged等无共同回执的情况不伪造查询结论。Agent成功结果继续原rememberLibrary→rememberCatalog链，后续模型请求及重启复核read/send。
 
 ```mermaid
 flowchart LR
   CLI[普通CLI start及zotero.result] --> Broker[现有kernel server及broker]
-  Broker -->|D14-1 A获选后| Query[ZoteroOperations.result]
+  Broker -->|只读核查| Query[ZoteroOperations.result]
   Query --> Gate[当前库read及Agent send 核身份]
   Gate --> Library[library.commitResult 唯一回执]
   Library --> Recheck[返回前复核并保留持续外发登记]
@@ -31,7 +33,7 @@ flowchart LR
 | 本change delta／design／tasks／delivery及`docs/development.md`生态小节 | 批准后说明只读例外、仍禁用的native操作、普通CLI实际命令与限界；不把N1称为持久原包配置 |
 | 不需新增或改动 | protocol/zotero与business映射已有该schema；CLI现有switch、manual handler、architecture消费声明、harness工具及library provider复用。无native factory、bootstrap参数、library schema／存储迁移、HostCatalog／UI或安装资源改动 |
 
-最小独立验收（此轮未运行）：
+最小独立验收边界（实际结果及未跑消费者见delivery）：
 
 1. 用真实共同commitRecords准备成功／拒绝回执；普通CLI首次start及stop/start后按原libraryId／requestId查到同一结果，原值／键／revision不变。不得先通过测试IPC重注入configuration；没配置native的其他四方法仍拒绝。全过程不要求XPI或DISPLAY，证明的是共同查询接续。
 2. 真实提交已成功而观察故障返回未知时，关闭准备实例后用普通CLI查原requestId；只有一次共同修订，不重做写入。notFound／错库／撤read明确返回现有状态／错误，不猜成回滚或自动grant。
