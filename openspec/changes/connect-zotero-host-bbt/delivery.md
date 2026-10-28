@@ -1,5 +1,10 @@
 # 实际交付与交接
 
+## 第十三轮主线验收
+
+显示前置helper及四消费者已保全合入，独立两轴审查无本线确证问题。完整构建／类型／架构通过；主线内核组合13/13包含两个真实BBT原包代表例、Electron renderer／Worker完整收尾及两个显示拒绝反例，原值动作双宿主2/2。已有DISPLAY经预检复用，未停止共享显示，也未把Node监督替代原包通过。旧unknown现场仍保留，新Xvfb成功路径未验。
+
+原BBT9.0.68 XPI已保全到`/home/joshua/.cache/scholoom-round13-acceptance/preserved-tmp/zotero-better-bibtex-9.0.68.xpi`，与旧原件逐字节一致；本次测试实际使用新路径。新静态UI入口也在同根，解包目录可由原XPI重新创建。下一片仅调查生产装配／普通CLI持久配置的最小差距，见[共同计划](../../../.scratch/domain-development/parallel-development-plan.md#第十三轮验收后的安排)；真实用户库、完整E4／I6、复杂映射及平台仍开放。
 ## 当前交付：真实原包测试显示前置（R13）
 
 2026-10-28，起始clean，HEAD `ba29ee61ac6f8700cfe6a9fbaa529a8a7a75aad1`。本轮按主线第十二轮安排只修测试显示前置，复用已构建且同源的共享／kernel／desktop／zotero-host产物；没有生产源码或协议变化、重建或依赖变更。R13三项完成后累计28/37；完整E4／I6、CLI持久配置、跨平台原包及真实用户库继续开放。

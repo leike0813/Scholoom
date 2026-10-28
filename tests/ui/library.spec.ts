@@ -681,15 +681,13 @@ test('library selection, collection navigation and columns survive bounded view 
         scrollHeight: list.scrollHeight,
         spacer: list.firstElementChild?.getAttribute('style'),
         first: list.querySelector('[role="option"]')?.getAttribute('aria-label'),
-        saved: Object.fromEntries(
-          Object.entries(localStorage).filter(([key]) => key.endsWith('|scroll')),
-        ),
       });
     };
     const setItem = Storage.prototype.setItem;
     Storage.prototype.setItem = function (key, value) {
       setItem.call(this, key, value);
-      if (key.endsWith('|scroll')) observe('save', { key, value });
+      if (key.endsWith('|scroll'))
+        observe('save', { key: key.slice(0, 512), value: value.slice(0, 32) });
     };
     document.addEventListener(
       'scroll',
@@ -846,13 +844,19 @@ test('library selection, collection navigation and columns survive bounded view 
         JSON.stringify(
           [
             ...beforeReload,
-            ...(await uiPage.evaluate(() => Reflect.get(window, 'catalogScrollObservation'))),
+            ...((await uiPage.evaluate(() => Reflect.get(window, 'catalogScrollObservation'))) ??
+              []),
           ],
           null,
           2,
         ),
       );
       await info.attach('catalog-scroll-observation', { path, contentType: 'application/json' });
+    } catch {
+      info.annotations.push({
+        type: 'catalog-scroll-diagnostic-unavailable',
+        description: 'captureFailed',
+      });
     } finally {
       client.dispose();
     }

@@ -469,6 +469,8 @@ UI 测试期间保持源码和共享包构建产物稳定；改动或重新构�
 
 图形验收先用`xdpyinfo`核对当前DISPLAY；已有可用显示服务时可直接运行测试，只关闭本轮窗口，不停止共享显示服务。新建Xvfb须保留stderr并先验证显示连接。TMPDIR可将Node／Playwright工件迁到独立磁盘目录，但Xvfb锁文件仍写`/tmp`；配额导致锁写入或Electron启动失败属于环境准备失败，不记为业务回归。原失败与环境补验分别保留，不清理其他轮次的工件来掩盖失败。
 
+验收和接续工件使用独立的持久目录：先设置指向该目录的`TMPDIR`，再生成配置、payload、项目、profile及结果；本机使用`/home/joshua/.cache`。静态构建UI的启动脚本、BBT原包和独立oracle也须位于持久目录，不能依赖前轮`/tmp`的内容。第十三轮保全入口及清单见[共同计划](../.scratch/domain-development/parallel-development-plan.md#第十三轮验收后的安排)；BBT通过`SCHOOLOOM_BBT_XPI`显式指定保全原包，oracle保留原输入及独立预期。历史记录中的旧路径仍表示当时证据，接续使用保全副本或固定来源重建。每轮重新预检DISPLAY，不假设共享显示在挂载迁移后仍可用；操作系统新建的临时锁和socket不属于可持久接续输入。
+
 `pnpm package:dir` 构建并分别生成两个 Electron 目录包，输出到 `release/desktop` 和 `release/zotero-host`。桌面包包含内核、执行桥、原生依赖与 PDF WASM，仍要求本机 Node 24；不生成签名安装器或尚未实现的科研执行工具。`SCHOOLOOM_PACKAGED_DESKTOP=<实际桌面可执行文件>` 可让既有入口 smoke 启动该分发包；`SCHOOLOOM_PACKAGED_KERNEL=<解包的 @scholoom/kernel 目录> pnpm test:kernel tests/kernel/cli-runtime.spec.ts` 验证包内实际图、工具、持久化及 PDF 解析。本机目录包通过不替代目标平台签名、安装后及恢复验收。
 
 GitHub Actions 三平台均运行静态检查、构建及目录打包。Linux／Windows 保留受管归属、完整内核与 UI 测试；macOS 运行真实不可用声明、零 worker 拒绝、人工文件／题录、双宿主降级与入口测试，不安装当前不可用的排版工具链。`platform-availability.spec.ts` 在 macOS 使用真实声明，在其他平台只替换能力边界；UI 的非 macOS 用例只替换状态响应，人工操作仍走真实内核。远端结果以实际 workflow 运行为准，降级通过不表示 macOS 全功能或三平台发布验收。

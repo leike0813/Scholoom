@@ -1,5 +1,10 @@
 # 实际交付与交接
 
+## 第十三轮主线验收
+
+本轮仅四工件已保全合入；独立两轴审查无本线确证发现。原resident多项目场景Browser／Electron2/2及四组同次project／session／instruction／run／instance、原文件与停机后采样边界已审接收。所属代码未改，不重复该绿色场景。主线新Linux完整Checks40613967267的首文件场景两宿主仍在首模型请求数0处失败，不能用本机另一场景或旧次通过关闭CI。
+
+下一片只消费这次首场景已有窗口／执行附件并按真实身份收敛；第二场景与4.1提供者等待不混同。新原始日志、启动脚本及后续工件在`/home/joshua/.cache/scholoom-round13-acceptance/`，不依赖现有/tmp；精确范围见[共同计划](../../../.scratch/domain-development/parallel-development-plan.md#第十三轮验收后的安排)。内部机械组合已接收，完整平台、库删除／恢复和科研质量仍开放。
 ## 第十二轮主线接收与共同消费
 
 七文件观察增量已保全合入，两路独立审查无确证缺陷。主线第一file-workbench场景Browser通过；Electron首次显示服务启动失败，复用预检通过的已有DISPLAY后通过。其后共享RPC闸门修正的Electron文件场景再次通过，成功／拒绝分支保留。窗口发送回执与自有model-kernel附件按同次project／session／instruction／run匹配，两宿主均已观察实际推进，不再以旧Electron模型0作为当前第一场景的结论。

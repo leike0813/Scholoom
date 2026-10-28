@@ -1,5 +1,10 @@
 # 实际交付与交接
 
+## 第十三轮主线验收
+
+本轮四份调查工件已冻结保全合入，独立两轴审查未发现本线确证问题。继承FD、宿主Unix／TCP代理、只读socket与cgroup迁移反例接收；没有接生产Adapter、浏览器或公共协议，活动报告继续unavailable，2.1b／I5仍开放。主线未重复有限原生实验或把其他绿色UI作为报告承载验收。
+
+当前实验源码、反例矩阵和前片scope样本在各自cache，接续无须旧/tmp。下一片只在同样有限保护下调查高FD／SCM_RIGHTS入口、普通文件类型核对和迁移句柄阻断；精确范围见[共同计划](../../../.scratch/domain-development/parallel-development-plan.md#第十三轮验收后的安排)。权限／部署／呈现和完整平台保证继续待定，不据新窄样本采纳画面流或替代原停止／容量证明。
 ## 第十二轮验收后的文件／句柄原生校准（ba29ee6）
 
 2026-10-28先确认HEAD=`ba29ee61ac6f8700cfe6a9fbaa529a8a7a75aad1`且clean，读取AGENTS、共同计划第十二轮安排、原工件和scholoom-dev／apply；实际执行后取得当前delivery instructions，更新同一记录。消费`/home/joshua/.cache/scholoom-round12-acceptance-NagGbw/`正式交接及本树源码，未重放旧patch、同步或取他树在研内容。仓库写集严格为本change的investigation／design／tasks／delivery，未改生产、协议或测试源码。当前任务仍6/13，2.1b及活动报告unavailable保持。

@@ -1,5 +1,11 @@
 # 实际交付与交接
 
+## 第十三轮主线验收
+
+本轮六文件已保全合入。Standards两项P2及Spec一项P2对应两个实际缺陷：诊断finally异常覆盖原失败，以及每事件枚举全部localStorage。主线删除全存储读取，save只记录原参数的有界副本；缺失观察按空数组处理，诊断错误独立annotation，client仍finally释放。独立内存故障注入核EDQUOT、页面关闭、未安装观察及1000无关存储项，原错误均保留、无全存储读取；只读复核关闭两项。原滚动200断言及期限未变。
+
+完整构建／类型／架构／生成映射通过，主线三场景双宿主6/6；诊断修正后题录原场景另2/2。本机产品窗口修复接收，Mac内部原次时序及新源码目标未验。固定映射、日期oracle共11文件已保全到`/home/joshua/.cache/scholoom-round13-acceptance/preserved-oracles/`，两组probe在新位置通过；下一片覆盖收尾使用该独立预期，不读原/tmp。主线证据、review-fix-verification及下一片见[共同计划](../../../.scratch/domain-development/parallel-development-plan.md#第十三轮验收后的安排)；完整6.1／6.2和平台不因定向绿关闭。
+
 ## ba29ee61：分页滚动本机竞态修复，Mac目标待验
 
 开工HEAD`ba29ee61ac6f8700cfe6a9fbaa529a8a7a75aad1`且clean。本轮完成3.2b本机子项，当前**27/32**；没有用CLI状态关闭完整change、Mac或科研质量。只改CatalogItemList、原library.spec单场景及本change的design／investigation／tasks／delivery，共六文件。原字段不支持表达清单、6.1b／5.4a接收范围保持；没有重复这些已绿整合或BBT、改公共fixture／rpc-gate／model-kernel或增加生产配置。
