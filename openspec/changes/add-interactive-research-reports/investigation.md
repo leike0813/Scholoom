@@ -1,5 +1,40 @@
 # 调查依据
 
+## 高FD、SCM_RIGHTS与普通文件门实跑（2026-10-28，f4ab1e5）
+
+本片开始HEAD=`f4ab1e5f1ed17ae9af656c1f9945005a2786d911`、工作区干净，无`.codegraph/`。已读AGENTS、共同计划“第十三轮验收后的安排”、原四工件、scholoom-dev及apply；实际执行后取delivery instructions。正式交接消费`/home/joshua/.cache/scholoom-round13-acceptance/{source-preservation.json,sync-directed-summary.json}`及共同计划的主线回执，未重放旧累计patch或操作其他树。该目录没有acceptance.md，未假定存在；精确来源以上述实际文件为准。
+
+新证据根为`/home/joshua/.cache/scholoom-report-gate-round14-DocB5o/`。本轮native源码`gate-{launcher,payload}.c`、临时控制器`gate-calibration.mjs`、合成文件、FIFO／Unix socket、二进制和日志全在该根。`prerequisites.json`核uid1000、systemd259.5用户manager、bwrap0.11.1和cc15.2.0可用；未安装／提权、修改系统配置或cgroup委托。实际动作前，launcher在所属scope内读取cpu.max=`20000 100000`、memory.max=`67108864`、memory.swap.max=`0`、pids.max=`16`；控制端另读实际源／目标限额。样本进入时NNP=1、CapEff=0及被测namespace与外部不同。没有重跑CPU／OOM等压力负载。
+
+### 有限条件矩阵
+
+唯一原生轮`gate-first-result.json`及对应stdout／stderr为原始证据；`gate-conditions-matrix.json`由`check-gate-evidence.mjs`对既有结果和固定独立预期作一致性复核产生，不是第二轮实跑。所有marker／目录／迁移目标为本轮自有合成数据或自有限额scope，没有用户凭据、profile、项目库或外部网络。
+
+| 对照 | 实际观察 | 可信结论／限制 |
+| --- | --- | --- |
+| unsafe高FD正例 | 256与1024实际保留同一合成文件FD，各读到`credential-gate-decoy-v1`；257的openat读得同一诱饵；258写PID成功。259的recvmsg实际接收2个SCM_RIGHTS句柄，分别可读诱饵／写本轮目标cgroup | 高FD及跨namespace句柄传递均是真实权威。直接258已经迁入目标，此case后续收到的迁移FD写入只是同组写；不将它单独当作跨组迁移证明 |
+| closed关闭门 | 可信launcher关闭非白名单FD后，仅为bwrap保留已批准只读字节FD3；进入样本时3已消耗，256／257／258／259／1024均EBADF(9)。样本实际pread、openat、写PID及259 recvmsg均返回EBADF | 被测高FD读／目录／迁移及接收入口在进入前已移除；不是“未执行所以阻断”。未枚举每个可能FD或校准所有迟到获取路径 |
+| closed无接收通道 | 0为指定身份的O_RDONLY FIFO，仅控制器写G／Q；1／2为指定身份的O_WRONLY普通诊断文件。0／1／2实际recvmsg均ENOTSOCK(88)，收到FD数0；259实际EBADF，无SCM动作记录 | 本次控制I/O没有可用SCM接收socket，未用“尚无消息”的EAGAIN冒充拒绝。不等于任意业务控制器／语义代理均安全 |
+| stdio-leak通道误暴露 | 高FD已全关，但故意在2保留queued socketpair。recvmsg(2)实际收到诱饵／迁移句柄，读得诱饵并写PID成功；宿主PID1881258从本轮源scope进入同限额目标 | 单凭编号0–2或close_range(3,…)不足；本case没有直接高FD迁移路径，独立证明SCM传入句柄可跨组迁移 |
+| stdio-reject启动拒绝 | 同样在2误放socket，类型／身份／访问模式门拒绝，实际exit77，未出现payload ready或action | 证明候选在进入前拒绝该配置；payload动作没有执行，不能写成每个动作被OS拒绝 |
+| 普通文件类型／身份 | approved.txt核真实regular及预期dev／ino后接受；自有socket、目录、FIFO和symlink以type／EINVAL(22)拒绝，另一个真实普通文件以identity／ESTALE(116)拒绝 | 类型来自O_PATH／NOFOLLOW句柄的fstat，不因路径后缀或ro标志放行；非法对象均未交给bwrap，不是已运行后的网络／文件攻击结果 |
+| 实际批准字节交付 | 从已核对FD经ro-bind-data交付，三个进入的样本都读得`approved-gate-v1`，写打开EROFS(30)；宿主未映射文件／诱饵及直接cgroup路径均ENOENT(2) | 批准固定字节的只读交付成立，消费FD3未留到样本；没有生产ref／basis或并发编辑校准，dev／ino不等于内容版本 |
+| 迁移与全部scope收尾 | unsafe宿主PID1881210、stdio-leak宿主PID1881258分别由源／目标成员和宿主完整`/proc/PID/cgroup`核对迁入本轮target；closed的1881239仍在原scope。三者Q后自然退出0，stdio-reject退出77；最后目标仅余guardian1881202，再明确stop目标，回执0、systemd-run SIGTERM。全部6个unit inactive／not-found、各已知cgroup目录消失，控制器原cgroup未变，自有socket服务关闭 | 收尾核mapping／三个源／拒绝源及目标全部范围，未凭源空或根PID消失推完整停止。目标SIGTERM为主动实验停止；未接生产容量、unknown或控制器丢失恢复 |
+
+本轮目标unit为`scholoom-report-gate-target-18509824-37c6-463e-b19c-e042745bb631.scope`，迁移只向该已读回同限额目标，未打开其他scope控制文件。payload中的cgroup字符串最多64字节，迁移后的路径明确truncated=true；归因使用外部宿主完整路径与成员，没有用截断文本比较目标。内核可以复用已经退出的namespace编号，不将不同case间相同编号推断为共享namespace。
+
+### 首次失败、保留与边界
+
+辅助首编译未设置TMPDIR，编译器写/tmp遇EDQUOT；`gate-payload.build.log`保留，未启动样本。明确TMPDIR到新cache后编译通过，无warning。launcher首编译退出0但有两处misleading-indentation warning，保存`gate-launcher.compile-first.c`及`launcher-compile-first.log`；加括号／分行后才执行。唯一原生轮内两项正式编译均退出0、stderr为空，控制器语法检查及原生轮退出0；没有重试、加期限或第二轮native实跑。证据一致性复核通过并只读复查六unit仍inactive／已知cgroup不存在。原始运行源码／输入／结果未作事后修改。
+
+独立只读审查确认unsafe的两次迁移写不可分别归因，故以上只以stdio-leak隔离证明SCM迁移；并指出首轮控制器对五个已卸载unit的`cgroupExists:false`来自空ControlGroup默认值，不是旧路径实查。原字段／代码保持原样，不把它计完整路径证据。一致性复核另从每个unit原`preflight.cgroup`取得六条已知路径逐一实查不存在，结果及实际六unit查询收据保留在`gate-conditions-matrix.json.cleanup`；这是观察补核，没有再运行样本或改停止行为。
+
+0–2的检查核本轮预先打开的真实身份／类型／方向；stdout／stderr只作有限诊断，launcher另设64KiB硬RLIMIT_FSIZE，单轮最大stdout7575字节。控制器只解析有界JSON，向FIFO写固定G／Q，不提供请求解释器／任意路径代理。本次不证明恶意样本无法篡改自己的诊断文件、不证明硬链接／并发内容变化、所有特殊文件、syscall／后续socket取得或可信控制器的完整可恢复设计。未运行任意浏览器、双宿主、外部DNS／联网反例或Windows／Mac；macOS受管执行不可用保持。
+
+必要接续代码已在Git工件或上面新cache；前片原生源码仍在`/home/joshua/.cache/scholoom-report-platform-round12-fNGQLv/`及`/home/joshua/.cache/scholoom-report-files-round13-Wfc0WT/`只读保留，本轮执行不引用其中二进制或现有/tmp。旧/tmp路径只作历史证据。没有安装／下载或新特权服务，仓库仍只改原四工件。活动报告继续unavailable，正式2.1b／I5及OS／呈现／分发决定开放；最小下一步是主线审该有限launcher策略与独立platform Adapter的剩余syscall／归属恢复组合，不把调查代码接生产。
+
+CI只消费共同计划第十三轮已完成回执：e3c815b／40613967267的Linux内核754通过26跳过、UI134通过24失败6跳过，Windows内核692通过46失败42跳过；Mac人工UI13通过1失败，Windows专项40613967285成功仅按实际专项范围。未新查询、轮询或触发CI，未将这些别场景回执当本轮隔离通过。
+
 ## 最小文件视图与继承句柄实跑（2026-10-28，ba29ee6）
 
 本片开始核HEAD=`ba29ee61ac6f8700cfe6a9fbaa529a8a7a75aad1`且clean，无`.codegraph/`；已读AGENTS、共同计划“第十二轮验收后的安排”、本change原工件、scholoom-dev及当前apply。只消费本树正式源码和`/home/joshua/.cache/scholoom-round12-acceptance-NagGbw/`交接证据，不重放旧补丁。用户直接授权有限文件／FD原生调查；仓库写集只有本change四工件，未改platform、协议、UI、CSP或生产期限／unknown／容量保护。

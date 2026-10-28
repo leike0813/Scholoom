@@ -1,6 +1,6 @@
 # 执行任务
 
-当前共同源码ba29ee6已包含已接收原生校准；本片已完成design“最小文件视图及继承句柄校准”，不重跑已绿CPU／OOM。关闭FD后的批准文件只读／隐藏路径拒绝取得有限正例；继承文件／目录、宿主代理、cgroup迁移及只读socket映射反例成立。仓库仍只改原四份工件，证据在`/home/joshua/.cache/scholoom-report-files-round13-Wfc0WT/`；本次五unit／服务已收尾，实际条件见investigation。未写platform／协议／产品UI、未采纳画面流或启用页面，任务仍6/13，目标报告／旧版本Adapter继续不可用。
+当前共同源码f4ab1e5已包含主线接收的scope／文件／FD反例。本片已完成design“高FD、接收通道及普通文件门”的唯一有限轮：256／1024高FD关闭后实际EBADF；SCM误暴露及stdio无接收通道分列；stdio门拒绝启动与普通文件类型／身份拒绝各有实际记录。未重跑CPU／OOM。新源码／数据／控制器／结果全部在`/home/joshua/.cache/scholoom-report-gate-round14-DocB5o/`，六个自有scope和服务已收尾，不依赖现有/tmp。仓库只改原四工件；仍6/13，2.1b／I5及目标／旧版本Adapter继续开放，活动报告unavailable。
 
 ```mermaid
 flowchart TD
@@ -26,7 +26,7 @@ flowchart TD
 ## 2. 页面内浏览与共同动作
 
 - [x] 2.1a 调查原型已交付：tests/fixtures/report-frame专用候选模块及真实Browser／Electron静态夹具，消费实际ReportResources快照与有版本的资源字节，复用Bridge schema；合法脚本及清单资源、HTTP／UDP探针、CSP／父frame-src／导航／资源通道、宿主访问及有界桥生命周期已有代表性证据。两宿主实际STUN外发、Browser忙循环阻塞反例见delivery；只关闭调查，不算生产已隔离，生产保持unavailable。
-- [ ] 2.1b 未实施正式承载：前片独立scope／namespace及资源上限取得有限证据；ba29ee6本片另证关闭FD的最小文件视图，并取得继承FD／宿主代理／cgroup迁移和只读socket反例。仍缺可交付的FD／特殊文件／syscall策略、全网络、unknown／容量／恢复及浏览器验证。独立platform Adapter、产品呈现／部署／分发和公共接口继续待主线，不能凭有限样本接生产。2.2／3.x和完整I5不在本片。
+- [ ] 2.1b 未实施正式承载：前片scope／资源／文件／代理反例已接收，f4ab1e5片完成高FD及SCM接收门、可信stdio和普通文件类型／身份的有限native对照。仍缺可交付的platform提供者、syscall／迟到能力、全网络、unknown／容量／恢复及浏览器验证。产品呈现／部署／分发和公共接口继续待主线，不能凭临时launcher接生产。2.2／3.x和完整I5不在本片。
 - [ ] 2.2 实际文献对比页面支持筛选／排序／展开，已加载对象通过原子appendContextItems进入同一composer，用户检查正文后沿原session.send；核对objectIds、报告basis、明确来源、comment与接收者不变。超限整批拒绝保留草稿。1.2与2.1可分离实现，本线主Agent整合共同贡献及共享资源符号，禁止并行写同一文件。
 
 ## 3. 完整更新、草稿与接续
@@ -43,4 +43,4 @@ flowchart TD
 
 本片只更新原investigation／design／tasks／delivery，停止于实际条件矩阵交回；任务仍6/13，不把原生校准算2.1b正式实施。呈现方向、部署／安装、运行时分发维护及交互／资源预算仍待决，不再等待已合入的来源授权／schema。
 
-最小下一步是主线审design所列独立platform Adapter职责：先闭合预执行FD白名单（含控制通道及FD转移）、只映射批准普通文件、阻断迁移权威，再校准syscall策略及控制器丢失／unknown／容量组合；本片不实现。真实ReportResources／浏览器、外部DNS和目标OS校准、呈现契约／共同UI接入均未执行。每步可独立失败／交回，后一步不能绕过提供者；Mac或目标证据不足保持unavailable，不自动进入这些任务。
+最小下一步是主线审design所列独立platform Adapter职责及本轮有限launcher策略：保留可信stdio／高FD／SCM对照和普通文件门，再核syscall／迟到能力与控制器丢失／unknown／容量组合；本片不实现生产提供者。真实ReportResources／浏览器、外部DNS和目标OS校准、呈现契约／共同UI接入均未执行。接续源码和输入已在Git／cache，无旧/tmp前置；Mac或目标证据不足保持unavailable，不自动进入这些任务。

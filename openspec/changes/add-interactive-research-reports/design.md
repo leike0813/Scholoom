@@ -2,7 +2,7 @@
 
 ## 变更总览
 
-用户已采纳 [investigation](investigation.md#已获得本轮产品选择) 的项目内有界产品范围；资源及来源授权已接入，活动承载仍阻塞。当前共同源码ba29ee6，本片只校准候选A的文件视图及继承句柄，结果由investigation维护；没有采纳画面流或实施2.1b。既有资源限额保持；实验保护值不是新的产品执行／呈现预算。
+用户已采纳 [investigation](investigation.md#已获得本轮产品选择) 的项目内有界产品范围；资源及来源授权已接入，活动承载仍阻塞。当前共同源码f4ab1e5，本片只校准候选A的高FD／SCM_RIGHTS／stdio及普通文件门，结果由investigation维护；没有采纳画面流或实施2.1b。既有资源限额保持；实验保护值不是新的产品执行／呈现预算。
 
 ```mermaid
 flowchart LR
@@ -58,6 +58,20 @@ ReportResources 是 `packages/editor` 内的 module，不新建包／数据库�
 页面要求写入选中对象的comment，原有composer展示并允许修改；输入框正文继续由用户填写／检查，发送仍满足现有非空文字契约。本变更不自动替用户填充或发送“继续分析”。对象多选只贡献当前已加载清单，不读取文献表格DOM或全库投影。
 
 ### 隔离与页面桥
+
+#### 高FD、接收通道及普通文件门（f4ab1e5，已执行的调查片）
+
+本片只在`/home/joshua/.cache/scholoom-report-gate-round14-DocB5o/`创建有限native样本、可信launcher候选、控制器及结果，TMPDIR同根；不读现有/tmp，不接生产Adapter、浏览器或新协议。复用已有systemd用户scope／bwrap，启动前核工具、普通权限和实际20%CPU／64MiB／swap0／16tasks保护；前置不满足即停止，不修改委托或安装／提权。不重跑CPU／OOM负载。
+
+固定对照分为：故意保留256／1024等高FD上的合成文件、目录、cgroup迁移句柄及带SCM_RIGHTS队列的自有socketpair；关闭非白名单FD后的相同动作；把接收通道误放到2的危险对照及stdio类型门明确拒绝启动。0只承载G／Q固定控制字节的单向FIFO，1／2为本轮指定的只写诊断文件，核fstat身份和访问方式，不将descriptor编号本身当信任。无通道时实际recvmsg的ENOTSOCK／EBADF与误暴露通道实际收到句柄分开记录；启动拒绝后的动作未执行，不能记成逐动作阻断。
+
+普通文件门以O_PATH／NOFOLLOW取得真实对象、核类型和预期dev／ino，仅普通文件再打开其同一FD指向的只读对象；目录、socket、FIFO、symlink及身份不符单独拒绝。批准字节经bwrap已有ro-bind-data从核对后的FD交付，进入样本再核实际内容、只读性和内部FD是否已消耗；不是原ResourceRef／basis的生产Adapter或并发更新保证。只读socket映射不再作为候选的合法资源输入。
+
+每个源scope及独立同限额目标scope唯一命名并登记；危险正例只迁入本轮目标。控制器分别核实际宿主PID的cgroup及源／目标成员，结束核本轮全部unit和cgroup，不能从源空／根PID消失推完整停止或释放生产容量。固定样本／合成文件是调查输入；FD传递、权限及归属使用真实OS。完整网络、syscall／控制器丢失恢复／双宿主／分发／OS与呈现决策仍缺证，活动报告unavailable和2.1b／I5开放保持。
+
+本片唯一有限轮已完成：关闭门对被测高FD实际动作返回EBADF，可信0–2无SCM接收socket；误暴露2的危险对照却通过SCM传入句柄并实际迁移，stdio门另在进入前拒绝该配置。类型门拒绝socket／目录／FIFO／symlink，身份不符普通文件也拒绝；批准FD交付固定只读字节。具体原始数据、首次编译环境失败及收尾见investigation首节，不在本设计重复数值矩阵。
+
+这给前片Adapter职责提供了有限策略依据：FD白名单包含类型／身份／方向及对端用途，不能只保留0–2；特殊文件必须在映射前拒绝，核对后从持有FD交付，不重开原路径；迁移能力不得通过遗留或SCM通道进入。下一步仍需主线决定是否在platform独立提供者中审查和校准剩余syscall、迟到能力及控制器丢失／unknown／容量组合。临时launcher／FIFO／诊断文件不是新的生产控制协议，普通文件dev／ino也不取代ReportResources的ref／basis及read/send权威。
 
 #### 最小文件视图及继承句柄校准（ba29ee6，已执行的调查片）
 
