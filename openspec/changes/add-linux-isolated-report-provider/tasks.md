@@ -1,6 +1,6 @@
 # 执行任务
 
-规划轮没有执行生产任务或提前创建delivery。第十五轮主线已审接口方向及共享符号归属，下一片只推进1.2：固定原生程序、已核架构、默认拒绝的syscall白名单与失联收尾校准；2.x须等实际证明后再实施。报告change仍6/13、2.1b／I5及活动页unavailable。
+第十五轮主线已审1.1；本轮在7aff2c76仅完成1.2的固定x86_64 native校准，实际记录见本change delivery，未实施2.x。默认拒绝／wait4必要修正、进入后G前SCM、两种真实失联及持久身份只读核查均按真实边界交回；两次失败保留，不计作首轮全绿。报告仍6/13、2.1b／I5及活动页unavailable。
 
 ```mermaid
 flowchart TD
@@ -19,7 +19,7 @@ flowchart TD
 ## 1. 接口与真正前置
 
 - [x] 1.1 主线审定design的六个同源窄操作／分片封存、instanceId关联及仅宿主消费范围，审定`settleRecovered`恢复结清和最小宿主恢复屏障；确定protocol／platform／计算线共享符号归属。第十五轮审查决定及实施前置见design，不表示schema／生产接线已实现。
-- [ ] 1.2 在已审首个固定native程序策略下，校准旧样本未证明的syscall／迟到能力与控制器／宿主丢失收尾。先核普通权限、scope实际限额、namespace和持久记录前置；真实限制失败立即unavailable，输出具体阶段及部署缺证，不安装／改委托。用自有端点／scope和既有固定反例作最少新校准，不机械重跑CPU／OOM绿例。完整网络或失联保证未证不得放行该策略，浏览器不进入本任务。
+- [x] 1.2 固定x86_64 native本机校准完成：默认拒绝BPF补可信reaper必要wait4后，已进入样本的危险syscall实际EACCES；SCM在ready后／动作G前入队，无filter危险控制真实读取，过滤及组合对照拒绝。独立controller／宿主SIGKILL及三代setsid、持久身份匹配／失配、完整登记范围收尾与后续只读核查成立，详见investigation／delivery。首启动失败和观察失败原位保留；没有G后SCM、浏览器／外部DNS协议、生产恢复或容量释放结论，不扩大本片完成范围，2.x仍须后续安排。
 
 ## 2. 独立深模块及其验证
 
@@ -36,6 +36,6 @@ flowchart TD
 
 ## 续做入口
 
-主线已接收design“权威与最小公共签名”，下一片先取当前apply instructions并完成1.2；实际校准结果交回后再安排2.x。公共增量由主线接入后消费者同步，不操作其他树。生产ReportResources冻结字节Adapter、浏览器全进程图／runtime、共同呈现／文本／可访问性及分发属于后续明确任务；本change没有这些提供者时不开放报告。
+先将本轮1.2窄结论、两次失败及独立审查交主线验收；不自动进入2.x。后续明确安排后再取当前apply instructions，生产实现必须保留本次BPF／迟到FD／失联固定对照并修正放行意图／确认及恢复语义。公共增量由主线接入后消费者同步，不操作其他树。生产ReportResources冻结字节Adapter、浏览器全进程图／runtime、共同呈现／文本／可访问性及分发仍是后续范围，没有真实提供者时不开放报告。
 
 必要独立输入见investigation的三cache精确入口，新的规划与检查工件在`/home/joshua/.cache/scholoom-linux-provider-plan-round15-7V4Vot/`，没有现有/tmp内容前置。
