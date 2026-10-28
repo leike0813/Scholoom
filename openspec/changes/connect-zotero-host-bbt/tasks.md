@@ -1,6 +1,6 @@
 # 执行任务
 
-## 当前轮：普通入口／CLI下一片调查规划
+## 已完成调查：普通入口／CLI下一片
 
 起点f4ab1e5f1ed17ae9af656c1f9945005a2786d911、clean。仅本change原工件，TMPDIR／工件为独立cache根；不写生产代码或重复已绿显示／原包／UI。CLI ready不是产品选择或实施授权。
 
@@ -8,10 +8,12 @@
 - [x] R14.2 提交N1可独立查询接续候选、N2具体写集与阻断、输入输出／授权／原生实例来源及D14-1至D14-3；不把建议当用户已选，不新建配置或库权威。
 - [x] R14.3 核对保全输入及接续路径不依赖现有/tmp，完成规划校验／diff及独立增量；实际调查后取delivery instructions更新同一记录，交回并停止，不关闭E4／I6。
 
-### 下一实施片N1
+### 当前实施片N1
 
 - [x] N1.1 用户委托主线选择后，已采纳D14-1 A并明确本change只读查询例外：保留原DTO及授权、其他四操作仍受隔离门约束；规格批准不表示实现完成。
-- [ ] N1.2 已授权下一片按design封闭写集局部调整ZoteroOperations.result／权限与native门；扩CLI-runtime的真实provider、普通start/serve及stop/start查询、拒绝／未知原ID／P1回归，按影响build后测试。无新库台账或原包／显示／安装／UI装配，不重放未知、不改E4／I6完成状态。
+- [x] N1.2 已授权下一片按design封闭写集局部调整ZoteroOperations.result／权限与native门；扩CLI-runtime的真实provider、普通start/serve及stop/start查询、拒绝／未知原ID／P1回归，按影响build后测试。无新库台账或原包／显示／安装／UI装配，不重放未知、不改E4／I6完成状态。
+
+58eda140本树完成N1实现及三个代表回归，首次两项旧实现红例、构建后3/3及检查见delivery最新节。独立核对发现旧isolated-kernel／zotero-original消费者断言仍按全native门编写；不在本轮封闭写集内，精确迁移补丁仅在cache交父整合，未应用或运行，不能把本片通过称为全部消费者已绿。
 
 N2沿原2.3／3.1承接，主线已选共同kernel宿主设置及可信离线固定资源；具体schema、加载／恢复接点和目标资源仍待后续细化。N1不依赖N2实现；不因library provider已有或方向已定而假称普通原包装配就绪。
 
@@ -137,4 +139,4 @@ flowchart LR
 
 ## 续做入口
 
-先读delivery／design／investigation当前R14，直接消费f4ab1e5本树，不应用历史累计补丁或重做已接收显示／原包／UI。N1只读例外先等D14-1，批准后修本change窄规格并取得实施任务；N2继续等唯一配置权威／资源交付与平台提供者。当前只交调查规划，不能从CLI ready或已有library结果推定普通原包装配完成。运行输入只取Git或主线cache保全路径，TMPDIR及新配置／结果用独立cache；旧/tmp证据非接续前置。完整E4／I6、E5/E6、其他字段／多来源、自动同步、生产装配及真实用户库仍开放。
+先读delivery最新N1节及design／investigation，当前增量基于58eda140，不应用历史累计补丁或重做已接收显示／原包／UI。D14-1／2／3已选A，N1实现及限定验收已完成；父须审查并整合cache中的旧消费者契约迁移补丁，再按所属入口验证，不能据3/3声称旧GUI组已通过。N2的唯一kernel宿主设置及可信离线固定资源方向已定，具体schema／加载／恢复及资源契约尚需后续实施片，不因N1或CLI ready推定普通原包装配完成。运行输入只取Git或cache，TMPDIR及新配置／结果用独立cache；现有/tmp非接续前置。完整E4／I6、E5/E6、其他字段／多来源、自动同步、生产装配及真实用户库仍开放。

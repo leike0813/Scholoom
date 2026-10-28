@@ -81,7 +81,7 @@ Agent、能力子执行与 PDF 共用宿主持有的进程容量，默认活动 
 | Agent | 沿 `HarnessStorage`、领域端口及私有 worker 入口组合；参考 `harness-module.spec.ts`、`execution-isolation.spec.ts`，外部模型复用 `tests/model-server.ts` 的 loopback 受控响应 |
 | 科研计算 | `ProgramRuns`／`ProgramEnvironments` 在 ManualApplication 装配；`program-runs.spec.ts` 验证真实 Node／Python、运行记录与输出，`program-environments.spec.ts` 以相同端口替换执行和记录依赖；共同命令机制参考 `managed-commands.spec.ts` |
 | 阅读交互 | 沿共同资源和 editor 端口接入，参考 `resource-access.spec.ts`、`editor-runtime.spec.ts` 及 `tests/ui/resource-opening.spec.ts`；UI 使用共同 renderer URL 配置 |
-| Zotero 生态 | `host-connection.spec.ts`验证公共认证监督；`zotero-host-supervision.spec.ts`验证原包监督；`zotero-host.spec.ts`经真实共同库／broker／WS／受管Electron验证最多100条普通期刊补缺键、两格式导出和稳定回执。仅构造时明确供应的隔离库可用，真实用户库仍禁用 |
+| Zotero 生态 | `host-connection.spec.ts`验证公共认证监督；`zotero-host-supervision.spec.ts`验证原包监督；`zotero-host.spec.ts`经真实共同库／broker／WS／受管Electron验证最多100条普通期刊补缺键、两格式导出和稳定回执。原包操作仅构造时明确供应的隔离库可用；`cli-runtime.spec.ts`独立验证普通CLI只读回执接续，真实用户库仍禁用 |
 
 表中内核用例位于 `tests/kernel/`，UI 与宿主外壳用例分别在 `tests/ui/`、`tests/smoke/`。窄端口内存替身受 TypeScript 检查，跨 broker／IPC 的输入输出继续经过原同源 schema；资源、文件及仓储的真实组合使用所属提供者，不用成功替身代替。
 
@@ -138,7 +138,7 @@ SCHOOLOOM_UI_PORT=5343 node node_modules/@playwright/test/cli.js test --config p
 
 `zotero.inspect({libraryId,sources:[{sourceId,revision}]})`读取同修订的共同CSL及唯一原值，返回identity、正式键和题名equal/different；其余字段始终notComparable。`zotero.export`未选表达时返回selectionRequired及核对依据，不启动宿主或返回文本。明确采用原值时，每个source传`expression:{kind:'zotero-original',identity:{instanceId,libraryLocator,objectKey}}`；成功返回exported及实际表达依据。Agent可按用户明示指令选择，不确定先询问，boolean不能代替表达选择。仅题名相同不表示全条目一致。`zotero.replaceTitle({libraryId,requestId,sourceId,revision,identity,title})`独立替换准确原题名，保留CSL及其他原值／身份／正式键；使用共同CAS和稳定回执，未知只按原requestId查询。
 
-人工 CLI 为 `node apps/kernel/dist/cli.js zotero.inspect|zotero.replaceTitle|zotero.fillKeys|zotero.export|zotero.result --data-dir <隔离配置> --input '<同源JSON>'`，消费已运行的隔离内核。harness 的 `inspect_zotero_originals`／`replace_zotero_original_title`／`fill_zotero_keys`／`export_zotero`／`read_zotero_result` 使用同一broker及执行主体，成功返回继续登记共同库身份供后续模型准入和重启核查read/send。缺原值、非schema44普通期刊、复杂关系／字段形态均明确unavailable，不从CSL猜测；来源副本需共同新实例。Item与真实SQLite查询均为可丢弃投影，正式键只归共同库；一次补键汇集为一次共同事务，读回及通知失败与已提交结果分开。
+人工 CLI 为 `node apps/kernel/dist/cli.js zotero.inspect|zotero.replaceTitle|zotero.fillKeys|zotero.export|zotero.result --data-dir <隔离配置> --input '<同源JSON>'`，消费已运行的内核。其中只读 `zotero.result` 不要求native配置：先普通 `start --data-dir <隔离配置>`，再 `zotero.result --data-dir <同一配置> --input '{"libraryId":"<原库ID>","requestId":"<原请求ID>"}'`；普通stop/start后仍查唯一library.commitResult。查询前后核read／当前库身份，Agent另核send及有效执行；committed／rejected保留原修订，notFound不证明无效果，不启动host或重放／清unknown。其他四项仍需可信隔离构造配置，普通CLI不加载原包设置。harness 的 `inspect_zotero_originals`／`replace_zotero_original_title`／`fill_zotero_keys`／`export_zotero`／`read_zotero_result` 使用同一broker及执行主体，成功返回继续登记共同库身份供后续模型准入和重启核查read/send。缺原值、非schema44普通期刊、复杂关系／字段形态均明确unavailable，不从CSL猜测；来源副本需共同新实例。Item与真实SQLite查询均为可丢弃投影，正式键只归共同库；一次补键汇集为一次共同事务，读回及通知失败与已提交结果分开。
 
 固定资源与原包来源记录在 `apps/zotero-host/resources/versions.json`；原 XPI 不随仓提交、不在启动时下载。准备指定 BBT 9.0.68 原发布包后执行：
 
@@ -294,7 +294,7 @@ useStatusBarItem('reading', {
 
 共同原值／键接口由`protocol/library-records.ts`提供：`library.createSourceInstance`按稳定请求登记新来源实例，`library.record`／`recordHistory`有界读取原值与正式键，`library.commitRecords`同事务提交最多100条已有题录、原值／来源关联／键及历史，`library.commitResult`查询稳定成功或拒绝结果。请求编码最多256KiB、单原值64KiB；键NFC／默认Unicode小写比较冲突，候选只补缺键且不固定，既有正式键只接受显式修改及有效revision。失败不拆成逐条成功，提交后才通知。库自身v3→v4升级保留旧副本，旧CSL扩展键不自动晋升为正式键；生态普通期刊隔离接线见上文，完整BBT SQL／saveTx及原子新建／删除／附件／组织操作继续由后续变更承接。
 
-文献详情的“原值与导出”只消费当前单选：明确核对已保存CSL、准确原值身份／修订及不可比较部分，题名更正先预览再提交，仅改原值title。未保存CSL及旧保存依据保留，随后保存仍沿CAS冲突／明确重读。导出须明确采用所示原值，仅exported返回只读文本，selectionRequired无文本；格式／修订／选择变化清除确认和旧输出。未知更正回执按原requestId调用zotero.result，不重放，notFound仍保留未决操作。普通内核默认不可用不变；可信隔离双宿主夹具使用构造注入、真实broker／库及未修改BBT，未开放产品配置开关、真实用户库或macOS受管执行。
+文献详情的“原值与导出”只消费当前单选：明确核对已保存CSL、准确原值身份／修订及不可比较部分，题名更正先预览再提交，仅改原值title。未保存CSL及旧保存依据保留，随后保存仍沿CAS冲突／明确重读。导出须明确采用所示原值，仅exported返回只读文本，selectionRequired无文本；格式／修订／选择变化清除确认和旧输出。未知更正回执按原requestId调用zotero.result，不重放，notFound仍保留未决操作。普通内核仅开放上述有授权的只读回执核查，其他生态动作仍默认不可用；可信隔离双宿主夹具使用构造注入、真实broker／库及未修改BBT，未开放产品配置开关、真实用户库或macOS受管执行。
 
 首个摄取格式为 CSL JSON（可粘贴或选择本机 JSON 文件），一次不超过256KiB/1000条，单条题录不超过16KiB且有非空 title，其余扩展字段保留。手动建项也走同一摄取入口。批次受理返回稳定身份，逐项保存创建、复用、冲突或失败；合法项可先查用。相同 batchId 不同输入拒绝，内核中断保留记录，显式继续只处理未执行项，不重放成功项；中断原因可查询。
 

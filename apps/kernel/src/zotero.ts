@@ -3,6 +3,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
 import type { ProcessAdmission } from '@scholoom/platform/node';
+import type { HarnessModuleInputs, HarnessModuleOutputs } from '@scholoom/protocol';
 import { type CallArguments, type CallContext, OperationError } from '@scholoom/protocol/core';
 import {
   type LibraryInputs,
@@ -35,8 +36,12 @@ type Methods =
   | 'library.record'
   | 'library.commitRecords'
   | 'library.commitResult';
-type Inputs = Pick<LibraryInputs, Methods> & Pick<LibraryModuleInputs, 'library.check'>;
-type Outputs = Pick<LibraryOutputs, Methods> & Pick<LibraryModuleOutputs, 'library.check'>;
+type Inputs = Pick<LibraryInputs, Methods> &
+  Pick<LibraryModuleInputs, 'library.check'> &
+  Pick<HarnessModuleInputs, 'harness.executionFacts'>;
+type Outputs = Pick<LibraryOutputs, Methods> &
+  Pick<LibraryModuleOutputs, 'library.check'> &
+  Pick<HarnessModuleOutputs, 'harness.executionFacts'>;
 type Port = { call<A extends CallArguments<Inputs>>(...args: A): Promise<Outputs[A[0]]> };
 
 /** Only explicitly supplied isolated libraries can reach a native host. No product enable switch. */
@@ -57,6 +62,9 @@ export class ZoteroOperations {
   private async check(port: Port, libraryId: string, write: boolean, send: boolean) {
     if (!this.configuration || this.configuration.libraryId !== libraryId)
       throw new OperationError('unavailable', '仅开放宿主配置中明确指定的隔离期刊库。');
+    await this.checkLibrary(port, libraryId, write, send);
+  }
+  private async checkLibrary(port: Port, libraryId: string, write: boolean, send: boolean) {
     await port.call('library.check', { access: 'read' });
     if (write) await port.call('library.check', { access: 'write' });
     if (send) await port.call('library.check', { access: 'send' });
@@ -65,8 +73,17 @@ export class ZoteroOperations {
   }
   async result(input: ZoteroInputs['zotero.result'], context: CallContext) {
     const port = this.port(context);
-    await this.check(port, input.libraryId, false, context.principal.kind === 'agent');
-    return port.call('library.commitResult', input);
+    const authorize = async () => {
+      const agent = context.principal.kind === 'agent';
+      await this.checkLibrary(port, input.libraryId, false, agent);
+      if (agent && (await port.call('harness.executionFacts', {})).state !== 'verified')
+        throw new OperationError('instanceMismatch', '共同回执查询需要有效执行身份。');
+      context.signal?.throwIfAborted();
+    };
+    await authorize();
+    const receipt = await port.call('library.commitResult', input);
+    await authorize();
+    return receipt;
   }
   private async read(port: Port, input: ZoteroInputs['zotero.inspect']) {
     if (new Set(input.sources.map((source) => source.sourceId)).size !== input.sources.length)

@@ -1,5 +1,48 @@
 # 实际交付与交接
 
+## 当前交回：N1.2普通CLI只读回执
+
+2026-10-28，起点`58eda1404fcc60036ce0e0f3ce30d5453ce1ee30`且clean。已按主线授权及D14-1／2／3=A/A/A实施N1.2，取本轮apply及实际执行后的delivery instructions；任务进度33/42。本片只完成普通共同回执核查及限定回归，N2、2.3／3.1整体、完整E4／I6及真实用户库仍开放。下面R14主线决定和调查段是当时回执，N1未实现／待选择等旧状态由本节覆盖，不再等待重复授权。
+
+### 实际变化与调用路径
+
+- `apps/kernel/src/zotero.ts::checkLibrary/result`：抽出原共同库授权／身份核查，`check`继续保留native门，其他四操作不放宽。`result`查询前后核read、Agent send及当前library.status.id；Agent复用kernel已有`harness.executionFacts`且要求verified，并在返回前核signal。schema、CLI转发、manual handler、architecture声明及library记录表均未改；不新增开关、结果台账或native设置。
+- 普通`CLI start`→ensureKernel／serve→真实WS／broker→ZoteroOperations→唯一`library.commitResult`→交付前复核的路径已经运行，无测试私有IPC或native供应。成功／拒绝回执保留原修订；notFound不启动host、不重放或解除旧unknown。P1的rememberLibrary→rememberCatalog及后续模型read/send准入保持原实现。
+- `tests/kernel/cli-runtime.spec.ts`新增三个必要代表例，原有CLI科研测试不变；`docs/development.md`补普通result入口与四操作限制。对应设计图为design的N1只读查询图；没有增加生命周期或装配行为。
+
+### 首次失败、最终命令与证据
+
+所有命令在本树运行，先`export TMPDIR=/home/joshua/.cache/scholoom-zotero-n1-W0TDq6/tmp`；Node为本机24.12.0，仅用已有依赖。证据根`/home/joshua/.cache/scholoom-zotero-n1-W0TDq6/`，以下均为其中相对路径。
+
+| 命令／阶段 | 真实结果与证据 |
+| --- | --- |
+| 旧已验产物：`node_modules/.bin/playwright test --config playwright.kernel.config.ts tests/kernel/cli-runtime.spec.ts --grep 'ordinary CLI queries\|result rechecks' --output <证据根>/red-results` | **2 failed**：普通CLI已启动，但result因native门返回unavailable；读取后撤权例同样先被该门拒绝。`red.log`及red-results原trace保留；并非超时或缺原包 |
+| `pnpm --config.optimisticRepeatInstall=false --filter @scholoom/kernel build` | 通过，实际重建kernel并复制原迁移／architecture资源；`build.log`。未重建desktop／zotero-host或共享包，后续测试期间冻结产物 |
+| `node_modules/.bin/playwright test --config playwright.kernel.config.ts tests/kernel/cli-runtime.spec.ts --grep 'ordinary CLI queries\|Zotero result' --output <证据根>/green-results` | **3 passed (1.2m)**，单例42.2s／75ms／15.4s；`green.log`。普通start及stop/start均按原ID查成功／拒绝／提交后观察丢失回执及notFound，原值／CSL／固定键和revision不因查询变化；错库instanceMismatch、撤read permissionDenied及其余四方法unavailable均实测 |
+| 同上第二、第三例 | 真实provider读结果后同步撤read，交付被拒绝。Agent仅用read_zotero_result取得notFound后撤send，下一轮及重启均failed且外部模型请求数不增长；未依赖原包／DISPLAY |
+| `node_modules/.bin/tsc --noEmit -p tsconfig.tools.json`；`node scripts/check-architecture.ts` | 通过，`tools.log`为空且exit 0；`architecture.log`为14模块／254文件／0 findings |
+| `node_modules/.bin/biome check apps/kernel/src/zotero.ts tests/kernel/cli-runtime.spec.ts` | 首次新增测试有格式／import顺序及两处非空断言提示，已用内置apply_patch修正；最终2文件通过，不修改生成文件或放宽规则 |
+| `node packages/protocol/scripts/contract-types.mjs --patch`及`node <证据根>/check-generated.mjs` | 生成映射按最终schema核对；原始候选7文件仅仓库格式差异，经同一Biome格式化逐文件比较完全相同，`generated-verified.log`。候选保存在cache，未应用到源码 |
+
+未知观察例只在真实commitRecords提交后的libraryChanged订阅中抛出观察故障，准备调用未取得成功结果；随后关闭准备实例，用普通CLI查原requestId。每个准备写入仅一次，未知的那次只增加一条修订；稳定回执早于当前record的修订也原样返回。此处不冒称产生或解除HostConnection的原生unknown记录，没有启动任何host。
+
+### 真实与受控边界、审查及消费者缺口
+
+内部library／SQLite／broker／WS／普通CLI进程／harness worker／项目文件均真实，数据为新建合成题录。仅有两种时序注入：提交后订阅抛错、真实commitResult读取后撤read；没有伪造持久回执。P1子例的外部模型HTTP使用已有createModelServer，可信测试构造只供应该模型端点及合成凭据；它不证明普通CLI模型配置已交付，不供应IsolatedZotero。项目／配置和原失败目录保留在cache，未删除已登记项目。
+
+gpt-6.1-sol/high只读辅助（无历史fork）核对权限／执行端口及改动，父Agent抽查决定。确认kernel早已消费harness.executionFacts，broker仅在每次call入口核signal，所以result自己的交付前执行复核有必要。审查还发现本轮封闭写集外的**四处旧消费者断言**需要随批准契约迁移：
+
+1. `tests/kernel/isolated-kernel.spec.ts`：错libraryId由旧native门unavailable改为当前库身份instanceMismatch。
+2. `tests/ui/zotero-original.spec.ts`：无native配置的准备内核按当前库查询应返回notFound；错库应instanceMismatch；native绑定错误但查询仍指当前真实库时，原未派发requestId应返回notFound并保留pending／CSL草稿，不能再期待native门报错。辅助初步把最后一处推断成instanceMismatch，父按实际queryInput／当前libraryId复核纠正为notFound。
+
+这些消费者文件本轮**未修改、未运行**。精确独立候选`consumer-alignment.patch`和可重建脚本`consumer-alignment.mjs`仅在证据根，`git apply --check`通过；它们不是已经接入或通过的源码。父整合时须先应用N1实现及消费者契约迁移，再按所属入口复验。不能将当前3/3记作旧isolated-kernel／双宿主GUI组全绿，也不能为了保留旧断言重新绑回native门。没有运行BBT、图形、全仓CI或Windows／macOS目标；显示helper／CI未改。
+
+### 交回与停止点
+
+原change仍未完成，仅N1.2勾选。本树独立增量为证据根`n1-implementation.patch`，旧消费者迁移为单独`consumer-alignment.patch`（未应用／未运行）；依赖共同58eda140，无新增公共schema／存储／库提供者要求。父负责提交及消费者整合验收；N2继续按design细化唯一kernel设置、可信离线资源与加载／恢复契约，本轮没有实现其任何部分。
+
+接续依据为Git内本change及测试，命令、原失败、脚本、profile／项目和补丁全部在上述cache根；`manifest.json`／`cleanup-status.json`记录工件与自有CLI停止核对，不依赖现有/tmp、XPI或DISPLAY。自有准备实例／CLI／harness及模型HTTP均已收尾，辅助Agent关闭；未启动开发或静态UI服务，不停止共享显示或其他项目进程。没有安装、提交、推送、PR、归档或真实用户库访问，到此停止等父验收。
+
 ## 第十四轮主线验收及后续决定
 
 本轮四工件保全合入，两轴审查无本线确证问题。用户委托主线选择后，D14-1／2／3均选A：下一片先实施已有授权下普通CLI的只读result；未来native绑定只归kernel宿主设置，首个原生片用可信操作者离线固定资源。选择及理由由design维护，N1窄例外已进delta，N1.2仍未实现；不扩大其他四操作、真实用户库或默认库权限。N2具体装配契约继续后置，不提前建通用配置框架。
