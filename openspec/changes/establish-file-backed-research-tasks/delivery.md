@@ -1,5 +1,13 @@
 # 实际交付与交接
 
+## 第十六轮主线接收
+
+主线接收FileEditor保存前强读取原身份／基础正文、重新定位并单次CAS的修复；旧submitted不能使用后来reload的正文依据覆盖新内容。冻结Standards／Spec独立审查均0确证发现。合入后先完整构建，再跑`file-workbench.spec.ts`两个代表场景：Browser与Electron合计4/4通过，含上一轮Electron回收恢复后保存和本轮pending-save／reload竞争。资源身份／条件保护6/6同时通过，位于18/18边界组合。
+
+主线整组UI为7通过／1失败；唯一失败是Electron委派完成状态，不能因此抹去其失败，也不能将文件4/4记作整体科研工作台完成。原第十五轮没有保存RPC现场，仍不能追溯断言与新复现为同一细因。证据在`/home/joshua/.cache/scholoom-round16-integration/{main-ui.json,main-boundaries.json,ui-results/}`，无旧`/tmp`运行前置。
+
+本change维持32/33，4.1仍等真实库删除／恢复和主题知识提供者，不归档，不再派发。文件修复本轮已并入共同源码，后续从Git继续而非重放独立patch。
+
 ## 第十五轮主线回归与下一片
 
 本树按等待指令无增量。主线组合新启动诊断后运行首文件双宿主：Browser通过，Electron在`file-workbench.spec.ts:210`失败。该次已经取得模型请求并取消，改名、回收、恢复后的编辑器仍可见最新草稿；点击保存后磁盘保持旧正文，原5秒持久化断言失败。不能称草稿已丢失，也不能由指令／run专用uiRpc没有保存事件推断未发送；保存请求、basis及结果链仍需核查。

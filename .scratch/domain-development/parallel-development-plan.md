@@ -200,7 +200,7 @@ flowchart LR
 
 ## 公共切片接入后的下一轮
 
-2026-10-26主线验收：A1委派版本授权、C1后台移交、C2配置容量／恢复、C3长时限、U1摘录边界均已复验关闭。公共实现及证据沿 [integrate-shared-domain-foundations](../../openspec/changes/integrate-shared-domain-foundations/delivery.md)；执行历史继续由 [add-harness-execution-history](../../openspec/changes/add-harness-execution-history/delivery.md)维护。主线已接资源叶抽取、双窗口夹具、执行历史、命令观察与长时限、统一v5委派→v6程序表迁移、材料位置和集合／CSL声明。任务、委派、科研和programs私有业务及图片格式消费者尚未全部接入dev。
+2026-10-26主线验收：A1委派版本授权、C1后台移交、C2配置容量／恢复、C3长时限、U1摘录边界均已复验关闭。公共实现及证据沿 [integrate-shared-domain-foundations](../../openspec/changes/archive/2026-10-28-integrate-shared-domain-foundations/delivery.md)；执行历史继续由 [add-harness-execution-history](../../openspec/changes/archive/2026-10-28-add-harness-execution-history/delivery.md)维护。主线已接资源叶抽取、双窗口夹具、执行历史、命令观察与长时限、统一v5委派→v6程序表迁移、材料位置和集合／CSL声明。任务、委派、科研和programs私有业务及图片格式消费者尚未全部接入dev。
 
 无阻塞问题，基于“沿既有七线、只推进已定职责及可证明事实、用户手动同步公共dev”制定本轮方案。下表确定本轮实现边界；涉及新的行为先更新所属OpenSpec，不把候选方案或测试替身算作生产交付。
 
@@ -459,6 +459,41 @@ f4ab1e5／[Checks40622631905](https://github.com/leike0813/Scholoom/actions/runs
 目标CI补充回执：58eda14／Checks40630840280现已全部结束且failure，Windows完整内核694通过／47失败／44跳过，后续smoke／UI未运行，不能与专项或其他源码计数混算。新共同源码7aff2c7自动触发[Checks40643346195](https://github.com/leike0813/Scholoom/actions/runs/40643346195)和[Windows专项40643346320](https://github.com/leike0813/Scholoom/actions/runs/40643346320)，本轮未等待其目标验收；旧平台失败继续保留。
 
 本轮调度回执：验收与安排已推送为`7aff2c763504f0ddf3b2304eb6ea18b7ef0e389c`，七树先保全快进，分别重建受影响harness／kernel、复用未变的其他依赖／renderer／zotero-host，tools／架构及定向共8/8通过，之后才向原七终端发送六任务／一等待。七份原指令均受理，两份API记录turn_started，其余五份另有独立活动观察，API原值不改。随后Agent、文献及等待中的科研三个会话因429终止；只对两条工作任务各发一次明确续接，最终六任务线均观察为Working，科研等待安排不变，其确认因429未完成。没有更换gpt-6.1-sol／high或盲重发原任务；文献树额外的已结束规划辅助终端未被发送任务。原Prompt、两次续接、持久requestId、活动观察及安全收尾在同一cache根。本纯回执不再同步已开始工作的树，UI5/6及平台失败仍保留。
+
+## 第十六轮集成与阶段性收尾
+
+用户同意本轮整合、验收及满足完整契约的变更收尾，**不再派发新开发任务**。六树34文件逐树冻结、建立检查点后合入dev；科研树无增量。Standards／Spec由gpt-6.1-sol／high原生辅助分别独立审查，均0确证发现；另行对四项已全勾选change核完整契约、原实跑、版本及规格重叠，不以CLI complete代替验收。证据根为`/home/joshua/.cache/scholoom-round16-integration/`，冻结、审查、原始命令及实际结果保留，不依赖现有`/tmp`。
+
+主线完整构建、全包及tools类型、架构14模块／257文件0 findings／exceptions、八份生成映射、14个受影响源码／测试文件Biome通过。先构建、固定产物后运行两个内核组合：提供者44/44，边界18/18，共62/62。前者覆盖C1组织／契约／迁移／旧authority19项、最终受理1项、历史6项、项目迁移3项、科研图12项和模块3项；后者覆盖恢复容量6项、资源保护6项、N1普通CLI3项及旧集合／库迁移3项。
+
+静态产品双宿主UI最终**7通过／1失败**。文件回收恢复及保存竞争4/4，真实BBT原值动作2/2；委派打开Browser通过，Electron在五秒完成断言结束时仍为“运行中 · 部分成果”，未走到打开成果与reload草稿断言。原trace、窗口RPC及model-kernel同次事实保留在ui-results，未延长期限、重试刷绿或把迟到状态回填为通过。项目原第十五轮保存RPC缺证仍保持，不追溯猜成同一细因。外部模型受控，UI／broker／仓储／worker及文件真实；不证明真实科研质量。
+
+按已确认模块范围归档以下四项，并将七份delta增量合入六份正式规格。history／guard共享capability但新增不同Requirement，按公共基础→历史→最终受理→科研消费者顺序同步，保留旧要求与所有现有场景，修复归档相对链接。归档范围不含其他未完成业务。
+
+| 已归档change | 完成任务 | 关闭范围 |
+| --- | --- | --- |
+| `integrate-shared-domain-foundations` | 8/8 | 命令观察／停止、项目顺序迁移、显式上下文保真、集合父范围 |
+| `add-harness-execution-history` | 8/8 | 有界历史查询及可信首次启动来源 |
+| `guard-harness-admission` | 3/3 | 异步等待后的宿主最终同步检查与回执重放 |
+| `connect-research-graph-runtime` | 25/25 | 科研图机械接线、可信请求与实际交付核查；生产业务Graph／角色及科研充分性另验 |
+
+归档目录统一为`openspec/changes/archive/2026-10-28-<change>/`，当前行为以正式规格为准。全部15个归档前活动change strict及schema通过；19份正式规格普通校验通过，六份受影响正式规格strict通过。全库strict仍因agent-harness与ui-workbench-shell两份既有长Requirement warning失败，未扩改不相关正文或将其写成通过。
+
+已完成的7aff2c7目标回执分别保留：Checks40643346195的Linux ownership19通过、kernel764通过／26跳过、smoke6通过／11跳过、UI135通过／23失败／6跳过；macOS job成功，降级4项、入口4项、人工双宿主14项及打包通过，受管执行仍unavailable。Windows ownership16通过／3跳过、kernel745通过／1失败／44跳过，唯一失败是isolated-kernel restart的ready-ipc超时，后续smoke／UI未跑。Windows专项40643346320失败：repeat10、ownership16／3skip、host24、availability6及owner2通过；isolated3通过／1失败，Agent cancel通过而excerpt／附件失败，desktop重复2通过／1失败。不同组与源码计数不推共同根因，不把本机绿例视为平台稳定性关闭。
+
+剩余11个活动change沿原tasks／delivery承接。本轮仅固定后续顺序，所有工作树同步后继续等待，不发Prompt：
+
+| 开发线 | 已接收与下一阶段入口 | 保持开放 |
+| --- | --- | --- |
+| 项目 | 恢复后保存及reload竞争修复已接收，32/33 | 4.1待真实库删除／恢复和主题知识提供者，完整I1另验 |
+| 文献 | C1独立组织提供者4/9；下一步先3.1公共handler／client，再3.2恢复与3.3原UI | 不提前发布无handler端口，不跨到后续D／E或假关闭B平台验收 |
+| 计算 | 按commandInstanceId恢复共同容量的修复已接收，56/58 | Windows isolated restart／desktop目标缺口及5.2／6.2 |
+| Agent | Windows新取证已接收，49/55 | 本轮Electron完成状态与Windows excerpt／附件沿同次身份分别核；17.2／18.2不关闭 |
+| 阅读交互 | Linux固定native校准1.2接收，提供者2/9 | 先2.x生产范围、准入与恢复结清，再报告启用；当前活动报告unavailable |
+| 生态 | N2规划与接缝方向接收 | 先补批准delta与签名核对，再独立恢复→叶设置／资源→原包装配→普通冷启动整合；N2未实施、E4／I6不关闭 |
+| 科研 | 机械图change归档 | 等明确生产业务流程／角色／领域输入，不自定新Graph |
+
+主线将先提交推送以上收尾，再保全快进七树；根据实际生产差异重建protocol／library／kernel及desktop，复用未变其他依赖和zotero-host，完成tools／架构及最小定向检查。所有Agent保持等待，不为验证发送开发任务，也不删除工作树或清理用户`/tmp`。同步结果实际完成后回填；完整跨平台分发、远程部署、活动报告和科研质量未完成。
 
 ## 首轮 Agent 的共同起始任务
 

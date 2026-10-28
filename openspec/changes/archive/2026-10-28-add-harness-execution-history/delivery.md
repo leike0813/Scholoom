@@ -1,5 +1,11 @@
 # 实际交付与交接
 
+## 第十六轮阶段收尾
+
+主线按用户授权复核全部8/8任务、原提供者及七树消费证据，接收有界历史和宿主首次指令来源的完整模块范围。共同产物重新运行`execution-history.spec.ts`6/6，连同最终受理、科研图／模块、文献迁移及项目迁移合计44/44；完整构建、全包／tools类型、架构及八份生成映射通过。命令与结果见`/home/joshua/.cache/scholoom-round16-integration/main-provider.{log,json}`及`main-build.log`，无需旧`/tmp`重建接续输入。
+
+独立资格审查核对持久来源、取消后新尝试、显式独立启动、权限和分页，不以all_done代替行为证据。正式规格新增《有界历史执行与启动来源查询》，保留同capability其他要求。此阶段归档不表示Windows switch-agent接续、完整Agent业务或真实科研质量已通过，相关失败继续由所属活动change记录。
+
 消费者同步补充（2026-10-26，Agent树）：主线获用户追加授权，将0519904（含b838402）同步至本树2cb6aed；祖先及启动clean已核实。主线恢复记录`/tmp/scholoom-sync-recovery-wyn13R/{recovery.md,synchronized.json}`和本树日志确认先构建后34/34。恢复后的Agent领域／新执行事实／原history／资源与恢复组合31/31通过，详见同树`add-bounded-agent-delegation/delivery.md`。本树消费同步门闭合，不代表真实I3、任务提供者或目标平台完成；下文保留提供者原始交付记录，不重开公共方案。
 
 ## 当前状态与成果
@@ -84,4 +90,4 @@ Agent组合保留公共harnessModuleOperations和delegationInternalOperations，
 
 tasks 4.1已完成，用户同步及消费者核对分为4.2保持开放。Linux隔离样本，不含真实模型、Windows／macOS或分发包验收；本change不归档。
 
-后续同步已实际完成：用户追加授权主线同步并验证七树。七树均包含0519904；科研实际树的graphs／module／history17/17、Agent实际树的委派／races／history／迁移／恢复34/34及其他消费者定向回归通过。tasks 4.2据此完成；完整记录沿 [公共接入delivery](../integrate-shared-domain-foundations/delivery.md#提前调度的纠正与消费者同步)，不再以隔离组合替代实际消费者。I1／I3、目标平台及真实科研质量保持原范围。
+后续同步已实际完成：用户追加授权主线同步并验证七树。七树均包含0519904；科研实际树的graphs／module／history17/17、Agent实际树的委派／races／history／迁移／恢复34/34及其他消费者定向回归通过。tasks 4.2据此完成；完整记录沿 [公共接入delivery](../2026-10-28-integrate-shared-domain-foundations/delivery.md#提前调度的纠正与消费者同步)，不再以隔离组合替代实际消费者。I1／I3、目标平台及真实科研质量保持原范围。

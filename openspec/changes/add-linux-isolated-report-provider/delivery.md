@@ -1,5 +1,11 @@
 # 实际交付与交接
 
+## 第十六轮主线接收
+
+主线接收1.2的本机固定native校准及三阶段完整证据，独立Spec审查未发现超出本轮授权的交付声明。默认拒绝策略、原生三代／setsid归属、controller／宿主失联两种收尾可作为下一片实现依据；两个原失败保留，gateReleased只代表意图，scope样本预算不成为产品默认预算。
+
+2/9保持；生产准入、ReportResources、恢复结清及浏览器承载均未实施，活动报告仍unavailable，不归档。本轮不复制实验源码到production，不安排下一开发任务。后续应先完成2.x生产提供者和实际恢复保证，再谈报告启用；原始源码及校准入口位于下文cache，后续不需要旧`/tmp`。
+
 ## 当前状态与成果
 
 2026-10-28，HEAD=`7aff2c763504f0ddf3b2304eb6ea18b7ef0e389c`且起始clean；读取AGENTS、原tasks／design／调查、主线第十五轮安排及当前apply后，仅执行已授权1.2固定native真实校准。实际执行后取得本change delivery instructions并创建本记录。1.1已由主线审定，1.2现仅以本机固定x86_64／合成输入校准完成；2.x／3.x没有实施，完整提供者change未完成，不因新增delivery归档或开放报告。

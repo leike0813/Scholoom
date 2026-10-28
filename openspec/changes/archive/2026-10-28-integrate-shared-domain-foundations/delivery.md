@@ -1,5 +1,13 @@
 # 实际交付与交接
 
+## 第十六轮阶段收尾
+
+用户同意本轮集成及阶段性收尾，主线对完整契约与原交付独立复核后接收本change的8/8任务，归档范围为四项公共行为，不代表七域完整产品交付。资格报告及原始证据保存在`/home/joshua/.cache/scholoom-round16-integration/`，不以旧`/tmp`为接续前置。
+
+共同源码合入六树后完成完整构建、全包及tools类型、架构14模块／257文件0 findings／exceptions、八份生成映射和14文件Biome。`main-provider.json`为44/44，包含项目迁移链3项及文献组织／契约／迁移／原authority19项；`main-boundaries.json`为18/18，含原集合父范围及早期库迁移3项。确认新library v4→v5与既有项目v4→v5→v6及父范围查询共存，两个数据库不混为同一迁移。
+
+Standards与Spec两轴冻结审查各0确证发现；独立资格审查逐条核四项delta及实际实现。Windows上下文接续仍有历史失败／缺证，不能由本机组合通过消除；macOS受管执行保持unavailable。正式规格仅新增本change四条Requirement，保留既有平台、授权、保存和后续行为；完整changes与跨平台分发另验。
+
 ## 第十二轮主线验收
 
 主线起点1b8e9b2，七树共同源码29cd728。五树含新文件的完整增量经临时index冻结、核对真实staging、建立本地检查点后逐线no-ff合入dev，均无文本冲突；科研／生态按约无增量。接入时29个单线文件逐字节保留。后续主线只补harness观察消费者／登记项目保留、共享RPC测试闸门等待及开发说明／原交付／共同计划。证据根`/home/joshua/.cache/scholoom-round12-acceptance-NagGbw/`保留snapshots、source.patch、checkpoint-commits、source-preservation和原始命令结果；没有reset／rebase或覆盖成果。
@@ -14,7 +22,7 @@ UI首组8项为3通过／5失败：四个Electron在显示服务启动前失败�
 
 已完成29cd728／Checks40591705520：Linux内核750通过26跳过、UI126通过32失败6跳过；Windows内核723通过11失败42跳过；Mac人工UI13通过1失败，降级4／入口4通过。Windows diagnosis40591705558的availability6/6及原始提供者JSON接收，Agent三例失败。不同运行计数不证明源码改善因果或稳定性关闭。Mac新增滚动200→0交文献，isolated-kernel失败原因／退出丢失交计算实施已审候选A。报告scope／配额／有限原生样本交付只作本机机制校准，最小文件视图／继承FD仍待验，活动报告unavailable不变。
 
-下一轮沿[共同计划](../../../.scratch/domain-development/parallel-development-plan.md#第十二轮验收后的安排)，先提交推送、同步复验，再发送原终端。desktop／zotero-host生产源码本轮未改，七树可复用29cd728已验同源产物；复用前查源码差异及renderer产物，仍重建共享包／内核并执行全包／tools类型、架构、生成自检和定向回归。同步首次六树定向通过，生态真实BBT宿主启动失败且停止未确认；硬编码新Xvfb前置与本机已证实的锁写入问题需生态进一步核查，不只凭错误文本定根因。原失败现场／unknown保持，不当作BBT通过，Node监督补核也不能替代原包。该新输入使下一轮调整为六任务／一等待，生态承担显示前置与原包夹具，科研等待明确流程。具体同步／发送回执实际完成后再补，不提前宣布完成。完整changes、跨平台分发、CLI持久配置及科研质量保持原不足；macOS受管执行仍不可用。
+下一轮沿[共同计划](../../../../.scratch/domain-development/parallel-development-plan.md#第十二轮验收后的安排)，先提交推送、同步复验，再发送原终端。desktop／zotero-host生产源码本轮未改，七树可复用29cd728已验同源产物；复用前查源码差异及renderer产物，仍重建共享包／内核并执行全包／tools类型、架构、生成自检和定向回归。同步首次六树定向通过，生态真实BBT宿主启动失败且停止未确认；硬编码新Xvfb前置与本机已证实的锁写入问题需生态进一步核查，不只凭错误文本定根因。原失败现场／unknown保持，不当作BBT通过，Node监督补核也不能替代原包。该新输入使下一轮调整为六任务／一等待，生态承担显示前置与原包夹具，科研等待明确流程。具体同步／发送回执实际完成后再补，不提前宣布完成。完整changes、跨平台分发、CLI持久配置及科研质量保持原不足；macOS受管执行仍不可用。
 
 共同源码与计划已随`e3c815b3af6bd4b9718820f641b10bab57a69b24`推送，七树先逐一快进，同步时全部clean。源码差异和renderer产物存在检查通过，复用未改的桌面／宿主构建；七树共享包／内核重建、全包及tools类型、架构／生成自检全部通过。定向首轮六树通过、生态真实BBT失败，派发守卫正确停止；生态另用真实Node固定宿主监督代表例补核1/1（2.8秒），原BBT未知现场和失败完整保留。sync-kernel-results.json、sync-host-result.json及显式effective-results分别记录，后者只作本轮所需同步范围核查，realBbtVerified=false，不拼成一次七树原包全绿。
 
@@ -36,7 +44,7 @@ UI首组8项为3通过／5失败：四个Electron在显示服务启动前失败�
 
 已完成旧源码938c33f／Checks40540362614：Linux内核748通过26跳过、UI125通过33失败6跳过；Windows内核677通过55失败42跳过；macOS job成功。原日志和逐例矩阵已保存，不能拿运行计数差异推新增源码根因或本片通过。Windows来源校准窄项已接收，新提供者目标证据与启动稳定性仍开放。活动报告继续unavailable，候选未采纳画面流／新权限或生产隔离；macOS受管执行不可用，完整changes、I3／I5／I6及科研质量保持原未完成边界。
 
-下一轮五条任务与两条等待按[共同计划](../../../.scratch/domain-development/parallel-development-plan.md#第十一轮验收后的安排)。主线先统筹公共取证字段／归属，项目补真实窗口侧，Agent补自有model-kernel执行侧，科研等两片共同合入再消费；计算取目标反例，文献做现有范围的Linux业务整合，阅读只做普通权限原生机制校准，生态等待。同步及实际发送回执在完成后补本节，不提前声明七树已启动。
+下一轮五条任务与两条等待按[共同计划](../../../../.scratch/domain-development/parallel-development-plan.md#第十一轮验收后的安排)。主线先统筹公共取证字段／归属，项目补真实窗口侧，Agent补自有model-kernel执行侧，科研等两片共同合入再消费；计算取目标反例，文献做现有范围的Linux业务整合，阅读只做普通权限原生机制校准，生态等待。同步及实际发送回执在完成后补本节，不提前声明七树已启动。
 
 共同源码与计划已随`29cd7283388dfd752911eacb9c3bf8416031db15`推送。七树逐一快进至该基线，同步完成时全部clean；七树完整构建、包及tools类型、架构、生成器self-test均通过。定向首轮六树通过，Agent树context-session在browserContext.close写附件时遇到EDQUOT，派发守卫正确停止。原失败保留，仅将同一树、同一源码、同一用例的输出及TMPDIR迁到`/home/joshua/.cache/scholoom-round11-sync-L7WOJn/`补验，1/1通过（7.1秒），未改断言或期限。七个定向项各有通过依据，不称首轮7/7；raw与显式补验分别保存在sync-kernel-results／recheck／effective-results.json。首次同步调用的错误提交ID也被祖先校验在写树前拒绝，日志保留；实际同步基线以git核对的上述完整ID为准。
 
@@ -132,9 +140,9 @@ Standards与Spec两位原生gpt-6.1-sol／high审查者独立核对五个冻结�
 
 2026-10-26，沿用户“验收工作并进行下一轮调度”及既有提交授权，公共源码已接入dev，提交b838402并推送origin/dev；七线任务已派发。七树正式输入为 `/tmp/scholoom-round3-handoff-qefwKi/manifest.json` 及逐树源码快照，均来自e3d58fc上的未提交成果。没有覆盖、同步或切换Git工作树，没有安装依赖或操作真实用户库。
 
-已核对[设计图](design.md#变更总览)及命令时序：资源叶声明保持原导出对象；双窗口夹具同时保留projectId定位；命令观察和长时限进入原ManagedCommands；v5委派→v6程序表沿单一迁移链；ContextItem位置／区域／草稿对象经原编码路径；集合直接父范围及开放CSL声明不关闭未知metadata。执行历史由独立 [add-harness-execution-history](../add-harness-execution-history/delivery.md)维护，未复制其契约。
+已核对[设计图](design.md#变更总览)及命令时序：资源叶声明保持原导出对象；双窗口夹具同时保留projectId定位；命令观察和长时限进入原ManagedCommands；v5委派→v6程序表沿单一迁移链；ContextItem位置／区域／草稿对象经原编码路径；集合直接父范围及开放CSL声明不关闭未知metadata。执行历史由独立 [add-harness-execution-history](../2026-10-28-add-harness-execution-history/delivery.md)维护，未复制其契约。
 
-本公共范围达到proposal的代码与验证判据。七域私有业务、图片格式、X1题录选择、M2归因、M3产物ref、E4监督和库来源／键／事务仍按[下一轮计划](../../../.scratch/domain-development/parallel-development-plan.md#公共切片接入后的下一轮)分别交付；不能据公共通过关闭I1／I3／I5／I6。
+本公共范围达到proposal的代码与验证判据。七域私有业务、图片格式、X1题录选择、M2归因、M3产物ref、E4监督和库来源／键／事务仍按[下一轮计划](../../../../.scratch/domain-development/parallel-development-plan.md#公共切片接入后的下一轮)分别交付；不能据公共通过关闭I1／I3／I5／I6。
 
 ## 实际验证
 
@@ -198,7 +206,7 @@ tasks 2.3已完成：公共代码b838402已推送，七份任务经orca-cli发�
 
 ## 后续共同消费复验
 
-七域成果已保全、建立本地检查点并逐线合入dev，共同源码基线为 `1026796d854b8f568c3e819f13268a9638980bc1`，已推送。对应业务成果和剩余任务仍归各自change；本节只记录共同消费验证，不扩大原公共变更范围或据此归档。下一轮职责与共享符号分工见[并行开发计划](../../../.scratch/domain-development/parallel-development-plan.md)。证据根目录为 `/tmp/scholoom-round5-acceptance-WBreMJ/`，原树验收、命令、日志和独立审查见 `acceptance.md`。
+七域成果已保全、建立本地检查点并逐线合入dev，共同源码基线为 `1026796d854b8f568c3e819f13268a9638980bc1`，已推送。对应业务成果和剩余任务仍归各自change；本节只记录共同消费验证，不扩大原公共变更范围或据此归档。下一轮职责与共享符号分工见[并行开发计划](../../../../.scratch/domain-development/parallel-development-plan.md)。证据根目录为 `/tmp/scholoom-round5-acceptance-WBreMJ/`，原树验收、命令、日志和独立审查见 `acceptance.md`。
 
 主线完整构建、类型检查、架构检查（14模块247文件、0 findings）、生成映射及13个相关change定向strict通过。共同内核首轮209项中207通过、1失败、1跳过：新增合法editId触发旧完整对象断言，改为保留必要字段的部分匹配后原项1/1通过；恢复组合移除旧快照adapter条件，直接消费真实HarnessRecords，原跳过项1/1通过。209个不同用例分别有通过证据，不记为一次209/209。双宿主首轮22通过14失败，最小对照证明测试删除仍登记项目会触发既有未知恢复及容量保护；仅修正三份UI夹具的项目生命周期和用例名称，保留合成项目至共享配置退役，未放宽生产保护。相同整组复验36/36通过，见 `main-ui-recheck/result.json`；测试目录约定已进入开发说明。
 

@@ -1,5 +1,13 @@
 # 实际交付与交接
 
+## 第十六轮阶段收尾
+
+用户同意集成及阶段收尾，主线在独立资格审查后接收本change全部25/25任务。完成范围为可信人工图请求、精确发现／配置、真实执行历史关联、混合材料及首次成果、等待／取消／未知结果和旧能力兼容；生产科研Graph／角色及真实科研充分性仍后置，不能由固定校准图替代。
+
+合入六树的共同产物实跑`research-graphs.spec.ts`12/12及`research-module.spec.ts`3/3，所在提供者组合44/44；完整构建、全包／tools类型、架构和八份生成映射通过。独立审查复核既有任务图整合、registered Graph和旧材料分析证据及版本，没有将旧UI材料分析例称为新Graph UI。结果、资格对照及冻结两轴审查在`/home/joshua/.cache/scholoom-round16-integration/`；后续不依赖旧`/tmp`。
+
+正式规格在旧四项材料分析要求后新增本change八项要求。生产注册集合仍为空，科研充分性保持notAssessed。Windows接续相关历史失败、完整I1和其他业务changes按所属记录保留，不随本模块归档宣称通过；本轮不再派发科研流程开发。
+
 ## 第十二轮公共提供者到位与机械路径验收
 
 本线本轮按约无增量。主线已合入窗口／自有执行两端观察，并在原harness首例增加uiRpc清理前保存；同文件两个登记项目不再在共享配置退役前删除。此小改动经原两轴审查追加核对，无确证问题，停止／模型关闭及业务断言／期限保持。
@@ -10,7 +18,7 @@
 
 ## 第十一轮主线接收与等待
 
-两份调查工件已保全合入，独立两轴审查无确证夸大；受理投影及报告读取前的缺证结论保持，不据旧CI或主线其他窄项宣称科研通过。项目／Agent下一片分别补真实窗口身份及自有model-kernel阶段，见[共同计划](../../../.scratch/domain-development/parallel-development-plan.md#第十一轮验收后的安排)。本线等待两片进入共同源码，不重复同一trace调查或消费他树私有在研成果，不新增生产Graph／角色。
+两份调查工件已保全合入，独立两轴审查无确证夸大；受理投影及报告读取前的缺证结论保持，不据旧CI或主线其他窄项宣称科研通过。项目／Agent下一片分别补真实窗口身份及自有model-kernel阶段，见[共同计划](../../../../.scratch/domain-development/parallel-development-plan.md#第十一轮验收后的安排)。本线等待两片进入共同源码，不重复同一trace调查或消费他树私有在研成果，不新增生产Graph／角色。
 
 ## 当前状态与成果
 
@@ -26,7 +34,7 @@
 4. `research.graphCalls` 关联真实来源下的尝试，按当前调用者权限读回必要材料／成果，分开返回Run、交付缺项及 `researchAssessment: notAssessed`。查询不执行、不补关联、不写回run引用；未知回执先核对原Message和图绑定。取消后的新尝试沿原来源，显式新调用另起来源，查询旧调用不取最新run替代。
 5. 覆盖等待、撤权、关联失败、创建结果未知、保存受理期间取消、回执丢失、重启、并发补交和独立副本恢复。副本保留原材料／成果依据，仅校正本域归属并标注来源，禁止直接重启旧调用或自动访问原资源。旧材料分析保留原接口及行为。
 
-主要文件：`packages/research/src/{graphs,graph-runtime,graph-delivery,runtime,records,schema}.ts`、科研protocol契约及派生映射、`apps/kernel/src/application.ts`、`architecture.json`、科研测试与固定worker夹具。开发说明更新实际入口及旧builtin路径，AGENTS补充调用来源与恢复约束。G1公共修改另归 [add-harness-execution-history](../add-harness-execution-history/delivery.md)，共享文件的符号归属见两份design。
+主要文件：`packages/research/src/{graphs,graph-runtime,graph-delivery,runtime,records,schema}.ts`、科研protocol契约及派生映射、`apps/kernel/src/application.ts`、`architecture.json`、科研测试与固定worker夹具。开发说明更新实际入口及旧builtin路径，AGENTS补充调用来源与恢复约束。G1公共修改另归 [add-harness-execution-history](../2026-10-28-add-harness-execution-history/delivery.md)，共享文件的符号归属见两份design。
 
 ## 实际验证
 
@@ -83,7 +91,7 @@ node node_modules/@playwright/test/cli.js test --config playwright.kernel.config
 
 以上相对路径均以 `/tmp/scholoom-phase2-handoff-VZS5mS/` 为根；它们是正式交接证据，不是当前树已安装能力。原investigation记录的是首轮输入状态，本节和design更新其“尚未收到”待办：现在已收到接口与设计，尚缺合入后的实际提供者、产品请求契约及真实整合。
 
-公共准备结果见 [公共delivery](../add-harness-execution-history/delivery.md#本轮公共补丁交接)：独立公共副本构建、31/31回归、0架构问题、正反补丁检查通过；两份补丁及Agent符号组合清单位于 `/tmp/scholoom-research-phase2-mtJQci/`。只读三方文本试合并没有把未合入Agent私有实现当共同基线。
+公共准备结果见 [公共delivery](../2026-10-28-add-harness-execution-history/delivery.md#本轮公共补丁交接)：独立公共副本构建、31/31回归、0架构问题、正反补丁检查通过；两份补丁及Agent符号组合清单位于 `/tmp/scholoom-research-phase2-mtJQci/`。只读三方文本试合并没有把未合入Agent私有实现当共同基线。
 
 ### 可转交的真实材料与结果
 

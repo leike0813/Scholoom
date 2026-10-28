@@ -1,5 +1,13 @@
 # 实际交付与交接
 
+## 第十六轮主线接收与阶段停止
+
+本树两份Windows取证工件已保全提交并合入，独立Standards／Spec各0确证发现。7aff2c7专项40643346320的cancel通过、excerpt及附件失败均沿原同次事实；完整组和专项不混算。ready不等于模块loaded，已有下一窄观察建议尚未实施。本change维持49/55，不归档。
+
+新共同产物静态双宿主整合UI为7通过／1失败。普通委派打开Browser通过，Electron在`agent-delegation.spec.ts:156`五秒完成断言失败，状态从已受理推进到“运行中 · 部分成果”，原图未到打开成果／刷新草稿断言；不是缺delegate_agent工具行的旧失败。原error-context、trace、同次窗口RPC及model-kernel观察保全在`/home/joshua/.cache/scholoom-round16-integration/ui-results/agent-delegation-user-obse-362c0-ains-the-conversation-draft-ui-electron/`，汇总`main-ui.json`。
+
+失败时的DOM和后续清理采样分开，不把最终停止或迟到成果回填为断言已通过。主线没有延长等待、重试刷绿或扩大诊断框架；17.2／18.2保持开放。下一阶段应先沿该run核实际子执行完成、成果核查和UI刷新时点，再决定最小修正；本轮不再向Agent派发任务。必需接续输入已在Git／cache，不依赖旧`/tmp`。
+
 ## 7aff2c7后的Windows逐例取证
 
 按第十五轮安排及429中断后的明确续接执行；起始/结束基线均为`7aff2c763504f0ddf3b2304eb6ea18b7ef0e389c`，起始clean。本片只更新原tasks/delivery：没有确证可修的本域缺陷，未改执行机制、诊断、测试或期限，未重跑已绿UI/kernel组。4.2/4.3、17.2/18.2及科研质量继续开放，49/55不变。已读取当前apply及实际取证后的delivery instructions；本片是调查交接，不把CLI状态或新增事实当完整交付。

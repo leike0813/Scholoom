@@ -85,7 +85,9 @@ Agent、能力子执行与 PDF 共用宿主持有的进程容量，默认活动 
 
 表中内核用例位于 `tests/kernel/`，UI 与宿主外壳用例分别在 `tests/ui/`、`tests/smoke/`。窄端口内存替身受 TypeScript 检查，跨 broker／IPC 的输入输出继续经过原同源 schema；资源、文件及仓储的真实组合使用所属提供者，不用成功替身代替。
 
-七线公共接入沿 `integrate-shared-domain-foundations`：资源声明已抽到 `protocol/resource-contracts.ts`，原 `resources` 导出保留；ContextItem 可携带当次位置、区域基准及草稿对象标识。本阅读树已接图片消费者和只读render产物链路，公共增量仍需主线分别接入验证，不能仅凭枚举启用。集合查询支持 `parentId: null` 的根范围、明确父身份的直接子范围及未指定时的原扁平分页，CSL 编辑声明不封闭合法 metadata。
+七线公共接入见[正式领域交接规格](../openspec/specs/domain-execution-handoffs/spec.md)、[平台规格](../openspec/specs/platform-access/spec.md)及[工作台上下文规格](../openspec/specs/workbench-agent-context/spec.md)。资源声明位于`protocol/resource-contracts.ts`，原`resources`导出保留；ContextItem可携带当次位置、区域基准及草稿对象标识。图片消费者和只读render产物链路已接入共同源码，各能力仍按真实提供者声明可用性。集合查询支持`parentId: null`根范围、明确父身份的直接子范围及未指定时的原扁平分页，CSL编辑声明不封闭合法metadata。
+
+组织更正当前仅交付`LiteratureCatalog.organize/organizationResult/organizationEdit/revertOrganization`及protocol叶契约，没有公共handler、客户端或UI入口；独立回归见`library-organization*.spec.ts`及`library-record-migration.spec.ts`。library v4→v5迁移保留原authority回执，组织／撤销重做复用唯一record_operations，不能把叶契约导出视为公共操作已开放。后续范围沿[组织变更](../openspec/changes/complete-library-organization/tasks.md)。
 
 `ManagedCommands.start/cancel` 使用宿主登记的工作区和有界观察端口，启动意图先确认，输出分片确认后放行，`started` 不代表应用 ready；日志、退出和 `stopped` 分别核对，观察失败保留原占用。有限长时限由 `command-deadline` 分段，null 无总期限。宿主私有`launchInput`只经有界stdin供应并在发送前再次核对授权，产品参数不能颁发凭据。`HostConnection`复用此机制提供独立认证listener／双向RPC／应用ready及正常shutdown；消费端口在装配时注入，不依赖programs或BBT业务。定向入口为`host-connection.spec.ts`、`command-observation.spec.ts`、`managed-commands.spec.ts`。
 

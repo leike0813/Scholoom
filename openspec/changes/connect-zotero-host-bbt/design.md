@@ -42,6 +42,8 @@ flowchart LR
 
 ### 原包装配N2：精确实施规划（7aff2c7）
 
+第十六轮主线接收本规划并审定以下接缝方向：复用唯一ProcessAdmission，recoverHostSupervision独立于设置／资源，在Manual初始化首步先完成旧scope记账；库初始化后再绑定，KernelApplication沿super.initialize后再恢复harness。serve的真实status.instanceId仅向可信构造链供应；HostConnection只透传DISPLAY／XAUTHORITY／操作TMPDIR和稳定beforeLaunch。配置目录绑定、冷启动快照、无效配置仍恢复及scope已停不占原生槽沿下文。未实施前签名仍为设计，N2.1仍需补相应delta及核实现接点，不能勾为完成。本轮阶段停止，不授权或派发N2生产实现。
+
 本节落实已定D14-2／3=A，不重新选择设置归属或资源交付。本轮仅规划，下面的文件／类型／方法均为待实施设计；当前源码事实见investigation的N2节。此次只改investigation／design／tasks／已有delivery，未改delta spec；新持久化及恢复行为在实施前由N2.1补入本change delta并经主线核对，不用当前CLI ready声称新增行为已实现或正式规格已同步。
 
 #### 唯一持久文件与受限登记

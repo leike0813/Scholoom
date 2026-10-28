@@ -31,12 +31,12 @@
 
 - `research-capabilities`：追加内建 Graph 发现与配置、科研调用与真实执行关联、材料成果交接及有界诊断；保留原四条材料分析要求。
 
-公共 `execution-work-domains`、`module-runtime` 及已有资源交接契约直接消费。G1 已选择方案 A，`domain-execution-handoffs` 的查询与来源增量由独立变更 [add-harness-execution-history](../add-harness-execution-history/design.md) 维护，本 change 消费其同源契约。
+公共 `execution-work-domains`、`module-runtime` 及已有资源交接契约直接消费。G1 已选择方案 A，`domain-execution-handoffs` 的查询与来源增量由独立变更 [add-harness-execution-history](../2026-10-28-add-harness-execution-history/design.md) 维护，本 change 消费其同源契约。
 
 ## 决策与授权依据
 
 - 用户最初授权本线从 `e3d58fc807827a78493dcd16e38de28c8d02766e` 调查并完成 OpenSpec 规划，随后明确授权实施、选择 G1 方案 A，并授权本树按锁文件安装既有依赖；`pnpm install --frozen-lockfile` 已完成，锁文件未改。保持 Codex / gpt-6.1-sol / high；没有 Git 提交／推送或 PR 授权。
-- [科研域 Q8–Q10 与 Answer](../../../.scratch/domain-development/issues/04-research-methods-scope.md#answer)：源码图、整体版本、固定夹具、可选任务关联，具体业务图后置。
-- [七线计划](../../../.scratch/domain-development/parallel-development-plan.md)：本线职责、公共文件归属、独立验收、CI 基线及 I1／I2 分工。
-- [项目阶段约定](../../schemas/scholoom-dev/README.md)：规划止于 apply.requires 及其依赖齐备，交付记录依据实际执行结果填写；CLI ready 不代表验收完成。
+- [科研域 Q8–Q10 与 Answer](../../../../.scratch/domain-development/issues/04-research-methods-scope.md#answer)：源码图、整体版本、固定夹具、可选任务关联，具体业务图后置。
+- [七线计划](../../../../.scratch/domain-development/parallel-development-plan.md)：本线职责、公共文件归属、独立验收、CI 基线及 I1／I2 分工。
+- [项目阶段约定](../../../schemas/scholoom-dev/README.md)：规划止于 apply.requires 及其依赖齐备，交付记录依据实际执行结果填写；CLI ready 不代表验收完成。
 - G1与科研独立验收均已完成，结果分别见两份delivery；G3任务／阅读设计尚未进入本树，I1／I5未验收。

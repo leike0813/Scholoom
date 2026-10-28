@@ -1,5 +1,11 @@
 # 实际交付与交接
 
+## 第十六轮阶段收尾
+
+用户授权主线进行阶段收尾；独立审查对照实际同步检查、原身份重放、真实科研adapter及原交付，接收全部3/3任务。最终共同产物运行`harness-admission.spec.ts`1项及`research-graphs.spec.ts`12项，其中两项final-admission真实边界通过；所在提供者组合44/44。完整构建、全包／tools类型、架构及八份生成映射通过，证据根`/home/joshua/.cache/scholoom-round16-integration/`。冻结Standards／Spec各0确证发现。
+
+正式规格新增《宿主最终受理检查》，未改既有checkpoint或执行状态权威。归档只关闭本公共同步seam及其消费范围，不关闭活动Agent、项目、Windows稳定性或科研质量验收；macOS受管执行不可用保持。原历史日志可保留为出处，后续接续不依赖旧`/tmp`。
+
 ## 当前状态与成果
 
 2026-10-26，在实际已同步树281277777f88aa068c948512f084f0d05150776e完成独立公共补充；0519904（含b838402）为祖先。两行公共源码变化：Harness.send第四个可选同步admit参数，及原SQLite事务重放检查后、新指令／run写入前的调用。没有新RPC字段、表、迁移、来源或执行状态权威。图和旧host语义保持；未提供检查时仍沿原路径。图示及接口见design。

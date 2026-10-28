@@ -1,5 +1,11 @@
 # 实际交付与交接
 
+## 第十六轮主线接收
+
+主线接收恢复回调直接按原commandInstanceId调用唯一ProcessAdmission.retainUnknown；删除私有Set／匿名永久预留，满容量及释放无关live槽不会漏计，原ID重复恢复不双计。两轴冻结审查各0确证发现；共同产物完整构建、类型、架构和生成映射通过。`program-runs.spec.ts`及`host-connection.spec.ts`恢复代表组合6/6在主线通过，位于18/18边界组合；命令及结果见`/home/joshua/.cache/scholoom-round16-integration/main-boundaries.{log,json}`。
+
+已下载7aff2c7的Checks40643346195及Windows专项40643346320原日志。完整Windows内核745通过／1失败／44跳过，唯一失败为isolated-kernel首例restart的ready-ipc超时，后续smoke／UI未跑；专项isolated3通过／1失败、desktop重复2通过／1失败，其他组按原日志分别表达。该真实平台缺口不由本机恢复计数通过关闭；56/58、5.2／6.2仍开放，不归档。本轮不再派发诊断任务，保留下一阶段同次启动事实核查入口，不加期限或跳过隔离保护。
+
 ## R16.1：程序恢复归属统一计数
 
 本轮从共同`7aff2c763504f0ddf3b2304eb6ea18b7ef0e389c`干净工作区续做，按第十五轮主线已定方案实施。`apps/kernel/src/manual.ts`只删除unknownPrograms私有Set及满额时跳过／空位时匿名永久reserve的重复路径，ProgramRuns回调直接消费既有`ProcessAdmission.retainUnknown(commandInstanceId)`。实际身份仍由ProgramRuns从持久记录传入，唯一准入实现、平台保证和library handlers均未改。对应proposal判据4的unknown占用／恢复保护；不扩大其他完成判据。核对design总览及第5节恢复路径，纠正旧reserve／饱和描述，不新增状态、结清入口或正式规格。

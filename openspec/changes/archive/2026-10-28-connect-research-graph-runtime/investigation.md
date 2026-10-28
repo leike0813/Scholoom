@@ -32,25 +32,25 @@ flowchart LR
 
 | 模块／来源 | 已有能力 | 本线差距及复用结论 |
 | --- | --- | --- |
-| [ResearchContent](../../../packages/research/src/content.ts)、[内置声明](../../../packages/research/src/builtin/material-analysis/capability.yaml)及 SKILL.md | 从固定目录读取唯一 `scholoom.material-analysis` 1.0.0；声明 `execution: agent`，输入为项目路径 | 没有 Graph 目录、开放 config schema 或节点资源描述。保留旧入口，新增源码目录；不把 YAML 改造成第二套流程语言 |
-| [ResearchRuntime.invoke/progress/list/initialize](../../../packages/research/src/runtime.ts) | 输入、项目授权、稳定调用／重试、真实读取、成果身份及缺项；progress 核对 project/session/run/instance；查询默认25、最多100 | `runId` 是发起父执行，科研 attempt.id 是业务尝试，不是 registered run.id；sources/used/artifacts 只有 path/fileId。现有 active/executing Map 不适合跨持久等待，不将它扩成另一执行监督器 |
-| [ResearchRecords 与 schema](../../../packages/research/src/records.ts) | 只访问 research_attempts，项目物理容器注入；restore 与 initialize 将旧 running 标中断 | 旧记录形状和恢复语义应保留；图记录使用显式判别，不将等待图按旧 running 扫描改成中断；不复制 harness 状态 |
-| [ExecutionGraphs](../../../packages/harness/src/graph-registry.ts)、[图 DTO](../../../packages/protocol/src/graph-contracts.ts) | 校验 graphId/version/stateFormatVersion/configSchema；host/worker 同源；GraphFactory.resume/create | 直接复用。科研描述引用 GraphDefinition，不能再手写等价注册字段。`version` 是含节点素材的整体实现版本 |
-| [生产注册](../../../apps/kernel/src/execution-graphs.ts)、[worker](../../../apps/kernel/src/execution-worker.ts) | 静态入口共用同一注册集合 | 集合为空。固定图以测试宿主注入，不默认冒充已发布综合能力；将来生产业务图沿同一源码装配 |
-| [KernelApplication.startGraph 与 runtime-internal](../../../apps/kernel/src/application.ts)、[harnessModuleOperations](../../../packages/protocol/src/harness-module-contracts.ts) | `harness.startGraph` 返回 instructionId/runId；仅宿主 system 主体可选择图；后续消息沿 session.send | 科研域可复用此入口。不是客户端任意传 Graph 的授权，也不是执行中 Agent 的图子调用 |
-| [Harness.executeCapability](../../../packages/harness/src/runtime.ts) | 旧能力子 Agent 的受管、额度、取消与父子关系 | 在 registered/resume 分支明确抛 unavailable。新图不能塞进旧 invoke 工具后宣称已可运行；本 change 不扩通用子图机制 |
-| Harness.snapshot/latestRun、[runSchema](../../../packages/protocol/src/harness-record-contracts.ts) | 可查询最新 run、graphProgress、modelConfig、graph.wait/checkpoint 绑定 | 无公开内部按旧 run 或原 instruction 查询的窄接口；G1 阻塞完整科研历史关联。科研模块不得直接读 runs 表或用当前 run 冒充历史 |
-| [资源契约](../../../packages/protocol/src/resources.ts)、宿主 executionResources | ResourceRef、basis、材料版本；read/document、save、create/creation；保存与关联分开 | 复用真实资源提供者。库正文只读；首个固定图输出当前可信项目，不需要库修订或新的库成果写入能力 |
-| [architecture.json](../../../architecture.json) | research 已允许消费 harness.startGraph，但未声明 resources 与 harness.snapshot；禁止引用 harness 实现 | 新消费契约逐项补策略；图的 LangGraph 装配留宿主静态适配，科研节点与交付规则留 research，不新增依赖或跨包私有 import |
+| [ResearchContent](../../../../packages/research/src/content.ts)、[内置声明](../../../../packages/research/src/builtin/material-analysis/capability.yaml)及 SKILL.md | 从固定目录读取唯一 `scholoom.material-analysis` 1.0.0；声明 `execution: agent`，输入为项目路径 | 没有 Graph 目录、开放 config schema 或节点资源描述。保留旧入口，新增源码目录；不把 YAML 改造成第二套流程语言 |
+| [ResearchRuntime.invoke/progress/list/initialize](../../../../packages/research/src/runtime.ts) | 输入、项目授权、稳定调用／重试、真实读取、成果身份及缺项；progress 核对 project/session/run/instance；查询默认25、最多100 | `runId` 是发起父执行，科研 attempt.id 是业务尝试，不是 registered run.id；sources/used/artifacts 只有 path/fileId。现有 active/executing Map 不适合跨持久等待，不将它扩成另一执行监督器 |
+| [ResearchRecords 与 schema](../../../../packages/research/src/records.ts) | 只访问 research_attempts，项目物理容器注入；restore 与 initialize 将旧 running 标中断 | 旧记录形状和恢复语义应保留；图记录使用显式判别，不将等待图按旧 running 扫描改成中断；不复制 harness 状态 |
+| [ExecutionGraphs](../../../../packages/harness/src/graph-registry.ts)、[图 DTO](../../../../packages/protocol/src/graph-contracts.ts) | 校验 graphId/version/stateFormatVersion/configSchema；host/worker 同源；GraphFactory.resume/create | 直接复用。科研描述引用 GraphDefinition，不能再手写等价注册字段。`version` 是含节点素材的整体实现版本 |
+| [生产注册](../../../../apps/kernel/src/execution-graphs.ts)、[worker](../../../../apps/kernel/src/execution-worker.ts) | 静态入口共用同一注册集合 | 集合为空。固定图以测试宿主注入，不默认冒充已发布综合能力；将来生产业务图沿同一源码装配 |
+| [KernelApplication.startGraph 与 runtime-internal](../../../../apps/kernel/src/application.ts)、[harnessModuleOperations](../../../../packages/protocol/src/harness-module-contracts.ts) | `harness.startGraph` 返回 instructionId/runId；仅宿主 system 主体可选择图；后续消息沿 session.send | 科研域可复用此入口。不是客户端任意传 Graph 的授权，也不是执行中 Agent 的图子调用 |
+| [Harness.executeCapability](../../../../packages/harness/src/runtime.ts) | 旧能力子 Agent 的受管、额度、取消与父子关系 | 在 registered/resume 分支明确抛 unavailable。新图不能塞进旧 invoke 工具后宣称已可运行；本 change 不扩通用子图机制 |
+| Harness.snapshot/latestRun、[runSchema](../../../../packages/protocol/src/harness-record-contracts.ts) | 可查询最新 run、graphProgress、modelConfig、graph.wait/checkpoint 绑定 | 无公开内部按旧 run 或原 instruction 查询的窄接口；G1 阻塞完整科研历史关联。科研模块不得直接读 runs 表或用当前 run 冒充历史 |
+| [资源契约](../../../../packages/protocol/src/resources.ts)、宿主 executionResources | ResourceRef、basis、材料版本；read/document、save、create/creation；保存与关联分开 | 复用真实资源提供者。库正文只读；首个固定图输出当前可信项目，不需要库修订或新的库成果写入能力 |
+| [architecture.json](../../../../architecture.json) | research 已允许消费 harness.startGraph，但未声明 resources 与 harness.snapshot；禁止引用 harness 实现 | 新消费契约逐项补策略；图的 LangGraph 装配留宿主静态适配，科研节点与交付规则留 research，不新增依赖或跨包私有 import |
 
 ### 已归档公共基础与测试依据
 
-- [工作域交付](../archive/2026-10-23-establish-scoped-execution-foundation/delivery.md)：固定 application、隔离 scratch、目标只读和模型最终授权已交付。跨项目读取不登记身份、不写缓存；不得重做。
-- [领域执行交付最终段](../archive/2026-10-24-establish-domain-execution-handoffs/delivery.md#macos-显式不可用与人工降级收尾)：最终24/24，Linux／Windows 受管执行，macOS 显式不可用及人工降级；较早“公共基础尚未完成”段落是历史状态。已有17项 Graph／checkpoint 定向和资源创建／关联故障依据，不等于本线验收。
-- [上下文交付](../archive/2026-10-24-establish-workbench-context-bridge/delivery.md#主分支最终接收)：17/17，完整 InstructionContext、可信来源、逐条 IPC、持久后消费与大批上下文均已交付。无需本线重建。
-- [原科研能力交付](../archive/2026-10-16-establish-research-capability-runtime/delivery.md)：提供材料分析的历史 Linux／双宿主证据；当时共享模型的描述不覆盖后续受管子进程架构，现状以 runtime 为准。
-- [registered-graph.spec.ts](../../../tests/kernel/registered-graph.spec.ts) 与 [graphs.mjs](../../../tests/fixtures/domain-execution-worker/graphs.mjs)：已有真实 checkpoint／interrupt、普通消息接续、确认丢失、升级、取消和撤权。固定夹具绕过 ResearchRuntime，只证明通用入口。
-- [research-module.spec.ts](../../../tests/kernel/research-module.spec.ts)：自身表加可替换 ports 的独立测试；[research-capabilities.spec.ts](../../../tests/kernel/research-capabilities.spec.ts) 覆盖旧入口与真实受控模型／客户端。优先扩展这些行为测试，不断言节点顺序、提示词全文或内部 Map。
+- [工作域交付](../2026-10-23-establish-scoped-execution-foundation/delivery.md)：固定 application、隔离 scratch、目标只读和模型最终授权已交付。跨项目读取不登记身份、不写缓存；不得重做。
+- [领域执行交付最终段](../2026-10-24-establish-domain-execution-handoffs/delivery.md#macos-显式不可用与人工降级收尾)：最终24/24，Linux／Windows 受管执行，macOS 显式不可用及人工降级；较早“公共基础尚未完成”段落是历史状态。已有17项 Graph／checkpoint 定向和资源创建／关联故障依据，不等于本线验收。
+- [上下文交付](../2026-10-24-establish-workbench-context-bridge/delivery.md#主分支最终接收)：17/17，完整 InstructionContext、可信来源、逐条 IPC、持久后消费与大批上下文均已交付。无需本线重建。
+- [原科研能力交付](../2026-10-16-establish-research-capability-runtime/delivery.md)：提供材料分析的历史 Linux／双宿主证据；当时共享模型的描述不覆盖后续受管子进程架构，现状以 runtime 为准。
+- [registered-graph.spec.ts](../../../../tests/kernel/registered-graph.spec.ts) 与 [graphs.mjs](../../../../tests/fixtures/domain-execution-worker/graphs.mjs)：已有真实 checkpoint／interrupt、普通消息接续、确认丢失、升级、取消和撤权。固定夹具绕过 ResearchRuntime，只证明通用入口。
+- [research-module.spec.ts](../../../../tests/kernel/research-module.spec.ts)：自身表加可替换 ports 的独立测试；[research-capabilities.spec.ts](../../../../tests/kernel/research-capabilities.spec.ts) 覆盖旧入口与真实受控模型／客户端。优先扩展这些行为测试，不断言节点顺序、提示词全文或内部 Map。
 - `resource-access.spec.ts`、`resource-creation.spec.ts`、`registered-context.spec.ts`、`workbench-integration.spec.ts` 提供资源与故障参照；新增测试仅覆盖“经过科研域”及业务交付判定的缺口，不重复制公共矩阵。
 
 ### CI 输入：初始日志证据与后续排查范围
@@ -71,7 +71,7 @@ Linux UI 101通过／9失败／2跳过、Windows 内核374通过／15失败／12
 
 初始调查时，开发说明的科研段引用 `apps/kernel/src/research/builtin/`，实际内容已在 `packages/research/src/builtin/`；旧 P5a 方法包管理与源码 Graph 决定不一致。实施文档应更新对应入口与边界，不追改历史 delivery。架构文档的2026-10-19现状段不替代源码证据。
 
-本树 `openspec list --json` 初始无 active change，未找到 `add-material-annotation-interactions/design.md` 或 `add-interactive-research-reports/design.md`；没有假装收到另一树设计。已读[阅读交互职责 Q2–Q6](../../../.scratch/domain-development/issues/07-research-interaction-scope.md#answer)与 UI 设计入口：两份 change 沿同一阅读线分别形成，资源、选择、共同 composer 与报告隔离由该线维护。此 change 不创建它们、不设计报告 SDK，也不等待报告完成才跑固定图。实际设计文件到达本树后再核对交接。
+本树 `openspec list --json` 初始无 active change，未找到 `add-material-annotation-interactions/design.md` 或 `add-interactive-research-reports/design.md`；没有假装收到另一树设计。已读[阅读交互职责 Q2–Q6](../../../../.scratch/domain-development/issues/07-research-interaction-scope.md#answer)与 UI 设计入口：两份 change 沿同一阅读线分别形成，资源、选择、共同 composer 与报告隔离由该线维护。此 change 不创建它们、不设计报告 SDK，也不等待报告完成才跑固定图。实际设计文件到达本树后再核对交接。
 
 生态 Zotero10／BBT／茉莉花前置调查尚未收到；本线不改库身份、字段、关系、正式引用键或材料修订，只消费现有版本化 ResourceRef，因此不替生态线作上游结论，也不以其未交付阻塞只读固定材料调查。
 
@@ -87,7 +87,7 @@ Linux UI 101通过／9失败／2跳过、Windows 内核374通过／15失败／12
 | B：公共持久事件／回执投递 | 可主动交接执行变化，但需重启补偿与丢回执查询，维护成本更大；现有 notify 没有持久投递语义 |
 | C：只用最新 snapshot 或科研复制完整运行状态 | 当前接口不足，且丢失历史或制造第二权威，不满足已确认目标，不采纳 |
 
-后续用户明确选择方案 A。[add-harness-execution-history](../add-harness-execution-history/design.md) 已实现 `harness.executions`，按指定项目／会话及 runId、instructionId、originInstructionId 三选一查询，返回 `{runs, nextOffset?, instruction?: Message}`；命中 instructionId 时返回原 Message，消息缺失明确 unavailable，响应整体受512KiB限制。宿主生成并传递 `originInstructionId`，普通接续及取消后新尝试继承，新显式启动另起来源，旧历史不猜测补链。G1 公共接口不再是待输入项；公共与科研消费的独立验收结果见两份delivery。
+后续用户明确选择方案 A。[add-harness-execution-history](../2026-10-28-add-harness-execution-history/design.md) 已实现 `harness.executions`，按指定项目／会话及 runId、instructionId、originInstructionId 三选一查询，返回 `{runs, nextOffset?, instruction?: Message}`；命中 instructionId 时返回原 Message，消息缺失明确 unavailable，响应整体受512KiB限制。宿主生成并传递 `originInstructionId`，普通接续及取消后新尝试继承，新显式启动另起来源，旧历史不猜测补链。G1 公共接口不再是待输入项；公共与科研消费的独立验收结果见两份delivery。
 
 ### G2：执行中的 Agent 调用 registered 图
 
