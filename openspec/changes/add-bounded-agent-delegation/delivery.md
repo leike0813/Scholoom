@@ -1,5 +1,44 @@
 # 实际交付与交接
 
+## 29cd728后的可信自有model-kernel诊断
+
+起始HEAD=`29cd7283388dfd752911eacb9c3bf8416031db15`、clean；消费主线`/tmp/scholoom-round11-acceptance-Jx5Oez/`的正式验收与共同计划，没有重放旧增量或自行同步。本片第16组完成，累计42/46；4.2/4.3平台与6.1/6.2科研整项仍开放。实际设计见[可信自有观察](design.md#可信自有model-kernel观察29cd728)，不改变原变更总览中的业务/权限/停止契约。
+
+### 实际提供者与消费边界
+
+- `tests/model-kernel.ts`仍提供`startModelKernel(directory, endpoint): Promise<() => Promise<void>>`，原调用方无需变化。自有child执行原serveKernel；真实endpoint的PID、配置及instance经inspect/RPC/attachDevelopment核对。替换旧隔离UI夹具内核时只向已固定endpoint发一次shutdown，再有界只读核查；返回stop绑定本次实例、等待本次child close/code0及配置stopped，接替者保护不走重新发现的CLI stop。失败/stop自动保存`model-kernel-execution`附件，无Playwright上下文时保存到自有配置目录。
+- `tests/fixtures/model-kernel-process.mjs`是单一可信测试入口，私有IPC只接自有父启动参数。原KernelApplication.initialize透传成功后安装真实订阅，不替换broker/仓储/worker或业务。最多8个真实project/session观察器，采集到清理或当前测试预算（最多120秒）；子文件240KiB、总附件256KiB、生命周期16条、合并写盘最多一个在途，丢弃/失败/超时计数明确。IPC失联只停观察、保留已受理执行，不发信号/强退；原serveKernel安全返回后才记录收尾。
+- `tests/execution-observer.ts`从既有采集中提取无Playwright的核心；`tests/execution-diagnostics.ts`只保留原hook/flush/等待适配。32样本/32进程/32控制阶段/16标记、500ms读取预算及白名单继续适用。project/session/run/instance/父链/worker PID来自所属仓储，内核PID/instance单列；controller退出不等于完整停止。没有外部HTTP计数时明确null；`model.acquire.response`表示准入，不能当HTTP请求数。
+- `packages/harness/src/remote-agent.ts`只新增首次真实SDK stream/end的`model.output`无正文标记，沿原诊断通道与受校验实例；原发送Promise、错误、权限、租约与收尾不变。无新RPC/schema/权限或server，未改lifecycle/bootstrap、isolated-kernel或项目线UI fixture。原所有调用方、根工具、恢复及标签保留。
+
+字段仅含身份、固定安全阶段、状态/计数和白名单错误码；不写文字、材料、URL、token、密钥或通用原始帧。实际双run附件核初始化发送/响应、消费确认、模型准入、首输出、controller退出与仓储实例/PID相符；真实session.rename触发8scope上限，额外会话没有发送模型指令。原UI式配置替换由真实development bootstrap重现，不把它写成双宿主UI验收。
+
+### 首次失败、审查与最终验证
+
+全部本轮新工件在`/home/joshua/.cache/scholoom-agent-round12-rUeKES/`（下称R），TMPDIR同根，未向有配额问题的/tmp放大运行。Node v24.12.0、Linux、已有依赖；先`TMPDIR=R pnpm --config.optimisticRepeatInstall=false --filter @scholoom/kernel... build`通过（`build.log`），生产标记构建后不再改动，测试期间产物冻结。
+
+| 实跑 | 结果与具体修正 |
+| --- | --- |
+| `model-first` | 1通过/2失败；初始化失败清理通过，两个正常启动例把已受理shutdown后的短暂unknown立即判失败。改为原生命周期预算内只读核查，绝不重发shutdown或停止接替者 |
+| `model-second` | 2通过/2失败；接替者/初始化失败通过。正向双run与stop已成功，测试只create额外session未触发session级通知，错误期待drop>0；改为真实rename。IPC负例停机等待close失败 |
+| `model-third` / `ipc-probe` | 分别3通过/1失败、0通过/1失败；真实serveKernel/观察清理均返回，parent已收到exit code0/signalnull但无close。候选显式exit0未改变结果，已移除，没有把强退保留为方案 |
+| `ipc-confirmed` | 1/1；Node24独立小探针有/无message listener均复现主动disconnect后仅disconnect/exit，无close，否定“忽略ready”推测。仅主动断IPC负例联合核正常exit、真实serveKernel收尾与配置stopped；正常helper仍要求child close，原期限不变 |
+| `final-combined` | **8/8，1.6分钟**：取消12.6秒、excerpt4.7秒、发送拒绝无/有观察器2.1/2.0秒，旧调用/关联/脱敏/上限26.8秒、接替者13.4秒、初始化失败7.1秒、IPC失联13.9秒。前面失败均保留，没有Playwright重试或统一加时 |
+
+最后组合实际命令（R展开为上述绝对路径）：`TMPDIR=R SCHOOLOOM_EXECUTION_DIAGNOSTICS=1 PLAYWRIGHT_JSON_OUTPUT_NAME=R/final-combined.json node node_modules/@playwright/test/cli.js test --config playwright.kernel.config.ts tests/kernel/model-kernel.spec.ts tests/kernel/agent-delegation.spec.ts tests/kernel/context-instructions.spec.ts tests/kernel/execution-isolation.spec.ts --grep 'legacy model kernel|old model kernel stop|model kernel initialization failure|private diagnostic IPC|cancelling a child stops|real worker sends explicit excerpts|initialization send rejection reaches' --workers=1 --reporter=list,json --output=R/results-final-combined`。原始log/JSON、首轮结果和安全阶段摘要`final-stage-summary.json`均留在R；本轮profile仅只读核查且保留，`self-owned-profiles.json`与`final-owned-profiles.json`记录stopped。没有删除登记项目或清理旧轮目录。
+
+独立原生辅助Agent使用gpt-6.1-sol/high、fork_context:false，只读审查与单次CI核对；发现候选IPC失联主动SIGTERM/exit会破坏unknown保护，已移除，真实hold模型执行断IPC后仍可RPC核同一实例并完成。辅助从本机Node内置源码核对主动_disconnect缺IPC关闭计数的边界，复核最终源码无确证阻断后已关闭；它未写树、构建、运行测试或读取项目线UI fixture。独立探针及内置源码摘录仅为R内调查工件，不成为生产launcher或稳定行为契约。
+
+最终tools类型、Biome六文件、mjs语法、architecture（14模块/0 findings/0 granted exceptions）、OpenSpec strict/schema、diff均通过；生成器原始输出与仓库格式不同，按既有Biome格式化后7份映射逐字一致（`contracts-normalized.log`），未修改生成文件或schema。首次Biome格式/导入问题保留日志并修正。独立增量`R/agent-owned-model-kernel-29cd728.patch`包含三个新文件及全部调用/诊断增量和原工件；临时index导出、前向cached与当前树反向检查通过，真实index未改，无提交。
+
+### 同源码Windows输入与未完项
+
+仅查询一次当下目标，2026-10-27 22:16:18 UTC：40591705558/head29cd728为completed/failure，Checks40591705520同head仍in_progress；未后台等待或再次轮询。安全事实在`/home/joshua/.cache/scholoom-round11-ci-once-c8sqpQ/windows-three-cases.json`：cancel首次5061ms失败，2691ms onStart、2723ms initialize.sent，无response；excerpt4906ms失败，3775ms onStart、3815ms sent，无response；attachment4902ms失败，2340ms onStart、2371ms sent、4886ms response，无consume。三例均queued/accepted、模型0、无工具/子委派，尚未执行取消或Linux后续reader路径。onStart登记running不表示worker ready，附件初始化响应也不证明消费或模型准入；不据这些阶段修改取消/附件/恢复机制。
+
+上述目标未包含本轮model-kernel提供者，没有本增量Windows通过结论；不同于旧938c33f完整基线，不能按55项推同因。下一步由主线接入本公共执行片及项目线窗口片，关联同一次真实UI指令；本线不私自消费在研窗口实现。若仍停在sent→response，须目标worker侧证据才能越过该区间定因；若response后无consume，继续核beforeModel/consume/准入，不猜共同IPC合同或改kernel/bootstrap。
+
+内部Kernel/RPC/broker、仓储、受管父子进程和权限真实，仅外部模型HTTP受控；excerpt沿既有材料describe/check夹具，发送拒绝两例只替换initialize传输失败边界，初始化失败例只在自有profile制造目录障碍。没有合成身份绕授权、生产Graph/科研角色或真实科研质量验收。未跑全仓/双宿主UI/分发包，Windows本增量和macOS受管执行均未验；4.2/4.3、6.1/6.2保持开放。原TaskPort/FileEdit、库权威、报告来源授权及旧摘录/save/undo保持。没有依赖安装、开发服务器、其他树操作、真实库写入、提交/推送/PR/归档；本片交回后停止。
+
 ## 第十一轮主线验收
 
 冻结增量经两路gpt-6.1-sol／high独立只读审查，无确证规范／规格缺陷。主线完整构建后，在生命周期／来源／Agent组合11/11中复验取消、excerpt、完整附件路径及有／无诊断的初始化发送拒绝五项，全部通过；真实内部接线、受控外部模型，原期限及授权／停止保护不变。命令、JSON及诊断在`/tmp/scholoom-round11-acceptance-Jx5Oez/main-kernel*`，完整38/42及平台／科研整项继续开放。

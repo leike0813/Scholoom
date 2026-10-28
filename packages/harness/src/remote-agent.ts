@@ -109,6 +109,7 @@ export class RemoteAgent {
     const leases = new Set<string>();
     let valid = true;
     let healthTimer: ReturnType<typeof setTimeout> | undefined;
+    let modelOutputObserved = false;
     let peer: RpcPeer;
     const contexts = new Map<string, ReturnType<typeof AsyncLocalStorage.snapshot>>();
     const resourcesInFlight = new Set<Promise<unknown>>();
@@ -496,6 +497,13 @@ export class RemoteAgent {
         }
         if (next.event) {
           const event = next.event;
+          if (
+            !modelOutputObserved &&
+            ['on_chat_model_stream', 'on_chat_model_end'].includes(event.event)
+          ) {
+            modelOutputObserved = true;
+            observe('model.output');
+          }
           yield {
             ...event,
             data: {
