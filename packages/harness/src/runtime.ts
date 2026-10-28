@@ -2762,7 +2762,7 @@ export class Harness {
             {
               name: 'delegate_agent',
               description:
-                '委派一次明确有界工作包。提供稳定delegationId、角色版本、目标、原材料ref/basis、输出和检查要求；返回后用wait/read核查，不把子结束当交付。独立初审只提供原始材料与标准。',
+                '委派一次明确有界工作包。提供稳定delegationId、角色版本和tools；workPackage内提供objective、requirements、materials和outputs。返回后用wait/read核查，不把子结束当交付。独立初审只提供原始材料与标准。',
               schema: delegationInternalOperations['harness.delegate'].params,
               func: async (input: DelegationRequest) => {
                 try {

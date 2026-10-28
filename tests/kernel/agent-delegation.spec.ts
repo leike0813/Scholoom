@@ -15,6 +15,7 @@ import {
   observeExecution,
 } from '../execution-diagnostics.js';
 import { delegationModel } from '../fixtures/delegation-model.js';
+import { createModelServer } from '../model-server.js';
 
 installExecutionDiagnostics();
 
@@ -23,6 +24,65 @@ class CapacityApplication extends KernelApplication {
     return [this.processes.reserve(), this.processes.reserve(), this.processes.reserve()];
   }
 }
+
+test('malformed delegation arguments return a tool rejection without losing the parent execution', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'scholoom-delegation-input-'));
+  const model = await createModelServer({
+    respond: async ({ calls }) =>
+      calls.includes('delegate_agent')
+        ? { text: 'The invalid delegation was rejected; no child was started.' }
+        : {
+            tool: {
+              name: 'delegate_agent',
+              input: {
+                delegationId: 'malformed-output-placement',
+                roleId: 'evidence-reviewer',
+                roleVersion: '1',
+                tools: ['resource.read', 'resource.create'],
+                workPackage: {
+                  objective: 'Check synthetic claims',
+                  requirements: 'Read then report',
+                  materials: [],
+                },
+                outputs: [{ kind: 'create', path: 'review.md' }],
+              },
+            },
+          },
+  });
+  const app = new KernelApplication(join(root, 'profile'), {
+    modelEndpoint: model.url,
+    environment: { MINIMAX_CN_API_KEY: 'synthetic-delegation-key' },
+  });
+  try {
+    await app.initialize();
+    const project = await app.call('project.create', {
+      path: join(root, 'project'),
+      trust: 'trusted',
+    });
+    const session = await app.call('session.create', { projectId: project.id });
+    const scope = { projectId: project.id, sessionId: session.id };
+    await app.call('session.send', {
+      ...scope,
+      instructionId: randomUUID(),
+      text: 'Check input rejection.',
+      materials: [],
+    });
+    await expectExecutionCompleted(app, scope, model);
+    expect((await app.call('delegation.list', scope)).delegations).toEqual([]);
+    const rejected = (await app.snapshot(scope)).messages.find(
+      (message) => message.tool?.name === 'delegate_agent',
+    );
+    expect(rejected).toMatchObject({ state: 'error' });
+    expect(JSON.parse(rejected?.tool?.output ?? '{}')).toMatchObject({
+      error: { code: 'invalidRequest' },
+    });
+    expect(model.requests).toHaveLength(2);
+  } finally {
+    await app.close();
+    await model.close();
+    await rm(root, { recursive: true });
+  }
+});
 
 for (const roleId of ['worker', 'evidence-reviewer']) {
   test(`${roleId}: two owned executions save a real report and the parent reads it without sharing private context`, async () => {

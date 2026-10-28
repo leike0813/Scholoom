@@ -228,6 +228,19 @@ export class RemoteAgent {
           const result = await item.wrapToolCall(
             request as never,
             (async () => {
+              const validate = toolValidators.get(request.toolCall.name);
+              if (validate && !validate(request.toolCall.args)) {
+                const callId = request.toolCall.id;
+                if (!callId) throw new OperationError('invalidRequest', '工具调用缺少身份。');
+                return new ToolMessage({
+                  tool_call_id: callId,
+                  name: request.toolCall.name,
+                  status: 'error',
+                  content: JSON.stringify({
+                    error: { code: 'invalidRequest', message: '工具输入不符合已注册声明。' },
+                  }),
+                });
+              }
               contexts.set(request.token, AsyncLocalStorage.snapshot());
               const result = await callExecutionControl(peer, 'execution.tool', {
                 token: request.token,

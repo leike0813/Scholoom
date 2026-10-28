@@ -1,5 +1,15 @@
 # 实际交付与交接
 
+## 一次真实科研验收失败与工具参数拒绝修复（2026-10-29）
+
+用户明确授权一次有界MiniMax验收后，主线运行`node /home/joshua/.cache/scholoom-finish-active/research-live/runner.mjs --execute --approved-minimax`。本次目录为`research-live/run-hYJu8F`：真实普通serveKernel／项目／TaskPort／会话指令已到达，MiniMax-M2.7共3次请求、实际累计正文227892字节，三次均HTTP200且完整返回；无gateway拒绝、采证错误或收尾错误。父读取真实任务及角色后发起delegate_agent，将outputs放在顶层而非workPackage内，随后执行failed／remoteOutcome=unknown，delegation列表为空、无子报告及成果关联。内核按原instanceId关闭，child退出0，shutdown-after为stopped。原材料、全部回执和失败snapshot原样保留，未自动重试整项或据此勾6.2。
+
+用同样错误层级的受控外部模型回放已复现父执行failed。实际因果是SDK在调用工具之前的参数解析抛普通异常，内部RPC将其归为unavailable，RemoteAgent再将其误判为已受理工具失联。最小修复在既有工具收据中间件的执行回调内复用已注册toolValidators；不合schema时返回status=error、invalidRequest的ToolMessage，不派发执行回调。校验不修改输入、不猜输出路径，不改变已派发后的unknown分类。工具描述及后续验收指令同时明确workPackage.outputs，未放宽schema或重放旧委派。
+
+原红例在`malformed-delegation-red.log`；修复后的malformed／worker／evidence-reviewer真实父子组合**3/3，34.2秒**，路径`malformed-delegation-green`。其中外部模型为受控HTTP，内核／进程／保存／读取真实，不能当科研质量通过。`tool-validation-independent-review.md`窄独审无P1/P2；独立内存核查非法输入零派发、合法输入正常派发及原失联四类错误仍为outcomeUnknown。harness构建、tools类型及相关Biome通过（既有非空断言warnings保留）。后加的明确错误码断言由`malformed-delegation-final`单例复验**1/1，18.5秒**。
+
+6.2仍未通过；本次授权只涵盖上述一次实跑，已另行请求是否补跑，不把沉默当许可。现有evidence-reviewer角色及执行前原文独立标准继续有效，不扩大为未定义的其他科研角色或完整质量体系。
+
 ## Linux UI夹具生命周期修正与最小复验（2026-10-29）
 
 完整Checks中的部分会话失败已在原title→stream顺序复现：前例删除仍登记的项目目录，ManualApplication.initialize按既定保护无法核查该项目已受理执行，保留全部容量；随后请求停在schedule.admission.request而未启动worker。生产保护不变。八份UI夹具将登记项目留在各例outputPath，直到所属配置退役；importSource、取消登记及故障注入的清理不变。开发说明已有该生命周期规则，未重复追加规则。双宿主全局列表的同名项目改用原project.id定位；conversation的会话搜索名称按宿主区分。
