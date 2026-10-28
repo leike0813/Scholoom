@@ -25,6 +25,15 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm setup:ui --with-deps
         if: runner.os == 'Linux'
+      - name: Prepare Linux display preflight tools
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get install --yes --no-install-recommends xauth x11-utils
+          dpkg-query -W xvfb xauth x11-utils
+          for tool in /usr/bin/Xvfb /usr/bin/xvfb-run /usr/bin/xauth /usr/bin/xdpyinfo; do
+            printf '%s\n' "$tool"
+            test -x "$tool"
+          done
       - run: pnpm setup:ui
         if: runner.os != 'Linux'
       - run: pnpm lint
