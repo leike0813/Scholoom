@@ -69,8 +69,12 @@ test('project files share draft preview and survive directory rename, trash and 
     await uiPage.keyboard.insertText(content);
     await expect(editor).toContainText('Method');
     await uiPage.getByRole('button', { name: '并排预览', exact: true }).click();
-    await armRpcGate(uiPage, 'resources.read');
+    // Hold the refresh after publication, while save may also read to validate its base.
+    await armRpcGate(uiPage, 'resources.save');
     await uiPage.getByRole('button', { name: '保存文件', exact: true }).first().click();
+    await uiPage.waitForFunction(() => !!Reflect.get(globalThis, '__scholoomRpcGate').held);
+    await armRpcGate(uiPage, 'resources.read');
+    await releaseRpcGate(uiPage);
     await expect
       .poll(() => readFile(join(project, 'notes', 'draft.md'), 'utf8').catch(() => ''))
       .toBe(content);
@@ -239,6 +243,40 @@ test('project files share draft preview and survive directory rename, trash and 
       await stop();
       await model.close();
     }
+  }
+});
+
+test('a pending file save preserves content accepted by a later reload', async ({ uiPage }) => {
+  const root = await mkdtemp(join(tmpdir(), 'scholoom-file-save-race-'));
+  const project = join(root, 'project');
+  const path = join(project, 'note.md');
+  await mkdir(project);
+  await writeFile(path, 'Original saved content');
+  const client = createKernelClient(
+    await runningKernel(process.env.SCHOOLOOM_UI_DATA_DIR as string),
+  );
+  await client.connect();
+  try {
+    await installRpcGate(uiPage);
+    await uiPage.goto(rendererUrl);
+    await addProject(uiPage, project);
+    await uiPage.getByRole('treeitem', { name: '打开文件 note.md', exact: true }).dblclick();
+    const editor = uiPage.getByRole('textbox', { name: '文件内容 note.md', exact: true });
+    await expect(editor).toContainText('Original saved content');
+    const save = uiPage.getByRole('button', { name: '保存文件', exact: true });
+    await armRpcGate(uiPage, 'resources.describe');
+    await save.click();
+    await uiPage.waitForFunction(() => !!Reflect.get(globalThis, '__scholoomRpcGate').held);
+    await expect(save).toBeDisabled();
+    await writeFile(path, 'External content accepted by reload');
+    await uiPage.getByRole('button', { name: '重新读取', exact: true }).click();
+    await expect(editor).toContainText('External content accepted by reload');
+    await releaseRpcGate(uiPage);
+    await expect(save).toBeEnabled();
+    expect(await readFile(path, 'utf8')).toBe('External content accepted by reload');
+    await expect(editor).toContainText('External content accepted by reload');
+  } finally {
+    client.dispose();
   }
 });
 

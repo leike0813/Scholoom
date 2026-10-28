@@ -320,8 +320,15 @@ export function FileEditor({
           fileId: created.fileId,
         };
       } else {
-        const current = await port.describe(currentLocator());
-        if (!source || current.basis !== source.basis || !current.capabilities.write)
+        const { descriptor: current, source: verifiedSource } = await readResource();
+        // Relocation may refresh the basis; only an unchanged base can accept this submission.
+        if (
+          !source ||
+          verifiedSource.truncated ||
+          source.fileId !== verifiedSource.fileId ||
+          source.content !== verifiedSource.content ||
+          !current.capabilities.write
+        )
           throw new Error('资源内容或写入权限已变化，请重新读取并核对。');
         await port.save({ ref: current.ref, basis: current.basis, content: submitted });
       }
