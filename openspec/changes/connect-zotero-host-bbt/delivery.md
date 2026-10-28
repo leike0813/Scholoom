@@ -1,5 +1,13 @@
 # 实际交付与交接
 
+## 正式键偏好触发与通知缓存修复（2026-10-29）
+
+3.2完成，当前46/50。真实未改BBT9.0.68启用resetKeyOnChange、消费真实modify事件后，旧实现保护了共同键，却让原包先污染候选map、吞下setter拒绝并跳过cacheTouch，通知后两格式仍导出旧题名；原失败和四份导出在`/home/joshua/.cache/scholoom-finish-active/reset-key-protection/`。现共同投影的library.editable只在当前AsyncLocalStorage owner的keys／creators操作阶段为true，提交等待及通知阶段只读；原包按其既有readonly分支采用共同正式键，继续刷新缓存。不改原包、偏好、setter／SQL保护或共同授权，也未通过禁用缓存掩盖候选。
+
+先构建host后冻结，最终`reset-key-final-kernel.log`为11/11、56.5秒：8项共同事务／CAS／迟到回调／SQL及通知保护，加真实百条补键／题名／两格式／kernel重启、真实reset事件／host重启、大小写冲突。偏好实际读取true；通知后及重启后的共同记录／SQL／原包map均保留正式键，四份导出均为新题名，五个原执行成员与XPI逐字节一致。新事件例为生产JournalCatalog／ZoteroHost与真实共同库组合，题名提交后显式刷新投影并触发Notifier；不声称普通managed RPC会向既存host推送题名事件。作者原包整合及更广产品动作仍属后续变更。host构建／按package脚本typecheck、tools类型、Biome与架构264文件0 findings通过；初次误指不存在的tsconfig.node.json仅为命令错误，正确入口已通过。独审`reset-key-editability-independent-review.md`直接核原包消费及读回／字节证据，无确证P1/P2，联合结果由主线接收。
+
+Windows的0ed2c97／专项40784928035原输入负正对照2/2、共同事务8/8、冲突1项、原包生命周期8通过／2项既有不适用跳过；百条例已完成共同提交及两格式并重启到真实导出，停机发布endpoint.json遭EPERM，整例失败。原日志`windows-fd0-job.log`、原artifact及trace保全，不能以部分成功关闭2.3／4.2。新增并发发现替换校准及停机发布失败仍须收尾的修复由公共生命周期记录承接；不以该修复宣称原EPERM根因已解。Windows普通持久资源布局仍未实施。
+
 ## Windows私有stdin的固定源码机制与fd 0修正
 
 固定Electron44.5.1官方源码表明Windows GUI初始化无条件将process.stdin替换为立即EOF的模拟流；控制台环境变量与日志开关不会取消替换，精确commit／Node／Chromium来源见[调查报告](../../../.scratch/scholoom-foundations/research/electron-windows-private-stdin.md)。第二次目标run40783183335／job123149728204的合成对照实际读到默认及ELECTRON_NO_ATTACH_CONSOLE两组均0字节，期望26字节；两个共同库原包例仍以空封套失败。其日志`windows-electron-stdin-red-job.log`保留，未把变量当修复。

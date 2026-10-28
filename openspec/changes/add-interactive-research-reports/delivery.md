@@ -1,5 +1,9 @@
 # 实际交付与交接
 
+## 安装前候选整改与入口否决（2026-10-29）
+
+已准备具体launcher／preflight／候选profile／安装脚本／控制器及可信静态app，并完成静态修正与独审，随后以本机对应Ubuntu版本源码排除了原同UID自动附着入口。事实源为[investigation](investigation.md#固定入口的部署候选被排除2026-10-29)，两份研究已进入Git；具体cache工件及独审`report-browser-deployment-independent-review.md`保留供接续。编译、策略仅编译和self-check不算T1/T2实跑。没有安装／加载策略／启动namespace或浏览器，没有请求用户批准这个已知不满足入口保证的候选；当前无系统安装许可。后续先规划独立执行身份及受控服务，不直接把临时控制器作为产品提供者，仍为8/14。
+
 ## 完整浏览器校准尚未通过（2026-10-29）
 
 实际两轮完整浏览器前置见[investigation](investigation.md#完整浏览器前置校准2026-10-29)，证据保存在独立cache而非现有/tmp。限额实际读回、两条sandbox初始化错误和收尾分别记录；两轮均未到main／renderer／截图，不将Chromium错误中的可能原因当唯一诊断，不因没有运行恶意页声称隔离已通过。当前环境的普通userns限制另已实测。2.1b／2.2／3.x／I5均未因此关闭，生产活动报告继续unavailable。

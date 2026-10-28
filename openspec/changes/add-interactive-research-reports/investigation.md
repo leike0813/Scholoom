@@ -1,5 +1,13 @@
 # 调查依据
 
+## 固定入口的部署候选被排除（2026-10-29）
+
+为避免修改stock bwrap域，本轮准备了root管理固定launcher、独立enforce profile及可信T1／T2的候选，保存于`/home/joshua/.cache/scholoom-finish-active/report-browser-deployment/`。静态审查先修了复制后chmod跟随链接、宽base执行／跟踪授权、T1退出早于采证、父UID0映射及renderer跨PID层级匹配问题。当前C编译、策略仅编译、脚本语法及无系统操作自检通过，但没有安装、加载策略或运行该候选。
+
+精确本机Ubuntu7.0.0-38.38源码核查发现：自动附着前已存在unconfined tracer时，AppArmor在exec-stop前不评估目标域的tracedby deny；静态链接、main禁dump或新增TracerPid检查都不能替代exec前保证。依据及固定commit见[入口研究](../../../.scratch/scholoom-foundations/research/apparmor-fixed-launcher-ptrace.md)；bwrap实际mount／pivot分支见[挂载研究](../../../.scratch/scholoom-foundations/research/bwrap-fixed-launch-mounts.md)。原同UID／0755入口候选因此不能作为固定代码保证，不向用户申请安装它。
+
+独立系统身份的受控服务是后续需完整规划和审查的候选，不是已交付的替代：0750限制与服务UID不会阻止按profile名称请求stack，但在本机sysctl条件下stack保留原unconfined的userns处理；是否有实际有效的受限成员仍要读回已加载策略。服务请求、独立身份、资源交付／观察、控制器丢失与恢复及安装范围尚未闭合，不用增加服务名或规则掩盖这些未知。本片不改全局sysctl、发行版profile、SUID或活动报告门，2.1b／I5等任务保持开放。
+
 ## 完整浏览器前置校准（2026-10-29）
 
 主线证据根`/home/joshua/.cache/scholoom-finish-active/report-browser-calibration/`，最新事实以`report-current.md`、`facts-current.json`及`run-prpZRU/`为准。首次`MemoryMax=512MiB`被systemd参数解析拒绝，未启动scope／浏览器；改为等值536870912后才有以下两次实际执行，首败保留而不计浏览器尝试。

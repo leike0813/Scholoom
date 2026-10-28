@@ -1,13 +1,26 @@
 import { spawn } from 'node:child_process';
+import { randomUUID } from 'node:crypto';
 import { once } from 'node:events';
-import { access, mkdir, readFile, symlink, unlink, writeFile } from 'node:fs/promises';
+import {
+  access,
+  mkdir,
+  readFile,
+  rename,
+  rmdir,
+  stat,
+  symlink,
+  unlink,
+  writeFile,
+} from 'node:fs/promises';
 import { type AddressInfo, createServer } from 'node:net';
 import { join } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import { expect, test } from '@playwright/test';
 import { bootstrapKernel } from '../../apps/kernel/dist/bootstrap.js';
-import { inspectKernel } from '../../apps/kernel/dist/lifecycle.js';
+import { inspectKernel, serveKernel } from '../../apps/kernel/dist/lifecycle.js';
 import { createKernelClient, KernelClientError } from '../../packages/client/dist/index.js';
+import { ManagedNode } from '../../packages/platform/dist/node.js';
+import { ProgramRecords } from '../../packages/programs/dist/node.js';
 import {
   errorInfoSchema,
   isBootstrapResult,
@@ -350,6 +363,116 @@ test('multi-client shutdown announces stopping and never restarts the daemon', a
       second.dispose();
     }
   });
+});
+
+test('endpoint JSON remains atomic during concurrent discovery and shutdown', async () => {
+  await isolatedKernel(async (directory) => {
+    const endpoint = await runningKernel(directory);
+    const filename = join(directory, 'runtime', 'endpoint.json');
+    let reading = true;
+    let samples = 0;
+    const states = new Set<string>();
+    const reader = (async () => {
+      while (reading && samples < 10000) {
+        const value: unknown = JSON.parse(await readFile(filename, 'utf8'));
+        expect(isKernelEndpoint(value)).toBe(true);
+        if (!isKernelEndpoint(value)) throw new Error('Invalid discovery record');
+        expect(value.instanceId).toBe(endpoint.instanceId);
+        states.add(value.state);
+        samples++;
+      }
+    })();
+    try {
+      expect((await runKernel(directory, 'stop')).state).toBe('stopped');
+    } finally {
+      reading = false;
+      await reader;
+      const metadata = await stat(filename);
+      await test.info().attach('endpoint-replacement', {
+        body: JSON.stringify({
+          samples,
+          states: [...states],
+          mode: metadata.mode,
+          size: metadata.size,
+          lifecycle: await kernelLifecycleDiagnostics(directory),
+        }),
+        contentType: 'application/json',
+      });
+    }
+    expect(samples).toBeGreaterThan(0);
+    const stopped: unknown = JSON.parse(await readFile(filename, 'utf8'));
+    expect(isKernelEndpoint(stopped) && stopped.state).toBe('stopping');
+  });
+});
+
+test('failed stopping discovery still closes an accepted managed program', async () => {
+  test.skip(!ManagedNode.availability.available, 'Requires actual managed execution');
+  const directory = test.info().outputPath('configuration');
+  const previousExitCode = process.exitCode;
+  const serving = serveKernel(directory).then(
+    () => ({ failed: false }),
+    (error: NodeJS.ErrnoException) => ({ failed: true, code: error.code }),
+  );
+  await expect.poll(async () => (await inspectKernel(directory)).state).toBe('running');
+  const running = await inspectKernel(directory);
+  if (running.state !== 'running') throw new Error('Missing test-owned kernel');
+  const client = createKernelClient(running.endpoint);
+  const discovery = join(directory, 'runtime', 'endpoint.json');
+  const saved = join(directory, 'runtime', 'saved-discovery.json');
+  let replaced = false;
+  let shutdownRequested = false;
+  let records: ProgramRecords | undefined;
+  try {
+    await client.connect();
+    const project = await client.call('project.create', {
+      path: test.info().outputPath('program-project'),
+      trust: 'trusted',
+    });
+    await writeFile(
+      join(project.path, 'work.mjs'),
+      "import {writeFileSync} from 'node:fs';writeFileSync('started','yes');await new Promise(resolve=>setTimeout(resolve,10000));",
+    );
+    const entry = await client.call('resources.describe', {
+      locator: { source: 'project', projectId: project.id, path: 'work.mjs' },
+    });
+    const accepted = await client.call('programs.start', {
+      projectId: project.id,
+      operationId: randomUUID(),
+      environmentId: 'node',
+      entry: { ref: entry.ref, basis: entry.basis },
+    });
+    await expect
+      .poll(() => readFile(join(project.path, 'started'), 'utf8').catch(() => ''))
+      .toBe('yes');
+    records = new ProgramRecords(join(project.path, '.scholoom'));
+    expect(records.get(accepted.programRunId).run.state).toBe('running');
+    await rename(discovery, saved);
+    await mkdir(discovery);
+    replaced = true;
+    shutdownRequested = true;
+    await client.shutdown();
+    expect(await serving).toMatchObject({ failed: true });
+    const stopped = records.get(accepted.programRunId).run;
+    await test.info().attach('discovery-failure-cleanup', {
+      body: JSON.stringify({ state: stopped.state, stop: stopped.stop }),
+      contentType: 'application/json',
+    });
+    expect(stopped.stop).toBe('confirmed');
+    expect(['cancelled', 'failed']).toContain(stopped.state);
+  } finally {
+    if (!shutdownRequested) {
+      await client.connect();
+      await client.shutdown();
+    }
+    client.dispose();
+    await serving;
+    records?.close();
+    if (replaced) {
+      await rmdir(discovery);
+      await rename(saved, discovery);
+    }
+    process.exitCode = previousExitCode;
+  }
 });
 
 test('shutdown without a connected transport is unavailable', async () => {

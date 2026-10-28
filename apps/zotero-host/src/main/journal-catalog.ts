@@ -322,7 +322,17 @@ export class JournalCatalog {
     }
   }
   get zotero() {
-    const library = { libraryID: 1, editable: true, name: 'Isolated common-library projection' };
+    const catalog = this;
+    const library = {
+      libraryID: 1,
+      get editable() {
+        return (
+          (catalog.staging === 'keys' || catalog.staging === 'creators') &&
+          catalog.operation.getStore() === catalog.owner
+        );
+      },
+      name: 'Isolated common-library projection',
+    };
     const get = (ids: number | number[]): JournalItem | JournalItem[] =>
       Array.isArray(ids) ? ids.map(this.get) : this.get(ids);
     return {

@@ -62,6 +62,9 @@ jobs:
       - run: pnpm --config.optimisticRepeatInstall=false setup:electron
       - name: Observe private stdin without supplying authentication credentials
         run: pnpm --config.optimisticRepeatInstall=false exec playwright test --config playwright.kernel.config.ts tests/kernel/electron-stdin.spec.ts --workers=1 --reporter=list --output test-results/windows-electron-stdin
+      - name: Verify discovery replacement while another process reads it
+        if: '!cancelled()'
+        run: pnpm --config.optimisticRepeatInstall=false exec playwright test --config playwright.kernel.config.ts tests/kernel/lifecycle.spec.ts --grep 'endpoint JSON remains atomic|failed stopping discovery' --workers=1 --reporter=list --output test-results/windows-endpoint-replacement
       - name: Fetch the unchanged fixed Better BibTeX release
         if: '!cancelled()'
         shell: pwsh
@@ -71,7 +74,7 @@ jobs:
           "SCHOOLOOM_BBT_XPI=$archive" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
       - name: Verify common transactions and original package on Windows
         if: '!cancelled()'
-        run: pnpm --config.optimisticRepeatInstall=false exec playwright test --config playwright.kernel.config.ts tests/kernel/journal-catalog.spec.ts tests/kernel/zotero-host.spec.ts --grep 'creator|stale revisions|notification|committed readback|failed operation|plugin SQL|commit and readback|real library/broker/managed original BBT|unselected case-insensitive key collision' --workers=1 --reporter=list --output test-results/windows-zotero-common
+        run: pnpm --config.optimisticRepeatInstall=false exec playwright test --config playwright.kernel.config.ts tests/kernel/journal-catalog.spec.ts tests/kernel/zotero-host.spec.ts --grep 'creator|stale revisions|notification|committed readback|failed operation|plugin SQL|commit and readback|real library/broker/managed original BBT|unselected case-insensitive key collision|original resetKeyOnChange' --workers=1 --reporter=list --output test-results/windows-zotero-common
       - name: Verify original package lifecycle on Electron
         if: '!cancelled()'
         run: pnpm --config.optimisticRepeatInstall=false exec playwright test tests/smoke/zotero-host.spec.ts --workers=1 --reporter=list --output test-results/windows-zotero-lifecycle
@@ -83,6 +86,7 @@ jobs:
             test-results/windows-zotero-common/
             test-results/windows-zotero-lifecycle/
             test-results/windows-electron-stdin/
+            test-results/windows-endpoint-replacement/
           if-no-files-found: warn
   private-files:
     runs-on: windows-latest

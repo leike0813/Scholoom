@@ -20,6 +20,7 @@ import {
   expectExecutionCompleted,
   installExecutionDiagnostics,
   observeExecution,
+  observeExecutionFailure,
 } from '../execution-diagnostics.js';
 import { createModelServer, type ModelServer } from '../model-server.js';
 
@@ -610,7 +611,7 @@ test('real worker sends explicit excerpts and draft comments and checkpoints str
       await checkpointInstructions(app.projects.get('application').internal, receipt.runId),
     ).toEqual([{ instructionId, contextItems }]);
   } catch (error) {
-    diagnostics?.failure();
+    await observeExecutionFailure(diagnostics);
     throw error;
   } finally {
     await diagnostics?.stop();

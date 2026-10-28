@@ -13,11 +13,12 @@ import {
   unlink,
   writeFile,
 } from 'node:fs/promises';
+import { stripTypeScriptTypes } from 'node:module';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
-import { expect, test } from '@playwright/test';
+import { _electron as electron, expect, test } from '@playwright/test';
 import { KernelApplication } from '../../apps/kernel/dist/application.js';
 import { bootstrapKernel } from '../../apps/kernel/dist/bootstrap.js';
 import { inspectKernel, serveKernel, stopKernel } from '../../apps/kernel/dist/lifecycle.js';
@@ -26,7 +27,7 @@ import { createKernelClient } from '../../packages/client/dist/index.js';
 import type { ZoteroOutputs, ZoteroSnapshot } from '../../packages/protocol/dist/zotero.js';
 import { expectExecutionCompleted } from '../execution-diagnostics.js';
 import { delegationOutput } from '../fixtures/delegation-model.js';
-import { unpackPlugin } from '../fixtures/zotero-host/archive.js';
+import { readPluginMember, unpackPlugin } from '../fixtures/zotero-host/archive.js';
 import { electronTestCommand } from '../fixtures/zotero-host/display.js';
 import { cliPath, runKernel } from '../kernel-fixture.js';
 import { createModelServer } from '../model-server.js';
@@ -583,6 +584,219 @@ test('real library/broker/managed original BBT commits missing keys once and exp
     }
   } finally {
     await f.app.close();
+  }
+});
+
+test('original resetKeyOnChange modify events cannot replace an adopted common key after title correction or restart', async () => {
+  const f = await fixture();
+  const profile = join(f.directory, 'reset-key-profile');
+  await mkdir(profile);
+  // Load the production projection in Electron without adding a test-only product export.
+  let catalogSource = stripTypeScriptTypes(
+    await readFile(
+      new URL('../../apps/zotero-host/src/main/journal-catalog.ts', import.meta.url),
+      'utf8',
+    ),
+    { mode: 'transform' },
+  );
+  for (const name of ['core', 'zotero'])
+    catalogSource = catalogSource.replaceAll(
+      `'@scholoom/protocol/${name}'`,
+      JSON.stringify(new URL(`../../packages/protocol/dist/${name}.js`, import.meta.url).href),
+    );
+  const moduleUrl = `data:text/javascript;base64,${Buffer.from(catalogSource).toString('base64')}`;
+  const root = fileURLToPath(new URL('../../', import.meta.url));
+  const launch = () =>
+    electron.launch({
+      args: ['--no-sandbox', join(root, 'tests/fixtures/zotero-host/main.cjs')],
+      env: {
+        ...process.env,
+        SCHOOLOOM_BBT_PACKAGE: f.configuration.packageDirectory,
+        SCHOOLOOM_BBT_PROFILE: profile,
+        SCHOOLOOM_BBT_MANUAL_START: '1',
+      },
+    });
+  let host = await launch();
+  try {
+    const before = (await f.selection()).at(-1);
+    if (!before?.citationKey || !before.originals[0]) throw new Error('Missing adopted journal');
+    const start = async (records: ZoteroSnapshot) => {
+      return host.evaluate(
+        async (_electron, input) => {
+          Reflect.get(globalThis, 'fixture').catalog.close();
+          const require = process
+            .getBuiltinModule('node:module')
+            .createRequire(`${input.root}/apps/zotero-host/package.json`);
+          const vm = require('node:vm');
+          const { JournalCatalog } = await vm.runInThisContext(
+            `import(${JSON.stringify(input.moduleUrl)})`,
+            { importModuleDynamically: vm.constants.USE_MAIN_CONTEXT_DEFAULT_LOADER },
+          );
+          const { ZoteroHost } = require(`${input.root}/apps/zotero-host/out/main/host.cjs`);
+          const catalog = new JournalCatalog(input.records);
+          const host = new ZoteroHost({
+            scope: 'isolated-library-journals',
+            catalog,
+            packageDirectory: input.packageDirectory,
+            profileDirectory: input.profile,
+            dateFormats: `${input.root}/apps/zotero-host/resources/dateFormats.json`,
+            rendererDirectory: `${input.root}/apps/zotero-host/out/renderer`,
+            preload: `${input.root}/apps/zotero-host/out/preload/index.cjs`,
+          });
+          Reflect.set(globalThis, 'resetKeySample', { catalog, host });
+          const status = await host.start();
+          host.environment.zotero.Prefs.set('translators.better-bibtex.resetKeyOnChange', true);
+          return status;
+        },
+        { moduleUrl, root, records, packageDirectory: f.configuration.packageDirectory, profile },
+      );
+    };
+    expect((await start([before])).state).toBe('ready');
+    const initial = await host.evaluate(async () => {
+      const { host, catalog } = Reflect.get(globalThis, 'resetKeySample');
+      return host.export([catalog.record(1).sourceId], 'bibtex');
+    });
+    expect(initial.toLowerCase()).toContain('preserved journal');
+    const saved = await f.app.call('zotero.replaceTitle', {
+      libraryId: f.libraryId,
+      requestId: randomUUID(),
+      sourceId: before.sourceId,
+      revision: before.revision,
+      identity: before.originals[0].identity,
+      title: 'Corrected title under automatic key reset',
+    });
+    expect(saved.state).toBe('committed');
+    const corrected = await f.app.call('library.record', {
+      libraryId: f.libraryId,
+      sourceId: before.sourceId,
+    });
+    expect(corrected.citationKey).toEqual(before.citationKey);
+    const trigger = await host.evaluate(
+      async (_electron, input) => {
+        const { catalog, host } = Reflect.get(globalThis, 'resetKeySample');
+        catalog.refresh([input.corrected]);
+        const { zotero } = host.environment;
+        const preference = 'translators.better-bibtex.resetKeyOnChange';
+        zotero.Prefs.set(preference, true);
+        const enabled = zotero.Prefs.get(preference);
+        const reads: unknown[] = [];
+        const attempts: { field: string; value: unknown; code?: string }[] = [];
+        const get = zotero.Prefs.get;
+        zotero.Prefs.get = (key: string) => {
+          const value = get(key);
+          if (key === preference) reads.push(value);
+          return value;
+        };
+        const item = catalog.item(input.corrected.sourceId);
+        const setField = item.setField.bind(item);
+        item.setField = (field: string, value: unknown) => {
+          const attempt: (typeof attempts)[number] = { field, value };
+          attempts.push(attempt);
+          try {
+            return setField(field, value);
+          } catch (error) {
+            attempt.code = (error as { code: string }).code;
+            throw error;
+          }
+        };
+        const event = [
+          'modify',
+          'item',
+          [item.id],
+          {
+            [item.id]: { libraryID: item.libraryID, changed: { title: input.oldTitle } },
+          },
+        ];
+        await zotero.Notifier.trigger(...event);
+        return {
+          enabled,
+          reads,
+          attempts,
+          event,
+          sql: catalog.fields(item.id),
+          pluginKey: zotero.BetterBibTeX.KeyManager.get(item.id),
+          status: host.status(),
+        };
+      },
+      { corrected, oldTitle: before.originals[0].fields.title },
+    );
+    await writeFile(
+      test.info().outputPath('reset-key-trigger.json'),
+      JSON.stringify({ before, saved, corrected, trigger }, null, 2),
+    );
+    expect(trigger.enabled).toBe(true);
+    expect(trigger.reads).toContain(true);
+    expect(trigger.pluginKey).toMatchObject({ citationKey: before.citationKey.value });
+    expect(trigger.status.state).toBe('ready');
+    expect(trigger.sql.citationKey).toBe(before.citationKey.value);
+    for (const boundary of ['after-modify', 'restart'] as const) {
+      if (boundary === 'restart') {
+        expect(
+          (await host.evaluate(() => Reflect.get(globalThis, 'resetKeySample').host.close())).state,
+        ).toBe('closed');
+        await host.close();
+        host = await launch();
+        expect((await start([corrected])).state).toBe('ready');
+      }
+      for (const format of ['bibtex', 'biblatex'] as const) {
+        const text = await host.evaluate(
+          async (_electron, input) =>
+            Reflect.get(globalThis, 'resetKeySample').host.export([input.sourceId], input.format),
+          { sourceId: corrected.sourceId, format },
+        );
+        await writeFile(test.info().outputPath(`${boundary}.${format}`), text);
+        expect.soft(text.toLowerCase()).toContain('corrected title under automatic key reset');
+        expect.soft(text).toContain(`{${before.citationKey.value},`);
+      }
+      const readback = await f.app.call('library.record', {
+        libraryId: f.libraryId,
+        sourceId: before.sourceId,
+      });
+      expect(readback).toEqual(corrected);
+      const state = await host.evaluate(() => {
+        const { catalog, host } = Reflect.get(globalThis, 'resetKeySample');
+        return {
+          status: host.status(),
+          preference: host.environment.zotero.Prefs.get(
+            'translators.better-bibtex.resetKeyOnChange',
+          ),
+          sql: catalog.fields(1),
+          pluginKey: host.environment.zotero.BetterBibTeX.KeyManager.get(1),
+        };
+      });
+      expect(state.preference).toBe(true);
+      expect(state.sql.citationKey).toBe(before.citationKey.value);
+      expect(state.pluginKey).toMatchObject({ citationKey: before.citationKey.value });
+      await writeFile(
+        test.info().outputPath(`${boundary}-record.json`),
+        JSON.stringify({ readback, ...state }, null, 2),
+      );
+    }
+    for (const member of [
+      'bootstrap.js',
+      'content/better-bibtex.js',
+      'content/worker/zotero.js',
+      'content/resource/Better BibTeX.js',
+      'content/resource/Better BibLaTeX.js',
+    ])
+      expect(
+        (await readFile(join(f.configuration.packageDirectory, member))).equals(
+          readPluginMember(xpi as string, member),
+        ),
+      ).toBe(true);
+  } finally {
+    try {
+      await host.evaluate(async () => {
+        const sample = Reflect.get(globalThis, 'resetKeySample');
+        if (sample) {
+          await sample.host.close();
+          sample.catalog.close();
+        }
+      });
+    } finally {
+      await host.close();
+      await f.app.close();
+    }
   }
 });
 

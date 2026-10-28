@@ -1,5 +1,9 @@
 # 实际交付与交接
 
+## 最新目标回执（2026-10-29）
+
+0ed2c97／Checks40784927993的macOS目标已success：不可用／人工能力4项、入口4项、双宿主人工工作台14项及目录打包通过；精确入口及签名边界见[公共平台记录](../add-project-program-runs/delivery.md#0ed2c97目标平台回执2026-10-29)。Linux／Windows完整结果仍待结算，Windows专项出现两项Agent初始化queued及生态停机发布EPERM，不将其他通过项覆盖失败。1.4／6.1／6.2保持开放。
+
 ## 完整Checks新结论（2026-10-29）
 
 run40745284164现为failure，Mac success；Windows内核5失败、后续UI未运行，Linux内核835通过／44跳过、UI137通过／25失败／6跳过。精确回执及原始证据入口见[共同平台记录](../add-project-program-runs/delivery.md#0b5c5e3完整checks回执及下一次窄取证2026-10-29)。不继续沿用下节in_progress时间点作当前结论；1.4／6.1／6.2保持开放。

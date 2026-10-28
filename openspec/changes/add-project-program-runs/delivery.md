@@ -1,5 +1,17 @@
 # 实际交付与交接
 
+## 0ed2c97目标平台回执（2026-10-29）
+
+完整Checks40784927993的macOS job123155605913已success，原日志`/home/joshua/.cache/scholoom-finish-active/macos-0ed2c97.log`：平台不可用及人工能力4/4、实际应用入口4/4、双宿主人工工作台14/14，目录打包通过。没有运行macOS受管执行，签名按配置跳过；该结果不是macOS全功能或签名发行验收。Linux／Windows完整job尚未结算，不关闭5.2／6.2。
+
+同期Windows专项40784928035的private-files成功，execution因context／附件Agent在原5秒窗口queued而失败；原生归属、HostConnection、生命周期／ACL、取消、owner和Electron代表均通过。精确同run阶段与失败后观察见[Agent交付记录](../add-bounded-agent-delegation/delivery.md#windows同次初始化缺证的继续观察2026-10-29)。BBT原包专项已越过stdin，新增的endpoint替换EPERM及公共停机清理回归另见[生态交付记录](../connect-zotero-host-bbt/delivery.md#正式键偏好触发与通知缓存修复2026-10-29)；这些新失败不被旧专项成功覆盖。
+
+### 停止状态发布失败仍须收尾
+
+Windows原新失败暴露出公共停机顺序的独立缺陷：publishEndpoint失败会跳过application.close。本轮只将这两个动作改为try／finally，保持发布异常及unknown，不因发现记录写入失败放弃已受理工作的收尾。真实回归经serveKernel／RPC启动一个程序，确认其已运行，再将本轮endpoint.json改为空目录让rename明确失败；旧码`endpoint-cleanup-red.log`确实留下stop=pending，修复后`endpoint-cleanup-final.log`三项3/3、42.3秒，包含该故障、并发发现读取及原多客户端关闭。故障后程序终态failed、stop=confirmed，符合程序退出失败与停止确认分开的契约；最初仅测试误限定cancelled的失败保留，没有把状态更正作为生产修复。故障仍使serveKernel拒绝，不报告正常停机成功。
+
+kernel重新构建、tools类型、指定七文件Biome及架构通过。自有项目／配置保留在本轮cache，故障空目录仅在server停止后删除并恢复原发现记录，不删除用户目录／锁／旧unknown。独立审查`endpoint-cleanup-independent-review.md`无确证P1/P2，另直接读最终project.sqlite核对failed／stop=confirmed及shuttingDown、原command／host身份，主线已接收。并发reader例不保证每次均采到替换瞬间，原子性另核原rename实现；try／finally只保证发布失败后等待application.close，不扩大为任意模块close失败后所有后续模块仍能继续。Windows原EPERM的文件属性或竞争根因尚未闭合，目标平台两条窄例仍须实跑。
+
 ## ACL探针新失败与最小序列化对照（2026-10-29）
 
 2b55465／run40770348500整run最终cancelled，独立private-files成功不等于execution job123105541273通过。后者前置重复10、ownership16、HostConnection25、availability6、isolated4、Agent代表3及owner2通过，Electron重复仅2项完成；ACL对照3通过／1失败。新首个minimal样本reason=probeDeadline，原始日志windows-equality-execution.log及提前artifact12852268067已一次下载至windows-equality-startup，不补造未完成阶段。

@@ -54,6 +54,20 @@ export function observeExecution(
   return { ...observer, flush: capture.flush };
 }
 
+/** Keep the failed verdict while observing the same execution before teardown cancels it. */
+export async function observeExecutionFailure(
+  diagnostics: ReturnType<typeof observeExecution> | undefined,
+): Promise<void> {
+  diagnostics?.failure();
+  if (!diagnostics || process.env.SCHOOLOOM_EXECUTION_DIAGNOSTICS !== '1') return;
+  const deadline = performance.now() + 15_000;
+  while (performance.now() < deadline) {
+    const state = await diagnostics.sample();
+    if (!state || !['queued', 'running', 'cancelling'].includes(state)) break;
+    await setTimeout(250);
+  }
+}
+
 /** Keep the original completion deadline; the same sampler also supports earlier assertions. */
 export async function expectExecutionCompleted(
   app: KernelApplication,
@@ -72,16 +86,7 @@ export async function expectExecutionCompleted(
     await expect.poll(sample, { timeout: 20_000 }).toBe('completed');
   } catch (error) {
     failed = true;
-    diagnostics.failure();
-    if (process.env.SCHOOLOOM_EXECUTION_DIAGNOSTICS === '1') {
-      // Observe progress without changing the original failed verdict or starting another run.
-      const deadline = performance.now() + 15_000;
-      while (performance.now() < deadline) {
-        const state = await diagnostics.sample();
-        if (!state || !['queued', 'running', 'cancelling'].includes(state)) break;
-        await setTimeout(250);
-      }
-    }
+    await observeExecutionFailure(diagnostics);
     throw error;
   } finally {
     await diagnostics.stop();

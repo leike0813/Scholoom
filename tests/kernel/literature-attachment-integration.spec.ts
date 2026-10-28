@@ -8,7 +8,11 @@ import { KernelApplication } from '../../apps/kernel/dist/application.js';
 import { startKernelServer } from '../../apps/kernel/dist/server.js';
 import { createKernelClient } from '../../packages/client/dist/index.js';
 import { protocolVersion } from '../../packages/protocol/dist/index.js';
-import { installExecutionDiagnostics, observeExecution } from '../execution-diagnostics.js';
+import {
+  installExecutionDiagnostics,
+  observeExecution,
+  observeExecutionFailure,
+} from '../execution-diagnostics.js';
 import { createModelServer } from '../model-server.js';
 import { syntheticPdf } from '../pdf-fixture.js';
 
@@ -220,7 +224,7 @@ test('real RPC and Agent share material bytes while project paths and model send
     ).rejects.toMatchObject({ code: 'permissionDenied' });
     diagnostics.mark('deniedReadsChecked');
   } catch (error) {
-    diagnostics?.failure();
+    await observeExecutionFailure(diagnostics);
     throw error;
   } finally {
     for (const observer of observers) await observer.stop();

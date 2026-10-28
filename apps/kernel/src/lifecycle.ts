@@ -325,8 +325,11 @@ export async function serveKernel(
     const server = await startKernelServer(
       status,
       async () => {
-        await publishEndpoint(runtime, { ...endpoint, state: 'stopping' });
-        await application.close();
+        try {
+          await publishEndpoint(runtime, { ...endpoint, state: 'stopping' });
+        } finally {
+          await application.close();
+        }
       },
       application,
       options.development,
