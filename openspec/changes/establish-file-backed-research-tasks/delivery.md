@@ -289,3 +289,64 @@ Browser两例的最后watch仅分别在09:52:21.526Z和49.246Z；queued不能区
 同模型只读辅助Agent独立核源码版本、承载、模型替身及断言前后动作；父端实际提取artifact并核WebSocket回执。辅助Agent已关闭，没有跨树消息或常驻协调。外部HTTP模型是既有受控边界；真实UI、broker、harness及文件操作未替换。model.hold发生在requests.push之后，不能解释已登记请求计数0；但计数0也不足以排除路径／JSON或更早执行阶段。
 
 本片到“Browser已受理后缺执行细分、Electron先缺窗口身份链”的精确缺证交回停止。Agent及公共夹具按investigation中的绑定身份／字段补证；项目侧本轮无确证业务缺口可修。没有运行构建／本机UI／全量测试：仅文档修改无需重建，且不得用静态普通产品复跑替代旧CI的开发承载。无新增生产符号／协议／映射、无提交／推送／归档；I1／4.4c接收不变，4.1及完整change、科研质量继续开放。
+
+## 2026-10-28：第十一轮窗口侧公共UI取证
+
+### 成果与边界
+
+开始git clean，HEAD `29cd7283388dfd752911eacb9c3bf8416031db15`，按本轮主线授权与parallel-development-plan“第十一轮验收后的安排”执行。使用原`establish-file-backed-research-tasks`／scholoom-dev，先读取apply并在design第10节及tasks第10节闭合本片，再实施测试诊断。没有改生产、项目文件或harness业务，不重放旧patch或同步别树。主线已验构建产物直接复用，本轮测试修改无需重建；测试期间产物冻结。
+
+写集为`tests/ui/ui-rpc-observer.ts`的`observeUiRpc/save`、`tests/ui/fixture.ts`的按需`uiRpc`生命周期、file-workbench两个指定场景的依赖及清理前保存，以及本change的design／tasks／investigation／delivery。原helper签名、openWorkbenchWindow／多窗口登记、projectId会话创建、草稿和目录业务断言全部保留；未改model-kernel、execution-diagnostics、生产preload／client／协议或任何执行来源、恢复、工具和标签。无schema／生成映射或architecture消费变化。
+
+helper只监听传入真实uiPage的WebSocket事件，同连接RPC ID关联session.send和workbench.watch／snapshot，重新白名单构造安全字段。上限128观察、32连接、每连接32待回执、快照8条最近用户指令、2MiB输入帧，字段上限1024；同连接重复待回执ID停止该连接关联，超量和异常计数。只保留请求／项目／会话／指令／run身份、revision、结构化状态／错误码及本地时点，无文字、材料正文、凭据、URL、token或原始帧。首次save冻结、移除本观察器监听并写文件／TestInfo附件，幂等返回同一结果；存储／附件错误延至fixture teardown报告，保护原业务断言，缺连接或监听失败明确缺证。
+
+### 实际验证与首次失败
+
+本轮证据根`/home/joshua/.cache/scholoom-ui-rpc-7C1T29/`，TMPDIR为其`tmp/`，避开本机/tmp配额。Linux／Node24.12.0／Playwright1.63.0，复用已有依赖，无安装或下载。临时`playwright.ui.config.mts`导入本树原配置，仅将webServer换为`node /tmp/scholoom-sync-recovery-wyn13R/static-ui.mjs`，并绑定本树绝对testDir／teardown；普通静态产品，无DEV样例依赖。隔离端口5721、配置、项目和模型服务；内核／broker／仓储／UI真实，外部HTTP模型为既有受控替身。观察器模块自检仅模拟Page／WebSocket事件，不算内部提供者或业务通过。
+
+| 命令／范围 | 真实结果／证据 |
+| --- | --- |
+| `node node_modules/typescript/bin/tsc --noEmit -p tsconfig.tools.json` | 通过，`type-final.log`；先前两次也通过 |
+| `node node_modules/@biomejs/biome/bin/biome check tests/ui/ui-rpc-observer.ts tests/ui/fixture.ts tests/ui/file-workbench.spec.ts` | 最终3文件通过，`lint-last.log`；首次assignment／格式及后续finally throw诊断保留于`lint-first.log`／`lint-final.log`，已改写，无放宽规则 |
+| `node <root>/self-check-complete.mjs` | 7组安全／故障自检通过，`self-check-complete.log`和`module-checks/`：白名单隐私、同连接归属、错误／revision、各上限、无连接／监听失败、保存错误保护原断言、重复ID隔离、save幂等及仅清理自身监听。初版6组通过后扩充，未覆盖首次日志 |
+| 下方唯一一次双宿主命令 | **Browser通过37.6秒，Electron失败44.4秒，合计1通过1失败／1.8分钟**。`ui-first.log`及两宿主trace／安全附件；未重跑 |
+| `node <root>/check-artifacts.mjs` | 两份实际附件严格字段／数量／时点和同连接请求回执关联通过，TestInfo副本逐字节相同，`artifact-validation-final.log`及`artifact-validation.json`。首次检查误将可选message.runId当必需而失败，按现行harness-record-contracts核对后，只要求同snapshot的run及instruction身份分别匹配；未改被验附件或业务 |
+
+唯一UI命令（`<root>`为上述证据根）：
+
+```sh
+TMPDIR=<root>/tmp SCHOOLOOM_TEST_ROOT="$PWD" SCHOOLOOM_UI_PORT=5721 SCHOOLOOM_UI_DATA_DIR=<root>/ui-profile \
+node node_modules/@playwright/test/cli.js test --config <root>/playwright.ui.config.mts \
+tests/ui/file-workbench.spec.ts --grep 'resident project sessions switch files and preserve each project draft' --output <root>/ui-first
+```
+
+Electron保留原5000ms的`model.requests.length`期望1实际0，测试行406；没有采集错误覆盖原失败，也没有加sleep／timeout／重试或改model-server／初始化。此次是当前静态产品新样本，不能冒称旧CI同次重现。仅此resident场景作最小双宿主验证，另一个指定文件场景已挂载并通过类型／lint，未实跑，不声称双场景业务绿色。
+
+双宿主运行后仅作窄收尾：fixture将保存错误改为test body结束后报告以满足lint；无效RPC ID计数、重复ID隔离经模块自检核对；两场景去掉原finally的项目目录删除，以保留登记目录至配置退役。实际那次UI运行仍执行旧删除，所属配置随后由原globalTeardown退役，项目根已不存在；本轮不能提供它们的后续DB／文件查询证据。最终保留目录写法未重跑UI，不能将该收尾算入本次实际双宿主验证。
+
+### 可交回的身份与缺证
+
+附件路径均为`<root>/ui-first/file-workbench-resident-pr-7ae0b-preserve-each-project-draft-ui-<host>/ui-window-rpc.json`，TestInfo附件副本在同目录attachments。Browser 60条／33393字节，Electron36条／18306字节，各1连接；两端所有丢弃、无效、监听错误及冻结时待回执计数均0。`coverage=observed`只表示相关流量被观察，不表示业务成功。
+
+Browser两个真实发送分别以RPC137／159取得成功instruction／run回执，后续对应watch从queued／accepted至completed。Electron原先缺失的实际窗口身份链现为：
+
+| 字段 | 同次实际值 |
+| --- | --- |
+| projectId | `60c0bac1-e200-4445-877a-3dd05276f45e` |
+| sessionId | `87885264-8ce3-4cca-b101-93aacca20add` |
+| instructionId | `d3898d7c-1752-4bca-8b53-1f9d9e390ce3` |
+| runId | `13d33d9d-6eda-4a92-b2ab-fd08f2ec498a` |
+| 发送／受理 | connection1，RPC135，观察1793140025669／1793140025706毫秒 |
+| 随后watch | 1793140025721及1793140025761，revision12，同session／run为queued、同instruction为accepted |
+
+本地时点是窗口事件到达测试端的时间，不是内核或worker阶段。未收集instance／PID，不能从queued判断执行准入、worker initialize或首模型前根因；下一轮主线／Agent按上述真实绑定关联执行侧。本片不消费Agent未合入探针，也不跨树发送消息。失败不能改称项目保存或草稿丢失；该场景前段草稿切换断言已通过，Beta发送尚未执行。
+
+CI仅按授权查一次：`windows-diagnosis-once.json`为40591705558、head29cd728、completed／failure；`checks-once.json`为40591705520、同head、in_progress。没有随后轮询、触发CI或将执行诊断整体失败推成UI根因；目标新CI最终回执、Windows／macOS及分发包未验。原40540362614／938c33f计数仅沿主线作为历史基线，未用本次Browser绿色关闭其失败。
+
+### 审查、交付与停止点
+
+同模型原生只读辅助Agent核对helper／fixture／两个finally及design，确认白名单、有界关联和实际uiPage，无发送包装／重放或状态注入；保存错误保护和按连接归属修正后未报告新确证问题，未代跑测试。其后重复ID／无效ID及保留目录收尾由父端核对，模块实跑和附件检查均由父端取得；Agent已关闭。本片无需跨模块架构或新产品定案，不修改业务规格。
+
+tasks10.1／10.2仅关闭本片实施、自检、一次双宿主运行及真实失败交回，不关闭Electron业务失败。I1／4.4c已接收不变，4.1继续等待真实库删除／恢复及主题知识提供者，完整change、I3／I5／I6和科研质量不关闭。达到窗口公共诊断片后停止，不接管Agent执行诊断或文献，不重复测试。最终OpenSpec／diff和独立补丁的结果见本节收尾。
+
+收尾：`openspec validate establish-file-backed-research-tasks --type change --strict --no-interactive`及`openspec schema validate scholoom-dev`均通过，日志`openspec-{strict,schema}.log`。最终apply为**29/30、ready**，只剩4.1；`git diff --check`及新helper的no-index空白检查无诊断。可审查增量为`/home/joshua/.cache/scholoom-ui-rpc-7C1T29/001-window-rpc-observation.patch`，直接依赖29cd728，共7文件；`patch-manifest.json`记录逐文件前后SHA256，`patch-verification.log`记录独立临时index／object目录正向check及工作树反向check，真实index和HEAD保持未变。首次附件检查器的错误另保留于`artifact-validation-first-error.txt`，修正只在临时检查器。端口5721已释放，按本轮根及静态脚本核对无遗留服务；所属测试已结束、辅助Agent已关闭，未提交／推送／PR／归档。结果工件保留供主线复核，下一步只交绑定身份的执行侧缺证，不后台等待新CI。

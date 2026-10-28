@@ -144,3 +144,11 @@ Browser的`kernel.stopping`分别在WS行276（09:52:27.451Z）和401（09:52:55
 Agent可从两份已绑定Browser回执继续核`Harness.send/schedule`（runtime.ts:970、1214）、`RemoteAgent`进程启动／`execution.initialize`（remote-agent.ts:284、418）、`execution.beforeModel`与`execution.consume`、`model.acquire`。send在指令事务及setRun后才返回（runtime.ts:1154–1189），成功回执与后续accepted快照证明领域受理，但不是worker已启动或模型已发出的证明。queued同样不能区分reservation、initialize、指令消费或模型排队；当前不在项目树并改这些提供者。
 
 公共UI夹具的缺口是实际Electron上下文未跟踪，且两场景在首次计数前没有附加所属run的阶段／容量／模型准入事实，finally又删掉项目／配置。需要绑定原项目/session/run、在清理前取得一次实际snapshot与worker阶段，并保留Electron窗口的RPC流；这只是本片交回的取证要求，没有新增探针或修改model-server／期限。项目提供者本片无确证保存、版本或草稿缺陷可修。两场景具有相同表面边界，不足以证明同因；达到上述精确缺证即停止。
+
+## 2026-10-28：29cd728窗口侧观察的实际补证
+
+第十一轮公共UI取证沿design第10节实现，只消费当前真实uiPage的Playwright WebSocket事件，不改业务调用。唯一一次resident project sessions双宿主实跑为Browser通过／Electron原首模型计数失败；它是当前已构建静态产品的新样本，不是旧8c2fd24开发承载CI的重现。证据根`/home/joshua/.cache/scholoom-ui-rpc-7C1T29/`，原始结果`ui-first.log`，安全附件在`ui-first/*-ui-{browser,electron}/ui-window-rpc.json`，逐回执投影在`artifact-validation.json`。具体命令和边界见同一delivery末节。
+
+Electron同一实际窗口的RPC135请求于1793140025669、成功回执于1793140025706，绑定project `60c0bac1-e200-4445-877a-3dd05276f45e`、session `87885264-8ce3-4cca-b101-93aacca20add`、instruction `d3898d7c-1752-4bca-8b53-1f9d9e390ce3`、run `13d33d9d-6eda-4a92-b2ab-fd08f2ec498a`。随后1793140025721和1793140025761的watch均为revision12、同session／run的queued及同instruction的accepted。监听／丢弃／无效字段／待回执计数均0，真实窗口原先空network造成的身份缺口已有本次实际证据；观察不包含instance／PID或worker阶段，不能据queued替Agent判初始化根因。
+
+Browser两次发送均有同连接成功回执及匹配watch，最终两个run均completed。Electron首模型计数在原5000ms仍为0，不证明文件保存／草稿损失；该场景此前文件／草稿切换断言已执行，后续Beta发送未执行。下一轮由主线／Agent将上述原身份和本地时点与实际执行侧关联，本树不修改harness或model-server，也不重放发送。完整4.1所需库删除／恢复及主题知识提供者仍未提供。

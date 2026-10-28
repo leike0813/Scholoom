@@ -11,6 +11,7 @@ import { armRpcGate, installRpcGate, releaseRpcGate } from './rpc-gate.js';
 
 test('project files share draft preview and survive directory rename, trash and recovery', async ({
   uiPage,
+  uiRpc,
 }, info) => {
   test.setTimeout(90000);
   const root = await mkdtemp(join(tmpdir(), 'scholoom-file-ui-'));
@@ -231,15 +232,19 @@ test('project files share draft preview and survive directory rename, trash and 
     await expect(preview).toContainText('Unsaved latest paragraph');
     expect(errors).toEqual([]);
   } finally {
-    client.dispose();
-    await stop();
-    await model.close();
-    await rm(root, { recursive: true });
+    try {
+      await uiRpc.save(info);
+    } finally {
+      client.dispose();
+      await stop();
+      await model.close();
+    }
   }
 });
 
 test('resident project sessions switch files and preserve each project draft', async ({
   uiPage,
+  uiRpc,
 }) => {
   test.setTimeout(90000);
   const root = await mkdtemp(join(tmpdir(), 'scholoom-multi-project-ui-'));
@@ -424,11 +429,14 @@ test('resident project sessions switch files and preserve each project draft', a
     await expect(uiPage.getByText(alphaMessage, { exact: true })).toHaveCount(0);
     expect(model.requests).toHaveLength(2);
   } finally {
-    model.release();
-    client.dispose();
-    await stop();
-    await model.close();
-    await rm(root, { recursive: true, force: true });
+    try {
+      await uiRpc.save(test.info());
+    } finally {
+      model.release();
+      client.dispose();
+      await stop();
+      await model.close();
+    }
   }
 });
 
