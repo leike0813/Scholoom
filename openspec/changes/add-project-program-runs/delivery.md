@@ -1,5 +1,13 @@
 # 实际交付与交接
 
+## ACL探针新失败与最小序列化对照（2026-10-29）
+
+2b55465／run40770348500整run最终cancelled，独立private-files成功不等于execution job123105541273通过。后者前置重复10、ownership16、HostConnection25、availability6、isolated4、Agent代表3及owner2通过，Electron重复仅2项完成；ACL对照3通过／1失败。新首个minimal样本reason=probeDeadline，原始日志windows-equality-execution.log及提前artifact12852268067已一次下载至windows-equality-startup，不补造未完成阶段。
+
+四份acl-comparison实际显示，两次生产权限操作各约228–263ms；三个完成样本的只读verify-acl进程分别约22.7／23.1／29.2秒。失败样本两次setter约254／251ms，验证进程在43.4秒被本轮取消且没有权限结果。该证据将新失败定位到验证子命令，不能称生产setter仍12秒或从probeDeadline推出DACL错误。
+
+三个待区分因素是验证器JSON cmdlet加载、ACL读取及进程／IPC退出；已有命令close耗时使单纯IPC解释不符。最小对照仅将verify脚本的ConvertTo-Json换成Windows PowerShell所用Framework自带JavaScriptSerializer，保留原GetAccessControl／GetAccessRules、所有权限字段、flags、环境与期限；不改生产平台实现或增加暖机。独立短job增加这四个原样探针并保留原execution位置，以提前取得目标结果。Linux原四对照4/4、语法及Biome通过，仅核非Windows分支；Windows新的读回时间／JSON断言尚待推送后实际结果，不预先认定JSON加载是唯一根因。
+
 ## Windows子文件元数据独立取证（2026-10-29）
 
 2b55465／run40770348500的独立private-files job123105541706已success，Node24.22.1／libuv1.52.1。原四项各三次12/12：三份元数据before=after=opened且正文保持，真实损坏三类ACL后修复也通过；随后未修改的组织恢复RPC1/1，38秒，原附件版本／可读／正文断言通过。artifact12852830922上传成功并一次解包至windows-ace-equality；原库／备份／副本材料43字节、同一ID及SHA256一致，结构化读回windows-ace-equality-reviewed.json。原始日志windows-ace-equality-private.log和job状态已保全。最终权限独审对Equals及原保护条件无新增发现。该结果关闭[组织恢复任务](../complete-library-organization/delivery.md)，但完整Checks与本workflow的execution job尚未结算，不据独立job关闭本change5.2／6.2。

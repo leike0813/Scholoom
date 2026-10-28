@@ -117,7 +117,8 @@ process.once('message', async ({ directory }) => {
         '$rules = $entry.Value.GetAccessRules($true, $true, [System.Security.Principal.SecurityIdentifier])',
         '$result[$entry.Key] = @($rules | ForEach-Object { @{ currentUser = ($_.IdentityReference.Value -eq $sid.Value); fullControl = ($_.FileSystemRights -eq [System.Security.AccessControl.FileSystemRights]::FullControl); inherited = $_.IsInherited; allowed = ($_.AccessControlType -eq [System.Security.AccessControl.AccessControlType]::Allow) } })',
         '}',
-        '$result | ConvertTo-Json -Compress -Depth 4',
+        '$null = [System.Reflection.Assembly]::Load("System.Web.Extensions, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35")',
+        '[System.Web.Script.Serialization.JavaScriptSerializer]::new().Serialize($result)',
       ].join('\n');
       const { stdout } = await execute(
         'powershell.exe',

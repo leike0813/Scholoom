@@ -57,6 +57,9 @@ jobs:
       - name: Verify recovered library attachment versions
         if: '!cancelled()'
         run: pnpm --config.optimisticRepeatInstall=false exec playwright test --config playwright.kernel.config.ts tests/kernel/library-organization-rpc.spec.ts --workers=1 --reporter=list --output test-results/windows-library-restore
+      - name: Verify minimal environment ACL observations
+        if: '!cancelled()'
+        run: pnpm --config.optimisticRepeatInstall=false exec playwright test --config playwright.kernel.config.ts tests/kernel/isolated-startup-acl.spec.ts --workers=1 --reporter=list --output test-results/windows-acl-observation
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -64,6 +67,7 @@ jobs:
           path: |
             test-results/windows-private-files/
             test-results/windows-library-restore/
+            test-results/windows-acl-observation/
             !test-results/windows-private-files/**/private-profile/**
           if-no-files-found: warn
   execution:
