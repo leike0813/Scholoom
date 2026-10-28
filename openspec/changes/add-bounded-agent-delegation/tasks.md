@@ -76,7 +76,13 @@ flowchart LR
 
 ## 续做入口
 
-本轮基线f4ab1e5f1ed17ae9af656c1f9945005a2786d911，起始clean且主线已同步验证。第18组仅核Windows专项回执及Linux Electron普通委派工具行失败，不重修已绿harness后续会话；17.2历史缺证、平台及科研整项继续开放。所有新输入/入口/运行根均用cache，不依赖旧/tmp。
+本轮基线58eda1404fcc60036ce0e0f3ce30d5453ce1ee30，起始clean且生产源码同f4ab1e5。第19组统一承接三份受理后onStart前缺证，不重复绿色UI或扩大窗口工具投影；17.2/18.2、平台与科研整项继续开放。所有新输入/入口/运行根均用cache，不依赖旧/tmp。
+
+## 19. 统一启动前阶段与有界校准
+
+- [x] 19.1 核三份原现场与schedule/execute/RemoteAgent/ManagedNode/worker/collector调用链，用同源run/指令和requested/已登记instance分别建因果图，闭合精确观察缺口；不选择无证CI根因。完成依据：three-scenes.json逐run核原断言和缺证，design记录事件从onStart返回才发布/collector需instance行/非周期采样三点；原生R后回ready先于模块loaded，明确既有initialize发送/响应区间尚不能拆模块与驱动，不扩大窗口工具送达声明。
+- [x] 19.2 仅在同一通道补必要启动前白名单阶段，按持久run验证、显式未知/丢弃且保持旧controls实例权威；真实容量预留校准准入等待与释放后真实worker推进，不改业务/期限/窗口或平台启动合同。完成依据：runtime/Remote同一发布接点及observer启动窗口；真实ProcessAdmission预留→释放两组校准通过，requestedInstanceId与已登记实际worker对应。审查两P2已修：完整指令身份/明确省略与startup字节裁剪，Unicode长ID附件204653字节、startup丢弃4条明确，可信子封装共用224KiB预算。原CI/17.2/18.2未关闭。
+- [x] 19.3 生产改动先影响构建再最小校准/现有helper回归及静态/OpenSpec/diff，保留首失败/模拟边界，取delivery instructions更新原记录并交独立补丁；确认自有收尾及cache重建入口后停止，原CI及科研整项不关闭。完成依据：真实共享/内核构建及语义修正后harness/kernel构建通过，初组4/4、审查修正后针对性3/3分别保留；类型/架构/六文件Biome退出0（既有6 warning）/OpenSpec/diff与身份/字节/自有PID审计通过。已取delivery instructions更新同一记录；49/55，17.2/18.2及原CI因果未关闭，所需脚本/输入在Git/cache，未运行UI或下一阶段。
 
 ## 18. Linux Electron委派工具行边界
 

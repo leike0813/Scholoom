@@ -33,7 +33,26 @@ import { decodeFrameworkMessage, encodeFrameworkMessage } from './framework-mess
 
 type AgentOptions = NonNullable<Parameters<typeof createDeepAgent>[0]>;
 const executionDiagnostics = channel('scholoom.harness.execution');
+type DiagnosticScope = { projectId: string; sessionId: string; runId: string };
+
+/** Host call sites only; requested identity is not proof of a started worker. */
+export function publishExecutionStage(
+  scope: DiagnosticScope,
+  phase: string,
+  requestedInstanceId?: string,
+  error?: unknown,
+): void {
+  if (executionDiagnostics.hasSubscribers)
+    executionDiagnostics.publish({
+      ...scope,
+      phase,
+      ...(requestedInstanceId ? { requestedInstanceId } : {}),
+      ...(error instanceof OperationError ? { errorCode: error.code } : {}),
+    });
+}
+
 type RemoteOptions = {
+  diagnosticScope?: DiagnosticScope;
   model?: ModelExecution;
   backend: BackendProtocolV2;
   middleware?: AgentOptions['middleware'];
@@ -92,6 +111,11 @@ export class RemoteAgent {
     reservation?: ProcessReservation,
   ): AsyncGenerator<Event> {
     const options = this.options;
+    const startup = (phase: string, error?: unknown) => {
+      if (options.diagnosticScope)
+        publishExecutionStage(options.diagnosticScope, phase, options.instanceId, error);
+    };
+    startup('remote.prepare.request');
     const observe = (
       phase: string,
       error?: unknown,
@@ -297,11 +321,19 @@ export class RemoteAgent {
       },
     };
     const files = fileProviders(options.backend);
-    const owned = await ManagedNode.start({
-      entry: options.workerEntry ?? new URL('./execution.js', import.meta.url),
-      instanceId: options.instanceId,
-      ...(reservation ? { reservation } : {}),
-    });
+    startup('worker.start.request');
+    let owned: ManagedNode;
+    try {
+      owned = await ManagedNode.start({
+        entry: options.workerEntry ?? new URL('./execution.js', import.meta.url),
+        instanceId: options.instanceId,
+        ...(reservation ? { reservation } : {}),
+      });
+      startup('worker.start.response');
+    } catch (error) {
+      startup('worker.start.rejected', error);
+      throw error;
+    }
     peer = new RpcPeer(
       {
         send: (frame) => {
@@ -403,7 +435,13 @@ export class RemoteAgent {
     };
     options.signal.addEventListener('abort', stop, { once: true });
     try {
-      await options.onStart?.(owned);
+      startup('onStart.request');
+      try {
+        await options.onStart?.(owned);
+      } catch (error) {
+        startup('onStart.rejected', error);
+        throw error;
+      }
       observe('onStart.response');
       options.signal.throwIfAborted();
       const descriptor = options.model?.descriptor;

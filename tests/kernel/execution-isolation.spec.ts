@@ -13,9 +13,122 @@ import type { ProcessAdmission } from '../../packages/platform/dist/node.js';
 import { ManagedNode, processMayBeAlive } from '../../packages/platform/dist/node.js';
 import { OperationError } from '../../packages/protocol/dist/core.js';
 import { installExecutionDiagnostics, observeExecution } from '../execution-diagnostics.js';
+import { createExecutionObserver } from '../execution-observer.js';
 import { createModelServer } from '../model-server.js';
 
 installExecutionDiagnostics();
+
+for (const largeIds of [false, true]) {
+  test(`accepted execution distinguishes held admission from real worker startup${largeIds ? ' with bounded full identities' : ''}`, async () => {
+    const model = await createModelServer();
+    const app = new KernelApplication(test.info().outputPath('profile'), {
+      modelEndpoint: model.url,
+      environment: { MINIMAX_CN_API_KEY: 'synthetic-startup-key' },
+    });
+    const held: ReturnType<ProcessAdmission['reserve']>[] = [];
+    let observer: ReturnType<typeof createExecutionObserver> | undefined;
+    try {
+      await app.initialize();
+      const admission = Reflect.get(app, 'processes') as ProcessAdmission;
+      while (admission.status.active < admission.status.limit) held.push(admission.reserve());
+      await Promise.all(held.map((slot) => slot.ready));
+      const session = await app.call('session.create', { projectId: 'application' });
+      const scope = { projectId: 'application', sessionId: session.id };
+      observer = createExecutionObserver(app, scope, () => model.requests.length);
+      const prefix = largeIds ? '😀'.repeat(1000) : 'i'.repeat(128);
+      const ids = Array.from({ length: largeIds ? 16 : 2 }, (_, index) => `${prefix}${index}`);
+      const instructionId = `${prefix}0`;
+      const accepted = await app.call('session.send', {
+        ...scope,
+        instructionId,
+        text: 'MODEL_CHAT PRIVATE_STARTUP_MESSAGE',
+        materials: [],
+      });
+      for (const id of ids.slice(1))
+        await app.call('session.send', {
+          ...scope,
+          instructionId: id,
+          text: 'MODEL_CHAT PRIVATE_STARTUP_MESSAGE',
+          materials: [],
+        });
+      await observer.sample();
+      const waiting = JSON.parse(observer.body());
+      expect(
+        waiting.startup.some(
+          (s: { phase: string; runId: string; instructionIds: string[] }) =>
+            s.phase === 'schedule.admission.request' &&
+            s.runId === accepted.runId &&
+            s.instructionIds.includes(instructionId),
+        ),
+      ).toBe(true);
+      expect(
+        waiting.startup.some((s: { phase: string }) => s.phase === 'schedule.admission.response'),
+      ).toBe(false);
+      expect(waiting.children).toHaveLength(0);
+      expect((await app.snapshot(scope)).run?.state).toBe('queued');
+      expect(model.requests).toHaveLength(0);
+      for (const slot of held) slot.release();
+      await expect
+        .poll(async () => (await app.snapshot(scope)).run?.state, { timeout: 20_000 })
+        .toBe('completed');
+      await observer.stop();
+      const body = observer.body();
+      const completed = JSON.parse(body);
+      const phases = completed.startup.map((s: { phase: string }) => s.phase);
+      for (const phase of largeIds
+        ? ['schedule.admission.request', 'onStart.request']
+        : [
+            'schedule.admission.response',
+            'execution.prepare.request',
+            'execution.stream.request',
+            'remote.prepare.request',
+            'worker.start.request',
+            'worker.start.response',
+            'onStart.request',
+          ])
+        expect(phases).toContain(phase);
+      expect(Buffer.byteLength(body)).toBeLessThanOrEqual(256 * 1024);
+      if (largeIds) expect(completed.droppedStartup).toBeGreaterThan(0);
+      expect(
+        completed.startup.some((s: { instructionIds: string[] }) =>
+          s.instructionIds.includes(`${prefix}${ids.length - 1}`),
+        ),
+      ).toBe(true);
+      expect(Buffer.byteLength(observer.body(224 * 1024))).toBeLessThanOrEqual(224 * 1024);
+      expect(
+        completed.controls.some(
+          (s: { phase: string }) => s.phase === 'execution.initialize.response',
+        ),
+      ).toBe(true);
+      expect(completed.children).toHaveLength(1);
+      const child = completed.children[0];
+      expect(
+        completed.startup
+          .filter((s: { requestedInstanceId?: string }) => s.requestedInstanceId)
+          .every(
+            (s: { requestedInstanceId: string }) => s.requestedInstanceId === child.instanceId,
+          ),
+      ).toBe(true);
+      expect(child.processId).toBeGreaterThan(0);
+      expect(completed.unverifiedStartup).toBe(0);
+      expect(body.includes('PRIVATE_STARTUP_MESSAGE')).toBe(false);
+      expect(body.includes('synthetic-startup-key')).toBe(false);
+    } finally {
+      for (const slot of held) slot.release();
+      await observer?.stop();
+      if (observer)
+        await test
+          .info()
+          .attach('execution-stages', { body: observer.body(), contentType: 'application/json' })
+          .catch(() => {});
+      try {
+        await app.close();
+      } finally {
+        await model.close();
+      }
+    }
+  });
+}
 
 const harnessExecutionWorker = new URL('../../packages/harness/dist/execution.js', import.meta.url);
 const kernelExecutionWorker = new URL(

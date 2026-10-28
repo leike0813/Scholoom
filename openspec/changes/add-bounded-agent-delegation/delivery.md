@@ -1,5 +1,53 @@
 # 实际交付与交接
 
+## 58eda140后的统一启动前诊断
+
+起始HEAD=`58eda1404fcc60036ce0e0f3ce30d5453ce1ee30`、clean。按第十四轮安排集中承接两份首文件和一份委派现场，没有重复各自绿色UI或恢复窗口工具投影声明。第19组交付共同诊断及校准后为49/55；**原三份CI实际阻塞点仍未知，17.2/18.2及平台/科研整项未关闭**。设计与最小因果图见[共同启动阶段](design.md#受理至onstart的共同启动阶段58eda140)。
+
+### 三份输入与已闭合的观察缺口
+
+消费项目原delivery“新Linux完整CI首文件场景的两份原现场”、`/home/joshua/.cache/scholoom-file-r14/{analyze-ci.mjs,inputs/}`、本线第18组及`/home/joshua/.cache/scholoom-agent-round14-8MivYs/`，原CI为e3c815b/40613967267，附件在`/home/joshua/.cache/scholoom-round13-acceptance/linux-ci-artifact/`。本轮`three-scenes.json`逐份保留project/session/instruction/run/kernel身份、原断言窗口、真实HTTP计数来源与各项缺证，不串run。两份首文件的外部HTTP计数为0；委派HTTP数未观测。三份各只有初始queued/accepted样本，随后unavailable都在原断言失败后，空controls不能证明worker未创建。
+
+源码确认两层盲区：RemoteAgent原最早事件在onStart回调返回后；collector原要求在run_instances查到归属，而该行恰在onStart中登记。scheduler容量等待、execute准备模型/checkpoint/工具、Remote工具schema准备、ManagedNode.start原生启动等待和onStart自身都没有可绑定阶段。此外采样按应用变更/控制事件触发，没有周期heartbeat，初始样本与清理错误不能解释中间整段。这里闭合的是观察缺口，未给旧CI选根因。
+
+原生边界另已核清：process-controller收到原生R并成功发送load即回ready；process-bootstrap随后import入口、startExecutionWorker注册处理器并回loaded，controller才放行startupFrames。因此ManagedNode.start返回/onStart不表示模块已载入，initialize.sent仅为原发送Promise成功。发送到响应之间仍包含模块导入/驱动注册/初始化的可能性；没有新增loaded/ready合同或猜定实际停点。uiRpc仍只有用户指令/run摘要，服务端工具快照不证明renderer工具收到。
+
+### 实际接点、归属与有界性
+
+- `packages/harness/src/remote-agent.ts`：沿原scholoom.harness.execution提供内部publishExecutionStage和可选diagnosticScope，记录Remote准备、ManagedNode.start请求/返回/拒绝、onStart请求/拒绝。现有onStart.response/initialize/consume/model及controller控制事件继续保留。没有新生产RPC、worker消息或公开DTO。
+- `packages/harness/src/runtime.ts`：真实reservation.ready请求/结果、普通execute准备与进入stream、准备失败；root/子执行沿原instanceLifecycle提供实际project/session/run，注册图只传同源scope。admission.rejected仅包ready本身拒绝，不能把ready成功后的取消记成准入拒绝。原调度、await、状态、权限、checkpoint与释放责任不变。
+- `tests/execution-observer.ts`：同一collector增加最多32条startup，先匹配所属scope，再查询持久runs/instructions核真实run/指令。登记前只存requestedInstanceId，不存PID或推定running；原controls/children继续按实例表核验。查询/归属失败计unverifiedStartup，数量或字节裁剪计droppedStartup，不把丢失事件当未发生。
+- 指令身份完整保存；省略整条身份时记omittedInstructionIds/instructionsTruncated，避免合法长ID裁成相同前缀。body默认256KiB，同时裁样本和startup；`tests/fixtures/model-kernel-process.mjs`共用同一body的224KiB预算，为原240KiB子文件封装留空间，原256KiB父附件不变。没有正文、密钥、材料或错误原文。
+- `execution-isolation.spec.ts`增加真实容量预留校准两组输入；`model-kernel.spec.ts`首两会话从实际send触发collector，覆盖首个scheduler阶段，而非先rename预创建观察器。其余六个空会话继续以真实rename验8scope上限；没有修改UI文件、窗口fixture、isolated-kernel、display/CI或其他领域符号。
+
+### 实跑、首轮问题与独立复核
+
+本轮独立根`/home/joshua/.cache/scholoom-agent-round15-PF9C9q/`（A），所有payload/命令先export TMPDIR=A并用bash；资料、输入、报告与调查脚本均在Git/cache。Linux/Node24.12.0，只有外部模型HTTP受控，broker/仓储/授权/真实ProcessAdmission与worker/原生完整归属均真实。容量门是测试调用原reserve取得实际槽，不伪造实例、worker或模型输出；释放后按原机制运行。测试环境读取既有processes引用，不添加生产测试注入入口。
+
+| 实际记录 | 结果及边界 |
+| --- | --- |
+| `build-first` | 生产窄诊断修改后先`pnpm --config.optimisticRepeatInstall=false --filter @scholoom/kernel... build`通过；这是本轮实际构建，不把此前主线复用描述成重建 |
+| `build-semantic` | ready拒绝标记自查修正后，只重建harness及kernel，均通过；之后冻结产物。后续身份/字节修正仅在测试collector/入口，无生产再改 |
+| `first` | 初组4/4，48.6秒：容量预留→释放校准6.5秒、原初始化发送拒绝无/有观察器2.1/2.1秒、可信model-kernel25.5秒。未声称重现旧CI失败 |
+| 审查/首个检查问题 | gpt-6.1-sol/high、无历史fork辅助只读发现两项P2：指令身份前缀碰撞、startup未参加字节裁剪；均已修复静态复核。初次Biome的两个新增forEach返回风格错误也已修，原日志保留；无生产语义放宽。辅助未构建/测试/查CI，现已关闭 |
+| `reviewed` | 最后针对性3/3，49.6秒：正常两指令校准6.5秒、16条长Unicode真实指令校准5.4秒、model-kernel26.0秒。没有重跑不变的发送拒绝两例或UI全绿组 |
+
+校准先占满真实容量，再受理指令；实际queued、0 HTTP、startup只有准入request而无response/worker的断言通过。释放本测试槽后，真实worker完成并取得有效initialize响应，requested instance与实例表中的实际PID对应。短输入的两条合法ID共享128字符前缀，startup保留完整差异；长输入为16条1000 Unicode字符前缀的真实ID，附件204653字节，startup保留4条/显式丢弃4条，不再断言被裁窗口完整。未核身份计数均0，体积同时满足256/224KiB分配；测试语义是校准诊断，不是5秒全链SLA或科研产物验收。
+
+model-kernel实际保存8scope，两个执行各有8条startup/无未核归属；原控制事件和实例/PID仍可核对，最终父附件30159字节、childClosed=true/phase=stopped。metadata审计检查字节、白名单/合成敏感字串排除、requested/实际实例关联及自有worker PID均已退出，不凭根exit推断完整停止。原归属机制和run completed/exited断言仍是事实依据。
+
+最后命令：`export TMPDIR=A; PLAYWRIGHT_JSON_OUTPUT_NAME=A/reviewed.json node node_modules/@playwright/test/cli.js test --config playwright.kernel.config.ts tests/kernel/execution-isolation.spec.ts tests/kernel/model-kernel.spec.ts --grep 'accepted execution distinguishes|legacy model kernel' --workers=1 --reporter=list,json --output=A/reviewed-results`。首组同入口增加grep `initialization send rejection reaches`，结果各自保留。可重建审计入口`node A/summarize.mjs A/reviewed.json`输出`reviewed-audit.json`；三现场来源表为`three-scenes.json`，原构建、首组与审查前后log/JSON均保留。
+
+tools类型、architecture（14模块/0 findings/0 granted exceptions）、OpenSpec strict/schema与diff通过；六文件Biome退出0，保留runtime既有6条warning。无协议/生成类型变化，不重复生成映射或未改宿主构建。独立补丁`A/startup-stages-58eda140.patch`含实际发布调用方、collector/可信入口、必要测试及原工件，临时index前向cached/当前树反向检查通过，真实index未改。未提交/推送或同步其他树。
+
+### 有限判定条件与停止
+
+原三份旧附件缺startup，不能回填或推定共同生产原因。下一次同目标取同project/session/run及startup完整身份：只有admission.request时核实际容量等待；有response而未到stream时核execute准备；到remote.prepare而未worker.start时核schema/Remote准备；有worker.start.request无返回时交原生启动区间；有start返回但onStart未完成时核宿主登记/回调；已有initialize.sent无response时仍不能拆模块载入与驱动/初始化。只在阶段确实缩到后一跨模块区间时，向主线推荐对既有loaded事实作最窄安全转发，不提前新造IPC或第二框架。unverified/丢弃/超时非0时先按有限采样解释，不把缺事件当停点；所有情况保持原期限/unknown/容量与完整停止。
+
+本轮未调整任何原UI等待；17.2旧152ms和18.2旧工具行失败仍开放。最新f4ab1e5/40622631905 Windows688通过/53失败/44跳过只按`/home/joshua/.cache/scholoom-round14-acceptance/windows-ci.log:3631,3685,3686`回执接收，不按计数归同因，未查询/重跑CI或宣称本增量跨平台通过。
+
+选取可信kernel fixture而非重复UI，因此6003未启服务，无图形动作/显示前置/开发服务器。本轮自有worker PID退出、模型服务器关闭、app.close及模型内核profile stopped均已核；配置/项目/结果保留。精确收尾与输入入口见`cleanup-check.json`，无现有/tmp必要内容；Windows/macOS、完整UI/分发/科研质量未验。完成本片后停止交父验收，不扩Graph/科研角色/平台合同或实施下一阶段。
+
 ## 第十四轮主线验收
 
 三文件已保全合入。Standards无确证问题，Spec一项P2是本记录扩大窗口工具消息观察能力；主线收窄为实际可证的HTTP计数、服务端工具快照和窗口用户指令／run摘要，明确renderer工具送达仍缺证，18.2不关闭。没有为修文案再扩公共观察器。复用同源构建后，主线委派打开／取消场景双宿主4/4，tools／架构／单文件Biome通过（原有1条warning）；正常结果与取消清理均通过，不代表旧CI根因已解。

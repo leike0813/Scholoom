@@ -40,7 +40,10 @@ process.once('message', async ({ directory, endpoint, artifact, observationMs })
     schedule();
   };
   const snapshot = () => {
-    const captures = [...observers.values()].map((observer) => JSON.parse(observer.body()));
+    // Reserve space for this entry's lifecycle envelope within the 240 KiB child file.
+    const captures = [...observers.values()].map((observer) =>
+      JSON.parse(observer.body(224 * 1024)),
+    );
     let omittedScopes = 0;
     const encode = () =>
       JSON.stringify({
