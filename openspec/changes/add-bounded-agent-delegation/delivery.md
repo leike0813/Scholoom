@@ -1,5 +1,43 @@
 # 实际交付与交接
 
+## 7aff2c7后的Windows逐例取证
+
+按第十五轮安排及429中断后的明确续接执行；起始/结束基线均为`7aff2c763504f0ddf3b2304eb6ea18b7ef0e389c`，起始clean。本片只更新原tasks/delivery：没有确证可修的本域缺陷，未改执行机制、诊断、测试或期限，未重跑已绿UI/kernel组。4.2/4.3、17.2/18.2及科研质量继续开放，49/55不变。已读取当前apply及实际取证后的delivery instructions；本片是调查交接，不把CLI状态或新增事实当完整交付。
+
+### 官方输入、身份与原失败
+
+本轮根`A=/home/joshua/.cache/scholoom-agent-round16-giLY3h`。旧日志消费`/home/joshua/.cache/scholoom-round15-acceptance/windows-diagnosis-ci.log`，官方artifact 12791757137下载为`A/windows-40630840362.zip`（496041字节）；只展开其windows-agent三例trace/error-context，execution-stages从trace的附件file条目解码。新官方artifact 12796333710为`A/windows-40643346320.zip`（901412字节），只展开两个失败trace；新原日志`A/logs-40643346320.zip`（42028字节）独立确认取消通过，未凭缺trace判绿。各下载均一次成功，本次续接没有429、重试或换模型。
+
+一次状态查询`A/new-ci-once.json`截点为2026-10-28 06:54:36.962 UTC：同head的Windows专项40643346320已completed/failure，Checks40643346195仍in_progress。未再查询或等待后者。新专项checkout日志核完整head；旧/新三份测试blob逐一相同，见`A/input-source-versions.json`。取消仍用同一工作包/childHold及真实父子进程、停止/重启断言；excerpt仍传四种显式摘录/批注并核checkpoint；附件仍走真实RPC/库及原字节/权限断言。旧失败没有执行到这些后段，不能将定义中的断言写成通过。
+
+全部时间以下均为**各自observer起点后的毫秒**，不同起点不拼接。`A/trace-facts.json`保存五份现场的完整project/session/instruction/run/instance、绝对断言窗口、原附件路径与控制事件。failure.sample是失败标记引用的最近样本，并非失败时同步重读；下表同时注明样本时刻，不能把旧样本时间写成失败时刻。清理前最终sample分别在5061/4853/4979/5023/4862ms，未提供自然完成后的观察。
+
+| run/head及场景 | 原断言与首次失败 | 同次实际阶段及结论边界 |
+| --- | --- | --- |
+| 40630840362/58eda140 cancel | 首模型数≥1，5000ms窗口；failure 5059，最近样本5039为running/consumed、HTTP0 | onStart 2331，initialize.sent 2364→response 4950，consume 5011→5016；记录内无model.acquire、委派或cancel。不能称子取消失败；剩余窗口不足以证明模型准入故障 |
+| 同批excerpt | completed，名义5000ms、trace外层窗口4785ms；failure 4850，最近样本2422为queued/accepted、HTTP0 | onStart 2386、initialize.sent 2419，窗口内无response/consume；清理前4853ms样本仍queued/HTTP0。已有真实worker，不能称未创建 |
+| 同批附件首导入 | completed，名义5000ms、外层4907ms；failure 4974，最近样本2352为queued/accepted、HTTP0 | onStart 2321、initialize.sent 2349→response 4971，仅比失败早3ms；窗口内无consume/模型记录，尚未reader、字节或撤权断言 |
+| 40643346320/7aff2c7 excerpt | completed，外层5009ms；failure 5021，最近样本4875为running/consumed、HTTP1 | admission 11→11，execute准备11→stream 1727；worker.start 1858→2197，onStart 2198；initialize 2201→4712，consume 4774→4776，model.acquire 4819→4822、model.output 4850。原poll错误的Received queued是其末次predicate值，不能盖过后续running/HTTP1；无completed，不能证明仅轮询漏采 |
+| 同批附件首导入 | completed，名义5000ms、外层4795ms；failure 4859，最近样本2351为queued/accepted、HTTP0 | admission 57→58，execute准备60→stream 1859；worker.start 1986→2315，onStart 2316；initialize.sent 2348，至最后4862ms样本无response/consume/model。未到附件工具、保存或reader，不能归附件读写坏 |
+
+原日志逐项结果：旧专项三个Agent例失败；新专项取消18.0秒通过、excerpt7.6秒及附件9.1秒失败，合计1通过/2失败。新取消的通过覆盖该例实际父子取消/持久化/重启断言，未单独取得成功例trace，不报告其内部阶段耗时或平台稳定性已关闭。它与e3c815b/40613967285的旧三绿是不同回执，也不能替代完整Windows组。
+
+五份stage为2654–10686字节，modelRequests起点均0，samples/controls/children/stages丢弃0且snapshotTimedOut=false；新两份startup丢弃/未核身份均0，旧三份没有startup字段，不回填。所有controls均匹配同run及已登记实例，新startup的requestedInstanceId亦匹配实际实例。HTTP数来自本用例受控模型服务器，不来自其他run。仓储、broker、原生worker/IPC内部机制真实；本机仅解码官方实跑资料，没有本机Windows执行或替身验证。
+
+### 最窄缺口与交回方案
+
+同次证据已排除新两例卡在容量准入或onStart前：准入响应约0–1ms，execute准备约1716/1799ms，原生start约339/329ms。后两个区间是测量值，不是独立SLA，也不能推断新excerpt与新附件具有相同根因。新excerpt已模型输出但到清理前仍running，另缺自然完成、controller退出及checkpoint完成的同次记录；本片没有证据支持改其poll或扩阶段预算。
+
+附件最窄未解释区间是initialize.sent之后到响应之前。复核`remote-agent.ts`发送Promise、`process-controller.ts`的ready/loaded分支、`process-bootstrap.ts`的import以及`execution-driver.ts`初始化handler：onStart/ManagedNode.start返回不表示入口模块已loaded；controller在原生R后发送load成功即回ready，随后模块导入/driver注册完成才放行初始化帧。现有sent→response因此仍包含模块载入、放行及初始化处理，既不能证明帧已到handler，也不能选定CPU、IPC、驱动或存储根因。沿既有design的共同启动因果图解释，未改变合同。
+
+交主线的推荐为：若继续该跨模块片，先授权在既有可信诊断通道安全转发controller已经核验的module loaded事实，并核是否还需初始化handler进入点；沿当前同run/实例身份、白名单/容量/清理前落盘，不新造RPC或改ready含义。只需选择一个附件首导入目标，保留原断言/期限，取得loaded与handler进入的相对位置，就能区分载入前等待、帧放行/送达和handler处理。该方案涉及platform接点，**本线没有实施**；没有这些同次事实时不通过加sleep/重试/统一timeout猜修，也不因新excerpt已模型输出反推附件的原因。未给缺Windows结果或未设计科研角色补通过结论。
+
+### 可重建入口、检查与收尾
+
+离线重建命令：`export TMPDIR=/home/joshua/.cache/scholoom-agent-round16-giLY3h; node "$TMPDIR/analyze-traces.mjs" > "$TMPDIR/trace-analysis.log"`，从已保存ZIP解码并生成`trace-facts.json`；`node "$TMPDIR/check-evidence.mjs"`核五份身份、容量/丢弃、原窗口及新原日志逐项结果。官方下载脚本为`A/fetch-evidence.mjs`，已完成的状态/下载不可重复调用；状态与失败记录在A，令牌只在请求进程内，未保存凭据或签名URL。新日志摘录`A/new-agent-step.log`及`A/new-checkout.log`，原下载ZIP均保留，无当前/tmp接续前置。
+
+本轮只改文档，不构建或测试，不把主线已验产物描述成重建；实际检查为OpenSpec change strict、scholoom-dev schema及git diff。记录`A/checks.log`，独立补丁`A/windows-evidence-7aff2c7.patch`含本tasks/delivery两文件；临时index前向cached与当前树反向检查，真实index保持不变。仅作原始来源/身份/时钟及diff自查，无新增高风险实现需要独立代码审查。所有取证进程已结束，未启模型/内核/UI服务、图形窗口或辅助Agent，无本轮登记项目需退役；未提交/同步/push/PR/archive。达到精确缺证交接边界后停止等主线验收。
+
 ## 第十五轮主线验收
 
 统一启动诊断九文件已保全合入；冻结Standards／Spec均0确证问题。主线完整构建／类型通过，真实容量占满／释放两例、初始化发送拒绝开／关诊断两例及可信model-kernel一例，共5项通过；普通委派打开报告双宿主2/2通过。没有将startup请求身份提升为已运行事实，也未用新事件回填旧CI。主线补充规划授权文段的一项P2已修并独立复核关闭，与生产诊断无关。
