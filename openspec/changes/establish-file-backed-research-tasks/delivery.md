@@ -408,3 +408,57 @@ tests/ui/file-workbench.spec.ts --grep 'resident project sessions switch files a
 本片无安装／下载、CI触发、真实用户库或其他工作树操作，也未查询／后台等待40613967285／40613967267新CI。主线给出的29cd728／40591705520历史计数继续作为其源码平台证据；本次Linux本机2/2不关闭旧CI／Windows／macOS稳定性、完整change或科研质量。4.1继续等待真实库删除／恢复及主题知识提供者，I1／4.4c接收不变。到此机械消费边界停止，无新产品／架构选择需猜定。
 
 收尾：OpenSpec strict及scholoom-dev schema通过（`openspec-{strict,schema}.log`），apply为**30/31、ready**，仅4.1开放。仅四份本change Markdown改动，无生产／测试／fixture符号变更；原记录的测试／观察器／产物入口SHA256复核未变，无需重新构建、类型或lint。端口5721已释放，本轮根和静态脚本无遗留进程，`final-scope.log`保留核对。可审查文档增量为`/home/joshua/.cache/scholoom-project-r13/001-resident-project-observation-receipt.patch`，直接依赖ba29ee61；`patch-manifest.json`记录逐文件前后hash，`patch-verification.log`记录临时index正向和工作树反向check及真实HEAD／index未变。没有本地提交、push、PR、archive或后续任务展开，证据与登记项目保留供主线接收。
+
+## 2026-10-28：新Linux完整CI首文件场景的两份原现场
+
+### 当前结论与原始身份
+
+起点HEAD `f4ab1e5f1ed17ae9af656c1f9945005a2786d911`、git clean，沿第十三轮安排仅收敛Checks40613967267／源码`e3c815b3af6bd4b9718820f641b10bab57a69b24`的首个file-workbench场景。两宿主原112行仍是5秒预算内模型请求数期望1、实际0；本片没有修复通过或新UI绿色结论。已实际绑定两份窗口与执行附件，**两次发送均成功受理，但没有保留可绑定的执行instance／worker PID、onStart、initialize、consume、model.acquire或model.output事实**。不能从空数组或queued判定worker未创建，更不能指认两个样本同一启动根因。
+
+| 宿主 | 同次实际身份 |
+| --- | --- |
+| Browser | project `484987af-366b-4c70-8c58-cd90c838f44a`；session `f0484ec8-d6ef-426f-8b9f-9da7c9457a10`；instruction `2a419394-b73a-4246-8ebe-6173c6548745`；run `61029427-2508-4f50-9e2d-394b3937f010` |
+| Electron | project `6bd25125-4eb0-49f0-aeaf-a9102b794bf4`；session `d037c129-bd08-45f9-aa06-e42e547ca872`；instruction `640a5a73-b122-4933-ac64-d433043060d9`；run `fffde8ee-d32a-47ea-9f68-1cc25bfd2a2b` |
+
+Browser属于kernel instance `7ad33c2f-3859-487c-841f-70113e229c4d`／PID23377，窗口connection2、RPC122于1793152325700观察到发送，1793152325705取得成功回执。随后1793152325715／1793152325762两份watch为revision15、同run queued和同instruction accepted。执行capture在1793152325705取得对应初始仓储状态、instances为空；此后没有有效执行阶段样本。原断言约1793152330571返回失败，Browser原WebSocket的kernel.stopping在1793152330578.787、同kernel instance；两条samplingError=unavailable在1793152330590／2330594，均在原失败后的收尾区间。
+
+Electron属于kernel instance `9fc13956-23b6-4209-9f9a-784d227b0d55`／PID35800，窗口connection2、RPC117于1793153514959观察发送、1793153514962成功回执；1793153514980／1793153515022的watch为revision14、同run queued／同instruction accepted。执行初始样本1793153514956同样仅有queued／accepted、无实例；原断言约1793153519839失败，unavailable样本在1793153519870／3519871，kernel.serve.closed在1793153519869。不同观察方的本地时点不强行作为严格因果全序；初始仓储采样可早于窗口回执事件到达测试端。
+
+两份窗口观察各2连接，全部丢弃／无效字段／监听错误／冻结待回执计数0，成功受理发生在替换后的实际窗口连接，不是默认空页。执行scope／生命周期和capture丢弃均0，未采样超时，children／controls为空；内核最终均正常close code0。有限事件采样和空控制列表不能证明执行全程没有活动，停机后的unavailable也不解释之前的请求计数0。
+
+### trace、文件动作与尚缺执行事实
+
+父包的`artifact-download-status.json`与另列的`artifact-trace-download-status.json`均已完成，实际含这两份trace；本片直接消费，没有新下载或远端错误。Browser trace保留208条Page资源记录、Vite client和89条/src/请求，属于CI开发承载；两份Electron Page network为空、无窗口DOM snapshot，不能据此抹去已取得的真实窗口uiRpc证据。Browser在发送后也仅有一个早期压缩DOM snapshot，不能用它补足原5秒窗口的最终DOM状态；本片没有重构该压缩DOM或将其当完整投影。两例`test.trace`均记录实际发送点击和原112行失败。
+
+Browser的`resources/baeb595d70247eab97deb9252f188622.jsonl`一基251／252行与窗口RPC122的scope／instruction／run逐项匹配；253–259为对应watch／刷新，260为随后kernel.stopping。此前provider.configure成功且configured=true，files.mkdir、files.save及resources.save均有成功回执。两份`test.trace`中原76行磁盘正文轮询最终成功，99–103行未保存段落／预览／远端图片保护断言均通过；内部轮询的中间失败不当作最终测试失败。113行起的大文本、目录改名、回收／恢复没有执行，故本次失败不能称文件保存或草稿丢失。Electron无原始网络帧可再核保存RPC，但同次磁盘／UI断言与成功发送回执仍可核。
+
+首模型计数0来自该场景独有外部模型夹具的已解析请求数组；执行附件的modelRequests=null不是同一计数。`tests/model-server.ts:543`先requests.push、后等待hold，hold本身不能解释已接收并解析的合法请求数0；但0仍不能区分未发送HTTP、未到达或解析前失败。Page trace不覆盖Node worker的出站HTTP，附件没有对应worker／模型阶段，不能据此声称HTTP已发或模型权限已拒绝。本片能证明的最早边界是成功受理后、首个可核执行阶段之前；初始化、消费、模型准入和HTTP的精确停止点仍未知。
+
+### CI到当前源码的准确差异
+
+独立只读辅助Agent与父端Git对象核对一致：file-workbench全文、ui-rpc-observer、ui fixture、rpc-gate、model-kernel、execution-observer、可信model-kernel-process、model-server、两份Playwright配置和Checks workflow在CI／HEAD完全相同；apps/kernel、harness、platform、models、client、protocol目录tree对象也相同。完整对象hash在`source-comparison.json`，辅助核对在`source-review.md`。这是源码一致性，不证明CI与当前本机环境／实际构建产物一致。
+
+邻接变化是kernel-fixture新增有界生命周期解析和isolated-kernel安全stderr／退出分类；首场景使用独立startModelKernel，不经过startIsolatedKernel，runningKernel／runKernel及原连接期限内容未变，不能将这些新诊断当成该CI模型入口已有的事实。产品侧CatalogItemList的滚动恢复由useEffect改useLayoutEffect，未改发送／执行链，也没有证据解释此处0请求。精确相关diff保留在`source-diff.txt`。首场景截留resources.read后已经释放，再进行发送；后面的project.forget闸门尚未执行，成功session.send回执也不支持先改RPC闸门。
+
+### 实际操作与独立输入
+
+本轮独立根`/home/joshua/.cache/scholoom-file-r14/`，所有payload前先在bash中`export TMPDIR=<root>/tmp`。只维护本change原tasks／delivery，无生产／测试／观察符号修改，也没有新规格／生成映射。以下`<root>`均为该绝对根：
+
+| 命令／操作 | 实际结果 |
+| --- | --- |
+| `git status --short`、`git rev-parse HEAD`、`openspec instructions apply --change establish-file-backed-research-tasks --json` | 起点clean／f4ab1e5f；沿原scholoom-dev续做，不因CLI状态关闭change |
+| 消费父正式包两个状态文件，逐文件copy／SHA256比较 | 只保全首场景两宿主各trace.zip、ui-window-rpc.json、model-kernel-execution.json及error-context.md，共8文件；`input-manifest.json`列原路径、新路径和hash，均在cache |
+| `unzip -t <root>/inputs/{browser,electron}/trace.zip`（分别调用） | 两份ZIP完整性通过，`browser-zip-check.log`／`electron-zip-check.log`；未解压整仓／全套trace |
+| `node <root>/analyze-ci.mjs` | 最终实际身份、原断言、原始Browser帧与窗口一致、源码对象及失败／收尾时点断言均通过，`analysis-final.log`；安全投影`ci-two-cases.json`不保留正文、凭据、token或原始通用帧 |
+| 首次临时检查器 | 我误写不存在的`.github/workflows/ci.yml`，在源码比较阶段失败；`analysis-first.log`保留。按实际文件改为checks.yml后通过（`analysis-second.log`），随后补Browser原帧／kernel身份交叉检查再通过；未改被验输入或重跑业务 |
+| `openspec instructions delivery --change establish-file-backed-research-tasks --json` | 实际分析后取得`delivery-instructions.json`并更新本记录 |
+
+两条原始CI错误的原日志一基行号／段落另在`ci-error-lines.json`，源为父包linux-ci.log的5298和5732附近；同次trace动作及结果行号在`ci-two-cases.json`。`analyze-ci.mjs`、`inputs/`、两份状态JSON和`source-review.md`构成独立接续输入，均不依赖当前/tmp；archive中的旧CI路径只是历史数据。没有运行UI／构建／类型／lint或原预算本机复现：证据缺口落在非本域执行里程碑，未找到本域修复，当前源码同源本机再绿不能补回旧次事实。独立端口5992未使用，未启动图形／静态服务或共享显示，因此不需要DISPLAY前置，也没有显示服务可收尾；第二resident场景和全套CI未重跑。无安装／下载、真实用户库或跨树在研输入。
+
+### 交回的最小执行问题与停止点
+
+请主线把以上两条原run分别交Agent／共享执行归属核查：沿现有实际准入和RemoteAgent／ManagedNode启动路径，先确认该run是否到达准入、受管控制器ready／模块loaded及onStart实例登记，再看execution.initialize；它们不是同一里程碑。现有onStart.response在登记返回后发布，当前附件没有这些事实，不能任选PID／instance，也不能把“等待启动”写成定论。最小后续修复或补证应保留原run与受理身份，核实际阶段／原错误；没有依据修改首场景、model-kernel核心、RPC闸门、容量、停止策略或任何5秒期限。本片不向其他树发消息、不另造执行观察器。
+
+同模型gpt-6.1-sol／high只读辅助Agent仅核源码及边界，未改文件／运行测试，已关闭；父端完成两份原现场提取、身份与时点核对。两例原CI失败保持未修复，HTTP／执行instance／阶段和最终DOM均按上述具体缺证开放，不判共同根因。4.1库删除／恢复与主题知识提供者、完整change及平台整项保持开放；I1／4.4c既有接收不变。达到本轮两现场有界交回后停止，不因缺执行端事实自行扩写集。
+
+收尾：OpenSpec strict、scholoom-dev schema及git diff空白检查通过，`openspec-{strict,schema}.log`保留；最终apply为**31/32、ready**，仅4.1未勾，不表示两例CI失败已修。可审查增量`/home/joshua/.cache/scholoom-file-r14/001-ci-first-file-evidence.patch`直接依赖f4ab1e5f，只含本change的tasks／delivery；`patch-manifest.json`记录前后hash，`patch-verification.log`记录临时index正向check、当前树反向check及真实HEAD／index未变。`final-scope.log`复核8份输入hash、2个原trace、分析入口及本轮无残留执行；所有必要工件均在Git或上述cache，现有/tmp可迁移而不影响本片接续。未提交／推送／PR／归档，停止于交回两条原run的执行侧具体缺证。
