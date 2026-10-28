@@ -152,6 +152,14 @@ sequenceDiagram
 
 ## 验证与风险
 
+### 1.2本轮固定校准范围（7aff2c76）
+
+本轮仅cache调查，根为`/home/joshua/.cache/scholoom-linux-isolation-calibration-r16-RqczuM/`，TMPDIR同根；仓库不改production。已核x86_64、现成cc／bwrap／用户manager，并以每个自有scope实际20%CPU／64MiB／swap0／16tasks读回为门。无动态运行库的固定native程序只读本轮合成字节／访问自有loopback／socket，策略默认拒绝且仅允许其必要syscall；原CPU／OOM绿负载未重跑。真实结果及两次失败由investigation首节维护。
+
+对照包含无filter危险控制、带filter但故意保留接收口的单层策略对照、filter＋关闭非白名单句柄的组合；接收FD在payload ready后、动作G前由可信控制器queue，核进入后的SCM及read旁路，不声称已测G后到达。最终补入可信bwrap reaper必要的wait4，未改默认拒绝。实际网络创建、namespace／mount／句柄／io_uring等调用返回EACCES，后续未执行动作单列。FD槽位过滤必须与私有挂载视图／真实类型及清理组合，不是独立资源授权。
+
+同策略的固定三代／setsid程序已分别完成controller与独立宿主SIGKILL：完整登记范围收尾、13个已知出生身份及八unit的追加只读核查通过；活动期持久身份匹配，失配／事后仅只读返回unknown。观察器未区分空事件和目录消失的原始分支，结论仅用组合证据。本轮临时gateReleased字段表示放行意图，实际发送／执行确认及崩溃窗口留2.4，不能照搬字段或由reader释放容量。1.2仅固定native本机校准，不接生产admission或2.x；报告继续unavailable。
+
 未来先build共享包及platform原生适配，再冻结产物跑最小测试；使用已有依赖、独立cache/TMPDIR／配置／所有unit，仅收尾自己实例。首次失败、实际修正、被拒启动／动作未执行、模块替身及未验分别留原delivery。规划轮只运行OpenSpec及diff检查，不重复已绿CPU／OOM／FD样本或产品UI。
 
 1. **模块／契约：** 固定独立字节、分片offset／超界／重复、封存后写拒绝、排队后撤权、同inode内容变化由领域Adapter拒绝；所有phase、错误结果和broker权限从最终schema验证。领域Adapter可替换，不算生产库授权通过。
