@@ -1,5 +1,9 @@
 # 实际交付与交接
 
+## 最新平台输入（2026-10-29）
+
+0b5c5e3的Windows专项40745283855已完整成功，74通过／3个既有不适用跳过，含Agent三代表及Electron初始加载重复3/3；精确证据及缺证见[主线接收](../add-bounded-agent-delegation/delivery.md#0b5c5e3-windows专项完整通过2026-10-29)。该组不含catalog双宿主工作台及目录包，不替代1.4的完整目标验证。完整Checks40745284164查询仍in_progress，Mac job已success，Windows／Linux未结算；本机业务及独审证据继续沿下节，不机械重跑或提前关闭1.4／6.1／6.2。
+
 ## 本次主线整合与独立审查（2026-10-29）
 
 沿现有B批完成判据补齐当前集成源码的真实整合证据，未修改题录生产代码或原测试断言。证据根`/home/joshua/.cache/scholoom-finish-active/`：`catalog-final-ui.{log,json}`为`context-bridge.spec.ts`的完整收录→类型化更正→集合／列／多选→原会话真实工具读取→重启读回场景，Browser／Electron各一项，2/2、155.8秒，0跳过／失败／flaky、retries=0；外部HTTP模型受控，内部工作台、客户端、broker、持久库、实际worker及重启均真实。`catalog-context-final.{log,json}`为真实题录选择／容量／修订及queue／final撤权后重启拒绝，3/3、33.5秒，0跳过／失败／flaky。

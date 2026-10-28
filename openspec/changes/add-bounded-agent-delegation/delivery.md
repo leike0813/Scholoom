@@ -1,5 +1,13 @@
 # 实际交付与交接
 
+## 0b5c5e3 Windows专项完整通过（2026-10-29）
+
+主线接收run40745283855／job123017308323，head`0b5c5e37a7d7caca22ed11a16f2e4d32896ab8b4`，结论success。逐组日志合计74通过／3个既有平台不适用跳过／0失败：前置重复10、ownership16、HostConnection25、availability6、isolated4、ACL5、Agent代表3、owner2及Electron重复3。早期及最终上传均成功，最终artifact12841689572已一次下载解包至本轮cache的`startup-evidence-artifact/`；原始状态／日志及独立事实提取`windows-startup-success-review.md`可核对，不把HTML首组10项当全部累计报告。
+
+两份释放锁后入口记录均为三路running且同一赢家实例；四份ACL探针正常退出，八次setter约200–215ms，读回权限断言不变。前置15份阶段附件均有实际worker PID及controller退出0，其中3份最终snapshotTimeout，12份保留completed／exited最终采样；保留丢弃计数，不补造超时后的状态。Agent取消／重启、摘录及附件三例有逐项成功日志，但没有本组三例的完整独立PID附件，不能挪用前置组。
+
+本次新正例不确定旧4eb7fb6两失败或606ae82两失败的唯一原因，也不能回填17.2／18.2旧watch及UI阶段。完整Checks40745284164一次新查询仍in_progress：macOS job已success，Windows／Linux未结算；不以本专项代替完整平台验收，4.2／4.3保持开放。测试及生产期限、权限、停止／容量均未放宽。
+
 ## 首个科研角色接收（2026-10-29）
 
 主线接受research所属`evidence-reviewer@1`，设计及文件边界见[design首节](design.md#首个科研角色与验收材料2026-10-29)。宿主未配置时采用同一预设，显式空列表／自定义替换语义及worker保留；角色只核查明确材料并创建独立报告，无原材料save权限。开发说明已同步。6.1完成，6.2真实科研质量仍未运行。

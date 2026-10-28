@@ -1,5 +1,11 @@
 # 实际交付与交接
 
+## 0b5c5e3 Windows新专项接收（2026-10-29）
+
+run40745283855／job123017308323完整success，逐组74通过／3个既有不适用跳过／0失败。新两份锁释放竞争均三路running、同一赢家实例；四份ACL对照正常退出且权限断言通过，八次setter约200–215ms。isolated4、HostConnection25、Agent代表3、owner2、ownership16及Electron重复3分别有实际成功记录，早期及最终诊断上传已实跑。精确阶段、样本与缺证以[Agent主线接收](../add-bounded-agent-delegation/delivery.md#0b5c5e3-windows专项完整通过2026-10-29)及本轮cache的`windows-startup-success-review.md`为准。
+
+不回填旧40739213209的probeDeadline或并发入口失败阶段，不据新正例推旧故障唯一机制。完整Checks40745284164查询仍in_progress，macOS成功，Windows／Linux尚未结算；本专项没有完整program-runs业务／TeX／目录包验收，5.2／6.2保持开放。此前失败、取消与缺附件原样保留，生产锁、停止／容量及期限未变。
+
 ## 4eb7fb6 Windows后续事实（2026-10-29）
 
 专项40739213209／job122995911799已结束为cancelled：isolated4/4、Agent代表3/3、HostConnection25、owner2及ownership16通过／3跳过；availability5通过／1失败（释放占锁后的三入口未全running），ACL4通过／1失败（首个minimal探针probeDeadline）。新失败没有可下载trace，不能归为旧首启／ACL setter问题或声称全平台已稳定；Electron重复1通过／1中断／1未运行。本次15分钟附近取消导致最终上传未执行，artifact清单为空；原日志及metadata已保全在本轮cache的`worker-entry-windows-*`。

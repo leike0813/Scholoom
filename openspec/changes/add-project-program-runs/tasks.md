@@ -61,7 +61,7 @@ flowchart TD
 ## 5. 明确等待的输入与CI前置
 
 - [x] 5.1 已消费主线正式设计及源码输入；历史路径和符号冲突记录于design。共同1026796已合入全部七域源码，当前executionResources／taskPort／delegationOptions／programs、根工具、三域restore及task／programs标签均在本树；不再等待同步或使用旧累计补丁。真实联合操作另由8.4验收，不把代码合入当作实际整合完成。
-- [ ] 5.2 沿固定run／head和实际stage收敛平台缺口。606ae82真实isolated4/4及ACL5/5、setter八次PS166–194ms已接收，原权限／期限未变。后续4eb7fb6／40739213209为isolated4/4、Agent3/3、HostConnection25及owner2通过；占锁后入口并发未全running和首minimal ACL探针probeDeadline仍失败，末取消且artifact为空，不能补造阶段。已补诊断提前上传，待目标两失败附件；完整平台回执／5.2／6.2仍开放。旧run／TeX／分发独立保留，不放宽停止／容量、锁或重试。
+- [ ] 5.2 沿固定run／head和实际stage收敛平台缺口。0b5c5e3／专项40745283855完整74通过／3跳过，两份新释放锁竞争均三路running、ACL5项及isolated4／Agent3／HostConnection25／owner2／Electron3均通过，提前上传已成功。旧40739213209两红／取消／无artifact及606ae82原阶段保留，不补造旧因果；精确证据见delivery。完整Checks尚未结算，5.2／6.2仍开放；TeX／分发另核，不放宽停止／容量、锁或重试。
 
 5.1的输入核对不意味着新增报告适配属于本change；只有共同符号冲突或相关必要回归才阻塞对应整合，其他任务不串行等待。
 
