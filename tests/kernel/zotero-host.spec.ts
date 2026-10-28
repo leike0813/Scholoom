@@ -9,6 +9,7 @@ import {
   readdir,
   readFile,
   realpath,
+  stat,
   symlink,
   unlink,
   writeFile,
@@ -50,6 +51,56 @@ function originalSources(records: ZoteroSnapshot) {
 function exported(result: ZoteroOutputs['zotero.export']) {
   if (result.state !== 'exported') throw new Error('Expected explicitly selected original export');
   return result;
+}
+
+async function endpointMetadata(directory: string) {
+  const path = join(directory, 'runtime', 'endpoint.json');
+  try {
+    const metadata = await stat(path);
+    const observation: Record<string, unknown> = {
+      mode: metadata.mode,
+      size: metadata.size,
+      dev: metadata.dev,
+      ino: metadata.ino,
+      nlink: metadata.nlink,
+    };
+    if (process.platform === 'win32') {
+      const script = [
+        '$ErrorActionPreference="Stop"',
+        'Add-Type -AssemblyName System.Web.Extensions',
+        '$sid=[System.Security.Principal.WindowsIdentity]::GetCurrent().User',
+        '$path=$env:SCHOOLOOM_ENDPOINT_TEST_PATH',
+        '$result=@{}',
+        'foreach($kind in @("file","directory")){ if($kind -eq "file"){$acl=[System.IO.File]::GetAccessControl($path)}else{$acl=[System.IO.Directory]::GetAccessControl([System.IO.Path]::GetDirectoryName($path))}; $raw=[System.Security.AccessControl.RawSecurityDescriptor]::new($acl.GetSecurityDescriptorBinaryForm(),0); $aces=@(); foreach($ace in $raw.DiscretionaryAcl){$aces+=@{type=[int]$ace.AceType;flags=[int]$ace.AceFlags;mask=[int]$ace.AccessMask;currentUser=$ace.SecurityIdentifier.Equals($sid)}}; $result[$kind]=@{ownerCurrent=$acl.GetOwner([System.Security.Principal.SecurityIdentifier]).Equals($sid);protected=$acl.AreAccessRulesProtected;aces=$aces}}',
+        '$result.attributes=[int][System.IO.File]::GetAttributes($path)',
+        '[System.Web.Script.Serialization.JavaScriptSerializer]::new().Serialize($result)',
+      ].join('; ');
+      try {
+        const { stdout } = await promisify(execFile)(
+          'powershell.exe',
+          ['-NoProfile', '-NonInteractive', '-Command', script],
+          {
+            windowsHide: true,
+            timeout: 5000,
+            maxBuffer: 16384,
+            env: {
+              SystemRoot: process.env.SystemRoot,
+              PATH: process.env.PATH,
+              TEMP: process.env.TEMP,
+              SCHOOLOOM_ENDPOINT_TEST_PATH: path,
+            },
+          },
+        );
+        observation.windows = JSON.parse(stdout);
+      } catch (error) {
+        const failure = error as NodeJS.ErrnoException & { killed?: boolean };
+        observation.windows = { errorCode: failure.code, killed: failure.killed };
+      }
+    }
+    return observation;
+  } catch (error) {
+    return { errorCode: (error as NodeJS.ErrnoException).code };
+  }
 }
 
 async function fixture(
@@ -579,6 +630,10 @@ test('real library/broker/managed original BBT commits missing keys once and exp
       expect(JSON.parse(exported.stdout)).toMatchObject({ state: 'exported' });
       expect(JSON.parse(exported.stdout).text).toContain('ScholoomPreserved2026');
     } finally {
+      await test.info().attach('endpoint-before-stop', {
+        body: JSON.stringify(await endpointMetadata(f.root)),
+        contentType: 'application/json',
+      });
       await stopKernel(f.root);
       await serving;
     }
@@ -606,8 +661,8 @@ test('original resetKeyOnChange modify events cannot replace an adopted common k
     );
   const moduleUrl = `data:text/javascript;base64,${Buffer.from(catalogSource).toString('base64')}`;
   const root = fileURLToPath(new URL('../../', import.meta.url));
-  const launch = () =>
-    electron.launch({
+  const launch = async () => {
+    const application = await electron.launch({
       args: ['--no-sandbox', join(root, 'tests/fixtures/zotero-host/main.cjs')],
       env: {
         ...process.env,
@@ -616,6 +671,9 @@ test('original resetKeyOnChange modify events cannot replace an adopted common k
         SCHOOLOOM_BBT_MANUAL_START: '1',
       },
     });
+    await application.evaluate(async ({ app }) => app.whenReady());
+    return application;
+  };
   let host = await launch();
   try {
     const before = (await f.selection()).at(-1);

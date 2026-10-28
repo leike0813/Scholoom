@@ -1,5 +1,13 @@
 # 实际交付与交接
 
+## c29a93a的Windows回执与夹具前置整改（2026-10-29）
+
+专项40789279376的zotero-original job123170165749仍失败：stdin2/2、并发发现替换1项、共同事务8项／冲突1项及原包smoke8通过／2不适用跳过；百条例仍在停机发布endpoint.json时EPERM，新增reset例在fixture建立前报undefined.catalog，未到偏好触发，不能写作Windows reset保护失败或通过。原日志`windows-c29a93a-zotero.log`及artifact12861390661保留。故障收尾诊断例的默认5秒准备窗口在application动态导入耗时约4998ms后结束，尚未初始化库；这不是其被测的停机收尾阶段。
+
+整改仅等待既有内核启动预算limits.lifecycleMs，以及Electron明确app.whenReady后再读取已同步建立的manual-start fixture；没有增加原有Agent业务5秒断言或改生产期限。百条例在停机前保存有界文件mode／size／身份与Windows目标及目录的只读ACL／attributes观测，查询失败明确留errorCode，不改变原停机结果；不保存token、endpoint正文、实际SID或完整环境，不修现场权限。新增查询最长5秒且输出16KiB，Windows分支待实跑。Linux最小复验`windows-fixture-final-bbt.log`2/2、52秒，覆盖百条及reset；`windows-fixture-final-lifecycle.log`1/1、11.5秒；tools类型、两文件Biome及diff通过，均未重建或改变生产代码。
+
+只读Windows资源调查`windows-zotero-resources-scout.md`确认无现成只读ACL／reparse／目录句柄扫描器，privateDirectory是可写修复入口，不能拿来替代resolver核查。现有私有资源配方仍只有设计中明确的Linux布局；Windows真实注入原包装配与普通持久布局分别记录，不凭前者宣称后者已可用，也不在本轮诊断顺带加入未经目标验证的新原生能力。
+
 ## 正式键偏好触发与通知缓存修复（2026-10-29）
 
 3.2完成，当前46/50。真实未改BBT9.0.68启用resetKeyOnChange、消费真实modify事件后，旧实现保护了共同键，却让原包先污染候选map、吞下setter拒绝并跳过cacheTouch，通知后两格式仍导出旧题名；原失败和四份导出在`/home/joshua/.cache/scholoom-finish-active/reset-key-protection/`。现共同投影的library.editable只在当前AsyncLocalStorage owner的keys／creators操作阶段为true，提交等待及通知阶段只读；原包按其既有readonly分支采用共同正式键，继续刷新缓存。不改原包、偏好、setter／SQL保护或共同授权，也未通过禁用缓存掩盖候选。

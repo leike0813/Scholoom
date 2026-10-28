@@ -1,5 +1,9 @@
 # 实际交付与交接
 
+## 新故障诊断的启动前置（2026-10-29）
+
+c29a93a／专项40789279376的并发发现替换在Windows通过；新增发布失败仍须收尾例尚未进入故障注入，5秒默认准备断言结束时application模块导入才完成（loading→initializing约4998ms）。现该新例明确沿既有limits.lifecycleMs等待启动，不改被测停机语义或原Agent完成预算；Linux原故障例最小复验1/1、11.5秒，目标待回执。生态百条例原EPERM仍失败，事实及新只读元数据观测见[生态记录](../connect-zotero-host-bbt/delivery.md#c29a93a的windows回执与夹具前置整改2026-10-29)。
+
 ## 0ed2c97目标平台回执（2026-10-29）
 
 完整Checks40784927993的macOS job123155605913已success，原日志`/home/joshua/.cache/scholoom-finish-active/macos-0ed2c97.log`：平台不可用及人工能力4/4、实际应用入口4/4、双宿主人工工作台14/14，目录打包通过。没有运行macOS受管执行，签名按配置跳过；该结果不是macOS全功能或签名发行验收。Linux／Windows完整job尚未结算，不关闭5.2／6.2。

@@ -25,6 +25,7 @@ import {
   errorInfoSchema,
   isBootstrapResult,
   isKernelEndpoint,
+  limits,
   protocolVersion,
 } from '../../packages/protocol/dist/index.js';
 import {
@@ -413,7 +414,9 @@ test('failed stopping discovery still closes an accepted managed program', async
     () => ({ failed: false }),
     (error: NodeJS.ErrnoException) => ({ failed: true, code: error.code }),
   );
-  await expect.poll(async () => (await inspectKernel(directory)).state).toBe('running');
+  await expect
+    .poll(async () => (await inspectKernel(directory)).state, { timeout: limits.lifecycleMs })
+    .toBe('running');
   const running = await inspectKernel(directory);
   if (running.state !== 'running') throw new Error('Missing test-owned kernel');
   const client = createKernelClient(running.endpoint);
