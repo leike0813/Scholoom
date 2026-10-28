@@ -1,5 +1,19 @@
 # 实际交付与交接
 
+## 第十四轮验收后的独立提供者规划交接（58eda140）
+
+本轮先确认HEAD=`58eda1404fcc60036ce0e0f3ce30d5453ce1ee30`且clean，读取AGENTS、原tasks／delivery、共同计划第十四轮及scholoom-dev／当前instructions。主线已选Linux普通权限独立提供者先行；没有同名／等价活动change，已新建[add-linux-isolated-report-provider](../add-linux-isolated-report-provider/proposal.md)，完成proposal／investigation／specs／design／tasks规划。新change没有生产实现、没有delivery，公共签名仍按其1.1交主线审，不自动apply。
+
+原报告只更新design／tasks的正式提供者前置链接和本交接记录。报告仍6/13、活动页unavailable，2.1b／I5、目标／旧版本Adapter未关闭。ReportResources继续管原ref／basis／read/send；新provider计划只收批准的有界字节，不把临时C程序、dev／ino或原生实验当领域版本或生产授权。公共分片封存操作、唯一ProcessAdmission恢复结清及先于准入的恢复屏障建议见[新design](../add-linux-isolated-report-provider/design.md)，真正OS前置／syscall／控制器丢失缺证及下一最小校准见其investigation／tasks。
+
+本轮仅静态复核现有调用点和已接收三cache源码／原始结果，未重跑CPU／OOM／FD或其他原生样本、浏览器、UI、模型／真实用户库。现有生产源码与已验f4ab1e5相同的主线构建回执予以复用，没有声称本轮重建。调查辅助为gpt-6.1-sol／high、无历史fork，只读本树；主会话核对正确platform/native路径、范围／准入事实并保留设计判断。
+
+命令及规划检查结果保留在`/home/joshua/.cache/scholoom-linux-provider-plan-round15-7V4Vot/`：`openspec list --json`／`list --specs --json`、`new change add-linux-isolated-report-provider --schema scholoom-dev`、各工件instructions、status／apply、两change strict、schema及diff／补丁核查。新change strict首次通过；探索时猜测不存在的规格／策略文件已改用实际路径，原命令未运行生产或实验。当前工作仅规划，类型／生成／架构执行检查及OS实跑不适用，不将原CI／主线UI结果当隔离通过。
+
+必需接续输入是新change的Git工件，以及`/home/joshua/.cache/scholoom-report-platform-round12-fNGQLv/`、`/home/joshua/.cache/scholoom-report-files-round13-Wfc0WT/`、`/home/joshua/.cache/scholoom-report-gate-round14-DocB5o/`的既有固定源码／证据；精确文件索引由新investigation维护。新payload／检查／补丁根及TMPDIR为本轮cache，无现有/tmp内容前置。没有启动服务／native进程／开发服务器，辅助结束关闭；无安装下载、提交推送／PR／archive、同步／其他树或真实库操作。
+
+停止于规划交回：主线审公共签名与首个native策略／失联停止校准，再给明确实施切片。Linux提供者未交付前不启用报告；完整browser进程图、文本／可访问性、呈现、分发维护与预算及Windows／Mac仍待相应真实方案／目标证据，本轮不代替主线决定或降低保证。
+
 ## 第十四轮主线验收
 
 本轮四工件及高FD／SCM_RIGHTS／stdio／普通文件门的有限对照已保全合入，独立两轴审查无确证问题；被拒启动与实际OS拒绝、危险迁移与全部scope收尾分别表达。主线未重复原生实验或将固定样本当生产能力，活动报告unavailable、2.1b／I5继续开放。
