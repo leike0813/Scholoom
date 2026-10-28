@@ -16,6 +16,7 @@ on:
       - tests/kernel/isolated-kernel.spec.ts
       - tests/kernel/isolated-startup-acl.spec.ts
       - tests/kernel/private-files.spec.ts
+      - tests/kernel/library-organization-rpc.spec.ts
       - packages/platform/src/private-files.ts
       - packages/harness/package.json
       - packages/harness/src/execution-driver.ts
@@ -53,11 +54,16 @@ jobs:
         run: node -p 'JSON.stringify({platform:process.platform,node:process.version,uv:process.versions.uv})'
       - name: Observe repeated directory ACL metadata without retries
         run: pnpm --config.optimisticRepeatInstall=false exec playwright test --config playwright.kernel.config.ts tests/kernel/private-files.spec.ts --workers=1 --repeat-each=3 --reporter=list --output test-results/windows-private-files
+      - name: Verify recovered library attachment versions
+        if: '!cancelled()'
+        run: pnpm --config.optimisticRepeatInstall=false exec playwright test --config playwright.kernel.config.ts tests/kernel/library-organization-rpc.spec.ts --workers=1 --reporter=list --output test-results/windows-library-restore
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: windows-private-files-metadata
-          path: test-results/windows-private-files/
+          path: |
+            test-results/windows-private-files/
+            test-results/windows-library-restore/
           if-no-files-found: warn
   execution:
     runs-on: windows-latest

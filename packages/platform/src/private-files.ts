@@ -18,9 +18,14 @@ export async function privateDirectory(path: string): Promise<void> {
     '$acl = [System.Security.AccessControl.DirectorySecurity]::new()',
     '$acl.SetAccessRuleProtection($true, $false)',
     '$sid = [System.Security.Principal.WindowsIdentity]::GetCurrent().User',
-    '$owner = [System.IO.Directory]::GetAccessControl($env:SCHOOLOOM_PRIVATE_PATH, [System.Security.AccessControl.AccessControlSections]::Owner).GetOwner([System.Security.Principal.SecurityIdentifier])',
+    '$current = [System.IO.Directory]::GetAccessControl($env:SCHOOLOOM_PRIVATE_PATH)',
+    '$owner = $current.GetOwner([System.Security.Principal.SecurityIdentifier])',
+    '$raw = [System.Security.AccessControl.RawSecurityDescriptor]::new($current.GetSecurityDescriptorBinaryForm(), 0)',
+    '$inheritance = [System.Security.AccessControl.InheritanceFlags]::ContainerInherit -bor [System.Security.AccessControl.InheritanceFlags]::ObjectInherit',
+    // Reapplying inheritable ACLs changes child ctime even when file contents are unchanged.
+    'if ($current.AreAccessRulesProtected -and $owner.Value -eq $sid.Value -and $null -ne $raw.DiscretionaryAcl -and $raw.DiscretionaryAcl.Count -eq 1) { $existing = $raw.DiscretionaryAcl[0]; if ($existing.AceType -eq [System.Security.AccessControl.AceType]::AccessAllowed -and $existing.SecurityIdentifier.Value -eq $sid.Value -and $existing.AccessMask -eq [System.Security.AccessControl.FileSystemRights]::FullControl -and $existing.AceFlags -eq ([System.Security.AccessControl.AceFlags]::ContainerInherit -bor [System.Security.AccessControl.AceFlags]::ObjectInherit)) { exit 0 } }',
     'if ($owner.Value -ne $sid.Value) { $acl.SetOwner($sid) }',
-    '$rule = [System.Security.AccessControl.FileSystemAccessRule]::new($sid, [System.Security.AccessControl.FileSystemRights]::FullControl, ([System.Security.AccessControl.InheritanceFlags]::ContainerInherit -bor [System.Security.AccessControl.InheritanceFlags]::ObjectInherit), [System.Security.AccessControl.PropagationFlags]::None, [System.Security.AccessControl.AccessControlType]::Allow)',
+    '$rule = [System.Security.AccessControl.FileSystemAccessRule]::new($sid, [System.Security.AccessControl.FileSystemRights]::FullControl, $inheritance, [System.Security.AccessControl.PropagationFlags]::None, [System.Security.AccessControl.AccessControlType]::Allow)',
     '$acl.AddAccessRule($rule)',
     '[System.IO.Directory]::SetAccessControl($env:SCHOOLOOM_PRIVATE_PATH, $acl)',
   ].join('; ');

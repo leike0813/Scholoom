@@ -1,5 +1,11 @@
 # 实现设计
 
+## Windows重复ACL设置与材料版本保护
+
+真实Windows独立取证40766436204／Node24.22.1三份样本均显示：对已安全目录重复SetAccessControl使子文件ctime变化，dev／ino／size／mtime及正文不变。材料版本继续保留ctime，不能为掩盖该现象减少变更检测。修正在既有privateDirectory中每次读取当前实际DACL和owner；仅当protected、owner为当前SID、恰一条显式当前SID Allow FullControl、精确ContainerInherit和ObjectInherit、PropagationFlags.None时不重写。其他情况沿原受保护唯一权限设置修复，读取或设置错误仍拒绝；不缓存已检查路径或扩大权限。
+
+早退须核同次读取的原始DACL：恰一条普通AccessAllowed ACE及精确SID／FullControl／OICI flags，不能只靠GetAccessRules投影丢失callback条件语义。写集为platform/private-files、原权限测试及本change工件。原不可加载cmdlet环境、目录／文件权限断言保留，并断言重复调用前后完整元数据不变；新增额外访问规则、缺继承及条件ACE三种代表，同一进程导入内实际改坏合成目录后再次调用应修复。独立读回核普通ACE及精确OI+CI／None。独立短Windows job保留原15分钟及零重试，先核目标三份JSON，再跑实际library-organization恢复副本；Linux不替代Windows结论。独立安全审查及新目标结果取得前，平台及恢复任务保持开放。
+
 ## Windows私有目录：去除权限设置的cmdlet依赖
 
 同一f976b67／专项40723824443的原始对照表明：四样本的12次PowerShell调用均约12秒，包含新目录、重复目录及只读核查；环境选择未消除此共同成本。真实isolated首启的runtime准备17.347秒，应用import2.307秒，之后library初始化仍在原期限内未结束。不能将全部初始化时间归给某一次命令，但现有反复启动PowerShell是已测的共同成本，不需要放宽启动预算。

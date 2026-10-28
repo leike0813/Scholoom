@@ -2,9 +2,13 @@
 
 ## Windows子文件元数据独立取证（2026-10-29）
 
+已取得1887eed／run40766436204的独立private-files job123091722891 success，artifact12849199213一次下载至cache的windows-private-files-40766436204。三份JSON中仅ctime从before到after改变，opened与after一致、正文保持true，其余dev／ino／size／mtime保持；新证据支持重复ACL影响子文件ctime的局部机制，不单独证明恢复故障所有因果。修正候选沿design首节每次真实重查安全ACL，目标验证及恢复链路尚待后续实际修正版结果。
+
 e35c7bf的专项40760544080已cancelled，ACL原例通过、首个对照probeDeadline；提前artifact12849185406已保全，但list reporter没有将testInfo.attach正文写入上传目录，不能声称取得了before／after指纹。当前在原private-files测试中将同一JSON实际写入outputPath，权限断言和生产实现不变。
 
-Windows workflow新增独立private-files job：固定Node24.22.1与旧失败环境一致，记录实际Node／libuv，原例独立重复三次、零重试，always上传windows-private-files-metadata。原execution job的ACL对照保留，private-files移至新job避免重复；所有job仍15分钟，不增加任意dispatch参数或修改默认分支。dev push按既有路径触发，无需依赖当前main缺失的手动入口。Biome、tools类型及diff已核，目标新回执尚待推送后取得；ctime假设未证实，不修改材料指纹或忽略changed。
+Windows workflow新增独立private-files job：固定Node24.22.1与旧失败环境一致，记录实际Node／libuv，原例独立重复三次、零重试，always上传windows-private-files-metadata。原execution job的ACL对照保留，private-files移至新job避免重复；所有job仍15分钟，不增加任意dispatch参数或修改默认分支。dev push按既有路径触发，无需依赖当前main缺失的手动入口。1887eed提交时尚未取得目标结果；当前机制证据见上文。
+
+修正候选已增加原始DACL校验，避免GetAccessRules投影丢失条件ACE：只有一条普通AccessAllowed、精确当前SID／FullControl／OICI原始flags及当前owner／protected时跳过setter。测试同进程一次导入内准备→实际损坏→再检查，覆盖额外访问者、缺继承、条件ACE；独立权限读回新增普通ACE和精确OI+CI／None断言。独审首轮三P2已逐项修正待复核。platform构建、tools类型、Biome通过，Linux原四对照4/4只验证非Windows分支；新独立job同时跑真实组织恢复RPC并上传两组结果。Windows修正版及恢复验收尚待推送后实际结果，不修改材料指纹、不忽略changed。
 
 ## 0b5c5e3完整Checks回执及下一次窄取证（2026-10-29）
 
