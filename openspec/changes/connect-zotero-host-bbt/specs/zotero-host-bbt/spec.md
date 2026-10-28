@@ -53,7 +53,7 @@ zotero.inspect SHALL 对最多100条选定sourceId／共同revision读取真实l
 
 ### Requirement: 现有普通期刊的隔离共同接线
 
-首个真实共同库切片 SHALL 仅对内核明确供应的隔离 libraryId 开放，默认不可用，产品参数不能选择原生执行路径或启用真实用户库。选择 SHALL 为1–100个不重复sourceId/revision；需要唯一schema 44 journalArticle原值及本片可映射的字段／作者／空关系，不从CSL反推。返回不可用时保留原值，来源副本使用新的共同来源实例，不按locator静默重绑定。
+首个原生共同库切片 SHALL 仅对内核明确供应的隔离 libraryId 开放，默认不可用，产品参数不能选择原生执行路径或启用真实用户库；zotero.result沿下述只读例外。选择 SHALL 为1–100个不重复sourceId/revision；需要唯一schema 44 journalArticle原值及本片可映射的字段／作者／空关系，不从CSL反推。返回不可用时保留原值，来源副本使用新的共同来源实例，不按locator静默重绑定。
 
 补缺键 SHALL 将原包全部Item.saveTx汇集为一次共同commitRecords；共同库检查全库大小写不敏感冲突，保留已有键和固定状态。确认回执后才更新派生SQL并发通知；回读及通知有界，不以100个并发回调突破公共容量。通知失败保留committed回执与诊断，新操作重建投影。导出 SHALL 返回格式、文本及所用sourceId/revision/正式键/固定状态，在宿主关闭后交付前复查有效read/send和选择依据。
 
@@ -71,6 +71,22 @@ zotero.inspect SHALL 对最多100条选定sourceId／共同revision读取真实l
 
 - **WHEN** 会话仅通过生态工具取得共同库结果，随后库外发授权被撤回，用户在当前内核或重启后继续该会话
 - **THEN** 已使用的库身份随会话保留，后续模型请求仍复查该库的读取与外发授权，拒绝发送包含旧工具结果的历史；不要求先调用普通文献工具才生效
+
+### Requirement: 普通入口只读核查共同提交回执
+
+zotero.result SHALL 使用现有libraryId／requestId与结果schema，直接查询当前内核所属library.commitResult；无native配置、原包或显示服务不阻塞该只读查询。人类调用核有效read；Agent还核有效send及可信执行。查询前与交付前 SHALL 核授权及当前共同库身份，不以请求路径、来源key或引用键寻找替代库。
+
+committed／rejected SHALL 保留原共同提交回执及修订，不用当前记录重算。notFound SHALL 仅表示当前提供者无可查回执，不证明未知效果不存在。查询 SHALL 不启动宿主、重放写入、更换requestId或清除原监督unknown／容量保护；其余四操作的隔离限制不随只读例外放开。Agent取得结果后，原库身份和持续外发检查 SHALL 继续作用于后续推进及重启。
+
+#### Scenario: 普通CLI重启后查询原回执
+
+- **WHEN** 共同库已有原requestId的提交回执，普通CLI不经测试IPC供应native配置而启动，并在stop／start后按同一库及原requestId查询
+- **THEN** 返回同一共同回执，不产生新修订或新宿主执行；没有native配置的其他四操作仍拒绝
+
+#### Scenario: 查询未知结果及授权变化
+
+- **WHEN** 原提交观察未知，调用方按原requestId查询，或查询期间read／Agent send被撤回、共同库身份不符
+- **THEN** 查询只核共同回执；notFound不触发重放或解除原unknown，授权撤回或错库明确拒绝交付，后续模型推进仍核原库外发权
 
 ### Requirement: 独立认证及操作范围的公共监督
 

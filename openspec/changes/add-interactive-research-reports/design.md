@@ -59,6 +59,12 @@ ReportResources 是 `packages/editor` 内的 module，不新建包／数据库�
 
 ### 隔离与页面桥
 
+#### 下一片：独立Linux提供者的实施规格
+
+用户委托主线选择方案后，主线采用候选A的Linux普通权限前置，先形成独立platform提供者的OpenSpec实施规格。它负责批准字节的有界只读交付、启动前FD／stdio策略、namespace及实际资源限额、完整归属／停止和重启unknown核查；ReportResources继续掌握ref／basis与read/send。已有普通权限不能履行保证时保持unavailable，不安装特权服务或静默降级。
+
+下一片止于apply所需规划工件齐备，不把临时C launcher复制成生产提供者。设计必须复用现有准入／归属与监督，明确控制器丢失、迟到能力和恶意样本下可独立验收的保证；不能另建容量计数或以根PID消失释放。Linux机制先独立交付，Windows另需目标校准，macOS继续不可用。完整浏览器、共同呈现／输入、分发及多视图预算尚未纳入本片，不以原生样本替代报告UI验收，2.1b／I5保持开放。
+
 #### 高FD、接收通道及普通文件门（f4ab1e5，已执行的调查片）
 
 本片只在`/home/joshua/.cache/scholoom-report-gate-round14-DocB5o/`创建有限native样本、可信launcher候选、控制器及结果，TMPDIR同根；不读现有/tmp，不接生产Adapter、浏览器或新协议。复用已有systemd用户scope／bwrap，启动前核工具、普通权限和实际20%CPU／64MiB／swap0／16tasks保护；前置不满足即停止，不修改委托或安装／提权。不重跑CPU／OOM负载。

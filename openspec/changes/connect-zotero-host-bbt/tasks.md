@@ -8,12 +8,12 @@
 - [x] R14.2 提交N1可独立查询接续候选、N2具体写集与阻断、输入输出／授权／原生实例来源及D14-1至D14-3；不把建议当用户已选，不新建配置或库权威。
 - [x] R14.3 核对保全输入及接续路径不依赖现有/tmp，完成规划校验／diff及独立增量；实际调查后取delivery instructions更新同一记录，交回并停止，不关闭E4／I6。
 
-### 候选下一片N1（未批准实施）
+### 下一实施片N1
 
-- [ ] N1.1 【等待D14-1】明确普通zotero.result是否允许脱离native配置的只读例外；若选A，先修本change隔离范围delta，保留原DTO、授权和其他四操作禁用，不假称当前规格已放开。
-- [ ] N1.2 【依赖N1.1及下一轮实施授权】按design封闭写集局部调整ZoteroOperations.result／权限与native门；扩CLI-runtime的真实provider、普通start/serve及stop/start查询、拒绝／未知原ID／P1回归，按影响build后测试。无新库台账或原包／显示／安装／UI装配，不重放未知、不改E4／I6完成状态。
+- [x] N1.1 用户委托主线选择后，已采纳D14-1 A并明确本change只读查询例外：保留原DTO及授权、其他四操作仍受隔离门约束；规格批准不表示实现完成。
+- [ ] N1.2 已授权下一片按design封闭写集局部调整ZoteroOperations.result／权限与native门；扩CLI-runtime的真实provider、普通start/serve及stop/start查询、拒绝／未知原ID／P1回归，按影响build后测试。无新库台账或原包／显示／安装／UI装配，不重放未知、不改E4／I6完成状态。
 
-N2不另造重复任务：原2.3／3.1承接普通原包装配，按design当前表逐符号细化；D14-2／D14-3及平台环境／资源提供者未定时保持受阻，不因library provider已有而假称装配就绪。
+N2沿原2.3／3.1承接，主线已选共同kernel宿主设置及可信离线固定资源；具体schema、加载／恢复接点和目标资源仍待后续细化。N1不依赖N2实现；不因library provider已有或方向已定而假称普通原包装配就绪。
 
 ## 已接收：原包测试显示前置适配
 

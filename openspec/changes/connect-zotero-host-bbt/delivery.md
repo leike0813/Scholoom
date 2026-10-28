@@ -1,5 +1,11 @@
 # 实际交付与交接
 
+## 第十四轮主线验收及后续决定
+
+本轮四工件保全合入，两轴审查无本线确证问题。用户委托主线选择后，D14-1／2／3均选A：下一片先实施已有授权下普通CLI的只读result；未来native绑定只归kernel宿主设置，首个原生片用可信操作者离线固定资源。选择及理由由design维护，N1窄例外已进delta，N1.2仍未实现；不扩大其他四操作、真实用户库或默认库权限。N2具体装配契约继续后置，不提前建通用配置框架。
+
+本轮没有生态生产／原包新实跑。新f4ab1e5 Linux内核唯一失败在scope测试无DISPLAY的新Xvfb预检返回127，未进入后代收尾业务；原日志／trace在`/home/joshua/.cache/scholoom-round14-acceptance/`，不能据127猜定缺少哪个程序。该有限环境问题下一片交计算线独占helper／CI处理，生态只实现N1，不并改显示夹具。完整E4／I6仍开放，见[共同计划](../../../.scratch/domain-development/parallel-development-plan.md#第十四轮验收后的安排)。
+
 ## 当前交回：普通CLI接续／原包装配调查规划（R14）
 
 2026-10-28，HEAD `f4ab1e5f1ed17ae9af656c1f9945005a2786d911`，起始clean。本轮仅调查和下一片规划，修改本change的investigation／design／tasks／本记录；没有生产实现、配置或schema变更。已取当前apply及实际调查后的delivery instructions。R14三项规划完成后累计31/42，新增N1两项仍等待D14-1及后续实施授权；CLI ready不代表候选批准或完整change完成。

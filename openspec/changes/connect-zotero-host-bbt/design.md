@@ -1,12 +1,12 @@
 # 实现设计
 
-## 当前规划：普通入口结果核查与原包装配分片（f4ab1e5）
+## 普通入口结果核查与原包装配分片
 
-本轮仅调查／规划，授权止于本节与任务交回；没有新生产实现。源码证据及五类身份／授权区别见[investigation当前节](investigation.md#当前调查普通cli重启与原包装配缺口f4ab1e5)。R13原包／显示／UI已接收，不重做；2.3／3.1剩余普通装配及完整E4／I6保持开放。
+调查基线为f4ab1e5，尚无新生产实现。用户授权主线决定待选问题后，主线选定D14-1 A、D14-2 A、D14-3 A；N1进入下一实施片，N2先沿统一宿主设置和离线固定资源细化契约，不同时扩产品分发。源码证据及五类身份／授权区别见[investigation当前节](investigation.md#当前调查普通cli重启与原包装配缺口f4ab1e5)。R13原包／显示／UI已接收，不重做；普通装配及完整E4／I6保持开放。
 
-### 推荐下一片N1：普通CLI重启后只读共同回执（以D14-1为前置）
+### 下一实施片N1：普通CLI重启后只读共同回执
 
-这是一个可独立交付的候选，不要求BBT、显示、宿主安装或新配置仓储。现有同源`zotero.result`已直接复用library.commitResult schema，普通CLI也已转发该方法；缺口仅是`ZoteroOperations.check`把共同查询与原包启动绑定。**当前隔离规格仍约束该操作，本轮不改其SHALL或把只读例外视为已批准。** D14-1选A后，先在本change delta明确窄例外，再按以下封闭写集实施。
+N1可独立交付，不要求BBT、显示、宿主安装或新配置仓储。现有同源`zotero.result`已直接复用library.commitResult schema，普通CLI也已转发该方法；缺口是`ZoteroOperations.check`把共同查询与原包启动绑定。主线已在本change delta明确只读例外，下一片按以下封闭写集实施；其他四方法继续保持隔离门。
 
 Interface保持`zotero.result({libraryId,requestId})`及现有committed／rejected／notFound输出、原5秒read语义，不增加params／token／第二套operationId。通过真实普通`CLI start --data-dir <隔离合成配置>`→ensureKernel→serve启动，无IsolatedZotero／测试私有IPC。查询只消费原数据目录的library；不按路径、SourceInstance、DOI或键自动找库。
 
@@ -54,7 +54,15 @@ N2候选启动绑定的逻辑字段只讨论schemaVersion、显式enabled、libr
 
 N2真实验收入口须是普通CLI/desktop bootstrap在全新隔离合成配置冷启动→实际library/broker/受管Electron/原BBT→普通stop/start后从唯一配置重建→稳定查询／键及两格式依据一致；配置缺失、资源不匹配、错库、撤权与未知恢复均分别核查。验收需目标资源、平台与显示条件；不是再跑一个私有IPC fixture或已有Node host24项。Windows原包尚未验，macOS managed execution仍拒绝，不回退到无隔离执行。
 
-### 需主线／用户选择的三个点
+### 已定选择与实施边界
+
+2026-10-28，用户明确委托主线选择最合适的方案，主线决定如下：
+
+- D14-1选A：先实施普通`zotero.result`的只读例外。它沿当前库授权查询唯一共同回执，不启动host，不因notFound自动重放，也不解除原unknown。
+- D14-2选A：未来native启用绑定归共同kernel数据目录的宿主设置。生态只消费受限投影，库／UI不保存配置镜像，短期凭据不持久化；本轮不提前实现通用设置框架。
+- D14-3选A：首个有界原生片使用可信本机操作者离线准备的固定原包／已构建宿主，经受限资源登记解析。产品自动下载、正式资源分发和升级回退另行交付；资源路径不授予库权限，真实用户库仍不可用。
+
+以下选项表保留调查时的比较依据；选择以上述决定为准。N2的具体schema、加载与恢复接点仍须实施前核对，不把方向已定写成提供者已实现。
 
 | 决策 | 选项及依据 |
 | --- | --- |
@@ -62,13 +70,13 @@ N2真实验收入口须是普通CLI/desktop bootstrap在全新隔离合成配置
 | D14-2，未来native启用绑定的唯一权威 | **推荐候选A**：共同kernel数据目录的宿主设置，由主线统一schema／加载器，生态只消费投影。B：只读部署manifest由运营侧管理，普通入口消费它，库／UI不另存镜像。当前两者均未实现；只能选一个作为权威，不同时新增ecosystem.json、libraryMeta及CLI覆盖三套配置。缺选择时N2配置恢复受阻，不以配置路径推授予库权限 |
 | D14-3，固定原包／宿主资源如何交付 | 首个有界N2可选A：由可信本机操作者离线准备指定原包／已构建宿主，并由受限资源登记引用；B：由产品分发提供版本化宿主／原包资源与升级回退。安装／许可／平台资源归属及信任核对随所选方案确定；URL或manifest匹配不等于已完成这些保证。此轮不决定自动下载，也不新增安装或凭据流程 |
 
-D14-2／D14-3及生产环境提供者不阻塞N1的技术设计，但N1本身必须先获D14-1选择；两边都没有当前实施授权。没有“用户已默认批准真实库、默认全授权或持久凭据”的隐含选项。
+N1已获下一片实施授权，N2的宿主设置及离线资源方向已定，具体装配仍另行细化；没有“默认批准真实库、默认全授权或持久凭据”的隐含选项。
 
 ### 接续输入与/tmp迁移
 
 本轮独立根为`/home/joshua/.cache/scholoom-zotero-r14-To16RE/`，TMPDIR为其中tmp。全部新payload／日志／独立规划补丁只在该根；研究依据由本Git原工件和当前源码提供，未从旧/tmp运行或复制脚本。主线保全输入固定为`/home/joshua/.cache/scholoom-round13-acceptance/preserved-tmp/zotero-better-bibtex-9.0.68.xpi`、`preserved-tmp/static-ui.mjs`和`create-ui-config.mjs`。未来实际UI验收在本树cwd用该generator生成新cache绝对.mts配置，独立UI_PORT／UI_DATA_DIR／TMPDIR，先xdpyinfo核当前DISPLAY；不假定:99在迁移后继续有效。
 
-N1不需要这些图形／原包输入；N2若用才显式设置保全XPI，不读取旧probe默认/tmp路径。不启动绿色组、真实用户库或产品宿主。当前阶段止于可审查方案，待决分支保持受阻，不为CLI ready或规划齐备勾选2.3／3.1／I6。
+N1不需要这些图形／原包输入；N2若用才显式设置保全XPI，不读取旧probe默认/tmp路径。不重复绿色组或启用真实用户库；N1只读查询通过也不勾选N2普通原包装配、2.3／3.1或完整I6。
 
 ## 已接收：真实原包的测试显示前置（ba29ee6）
 

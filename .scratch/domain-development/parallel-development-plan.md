@@ -406,6 +406,30 @@ e3c815b的[Windows专项40613967285](https://github.com/leike0813/Scholoom/actio
 
 新源码自动触发[Checks40622631905](https://github.com/leike0813/Scholoom/actions/runs/40622631905)，未作为本轮目标平台通过依据。新Linux现场已按需保全13份元数据／错误文件及三份失败trace；整包下载的首次停滞与限时失败单列，不把残缺整包当下载成功。必需接续输入已在Git／cache，后续不依赖当前/tmp内容；不承诺迁移期间共享显示或其他应用的临时socket继续有效。
 
+## 第十四轮验收后的安排
+
+六树18文件已冻结、建立检查点并合入dev；科研线无增量。Standards轴无确证问题，Spec轴发现委派交付描述扩大窗口观察能力的P2：窗口附件只有用户指令／run，独立服务端工具快照不证明renderer工具送达。主线收窄原delivery，保留传输／UI应用缺证，不额外扩观察框架。字段父项4.1／4.2的独立oracle、目录核查及8项内核／4项双宿主证据审查接收，关闭这两个重复收尾父项；平台和完整6.1／6.2仍开放。
+
+主线复用f4ab1e5已验构建，实际生产apps／packages／scripts无差异；受影响tools类型、架构及单文件Biome通过（保留原有1条warning），委派打开／取消双宿主4/4、isolated-kernel四场景4/4。没有将测试／文档增量冒充生产修复或重复七次相同构建。13份change strict及schema通过。证据根`/home/joshua/.cache/scholoom-round14-acceptance/`，原冻结、审查、CI日志、原场景结果和接续回执分别保存，继续不依赖当前/tmp。
+
+f4ab1e5／[Checks40622631905](https://github.com/leike0813/Scholoom/actions/runs/40622631905)的macOS job成功：不可用／人工降级4项、入口4项、人工工作台双宿主14项及目录打包通过；新滚动源码已有该目标回执，不再笼统写Mac未验。它仍不表示macOS受管执行可用或三平台发布完成。Linux原生ownership19项通过，完整内核758通过／1失败／26跳过；唯一失败是zotero-host-scope在新Xvfb显示预检返回127，业务动作未进入，后续UI因该step失败未运行。不能把758通过写成全绿或凭127猜定缺哪个二进制；原trace和日志已保全。Windows完整组按后续实际回执更新，本轮不等待或推定其结果；旧专项成功与完整组失败仍分别表达。
+
+用户本轮明确授权主线自行选择待决方案，决定及理由进入所属design：生态N1允许已有授权下无native配置的只读共同回执查询，避免把重启核查绑到插件启动；N2启用绑定只归共同kernel宿主设置，首个原生片用可信操作者离线准备的固定资源，减少额外配置权威和安装／升级范围。N1的窄规格例外已写入delta，代码尚未实现；其他四操作及真实用户库的隔离门不变。报告采用独立Linux提供者先行的实施规划，不把临时launcher或画面流视为已采纳产品承载，现阶段活动报告继续unavailable。
+
+派发前补充完整回执：f4ab1e5／Checks40622631905已failure，Windows内核688通过／53失败／44跳过，后续UI未运行；原日志在本轮windows-ci.log。该数量与旧专项／完整组不可合并为同一根因。新Windows isolated-kernel专项入口随本轮合入后才触发，其目标结果尚未纳入验收。
+
+| 开发线 | 下一片及所有权 | 停止边界 |
+| --- | --- | --- |
+| 生态 | 实施N1普通CLI重启后的只读zotero.result，复用原DTO、共同回执与持续授权；拥有ZoteroOperations局部、CLI-runtime代表测试及原工件 | 不改N2启动配置／宿主资源／任意executable，不启动BBT或扩大真实用户库；先build后验普通start/stop/start和原requestId不重放 |
+| Agent | 集中承接项目首文件场景及普通委派的受理后、onStart前缺证，核实际调度／启动阶段与取证盲区；拥有harness执行及其可信model-kernel观察 | 项目不再重复同次材料分析；不以queued、空controls或本机正例宣称CI根因。只修确证因果，不再对每个绿色场景叠加另一套诊断 |
+| 计算 | 收敛新Linux显示预检127，核无DISPLAY分支实际环境、依赖及stderr；同时接收新Windows采样入口已进入共同源码 | 拥有显示测试helper／scope回归及必要CI准备，禁止改生产停止／容量／期限或跳过原完整后代断言。缺真实新Xvfb条件明确交回，不用共享DISPLAY正例替代；不循环等Windows CI |
+| 文献 | 开始C批complete-library-organization的调查及实施规划，对照实际集合／标签／附件／关系、批量动作和可逆记录差距 | 止于apply所需工件齐备，不提前创建delivery或实施新业务；复用B稳定选择与A资源，E删除／恢复依赖仍按批次，不跳过C／D关系契约 |
+| 阅读交互 | 规划独立Linux隔离提供者，明确字节交付、预执行策略、实际配额、完整归属／控制器丢失和unknown恢复接口与独立验收 | 只形成OpenSpec规划，不复制临时native代码或扩生产UI／协议；复用既有准入权威，必要OS条件不足保持unavailable，Windows／Mac不靠模拟通过 |
+| 项目 | 本轮首文件现场与接收身份已交回，等待真实库删除／恢复及主题知识提供者，具体执行问题由Agent集中接手 | 不重复trace、绿色多项目场景或另造删除分类；4.1仍开放 |
+| 科研 | 等待明确的新业务Graph／角色或具体领域缺陷 | 已接收机械路径及公共诊断，不自定科研流程或重复构建／旧trace |
+
+先推送共同验收和决策，七树保全快进、核源码与已验产物一致并完成必要类型／定向验证，再向原Codex／gpt-6.1-sol／high会话发送五任务／两等待。只有需要新生产改动时重建受影响产物。完整changes、Linux／Windows稳定性、报告承载和科研质量继续开放；纯回执不再次同步已启动的树。
+
 ## 首轮 Agent 的共同起始任务
 
 各线采用下述共同要求，并附上本文件中该开发线的小节：

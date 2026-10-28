@@ -1,5 +1,11 @@
 # 实际交付与交接
 
+## 第十四轮主线验收
+
+Windows专项触发范围及完整四场景步骤已保全合入，两轴审查无本线确证问题；安全JSON沿既有artifact，未引入平行白名单或改原失败条件。主线复用同源产物再次运行四场景4/4，tools／架构检查通过。新workflow步骤尚未取得Windows目标回执，不以Linux结果或旧专项成功关闭5.2／6.2。
+
+下一片处理新Linux完整CI唯一的显示预检127，独占测试display helper／scope及必要CI准备；先查实际依赖／环境和stderr，再修最小根因，不放宽业务断言、停止或准入。原失败job／trace已保全在`/home/joshua/.cache/scholoom-round14-acceptance/`，普通DISPLAY正例不替新Xvfb验证。不等待或循环轮询Windows，阶段与所有权见[共同计划](../../../.scratch/domain-development/parallel-development-plan.md#第十四轮验收后的安排)。
+
 ## 第十三轮主线验收
 
 安全stderr／唯一生命周期解析及新反例已保全合入，两轴独立审查无本线确证缺陷。完整构建／类型／架构／生成检查通过；主线内核13/13包括四个isolated-kernel实际进程／解析场景、四个model-kernel回归和真实BBT代表例。失败首因、清理前exit／close和父kill后的最终收据分列，旧实例与停止unknown保护不变。仅测试改动，不声称修复Windows生产启动根因。

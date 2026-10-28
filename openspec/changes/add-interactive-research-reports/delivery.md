@@ -1,5 +1,11 @@
 # 实际交付与交接
 
+## 第十四轮主线验收
+
+本轮四工件及高FD／SCM_RIGHTS／stdio／普通文件门的有限对照已保全合入，独立两轴审查无确证问题；被拒启动与实际OS拒绝、危险迁移与全部scope收尾分别表达。主线未重复原生实验或将固定样本当生产能力，活动报告unavailable、2.1b／I5继续开放。
+
+用户授权主线选择后，下一片先规划独立Linux platform隔离提供者，复用当前准入和归属，明确实际配额、受控字节交付、预执行门、控制器丢失／unknown恢复及独立验收。只形成apply所需工件，不把临时launcher复制进生产或预设共同画面流；现有用户权限不能兑现保证则不可用。方向见design“下一片”，调度见[共同计划](../../../.scratch/domain-development/parallel-development-plan.md#第十四轮验收后的安排)。原生源码／结果在原cache，后续无现有/tmp前置。
+
 ## 第十三轮验收后的高FD／接收通道调查（f4ab1e5）
 
 2026-10-28先核HEAD=`f4ab1e5f1ed17ae9af656c1f9945005a2786d911`且clean，读取原AGENTS、共同计划第十三轮安排、本change原工件、scholoom-dev及apply；执行后取得当前delivery instructions。只续做已授权有限Linux调查，仓库写集为原investigation／design／tasks／delivery；未改生产、协议、UI或测试源码，未同步／重放旧patch／提交。任务仍6/13、活动报告unavailable，2.1b／I5及目标／旧版本Adapter保持开放。
