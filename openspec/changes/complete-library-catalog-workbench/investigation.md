@@ -1,5 +1,23 @@
 # 调查依据
 
+## 29cd728：4.1／4.2具体覆盖与Linux整合输入
+
+本轮核对当前`packages/protocol/src/library-metadata.ts`及唯一CatalogItemForm／metadata helper，结合固定Zotero10.0.5 schema44（`70c3aa98627413d6a30dca955886eafbde085ce9`）、utilities（`1dd38e27edf81e9d9c4161c957b7efb7f5681ac3`）和既有CSL独立来源。固定转换样本在`/tmp/scholoom-library-metadata-round6/upstream-oracle.json`，CSL1.0.2 schema及官方日期输入在`/tmp/scholoom-library-date-round7/{csl-data.json,date_TextFormFulldateYearRange.json,date_Uncertain.json,date_TextFormYeardateYearRangeOpen.json}`。本轮只读核证，未重新执行上游转换或原包；不把前轮样本阅读称为本轮宿主执行。
+
+| 对象 | 当前已交付 | 精确保留边界 |
+| --- | --- | --- |
+| 类型／文本 | schema44映射的32个CSL目标类型；47个文本目标中的44个编辑项 | citation-key属正式键权威；note不作Extra编辑；历史shortTitle保留，固定转换输出title-short。不从CSL逆推Zotero类型／Extra。 |
+| 数字型字段 | 文本属性显式编辑，不强制转换既有值 | CSL允许volume、issue、page、edition、chapter-number、collection-number、number、number-of-pages、number-of-volumes为数字；这些数字值继续JSON核查，不冒充可编辑字符串。 |
+| 创建者 | 22个映射角色、family／given／literal显式编辑、同角色完整对象移动 | particles／suffix／static-ordering等属性保留，无专用控件；混合literal／family／given对象可局部改literal并保留其他属性。跨角色总顺序、Zotero首要角色重建没有本批逆映射契约。 |
+| 日期 | issued／accessed／original-date／submitted；1–2个正数端点，各端年／年月／年月日；circa布尔或数值0／1 | 数字字符串、开放末端[[1987],[0]]、BCE[-44]、season、literal／raw混合保留。circa字符串"0"／"1"或2无标记控件，合法数字端点仍可局部修改并保留该标记。不解析自由文字或猜公历。 |
+| 其他CSL表达 | 当前开放metadata按原值完整保留，JSON为核查／显式编辑路径 | CSL类型classic／collection／entry／event／figure／musical_score／pamphlet／performance／periodical／regulation／review／review-book／treaty，角色compiler／curator／editorial-director／illustrator及available-date／event-date不在固定Zotero目录覆盖内。新增专用控件须另有范围依据。 |
+
+编辑目录与领域校验分别承担职责：同文件的`cslMetadataSchema`保留开放metadata，领域还核题名、DOI及16KiB等既有约束；不会将UI目录当封闭schema。固定映射的license／part-number不在该CSL1.0.2属性集合，以及calendar等任意扩展可保留，并不证明它们符合CSL标准。原值inspect／独立title更正／导出选择已交付，不重新列成未决政策。
+
+因此32／44／22／4授权编辑范围内未发现遗漏声明或表单实现；4.1a–d／4.2a–d已经记录相应证据。父4.1／4.2暂留开放用于覆盖与验收收尾，不再用“完整复杂映射未完成”暗示要新增逆转换、季节或别名政策。本轮6.1b只证明Linux业务闭环，Windows1.4、完整6.1／6.2、分发及科研质量继续按真实证据处理。
+
+新代表场景的日期端点静态取官方输入1987-08-03／2003-10-23，circa=1取date_Uncertain；题名、出版者、作者与未知嵌套为明确合成夹具。预期更正只改变publisher、结束日及circa，不由新映射自身生成预期。真实产品导入文件与保存，真实CLI内核重启及原会话工具读取；模型HTTP受控，内部不替换。任务和结果仍维护原tasks／delivery。
+
 ## 2026-10-28：938c33f消费真实进程提供者
 
 当前HEAD`938c33f2c9fcafb2cce11b0c165b2fb1e9a818c3`，开工前clean。主线已选择并同步A：`tests/isolated-kernel.ts::startIsolatedKernel`与`tests/fixtures/isolated-kernel-process.mjs`。旧“等待配置选择／提供者”只描述4312262阶段；普通生产CLI持久恢复B仍未提供，不能混同。
