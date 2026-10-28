@@ -1,10 +1,10 @@
 # 执行任务
 
-用户已授权实现及必要依赖链接、隔离环境／双宿主测试，并选择逐次人工“移交后台”。本轮允许本地补丁或提交；不推送、PR、归档、安装新依赖、写真实用户库或运行常驻开发服务器。双宿主复用已构建产物及隔离静态夹具。跨线输入与历史CI诊断按实际证据分别记录。
+用户已授权实现及必要依赖链接、隔离环境／双宿主测试，并选择逐次人工“移交后台”。本轮仅交本树增量与独立补丁，提交／同步由主线处理；不推送、PR、归档、安装新依赖、写真实用户库或启动开发服务器。双宿主复用已构建产物及隔离静态夹具。跨线输入与历史CI诊断按实际证据分别记录。
 
 ## 下一片：恢复归属统一计入准入
 
-- [ ] R16.1 第十五轮报告调查指出`ManualApplication`的ProgramRuns.retainUnknown回调仍以私有Set去重并仅在有空位时创建匿名永久reservation。主线决定先修这一既定契约内缺口：直接按实际commandInstanceId使用唯一ProcessAdmission.retainUnknown，去除重复计数路径，不新增容量或结清API。先用真实ProgramRuns恢复及共享准入构造满额时登记未知归属、释放无关live槽后仍占用、重复身份不重复计数的红例，再修局部装配并核既有宿主丢失／副本恢复和HostConnection代表回归。计算线仅拥有manual.ts该回调／私有Set、必要program-runs／process-admission测试及本change记录；不改libraryHandlers、admission.ts、原生监督、生产期限或报告提供者。Windows启动缺证另行保留，不能把本片通过称为Windows已修。
+- [x] R16.1 按主线既定方案删除`ManualApplication`的unknownPrograms私有Set及条件匿名reservation，ProgramRuns.retainUnknown直接以实际commandInstanceId调用唯一ProcessAdmission.retainUnknown，不新增容量或结清API。真实host-loss／SQLite恢复的empty、full、already-retained三场景先红（期望1，分别得到2、0、2），修后连同独立备份副本保护及HostConnection未知／满额／同身份live代表共6/6通过；内核先构建再测，tools类型／格式／架构通过。同步design恢复路径，证据及独立补丁在`/home/joshua/.cache/scholoom-project-execution-round15-39VPvO/`。未改libraryHandlers、admission.ts、原生监督、生产期限或报告提供者；Windows启动及5.2／6.2仍开放，未扩查CI或宣称平台已修。
 
 ```mermaid
 flowchart TD

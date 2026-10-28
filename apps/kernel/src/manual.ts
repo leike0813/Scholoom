@@ -210,7 +210,6 @@ export class ManualApplication {
     string,
     { controller: AbortController; context: CallContext; detach: () => void }
   >();
-  private readonly unknownPrograms = new Set<string>();
   private programStartupProblem: OperationError | undefined;
   private readonly hostInstanceId = crypto.randomUUID();
   readonly projects: Projects;
@@ -647,15 +646,7 @@ export class ManualApplication {
         });
       },
       changed: (projectId, runId) => this.programChanged(projectId, runId),
-      retainUnknown: (id) => {
-        if (this.unknownPrograms.has(id)) return;
-        this.unknownPrograms.add(id);
-        if (this.processes.status.active < this.processes.status.limit) {
-          const lease = this.processes.reserve();
-          lease.retainUntil(new Promise<void>(() => {}));
-          lease.release();
-        }
-      },
+      retainUnknown: (id) => this.processes.retainUnknown(id),
       prepareHandoff: (id, context) => {
         const control = this.programControls.get(id);
         if (!control) throw new OperationError('instanceMismatch', '没有可移交的活动程序。');
