@@ -4,6 +4,8 @@ import { cslMetadataSchema } from './library-metadata.js';
 import { libraryRecordOperations, originalRecordSchema } from './library-records.js';
 import { count, id, object } from './schema.js';
 
+export { recordLimits } from './library-records.js';
+
 const selected = object({ sourceId: id, revision: count }, ['sourceId', 'revision']);
 const scope = {
   libraryId: id,

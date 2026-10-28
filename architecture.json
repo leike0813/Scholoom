@@ -491,6 +491,7 @@
       "sourceRoot": "src",
       "allows": ["@scholoom/client", "@scholoom/protocol"],
       "systemAdapters": [
+        { "path": "src/main/journal-catalog.ts", "apis": ["async_hooks"] },
         {
           "path": "src/main/**",
           "apis": ["electron", "fs", "fs/promises", "vm", "sqlite", "process.env"]

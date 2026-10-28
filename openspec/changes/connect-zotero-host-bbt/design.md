@@ -1,5 +1,23 @@
 # 实现设计
 
+## Windows原包验收接线
+
+现有Linux原包结果不替代Windows。复用同一JournalCatalog、真实library／broker／受管Electron用例与既有宿主smoke；测试display helper在Windows直接返回Electron可执行文件，不经Xvfb、不加Linux参数。两个测试消费者通过同一archive helper使用系统.NET读取固定可信原XPI，字节对照仍读取原成员，不改包内容；Linux继续原unzip路径。普通持久布局的cold用例仍限已登记的Linux布局，不冒充Windows产品装配。
+
+windows-execution增加独立zotero-original job，沿原锁文件、Node24和Electron构建，在runner临时目录下载官方固定BBT9.0.68并显式供应；原manifest版本／ID检查继续生效。先运行共同事务及原包补键／冲突，再运行真实Electron正常关闭、初始化中断、忙操作及失联smoke，原每项期限及unknown保护不变。仅外部安装／下载为CI准备，业务库均为合成；本机不能给Windows通过结论，须消费实际目标回执。写集限上述测试helper／两个消费者、原workflow和本change记录，不新增产品配置或绕过受管监督。
+
+## 共同原值creator写入的独立模块切片
+
+茉莉花固定1.1.39原菜单的姓名拆分消费getCreators／setCreators／saveTx，事实及许可见[一手来源调查](../../../.scratch/scholoom-foundations/research/jasminum-common-authority.md)。这片先补已有JournalCatalog，不把单独模块测试当原包接入；普通期刊范围、原值与CSL分离、正式键和来源身份不变。后续仍须实际原包入口／未await行为／完整关闭及共同权威任务2.3验收。
+
+Module的Interface增加editCreators(operation, commit, read)，与原fill共用一个私有提交实现。操作中setCreators只保存经共同snapshot schema、期刊映射及原值字节限额核查的草稿；setField仍只在补键意图内可用，creator动作不能写键／Extra／CSL。saveTx仅登记原操作事务的保存意图，最终成功以唯一共同commitRecords及稳定receipt为准；独立SQL只是已提交投影，不新增持久权威。creators列与Item.getCreators共用同一SQLite投影，保存保留完整数组顺序及原角色／字段形态；不复制Zotero姓名拆分算法。
+
+操作归属经私有AsyncLocalStorage身份与当前可写阶段同时核对；operation返回后即转committing，直到通知结束仍占有本操作，旧异步回调不能借用后续事务。插件SQL经SQLite authorizer保护共同投影表／视图及大小写不同的临时同名对象，内部refresh独占更新；缓存表的合法SQL仍沿原路径。通知阶段不能向正在投递的批次追加事件，拒绝须可诊断，不能静默接受后丢弃。
+
+共同提交拒绝或操作失败不刷新SQL／发通知，草稿在finally清除；提交后读回／通知失败保留committed receipt并分别诊断。通知阶段关闭写入且继续占有本次模块操作，回调不能追加已提交事务写入或并发覆盖其清理。原值容量复用protocol/library-records的唯一recordLimits，经zotero叶重导出；无新领域DTO或公共命令。独立测试沿已有Playwright TS加载方式调用真实导出类，真实library／broker覆盖成功、CAS拒绝、只读意图保护和提交后通知失败；实际原包继续消费原host构建，其他平台验收另记。
+
+写集为journal-catalog、protocol/zotero的同源限额重导出、journal-creators合成输入、独立kernel测试和本change事实源。实现后先构建，再核独立模块及既有真实BBT原包路径，避免为测试暴露宿主环境或私有执行钩子。
+
 ## 固定原包Worker的缓存删除等待
 
 普通真实原包在cache reset-reopen阶段偶发失败。补回原Worker debug／dump诊断后，三次独立样本一通过两失败，两失败均观察到IndexedDB delete blocked；原9.0.68在该通知立即reject字符串，导致主侧只见unspecified。原包未修改。blocked表示删除仍在等待连接释放，不能当成删除成功；宿主必须等待同一native request的success／error，永久阻塞仍由原30秒启动期限失败并沿原unknown收尾。

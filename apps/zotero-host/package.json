@@ -2,6 +2,7 @@
   "name": "@scholoom/zotero-host",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "license": "AGPL-3.0-only",
   "description": "Scholoom Zotero compatibility host",
   "main": "out/main/index.cjs",

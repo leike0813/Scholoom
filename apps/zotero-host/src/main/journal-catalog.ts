@@ -1,11 +1,30 @@
-import { DatabaseSync, type SQLInputValue } from 'node:sqlite';
+import { AsyncLocalStorage } from 'node:async_hooks';
+import { constants, DatabaseSync, type SQLInputValue } from 'node:sqlite';
 import { isDeepStrictEqual } from 'node:util';
-import { OperationError } from '@scholoom/protocol/core';
+import { compileContract, OperationError } from '@scholoom/protocol/core';
 import type { LibraryInputs, RecordReceipt } from '@scholoom/protocol/library';
-import { journalOriginal, type ZoteroSnapshot } from '@scholoom/protocol/zotero';
+import {
+  journalOriginal,
+  recordLimits,
+  type ZoteroSnapshot,
+  zoteroHostCallbacks,
+} from '@scholoom/protocol/zotero';
 
 type Event = [string, string, number[], Record<number, unknown>];
 type Observer = { notify(...event: Event): Promise<void> | void };
+type Creators = ReturnType<typeof journalOriginal>['creators'];
+const validSnapshot = compileContract(zoteroHostCallbacks['zotero.readCommitted']).result;
+const projectionTables = new Set([
+  'literature',
+  'libraries',
+  'itemtypes',
+  'fields',
+  'items',
+  'itemdata',
+  'itemdatavalues',
+  'deleteditems',
+  'feeditems',
+]);
 
 /** Disposable SQLite projection. All durable writes go to the common library transaction. */
 export class JournalCatalog {
@@ -16,9 +35,12 @@ export class JournalCatalog {
     { observer: Observer; types: string[]; priority: number }
   >();
   private nextObserver = 1;
-  private staging = false;
+  private staging: 'keys' | 'creators' | 'committing' | 'notifying' | undefined;
+  private readonly operation = new AsyncLocalStorage<symbol>();
+  private owner: symbol | undefined;
   private events: Event[] = [];
   private readonly drafts = new Map<number, Record<string, string>>();
+  private readonly creatorDrafts = new Map<number, Creators>();
   private readonly saved = new Set<number>();
   private records: ZoteroSnapshot;
 
@@ -27,7 +49,7 @@ export class JournalCatalog {
     for (const record of records) journalOriginal(record);
     // Numeric IDs belong only to this projection, never to the source Zotero database.
     this.db.exec(`
-      CREATE TABLE literature (id INTEGER PRIMARY KEY, fields TEXT NOT NULL, itemKey TEXT NOT NULL);
+      CREATE TABLE literature (id INTEGER PRIMARY KEY, fields TEXT NOT NULL, itemKey TEXT NOT NULL, creators TEXT NOT NULL);
       CREATE TABLE libraries (libraryID INTEGER PRIMARY KEY, editable INTEGER);
       INSERT INTO libraries VALUES (1,1);
       CREATE TABLE itemTypes (itemTypeID INTEGER PRIMARY KEY, typeName TEXT UNIQUE);
@@ -51,11 +73,12 @@ export class JournalCatalog {
       records.forEach((record, index) => {
         const original = journalOriginal(record);
         this.db
-          .prepare('INSERT OR REPLACE INTO literature VALUES (?,?,?)')
+          .prepare('INSERT OR REPLACE INTO literature VALUES (?,?,?,?)')
           .run(
             index + 1,
             JSON.stringify({ ...original.fields, citationKey: record.citationKey?.value ?? '' }),
             original.identity.objectKey,
+            JSON.stringify(original.creators),
           );
       });
       this.db.exec('COMMIT');
@@ -78,10 +101,34 @@ export class JournalCatalog {
   field(id: number, name: string) {
     return this.drafts.get(id)?.[name] ?? this.fields(id)[name] ?? '';
   }
+  private committedCreators(id: number): Creators {
+    const row = this.db.prepare('SELECT creators FROM literature WHERE id=?').get(id);
+    if (!row) throw new OperationError('notFound', '条目不在本次投影。');
+    return JSON.parse(String(row.creators)) as Creators;
+  }
+  creators(id: number): Creators {
+    return structuredClone(this.creatorDrafts.get(id) ?? this.committedCreators(id));
+  }
+  setCreators(id: number, creators: unknown) {
+    if (this.staging !== 'creators' || this.operation.getStore() !== this.owner)
+      throw new OperationError('unavailable', '作者更正必须属于明确的原值事务。');
+    const record = this.record(id);
+    const candidate = {
+      ...record,
+      originals: [{ ...journalOriginal(record), creators }],
+    };
+    if (!validSnapshot([candidate]))
+      throw new OperationError('invalidRequest', '作者数据不符合共同原值契约。');
+    const original = journalOriginal(candidate as ZoteroSnapshot[number]);
+    if (Buffer.byteLength(JSON.stringify(original)) > recordLimits.originalBytes)
+      throw new OperationError('tooLarge', '原值超过共同写入容量。');
+    this.creatorDrafts.set(id, structuredClone(original.creators));
+  }
   set(id: number, name: string, value: unknown) {
     const record = this.record(id);
     if (
-      !this.staging ||
+      this.staging !== 'keys' ||
+      this.operation.getStore() !== this.owner ||
       !['citationKey', 'extra'].includes(name) ||
       typeof value !== 'string' ||
       (record.citationKey && name === 'citationKey' && value !== record.citationKey.value)
@@ -90,11 +137,18 @@ export class JournalCatalog {
     this.drafts.set(id, { ...this.drafts.get(id), [name]: value });
   }
   async save(id: number, options: { skipNotifier?: boolean } = {}) {
-    if (!this.staging) throw new OperationError('unavailable', '保存必须属于共同原子事务。');
+    if (
+      (this.staging !== 'keys' && this.staging !== 'creators') ||
+      this.operation.getStore() !== this.owner
+    )
+      throw new OperationError('unavailable', '保存必须属于共同原子事务。');
     this.saved.add(id);
     const changed = Object.keys(this.drafts.get(id) ?? {}).filter(
       (name) => this.field(id, name) !== this.fields(id)[name],
     );
+    const creators = this.creatorDrafts.get(id);
+    if (creators && !isDeepStrictEqual(creators, this.committedCreators(id)))
+      changed.push('creators');
     if (changed.length && !options.skipNotifier)
       this.events.push([
         'modify',
@@ -103,7 +157,12 @@ export class JournalCatalog {
         {
           [id]: {
             libraryID: 1,
-            changed: Object.fromEntries(changed.map((name) => [name, this.fields(id)[name] ?? ''])),
+            changed: Object.fromEntries(
+              changed.map((name) => [
+                name,
+                name === 'creators' ? this.committedCreators(id) : (this.fields(id)[name] ?? ''),
+              ]),
+            ),
           },
         },
       ]);
@@ -128,12 +187,42 @@ export class JournalCatalog {
     commit: (changes: LibraryInputs['library.commitRecords']['changes']) => Promise<RecordReceipt>,
     read: () => Promise<ZoteroSnapshot>,
   ) {
+    return this.change('keys', operation, commit, read);
+  }
+  async editCreators(
+    operation: () => Promise<unknown>,
+    commit: (changes: LibraryInputs['library.commitRecords']['changes']) => Promise<RecordReceipt>,
+    read: () => Promise<ZoteroSnapshot>,
+  ) {
+    return this.change('creators', operation, commit, read);
+  }
+  private async change(
+    kind: 'keys' | 'creators',
+    operation: () => Promise<unknown>,
+    commit: (changes: LibraryInputs['library.commitRecords']['changes']) => Promise<RecordReceipt>,
+    read: () => Promise<ZoteroSnapshot>,
+  ) {
     if (this.staging) throw new OperationError('resourceLimit', '事务正在执行。');
-    this.staging = true;
+    this.staging = kind;
+    this.owner = Symbol();
     try {
-      await operation();
-      const changes = [...this.saved].flatMap((id) => {
+      await this.operation.run(this.owner, operation);
+      this.staging = 'committing';
+      const changes = [...this.saved].flatMap<
+        LibraryInputs['library.commitRecords']['changes'][number]
+      >((id) => {
         const record = this.record(id);
+        if (kind === 'creators') {
+          const creators = this.creatorDrafts.get(id);
+          if (!creators || isDeepStrictEqual(creators, this.committedCreators(id))) return [];
+          return [
+            {
+              sourceId: record.sourceId,
+              revision: record.revision,
+              original: { ...journalOriginal(record), creators },
+            },
+          ];
+        }
         const draft = this.drafts.get(id) ?? {};
         if (!Object.keys(draft).some((key) => draft[key] !== this.fields(id)[key])) return [];
         const original = record.originals[0];
@@ -157,10 +246,16 @@ export class JournalCatalog {
       // A refresh/notification failure cannot erase the committed receipt.
       try {
         const current = await read();
-        if (current.some((record, i) => record.sourceId !== this.records[i]?.sourceId))
+        if (
+          current.length !== this.records.length ||
+          current.some((record, i) => record.sourceId !== this.records[i]?.sourceId)
+        )
           throw new OperationError('contentChanged', '投影身份变化。');
         this.refresh(current);
         this.drafts.clear();
+        this.creatorDrafts.clear();
+        // Notifications cannot add writes to a transaction that has already committed.
+        this.staging = 'notifying';
         for (const event of this.events) await this.deliver(event);
         for (const record of current) {
           const sqlKey = this.fields(current.indexOf(record) + 1).citationKey;
@@ -177,8 +272,10 @@ export class JournalCatalog {
         };
       }
     } finally {
-      this.staging = false;
+      this.staging = undefined;
+      this.owner = undefined;
       this.drafts.clear();
+      this.creatorDrafts.clear();
       this.saved.clear();
       this.events = [];
     }
@@ -198,11 +295,31 @@ export class JournalCatalog {
     return item;
   };
   private query(sql: string, params: SQLInputValue | SQLInputValue[] = []) {
-    const statement = this.db.prepare(sql);
-    const values = Array.isArray(params) ? params : [params];
-    if (statement.columns().length) return statement.all(...values);
-    statement.run(...values);
-    return [];
+    // SQLite omits an ALTER's new name, so renames could shadow a protected projection.
+    this.db.setAuthorizer((action, first, second) => {
+      if (
+        action === constants.SQLITE_ATTACH ||
+        action === constants.SQLITE_DETACH ||
+        action === constants.SQLITE_ALTER_TABLE ||
+        (action === constants.SQLITE_PRAGMA && first?.toLowerCase() === 'writable_schema') ||
+        (![constants.SQLITE_READ, constants.SQLITE_SELECT, constants.SQLITE_FUNCTION].includes(
+          action,
+        ) &&
+          ((first !== null && projectionTables.has(first.toLowerCase())) ||
+            (second !== null && projectionTables.has(second.toLowerCase()))))
+      )
+        return constants.SQLITE_DENY;
+      return constants.SQLITE_OK;
+    });
+    try {
+      const statement = this.db.prepare(sql);
+      const values = Array.isArray(params) ? params : [params];
+      if (statement.columns().length) return statement.all(...values);
+      statement.run(...values);
+      return [];
+    } finally {
+      this.db.setAuthorizer(null);
+    }
   }
   get zotero() {
     const library = { libraryID: 1, editable: true, name: 'Isolated common-library projection' };
@@ -257,8 +374,17 @@ export class JournalCatalog {
           this.observers.delete(id);
         },
         trigger: async (...event: Event) => {
-          if (this.staging) this.events.push(event);
-          else await this.deliver(event);
+          if (
+            this.staging === 'committing' ||
+            this.staging === 'notifying' ||
+            (this.operation.getStore() !== undefined && this.operation.getStore() !== this.owner)
+          )
+            throw new OperationError('unavailable', '通知不属于可写事务。');
+          if (this.staging) {
+            if (this.operation.getStore() !== this.owner)
+              throw new OperationError('unavailable', '通知不属于当前事务。');
+            this.events.push(event);
+          } else await this.deliver(event);
         },
       },
     };
@@ -291,7 +417,10 @@ class JournalItem {
     this.catalog.set(this.id, name, value);
   }
   getCreators() {
-    return structuredClone(this.catalog.record(this.id).originals[0]?.creators ?? []);
+    return this.catalog.creators(this.id);
+  }
+  setCreators(creators: unknown) {
+    this.catalog.setCreators(this.id, creators);
   }
   getCreatorsJSON() {
     return this.getCreators();

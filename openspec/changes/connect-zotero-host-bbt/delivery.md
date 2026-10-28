@@ -1,5 +1,21 @@
 # 实际交付与交接
 
+## 首批范围确认、事务归属与派生SQL保护（2026-10-29）
+
+用户明确按既定首批范围完成，茉莉花、复杂映射及Reader写回另立变更，承接见[后续提议](../extend-zotero-ecosystem-compatibility/proposal.md)。原包兼容与共同文献权威要求不变；Windows原包、完整I6和原任务3.2／4.2／5.x仍须其真实结果，不由范围确认自动勾选。
+
+主线先补JournalCatalog的独立creator草稿／保存接口，未新增产品动作、授权、原包入口或CSL双写。5项独立真实library测试及原BBT两例先通过，独审仍复现旧异步回调混入新操作、提交等待期接受迟到保存、插件SQL污染共同投影三个问题。进一步复用AsyncLocalStorage为每个操作绑定独立身份，operation结束即关闭写入阶段并继续占有提交／读回／通知；插件SQL用SQLite authorizer保护共同表／视图及同名临时对象，禁止attach／detach和writable_schema，保留实际缓存／settings读写。提交／通知阶段拒绝追加当前通知批次，避免无界重新入队；已提交回执始终保留，未知效果和容量保护不变。
+
+8项独立模块用真实LiteratureCatalog／SQLite及共同commit，无broker、原包或模型，覆盖整组CAS、CSL／固定键／身份保留、容量、原异步反例、提交／读回迟到保存、SQL／通知绕行及提交后失败。`creators-guards.log` **8/8，4.9秒**；当前host build通过。随后真实kernel／library／broker／受管Electron／BBT9.0.68两例**2/2，51.1秒**，路径`creators-guards-bbt`，含百条补键／两格式／更正／重启及全库冲突／撤权拒绝；宿主smoke的原包导出／原成员逐字节对照与启动中关闭两例**2/2，8.2秒**，路径`bbt-archive-regression`。独审的原反例与整改复核沿`creators-independent-review.md`，未取得复核结论前不关闭事务整项。上述creator是独立Module准备，不是茉莉花接入或完整creator SQL兼容。
+
+窄复核又复现TEMP普通表重命名后遮蔽投影，SQLite authorizer未提供新名称，原名称保护不足。已按动作明确拒绝插件ALTER TABLE，并在原SQL回归中保留temp.shadow→LiTeRaTuRe代表例；独审仅对该原反例作最终静态确认，指定范围无剩余发现。父实际重建后，`creators-sql-final` **8/8，4.6秒**，真实原包百条补键／更正／两格式／重启`zotero-sql-final-bbt` **1/1，46.8秒**；固定已采用键拒改补断言`fixed-key-intent-final` **1/1，3.4秒**。同源recordLimits导出、harness／host及tools类型、architecture（14模块／264文件／0 findings）和生成器自检通过。首次架构失败因async_hooks未声明，现仅journal-catalog精确登记；没有放宽整个main路径。最初发现及全部修正结果保留，不把普通绿测当完整SQL审计。
+
+新增测试直接沿Playwright加载真实源类，需要宿主package声明type=module；其实际main／preload构建仍显式.cjs，真实宿主结果已复验。原值字节上限仅从共同protocol叶重导出，无新DTO或持久权威。测试中Promise.withResolvers因项目ES2023类型基线失败，已改为本地Promise gate，不提高项目基线。
+
+Windows原包独立job和跨平台可信XPI准备已接入原workflow／fixture；Linux两个原包smoke已通过，Windows尚待实际目标回执。Linux系统helper两个正例此前在CI因已安装目标／祖先不满足生产保护而失败；测试现独立记录完整安装前置，不安全安装核明确拒绝，safe-permission变化例只在确有安全基线时运行，本机**25/25**。生产helper校验没有放宽或修改系统文件。macOS入口失败诊断另沿实际entrypoint：原场景唯一产品窗口，失败后快照已有标题，缺标题首次出现／桥／握手时点；本轮只补失败时有界DOM／bridge观测，不加期限、不宣称根因已修。
+
+本节所有工件相对根为`/home/joshua/.cache/scholoom-finish-active/`，无需现有/tmp，未触碰真实用户库或启动开发服务器。
+
 ## N2.5普通入口整合接收（2026-10-29）
 
 主线据以下互补结果及独立审查完成N2.5，当前41/50，完整E4／I6及其他原任务继续开放。不是把不同profile拼成一次执行：同profile的普通CLI／共用bootstrap冷启动与重启由bbt-idb-wait三轮3/3证明；追加未知ID及撤权由bbt-native-authority-final1/1（59.1秒，用例46.6秒）证明。后者在restart末观察新command已登记后撤write/send，未交付文本、records及原共同回执不变；实际发生在插件启动前，返回outcomeUnknown，scopeStopped=true／pluginClosed=false。恢复grant仍拒绝原生新请求，未知记录没有清除。首版错误要求所有阶段都返回permissionDenied的失败保留于bbt-native-authority.log；当前分别接受受理阶段合法的permissionDenied／outcomeUnknown，均要求拒绝且数据不变，不扩大成功条件。
