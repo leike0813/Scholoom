@@ -56,6 +56,10 @@ test('Windows private directories retain exclusive inheritable access without se
     windowsHide: true,
   });
   const metadata = JSON.parse(probe.stdout);
+  await writeFile(
+    testInfo.outputPath('repeated-private-directory-metadata.json'),
+    JSON.stringify(metadata),
+  );
   await testInfo.attach('repeated-private-directory-metadata', {
     body: JSON.stringify(metadata),
     contentType: 'application/json',

@@ -1,5 +1,11 @@
 # 实际交付与交接
 
+## Windows子文件元数据独立取证（2026-10-29）
+
+e35c7bf的专项40760544080已cancelled，ACL原例通过、首个对照probeDeadline；提前artifact12849185406已保全，但list reporter没有将testInfo.attach正文写入上传目录，不能声称取得了before／after指纹。当前在原private-files测试中将同一JSON实际写入outputPath，权限断言和生产实现不变。
+
+Windows workflow新增独立private-files job：固定Node24.22.1与旧失败环境一致，记录实际Node／libuv，原例独立重复三次、零重试，always上传windows-private-files-metadata。原execution job的ACL对照保留，private-files移至新job避免重复；所有job仍15分钟，不增加任意dispatch参数或修改默认分支。dev push按既有路径触发，无需依赖当前main缺失的手动入口。Biome、tools类型及diff已核，目标新回执尚待推送后取得；ctime假设未证实，不修改材料指纹或忽略changed。
+
 ## 0b5c5e3完整Checks回执及下一次窄取证（2026-10-29）
 
 完整run40745284164已结算failure，与Windows专项分开。Windows job123017309438为内核789通过／5失败／85跳过，失败分别为capability-isolation的另一会话5秒内仍running、library-organization副本附件状态changed、lifecycle并发重启四入口未running，以及workbench-integration两场景5秒内无首模型请求。Linux job123017310197内核835通过／44跳过、smoke6通过／11跳过，UI137通过／25失败／6跳过；macOS job123017310142为success。Windows／Linux失败后均未完成目录包，本change5.2／6.2保持开放。

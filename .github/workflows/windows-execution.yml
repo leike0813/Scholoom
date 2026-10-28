@@ -37,6 +37,28 @@ permissions:
   contents: read
 
 jobs:
+  private-files:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.22.1
+          cache: pnpm
+      - run: pnpm --config.optimisticRepeatInstall=false install --frozen-lockfile
+      - run: pnpm --config.optimisticRepeatInstall=false build:shared
+      - name: Record the exact Node and libuv versions
+        run: node -p 'JSON.stringify({platform:process.platform,node:process.version,uv:process.versions.uv})'
+      - name: Observe repeated directory ACL metadata without retries
+        run: pnpm --config.optimisticRepeatInstall=false exec playwright test --config playwright.kernel.config.ts tests/kernel/private-files.spec.ts --workers=1 --repeat-each=3 --reporter=list --output test-results/windows-private-files
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: windows-private-files-metadata
+          path: test-results/windows-private-files/
+          if-no-files-found: warn
   execution:
     runs-on: windows-latest
     timeout-minutes: 15
@@ -69,7 +91,7 @@ jobs:
         run: pnpm --config.optimisticRepeatInstall=false exec playwright test --config playwright.kernel.config.ts tests/kernel/isolated-kernel.spec.ts --workers=1 --output test-results/windows-isolated-kernel
       - name: Compare real private directory ACL environments after isolated startup
         if: '!cancelled()'
-        run: pnpm --config.optimisticRepeatInstall=false exec playwright test --config playwright.kernel.config.ts tests/kernel/isolated-startup-acl.spec.ts tests/kernel/private-files.spec.ts --workers=1 --output test-results/windows-isolated-acl
+        run: pnpm --config.optimisticRepeatInstall=false exec playwright test --config playwright.kernel.config.ts tests/kernel/isolated-startup-acl.spec.ts --workers=1 --output test-results/windows-isolated-acl
       - name: Preserve startup evidence before the remaining checks
         if: '!cancelled()'
         uses: actions/upload-artifact@v4
