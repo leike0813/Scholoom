@@ -212,6 +212,18 @@ runtime合并还须保留Agent的instanceLifecycle.onStopping中childrenControll
 
 ## 待办边界
 
+### 共同29cd728后的两类启动失败证据与公共夹具候选
+
+本片只读消费 `/tmp/scholoom-round11-acceptance-Jx5Oez/` 与实际CI artifact，不改生产或测试源码。938c33f／Checks40540362614的Windows artifact12754788905表明并发首批四入口均unknown，持锁子PID3188在父prepare541ms、spawn后到preparing-runtime、runtime-prepared、loading、initializing；旧head没有各提供者标记，不能倒写。isolated-kernel另在首次start（spec:34）ready-ipc失败，只知清理后自有child已close，不知原因为超时、提前退出、IPC或非ready消息，不能与并发例按耗时归同因。
+
+新共同源码29cd728的diagnosis40591705558已完成，artifact12775017470实际保存两种占锁释放后的通过样本及提供者时点；PID6348／5876分别核对，不拼接旧run／PID。Checks40591705520唯一查询截点Windows仍在内核阶段，尚无本片新失败提供者时点；在此精确缺证处停止，不轮询或补跑。来源识别窄项保持已交付，本轮实际来源JSON亦可消费，不回查旧未归因10条。
+
+公共fixture确定的诊断缺口：`tests/isolated-kernel.ts` fork忽略stderr，直接调用serveKernel的子入口并不创建kernel.log；故不能靠读取目录里可能残留的kernel.log还原本次fork。裸catch又丢弃失败类别及实际close收据，清理后“owned child closed”不能证明它在ready之前自然退出。归属、unknown保留和停止策略不据此判为错误；本树只读该文件，不实施修正。
+
+供主线审核的最小候选A：仅在helper既有ready/error/close/timeout分支保存固定原因码，并在强制清理前快照是否已close／是否ready，清理后单列killRequested和实际code／signal；持续排空stderr管道，用固定容量及有界逐行JSON解析复用既有phase／标量白名单，按本次child归属重建安全记录，丢弃其他内容、超长行及私有字段，清理前落盘。只复用纯过滤规则，不能读取旧启动日志冒充本次来源。保留空环境、私有配置IPC、全部原等待预算、原实例核对和停机责任，不把原始异常或stderr传出。候选B用专门安全诊断IPC消息，需要主线统筹子入口及ready分流；当前带非ready state的消息会被拒绝，改动面较大。优先A供主线定案，不在本线启用新通道。
+
+反例／验证交主线：ready前明确exit1与“无ready至原预算后由父清理”必须有不同原因；区分清理前close与清理造成的close，不从PID／退出码猜完整归属。合法JSON夹敏感额外字段、超长无换行stderr和旧目录残留日志分别验证脱敏、有界排空及不混旧实例；原真实竞争拒绝、旧stop不影响替代实例继续保留。上述为待实施方案，未运行或称根因修复。本轮只修改原design／investigation／tasks／delivery，以OpenSpec及diff验证交回，不重建已验产物、不重跑Linux绿用例、TeX或UI。
+
 ### 共同938c33f后的来源回执与初始化提供者观察
 
 正式输入沿 `/tmp/scholoom-round10-acceptance-j1MosP/`。同源码Windows诊断40540362546的availability六例全部通过，含真实Windows ACL来源正例、同名非来源负例、两种占锁和人工降级／五入口零派发；关闭来源识别窄子项，不反填旧10条身份。artifact12751410950未保留该成功步骤的JSON附件，具体origin枚举及逐事件值不能从成功日志补造。8c2fd24完整组40479176954的artifact12726536151显示首批通过、重启批次失败，新PID1412最后到initializing-application；不与431或新诊断拼时间线，不猜CPU／锁／域根因。
