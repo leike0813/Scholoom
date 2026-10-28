@@ -1,5 +1,39 @@
 # 调查依据
 
+## N2续做调查：持久绑定与初始化恢复（7aff2c7）
+
+2026-10-28，HEAD `7aff2c763504f0ddf3b2304eb6ea18b7ef0e389c`，起始clean。N1.2及两个消费者已由主线接收：共同内核15/15、真实BBT原值动作双宿主2/2；整合UI总计5/6，其中项目文件Electron保存失败交项目R16.1，不能记为整合全绿。实际回执入口为`/home/joshua/.cache/scholoom-round15-acceptance/`及delivery的第十五轮主线验收。本轮只读源码与测试定义，不复跑上述绿色组或操作任何库。
+
+| 已核源码／符号 | N2需要补的精确接点 |
+| --- | --- |
+| `bootstrap.ts::bootstrapKernel`、`cli.ts::main`、`lifecycle.ts::ensureKernel/serveKernel`（当前约14／17／265行）；`desktop/src/main/index.ts::kernel:bootstrap` | desktop普通入口经独立Node CLI，开发入口委托既有调试宿主；start仅传data-dir／development，serve在canonical目录取得SQLite独占锁后生成真正status.instanceId并构造KernelApplication。没有读取生态设置；renderer只可请求ensure／inspect。单一读取点应在持锁的serve，而非bootstrap／renderer分别读设置 |
+| `ManualApplication.initialize`（manual.ts:748）和`KernelApplication.initialize`（application.ts:507） | 先library、projects、programs记录／环境，再harness和research。生态没有初始化恢复步骤；需在Manual.initialize第一步await监督核查，在library初始化之后核绑定库ID，在programs／harness恢复或新准入之前完成未知scope记账。计算线本轮拥有programs恢复回调，本线只提出新增前置调用，不修改其Set／retain逻辑 |
+| `ZoteroOperations.check/result/run`（zotero.ts:62／74／205） | N1已将result独立为共同只读查询，不能回退。其余四项仍要求构造供应IsolatedZotero；run创建操作快照和临时profile，HostConnection的kernelInstanceId仍为另一个randomUUID（约270行），不是serve的真实status.instanceId。需宿主供应真实父实例，不能修改programs使用的私有hostInstanceId来凑同名字段 |
+| `HostConnection.initialize/retainUnknownScope/close`（host-connection.ts:220／196／546） | 单个`<data>/zotero/host-supervision.json`仅在新host.start时读取。非ENOENT／损坏／超64KiB及原未决阻止新host；原scope未知按commandInstanceId（缺身份时`host:<directory>`）调用共同retainUnknown。privateDirectory位于恢复try之外，目录权限准备失败不能当“无旧记录”。close未取得ownedIntent时不覆盖原失败现场 |
+| `ProcessAdmission.retainUnknown`（admission.ts:40）及`ManagedCommands.start`（commands.ts:98） | retainUnknown按身份幂等、满容量时也能追加占用，不在等待队列超时释放；它扣除相应名额，并不封停所有执行，亦无恢复占用释放API。ManagedCommands没有recover或独立observe方法；实际start的intent／started／stopped观察和OS完整归属继续复用 |
+| `HostRecord`（protocol/host.ts:55） | 只含旧kernel／host／command身份、scopeStopped、pluginClosed和至多64个unresolved ID，没有callback完整快照。scope已停但插件／领域结果未知只阻止生态重启，不占原生活动槽；重启后不能凭库回执或notFound清插件／原生事实。没有可安全结清原scope的公共提供者，本片不发明恢复／解除接口 |
+| `privateDirectory/atomicPrivateFile`（platform/private-files.ts:8／44）及`ModelConfigStore.load`（models/config-store.ts:68） | 可复用私有目录／原子写和本机文件lstat、非符号链接、模式核查的做法。模型配置／凭据不是宿主设置存储。POSIX模式与Windows ACL保证分别说明；不能把现有helper称为已验证所有祖先路径／目标ACL。N2首目标Linux，Windows保护另验 |
+| `ProjectStore.path`（projects/store.ts:211–240）、`DirectoryBrowser.browse`（projects/directory-browser.ts:15） | 普通项目文件访问按realpath拒绝整个applicationDirectory，目录浏览也排除配置根；任意外置资源目录不自动获得同一保护。因此N2建议将离线资源根固定派生在本配置的native-resources下，省去任意root字段和另一份外置目录保护规则 |
+| `HostConnection.workspace`（host-connection.ts:146）、`ManagedCommands.prepare/start`和`runCommand`（platform/command.ts:35） | 公共CommandWorkspace已有env和beforeLaunch，ManagedCommands在容量等待后再次授权／调用beforeLaunch。HostConnection尚不透传这两项；runCommand默认环境不含DISPLAY／XAUTHORITY／TMPDIR。已绿测试用固定env包装和Xvfb前置，不能作为产品配方或扩通用继承环境 |
+| `zotero-host/package.json`、`electron.vite.config.ts`、`managed.ts`、`resources/versions.json`与`host.ts::start` | 普通宿主包main是隐藏index，managed为独立构建入口；main依赖已打包，JournalCatalog用node:sqlite。现有版本为Electron44.5.1、Zotero10.0.5／BBT9.0.68；host只校验原包manifest版本／ID，既不获取资源也不证明原发布包来源。首片离线目录可固定裸Electron＋managed.cjs布局；产品安装包、自动下载、任意入口仍不属于N2首片 |
+
+```mermaid
+flowchart LR
+  Desktop[普通desktop bootstrap] --> CLI[独立Node CLI start]
+  CLI --> Serve[serveKernel 持有配置锁]
+  Serve --> App[KernelApplication]
+  App --> Library[library及projects初始化]
+  Library --> Programs[programs及环境恢复]
+  Programs --> Harness[harness及research初始化]
+  App -. 当前缺独立设置加载 .-> Settings[唯一宿主设置]
+  Request[生态操作] --> Native[HostConnection.start]
+  Native --> Recover[此时才核旧监督记录]
+```
+
+这是当前调用链，虚线标缺口；目标顺序及持久字段只在design的N2节维护。D14-2／3已选定，无待用户重复选择；精确公共恢复hook、窄显示环境及真实父实例来源仍须交主线审查，未伪称已实现。旧settings／资源加载器不存在，不必等文献再交原值、正式键、原子提交或回执。E6、真实用户库与Windows原包／正式分发限制保持。
+
+调查输入仅Git源码和主线cache回执；本轮cache根`/home/joshua/.cache/scholoom-zotero-n2-97Zf3t/`。没有生产改动、CLI／原包／显示／服务实跑或新的业务失败；既有原失败沿上游回执保留，不从其他CI计数推导本片原因。
+
 ## 当前调查：普通CLI重启与原包装配缺口（f4ab1e5）
 
 2026-10-28，本轮只读调查／规划，起始HEAD为f4ab1e5f1ed17ae9af656c1f9945005a2786d911且clean。主线已接收R13显示helper和真实原包／UI，当前任务不重复测试或启用生产。所有新工件／TMPDIR使用`/home/joshua/.cache/scholoom-zotero-r14-To16RE/`；下文旧轮/tmp路径仅为历史证据，非本轮输入。

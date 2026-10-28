@@ -2,11 +2,11 @@
 
 ## 普通入口结果核查与原包装配分片
 
-调查基线为f4ab1e5，N1.2在58eda140共同基线上实施，限定验证及消费者断言迁移交接见delivery最新节。用户授权主线决定待选问题后，主线选定D14-1 A、D14-2 A、D14-3 A；N2先沿统一宿主设置和离线固定资源细化契约，不同时扩产品分发。源码证据及五类身份／授权区别见[investigation当前节](investigation.md#当前调查普通cli重启与原包装配缺口f4ab1e5)。R13原包／显示／UI已接收，不重做；普通原包装配及完整E4／I6保持开放。
+本轮基线7aff2c7，N1.2及两个消费者已由第十五轮主线实际接收，原红例及限定验收见delivery。D14-1／2／3均已选A，本轮只细化下述N2精确规划，不同时扩产品分发。原调查及五类身份／授权区别保留在investigation，当前核查见其N2续做节。已绿原包／显示／UI不重做；普通持久原包装配及完整E4／I6保持开放。
 
-### 下一实施片N1：普通CLI重启后只读共同回执
+### 已接收N1：普通CLI重启后只读共同回执
 
-N1可独立交付，不要求BBT、显示、宿主安装或新配置仓储。现有同源`zotero.result`已直接复用library.commitResult schema，普通CLI也已转发该方法；缺口是`ZoteroOperations.check`把共同查询与原包启动绑定。主线已在本change delta明确只读例外，下一片按以下封闭写集实施；其他四方法继续保持隔离门。
+N1已独立交付，不要求BBT、显示、宿主安装或新配置仓储。同源`zotero.result`直接复用library.commitResult schema和普通CLI转发；原`check`将共同查询与原包启动绑定的缺口已修复。以下保留已实施设计；其他四方法继续保持隔离门。
 
 Interface保持`zotero.result({libraryId,requestId})`及现有committed／rejected／notFound输出、原5秒read语义，不增加params／token／第二套operationId。通过真实普通`CLI start --data-dir <隔离合成配置>`→ensureKernel→serve启动，无IsolatedZotero／测试私有IPC。查询只消费原数据目录的library；不按路径、SourceInstance、DOI或键自动找库。
 
@@ -40,21 +40,165 @@ flowchart LR
 3. Agent查询成功后仍受send撤权及下一轮／重启准入保护；CLI接续例不运行模型，P1子例可沿现有可信模型测试组合只控制外部HTTP，单列该模型装配边界，不冒称普通CLI模型配置已交付。broker、library、进程、文件及查询回执真实，不将合成host响应当作该查询的提供者。
 4. 保留首次失败与最终结果，改生产后先build再定向测试；类型／架构／生成一致性按实际影响核对。N1不读写原监督文件，不改变任何未知scope；不据普通CLI查询通过宣称原包／平台／E6已验。
 
-### 原包装配N2：已有职责、具体缺口与受阻边界
+### 原包装配N2：精确实施规划（7aff2c7）
 
-下一原生片必须由宿主组合，而非renderer或Agent提供executable／args／packageDirectory：可信资源提供者解析已批准的resourceId／固定版本，派生实际宿主程序、managed入口和资源目录；装配者从当前共同库身份派生范围，再调用现有ZoteroOperations／HostConnection。普通请求仍只传schema允许的库／条目／修订／表达／操作身份，不扩任意Shell或插件入口。
+本节落实已定D14-2／3=A，不重新选择设置归属或资源交付。本轮仅规划，下面的文件／类型／方法均为待实施设计；当前源码事实见investigation的N2节。此次只改investigation／design／tasks／已有delivery，未改delta spec；新持久化及恢复行为在实施前由N2.1补入本change delta并经主线核对，不用当前CLI ready声称新增行为已实现或正式规格已同步。
 
-| 责任及候选文件／符号写集 | 具体要求／尚缺输入 |
+#### 唯一持久文件与受限登记
+
+建议首片固定`<canonical kernel dataDirectory>/host-settings.json`为唯一宿主设置文件；首版只含生态leaf，不做通用settings框架／插件配置机制。库身份、原值／正式键／回执继续唯一归library，设置只引用它们，不在libraryMeta、endpoint、日志、模型配置、renderer localStorage或另一个生态文件保存镜像。JSON schema源拟放`apps/kernel/src/host-settings.ts`，用现有schema编译机制生成该Module内部类型，无需公共DTO或renderer写入端口。
+
+启用分支的完整例子（只供可信操作者离线准备隔离合成配置，不是产品请求）：
+
+```json
+{
+  "version": 1,
+  "kernelDirectory": "/absolute/isolated-kernel-profile",
+  "zotero": {
+    "enabled": true,
+    "scope": "isolated-library-journals",
+    "libraryId": "<actual-common-library-uuid>",
+    "resourceId": "journals-local-v1",
+    "resources": [
+      {
+        "id": "journals-local-v1",
+        "layout": "linux-x64-electron-managed-v1"
+      }
+    ]
+  }
+}
+```
+
+字段规则：
+
+| 字段／文件规则 | 首版精确语义 |
 | --- | --- |
-| 共同宿主：`bootstrap.ts::bootstrapKernel`、`cli.ts::main`、`lifecycle.ts::ensureKernel/serveKernel`、`application.ts`构造装配 | D14-2先定唯一配置归属和加载时点；正常restart必须由同一权威重建配置，而非从operation.json、endpoint、日志或旧token推回。保留锁／实例／原构造器所有其他参数，不整文件替换，不与其他线同时改共享符号 |
-| 生态私有可信资源解析：`apps/zotero-host/src/main/index.ts/managed.ts`、`resources/versions.json`及必要`electron-builder.yml/package.json`；kernel装配侧窄调用 | D14-3先定资源获取与交付方式。正式包主入口目前是index隐藏窗口，不能假设像开发Electron一样给包可执行文件追加managed.cjs就切换入口；若选产品分发，须评审固定受管入口模式及同一managed Module，不能传任意脚本／插件路径。版本表只声明版本及URL，host只验证已准备目录；现有测试XPI路径、node_modules Electron、Xvfb和no-sandbox均不是产品策略 |
-| 生态：`ZoteroOperations`构造／run、`ZoteroHost`及`JournalCatalog` | 消费宿主产出的可信launch事实及当前库，不复制其配置；JournalCatalog仍只投影共同record。每次操作profile与持久启用绑定分开，正式键／来源／回执仍唯一归library。实际parent kernel实例关联来源须明示，当前随机kernelInstanceId不冒充endpoint.instanceId |
-| 公共监督：HostConnection／ManagedCommands／platform现有接口 | 一次性stdin／独立listener／回调范围／完整停止／未知恢复均复用；当前旧记录核查在HostConnection.start而非普通application初始化，N2须由共同宿主闭合恢复与准入时点，不把读回配置当恢复完成。若需环境传递、恢复端口或新的主实例事实，先由主线评审窄公共契约，不拷贝测试env包装、不自行扩大system access或依赖programs私有业务包 |
-| 文献／harness已有提供者 | 当前库identity／grants、source instance／原值、正式键、100条／256KiB原子提交及稳定结果已齐；不要再要同一套provider。保持工具用户明示选择和持续外发。真实用户库仍需E6及正式授权，不因绑定资源或CLI启动成功自动启用 |
+| version／kernelDirectory | version只接受1，未知版本不迁移／覆盖。kernelDirectory必须等于serve已持锁的canonical路径；文件拷到另一配置或目录迁移时失效，可信操作者离线显式重绑，不能凭同库UUID自动激活。它是运行配置约束，不改变库或Zotero来源身份 |
+| zotero.enabled | 缺文件或`{enabled:false}`表示禁用；false也可携带完整有效绑定以保留离线资料。true必须具备全结构。只有ENOENT可当缺失，错误JSON、未知字段、读取／权限失败不能降格成默认有效配置；只阻止生态绑定，不阻断人工库和N1 |
+| scope／libraryId | scope仅isolated-library-journals；libraryId为当前实际库UUID，非SourceInstance／locator。缺值不自动填当前库；不按DOI／引用键查替代。设置存在或enabled不执行grant，不改变默认read/write/send，不证明真实用户库保护齐备 |
+| resourceId／resources | ID沿既有id约束；首版最多登记一个资源，启用时恰有一个且ID必须匹配。登记与选择同在此文件，无独立可写resources.json／安装台账；禁用可无资源。resourceId只作逻辑查找，不插入文件路径、argv或shell，既非授权凭据也非库来源身份 |
+| layout／派生目录 | layout只接受上述固定Linux x64配方，唯一资源根固定派生为`<canonical dataDirectory>/native-resources/zotero-journals-v1/`；schema不接受root、URL或路径覆盖。启用配置整个文件最多16KiB，kernelDirectory限4096字符；所有对象拒绝未声明字段。操作者离线将资源供应到这个私有目录，不新增任意目录信任规则 |
+| 本机保护 | 从已canonical配置根读固定文件，核非符号链接、普通文件、有界字节、当前操作者所有且POSIX无组／他人访问。派生资源根及固定成员逐层lstat／realpath，拒绝链接逸出派生资源根（包括指向同配置其他私有文件）或非可信写入；不通过chmod修复未知来源文件。复用privateDirectory／atomicPrivateFile供应可信离线写入及现有读取检查做法，不另写通用文件库。当前`ProjectStore.path`对整个applicationDirectory拒绝，`DirectoryBrowser`也隐藏配置；新资源留在该保护内，不把外置目录误称已受此保护。Windows ACL未经验收前该layout不可用 |
 
-N2候选启动绑定的逻辑字段只讨论schemaVersion、显式enabled、libraryId和受限resourceId；字段／存储路径尚未定案。可执行路径及资源展开路径来自可信宿主解析，短期token／监听地址／旧handle不进入持久设置。libraryMeta只保存库事实；模型CredentialStore只保存模型凭据；native启用不自动变更read/write/send默认值。本轮不新建任何settings文件或loader。
+首片没有公共settings.save／CLI设置命令／GUI安装器。可信本机操作者在**内核已确认停止**时按此schema准备文件和资源，写入复用原子私有文件流程；renderer／Agent没有选择资源目录或写宿主设置的端口。数据目录仅用于明确授权的可重建合成种子库；设置本身不能证明内容是合成的，不凭scope字符串、文件名或UUID推断真实库可用，任意生产库的启用流程仍未提供。同一OS操作者提供的执行代码属于可信部署输入，schema／manifest匹配不证明恶意代码安全或来源可信；离线交接须保留原XPI来源、构建源码点和资源准备证据。
 
-N2真实验收入口须是普通CLI/desktop bootstrap在全新隔离合成配置冷启动→实际library/broker/受管Electron/原BBT→普通stop/start后从唯一配置重建→稳定查询／键及两格式依据一致；配置缺失、资源不匹配、错库、撤权与未知恢复均分别核查。验收需目标资源、平台与显示条件；不是再跑一个私有IPC fixture或已有Node host24项。Windows原包尚未验，macOS managed execution仍拒绝，不回退到无隔离执行。
+#### 固定资源配方与显示前置
+
+`linux-x64-electron-managed-v1`将上述唯一派生根映射到`electron/electron`、`host/out/main/managed.cjs`、`host/out/preload/index.cjs`、`host/out/renderer/{index,worker}.html`、`host/resources/`及`bbt/`原包解包目录。保留Electron完整离线目录及host完整构建输出（含chunks），不是仅复制一个脚本。配方派生固定argv `[managedEntry, operationSnapshot]`；后者为kernel本次新建的私有快照。请求仍只含既有库／sourceId／revision／表达／稳定操作ID，不能带executable、args、env、packageDirectory、root或入口脚本。
+
+版本预期从既有`package.json/pnpm-lock.yaml`的Electron44.5.1及`zotero-host/resources/versions.json`的Zotero10.0.5／BBT9.0.68组合取得，不在settings再声明一组可覆盖版本。解析核固定成员、原包manifest ID／版本及host已有资源；实际ready后核实际Electron／插件版本。manifest只是兼容性检查，原包成员不得改动；可信操作者应离线供应已核来源的原发布包，不自动下载／解包未知档案或升级。正式electron-builder产物main=index，不能作为这个layout假装已经支持；安装包入口／分发另片。
+
+首片使用**已有且可验证的本机显示**；不在产品中启动Xvfb，也不调用测试display helper。仅从启动kernel的可信宿主环境取DISPLAY及必要XAUTHORITY；缺失明确不可用，有值也不等于显示有效。业务派发之前，由同次实际受管Electron初始化／ready核实显示，失败须完整收尾且不得执行共同写入；验收启动图形动作前另用xdpyinfo预检。TMPDIR派生为kernel自有操作目录，目录由当前操作保护。候选公共hook只允许这三个环境变量，不复制process.env、测试`/usr/bin/env`包装、NODE_OPTIONS或凭据。beforeLaunch不能额外启动未记槽的probe，不用普通spawn兜底或新增system access。
+
+固定配方默认不添加测试中的`--no-sandbox`。嵌套受管环境能否以此完成Electron启动／显示访问，留给N2.4的目标校准；若实际需要新的sandbox／socket访问承诺，带原错误和最小能力差异交主线，不在实施时悄悄改参数或保证。本轮没有运行显示／原包，既有测试绿色不作为该新配方已通过的证据。
+
+#### 初始化、绑定与失效顺序
+
+```mermaid
+sequenceDiagram
+  participant Entry as 普通CLI及desktop bootstrap
+  participant Serve as serveKernel
+  participant App as KernelApplication及ManualApplication
+  participant Recovery as HostConnection恢复核查
+  participant Library as 共同library
+  participant Native as ZoteroOperations
+  Entry->>Serve: 既有start 只选择配置目录
+  Serve->>Serve: canonical目录 取得既有SQLite锁及status.instanceId
+  Serve->>Serve: loadHostSettings 产生不可变绑定或不可用事实
+  Serve->>App: 构造时供应真实父实例及可信设置投影
+  App->>Recovery: 首步recoverHostSupervision 与native启用无关
+  Recovery->>Recovery: 读旧记录 先retainUnknown再返回
+  App->>Library: initialize并读取真实libraryId
+  App->>Native: bind 核库身份及受限资源 不启动host
+  App->>App: projects及programs恢复 再harness和research
+  Serve->>Entry: 发布既有endpoint
+  Entry->>Native: 显式inspect或更正或补键或导出
+  Native->>Native: 有效授权 CAS及表达核查 仅需原包时惰性启动
+```
+
+bootstrap、普通CLI start／serve和desktop预加载不分别读设置，不增加renderer启动字段；接入共用serve持锁路径。load失败返回可诊断的invalid绑定，不回退旧值或试其他目录；实例可继续人工库与N1。首次及每次native操作按真实libraryId／read/write/send和可信执行核查，库ID变化立即instanceMismatch；绑定不能让没有E6的真实库获得支持。
+
+设置读取为一次冷启动快照，修改按显式stop→离线原子替换→start生效，首片没有热更新／自动restart。新native操作及容量等待后的beforeLaunch有界复核设置仍等于启动快照、资源固定成员仍有效；变化返回unavailable并要求重启，不静默换root。设置不是撤权通道：已经受理的操作仍按原归属及实时库授权收尾，不因文件被改而丢弃callback／清unknown。资源缺失、版本错、显示失败仅阻断依赖原包的动作；N1始终按当前库查原结果，不需资源或插件正常shutdown。
+
+#### 先于执行恢复的监督屏障
+
+共同进程准入实例必须是`ManualApplication.processes`，不增加第二计数器。拟从现有HostConnection私有恢复块抽出下述公共函数；启动前和HostConnection.start共用一次事实读取／规则，避免两份恢复判断。它不需要配置、资源、listener、commands或插件契约，不创建目录／改权限，不启动、连接或杀死旧进程，不写回原记录。
+
+```ts
+type HostRecovery =
+  | { state: 'clear'; previous?: HostRecord }
+  | {
+      state: 'blocked'; previous?: HostRecord;
+      nativeScope: 'stopped' | 'unknown'; retainedId?: string;
+      error: ErrorInfo;
+    };
+export function recoverHostSupervision(options: {
+  directory: string;
+  admission: Pick<ProcessAdmission, 'retainUnknown'>;
+}): Promise<HostRecovery>;
+```
+
+| 旧记录事实 | 返回与准入效果 |
+| --- | --- |
+| 确认没有监督目录／文件 | clear；不创建文件、不占槽。链接损坏或父目录不可读不能作为确认不存在 |
+| scopeStopped、pluginClosed均true且unresolved为空 | clear，保留previous；不自动重放历史操作 |
+| scopeStopped=false | blocked，nativeScope=unknown；**返回前**以原commandInstanceId调用retainUnknown，not-started采用原`host:<canonical zotero directory>`哨兵。不以新kernel实例替换旧关联；同实例重复检查不双计，满容量照样记入 |
+| scopeStopped=true但插件或领域结果仍未知 | blocked，nativeScope=stopped；只保护生态profile和启动门，不虚占原生槽。库回执查询不清此门，不伪称旧callback逐项已完成 |
+| 目录／记录不可读、不安全、无效JSON／schema或超64KiB | blocked、unknown，以同目录哨兵保守计入一个旧host scope；单记录、单宿主模型保持原限制，不扫描全目录或推测更多实例。原字节／权限／路径及未决事实保留，不能cleanup覆盖 |
+
+`ManualApplication.initialize`第一步await `ZoteroOperations.recover()`，其内部调用上述函数并在该应用实例内复用同一个初始化Promise；library初始化后再调用host-only `bind(binding, actualLibraryId)`。disabled／invalid设置、无资源、错库均不得跳过recover。blocked不会令整个内核挂起：正确计入scope后其他领域依剩余共同容量运行，生态四动作明确outcomeUnknown；N1和人工库继续可用。若连保守retainUnknown都无法建立，则初始化失败且不发布可受理执行的endpoint；不以超时跳过屏障。首片不做运行中修复监督文件再刷新恢复的流程，避免把哨兵与后来可读的旧ID作为两个scope计入或借修文件解除原占用。
+
+该“屏障”指**完成原scope记账后才准入**，不新设全局禁止或填满所有槽。原生已停只剩领域未知时不影响其他执行。首片没有安全结清旧scope的公共提供者，亦无retainUnknown释放API；保留未知到有明确核查／恢复变更，不能拿持锁、PID消失、notFound或新设置替代解除依据。旧HostRecord无callback快照，首片不造字段声称可重建未结束callback；活跃内核沿已验E1跟踪和关闭保证。
+
+#### 精确公共hook、Module及文件所有权
+
+所有签名是**交主线审查的窄增量**，不是已经接入的公共API。生态新Module只做本线叶设置／资源解析，库授权／原子事务、进程归属／容量、broker、JournalCatalog均复用。
+
+| 拟新增／修改符号 | Interface与消费者 |
+| --- | --- |
+| `apps/kernel/src/host-settings.ts`（新增私有叶Module） | `loadHostSettings(directory: string): Promise<HostSettingsRead>`；HostSettingsRead为disabled／invalid(error)／loaded(settings)判别联合，settings使用上文schema生成类型。只由serve持锁后调用，不提供网络写端口；同Module的`checkUnchanged(snapshot): Promise<void>`供动作及beforeLaunch，最多重读同一16KiB文件 |
+| `apps/kernel/src/zotero-resources.ts`（新增生态私有Module） | `resolveZoteroResource(registration, kernelDirectory): Promise<TrustedZoteroLaunch>`；只接受已校验settings资源项，返回固定executable／固定args前缀／packageDirectory及稳定beforeLaunch回调。无泛型resource factory／可执行路径DTO，版本校验继续用现有事实源 |
+| `lifecycle.ts::serveKernel`、`application.ts`构造options及`manual.ts`构造末尾可选参数 | 新宿主私有`zoteroRuntime?: { kernelInstanceId: string; settings: HostSettingsRead }`，serve在已有options末尾供应status.instanceId。保留全部原options／taskPort／executionResources／delegationOptions／programs，不改programs私有hostInstanceId。测试IsolatedZotero注入可保留；同时供应两套有效native绑定明确拒绝，不以优先级隐藏第二权威 |
+| `zotero.ts::ZoteroOperations` | `recover(): Promise<HostRecovery>`在初始化首步完成记账；`bind(settings: HostSettingsRead, actualLibraryId: string): Promise<void>`在library就绪后生成disabled／invalid／bound私有状态，不启动host。bound仅表示设置结构、资源登记引用和库绑定，不检查插件ready；实际资源成员及显示在run确需原包时惰性解析。因此资源文件缺失不应让已绑定且本不启动原包的inspect／独立replaceTitle依赖显示。原四方法走绑定及原授权，result不走native门；run使用真实父kernel ID，不再另造同名randomUUID |
+| `host-connection.ts::recoverHostSupervision/initialize` | 采用上述共享恢复函数；无新listener／重放逻辑，已有close／callback／稳定关联不改。`start`复核旧事实，不能依据startup缓存覆盖新产生的unknown |
+| `host-connection.ts::Options/workspace` | 候选增加`launchEnvironment?: HostLaunchEnvironment`及`beforeLaunch?: () => Promise<void>`；传给已有CommandWorkspace.env／beforeLaunch。二者只由可信资源解析供应，函数引用保持稳定以满足现有workspace确认；不扩大runCommand默认环境、普通Shell或system access。无模型凭据或短期token |
+| bootstrap.ts／cli.ts／desktop main／server／protocol | 首片无需新增转发、请求字段或设置路由。若普通入口验收显示必须改动，先列具体差异交主线，不拷贝测试IPC。public endpoint现有instanceId由serve唯一供应；token、host监听地址、command handle仍只本次私有stdin，禁止写settings |
+| `architecture.json::modules[kernel].systemAdapters` | 后续仅登记`src/host-settings.ts`的fs/promises及`src/zotero-resources.ts`的fs/promises／process.env受控适配；仅支持本表固定文件及三个白名单环境变量。新增登记须随N2.1主线审查，不扩child_process、普通模块环境继承或其他既有adapter规则，本轮不修改清单 |
+| `tests/kernel/host-connection.spec.ts`、`cli-runtime.spec.ts`、`isolated-kernel.spec.ts`，必要`tests/ui/zotero-original.spec.ts`；`docs/development.md`生态入口 | 复用现有真实fixed-host、普通CLI、隔离profile及原值场景补本片差异；旧可信IPC测试可以保留，但不能充当普通设置加载验收。UI仅替换代表例的启动供应为真实普通入口，不另写产品表单／launcher。开发说明仅在实际装配通过后更新支持范围 |
+
+候选窄环境类型如下，不进入业务DTO：
+
+```ts
+type HostLaunchEnvironment = Readonly<
+  Partial<Record<'DISPLAY' | 'XAUTHORITY' | 'TMPDIR', string>>
+>;
+type TrustedZoteroLaunch = Readonly<{
+  executable: string;
+  args: readonly string[]; // fixed managed entry prefix, never request-supplied
+  packageDirectory: string;
+  displayEnvironment: Pick<HostLaunchEnvironment, 'DISPLAY' | 'XAUTHORITY'>;
+  beforeLaunch: () => Promise<void>;
+}>;
+```
+
+displayEnvironment仅资源Module读取宿主白名单所得，ZoteroOperations.run另从本次profile派生TMPDIR并创建所需目录，再构造HostConnection；资源解析不得接受任意environment参数或把设置JSON混入环境。beforeLaunch由稳定引用组合settings未变化及资源仍有效两项复核，沿现有ManagedCommands容量等待后授权执行。
+
+manual仅拥有新recover／bind两处调用及生态构造投影；不写计算线programs恢复回调、Agent生命周期或文献表单。复用初始化report及原kernel.log记录有界阶段／原因（设置禁用、设置无效、库不符、资源不可用、监督未决、scope是否保留），不记录原settings、凭据或环境全文，不新增公共状态端口／独立诊断账本。四动作分别保持unavailable／instanceMismatch／outcomeUnknown及原permissionDenied，N1不受native可用性影响。资源Module不改BBT成员、正式键／来源表、harness P1或读取／写入授权。N2.2最小公共切片独立于settings／BBT／文献／programs私有实现，只消费既有ProcessAdmission接口；主线接入验证后消费者沿共同基线接入，不跨树私发补丁。
+
+#### 最小实施顺序与真实验收
+
+先交**N2.2独立监督恢复切片**：公共函数＋Manual初始化顺序＋真实固定host遗留记录回归；不需要资源／显示或启动BBT。已有关闭／容量测试只扩初始化前记账的未覆盖边界，保留满槽、释放无关槽、重复恢复、配置disabled／invalid仍恢复、scope已停不占槽及原文件不变的代表例；不能重跑24项凑证据。N2.3实现叶文件校验／冷启动投影，之后N2.4接固定资源及窄hook，最后N2.5整合普通入口。N2.1先闭合delta及主线公共签名审查；本轮止于规划，以上任务均未执行。
+
+| 验收入口／最小代表 | 要核的真实结果与边界 |
+| --- | --- |
+| 既有fixed-host／host-connection回归扩冷启动屏障 | 用真实受管fixed host生成旧unknown；关闭准备kernel后新KernelApplication.initialize先记原scope，其他执行再按剩余容量准入。持久损坏／不可读样本仅文件故障注入，计数／broker／初始化真实；不以合成记录冒充真实退出。缺安全核查提供者时保持unknown，不增加解除接口 |
+| 既有cli-runtime／isolated-kernel扩设置冷启动 | 离线准备全新合成profile、真实libraryId及单一settings，关闭准备实例；普通start不经私有IPC，读同一绑定且不启动host。缺文件、无效／过大／链接、错库／错配置目录、未知resourceId／版本明确不可用，不grant；无设置仍能N1查询。有限文件错误表驱动，不重复完整权限矩阵 |
+| 普通CLI／bootstrap→实际原包 | 显式用户操作经真实library／broker／认证WS／受管Electron／原BBT：最多100条现有普通期刊、独立题名／表达、一次共同补键事务及两格式，stop/start不注入配置且实际键／修订／原结果一致。CLI接续无模型替身；如加Agent只控外部HTTP，不绕P1 |
+| desktop普通bootstrap及失败接续 | 使用同一schema／资源文件，构建产品静态承载或真实desktop启动只走既有bootstrap；Browser若复用静态测试bootstrap代理，须标明仅外壳代理受控、内核设置加载真实，不能声称已验浏览器产品部署。冷启动一次／重启一次，核原未知ID不重放、错库／撤权／资源缺失、设置更改需重启及停止真实确认 |
+
+成功原生验收必须先有可信离线资源、可用显示和公共hook接入；当前绿色BBT/UI没有这些普通持久入口证明。原包首次失败、配置读取、发送／受理／领域提交／刷新及scope／plugin关闭分别留证，不加timeout／sleep／retry。生产改动按影响build再test，测试期间冻结产物；只测新增路径及直接受影响代表，不重跑TeX／全仓CI。
+
+仍需主线审查的架构项是上述**一个恢复函数、两处初始化调用、真实父实例供应、受限环境／beforeLaunch透传**及路径绑定的冷启动语义；建议按此采用，不再问D14选项。本轮没有新产品凭据／默认权限决定。Linux新配方的sandbox／显示实测、Windows资源／ACL／原包、正式分发以及安全结清遗留unknown不具备新通过结论，相关分支保持开放；E6和真实用户库仍禁止。需要扩平台访问或产品安装时另交方案，不默认为N2被批准。
 
 ### 已定选择与实施边界
 
@@ -72,9 +216,9 @@ N2真实验收入口须是普通CLI/desktop bootstrap在全新隔离合成配置
 | D14-2，未来native启用绑定的唯一权威 | **推荐候选A**：共同kernel数据目录的宿主设置，由主线统一schema／加载器，生态只消费投影。B：只读部署manifest由运营侧管理，普通入口消费它，库／UI不另存镜像。当前两者均未实现；只能选一个作为权威，不同时新增ecosystem.json、libraryMeta及CLI覆盖三套配置。缺选择时N2配置恢复受阻，不以配置路径推授予库权限 |
 | D14-3，固定原包／宿主资源如何交付 | 首个有界N2可选A：由可信本机操作者离线准备指定原包／已构建宿主，并由受限资源登记引用；B：由产品分发提供版本化宿主／原包资源与升级回退。安装／许可／平台资源归属及信任核对随所选方案确定；URL或manifest匹配不等于已完成这些保证。此轮不决定自动下载，也不新增安装或凭据流程 |
 
-N1已获下一片实施授权，N2的宿主设置及离线资源方向已定，具体装配仍另行细化；没有“默认批准真实库、默认全授权或持久凭据”的隐含选项。
+N1及其消费者已接收，N2的宿主设置及离线资源方向已定，精确装配按上文规划交主线审查及后续授权；没有“默认批准真实库、默认全授权或持久凭据”的隐含选项。
 
-### 接续输入与/tmp迁移
+### R14输入与/tmp迁移（历史）
 
 本轮独立根为`/home/joshua/.cache/scholoom-zotero-r14-To16RE/`，TMPDIR为其中tmp。全部新payload／日志／独立规划补丁只在该根；研究依据由本Git原工件和当前源码提供，未从旧/tmp运行或复制脚本。主线保全输入固定为`/home/joshua/.cache/scholoom-round13-acceptance/preserved-tmp/zotero-better-bibtex-9.0.68.xpi`、`preserved-tmp/static-ui.mjs`和`create-ui-config.mjs`。未来实际UI验收在本树cwd用该generator生成新cache绝对.mts配置，独立UI_PORT／UI_DATA_DIR／TMPDIR，先xdpyinfo核当前DISPLAY；不假定:99在迁移后继续有效。
 
