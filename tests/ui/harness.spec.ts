@@ -2,11 +2,82 @@ import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { basename, join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
+import type { Page } from '@playwright/test';
 import { startModelKernel } from '../model-kernel.js';
 import { createModelServer } from '../model-server.js';
 import { addProject, createSession, expect, test } from './fixture.js';
 import { rendererUrl } from './renderer-url.js';
 import { armRpcGate, installRpcGate, releaseRpcGate } from './rpc-gate.js';
+
+/** Passive state changes for this scenario's selected session, without retaining its title. */
+async function observeCompletion(page: Page) {
+  const scope = await page.getByRole('button', { name: /^打开会话 /, pressed: true }).evaluate(
+    (button) => ({
+      projectId: button.closest('[data-project-id]')?.getAttribute('data-project-id'),
+      sessionId: button.closest('[data-session-id]')?.getAttribute('data-session-id'),
+    }),
+    undefined,
+    { timeout: 500 },
+  );
+  if (
+    !scope.projectId ||
+    !scope.sessionId ||
+    scope.projectId.length > 128 ||
+    scope.sessionId.length > 128
+  )
+    throw new Error('Selected session unavailable');
+  await page.getByRole('status', { name: '执行状态' }).evaluate(
+    (element, scope) => {
+      const startedAt = Date.now();
+      const events: { observedAt: number; state: string }[] = [];
+      let droppedEvents = 0;
+      const labels = {
+        queued: '排队中',
+        running: '执行中',
+        waiting: '等待输入',
+        cancelling: '取消中',
+        cancelled: '已取消',
+        completed: '执行完成',
+        failed: '执行失败',
+        interrupted: '已中断',
+        idle: '空闲',
+      };
+      const record = () => {
+        const text = element.textContent ?? '';
+        const state =
+          Object.entries(labels).find(
+            ([, label]) =>
+              text.endsWith(` · ${label}`) || text.endsWith(` · ${label} · 有已受理指令等待消费`),
+          )?.[0] ?? 'unknown';
+        if (events.at(-1)?.state === state) return;
+        if (events.length === 32) {
+          events.splice(1, 1);
+          droppedEvents++;
+        }
+        events.push({ observedAt: Date.now(), state });
+      };
+      const observer = new MutationObserver(record);
+      record();
+      observer.observe(element, { childList: true, characterData: true, subtree: true });
+      Reflect.set(globalThis, '__scholoomHarnessCompletion', {
+        events,
+        stop() {
+          observer.disconnect();
+          record();
+          return { startedAt, ...scope, events, droppedEvents, connected: element.isConnected };
+        },
+      });
+    },
+    scope,
+    { timeout: 500 },
+  );
+  return () =>
+    page.evaluate(() => {
+      const observation = Reflect.get(globalThis, '__scholoomHarnessCompletion');
+      Reflect.deleteProperty(globalThis, '__scholoomHarnessCompletion');
+      return observation.stop();
+    });
+}
 
 test('user invokes a declared research capability and opens its checked report', async ({
   uiPage,
@@ -224,8 +295,46 @@ test('user configures, edits safely and receives a real persisted Agent result',
     await expect(uiPage.getByRole('textbox', { name: '研究指令' })).toHaveValue(
       'MODEL_FIXTURE 保留已有 result.md',
     );
-    await uiPage.getByRole('button', { name: '发送指令' }).click();
-    await expect(uiPage.getByRole('status', { name: '执行状态' })).toContainText('执行完成');
+    const stopCompletion = await observeCompletion(uiPage).catch(() => undefined);
+    const modelRequestsAtStart = model.requests.length;
+    let assertionStartedAt: number | undefined;
+    let assertionEndedAt: number | undefined;
+    let outcome = 'notStarted';
+    try {
+      await uiPage.getByRole('button', { name: '发送指令' }).click();
+      assertionStartedAt = Date.now();
+      try {
+        await expect(uiPage.getByRole('status', { name: '执行状态' })).toContainText('执行完成');
+        outcome = 'passed';
+      } catch (error) {
+        outcome = 'failed';
+        assertionEndedAt = Date.now();
+        throw error;
+      } finally {
+        assertionEndedAt ??= Date.now();
+      }
+    } finally {
+      const observation = await stopCompletion?.().catch(() => undefined);
+      await info
+        .attach('harness-ui-completion', {
+          body: JSON.stringify({
+            assertionStartedAt,
+            assertionEndedAt,
+            outcome,
+            modelRequestsAtStart,
+            modelRequestsAtEnd: model.requests.length,
+            observation,
+            observationUnavailable: !observation,
+          }),
+          contentType: 'application/json',
+        })
+        .catch(() =>
+          info.annotations.push({
+            type: 'execution-diagnostic-unavailable',
+            description: 'writeFailed',
+          }),
+        );
+    }
     await expect(
       uiPage.locator('.dock-transcript').getByRole('img', { name: '失败', exact: true }),
     ).toBeVisible();

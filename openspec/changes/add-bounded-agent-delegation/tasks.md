@@ -76,7 +76,13 @@ flowchart LR
 
 ## 续做入口
 
-本轮基线29cd7283388dfd752911eacb9c3bf8416031db15，主线同步已验；第15组本机附件与发送拒绝已接收，不重修采样。第16组只交付可信自有model-kernel公共执行诊断，窗口fixture归项目线，原业务授权及停止/容量/期限保持。
+本轮基线ba29ee61ac6f8700cfe6a9fbaa529a8a7a75aad1（相对e3c815b仅两份Markdown），主线同步已验；第16组及窗口观察已合入。第17组只收敛本次后续会话UI完成等待；闸门修正不重做，Windows初始化前边界与平台/科研整项继续开放。
+
+## 17. 同次后续会话的完成观察
+
+- [x] 17.1 消费main-ui、browser-session-execution-summary及electron/gate-recheck，按同次project/session/instruction/run/instance对齐原断言起止、执行阶段、仓储completed、watch与UI应用；旧证据不足则在原预算与断言下补最小取证，不拼接各实跑。完成依据：原Browser断言结束前152ms首次采到completed，但末UI采样同一毫秒仍running，旧包无watch/UI应用附件；本树原样1/1及新增被动观察双宿主均通过。新三端同次关联与有界/脱敏检查通过，不能回填旧失败缺证，17.2保持开放。
+- [ ] 17.2 因果闭合后在design记录具体依据，仅修唯一局部等待/夹具点并保持业务断言与5秒预算；没有证据则保留失败交精确缺证方案，不以诊断/重试/加时替代契约。未闭合：原失败最后152ms缺同run的watch completed送达及DOM completed时点，无法判断投影晚到或轮询遗漏；本轮未重现原失败。现有新正例只证明新观察有效，不据此修等待或宣称根因关闭。
+- [x] 17.3 复用已验产物及静态UI承载，运行本场景双宿主最小代表回归和适用静态/OpenSpec/diff检查；保留首次失败/替身/未验，取delivery instructions更新同一记录、导出独立增量后停止，不关闭平台或科研整项。完成依据：原样Browser1/1、观察候选双宿主2/2及审查修正后普通模式双宿主2/2分别保留；删除误算fixture预算的候选续观察，最终原断言5秒/总60秒不变，三端同run/容量/脱敏检查及静态/OpenSpec/diff通过。已取delivery instructions更新原记录并导出独立补丁，44/49；未复现旧失败不关闭17.2或原平台/质量整项。
 
 ## 16. 自有model-kernel诊断提供者
 
