@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
-import { mkdtemp, readFile, rename, rm, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { createKernelClient } from '../../packages/client/dist/index.js';
 import { runningKernel } from '../kernel-fixture.js';
@@ -14,7 +13,8 @@ test('local PDF reader shares selected highlights, bookmarks and notes through t
 }, info) => {
   test.setTimeout(120000);
   uiPage.setDefaultTimeout(15000);
-  const root = await mkdtemp(join(tmpdir(), 'scholoom-pdf-ui-'));
+  const root = test.info().outputPath('fixture-root');
+  await mkdir(root, { recursive: true });
   const name = `pdf-${randomUUID()}.pdf`;
   const path = join(root, name);
   const bytes = syntheticPdf();
@@ -182,7 +182,10 @@ test('local PDF reader shares selected highlights, bookmarks and notes through t
     const otherTitle = `PDF另一会话-${randomUUID()}`;
     const otherProject = await client.call('project.open', { path: root, trust: 'restricted' });
     await client.call('session.create', { projectId: otherProject.id, title: otherTitle });
-    await uiPage.getByRole('button', { name: `${otherProject.name}，已折叠`, exact: true }).click();
+    await uiPage
+      .locator(`[data-project-id="${otherProject.id}"]`)
+      .getByRole('button', { name: `${otherProject.name}，已折叠`, exact: true })
+      .click();
     await uiPage.getByRole('button', { name: `打开会话 ${otherTitle}`, exact: true }).click();
     await expect(note).toHaveValue('阅读器中的文献笔记');
     await expect(
@@ -218,6 +221,5 @@ test('local PDF reader shares selected highlights, bookmarks and notes through t
     expect(external).toEqual([]);
   } finally {
     client.dispose();
-    await rm(root, { recursive: true });
   }
 });

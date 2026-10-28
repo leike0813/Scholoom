@@ -1,5 +1,4 @@
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { createKernelClient } from '../../packages/client/dist/index.js';
 import { runningKernel } from '../kernel-fixture.js';
@@ -14,7 +13,8 @@ test('project files share draft preview and survive directory rename, trash and 
   uiRpc,
 }, info) => {
   test.setTimeout(90000);
-  const root = await mkdtemp(join(tmpdir(), 'scholoom-file-ui-'));
+  const root = test.info().outputPath('fixture-root');
+  await mkdir(root, { recursive: true });
   const model = await createModelServer();
   const stop = await startModelKernel(process.env.SCHOOLOOM_UI_DATA_DIR as string, model.url);
   const client = createKernelClient(
@@ -247,7 +247,8 @@ test('project files share draft preview and survive directory rename, trash and 
 });
 
 test('a pending file save preserves content accepted by a later reload', async ({ uiPage }) => {
-  const root = await mkdtemp(join(tmpdir(), 'scholoom-file-save-race-'));
+  const root = test.info().outputPath('fixture-root');
+  await mkdir(root, { recursive: true });
   const project = join(root, 'project');
   const path = join(project, 'note.md');
   await mkdir(project);
@@ -285,7 +286,8 @@ test('resident project sessions switch files and preserve each project draft', a
   uiRpc,
 }) => {
   test.setTimeout(90000);
-  const root = await mkdtemp(join(tmpdir(), 'scholoom-multi-project-ui-'));
+  const root = test.info().outputPath('fixture-root');
+  await mkdir(root, { recursive: true });
   const alpha = join(root, 'first', 'alpha');
   const beta = join(root, 'second', 'alpha');
   await mkdir(alpha, { recursive: true });
@@ -482,7 +484,8 @@ test('pending project asks on entry and keeps an explicit restricted decision af
   uiPage,
 }) => {
   test.setTimeout(60000);
-  const root = await mkdtemp(join(tmpdir(), 'scholoom-pending-project-ui-'));
+  const root = test.info().outputPath('fixture-root');
+  await mkdir(root, { recursive: true });
   const client = createKernelClient(
     await runningKernel(process.env.SCHOOLOOM_UI_DATA_DIR as string),
   );
@@ -493,7 +496,10 @@ test('pending project asks on entry and keeps an explicit restricted decision af
     await installRpcGate(uiPage);
     await uiPage.goto(rendererUrl);
     await expect(uiPage.getByRole('status', { name: '连接状态' })).toContainText('已连接');
-    await uiPage.getByLabel('管理项目 pending-project', { exact: true }).click();
+    await uiPage
+      .locator(`[data-project-id="${project.id}"]`)
+      .getByLabel('管理项目 pending-project', { exact: true })
+      .click();
     await uiPage.getByRole('button', { name: '打开项目', exact: true }).click();
     const dialog = uiPage.getByRole('dialog', { name: '确认项目访问', exact: true });
     await expect(dialog).toContainText(project.path);
@@ -533,14 +539,14 @@ test('pending project asks on entry and keeps an explicit restricted decision af
     await expect(uiPage.getByLabel('执行上下文')).toContainText('已信任项目');
   } finally {
     client.dispose();
-    await rm(root, { recursive: true });
   }
 });
 
 test('restricted project allows manual file editing and disables instruction sending', async ({
   uiPage,
 }) => {
-  const root = await mkdtemp(join(tmpdir(), 'scholoom-restricted-project-ui-'));
+  const root = test.info().outputPath('fixture-root');
+  await mkdir(root, { recursive: true });
   const project = join(root, 'restricted');
   const client = createKernelClient(
     await runningKernel(process.env.SCHOOLOOM_UI_DATA_DIR as string),
@@ -565,6 +571,5 @@ test('restricted project allows manual file editing and disables instruction sen
     await expect(uiPage.getByRole('button', { name: '发送指令', exact: true })).toBeDisabled();
   } finally {
     client.dispose();
-    await rm(root, { recursive: true, force: true });
   }
 });

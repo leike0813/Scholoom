@@ -1,5 +1,23 @@
 # 实际交付与交接
 
+## Linux UI夹具生命周期修正与最小复验（2026-10-29）
+
+完整Checks中的部分会话失败已在原title→stream顺序复现：前例删除仍登记的项目目录，ManualApplication.initialize按既定保护无法核查该项目已受理执行，保留全部容量；随后请求停在schedule.admission.request而未启动worker。生产保护不变。八份UI夹具将登记项目留在各例outputPath，直到所属配置退役；importSource、取消登记及故障注入的清理不变。开发说明已有该生命周期规则，未重复追加规则。双宿主全局列表的同名项目改用原project.id定位；conversation的会话搜索名称按宿主区分。
+
+原失败和中途不同故障均保存在本轮cache的ci-ui-repro。最终sequence-accepted无临时观察器，title→stream双宿主4/4；file-explorer全组10通过／2失败，两例为rename后readFile在poll内立即抛ENOENT，最终文件已正确存在。仅将该ENOENT表示为尚未就绪供原poll重试，其他异常仍抛，期限及正文断言不变。随后targeted-final双宿主6/6、2.7分钟，覆盖该rename、pending项目及PDF跨项目保留行为；零跳过／重试／flaky，静态已构建harness、内部内核／存储真实，外部模型沿原受控HTTP。源码和构建在运行期间冻结，结束后原teardown完成。
+
+独审ui-fixture-lifetime-independent-review.md的两处P2定位已按项目身份修正并窄复核闭合；system helper审查独立记录，不混作UI审查。Biome及tools类型通过。上述证据不等于全部25个旧UI失败均解决，也不补造17.2旧152ms的watch／DOM事实或18.2原工具阶段；这些任务仍按原判据保留。
+
+## 真实科研验收入口已准备，等待调用授权（2026-10-29）
+
+`/home/joshua/.cache/scholoom-finish-active/research-live/runner.mjs`默认只显示plan，prepare离线提取PLOS正文，self-check核执行门及同源模型配置schema。真实execute须同时有显式approved参数及环境凭据；当前只核到环境凭据存在，未输出值、未执行产品模型。入口沿实际serveKernel、KernelClient和session.send，由产品父子Agent创建报告并关联真实TaskPort；runner不代写科研结论，独立答案文件不进入项目或模型输入。源码角色已接收，质量任务6.2尚未关闭。
+
+外部边界的`gateway.mjs`仅转发固定中国区MiniMax-M2.7，16次真实请求、每次128KiB／累计1MiB实际序列化请求、每次输出最多2048 tokens、首准入后180秒，重试也计入，入口自身不重试整项任务。响应至多1MiB并完整缓冲校验后交付，改变实时stream时序，不用这次验收评价流式延迟。真实key仅由proxy持有，kernel子环境使用精确合成key；上游非2xx使用固定错误，成功body也在下发前核凭据反射。停止先封外发，再有界采证和按原instance/PID停机；unknown保留，不强杀替代者或重放未知效果。
+
+`gateway-independent-review.md`保留首次并发／截止／错误／字节计量与收尾发现及全部整改复核；最终无待修项。原反例只使用内存fetch和本轮localhost，40路并发为16接受／24拒绝，实际请求字节合计上限核到1048576；后续close竞态无新增fetch、过期不启动步骤、错误不泄露合成key。runner最终self-check及语法通过，`runner-self-check-final3.json`等保留原结果；超时不能保证取消已在途的底层磁盘IO或供应商计算，不将有界等待表述为远端已停止。
+
+按#21的实际模型／预算授权边界，主线已另发一次具体有界产品模型请求，尚待用户答复。授权开发Codex模型不代替此项。获准后仅执行一次，按真实输入读取、保存／读回、任务关联、A1–A4来源及引用限定独立评估，失败及预算耗尽单独保留，不由runner退出0或受控模型4/4声明科研质量通过。
+
 ## 完整Checks结算仍失败（2026-10-29）
 
 run40745284164已结算：Mac success，Windows内核789通过／5失败／85跳过，Linux内核835通过／44跳过且UI137通过／25失败／6跳过，详见[共同平台回执](../add-project-program-runs/delivery.md#0b5c5e3完整checks回执及下一次窄取证2026-10-29)。本change代表在专项的正例不扩大为完整平台；4.2／4.3、17.2／18.2及科研质量仍按实际任务保持开放。

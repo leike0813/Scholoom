@@ -1,5 +1,4 @@
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { createKernelClient } from '../../packages/client/dist/index.js';
 import { runningKernel } from '../kernel-fixture.js';
@@ -10,7 +9,8 @@ test('manual PDF previews and exports use saved Quarto and native multi-file TeX
   uiPage,
 }, info) => {
   test.setTimeout(240000);
-  const root = await mkdtemp(join(tmpdir(), 'scholoom-writing-pdf-ui-'));
+  const root = test.info().outputPath('fixture-root');
+  await mkdir(root, { recursive: true });
   let currentPath = '';
   const requests = new Map<string | number, { path: string; method: string; params: unknown }>();
   const diagnostics: unknown[] = [];
@@ -129,6 +129,5 @@ test('manual PDF previews and exports use saved Quarto and native multi-file TeX
       path: diagnosticsPath,
       contentType: 'application/json',
     });
-    await rm(root, { recursive: true, force: true });
   }
 });

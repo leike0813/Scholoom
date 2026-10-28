@@ -1,5 +1,4 @@
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { basename, join } from 'node:path';
 import { createKernelClient } from '../../packages/client/dist/index.js';
 import { runningKernel } from '../kernel-fixture.js';
@@ -15,7 +14,9 @@ test('conversation titles, archive and Markdown reading preserve the active work
   test.setTimeout(90000);
   const model = await createModelServer();
   const stop = await startModelKernel(process.env.SCHOOLOOM_UI_DATA_DIR as string, model.url);
-  const project = await mkdtemp(join(tmpdir(), 'scholoom-conversation-ui-'));
+  const project = test.info().outputPath(`conversation-${basename(test.info().outputDir)}`);
+  await mkdir(project, { recursive: true });
+  const sessionTitle = `资料阅读 ${info.project.name}`;
   const errors: string[] = [];
   uiPage.on('pageerror', (error) => errors.push(error.message));
   try {
@@ -118,9 +119,9 @@ test('conversation titles, archive and Markdown reading preserve the active work
       .click();
     const titleInput = uiPage.getByLabel('会话标题 MODEL_MARKDOWN 阅读样本', { exact: true });
     await expect(titleInput).toBeFocused();
-    await titleInput.fill('资料阅读');
+    await titleInput.fill(sessionTitle);
     await titleInput.press('Enter');
-    const renamed = uiPage.getByRole('button', { name: '打开会话 资料阅读', exact: true });
+    const renamed = uiPage.getByRole('button', { name: `打开会话 ${sessionTitle}`, exact: true });
     await expect(renamed).toBeVisible();
     await uiPage.getByRole('button', { name: '查找会话', exact: true }).click();
     const search = uiPage.getByRole('dialog', { name: '查找会话' });
@@ -131,7 +132,7 @@ test('conversation titles, archive and Markdown reading preserve the active work
     await query.fill('旧查询');
     await uiPage.waitForFunction(() => !!Reflect.get(globalThis, '__scholoomRpcGate').held);
     await query.fill('资料');
-    const found = search.getByRole('button', { name: '打开会话 资料阅读', exact: true });
+    const found = search.getByRole('button', { name: `打开会话 ${sessionTitle}`, exact: true });
     await expect(found).toBeVisible();
     await releaseRpcGate(uiPage);
     await expect(found).toBeVisible();
@@ -143,7 +144,7 @@ test('conversation titles, archive and Markdown reading preserve the active work
     await renamed.press('Shift+F10');
     const requests = model.requests.length;
     await uiPage
-      .getByRole('menu', { name: '管理会话 资料阅读' })
+      .getByRole('menu', { name: `管理会话 ${sessionTitle}` })
       .getByRole('button', { name: '归档会话', exact: true })
       .click();
     await expect(input).toBeDisabled();
@@ -180,7 +181,6 @@ test('conversation titles, archive and Markdown reading preserve the active work
   } finally {
     await stop();
     await model.close();
-    await rm(project, { recursive: true });
   }
 });
 
@@ -392,7 +392,8 @@ test('composer model and effort overrides follow defaults, persist and reach rea
 
 test('session list loads the next page when scrolled to the end', async ({ uiPage }) => {
   test.setTimeout(60000);
-  const project = await mkdtemp(join(tmpdir(), 'scholoom-scroll-ui-'));
+  const project = test.info().outputPath(`scroll-${basename(test.info().outputDir)}`);
+  await mkdir(project, { recursive: true });
   const client = createKernelClient(
     await runningKernel(process.env.SCHOOLOOM_UI_DATA_DIR as string),
   );
@@ -418,6 +419,5 @@ test('session list loads the next page when scrolled to the end', async ({ uiPag
     await expect(projectGroup.locator('[data-session-id]')).toHaveCount(60);
   } finally {
     client.dispose();
-    await rm(project, { recursive: true });
   }
 });

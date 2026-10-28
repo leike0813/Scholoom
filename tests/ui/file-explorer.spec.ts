@@ -18,7 +18,8 @@ async function openProject(page: Parameters<typeof addProject>[0], project: stri
 test('file tabs replace previews, pin edited files, and tree copy preserves disk contents', async ({
   uiPage,
 }, info) => {
-  const project = await mkdtemp(join(tmpdir(), 'scholoom-explorer-tabs-'));
+  const project = test.info().outputPath(`fixture-${basename(test.info().outputDir)}`);
+  await mkdir(project, { recursive: true });
   const a = '# A\n';
   const b = '# B\n';
   const c = '# C\n';
@@ -60,7 +61,14 @@ test('file tabs replace previews, pin edited files, and tree copy preserves disk
     const rename = uiPage.getByLabel('新名称', { exact: true });
     await rename.fill('A-renamed.md');
     await rename.press('Enter');
-    await expect.poll(() => readFile(join(project, 'A-renamed.md'), 'utf8')).toBe(a);
+    await expect
+      .poll(() =>
+        readFile(join(project, 'A-renamed.md'), 'utf8').catch((error) => {
+          if (error.code === 'ENOENT') return undefined;
+          throw error;
+        }),
+      )
+      .toBe(a);
 
     const rowB = file('B.md');
     await rowB.click();
@@ -79,7 +87,6 @@ test('file tabs replace previews, pin edited files, and tree copy preserves disk
   } finally {
     await stop();
     await model.close();
-    await rm(project, { recursive: true });
   }
 });
 
@@ -87,7 +94,8 @@ test('file import and folder drag-in write selected bytes and relative paths', a
   uiPage,
 }) => {
   test.setTimeout(60000);
-  const project = await mkdtemp(join(tmpdir(), 'scholoom-explorer-import-'));
+  const project = test.info().outputPath(`fixture-${basename(test.info().outputDir)}`);
+  await mkdir(project, { recursive: true });
   const importSource = await mkdtemp(join(tmpdir(), 'scholoom-explorer-import-source-'));
   const bytes = Buffer.alloc(2 * 1024 * 1024 + 37, 0xa5);
   bytes.set([0, 255, 4, 0, 128, 42]);
@@ -144,7 +152,6 @@ test('file import and folder drag-in write selected bytes and relative paths', a
   } finally {
     await stop();
     await model.close();
-    await rm(project, { recursive: true });
     await rm(importSource, { recursive: true });
   }
 });
@@ -152,7 +159,8 @@ test('file import and folder drag-in write selected bytes and relative paths', a
 test('refresh reflects files added and atomically replaced outside the workbench', async ({
   uiPage,
 }) => {
-  const project = await mkdtemp(join(tmpdir(), 'scholoom-explorer-refresh-'));
+  const project = test.info().outputPath(`fixture-${basename(test.info().outputDir)}`);
+  await mkdir(project, { recursive: true });
   const target = join(project, 'external.md');
   const replacement = join(project, '.replacement');
   await writeFile(target, 'before');
@@ -180,7 +188,6 @@ test('refresh reflects files added and atomically replaced outside the workbench
   } finally {
     await stop();
     await model.close();
-    await rm(project, { recursive: true });
   }
 });
 
@@ -188,7 +195,8 @@ test('keyboard cut crosses projects and replacement keeps the prior target recov
   uiPage,
 }) => {
   test.setTimeout(60000);
-  const root = await mkdtemp(join(tmpdir(), 'scholoom-explorer-cross-'));
+  const root = test.info().outputPath('fixture-root');
+  await mkdir(root, { recursive: true });
   const source = join(root, 'source');
   const target = join(root, 'target');
   await mkdir(source);
@@ -227,7 +235,6 @@ test('keyboard cut crosses projects and replacement keeps the prior target recov
   } finally {
     await stop();
     await model.close();
-    await rm(root, { recursive: true });
   }
 });
 
@@ -235,7 +242,8 @@ test('ten thousand loaded rows stay windowed and respond while binary import is 
   uiPage,
 }, info) => {
   test.setTimeout(180000);
-  const project = await mkdtemp(join(tmpdir(), 'scholoom-explorer-load-'));
+  const project = test.info().outputPath(`fixture-${basename(test.info().outputDir)}`);
+  await mkdir(project, { recursive: true });
   const importSource = await mkdtemp(join(tmpdir(), 'scholoom-explorer-large-source-'));
   const largeFile = join(importSource, 'load.bin');
   await writeFile(largeFile, Buffer.alloc(32 * 1024 * 1024, 0x5a));
@@ -378,7 +386,6 @@ test('ten thousand loaded rows stay windowed and respond while binary import is 
   } finally {
     await stop();
     await model.close();
-    await rm(project, { recursive: true });
     await rm(importSource, { recursive: true });
   }
 });

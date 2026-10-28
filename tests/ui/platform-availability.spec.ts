@@ -1,6 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+import { mkdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { createKernelClient } from '../../packages/client/dist/index.js';
 import { runningKernel } from '../kernel-fixture.js';
@@ -11,7 +10,8 @@ test('unavailable execution keeps draft and manual file editing in the workbench
   uiPage,
 }) => {
   test.setTimeout(90000);
-  const root = await mkdtemp(join(tmpdir(), 'scholoom-manual-ui-'));
+  const root = test.info().outputPath('fixture-root');
+  await mkdir(root, { recursive: true });
   const client = createKernelClient(
     await runningKernel(process.env.SCHOOLOOM_UI_DATA_DIR as string),
   );
@@ -67,6 +67,5 @@ test('unavailable execution keeps draft and manual file editing in the workbench
     await expect(uiPage.getByRole('button', { name: '发送指令', exact: true })).toBeDisabled();
   } finally {
     client.dispose();
-    await rm(root, { recursive: true });
   }
 });
