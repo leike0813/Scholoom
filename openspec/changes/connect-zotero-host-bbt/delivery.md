@@ -1,11 +1,48 @@
 # 实际交付与交接
 
+## 当前交回：普通CLI接续／原包装配调查规划（R14）
+
+2026-10-28，HEAD `f4ab1e5f1ed17ae9af656c1f9945005a2786d911`，起始clean。本轮仅调查和下一片规划，修改本change的investigation／design／tasks／本记录；没有生产实现、配置或schema变更。已取当前apply及实际调查后的delivery instructions。R14三项规划完成后累计31/42，新增N1两项仍等待D14-1及后续实施授权；CLI ready不代表候选批准或完整change完成。
+
+### 已查清与推荐方案
+
+源码证据集中在[investigation当前节](investigation.md#当前调查普通cli重启与原包装配缺口f4ab1e5)，候选／精确写集／验收及选项在[design当前片](design.md#当前规划普通入口结果核查与原包装配分片f4ab1e5)。这两个工件是本轮事实源，不另建配置或进度台账。
+
+- 普通CLI已转发五项生态方法，但start→ensureKernel→serve不加载IsolatedZotero；程序内构造和测试私有IPC可注入，并且重启测试每次重传。当前绿色CLI／UI消费了真实内核，却没有证明普通start能自行恢复原包装配。
+- 五方法共用配置门，所以即使result只是读library.commitResult，普通未配置宿主时仍在此前返回unavailable。此结论来自当前调用链静态核对；本轮没有启动普通CLI或将其伪写成实跑失败。原值／来源／正式键、库原子提交及稳定结果提供者已经存在，不再等待文献交同一能力。
+- **推荐先评审N1**：仅使普通CLI在重启后按当前库授权核查原requestId，保持共同回执／notFound语义和持续外发；其他四方法仍按现有隔离门拒绝。无需原包、DISPLAY、安装、native凭据或新仓储；也不解除原宿主unknown、自动重放或写真实库。因为当前规格仍全隔离，此只读例外是D14-1选择，不是本轮已批准或已实现行为。
+- **N2原包装配仍受阻**：普通入口的唯一持久启用绑定、可信资源解析／交付、正式包固定受管入口及平台环境尚未定。默认index隐藏窗口、资源版本URL或测试env／no-sandbox都不等于产品提供者。N2复用已有JournalCatalog、ZoteroHost、HostConnection／ManagedCommands；来源／键／回执仍唯一归library，不接受renderer任意executable或新增一份配置镜像。
+
+需选择：D14-1，A先交N1只读例外（推荐）或B保持所有生态方法隔离、暂用library.commitResult客户端；D14-2，native绑定选共同kernel宿主设置或只读部署manifest作为唯一权威；D14-3，固定原包／宿主资源选可信操作者离线准备或正式分发提供。后两项不阻塞N1技术细化，当前均未选定；没有默认全授权、启用真实库或持久化短期token的隐含批准。
+
+### 实际工作、验证与未跑
+
+| 命令／核查 | 实际结果／边界 |
+| --- | --- |
+| git status --short／rev-parse HEAD | 开始clean，HEAD如上；未同步、提交或重放旧patch |
+| 当前AGENTS、阶段约定、主线第十三轮安排及原tasks/design/delivery／源码rg、带行号只读 | 核对bootstrap／CLI／serve、构造及测试IPC、普通包入口、资源版本、host listener、库授权／稳定查询及五工具登记。旧设计目标没有冒充真实提供者 |
+| apply／delivery instructions | 续做及交回指引已读取，JSON位于本轮cache；只勾本轮实际调查规划，不勾N1／N2实施、2.3／3.1／E4／I6 |
+| 主线保全输入和路径核查 | preserved-tmp的原XPI、static-ui及create-ui-config均存在；当前Git内display helper、可信隔离入口及所查工具路径可访问，不依赖现有/tmp内容。只做存在／路径核查，没有运行图形／原包或声称DISPLAY仍可用 |
+| OpenSpec strict、diff及规划增量检查 | strict／git diff --check通过；独立补丁反向git apply --check通过。新Mermaid仅人工核对图文，未做渲染器验收；不将结构校验视为候选运行结果 |
+
+本轮没有新的业务测试失败、修复或通过结论。R13原Host wait expired及后续显示修正保留在前轮节；主线本轮main-kernel-result.json为13 expected／0 unexpected，main-ui-result.json为6 expected／0 unexpected，属于已接收结果，未重跑。主线e3c815b／Windows专项40613967285各专项通过与Checks40613967267完整Windows692通过46失败42跳过分别表达，不能据计数宣布新候选或稳定性通过。本轮未查询CI、构建、运行CLI／host／BBT／UI、安装／下载依赖或启动服务。
+
+只读辅助Agent（gpt-6.1-sol/high、fork_context:false）核五方法权限／来源／结果／P1及回调边界，主Agent抽查关键源码，负责普通启动链和最终方案；辅助未编辑或验证。当前隔离原包／GUI真实接线沿已接收R13及主线回执。候选N1／N2没有任何新增真实接线或替身运行；未来验收明确内部broker／库／文件／进程真实，P1外部模型可受控并单列模型装配，不伪称普通CLI模型配置已完成。
+
+### 不依赖现有/tmp的交接入口及停点
+
+本轮独立根`/home/joshua/.cache/scholoom-zotero-r14-To16RE/`，TMPDIR为其tmp子目录；apply／delivery JSON、校验日志、manifest及planning.patch在该根。必需调查依据为当前Git原工件和源码，没有新增独立调查程序遗留在/tmp。临时根不含真实用户库、项目、profile或运行中的执行／服务，辅助Agent已结束，无须停止其他进程。
+
+后续如获原包／UI实施片，固定输入仅用`/home/joshua/.cache/scholoom-round13-acceptance/preserved-tmp/zotero-better-bibtex-9.0.68.xpi`、同目录static-ui.mjs及上一级create-ui-config.mjs；在本树cwd生成新cache绝对.mts配置、独立UI_PORT／UI_DATA_DIR／TMPDIR，图形动作前重新xdpyinfo预检。N1无需XPI或图形。Git内历史probe只作旧证据，不执行其历史/tmp默认值，也不让旧运行目录成为普通产品配置。
+
+下一步由主线／用户先选D14-1；若A获选，先明确本change的窄规格例外，再按design精确写集及N1任务另行授权实施。N2配置／资源分支继续等D14-2／D14-3及所需公共提供者，不假装规划闭合。到本次规划增量交回停止；完整E4／I6、真实用户库／E6、安装分发、平台原包及科研质量均未关闭。没有push／PR／归档、其他树操作或真实用户数据访问。
+
 ## 第十三轮主线验收
 
 显示前置helper及四消费者已保全合入，独立两轴审查无本线确证问题。完整构建／类型／架构通过；主线内核组合13/13包含两个真实BBT原包代表例、Electron renderer／Worker完整收尾及两个显示拒绝反例，原值动作双宿主2/2。已有DISPLAY经预检复用，未停止共享显示，也未把Node监督替代原包通过。旧unknown现场仍保留，新Xvfb成功路径未验。
 
 原BBT9.0.68 XPI已保全到`/home/joshua/.cache/scholoom-round13-acceptance/preserved-tmp/zotero-better-bibtex-9.0.68.xpi`，与旧原件逐字节一致；本次测试实际使用新路径。新静态UI入口也在同根，解包目录可由原XPI重新创建。下一片仅调查生产装配／普通CLI持久配置的最小差距，见[共同计划](../../../.scratch/domain-development/parallel-development-plan.md#第十三轮验收后的安排)；真实用户库、完整E4／I6、复杂映射及平台仍开放。
-## 当前交付：真实原包测试显示前置（R13）
+## 已接收：真实原包测试显示前置（R13）
 
 2026-10-28，起始clean，HEAD `ba29ee61ac6f8700cfe6a9fbaa529a8a7a75aad1`。本轮按主线第十二轮安排只修测试显示前置，复用已构建且同源的共享／kernel／desktop／zotero-host产物；没有生产源码或协议变化、重建或依赖变更。R13三项完成后累计28/37；完整E4／I6、CLI持久配置、跨平台原包及真实用户库继续开放。
 

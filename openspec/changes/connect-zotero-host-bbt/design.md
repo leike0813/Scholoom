@@ -1,6 +1,76 @@
 # 实现设计
 
-## 当前夹具收敛：真实原包的测试显示前置（ba29ee6）
+## 当前规划：普通入口结果核查与原包装配分片（f4ab1e5）
+
+本轮仅调查／规划，授权止于本节与任务交回；没有新生产实现。源码证据及五类身份／授权区别见[investigation当前节](investigation.md#当前调查普通cli重启与原包装配缺口f4ab1e5)。R13原包／显示／UI已接收，不重做；2.3／3.1剩余普通装配及完整E4／I6保持开放。
+
+### 推荐下一片N1：普通CLI重启后只读共同回执（以D14-1为前置）
+
+这是一个可独立交付的候选，不要求BBT、显示、宿主安装或新配置仓储。现有同源`zotero.result`已直接复用library.commitResult schema，普通CLI也已转发该方法；缺口仅是`ZoteroOperations.check`把共同查询与原包启动绑定。**当前隔离规格仍约束该操作，本轮不改其SHALL或把只读例外视为已批准。** D14-1选A后，先在本change delta明确窄例外，再按以下封闭写集实施。
+
+Interface保持`zotero.result({libraryId,requestId})`及现有committed／rejected／notFound输出、原5秒read语义，不增加params／token／第二套operationId。通过真实普通`CLI start --data-dir <隔离合成配置>`→ensureKernel→serve启动，无IsolatedZotero／测试私有IPC。查询只消费原数据目录的library；不按路径、SourceInstance、DOI或键自动找库。
+
+实现边界：将当前共同库授权／身份核查与native-isolation要求清楚分开，只有result走前者；不能给check增加含义混杂的force／skipAuth开关。先核read，Agent还核send／活动执行；核library.status.id与请求一致，调用实际commitResult，再复核返回前授权。不存在原包配置、资源、DISPLAY或旧host无法重启不阻塞此只读查询；其余inspect／replaceTitle／fillKeys／export四项保持当前隔离门及全部权限，不从N1推定允许普通用户库操作。
+
+committed／rejected只说明原共同事务的稳定结果；results中的revision／键属于原提交，不用当前record重算覆盖。同requestId不表示当前新输入已执行，不要求插件正常关闭才能查。notFound只表示当前提供者无可查回执，不能证明未知效果不存在，不自动重放、更换requestId、重生成键、启动host或清除host-supervision.json。原宿主unknown／容量／恢复门照旧，export及unchanged等无共同回执的情况不伪造查询结论。Agent成功结果继续原rememberLibrary→rememberCatalog链，后续模型请求及重启复核read/send。
+
+```mermaid
+flowchart LR
+  CLI[普通CLI start及zotero.result] --> Broker[现有kernel server及broker]
+  Broker -->|D14-1 A获选后| Query[ZoteroOperations.result]
+  Query --> Gate[当前库read及Agent send 核身份]
+  Gate --> Library[library.commitResult 唯一回执]
+  Library --> Recheck[返回前复核并保留持续外发登记]
+  Native[BBT资源与HostConnection启动] -. 不作为N1依赖 .-> Query
+```
+
+| 精确写集／已有符号 | N1获选后的变化或复用 |
+| --- | --- |
+| `apps/kernel/src/zotero.ts::check/result` | 局部区分共同查询权限／身份与native配置门；其他四方法不放宽，不改宿主生命周期或在未知时重放 |
+| `tests/kernel/cli-runtime.spec.ts` | 加独立只读接续用例，不重跑其原有科研路径：真实library创建合成回执→关闭准备实例→普通CLI start／zotero.result→stop／重新start再查；复用runKernel、真实RPC/client及已有受控模型入口做必要权限回归 |
+| 本change delta／design／tasks／delivery及`docs/development.md`生态小节 | 批准后说明只读例外、仍禁用的native操作、普通CLI实际命令与限界；不把N1称为持久原包配置 |
+| 不需新增或改动 | protocol/zotero与business映射已有该schema；CLI现有switch、manual handler、architecture消费声明、harness工具及library provider复用。无native factory、bootstrap参数、library schema／存储迁移、HostCatalog／UI或安装资源改动 |
+
+最小独立验收（此轮未运行）：
+
+1. 用真实共同commitRecords准备成功／拒绝回执；普通CLI首次start及stop/start后按原libraryId／requestId查到同一结果，原值／键／revision不变。不得先通过测试IPC重注入configuration；没配置native的其他四方法仍拒绝。全过程不要求XPI或DISPLAY，证明的是共同查询接续。
+2. 真实提交已成功而观察故障返回未知时，关闭准备实例后用普通CLI查原requestId；只有一次共同修订，不重做写入。notFound／错库／撤read明确返回现有状态／错误，不猜成回滚或自动grant。
+3. Agent查询成功后仍受send撤权及下一轮／重启准入保护；CLI接续例不运行模型，P1子例可沿现有可信模型测试组合只控制外部HTTP，单列该模型装配边界，不冒称普通CLI模型配置已交付。broker、library、进程、文件及查询回执真实，不将合成host响应当作该查询的提供者。
+4. 保留首次失败与最终结果，改生产后先build再定向测试；类型／架构／生成一致性按实际影响核对。N1不读写原监督文件，不改变任何未知scope；不据普通CLI查询通过宣称原包／平台／E6已验。
+
+### 原包装配N2：已有职责、具体缺口与受阻边界
+
+下一原生片必须由宿主组合，而非renderer或Agent提供executable／args／packageDirectory：可信资源提供者解析已批准的resourceId／固定版本，派生实际宿主程序、managed入口和资源目录；装配者从当前共同库身份派生范围，再调用现有ZoteroOperations／HostConnection。普通请求仍只传schema允许的库／条目／修订／表达／操作身份，不扩任意Shell或插件入口。
+
+| 责任及候选文件／符号写集 | 具体要求／尚缺输入 |
+| --- | --- |
+| 共同宿主：`bootstrap.ts::bootstrapKernel`、`cli.ts::main`、`lifecycle.ts::ensureKernel/serveKernel`、`application.ts`构造装配 | D14-2先定唯一配置归属和加载时点；正常restart必须由同一权威重建配置，而非从operation.json、endpoint、日志或旧token推回。保留锁／实例／原构造器所有其他参数，不整文件替换，不与其他线同时改共享符号 |
+| 生态私有可信资源解析：`apps/zotero-host/src/main/index.ts/managed.ts`、`resources/versions.json`及必要`electron-builder.yml/package.json`；kernel装配侧窄调用 | D14-3先定资源获取与交付方式。正式包主入口目前是index隐藏窗口，不能假设像开发Electron一样给包可执行文件追加managed.cjs就切换入口；若选产品分发，须评审固定受管入口模式及同一managed Module，不能传任意脚本／插件路径。版本表只声明版本及URL，host只验证已准备目录；现有测试XPI路径、node_modules Electron、Xvfb和no-sandbox均不是产品策略 |
+| 生态：`ZoteroOperations`构造／run、`ZoteroHost`及`JournalCatalog` | 消费宿主产出的可信launch事实及当前库，不复制其配置；JournalCatalog仍只投影共同record。每次操作profile与持久启用绑定分开，正式键／来源／回执仍唯一归library。实际parent kernel实例关联来源须明示，当前随机kernelInstanceId不冒充endpoint.instanceId |
+| 公共监督：HostConnection／ManagedCommands／platform现有接口 | 一次性stdin／独立listener／回调范围／完整停止／未知恢复均复用；当前旧记录核查在HostConnection.start而非普通application初始化，N2须由共同宿主闭合恢复与准入时点，不把读回配置当恢复完成。若需环境传递、恢复端口或新的主实例事实，先由主线评审窄公共契约，不拷贝测试env包装、不自行扩大system access或依赖programs私有业务包 |
+| 文献／harness已有提供者 | 当前库identity／grants、source instance／原值、正式键、100条／256KiB原子提交及稳定结果已齐；不要再要同一套provider。保持工具用户明示选择和持续外发。真实用户库仍需E6及正式授权，不因绑定资源或CLI启动成功自动启用 |
+
+N2候选启动绑定的逻辑字段只讨论schemaVersion、显式enabled、libraryId和受限resourceId；字段／存储路径尚未定案。可执行路径及资源展开路径来自可信宿主解析，短期token／监听地址／旧handle不进入持久设置。libraryMeta只保存库事实；模型CredentialStore只保存模型凭据；native启用不自动变更read/write/send默认值。本轮不新建任何settings文件或loader。
+
+N2真实验收入口须是普通CLI/desktop bootstrap在全新隔离合成配置冷启动→实际library/broker/受管Electron/原BBT→普通stop/start后从唯一配置重建→稳定查询／键及两格式依据一致；配置缺失、资源不匹配、错库、撤权与未知恢复均分别核查。验收需目标资源、平台与显示条件；不是再跑一个私有IPC fixture或已有Node host24项。Windows原包尚未验，macOS managed execution仍拒绝，不回退到无隔离执行。
+
+### 需主线／用户选择的三个点
+
+| 决策 | 选项及依据 |
+| --- | --- |
+| D14-1，是否先采纳N1只读例外 | **推荐A**：无native配置也可按既有库授权查询zotero.result，其他四操作继续隔离；可独立验普通CLI接续，不新增存储／凭据。B：继续让所有生态方法受隔离门约束，普通客户端仅用既有library.commitResult（CLI目前无该命令），将普通生态CLI与N2一并评审。A改变当前隔离范围，必须明确选定后再更新delta／实施 |
+| D14-2，未来native启用绑定的唯一权威 | **推荐候选A**：共同kernel数据目录的宿主设置，由主线统一schema／加载器，生态只消费投影。B：只读部署manifest由运营侧管理，普通入口消费它，库／UI不另存镜像。当前两者均未实现；只能选一个作为权威，不同时新增ecosystem.json、libraryMeta及CLI覆盖三套配置。缺选择时N2配置恢复受阻，不以配置路径推授予库权限 |
+| D14-3，固定原包／宿主资源如何交付 | 首个有界N2可选A：由可信本机操作者离线准备指定原包／已构建宿主，并由受限资源登记引用；B：由产品分发提供版本化宿主／原包资源与升级回退。安装／许可／平台资源归属及信任核对随所选方案确定；URL或manifest匹配不等于已完成这些保证。此轮不决定自动下载，也不新增安装或凭据流程 |
+
+D14-2／D14-3及生产环境提供者不阻塞N1的技术设计，但N1本身必须先获D14-1选择；两边都没有当前实施授权。没有“用户已默认批准真实库、默认全授权或持久凭据”的隐含选项。
+
+### 接续输入与/tmp迁移
+
+本轮独立根为`/home/joshua/.cache/scholoom-zotero-r14-To16RE/`，TMPDIR为其中tmp。全部新payload／日志／独立规划补丁只在该根；研究依据由本Git原工件和当前源码提供，未从旧/tmp运行或复制脚本。主线保全输入固定为`/home/joshua/.cache/scholoom-round13-acceptance/preserved-tmp/zotero-better-bibtex-9.0.68.xpi`、`preserved-tmp/static-ui.mjs`和`create-ui-config.mjs`。未来实际UI验收在本树cwd用该generator生成新cache绝对.mts配置，独立UI_PORT／UI_DATA_DIR／TMPDIR，先xdpyinfo核当前DISPLAY；不假定:99在迁移后继续有效。
+
+N1不需要这些图形／原包输入；N2若用才显式设置保全XPI，不读取旧probe默认/tmp路径。不启动绿色组、真实用户库或产品宿主。当前阶段止于可审查方案，待决分支保持受阻，不为CLI ready或规划齐备勾选2.3／3.1／I6。
+
+## 已接收：真实原包的测试显示前置（ba29ee6）
 
 原同步失败的trace注解定位到round12的sync-tmp/scholoom-library-bbt-vZkRMr；只读operation.json为固定键JRNL0002的revision3导出快照，监督记录scopeStopped=true、pluginClosed=false、unresolved=[]，没有该次Xvfb stderr或插件ready证据。现场保留，不初始化该配置、不重放或清锁。其他Xvfb补验有/tmp锁写入失败，而:99可读；这些不能反推原同次超时的唯一根因。当前实际缺口是四个测试强制新Xvfb且没有显示预检。
 

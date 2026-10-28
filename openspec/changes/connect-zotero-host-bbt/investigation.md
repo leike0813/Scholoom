@@ -1,5 +1,45 @@
 # 调查依据
 
+## 当前调查：普通CLI重启与原包装配缺口（f4ab1e5）
+
+2026-10-28，本轮只读调查／规划，起始HEAD为f4ab1e5f1ed17ae9af656c1f9945005a2786d911且clean。主线已接收R13显示helper和真实原包／UI，当前任务不重复测试或启用生产。所有新工件／TMPDIR使用`/home/joshua/.cache/scholoom-zotero-r14-To16RE/`；下文旧轮/tmp路径仅为历史证据，非本轮输入。
+
+### 当前源码逐层核对
+
+| 层与源码 | 已存在／实际缺口 |
+| --- | --- |
+| `apps/kernel/src/cli.ts:21,74,90,149` | 参数只有既有data-dir等，已能发送五项zotero同源JSON到运行中的kernel；serve仅传development。start不接受、校验或持久保存生态启用、资源或库绑定 |
+| `bootstrap.ts:22`、`lifecycle.ts:355,378` | bootstrap只调用普通CLI start/status；ensureKernel仅有development选项，启动serve时只传data-dir／development。没有从普通入口读取IsolatedZotero的链路；运行目录与生命周期锁不是生态配置权威 |
+| `lifecycle.ts:266,314`、`application.ts:77,80`、`manual.ts:239,286` | 程序内确有可信构造注入：serveKernel options→KernelApplication→ManualApplication→ZoteroOperations。该类型只有libraryId、executable、args、packageDirectory；没有业务RPC可设置这些值，不能将其当已交付产品配置接口 |
+| `tests/isolated-kernel.ts:24`、`tests/fixtures/isolated-kernel-process.mjs:8` | 测试父进程每次经私有IPC重传configuration，子进程再调用serveKernel；这是实际进程重启，但没有证明普通start自行恢复生态配置 |
+| `tests/kernel/zotero-host.spec.ts:319`附近 | CLI读回／导出测试先由测试代码serveKernel(root,{isolatedZotero})启动；普通CLI只是consumer，不能据该绿例称start／serve产品装配已完成。UI重启同样由可信测试父重传配置 |
+| `zotero.ts:57,66` | 五项操作共用配置门；无configuration或请求libraryId不等于绑定值，首先unavailable。result本体只是调用library.commitResult，inspect／replaceTitle也不启动原包，但目前仍受同一隔离门保护 |
+| `manual.ts:509`、`packages/library/src/catalog.ts:83,277` | 当前共同库由同一dataDirectory下library/library.sqlite提供，identity、grants、原值／正式键及recordOperations均归library。commitResult只核当前库read／identity并按requestId查询真实committed/rejected/notFound；没有缺失的回执存储提供者 |
+| `manual.ts:2036`及`server.ts:34` | advertised capabilities来自已注册broker操作；列出zotero方法只证明路由存在，不证明宿主配置、资源、就绪或权限可用。当前没有正式zotero.status操作；design旧表中它仍是目标 |
+| `zotero.ts:253`、`host-connection.ts::initialize`及普通application initialize链 | HostConnection在实际run时构造，旧监督记录／unknown scope核对在其start中完成；所查普通初始化没有单独生态恢复调用。N2不能仅读回绑定JSON就声称完成启动恢复，仍须由公共宿主明确旧归属核查及准入顺序；N1不新增执行或恢复动作，不据其查询关闭完整E4 |
+| `apps/zotero-host/src/main/index.ts`、`managed.ts:17`、`electron-builder.yml` | 默认入口只是隐藏窗口；受认证操作来自managed入口，读取kernel私有operation文件及stdin封套。包规则含out/resources，但未建立普通产品的可信安装资源解析／启用链，不能据打包规则或默认窗口出现认为原包已可用 |
+| `resources/versions.json`、`host.ts:127` | 固定版本及上游asset URL已有，host读取准备好的解包目录并核manifest版本／id；不是下载、安装、发布或可信资源登记提供者。manifest匹配也不能单独证明原包来源可信 |
+
+因此2.3剩余的是普通装配与跨平台／生产保护，不是重做HostConnection；3.1隔离library/broker/WS实际接线已有，普通入口的配置恢复／资源选择仍缺，不能再加一套题录、键或结果仓储来填缺口。
+
+### 五种配置／权限事实不能互代
+
+- **持久库身份与授权**：library.status的库UUID和read/write/send归library；实际初始化默认read=true、write=false、send=false、autoBackup=true（catalog.ts:140），本轮不改默认或自动grant。来源instanceId／libraryLocator／objectKey是原值身份，既不是启动路径也不是授权token；复制Zotero源库默认新来源实例、显式确认才重绑定继续有效。
+- **可信启动配置**：IsolatedZotero的本机程序／参数／解包目录仅来自宿主构造；配置存在不授予库权限。没有全局通用生态settings loader可直接复用，所查普通启动链未读任何生态绑定；不能把libraryMeta、projects.json或runtime/endpoint.json改成第二个可写配置权威。
+- **产品连接凭据**：server生成本次kernel连接token并由私有endpoint发布；CLI/client沿已有认证进入宿主绑定的human/product主体，不能从JSON自报principal。它不是插件长期凭据，也不是模型API key。
+- **宿主短期凭据与实例**：HostConnection独立127.0.0.1 listener、一次性私有stdin、冻结CallContext及handle/回调范围已存在。zotero.ts:255目前为每个HostConnection生成kernelInstanceId随机值；不能假称它等于公开endpoint.instanceId。完整装配若要求审计关联真正父kernel实例，须由宿主提供明确来源，不凭同名字段推定。旧token／handle不随普通重启复用，不将host认证改为connectProduct。
+- **结果与进程状态**：fillKeys.operationId是共同提交requestId，replaceTitle直接使用requestId；result返回共同回执，不证明插件shutdown、通知／缓存或整个导出完成。export无共同提交回执，fillKeys.unchanged可无receipt；notFound不证明未知写入回滚，不允许因此自动重放或清supervision门。
+
+权限实况：inspect为人工read／Agent read+send；replaceTitle及fillKeys为人工read+write／Agent再加send；export两者都read+send；result人工read／Agent read+send，且当前仍需隔离配置。五个工具成功返回继续rememberLibrary→rememberCatalog，后续模型准入／重启核read/send。HostConnection与生态callback授权分别保留原调用主体、原输入、共同库／requestId和所选对象，不能用启动配置替代这些核对。
+
+### 可独立推进与必须留给选择的部分
+
+建议先评审design中的N1：普通CLI重启后的**只读共同结果核查**，复用现有DTO、broker和原子库，不涉及原包、显示、安装、可执行文件或真实库写入。当前隔离限制确实覆盖result，因此是否允许这一只读例外列为D14-1，不把“技术上可拆”写成已获产品授权。其余四方法门不随N1放宽。
+
+完整原包产品装配N2至少还需唯一启动绑定归属、可信资源交付／解析、受控平台环境及启用规则；现有测试/usr/bin/env／Xvfb／no-sandbox不是生产策略。D14-2／D14-3未决时该分支保持受阻。共同库的原子提交／正式键／稳定回执已实际存在，不重复要求文献交同一provider；E6缺口仍阻止真实用户库启用。
+
+本轮没有运行CLI、host或原包实验；上述行为结论来自当前源码，已绿范围只引用主线本轮main-kernel/main-ui及本树sync日志。图形资产可用性与新平台本轮未验。必需入口均已在Git或cache：`tests/fixtures/zotero-host/display.ts`、`tests/isolated-kernel.ts`及其子入口、当前CLI与普通library provider；主线cache的`preserved-tmp/zotero-better-bibtex-9.0.68.xpi`、`preserved-tmp/static-ui.mjs`、`create-ui-config.mjs`均存在。历史Git probe不作为N1前置，本轮未执行或解析其旧/tmp默认路径；若未来需要另用，须显式设置保全XPI并先做显示预检。
+
 ## 当前调查：CSL更正与原值／导出的差异（4b13183）
 
 2026-10-27，仅调查和规划。当前HEAD为`4b13183f7489d3cae12fd0a7d1a9e83fb33d7384`，开始时clean；主线已接收普通期刊最多100条共同库／原BBT切片及持续外发授权P1。同步、构建、复验依据为`/tmp/scholoom-round6-acceptance-dXuzCA/{acceptance.md,synchronized.json,sync-build-results.json,sync-kernel-results.json}`中本树条目。本轮不应用历史patch，不重做宿主选型／H1／P1，不改生产实现。下文早期“尚无提供者”等判断是历史上下文，已由真实接入替代。
