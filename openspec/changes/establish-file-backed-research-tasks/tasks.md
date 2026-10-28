@@ -88,3 +88,7 @@ flowchart TD
 
 - [x] 10.1 沿design第10节新增按需uiRpc fixture与窄窗口观察helper，白名单投影当前真实uiPage的发送／受理／快照身份与时点；固定队列／字段／关联上限、丢弃和缺证计数，不采正文／token／原始通用帧，不包装或重放业务发送。两指定file-workbench场景在原清理前幂等冻结附件，保留原helper和业务行为，完成安全／故障模块自检及类型／lint检查。
 - [x] 10.2 复用已构建静态产品，在独立缓存根／TMPDIR下仅运行resident project sessions场景最小双宿主一次；保持原断言和期限，核真实点击、请求／回执／快照映射及失败时安全附件，原失败照实交回。记录CI目标一次状态、模拟边界、首次／最终结果和原delivery，交独立增量后停止；不由诊断片关闭业务CI或4.1。
+
+## 11. 已合入两端观察的多项目场景核查
+
+- [x] 11.1 按design第11节仅运行resident project sessions双宿主，以同次窗口及执行附件关联project／session／instruction／run／instance，核切回原项目发送、消费／模型推进与草稿／文件标签；保留首次失败，仅修闭合的所属场景／观察局部缺陷。原期限／断言及共享闸门／执行提供者不改，非本域或目标未验精确交回。完成最小检查，取delivery instructions更新原记录并交有界增量后停止；不重复第一场景或关闭4.1。

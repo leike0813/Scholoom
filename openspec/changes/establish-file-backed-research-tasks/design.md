@@ -304,3 +304,11 @@ TaskGraphs核对入口和来源后，通过已有resources.create保存`tasks/<p
 新增按需uiRpc fixture依赖现有uiPage，仅两个指定场景申请，其他UI不增加采集。场景finally在release模型／stop内核前调用save；save冻结并移除本观察器监听，幂等保存`ui-window-rpc.json`为TestInfo附件，fixture兜底调用，不覆盖此前冻结结果。save返回可选存储／附件错误，场景继续原清理；fixture在Playwright记录原业务失败后报告该错误，避免finally异常覆盖原断言。两个场景的登记项目目录保留到所属配置退役。初始Electron连接若早于监听，会如实缺证；测试本来就会导航／重新连接，监听在该导航前挂载。
 
 验证先做窄模块安全自检（只模拟观察事件，不算业务验收）：非白名单及正文不落盘、响应归属、错误码、溢出／断开／监听失败、save幂等。然后只复用resident project sessions场景跑Browser／真实Electron各一次，保持原断言及90秒期限，复用已构建静态产品和真实模型内核。原断言失败也保存同次有界附件，不改harness、model-server或等待参数凑通过；根据实际回执分别报告业务结果与诊断覆盖。全部工件及TMPDIR使用`/home/joshua/.cache`下本轮独立根，保留登记项目到配置退役；本片不重跑全UI。原4.1继续等待。
+
+## 11. ba29ee61上的多项目场景观察消费
+
+共享窗口／执行观察与RPC闸门已正式接入。按第十二轮安排，仅复用file-workbench第二个resident project sessions场景，先以原代码运行Browser／真实Electron，保留首次回执；第一场景主线已有双宿主依据，不重复。读取同次ui-window-rpc与model-kernel-execution，以project／session／instruction／run及真实执行instance关联，区分实际发送、受理、指令消费、模型推进和结果刷新；不得跨场景累计模型计数补证。原断言、90秒期限和业务语义保持，不重做观察器安全自检，不并改harness／model-kernel／共享闸门。
+
+若原场景失败，先消费该次窗口及执行附件，闭合本域根因后才作所属测试／观察局部的最小修复；非本域缺陷按原身份精确交回。必要测试增强只针对真实回执／仓储和各项目草稿／标签，不造新业务状态或提供者。复用现成已构建产品的静态承载；先xdpyinfo预检共享DISPLAY=:99，不启动／停止共享显示。独立缓存根及TMPDIR保留首次和后续实际结果，登记项目不提前删除。完整4.1及平台／科研质量继续开放。
+
+本次原场景首次双宿主均通过，所属测试／观察／执行提供者无需修正。实际消费在本轮独立证据根的`correlate.mjs`完成：按每份窗口session.send的同连接回执取得instruction／run，再匹配同project／session的执行capture、目标指令consumed、该run／instance的model.output、正常退出及窗口completed；不以样本当前run绑定全部历史指令，也不以累计model.requests替代归属。项目identity.json绑定四个实际临时项目，核原文件未因草稿或模型运行被覆盖。原UI草稿／标签断言在发送前切换阶段通过，不扩称发送完成后的UI草稿检查；本片无新增业务／测试行为，不需改spec或生成映射。

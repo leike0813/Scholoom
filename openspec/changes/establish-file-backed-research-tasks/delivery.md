@@ -356,3 +356,50 @@ CI仅按授权查一次：`windows-diagnosis-once.json`为40591705558、head29cd
 tasks10.1／10.2仅关闭本片实施、自检、一次双宿主运行及真实失败交回，不关闭Electron业务失败。I1／4.4c已接收不变，4.1继续等待真实库删除／恢复及主题知识提供者，完整change、I3／I5／I6和科研质量不关闭。达到窗口公共诊断片后停止，不接管Agent执行诊断或文献，不重复测试。最终OpenSpec／diff和独立补丁的结果见本节收尾。
 
 收尾：`openspec validate establish-file-backed-research-tasks --type change --strict --no-interactive`及`openspec schema validate scholoom-dev`均通过，日志`openspec-{strict,schema}.log`。最终apply为**29/30、ready**，只剩4.1；`git diff --check`及新helper的no-index空白检查无诊断。可审查增量为`/home/joshua/.cache/scholoom-ui-rpc-7C1T29/001-window-rpc-observation.patch`，直接依赖29cd728，共7文件；`patch-manifest.json`记录逐文件前后SHA256，`patch-verification.log`记录独立临时index／object目录正向check及工作树反向check，真实index和HEAD保持未变。首次附件检查器的错误另保留于`artifact-validation-first-error.txt`，修正只在临时检查器。端口5721已释放，按本轮根及静态脚本核对无遗留服务；所属测试已结束、辅助Agent已关闭，未提交／推送／PR／归档。结果工件保留供主线复核，下一步只交绑定身份的执行侧缺证，不后台等待新CI。
+
+## 2026-10-28：已同步两端观察后的多项目场景
+
+### 本片成果与消费
+
+开始HEAD为`ba29ee61ac6f8700cfe6a9fbaa529a8a7a75aad1`、git clean。按parallel-development-plan“第十二轮验收后的安排”及本轮用户授权，只核第二个resident project sessions场景。共同源码和主线构建／同步证据来自`/home/joshua/.cache/scholoom-round12-acceptance-NagGbw/`；HEAD与已构建e3c815b3af6bd4b9718820f641b10bab57a69b24仅两份Markdown差异，`source-equivalence.log`保留实际核对。复用已验同源共享／内核／桌面产物，没有旧patch重放或自行同步。
+
+原场景首次双宿主**2/2通过，1.6分钟**：Browser31.3秒、真实Electron41.2秒。没有原断言失败、修正重跑、期限修改或统一等待。原第一文件场景主线已验，本轮不重复；窗口观察器七组自检、旧trace下载、全套UI／内核也未重复。当前场景及ui-rpc-observer／fixture／model-kernel／执行核心均未改，新增写集仅本change的design第11节、tasks11.1、investigation和本delivery。新公共协议／生成映射／业务规格不适用。
+
+实际消费现成窗口／执行JSON，而非只看2次累计模型计数。临时`correlate.mjs`逐份附件从session.send的同连接请求／回执取得project／session／instruction／run，再在同project／session capture中核目标指令consumed及该run／instance的model.output、仓储completed、窗口同run completed与controller正常退出；kernelInstanceId／kernel PID、执行instance／worker PID分列，不假定它们相等。4条链均通过，两个宿主的安全TestInfo附件副本与原JSON逐字节相同。
+
+| 宿主／项目 | instructionId → runId → 执行instanceId | worker PID |
+| --- | --- | --- |
+| Browser Alpha | `3d233ee9-a8a7-400b-8051-38ed280f0f77` → `81235576-936f-4045-ad04-0266b9d0b3f8` → `78921a8a-6d43-45ca-b666-ae64b6cc5774` | 1331629 |
+| Browser Beta | `98c7f46f-91f6-4fbe-ba1e-6a2e2f78a43f` → `680102e4-f918-4232-8fa1-3e2f9f7d4588` → `ccbee20b-7e58-4e6c-b5d2-5536d73cf5af` | 1332399 |
+| Electron Alpha | `880f0ef9-8189-4800-81d3-2562d4787ba6` → `161f91d2-d202-4caa-b7fe-dc66e2ca788c` → `65901e73-5212-40a1-80c5-a3024a921a81` | 1337489 |
+| Electron Beta | `1f364f23-7825-4d20-8d96-46a452b68e62` → `de8d819a-7d4c-4b52-8542-0bef471571c2` → `447cd91f-8e0c-4a5b-9a27-a953eb2694d8` | 1337890 |
+
+完整projectId／sessionId／kernel身份、原附件路径、请求／受理／消费／输出／完成本地时点和revision均在`same-run-correlation.json`，来自同次`ui-first/`两个目录，没有借用主线其他场景或旧run完成。两端各1连接，窗口的全部丢弃／无效／监听错误／冻结待回执为0；执行scope／生命周期及四capture的丢弃计数均0，snapshot未超时。每capture停机末次采样各有一条unavailable，原记录保留；此前该run已完成、窗口已收到revision20／25，不将收尾采样失败倒写为首因。有限采样即使无丢弃也不等于完整时间线。
+
+原场景从Alpha／Beta草稿切换后再切回Alpha实际发送，核两项目运行标识、消息隔离和两会话各自完成；发送前的文件树／标签／草稿切换、同名项目及迟到会话创建断言均通过。四个登记项目根保留于本轮TMPDIR直到配置退役，实际仍可读；按identity.json匹配发送回执projectId，alpha.md／beta.md均保持原已保存内容，未保存草稿未写盘。没有测发送完成后的UI草稿再次打开，不扩大这一结论。
+
+### 实际命令、环境与证据边界
+
+证据根`/home/joshua/.cache/scholoom-project-r13/`（下记`<root>`）。Linux、Node24.12.0、已有Playwright；DISPLAY=:99经`xdpyinfo`预检通过，`display-first.log`保留。未启动／停止共享X服务，也无本轮Xvfb失败。TMPDIR、UI配置、项目、模型和端口5721隔离，全部使用本机cache以避开/tmp用户配额；原产物测试期间冻结。模型仅在既有HTTP外部边界受控，真实Browser／Electron窗口、broker、仓储、worker和文件均未替换，临时关联脚本只读实际附件／项目身份／合成文件，不代造执行事实。
+
+| 命令／操作 | 实际结果及日志 |
+| --- | --- |
+| `git status --short`、`git rev-parse HEAD`、`git diff e3c815b3af6bd4b9718820f641b10bab57a69b24 HEAD --stat` | clean、ba29ee61及两Markdown差异；无源代码漂移。`source-and-products.json`记录所用测试／观察／产物入口SHA256 |
+| `DISPLAY=:99 xdpyinfo`、`ss -ltn 'sport = :5721'` | 实跑前显示可用、端口空闲；未接管别人的显示或服务 |
+| 下列唯一Playwright命令 | 原场景双宿主2/2，`ui-first.log`和两目录的附件／截图；无首次失败可修，无重跑 |
+| `TMPDIR=<root>/tmp node <root>/correlate.mjs` | 四链路、附件副本和4个真实合成项目文件全部通过，`correlation-first.log`、`same-run-correlation.json`；不使用别run或模型累计计数填证 |
+| `openspec instructions delivery --change establish-file-backed-research-tasks --json` | 实际验证后取得`delivery-instructions.json`，更新本记录，未另建长期账本 |
+
+```sh
+TMPDIR=<root>/tmp DISPLAY=:99 SCHOOLOOM_TEST_ROOT="$PWD" SCHOOLOOM_UI_PORT=5721 SCHOOLOOM_UI_DATA_DIR=<root>/ui-profile-first \
+node node_modules/@playwright/test/cli.js test --config <root>/playwright.ui.config.mts \
+tests/ui/file-workbench.spec.ts --grep 'resident project sessions switch files and preserve each project draft' --output <root>/ui-first
+```
+
+临时配置只替换原webServer为`node /tmp/scholoom-sync-recovery-wyn13R/static-ui.mjs`及本树绝对testDir／teardown，复用普通静态构建产品，无DEV样例依赖，不启动开发服务器。UI清理保持原模型release、client.dispose及可信stop；实际拥有的内核均stopped、子进程close code0，配置按原globalTeardown退役，项目不提前删除。
+
+只读同模型原生辅助Agent核对既有观察字段和公开查询边界，明确message.runId可选、consume.response不含具体instructionIds、model.acquire不证明HTTP请求、kernel实例与执行实例不可混同。父端据实际窗口回执及目标指令状态／model.output核对四链，而非机械新增查询或重复TaskPort。辅助Agent未改文件／运行测试，已关闭；实际结果由父端取得。此为诊断消费与已有行为核查，未发现需要生产或测试修补的本域根因。
+
+本片无安装／下载、CI触发、真实用户库或其他工作树操作，也未查询／后台等待40613967285／40613967267新CI。主线给出的29cd728／40591705520历史计数继续作为其源码平台证据；本次Linux本机2/2不关闭旧CI／Windows／macOS稳定性、完整change或科研质量。4.1继续等待真实库删除／恢复及主题知识提供者，I1／4.4c接收不变。到此机械消费边界停止，无新产品／架构选择需猜定。
+
+收尾：OpenSpec strict及scholoom-dev schema通过（`openspec-{strict,schema}.log`），apply为**30/31、ready**，仅4.1开放。仅四份本change Markdown改动，无生产／测试／fixture符号变更；原记录的测试／观察器／产物入口SHA256复核未变，无需重新构建、类型或lint。端口5721已释放，本轮根和静态脚本无遗留进程，`final-scope.log`保留核对。可审查文档增量为`/home/joshua/.cache/scholoom-project-r13/001-resident-project-observation-receipt.patch`，直接依赖ba29ee61；`patch-manifest.json`记录逐文件前后hash，`patch-verification.log`记录临时index正向和工作树反向check及真实HEAD／index未变。没有本地提交、push、PR、archive或后续任务展开，证据与登记项目保留供主线接收。
