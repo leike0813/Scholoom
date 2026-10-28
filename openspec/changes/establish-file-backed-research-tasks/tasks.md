@@ -92,3 +92,7 @@ flowchart TD
 ## 11. 已合入两端观察的多项目场景核查
 
 - [x] 11.1 按design第11节仅运行resident project sessions双宿主，以同次窗口及执行附件关联project／session／instruction／run／instance，核切回原项目发送、消费／模型推进与草稿／文件标签；保留首次失败，仅修闭合的所属场景／观察局部缺陷。原期限／断言及共享闸门／执行提供者不改，非本域或目标未验精确交回。完成最小检查，取delivery instructions更新原记录并交有界增量后停止；不重复第一场景或关闭4.1。
+
+## 12. 新Linux完整CI首文件场景的有界取证
+
+- [x] 12.1 仅消费Checks40613967267／e3c815b的file-workbench首场景Browser／Electron两份原现场，核窗口请求／受理／快照、执行附件、trace及原112行5秒模型计数失败；按实际project／session／instruction／run关联，执行instance缺失明确未知。比较当前f4ab1e5f相关源码，闭合本域根因才修所属场景／窗口观察；执行侧精确缺证交回，不改harness／model-kernel／共享闸门，不用本机绿色解释旧CI。必要输入、分析脚本和结果保留在独立cache，无旧/tmp运行前置；完成最小检查、更新原delivery并交增量后停止，4.1及平台整项继续开放。
