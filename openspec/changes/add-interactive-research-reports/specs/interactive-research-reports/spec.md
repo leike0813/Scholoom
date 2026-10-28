@@ -49,6 +49,16 @@
 - **WHEN** 读取HTML的FileEdit全文或旧历史，任一正文带约定报告头部而不能按其原Evidence核查声明来源
 - **THEN** 返回unavailable而不外发旧报告正文，保留changes摘要与普通材料历史；不将当前文件basis代替旧版本，不修改FileEdit存储权威
 
+#### Scenario: 有原版本依据的报告历史
+
+- **WHEN** 文件权威保留报告历史正文、原path及对应的before或after ResourceEvidence
+- **THEN** 按该原版本完整核查依赖及声明来源的read／send后才返回历史正文，当前入口不能替代原basis；无依据或来源无法核查时继续明确失败，普通历史和变化摘要保持
+
+#### Scenario: 单目标范围内的报告
+
+- **WHEN** 目标报告的入口、依赖和声明来源均在原targetRead目标项目，调用方具有有效的原执行和目标读取资格
+- **THEN** 使用既有登记身份和有界只读端口前后核查完整清单，原目标与源工作域保持，使用事实进入原模型准入核对；库或其他项目声明来源仍在展开前unavailable，不移除targetRead扩大范围
+
 #### Scenario: 项目HTML有条件保存
 
 - **WHEN** 调用方保存不超过256KiB的项目HTML

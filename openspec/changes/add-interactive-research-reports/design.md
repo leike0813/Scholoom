@@ -2,7 +2,7 @@
 
 ## 变更总览
 
-用户已采纳 [investigation](investigation.md#已获得本轮产品选择) 的项目内有界产品范围；资源及来源授权已接入，活动承载仍阻塞。当前共同源码f4ab1e5，本片只校准候选A的高FD／SCM_RIGHTS／stdio及普通文件门，结果由investigation维护；没有采纳画面流或实施2.1b。既有资源限额保持；实验保护值不是新的产品执行／呈现预算。
+用户已采纳 [investigation](investigation.md#已获得本轮产品选择) 的项目内有界产品范围；资源及来源授权、冻结字节、历史与严格单目标读取现已接入，实际结果见delivery当前节。活动承载仍待完整隔离浏览器及呈现方案，不以原生样本或读取能力代替2.1b。下方候选A的高FD／SCM_RIGHTS／stdio及普通文件门为已执行调查，结果由investigation维护；既有资源限额保持，实验保护值不是产品执行／呈现预算。
 
 ```mermaid
 flowchart LR
@@ -48,6 +48,18 @@ ReportResources 是 `packages/editor` 内的 module，不新建包／数据库�
 多文件更新先创建新依赖，再以一次入口条件保存发布完整清单；引用的版本文件不就地改写，旧页面可保留其已验证快照。入口发布前复查全部依赖。失败保留旧入口和实际创建文件，不做目录回滚／清理；入口已保存而关联unknown只核查原保存／补关联。外部程序直接改文件仍可能打断一致性，读取时明确失败，不声称跨文件事务。
 
 首次创建入口和JS／CSS／JSON使用既有UTF-8创建能力；图像／字体使用已经存在的真实项目资源，本change不新增二进制写入或图件生成工具。需要新计算生成素材时消费所属计算能力，不能以文本create伪造二进制成果。
+
+### 核准字节交付
+
+`ReportResources.freeze(entry, access)`复用snapshot的同一次完整核查并保留该次实际读到的入口及依赖字节，返回`{snapshot, files: [{path, bytes}]}`；路径为已核对的项目内相对位置，显式来源只参与授权和版本核对，不隐式复制其正文。入口、依赖、路径绑定和read／send前后复查全部通过后才返回，失败不发布部分加载集。普通snapshot继续只返回原DTO，不持久缓存字节或建立第二材料权威。
+
+该接口仅供可信宿主在隔离提供者取得准备资格后使用；自身不取得进程租约、不启动程序或授予报告权限。消费者按已登记原instanceId分片交付并封存，不能为重试改读同路径新版。现已实现并通过模块测试；实际platform消费、生产启动恢复和浏览器仍需各自整合验收。
+
+### 历史与单目标报告的受控读取
+
+历史读取沿文件权威已有FileEdit的before／after正文、对应Evidence和原path核查，缺原Evidence保持unavailable。ReportResources的历史Adapter只替换该入口的读取与描述，依赖、来源及read／send仍复用现有完整核查；不以当前入口basis或新清单补旧记录。files.edit／files.history及指令原版本核对在返回正文前完成授权，原同步保存／撤销回执保护不因此取消。
+
+目标报告采用现有targetRead单目标限制：只有入口、依赖和声明来源全部属于原目标项目、且每项原身份／basis和路径对应可验证时才允许读取。库及其他项目来源继续在展开前unavailable，不借原会话权限解除targetRead。ProjectTargetReader增加有界的既有路径身份查询，不创建登记、不扫描目标树；宿主在原project.readTarget owner内用原始reader装配ReportResources，避免资源业务入口递归。读取前后复查报告及原执行授权，并将真实Evidence进入现有报告使用／模型准入链，不新增公共target DTO或写权限。
 
 ### 来源授权与共同动作
 

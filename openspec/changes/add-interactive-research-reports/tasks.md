@@ -1,6 +1,6 @@
 # 执行任务
 
-当前共同源码58eda140已包含主线接收的有限原生调查。本片只规划独立[Linux隔离提供者](../add-linux-isolated-report-provider/tasks.md)并链接前置，没有新生产实现或重跑原生样本。原高FD／SCM证据在`/home/joshua/.cache/scholoom-report-gate-round14-DocB5o/`，本轮规划证据在`/home/joshua/.cache/scholoom-linux-provider-plan-round15-7V4Vot/`，不依赖现有/tmp。报告仍6/13，2.1b／I5及目标／旧版本Adapter继续开放，活动报告unavailable。
+2026-10-29主线已实现核准字节冻结、原版本历史Adapter及严格单目标报告读取，完成1.2b.2b，当前7/13。真实根／子执行、队列／最终准入／重启、撤权竞争与目标只读联合59/59；独立审查所见授权及合法受理缺口已修复复核。活动页承载2.1b、共同动作／草稿和完整I5继续开放，不能以读取或独立[Linux隔离提供者](../add-linux-isolated-report-provider/tasks.md)替代浏览器呈现。实际命令与必要输入见delivery当前节，不依赖现有/tmp。
 
 ```mermaid
 flowchart TD
@@ -19,9 +19,9 @@ flowchart TD
 - [x] 1.1a 本轮：protocol/report-contracts同源manifest／snapshot／桥schema及容量／跨字段校验，editor/report-codec有界头部解析和转义编码；必要protocol叶导出／架构声明，不注册操作、不扩ResourceRef。以独立固定样本验证格式、UTF-16／字节边界及额外字段拒绝；先构建再模块测试。
 - [x] 1.1b 生产接入：UI设计报告分节、公开根导出及resources.report注册、HTML条件保存、派生映射；真实ManualApplication验证保存重开、同内容替换拒绝、只读目标和库权限不扩大。
 - [x] 1.2a 本轮：editor/report-resources的注入窄端口ReportResources深模块，复用共同describe/read及相对路径解析；核对入口／依赖／来源、path-ref一致、前后basis、read/send、容量、撤权和混合版本拒绝。测试adapter可替换，不新建存储／DTO，手工粘贴来源不作完整溯源承诺。
-- [x] 1.2b.1 已验收：真实项目／库授权Adapter及editor公开入口，Manual及普通根执行的报告describe/read和模型准入复用声明来源授权，经真实broker及所属存储验证queue／final／restart；target和旧报告历史正文继续不可用，委派沿1.2b.2a推进。
+- [x] 1.2b.1 已验收：真实项目／库授权Adapter及editor公开入口，Manual及普通根执行的报告describe/read和模型准入复用声明来源授权，经真实broker及所属存储验证queue／final／restart；target和旧报告历史沿1.2b.2b交付，委派沿1.2b.2a交付。
 - [x] 1.2b.2a 本轮：从Delegations.resources提取唯一checkReadable，普通describe/read/document及报告入口／展开Evidence复用；成功展开的来源沿现有Evidence仓储按子实例保存，子模型queue／最终同步准入核查范围与领域read/send，session记录继续保护父及重启。真实父子worker／库／报告验证全部允许、缺项／旧basis／撤权拒绝、取消及恢复，不把声明核查记为实际正文read。
-- [ ] 1.2b.2b 保持开放：目标报告的声明来源授权组合、旧报告历史版本Adapter。旧报告历史及目标报告继续明确不可用，保留摘要与普通材料；不因委派子片完成关闭完整1.2b.2或I5。
+- [x] 1.2b.2b 目标报告及旧报告历史版本Adapter完成：历史使用可信FileEdit原正文／Evidence／path，整组返回前同步复核全部声明来源；原版本摘录进入受理末次及持久模型复查。单目标入口／依赖／来源只允许原目标内既有身份，不登记或扩大授权，库／第三项目来源拒绝；当前坏清单不阻断合法原版本。真实host指令受理及执行读取、历史跨段撤权和现有目标／委派竞争联合59/59；独审发现已修复复核，完整I5仍开放。
 
 ## 2. 页面内浏览与共同动作
 
@@ -41,6 +41,6 @@ flowchart TD
 
 ## 续做入口
 
-本片只更新原investigation／design／tasks／delivery，停止于实际条件矩阵交回；任务仍6/13，不把原生校准算2.1b正式实施。呈现方向、部署／安装、运行时分发维护及交互／资源预算仍待决，不再等待已合入的来源授权／schema。
+当前7/13，历史与目标Adapter及冻结字节接口已实现并验收，不重复等待来源授权／schema。独立Linux提供者在所属change实施、审查，正式浏览器及目标策略尚未交付；完整2.1b／2.2／3.x／I5保持开放。
 
-最小下一步为主线审[独立提供者公共签名与任务](../add-linux-isolated-report-provider/tasks.md)，报告侧待其真实交付后再实现按原ref／basis冻结字节Adapter及核权。浏览器、目标OS校准、呈现契约／共同UI接入未执行；本片到规划停止，不自动进入实施。接续源码和输入已在Git／cache，无旧/tmp前置，Mac或目标证据不足保持unavailable。
+下一步将已核准的冻结字节接入真实提供者，并完成浏览器全进程范围、呈现／输入／文本与可访问性、分发及资源预算的方案与实际校准，再实现共同UI／草稿。不能把固定native样本当浏览器通过；接续输入在Git／cache，macOS或目标证据不足保持unavailable。

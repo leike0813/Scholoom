@@ -80,12 +80,56 @@ export class ReportResources {
   }
 
   async snapshot(entry: Evidence, access: 'read' | 'send' = 'read'): Promise<ReportSnapshot> {
+    return (await this.load(entry, access, false)).snapshot;
+  }
+
+  async freeze(entry: Evidence, access: 'read' | 'send' = 'read') {
+    return this.load(entry, access, true);
+  }
+
+  async historical(resource: ResourceDescriptor, content: string, access: 'read' | 'send') {
+    const bytes = Buffer.from(content);
+    if (bytes.length > reportLimits.entryBytes)
+      throw new OperationError('tooLarge', '报告入口超过容量。');
+    const matches = (locator: unknown) => isDeepStrictEqual(locator, resource.ref);
+    const history = new ReportResources({
+      authorize: (evidence, mode) => this.ports.authorize(evidence, mode),
+      describe: async (locator) => {
+        const current = await this.ports.describe(locator);
+        if (!matches(locator)) return current;
+        if (!matches(current.ref) || !current.capabilities.read) throw denied();
+        return { ...resource, capabilities: { ...current.capabilities, write: false } };
+      },
+      read: async (input) => {
+        if (!matches(input.ref)) return this.ports.read(input);
+        if (input.basis !== resource.basis) throw changed();
+        const offset = input.offset ?? 0;
+        const end = Math.min(bytes.length, offset + (input.limit ?? 262144));
+        return {
+          ref: resource.ref,
+          basis: resource.basis,
+          data: bytes.subarray(offset, end).toString('base64'),
+          offset,
+          size: bytes.length,
+          unit: 'byte',
+          truncated: false,
+          ...(end < bytes.length ? { nextOffset: end } : {}),
+        };
+      },
+    });
+    return history.snapshot({ ref: resource.ref, basis: resource.basis }, access);
+  }
+
+  private async load(entry: Evidence, access: 'read' | 'send', retainBytes: boolean) {
     if (entry.ref.source !== 'project') throw denied();
     const projectId = entry.ref.projectId;
     await this.ports.authorize([entry], access);
     const resource = await this.verify(entry);
     if (resource.format !== 'html' || !resource.path) throw denied();
     const content = await this.read(entry, reportLimits.entryBytes);
+    const files: { path: string; bytes: Buffer }[] = retainBytes
+      ? [{ path: resource.path, bytes: content.bytes }]
+      : [];
     let html: string;
     try {
       html = new TextDecoder('utf-8', { fatal: true }).decode(content.bytes);
@@ -144,6 +188,7 @@ export class ReportResources {
       if (loaded > reportLimits.loadBytes)
         throw new OperationError('tooLarge', '报告加载集超过容量。');
       await verifyPath(dependency);
+      if (retainBytes) files.push({ path: dependency.path, bytes: value.bytes });
     });
     await this.each(manifest.sources, async (source) => {
       const description = await this.verify(source);
@@ -160,6 +205,6 @@ export class ReportResources {
     const current = await this.verify(entry);
     if (current.path !== resource.path) throw changed();
     await this.ports.authorize(evidence, access);
-    return { resource: current, manifest };
+    return { snapshot: { resource: current, manifest }, files };
   }
 }

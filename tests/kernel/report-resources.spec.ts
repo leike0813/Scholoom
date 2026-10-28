@@ -148,6 +148,71 @@ test('fixed report snapshot checks real identity and declared read/send sources 
   expect(Object.keys(snapshot).sort()).toEqual(['manifest', 'resource']);
 });
 
+test('freezing retains the checked local bytes and never copies declared source material', async () => {
+  const f = fixture();
+  const frozen = await new ReportResources(f.ports).freeze(entry, 'send');
+  const files = new Map(frozen.files.map((file) => [file.path, file.bytes.toString('utf8')]));
+  expect(files).toEqual(
+    new Map([
+      ['reports/index.html', html],
+      ['reports/assets/data.json', '{"dose":[10,20]}'],
+    ]),
+  );
+  expect(frozen.snapshot.resource).toMatchObject(entry);
+  expect(frozen.snapshot.manifest.sources).toHaveLength(1);
+  const data = f.values.get('data');
+  if (!data) throw new Error('fixture setup');
+  data.bytes.fill(0);
+  expect(frozen.files.find((file) => file.path.endsWith('data.json'))?.bytes.toString('utf8')).toBe(
+    '{"dose":[10,20]}',
+  );
+  expect(
+    f.authorizations.some((value) => value.access === 'send' && value.refs.includes('paper')),
+  ).toBe(true);
+});
+
+test('historical reports use the recorded entry bytes and basis while rechecking declared sources', async () => {
+  const f = fixture();
+  const value = f.values.get('report');
+  if (!value) throw new Error('fixture setup');
+  const recorded = structuredClone(value.descriptor);
+  value.descriptor.basis = 'r2';
+  value.bytes = Buffer.from('<p>New ordinary content</p>');
+  const reports = new ReportResources(f.ports);
+  const historical = await reports.historical(recorded, html, 'send');
+  expect(historical.resource).toMatchObject({ ...entry, capabilities: { write: false } });
+  expect(historical.manifest.sources).toEqual([
+    {
+      ref: { source: 'library', attachmentId: 'paper', materialVersionId: 'v1' },
+      basis: 'v1',
+    },
+  ]);
+  f.onRead((input) => {
+    if (input.ref.source === 'project' && input.ref.fileId === 'data') f.revoke();
+  });
+  await expect(reports.historical(recorded, html, 'send')).rejects.toMatchObject({
+    code: 'permissionDenied',
+  });
+});
+
+for (const invalidation of ['source revoked', 'dependency changed'] as const) {
+  test(`freezing refuses publication after ${invalidation} while copying bytes`, async () => {
+    const f = fixture();
+    f.onRead((input) => {
+      if (input.ref.source !== 'project' || input.ref.fileId !== 'data') return;
+      if (invalidation === 'source revoked') f.revoke();
+      else {
+        const data = f.values.get('data');
+        if (!data) throw new Error('fixture setup');
+        data.descriptor.basis = 'changed';
+      }
+    });
+    await expect(new ReportResources(f.ports).freeze(entry)).rejects.toMatchObject({
+      code: invalidation === 'source revoked' ? 'permissionDenied' : 'contentChanged',
+    });
+  });
+}
+
 for (const scenario of [
   'path mismatch',
   'dependency change',

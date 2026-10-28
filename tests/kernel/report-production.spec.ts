@@ -5,10 +5,13 @@ import { join } from 'node:path';
 import { expect, test } from '@playwright/test';
 import { KernelApplication } from '../../apps/kernel/dist/application.js';
 import { ManualApplication } from '../../apps/kernel/dist/manual.js';
+import { encodeReportHeader } from '../../packages/editor/dist/report-codec.js';
 import type {
   CallContext,
   DelegationRequest,
+  ReportManifest,
   ResourceDescriptor,
+  ResourceEvidence,
 } from '../../packages/protocol/dist/index.js';
 import { delegationModel } from '../fixtures/delegation-model.js';
 import { reportFixture } from '../fixtures/report.js';
@@ -36,12 +39,10 @@ test('Manual report operations use real files, conditional HTML save and library
     const history = { projectId: project.id, fileId: entry.ref.fileId };
     const change = (await app.call('files.changes', history)).changes[0];
     assert(change);
-    await expect(
-      app.call('files.edit', { ...history, editId: change.editId }),
-    ).rejects.toMatchObject({ code: 'unavailable' });
-    await expect(
-      app.call('files.history', { projectId: project.id, path: 'report.html' }),
-    ).rejects.toMatchObject({ code: 'unavailable' });
+    expect((await app.call('files.edit', { ...history, editId: change.editId })).after).toBe(html);
+    expect(
+      (await app.call('files.history', { projectId: project.id, path: 'report.html' }))[0]?.after,
+    ).toBe(html);
     const example = await app.call('files.save', {
       projectId: project.id,
       path: 'report-example.md',
@@ -67,6 +68,14 @@ test('Manual report operations use real files, conditional HTML save and library
       (await app.call('resources.report', { ref: saved.ref, basis: saved.basis })).manifest,
     ).toEqual(manifest);
     expect(await readFile(join(project.path, 'report.html'), 'utf8')).toContain('Revised dose');
+    expect((await app.call('files.edit', { ...history, editId: change.editId })).after).toBe(html);
+    await app.call('library.grant', { read: false, write: false, send: false, autoBackup: false });
+    for (const read of [
+      () => app.call('files.edit', { ...history, editId: change.editId }),
+      () => app.call('files.history', { projectId: project.id, path: 'report.html' }),
+    ])
+      await expect(read()).rejects.toMatchObject({ code: 'permissionDenied' });
+    await app.call('library.grant', { read: true, write: true, send: false, autoBackup: false });
     await expect(
       app.call('resources.save', {
         ref: entry.ref,
@@ -246,11 +255,104 @@ for (const boundary of ['queue', 'final'] as const) {
   });
 }
 
-test('an old report excerpt is rejected before admission after its manifest is replaced', async () => {
+for (const operation of ['files.edit', 'files.history'] as const) {
+  test(`${operation} rechecks all historical report sources before returning bodies`, async () => {
+    const root = test.info().outputPath('historical-report-revocation');
+    await mkdir(root, { recursive: true });
+    const app = new ManualApplication(join(root, 'profile'));
+    try {
+      await app.initialize();
+      const { project, entry, html } = await reportFixture(app, root);
+      assert(entry.ref.source === 'project');
+      const entryRef = entry.ref;
+      await app.call('files.save', {
+        projectId: project.id,
+        path: 'next.json',
+        content: '[30]',
+      });
+      const next = await app.call('resources.describe', {
+        locator: { source: 'project', projectId: project.id, path: 'next.json' },
+      });
+      assert(next.ref.source === 'project');
+      const nextRef = next.ref;
+      const replacement = `${encodeReportHeader({
+        version: 1,
+        resources: [
+          { path: 'next.json', ref: next.ref, basis: next.basis, mediaType: 'application/json' },
+        ],
+        sources: [],
+        objects: [],
+      })}\n<p>Replacement without library sources</p>`;
+      const saved = await app.call('resources.save', {
+        ref: entry.ref,
+        basis: entry.basis,
+        content: replacement,
+      });
+      const editId = app.projects.get(project.id).editForEvidence(entry.ref.fileId, saved.basis);
+      assert(editId);
+      const read = app.resources.read.bind(app.resources);
+      let revoked = false;
+      app.resources.read = async (input, context) => {
+        const result = await read(input, context);
+        if (!revoked && input.ref.source === 'project' && input.ref.fileId === nextRef.fileId) {
+          revoked = true;
+          await app.call('library.grant', {
+            read: false,
+            write: false,
+            send: false,
+            autoBackup: false,
+          });
+        }
+        return result;
+      };
+      const action = () =>
+        operation === 'files.edit'
+          ? app.call('files.edit', { projectId: project.id, fileId: entryRef.fileId, editId })
+          : app.call('files.history', { projectId: project.id, path: 'report.html' });
+      await expect(action()).rejects.toMatchObject({ code: 'permissionDenied' });
+      expect(revoked).toBe(true);
+      expect(await readFile(join(project.path, 'report.html'), 'utf8')).toBe(replacement);
+      await app.call('library.grant', { read: true, write: true, send: false, autoBackup: false });
+      const edit = await app.call('files.edit', {
+        projectId: project.id,
+        fileId: entry.ref.fileId,
+        editId,
+      });
+      expect(edit.before).toBe(html);
+      expect(edit.after).toBe(replacement);
+    } finally {
+      await app.close();
+    }
+  });
+}
+
+test('old report excerpts retain their own sources through the final admission check', async () => {
   const root = test.info().outputPath('old-report-excerpt');
   await mkdir(root, { recursive: true });
   const model = await createModelServer();
-  const app = new KernelApplication(join(root, 'profile'), {
+  class RevokingKernel extends KernelApplication {
+    revokeAfterHistory = false;
+    override instructionResources(context: CallContext) {
+      const resources = super.instructionResources(context);
+      return {
+        ...resources,
+        describeEvidence: async (evidence: ResourceEvidence) => {
+          const result = await resources.describeEvidence(evidence);
+          if (this.revokeAfterHistory && context.role === 'host') {
+            this.revokeAfterHistory = false;
+            await this.call('library.grant', {
+              read: true,
+              write: true,
+              send: false,
+              autoBackup: false,
+            });
+          }
+          return result;
+        },
+      };
+    }
+  }
+  const app = new RevokingKernel(join(root, 'profile'), {
     modelEndpoint: model.url,
     environment: { MINIMAX_CN_API_KEY: 'synthetic' },
   });
@@ -263,27 +365,60 @@ test('an old report excerpt is rejected before admission after its manifest is r
       content: '<p>Ordinary replacement</p>',
     });
     const session = await app.call('session.create', { projectId: project.id });
-    await expect(
-      app.call('session.send', {
-        projectId: project.id,
-        sessionId: session.id,
-        instructionId: randomUUID(),
-        text: 'Inspect the old excerpt',
-        materials: [],
-        contextItems: [
+    await writeFile(
+      join(project.path, 'report.html'),
+      `${encodeReportHeader({
+        version: 1,
+        resources: [
           {
-            kind: 'text',
-            itemId: randomUUID(),
-            ref: entry.ref,
-            basis: entry.basis,
-            quote: 'Fixed dose comparison',
-            contentState: 'saved',
+            path: 'missing.json',
+            ref: { source: 'project', projectId: project.id, fileId: 'missing' },
+            basis: 'missing',
+            mediaType: 'application/json',
           },
         ],
-      }),
-    ).rejects.toMatchObject({ code: 'unavailable' });
+        sources: [],
+        objects: [],
+      })}\n<p>Unrelated current report</p>`,
+    );
+    const input = {
+      projectId: project.id,
+      sessionId: session.id,
+      instructionId: randomUUID(),
+      text: 'Inspect the old excerpt',
+      materials: [],
+      contextItems: [
+        {
+          kind: 'text' as const,
+          itemId: randomUUID(),
+          ref: entry.ref,
+          basis: entry.basis,
+          quote: 'Fixed dose comparison',
+          contentState: 'saved' as const,
+        },
+      ],
+    };
+    await expect(app.call('session.send', input)).rejects.toMatchObject({
+      code: 'permissionDenied',
+    });
     expect(model.requests).toHaveLength(0);
+    await app.call('library.grant', { read: true, write: true, send: true, autoBackup: false });
+    app.revokeAfterHistory = true;
+    await expect(app.call('session.send', input)).rejects.toMatchObject({
+      code: 'permissionDenied',
+    });
+    expect(app.revokeAfterHistory).toBe(false);
+    expect(model.requests).toHaveLength(0);
+    expect(
+      (await app.snapshot({ projectId: project.id, sessionId: session.id })).messages,
+    ).toHaveLength(0);
+    await app.call('library.grant', { read: true, write: true, send: true, autoBackup: false });
+    model.hold = true;
+    await app.call('session.send', input);
+    await expect.poll(() => model.requests.length, { timeout: 25000 }).toBe(1);
+    expect(JSON.stringify(model.requests[0])).toContain('Fixed dose comparison');
   } finally {
+    model.release();
     await app.close();
     await model.close();
   }
@@ -439,7 +574,25 @@ test('target HTML remains read-only and report targets fail closed without a tra
   });
   try {
     await app.initialize();
-    const { project: target, entry } = await reportFixture(app, root);
+    const { project: target, entry, manifest } = await reportFixture(app, root);
+    const localSource = manifest.resources[0];
+    assert(localSource);
+    assert(localSource.ref.source === 'project');
+    const localManifest: ReportManifest = {
+      version: 1,
+      resources: [{ ...localSource, ref: localSource.ref, mediaType: 'application/json' }],
+      objects: manifest.objects,
+      sources: [{ ref: localSource.ref, basis: localSource.basis }],
+    };
+    const localHtml = `${encodeReportHeader(localManifest)}\n<p>Target-local comparison</p>`;
+    await app.call('files.save', {
+      projectId: target.id,
+      path: 'local-report.html',
+      content: localHtml,
+    });
+    const localReport = await app.call('resources.describe', {
+      locator: { source: 'project', projectId: target.id, path: 'local-report.html' },
+    });
     const project = await app.call('project.create', {
       path: join(root, 'origin'),
       trust: 'trusted',
@@ -476,6 +629,28 @@ test('target HTML remains read-only and report targets fail closed without a tra
     await expect(resources.describe(entry.ref)).rejects.toMatchObject({ code: 'unavailable' });
     assert(entry.ref.source === 'project');
     const targets = app.projectTargetRead(app.context);
+    const localDescription = await resources.describe(localReport.ref);
+    expect(localDescription.capabilities.write).toBe(false);
+    expect(
+      (
+        await resources.read({
+          ref: localReport.ref,
+          basis: localReport.basis,
+          encoding: 'utf8',
+        })
+      ).data,
+    ).toBe(localHtml);
+    assert(localReport.ref.source === 'project');
+    expect(
+      await targets['project.readTarget']({
+        targetProjectId: target.id,
+        request: {
+          kind: 'readText',
+          fileId: localReport.ref.fileId,
+          basis: localReport.basis,
+        },
+      }),
+    ).toMatchObject({ kind: 'readText', content: localHtml });
     await expect(
       targets['project.readTarget']({
         targetProjectId: target.id,
@@ -488,6 +663,93 @@ test('target HTML remains read-only and report targets fail closed without a tra
     await model.close();
   }
 });
+
+for (const version of ['current', 'historical'] as const) {
+  test(`a ${version} target-local report excerpt is admitted through the real source session`, async () => {
+    const root = test.info().outputPath('target-report-admission');
+    await mkdir(root, { recursive: true });
+    const model = await createModelServer();
+    model.hold = true;
+    const app = new KernelApplication(join(root, 'profile'), {
+      modelEndpoint: model.url,
+      environment: { MINIMAX_CN_API_KEY: 'synthetic' },
+    });
+    try {
+      await app.initialize();
+      const { project: target, manifest } = await reportFixture(app, root);
+      const dependency = manifest.resources[0];
+      assert(dependency?.ref.source === 'project');
+      const html = `${encodeReportHeader({
+        version: 1,
+        resources: [{ ...dependency, ref: dependency.ref, mediaType: 'application/json' }],
+        sources: [{ ref: dependency.ref, basis: dependency.basis }],
+        objects: [],
+      })}\n<p>Target-local comparison</p>`;
+      await app.call('files.save', { projectId: target.id, path: 'local.html', content: html });
+      const report = await app.call('resources.describe', {
+        locator: { source: 'project', projectId: target.id, path: 'local.html' },
+      });
+      if (version === 'historical') {
+        await app.call('resources.save', {
+          ref: report.ref,
+          basis: report.basis,
+          content: '<p>Intermediate</p>',
+        });
+        await writeFile(
+          join(target.path, 'local.html'),
+          `${encodeReportHeader({
+            version: 1,
+            resources: [
+              {
+                path: 'missing.json',
+                ref: { source: 'project', projectId: target.id, fileId: 'missing' },
+                basis: 'missing',
+                mediaType: 'application/json',
+              },
+            ],
+            sources: [],
+            objects: [],
+          })}\n<p>Broken current report</p>`,
+        );
+      }
+      const origin = await app.call('project.create', {
+        path: join(root, 'origin'),
+        trust: 'trusted',
+      });
+      const session = await app.call('session.create', { projectId: origin.id });
+      await app.call('session.send', {
+        projectId: origin.id,
+        sessionId: session.id,
+        instructionId: randomUUID(),
+        text: 'Inspect this target excerpt',
+        materials: [],
+        contextItems: [
+          {
+            kind: 'text',
+            itemId: randomUUID(),
+            ref: report.ref,
+            basis: report.basis,
+            quote: 'Target-local comparison',
+            contentState: 'saved',
+          },
+        ],
+      });
+      await expect.poll(() => model.requests.length, { timeout: 20000 }).toBe(1);
+      expect(JSON.stringify(model.requests[0])).toContain('Target-local comparison');
+      expect(JSON.stringify(model.requests[0])).not.toContain('Broken current report');
+      expect(
+        (await app.snapshot({ projectId: origin.id, sessionId: session.id })).messages.some(
+          (message) =>
+            message.role === 'user' && message.text.includes('Inspect this target excerpt'),
+        ),
+      ).toBe(true);
+    } finally {
+      model.release();
+      await app.close();
+      await model.close();
+    }
+  });
+}
 
 test('actual delegated report material stops before expanded sources or a child model are delivered', async () => {
   const root = test.info().outputPath('delegated-report');

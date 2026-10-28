@@ -3,6 +3,7 @@ import { join, posix } from 'node:path';
 import { Broker, type Handlers } from '@scholoom/broker';
 import {
   EditorRuntime,
+  type ReportResourcePorts,
   ReportResources,
   ResourceAccess,
   reportHeaderStart,
@@ -78,6 +79,7 @@ import {
   programsInternalOperations,
 } from '@scholoom/protocol/programs';
 import {
+  type FileEdit,
   type FileEditOrigin,
   type HarnessProjectPort,
   isFileEditOrigin,
@@ -457,48 +459,54 @@ export class ManualApplication {
           )
             throw new OperationError('permissionDenied', '目标读取不属于获授权的执行范围。');
         };
-        return this.projects.withTargetRead(context, targetProjectId, authorize, async () => {
-          const reader = new ProjectTargetReader(target);
-          if (request.kind !== 'list') {
-            const descriptor = await reader.read({
-              kind: 'describe',
-              fileId: request.fileId,
-              ...(request.basis ? { basis: request.basis } : {}),
-            });
-            if (
-              descriptor.kind === 'describe' &&
-              resourceFormatForName(descriptor.path) === 'html'
-            ) {
-              const chunks: Buffer[] = [];
-              let offset = 0;
-              const maximum = reportHeaderStart.length + 3;
-              while (offset < maximum) {
-                const head = await reader.read({
-                  kind: 'readBytes',
-                  fileId: descriptor.fileId,
-                  basis: descriptor.basis,
-                  offset,
-                  limit: maximum - offset,
-                });
-                if (head.kind !== 'readBytes')
-                  throw new OperationError('unavailable', '报告头部不可核查。');
-                const bytes = Buffer.from(head.data, 'base64');
-                chunks.push(bytes);
-                offset += bytes.length;
-                if (head.nextOffset === undefined) break;
-                if (!bytes.length || head.nextOffset !== offset)
-                  throw new OperationError('contentChanged', '报告头部分片已变化。');
-              }
+        const delivery = await this.projects.withTargetRead(
+          context,
+          targetProjectId,
+          authorize,
+          async () => {
+            const reader = new ProjectTargetReader(target);
+            let report:
+              | { resources: ReportResources; snapshot: BusinessOutputs['resources.report'] }
+              | undefined;
+            if (request.kind !== 'list') {
+              const descriptor = await reader.read({
+                kind: 'describe',
+                fileId: request.fileId,
+                ...(request.basis ? { basis: request.basis } : {}),
+              });
               if (
-                new TextDecoder('utf-8').decode(Buffer.concat(chunks)).startsWith(reportHeaderStart)
-              )
-                throw new OperationError('unavailable', '跨项目报告声明来源授权尚未接通。');
+                descriptor.kind === 'describe' &&
+                resourceFormatForName(descriptor.path) === 'html'
+              ) {
+                const resources = new ReportResources(
+                  this.targetReportPorts(reader, targetProjectId, context, authorize),
+                );
+                const entry: ResourceEvidence = {
+                  ref: { source: 'project', projectId: targetProjectId, fileId: descriptor.fileId },
+                  basis: descriptor.basis,
+                };
+                if (await resources.isReport(entry))
+                  report = { resources, snapshot: await resources.snapshot(entry, 'send') };
+              }
             }
-          }
-          const result = await reader.read(request);
-          authorize();
-          return result;
-        });
+            const result = await reader.read(
+              report && request.kind !== 'list'
+                ? { ...request, basis: report.snapshot.resource.basis }
+                : request,
+            );
+            let evidence: ResourceEvidence[] | undefined;
+            if (report) {
+              const { ref, basis } = report.snapshot.resource;
+              const snapshot = await report.resources.snapshot({ ref, basis }, 'send');
+              evidence = this.reportEvidence(snapshot);
+            }
+            authorize();
+            return { result, evidence };
+          },
+        );
+        authorize();
+        if (delivery.evidence) this.reportUsed(context, delivery.evidence);
+        return delivery.result;
       },
     });
     const libraryMaterials = this.broker.consumer(
@@ -987,7 +995,10 @@ export class ManualApplication {
       describeEvidence: async (item: ResourceEvidence) => {
         const scoped = scope(item.ref);
         return this.resourceOperation(scoped, item.ref, false, async () => {
-          const current = await resources.port.describe(item.ref);
+          const current =
+            item.ref.source === 'project'
+              ? await this.reportEntryDescription(item.ref, scoped)
+              : await resources.port.describe(item.ref);
           if (item.ref.source === 'project' && item.basis !== current.basis) {
             const ref = item.ref;
             const read = () =>
@@ -1003,7 +1014,28 @@ export class ManualApplication {
                   );
             if (!previous)
               throw new OperationError('unavailable', '摘录原版本不可核查，请重新附加。');
-            this.checkReportHistory({ path: previous.path, before: previous.content, after: '' });
+            const confirm = await this.reportHistoryAuthorization(
+              ref.projectId,
+              [
+                {
+                  fileId: ref.fileId,
+                  path: previous.path,
+                  before: previous.content,
+                  beforeEvidence: item,
+                  after: '',
+                },
+              ],
+              scoped,
+              (evidence) => {
+                for (const item of evidence) reportEvidence.set(JSON.stringify(item.ref), item);
+              },
+            );
+            confirm();
+          } else if (item.ref.source === 'project') {
+            const verified = await resources.port.describe(item.ref);
+            if (verified.basis !== current.basis)
+              throw new OperationError('contentChanged', '材料在指令核查期间已变化。');
+            return verified;
           }
           return current;
         });
@@ -1174,7 +1206,95 @@ export class ManualApplication {
     _evidence: readonly ResourceEvidence[],
   ): void {}
 
+  private targetReportPorts(
+    reader: ProjectTargetReader,
+    projectId: string,
+    context: CallContext,
+    authorize: () => void,
+  ): ReportResourcePorts {
+    const within = <T>(action: () => T): T =>
+      this.projects.withTargetRead(context, projectId, authorize, action);
+    const scope = (locator: ResourceLocator) => {
+      authorize();
+      if (locator.source !== 'project' || locator.projectId !== projectId)
+        throw new OperationError('unavailable', '报告声明来源不在原目标读取范围。');
+      return locator;
+    };
+    return {
+      describe: (locator) =>
+        within(async () => {
+          const ref = scope(locator);
+          let descriptor: ProjectTargetReadOutputs['project.readTarget'];
+          if (ref.fileId) descriptor = await reader.read({ kind: 'describe', fileId: ref.fileId });
+          else if (ref.path) descriptor = await reader.describePath(ref.path);
+          else throw new OperationError('unavailable', '报告资源缺少既有身份或位置。');
+          if (descriptor.kind !== 'describe')
+            throw new OperationError('unavailable', '报告资源不可核查。');
+          return {
+            ref: { source: 'project' as const, projectId, fileId: descriptor.fileId },
+            basis: descriptor.basis,
+            path: descriptor.path,
+            name: posix.basename(descriptor.path),
+            format: resourceFormatForName(descriptor.path),
+            capabilities: { read: true, write: false, readingRecords: false, render: false },
+          };
+        }),
+      read: (input) =>
+        within(async () => {
+          const ref = scope(input.ref);
+          if (!ref.fileId) throw new OperationError('unavailable', '报告资源缺少既有身份。');
+          const result = await reader.read({
+            kind: 'readBytes',
+            fileId: ref.fileId,
+            basis: input.basis,
+            ...(input.offset !== undefined ? { offset: input.offset } : {}),
+            ...(input.limit !== undefined ? { limit: input.limit } : {}),
+          });
+          if (result.kind !== 'readBytes')
+            throw new OperationError('unavailable', '报告字节不可核查。');
+          return {
+            ref: input.ref,
+            basis: result.basis,
+            data: result.data,
+            offset: result.offset,
+            size: result.size,
+            unit: 'byte' as const,
+            truncated: false,
+            ...(result.nextOffset !== undefined ? { nextOffset: result.nextOffset } : {}),
+          };
+        }),
+      authorize: async (evidence) =>
+        within(() => {
+          authorize();
+          this.checkReportContext(context, evidence);
+          for (const item of evidence) scope(item.ref);
+        }),
+    };
+  }
+
+  private reportEntryDescription(ref: ResourceRef, context: CallContext) {
+    if (ref.source !== 'project' || !context.targetRead)
+      return this.resources.describe(ref, context);
+    return this.targetReportPorts(
+      new ProjectTargetReader(this.projects.get(context.targetRead.targetProjectId)),
+      context.targetRead.targetProjectId,
+      context,
+      this.resourceAuthorization(context, ref, false),
+    ).describe(ref);
+  }
+
   private reportResources(context: CallContext): ReportResources {
+    if (context.targetRead) {
+      const projectId = context.targetRead.targetProjectId;
+      return new ReportResources(
+        this.targetReportPorts(
+          new ProjectTargetReader(this.projects.get(projectId)),
+          projectId,
+          context,
+          this.resourceAuthorization(context, { source: 'project', projectId }, false),
+        ),
+      );
+    }
     const scope = (locator: ResourceLocator): CallContext => {
       if (
         context.targetRead &&
@@ -1200,7 +1320,9 @@ export class ManualApplication {
           this.resources.read(input, scoped),
         );
       },
-      authorize: async (evidence) => {
+      authorize: async (evidence, access) => {
+        const confirm = this.reportAuthorization(context, evidence, access);
+        confirm();
         this.checkReportContext(context, evidence);
         for (const item of evidence) {
           const scoped = scope(item.ref);
@@ -1212,8 +1334,48 @@ export class ManualApplication {
             }
           });
         }
+        confirm();
       },
     });
+  }
+
+  private reportAuthorization(
+    context: CallContext,
+    evidence: readonly ResourceEvidence[],
+    access: 'read' | 'send',
+  ): () => void {
+    const checks = evidence.map(({ ref }) => {
+      if (context.role === 'execution' || context.principal.kind === 'agent') {
+        const scoped =
+          ref.source === 'project' && ref.projectId !== context.projectId
+            ? {
+                ...context,
+                targetRead: { targetProjectId: ref.projectId, access: 'read' as const },
+              }
+            : context;
+        if (
+          context.targetRead &&
+          (ref.source !== 'project' || ref.projectId !== context.targetRead.targetProjectId)
+        )
+          throw new OperationError('permissionDenied', '不能扩大报告目标读取范围。');
+        return this.resourceAuthorization(scoped, ref, false);
+      }
+      if (ref.source === 'library')
+        return () => {
+          this.library.check('read');
+          if (access === 'send') this.library.check('send');
+        };
+      const project = this.projects.get(ref.projectId);
+      return () => {
+        if (this.projects.get(ref.projectId) !== project)
+          throw new OperationError('instanceMismatch', '报告来源项目实例已变化。');
+        project.check('read');
+      };
+    });
+    return () => {
+      this.checkReportContext(context, evidence);
+      for (const check of checks) check();
+    };
   }
   private async reportSnapshot(
     entry: ResourceEvidence,
@@ -1245,6 +1407,57 @@ export class ManualApplication {
       throw new OperationError('unavailable', '旧报告正文的声明来源授权尚未接通。');
   }
 
+  private async reportHistoryAuthorization(
+    projectId: string,
+    edits: readonly Pick<
+      FileEdit,
+      'path' | 'fileId' | 'before' | 'after' | 'beforeEvidence' | 'afterEvidence'
+    >[],
+    context: CallContext,
+    observed?: (evidence: readonly ResourceEvidence[]) => void,
+  ): Promise<() => void> {
+    const access =
+      context.role === 'execution' || this.isInstructionAdmission(context) ? 'send' : 'read';
+    const evidenceForResult: ResourceEvidence[] = [];
+    const checks: (() => void)[] = [];
+    for (const edit of edits) {
+      if (resourceFormatForName(edit.path) !== 'html') continue;
+      for (const [content, evidence] of [
+        [edit.before, edit.beforeEvidence],
+        [edit.after, edit.afterEvidence],
+      ] as const) {
+        if (!content.replace(/^\ufeff/, '').startsWith(reportHeaderStart)) continue;
+        if (
+          evidence?.ref.source !== 'project' ||
+          evidence.ref.projectId !== projectId ||
+          evidence.ref.fileId !== edit.fileId
+        )
+          throw new OperationError('unavailable', '旧报告缺少原版本依据。');
+        const current = await this.reportEntryDescription(evidence.ref, context);
+        const snapshot = await this.reportResources(context).historical(
+          {
+            ...current,
+            ...evidence,
+            path: edit.path,
+            name: posix.basename(edit.path),
+            format: 'html',
+          },
+          content,
+          access,
+        );
+        const expanded = this.reportEvidence(snapshot);
+        checks.push(this.reportAuthorization(context, expanded, access));
+        evidenceForResult.push(...expanded);
+      }
+    }
+    return () => {
+      for (const check of checks) check();
+      observed?.(evidenceForResult);
+      if (access === 'send' && evidenceForResult.length)
+        this.reportUsed(context, evidenceForResult);
+    };
+  }
+
   private async describeResource(
     locator: ResourceLocator,
     context: CallContext,
@@ -1252,6 +1465,7 @@ export class ManualApplication {
   ): Promise<ResourceDescriptor> {
     const resource = await this.resources.describe(locator, context);
     if (resource.ref.source !== 'project' || resource.format !== 'html') return resource;
+    if (context.targetRead) return resource;
     if (await this.reportResources(context).isReport(resource)) {
       const snapshot = await this.reportSnapshot(resource, context);
       observed?.(this.reportEvidence(snapshot));
@@ -1970,10 +2184,11 @@ export class ManualApplication {
       this.changed(p.projectId);
       return edit;
     },
-    'files.history': async (input) => {
+    'files.history': async (input, context) => {
       const p = input;
       const edits = this.projects.get(p.projectId).history(p.path);
-      for (const edit of edits) this.checkReportHistory(edit);
+      const confirm = await this.reportHistoryAuthorization(p.projectId, edits, context);
+      confirm();
       return edits;
     },
     'files.changes': (input, context) =>
@@ -1994,7 +2209,8 @@ export class ManualApplication {
         async () => {
           this.checkFileHistoryContext(context);
           const edit = this.projects.get(input.projectId).edit(input.fileId, input.editId);
-          this.checkReportHistory(edit);
+          const confirm = await this.reportHistoryAuthorization(input.projectId, [edit], context);
+          confirm();
           return edit;
         },
       ),

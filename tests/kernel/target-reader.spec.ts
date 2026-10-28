@@ -23,21 +23,24 @@ async function fixture() {
   const target = await app.projects.create(join(root, 'target'));
   target.grant({ trust: 'trusted', autoBackup: false });
   const reader = new ProjectTargetReader(target);
+  const access = <T>(action: () => Promise<T>) =>
+    app.projects.withTargetRead(
+      {
+        role: 'execution',
+        principal: { kind: 'agent', id: 'session' },
+        projectId: 'application',
+      },
+      target.project.id,
+      () => {},
+      action,
+    );
   return {
     root,
     app,
     target,
     read: (request: ProjectTargetReadInputs['project.readTarget']['request']) =>
-      app.projects.withTargetRead(
-        {
-          role: 'execution',
-          principal: { kind: 'agent', id: 'session' },
-          projectId: 'application',
-        },
-        target.project.id,
-        () => {},
-        () => reader.read(request),
-      ),
+      access(() => reader.read(request)),
+    describePath: (path: string) => access(() => reader.describePath(path)),
     close: async () => {
       await app.close();
       await rm(root, { recursive: true });
@@ -62,6 +65,8 @@ test('target list, descriptions and byte/text chunks keep identities, records an
     const entry = first.entries[0];
     if (!entry) throw new Error('Expected registered file');
     const ref = { fileId: entry.fileId, basis: entry.basis };
+    expect(await f.describePath('a.md')).toMatchObject({ kind: 'describe', ...ref, path: 'a.md' });
+    await expect(f.describePath('unregistered.md')).rejects.toMatchObject({ code: 'unavailable' });
     expect(await f.read({ kind: 'describe', ...ref })).toMatchObject({
       ...entry,
       kind: 'describe',

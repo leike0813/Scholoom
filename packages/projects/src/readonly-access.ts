@@ -21,6 +21,24 @@ const changed = () => new OperationError('contentChanged', '读取期间文件�
 export class ProjectTargetReader {
   constructor(private readonly store: ProjectStore) {}
 
+  async describePath(path: string): Promise<Descriptor> {
+    this.store.check('read');
+    const rows = this.store.db
+      .select({ id: tables.fileReferences.id })
+      .from(tables.fileReferences)
+      .where(
+        sql`${tables.fileReferences.path} = ${path} AND json_extract(${tables.fileReferences.value}, '$.state') = 'present'`,
+      )
+      .limit(2)
+      .all();
+    if (rows.length > 1) throw new OperationError('targetAmbiguous', '目标位置的身份不唯一。');
+    const row = rows[0];
+    if (!row) throw new OperationError('unavailable', '目标位置没有既有登记身份。');
+    const descriptor = await this.read({ kind: 'describe', fileId: row.id });
+    if (descriptor.kind !== 'describe' || descriptor.path !== path) throw changed();
+    return descriptor;
+  }
+
   async read(request: Request): Promise<Result> {
     this.store.check('read');
     if (request.kind === 'list') {

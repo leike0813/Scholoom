@@ -1,5 +1,25 @@
 # 实际交付与交接
 
+## 主线实施：冻结字节、历史与严格单目标读取
+
+2026-10-29主线完成1.2b.2b，当前**7/13**。`ReportResources.freeze`与snapshot共用一次完整load，保留该次实际读到的入口／显式依赖Buffer，不重读同路径新版，不复制来源正文或新增存储。historical Adapter只替换可信文件权威提供的原入口正文／Evidence／path，来源与依赖继续核原版本及read/send；缺原依据拒绝。
+
+Manual将历史各段的展开Evidence汇集后，在返回整组正文前同步复查，成功后才登记使用；旧摘录展开来源还进入instructionResources本地末次检查和原持久模型准入记录。当前坏清单不参与合法旧摘录核查。目标报告复用ProjectTargetReader及同一targetRead范围：入口／依赖／来源必须都在原目标；路径仅有界查既有登记，不创建身份，拒绝库／第三项目来源。原始目标端口的每次描述／读取受原作用域守卫，目标owner退出该只读作用域后再登记源会话使用，保留源项目send检查、取消及实例核查。
+
+### 真实验证与独立整改
+
+证据根`/home/joshua/.cache/scholoom-finish-active/`。先构建editor／projects／kernel，再冻结产物运行测试，模型仅外部HTTP受控；真实Manual／Kernel／broker／仓储／文件、受管父子、授权及恢复均由现有内部实现提供。没有UI或隔离浏览器接入，没有付费模型或真实用户数据。
+
+- freeze新增代表回归初始因缺方法而失败，完成后模块29/29通过。冻结字节包含入口与依赖，来源仅核查，BOM和缓冲复制的独立探针另有证据。
+- 初次真实报告／目标组合46/46通过，随后独审仍找到原回归未覆盖的目标host受理及跨项目旧清单缺陷。新增真实current／historical目标摘录经`session.send`正例，连同两种整组历史撤权、旧摘录最终受理及目标范围代表**6/6、44.7秒**，`report-target-fix-first.{log,json}`。
+- 最终联合命令：`TMPDIR=/home/joshua/.cache/scholoom-finish-active/tmp PLAYWRIGHT_JSON_OUTPUT_FILE=/home/joshua/.cache/scholoom-finish-active/report-joint-final.json node node_modules/@playwright/test/cli.js test --config playwright.kernel.config.ts tests/kernel/report-production.spec.ts tests/kernel/report-resources.spec.ts tests/kernel/target-reader.spec.ts tests/kernel/target-races.spec.ts tests/kernel/delegated-reports.spec.ts --workers=1 --reporter=line,json --output /home/joshua/.cache/scholoom-finish-active/report-joint-final`，**59/59、3.4分钟、无重试**，日志为同根`report-joint-final.log`。涵盖真实子执行、缺项／旧basis／取消、模型queue／final／restart、目标身份和在途撤权，不将sources声明核查称为全文阅读。
+- editor／projects／kernel构建、tools类型、相关Biome、架构及协议生成映射核对通过。历史Adapter首次直接传完整descriptor违反Evidence额外字段约束，已改传ref／basis；目标适配抽取后TS字面量推断和新增测试消息字段错误均在构建／类型检查中修正，不放宽schema。原日志与最终`report-target-fix-build2.log`、`report-target-fix-tools2.log`保留。
+- 两轮独立只读审查分别为`report-history-independent-review.md`、`report-independent-rereview.md`：初审1P1／3P2，复审又见2P2，均已修复；最终追加复核确认整组撤权、本地受理集合、合法旧版本、目标host受理及不扩大范围。内存探针与父真实59项分开，审查不冒充实跑。
+
+### 仍未完成
+
+2.1b的完整隔离浏览器、呈现／输入／文本与可访问性、共同composer动作、完整更新／草稿／接续及I5仍未交付；独立native提供者正在所属change实施，不能以该模块或冻结字节通过关闭报告UI。旧报告的同步保存／undo回执仍保守拒绝，不能将历史只读放行当作撤销契约变化。Windows／macOS报告呈现、分发与真实科研质量未验。本轮未修改生产CSP或开放活动报告；下文6/13和Adapter不可用仅指历史交接时状态。
+
 ## 第十五轮主线接收独立提供者规划
 
 `add-linux-isolated-report-provider`规划已保全合入，冻结两轴无确证问题；主线接收六个宿主窄操作、分片封存和唯一准入恢复方向，并在该change design记录归属。下一片只推进1.2固定native／已核架构／默认拒绝syscall策略与控制器失联真实校准，2.x待证明后实施；本轮没有生产platform或浏览器接线，新change仅完成接口审查1.1，不提前创建实现delivery。

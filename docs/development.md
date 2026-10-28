@@ -461,6 +461,8 @@ UI 测试期间保持源码和共享包构建产物稳定；改动或重新构�
 
 模型UI夹具`tests/model-kernel.ts::startModelKernel`保留可调用的异步stop，真实子进程经私有IPC启动serveKernel；停止绑定原实例并等自有child close。失败或停止时保存`model-kernel-execution`安全附件，按所属project／session／run／instance关联初始化、指令消费、模型准入和首输出；HTTP请求数没有观察者时为null，准入事件不等于已发送HTTP。`tests/ui/fixture.ts`的按需`uiRpc`观察真实uiPage的发送、回执和快照，场景在关闭内核前调用save，保存错误由fixture收尾报告。两端都明确数量／时间上限、丢弃及缺证，不能用早期queued快照推断永久阻塞或将内核PID当worker PID。
 
+报告文件的`resources.report`及普通资源读取核对入口、依赖和声明来源；`ReportResources.freeze`保留同次核准的入口及依赖字节，不复制来源正文。`files.edit/history`核可信历史原Evidence／正文／位置，整组返回前重查全部来源；旧摘录按所指版本受理，不先依赖当前报告清单。跨项目报告只读且所有依赖／来源必须在原目标，沿既有登记身份核查，不扩大目标范围；声明库或第三项目来源仍不可用。诊断入口为`report-production.spec.ts`、`report-resources.spec.ts`及`target-reader/target-races/delegated-reports.spec.ts`，同步保存／undo回执的旧报告保护仍保留。
+
 `tests/ui/report-isolation.spec.ts`是未采纳隔离候选的调查入口，仅在`SCHOOLOOM_REPORT_ISOLATION_PROBE=1`时运行。它记录实际HTTP／UDP、宿主访问、桥及CPU样本，包含已知STUN外发反例；用例通过表示调查可重复，不表示产品已隔离。生产活动报告保持不可用，正式承载仍按报告change设计。
 
 同一隔离配置会在多个 UI 用例间重启内核，已登记的测试项目随结果目录保留到该配置退役；删除目录前须先解除空闲项目登记，或确认整个配置及内核已结束。缺失的登记项目仍须按程序恢复规则保留未知占用，测试不能放宽此保护。项目名按用例及宿主区分，项目定位优先稳定身份。
