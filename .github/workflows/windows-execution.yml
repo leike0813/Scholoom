@@ -15,6 +15,8 @@ on:
       - tests/kernel-fixture.ts
       - tests/kernel/isolated-kernel.spec.ts
       - tests/kernel/isolated-startup-acl.spec.ts
+      - tests/kernel/private-files.spec.ts
+      - packages/platform/src/private-files.ts
       - tests/fixtures/isolated-kernel-acl.mjs
       - tests/fixtures/isolated-kernel-process.mjs
       - tests/fixtures/isolated-kernel-diagnostic.mjs
@@ -63,7 +65,7 @@ jobs:
         run: pnpm --config.optimisticRepeatInstall=false exec playwright test --config playwright.kernel.config.ts tests/kernel/isolated-kernel.spec.ts --workers=1 --output test-results/windows-isolated-kernel
       - name: Compare real private directory ACL environments after isolated startup
         if: '!cancelled()'
-        run: pnpm --config.optimisticRepeatInstall=false exec playwright test --config playwright.kernel.config.ts tests/kernel/isolated-startup-acl.spec.ts --workers=1 --output test-results/windows-isolated-acl
+        run: pnpm --config.optimisticRepeatInstall=false exec playwright test --config playwright.kernel.config.ts tests/kernel/isolated-startup-acl.spec.ts tests/kernel/private-files.spec.ts --workers=1 --output test-results/windows-isolated-acl
       - name: Observe cancellation setup excerpts and attachment reader
         if: '!cancelled()'
         run: pnpm --config.optimisticRepeatInstall=false exec playwright test --config playwright.kernel.config.ts tests/kernel/agent-delegation.spec.ts tests/kernel/context-instructions.spec.ts tests/kernel/literature-attachment-integration.spec.ts --grep 'cancelling a child|real worker sends explicit excerpts|real RPC and Agent share material bytes' --workers=1 --output test-results/windows-agent

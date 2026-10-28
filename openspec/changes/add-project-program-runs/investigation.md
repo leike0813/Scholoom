@@ -1,5 +1,15 @@
 # 调查依据
 
+## f976b67目标对照及最小构造器候选
+
+2026-10-29核run40723824443／job122941607666／artifact12833206296，head精确f976b6754df5a9846eb2485670783e0a2a678ae1。完成job日志、artifact及重建脚本保存于`/home/joshua/.cache/scholoom-finish-active/project-execution/windows-f976b67/`，`report.md`及`facts.json`为同次来源索引，没有混用完整Checks回执。
+
+真实isolated首次启动仍失败在spec:34：runtime17.347秒、import2.307秒、library观察23.336秒后父清理，重启路径未到。ACL四样本全部实际DACL正确、12次命令close0；新／重复／只读核查各约11.870–12.915秒，两种受限环境及正反顺序未消除此成本。SystemRoot／PATH存在，APPDATA仅布尔不同；两环境共同缺LOCALAPPDATA／PSModulePath，不能由绿色断言排除共同环境因素。同run完整CLI的runtime约0.3秒、library约0.4秒，是“Windows所有PS固有12秒”推断的反证；不是严格环境因果对照。
+
+同源启动至少八个串行privateDirectory位置，测量尺度可解释耗尽原期限，但原内核没有逐条PS回执，不能把所有初始化时间直接归为这些命令。主线选择先去除唯一ACL脚本的两个New-Object依赖，以同类型.NET直接构造及同一显式枚举验证候选，保留所有授权／权限及期限；原生ACL草稿未进入实现，作为未编译调查工件保存在cache。
+
+专项Agent三条实际3/3、HostConnection24、owner2和Electron入口重复3通过分别保留，不代表整个Windows稳定性。构造候选独立审查0确证发现，PowerShell5.1与.NET重载／枚举依据见`/home/joshua/.cache/scholoom-finish-active/windows-acl-constructor-review.md`；当前只有本机类型／静态及Linux分支证据，尚需新Windows真实权限与首启／重启回执，不关闭5.2／6.2。
+
 ## 当前续做：1c84937 Windows目标及ACL对照决定
 
 2026-10-28从干净共同cb5f7ed续做，用户要求完成既有change；旧“本轮不再派发”不再是等待条件。一次查询Checks40701191661，head精确为1c84937346effef407ed01378f35873338790294：查询时整run仍运行，但Windows job122861144463已failure、artifact12827896108可下载。已完成job原日志表明kernel700通过／63失败／44跳过，后续smoke／UI均跳过；不是旧7aff2c7的唯一kernel失败清单。标准run日志接口拒绝进行中run，后改用完成job的REST logs取得；CLI首次拒绝输出escape序列后用明确flag保存原文件，没有触发重跑或轮询。原job日志、artifact、解压的目标文件及可重建摘要均保存在`/home/joshua/.cache/scholoom-finish-active/project-execution/`，入口`extract-target-facts.mjs`与`target-facts.json`。

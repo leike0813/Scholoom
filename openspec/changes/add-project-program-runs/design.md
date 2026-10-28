@@ -1,5 +1,13 @@
 # 实现设计
 
+## Windows私有目录：去除权限设置的cmdlet依赖
+
+同一f976b67／专项40723824443的原始对照表明：四样本的12次PowerShell调用均约12秒，包含新目录、重复目录及只读核查；环境选择未消除此共同成本。真实isolated首启的runtime准备17.347秒，应用import2.307秒，之后library初始化仍在原期限内未结束。不能将全部初始化时间归给某一次命令，但现有反复启动PowerShell是已测的共同成本，不需要放宽启动预算。
+
+补核同run完整环境CLI的新进程runtime约0.3秒、library约0.4秒，故上述12秒不是所有Windows PowerShell固有成本。两对照环境共享缺失的LOCALAPPDATA／PSModulePath等条件，不能以布尔差异猜唯一根因。先选择现有实现内的最小候选：将权限脚本两个`New-Object`改为相同.NET类型的直接构造，显式同一FullControl及ContainerInherit／ObjectInherit、None、Allow枚举；不更改SID／owner核对、保护DACL、错误、环境、文件路径或调用方，不缓存权限、不跳过重查。既有Windows测试用不可加载的Security和Utility模块约束setter，真实DACL仍由独立读回核查；验证脚本自己的ConvertTo-Json使用正常环境，不与setter的受控模块路径混淆。
+
+保持现有Windows权限oracle的root保护、当前owner、唯一允许SID FullControl、子文件继承四项，原四环境／顺序样本及实际命令耗时继续保留。必要验证为真实Windows权限及原始首启／重启场景；Linux只验证非Windows分支回归，不能据本机通过完成5.2／6.2。此设计不改变停止、unknown、容量、锁或任何原生产期限。原生ACL草稿仅留cache作未编译调查依据，不是生产依赖；当前不新增native helper或构建接线。
+
 ## 当前平台收敛片：真实ACL环境与重复调用对照
 
 共同cb5f7ed续做时，1c84937／Checks40701191661的Windows完整内核实际700通过／63失败／44跳过，不能沿用旧唯一失败清单。真实isolated首启PID5712在runtime准备耗29.664s，加载应用3.878s，最后停在library初始化；父清理前无ready／exit／close。CLI并发同run另有ready超时，不能把稍后约0.5s的runtime准备当作随机环境对照。Node v24.12官方libuv会为env:{}补PATH／SYSTEMROOT／TEMP等必要变量，缺少这些变量不是已证根因，证据见investigation本片。

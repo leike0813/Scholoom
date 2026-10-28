@@ -15,12 +15,12 @@ export async function privateDirectory(path: string): Promise<void> {
   }
   const script = [
     '$ErrorActionPreference = "Stop"',
-    '$acl = New-Object System.Security.AccessControl.DirectorySecurity',
+    '$acl = [System.Security.AccessControl.DirectorySecurity]::new()',
     '$acl.SetAccessRuleProtection($true, $false)',
     '$sid = [System.Security.Principal.WindowsIdentity]::GetCurrent().User',
     '$owner = [System.IO.Directory]::GetAccessControl($env:SCHOOLOOM_PRIVATE_PATH, [System.Security.AccessControl.AccessControlSections]::Owner).GetOwner([System.Security.Principal.SecurityIdentifier])',
     'if ($owner.Value -ne $sid.Value) { $acl.SetOwner($sid) }',
-    '$rule = New-Object System.Security.AccessControl.FileSystemAccessRule($sid, "FullControl", "ContainerInherit,ObjectInherit", "None", "Allow")',
+    '$rule = [System.Security.AccessControl.FileSystemAccessRule]::new($sid, [System.Security.AccessControl.FileSystemRights]::FullControl, ([System.Security.AccessControl.InheritanceFlags]::ContainerInherit -bor [System.Security.AccessControl.InheritanceFlags]::ObjectInherit), [System.Security.AccessControl.PropagationFlags]::None, [System.Security.AccessControl.AccessControlType]::Allow)',
     '$acl.AddAccessRule($rule)',
     '[System.IO.Directory]::SetAccessControl($env:SCHOOLOOM_PRIVATE_PATH, $acl)',
   ].join('; ');

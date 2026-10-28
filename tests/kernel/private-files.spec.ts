@@ -6,7 +6,7 @@ import { expect, test } from '@playwright/test';
 
 const execute = promisify(execFile);
 
-test('Windows private directories retain exclusive inheritable access without security modules', async () => {
+test('Windows private directories retain exclusive inheritable access without setter cmdlets', async () => {
   test.skip(process.platform !== 'win32', 'Windows directory ACLs');
   const testInfo = test.info();
   const modules = testInfo.outputPath('modules');
@@ -19,6 +19,16 @@ test('Windows private directories retain exclusive inheritable access without se
   await writeFile(
     join(module, 'Microsoft.PowerShell.Security.psm1'),
     "throw 'Security module cannot load in this environment'",
+  );
+  const utility = join(modules, 'Microsoft.PowerShell.Utility');
+  await mkdir(utility, { recursive: true });
+  await writeFile(
+    join(utility, 'Microsoft.PowerShell.Utility.psd1'),
+    "@{ RootModule = 'Microsoft.PowerShell.Utility.psm1'; ModuleVersion = '99.0.0'; FunctionsToExport = @('New-Object') }",
+  );
+  await writeFile(
+    join(utility, 'Microsoft.PowerShell.Utility.psm1'),
+    "throw 'Utility module cannot load in this environment'",
   );
   const environment = { ...process.env };
   for (const key of Object.keys(environment)) {
@@ -54,7 +64,7 @@ test('Windows private directories retain exclusive inheritable access without se
     'powershell.exe',
     ['-NoProfile', '-NonInteractive', '-Command', script],
     {
-      env: { ...environment, SCHOOLOOM_ACL_TEST_PATH: directory },
+      env: { ...process.env, SCHOOLOOM_ACL_TEST_PATH: directory },
       windowsHide: true,
     },
   );

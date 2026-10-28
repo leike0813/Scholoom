@@ -1,5 +1,13 @@
 # 实际交付与交接
 
+## 主线Windows对照接收及最小候选
+
+2026-10-29主线将七文件对照增量以f976b67提交推送并消费其专项40723824443：真实isolated3/4，唯一业务失败仍首次启动、重启未到；四ACL样本权限／命令回执通过但12次PS各约12秒，同run完整CLI快路径反证这是所有Windows调用的固有成本。Agent三条代表3/3、HostConnection24、owner2、Electron入口重复3通过；具体scope与原始输入见investigation当前节及`/home/joshua/.cache/scholoom-finish-active/project-execution/windows-f976b67/report.md`。完整Checks与该专项分开，不计为全平台通过。
+
+主线采用现有privateDirectory内两处.NET直接构造替换New-Object，当前SID、owner条件、受保护唯一FullControl／OI/CI Allow规则、原失败拒绝和所有调用方不变；没有权限缓存、环境继承扩大或加时。原Windows权限测试保留Security模块干扰，另让setter遭遇不可加载Utility；独立DACL读回在正常外层环境运行，四项权限断言不变。专项新增该真实权限例及两个源路径触发。platform构建、tools类型、Biome、strict及独审0确证发现；Linux四对照4/4（5.9秒，`windows-constructor-linux.log`）只验证非Windows分支。Windows真实候选尚未实跑，5.2／6.2保持开放。
+
+一次较大原生ACL草稿已在提交前撤回，保留为`/home/joshua/.cache/scholoom-finish-active/windows-private-files-draft.c`，未编译／执行、不参与产品或构建。当前设计以原脚本最小修改为准，不据此宣称根因已修复。新的源码与必要输入在Git／cache，无现有/tmp前置。
+
 ## 当前续做：Windows目标事实及主线批准的真实ACL对照
 
 共同HEAD cb5f7ed30f69b45301c83f296268578051b84e0b、开始时干净；本轮用户要求完成既有任务，主线随后在ask msg_521379247eb9选择先交最小真实ACL对照、目标CI回来再修确证根因。5.2／6.2继续开放，56/58不是整个change完成。本轮没有修改生产源码或重建同源产物；没有推送／触发CI、依赖安装、开发服务器、真实用户库或其他工作树操作。
