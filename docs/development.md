@@ -382,7 +382,7 @@ Agent 的 `read_workbench_context` 工具按本次推进已注入的指令查询
 
 ### 有界 Agent 委派
 
-项目会话的父执行可用 `list_delegation_roles`、`delegate_agent`、`read_delegation`、`wait_delegation`、`cancel_delegation` 交接一个明确工作包。当前内置通用 `worker@1`，科研角色通过宿主源码 `delegationRoles` 注入；实际科研角色仍待提供者。任务关联可选：父用`read_research_task`取得入口及依据，作为原ResourceEvidence交子；子只按受限资源权限保存，父读回成果、重读入口，再用`save_research_task`写入result及workItemId。关联冲突或取消保留成果与未完成关联，不自动建任务、不增加子任务／程序权限。子执行使用独立受管进程，只接收工作包和所选角色指导；自己的 scratch 位于 `.scholoom/harness/sessions/<sessionId>/delegations/<delegationId>/scratch`。不导入父历史或 checkpoint，也不允许递归委派。父退出收尾未完成的子，局部取消只作用于该子；有限等待到期不取消。macOS 仍沿 `managedExecution` 明确不可用。
+项目会话的父执行可用 `list_delegation_roles`、`delegate_agent`、`read_delegation`、`wait_delegation`、`cancel_delegation` 交接一个明确工作包。当前内置通用 `worker@1`，research 提供默认科研角色 `evidence-reviewer@1`：按实际来源及版本核查明确断言，区分支持、反证与缺证，只保存独立报告，工具范围不含原材料保存。科研指导以 research 源码为准，宿主可通过 `delegationRoles` 显式替换科研预设；通用 worker 保留。任务关联可选：父用`read_research_task`取得入口及依据，作为原ResourceEvidence交子；子只按受限资源权限保存，父读回成果、重读入口，再用`save_research_task`写入result及workItemId。关联冲突或取消保留成果与未完成关联，不自动建任务、不增加子任务／程序权限。子执行使用独立受管进程，只接收工作包和所选角色指导；自己的 scratch 位于 `.scholoom/harness/sessions/<sessionId>/delegations/<delegationId>/scratch`。不导入父历史或 checkpoint，也不允许递归委派。父退出收尾未完成的子，局部取消只作用于该子；有限等待到期不取消。macOS 仍沿 `managedExecution` 明确不可用。
 
 内部 `harness.executionFacts({})` 由宿主 `KernelApplication.executionFacts(context)` 适配消费，只使用实际CallContext核对当前Agent的principal／project/session/run/instance及持久委派父子关系，不接受模型自报身份、不进入公共操作或模型工具。根返回无父委派，匹配的子返回delegationId及父run／instance，无法匹配的关系为unknown；instructionContext与tool始终明确unknown。已取消或退出／重启后的旧上下文返回unknown，不能用持久history重新授权；权限身份不匹配拒绝。项目M2在实际保存受理时取该快照，FileEdit权威仍由项目维护，当前本线不推断精确工具／指令作者。
 

@@ -1,5 +1,13 @@
 # 实际交付与交接
 
+## 首个科研角色接收（2026-10-29）
+
+主线接受research所属`evidence-reviewer@1`，设计及文件边界见[design首节](design.md#首个科研角色与验收材料2026-10-29)。宿主未配置时采用同一预设，显式空列表／自定义替换语义及worker保留；角色只核查明确材料并创建独立报告，无原材料save权限。开发说明已同步。6.1完成，6.2真实科研质量仍未运行。
+
+证据根`/home/joshua/.cache/scholoom-finish-active/research-role/`：research／kernel构建、类型、tools及Biome通过；原真实父子测试参数化为worker和科研角色，另核显式配置及父授save仍不能改原稿，`tests.log/json`为4/4，39.8秒，无跳过、重试或flaky。实际父子身份／PID不同，报告保存及父读回真实，所用外部HTTP模型响应受控；预设“Observed 42”不证明科研判断质量。独立审查`research-role-independent-review.md`核对角色、装配、工具交集、四例原结果及来源边界，P0–P3无发现。
+
+`research-acceptance-sample/`保存PLOS原始HTML（DOI10.1371/journal.pcbi.1003285）、四条合成待核查断言和执行前从原文提取的独立标准，原材料与答案分离。尚未调用真实产品模型，开发Agent模型选择不替代付费产品模型授权。6.2需从真实产品入口执行、保留实际读取／成果及独立质量核查；不把本片4/4或科研角色存在当作质量通过。
+
 ## 4eb7fb6真实Windows接收：代表已绿，专项未通过（2026-10-29）
 
 已消费run40739213209／job122995911799，head`4eb7fb66e3ade436250763826fd31b16e1d80310`。原cancel、excerpt及附件代表3/3（54秒），原5秒断言及60秒用例上限未变；同次前置重复10项、ownership16通过／3跳过、HostConnection25项、isolated首次启动／重启4项、owner2项通过。不能将源码和环境不同的606ae82两红改写成新代码必然或永远稳定，也不据此声称旧152ms缺证已补齐。

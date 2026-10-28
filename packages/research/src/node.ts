@@ -1,4 +1,5 @@
 export { ResearchContent } from './content.js';
+export { researchDelegationRoles } from './delegation-roles.js';
 export {
   assessGraphDelivery,
   completeTextRead,

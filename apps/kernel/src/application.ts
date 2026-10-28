@@ -39,7 +39,7 @@ import type {
   ResearchProgressPort,
   ResearchToolsPort,
 } from '@scholoom/protocol/research';
-import { ResearchRecords, ResearchRuntime } from '@scholoom/research/node';
+import { ResearchRecords, ResearchRuntime, researchDelegationRoles } from '@scholoom/research/node';
 import { executionGraphs } from './execution-graphs.js';
 import { type FileExecutionFacts, type FoundationMethod, ManualApplication } from './manual.js';
 import type { IsolatedZotero, ZoteroRuntime } from './zotero.js';
@@ -228,7 +228,7 @@ export class KernelApplication extends ManualApplication {
       (context) => this.executionResources(context),
       (context) => this.projectTasks(context),
       {
-        ...(options.delegationRoles ? { roles: options.delegationRoles } : {}),
+        roles: options.delegationRoles ?? researchDelegationRoles,
         resolveProfile: (id, context) =>
           this.modulePort(context, 'harness').call('models.resolveProfile', { id }),
       },

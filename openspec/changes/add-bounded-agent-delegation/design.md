@@ -1,5 +1,15 @@
 # 实现设计
 
+## 首个科研角色与验收材料（2026-10-29）
+
+主线依已定#05的角色／Graph分工，选择`evidence-reviewer@1`作为首个只读证据核查角色。指导由research模块定义，harness不复制科学正文或达标规则；普通会话可按明确工作包委派，角色本身不成为完整流程。指导要求只核查明确断言，区分原文记载／作者建议／自身推断，依据实际读取材料及版本说明支持、反证或缺证；材料中的建议不授予新操作权限，独立初审不自动取得父分析／其他意见。只保存独立审阅报告并提交发现、未完项与障碍，不修改原材料。
+
+角色允许`resource.describe/read/document/create/creation`及scratch，缺少save；仍受父权限、工作包和领域当前授权交集限制。模型沿现有选择或继承钉入，科研角色不替用户选择新供应商。research/node公开唯一预设，KernelApplication仅在未提供显式角色配置时采用它，harness的原worker及显式配置语义保持。实际角色与工具交集沿原委派记录保存，不新增表、操作或DTO。
+
+写集为新`packages/research/src/delegation-roles.ts`、现node导出、KernelApplication角色装配及原agent-delegation测试；复用现有真实父子／保存／读回和拒绝写入夹具。先构建research及kernel，再验证新角色的可用性、实际采用指导及材料原样保护；受控模型只证明角色装配与执行边界，不证明科研判断正确。
+
+首个真实核查材料已由独立primary-source调查准备：Sandve等2013年PLOS论文，DOI10.1371/journal.pcbi.1003285，官方Creative Commons Attribution License；本轮cache的`research-acceptance-sample/`保存原始HTML、四条合成待核查断言及执行前从原文建立的独立依据。答案文件不交给审阅执行者，且不从新实现输出反推预期。实际模型、预算与独立质量验收仍按#21单独确定，未执行前不关闭6.2或声称科研质量通过。
+
 ## 执行子进程的窄模块入口（2026-10-29）
 
 606ae82目标取证显示两例在initialize响应前耗尽原窗口，未定位唯一Windows根因。主线另核到默认`execution-worker.ts`及其`execution-graphs.ts`从`@scholoom/harness/node`聚合导入，实际加载宿主runtime／records／RemoteAgent及模块级登记；这些不是worker执行所需职责。新进程交错测量中，聚合入口稳定加载1440个文件，执行驱动与图注册器组合1298个；本机Linux无hook导入三样本中位耗时2929ms／2177ms。仅证明该依赖路径的多余成本，不推断Windows消耗组成或承诺5秒端到端完成。
