@@ -3,7 +3,6 @@ import { execFileSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
-import { createRequire } from 'node:module';
 import type { AddressInfo } from 'node:net';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -12,6 +11,7 @@ import { KernelApplication } from '../../apps/kernel/dist/application.js';
 import type { IsolatedZotero } from '../../apps/kernel/dist/zotero.js';
 import type { KernelClient } from '../../packages/client/dist/index.js';
 import { closeDesktop } from '../desktop-fixture.js';
+import { electronTestCommand } from '../fixtures/zotero-host/display.js';
 import { type IsolatedKernel, startIsolatedKernel } from '../isolated-kernel.js';
 import { createSession, expect, test } from './fixture.js';
 import { rendererOrigin } from './renderer-url.js';
@@ -34,13 +34,9 @@ test('single original actions use the real library and BBT, preserve CSL drafts,
   const configuration: IsolatedZotero = {
     libraryId: '',
     packageDirectory,
-    executable: '/usr/bin/xvfb-run',
-    args: [
-      '-a',
-      createRequire(import.meta.url)('electron'),
-      '--no-sandbox',
-      fileURLToPath(new URL('../../apps/zotero-host/out/main/managed.cjs', import.meta.url)),
-    ],
+    ...(await electronTestCommand(
+      new URL('../../apps/zotero-host/out/main/managed.cjs', import.meta.url),
+    )),
   };
   const profile = join(root, 'profile');
   const app = new KernelApplication(profile, { environment: {} });

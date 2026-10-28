@@ -1,14 +1,13 @@
 import { mkdtemp, writeFile } from 'node:fs/promises';
-import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { expect, test } from '@playwright/test';
 import { ManagedCommands } from '../../apps/kernel/dist/commands.js';
 import { HostConnection } from '../../apps/kernel/dist/host-connection.js';
 import { ProcessAdmission } from '../../packages/platform/dist/node.js';
+import { electronTestCommand } from '../fixtures/zotero-host/display.js';
 
-test.skip(process.platform !== 'linux', 'This isolated Xvfb fixture validates Linux only');
+test.skip(process.platform !== 'linux', 'This isolated display fixture validates Linux only');
 const xpi = process.env.SCHOOLOOM_BBT_XPI;
 test.skip(!xpi, 'Set SCHOOLOOM_BBT_XPI to the unchanged BBT 9.0.68 release');
 const sources = { type: 'array', items: { type: 'string' }, minItems: 1, maxItems: 100 } as const;
@@ -49,16 +48,10 @@ for (const mode of ['normal', 'shutdown-error']) {
       scope: 'injected-adapter',
       commands,
       admission,
-      executable: '/usr/bin/xvfb-run',
-      args: [
-        '-a',
-        createRequire(import.meta.url)('electron'),
-        '--no-sandbox',
-        fileURLToPath(new URL('../fixtures/zotero-host/managed-bbt.cjs', import.meta.url)),
-        directory,
-        mode,
-        packageDirectory,
-      ],
+      ...(await electronTestCommand(
+        new URL('../fixtures/zotero-host/managed-bbt.cjs', import.meta.url),
+        [directory, mode, packageDirectory],
+      )),
       operations: {
         status,
         fillKeys: {

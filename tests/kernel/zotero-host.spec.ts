@@ -1,7 +1,6 @@
 import { execFile, execFileSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { mkdtemp, readdir, writeFile } from 'node:fs/promises';
-import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -13,6 +12,7 @@ import type { IsolatedZotero } from '../../apps/kernel/dist/zotero.js';
 import type { ZoteroOutputs, ZoteroSnapshot } from '../../packages/protocol/dist/zotero.js';
 import { expectExecutionCompleted } from '../execution-diagnostics.js';
 import { delegationOutput } from '../fixtures/delegation-model.js';
+import { electronTestCommand } from '../fixtures/zotero-host/display.js';
 import { createModelServer } from '../model-server.js';
 
 test.skip(process.platform !== 'linux', 'Bounded Linux managed Electron calibration');
@@ -46,13 +46,9 @@ async function fixture(
   const configuration: IsolatedZotero = {
     libraryId: '',
     packageDirectory,
-    executable: '/usr/bin/xvfb-run',
-    args: [
-      '-a',
-      createRequire(import.meta.url)('electron'),
-      '--no-sandbox',
-      fileURLToPath(new URL('../../apps/zotero-host/out/main/managed.cjs', import.meta.url)),
-    ],
+    ...(await electronTestCommand(
+      new URL('../../apps/zotero-host/out/main/managed.cjs', import.meta.url),
+    )),
   };
   const root = join(directory, 'configuration');
   const app = new KernelApplication(root, { ...options, isolatedZotero: configuration });
