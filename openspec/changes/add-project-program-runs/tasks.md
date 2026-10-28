@@ -57,7 +57,7 @@ flowchart TD
 ## 5. 明确等待的输入与CI前置
 
 - [x] 5.1 已消费主线正式设计及源码输入；历史路径和符号冲突记录于design。共同1026796已合入全部七域源码，当前executionResources／taskPort／delegationOptions／programs、根工具、三域restore及task／programs标签均在本树；不再等待同步或使用旧累计补丁。真实联合操作另由8.4验收，不把代码合入当作实际整合完成。
-- [ ] 5.2 沿固定run／head和实际stage承接CI。来源识别窄项已交付，29cd728提供者正例不关闭稳定性。最新已完成Checks40591705520的Windows723通过11失败42跳过，isolated-kernel仍失败；旧938c33f并发PID3188及8c2重启与其分开。主线已批准并由本轮实现公共isolated-kernel诊断A：真实exit1／原44s无ready／解析边界3项、原配置及进程接替／文件尾2项本机通过；诊断缺字段保护已交付，实际Windows启动根因仍未知。下一输入为主线接入后的同一失败run／自有子PID安全阶段、原原因及清理前后收据，不用清理后close倒推自然退出，不等待或轮询本轮尚无目标回执。历史PDF／TeX及跨平台／分发保持原边界，其他Agent／生态失败由所属线处理，不放宽生产时限、停止／容量、锁或重试。
+- [ ] 5.2 沿固定run／head和实际stage承接CI。来源识别及公共isolated-kernel安全诊断已交付，主线Linux13/13及本机四场景不关闭Windows稳定性。e3c815b专项40613967285成功但未执行新诊断；完整Checks40613967267 Windows692通过46失败42跳过，旧isolated-kernel单例ready-ipc失败仍保留。第17组已补新workflow触发及完整四场景入口，等待主线接入后的同源码Windows新步骤、首失败trace与自有子PID原原因／清理前后收据；没有这些目标结果不称通过，不从清理后close倒推自然退出，不轮询或触发CI。旧8c2／938c33f／29cd728样本按原run分别保留，历史TeX、跨平台及分发仍开放；不放宽生产期限、权限、停止／容量、锁或重试。
 
 5.1的输入核对不意味着新增报告适配属于本change；只有共同符号冲突或相关必要回归才阻塞对应整合，其他任务不串行等待。
 
@@ -77,7 +77,7 @@ flowchart TD
 
 ## 续做入口
 
-当前起点为ba29ee61ac6f8700cfe6a9fbaa529a8a7a75aad1，开始时工作区干净，主线已接收第15组并完成同步／定向复验。证据为 `/home/joshua/.cache/scholoom-round12-acceptance-NagGbw/`；本轮只推进第16组已授权的安全stderr／失败分类。仅测试变更复用已验构建，不改生产或Agent／项目夹具；不重复TeX、全UI或全仓，不使用旧累计patch，不自行同步。
+当前起点为f4ab1e5f1ed17ae9af656c1f9945005a2786d911，开始时工作区干净，主线已接收第16组并完成同步／定向复验。证据为 `/home/joshua/.cache/scholoom-round13-acceptance/`；本轮只推进第17组Windows采样入口。仅workflow／原tasks／delivery变更，复用已验构建及原四场景，不改生产、测试实现或Agent／窗口夹具。所有新工件、TMPDIR、profile及结果在 `/home/joshua/.cache/scholoom-project-execution-round13-E9XEZH/`，旧/tmp仅作历史证据，不作前置；不重放补丁、自行同步、触发或轮询CI。
 
 ## 8. 公共同步后的实际消费
 
@@ -134,3 +134,8 @@ flowchart TD
 - [x] 16.1 提取唯一生命周期phase／安全标量过滤，原文件尾与持续stderr排空共享；4KiB单行／64条／32KiB序列化记录上限，非法／超长／私有字段丢弃且计数，预算耗尽不停止读取，分片UTF-8及容量回归通过。
 - [x] 16.2 helper记录原ready失败类别、清理前ready／close／exit及父kill请求／真实close分开；安全摘要清理前保存再更新，失败不泄漏原始配置／异常，不混旧kernel.log。真实exit1及原44s无ready反例通过，归属／shutdown／预算与旧stop保护保持。
 - [x] 16.3 沿原真实配置／进程替换及代表exit1／原预算无ready／安全解析五个场景通过；分开exit事实后四个受影响场景最终复验通过。类型／格式／架构／OpenSpec／diff通过，已取delivery instructions更新同一记录并交增量。仅测试变化未重建，Windows未验及5.2／6.2保持开放，完成即停。
+
+## 17. Windows专项新诊断采样入口
+
+- [x] 17.1 仅为既有windows-execution workflow补isolated-kernel helper、kernel-fixture、两个可信fixture及自身spec触发路径；availability后新增完整spec独立步骤，--list核实四个当前场景，沿用单worker／零重试／原预算及!cancelled条件，不改首批旧步骤条件。
+- [x] 17.2 核test-results/windows-isolated-kernel下安全JSON纳入既有artifact，失败trace及首失败不被重跑覆盖；未发现缺口，未改测试实现。本机同一四场景4/4及tools类型、YAML结构／workflow差异、OpenSpec／diff通过，已取delivery instructions更新原记录并交独立补丁。审计必需输入实路径及所有新工件均在Git／cache，不依赖现有/tmp。Windows目标未跑保持5.2／6.2开放，不触发或轮询远端。
