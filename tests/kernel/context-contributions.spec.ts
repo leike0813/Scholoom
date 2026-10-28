@@ -293,6 +293,47 @@ test('batch append commits complete context or preserves the original draft on r
   expect(JSON.parse(await page.getByLabel('上下文状态').innerText()).error).toBeUndefined();
 });
 
+test('subscriber failure does not reject a committed context batch or hide other updates', async ({
+  page,
+}) => {
+  await mountBusinessContext(page);
+  expect(
+    await page.evaluate(() => {
+      const { session, context, readDraft, subscribeDraft } = Reflect.get(window, 'contextFixture');
+      const key = `${session.draftKey}|context-items`;
+      const fault = new Error('Synthetic draft subscriber failure');
+      let reported = false;
+      window.addEventListener('error', (event) => {
+        if (event.error === fault) {
+          reported = true;
+          event.preventDefault();
+        }
+      });
+      const stopThrowing = subscribeDraft(key, () => {
+        throw fault;
+      });
+      let notified = false;
+      const stopObserving = subscribeDraft(key, () => {
+        notified = true;
+      });
+      try {
+        const result = context.appendContextItems([
+          {
+            kind: 'resource',
+            itemId: 'committed',
+            ref: { source: 'project', projectId: 'project', fileId: 'file' },
+            basis: 'v1',
+          },
+        ]);
+        return { result, reported, notified, stored: JSON.parse(readDraft(key)).length };
+      } finally {
+        stopThrowing();
+        stopObserving();
+      }
+    }),
+  ).toEqual({ result: true, reported: true, notified: true, stored: 1 });
+});
+
 test('stale append callbacks preserve both drafts after session, project and configuration switches', async ({
   page,
 }) => {

@@ -69,6 +69,8 @@ ReportResources 是 `packages/editor` 内的 module，不新建包／数据库�
 
 共同批量入口现沿ContextContribution／WorkbenchSession实现同步boolean结果：原useBusinessSession读取当前草稿一次、完整合并校验后单次写入，拒绝返回false并保留草稿；原单项仍返回void并委托批量路径。provider只有批量追加callback，不并存两套追加权威。接收会话／项目／配置键变化即更换该次接收者实例，旧callback即使切回同名键也拒绝，且不修改新错误状态。成功表示原草稿适配已接收，不扩大原writeDraft的磁盘持久性保证；桥不得把false当queued，报告版本／对象／receiver的最终检查仍归未来报告消费者。
 
+共同草稿提交与订阅通知分别表达：writeDraft完成内存及原持久适配后，逐个通知订阅者；单个订阅异常经浏览器标准reportError报告并继续其余通知，不逆转提交或向调用者伪报拒绝。这是同一草稿适配的职责，不由每个追加调用方捕获异常后猜测是否保存。
+
 页面要求写入选中对象的comment，原有composer展示并允许修改；输入框正文继续由用户填写／检查，发送仍满足现有非空文字契约。本变更不自动替用户填充或发送“继续分析”。对象多选只贡献当前已加载清单，不读取文献表格DOM或全库投影。
 
 ### 隔离与页面桥

@@ -27,7 +27,15 @@ export function writeDraft(key: string, text: string): void {
   } catch {
     // 配额不足或存储不可用：内存草稿仍然有效。
   }
-  if (previous !== text) for (const listener of listeners.get(key) ?? []) listener();
+  if (previous !== text)
+    for (const listener of listeners.get(key) ?? []) {
+      try {
+        listener();
+      } catch (error) {
+        // 通知失败不能改变已经提交的草稿结果。
+        reportError(error);
+      }
+    }
 }
 
 export function subscribeDraft(key: string, listener: () => void): () => void {

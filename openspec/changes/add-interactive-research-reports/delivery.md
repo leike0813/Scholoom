@@ -1,5 +1,11 @@
 # 实际交付与交接
 
+## 2.2a追加通知结果修正（2026-10-29）
+
+父最终核对新增boolean接收结果时发现原drafts.writeDraft在提交后执行订阅回调，异常会沿updateContext误报false。`context-subscriber-red.{log,json}`真实复现result=false但stored=1，后续通知和浏览器错误诊断均未发生。现仅在共同writeDraft的通知循环分别捕获，沿标准reportError报告并继续其他订阅；不回滚已提交内容，不扩大原内存fallback的持久性承诺。原2.2a为修正与复验暂时重开，最终关闭依据本节后续结果，不改写下节首轮记录。
+
+当前同一真实hook文件四项全部通过（`context-subscriber-green.{log,json}`，12.2秒，0跳过／失败／flaky），新增例核提交成功、错误事件可观察及其余订阅继续；原原子容量／三类往返和单项仍通过。`context-drafts.spec.ts`原恢复／窗口隔离／迟到回执保护另1/1（`draft-recovery-final.{log,json}`），未新建镜像草稿实现。desktop重新构建1m31s、desktop及tools类型、两文件Biome通过，见`draft-notification-{build,types,tools,biome}.log`。独立复核在原context审查报告追加确认无新P级别问题；最终冻结产物的迟到回执双宿主2/2、1.5分钟（`draft-notification-ui.{log,json}`）通过，0跳过／失败／flaky，原材料、comment、持久消息及reload草稿断言保留。父接受后重新关闭2.2a，8/14；这些结果不称报告I5。端口6037及自有配置由teardown收尾，保留登记项目和cache证据。
+
 ## 共同composer原子批量附加（2026-10-29）
 
 完成2.2a公共子范围，当前8/14，完整2.2及报告I5仍开放。实际写集为renderer的context-contributions／session／business-session／Workbench及原context-contributions、image-selection夹具：provider改为唯一批量callback，提供同步boolean接收结果；单项void调用委托同一实现。真实useBusinessSession只读取一次当前草稿、完整合并交原writeContextDraft验证后写入一次，非法项、16项／64KiB超限不写半组，不另建composer或传输。旧回调在会话／项目／配置键变化后失效，错误和草稿均不串入新接收者。成功只表示原草稿适配接收，不把原内存fallback写成磁盘持久成功。
