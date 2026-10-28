@@ -4,6 +4,7 @@ import type {
   LibraryEntry,
   LibraryInputs,
   LibrarySource,
+  OrganizationReceipt,
   OriginalRecord,
   ReadingRecord,
   RecordReceipt,
@@ -11,6 +12,22 @@ import type {
 import { sql } from 'drizzle-orm';
 import { index, integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 import type { StoredMaterial } from './material-files.js';
+export type OrganizationFields = Partial<Pick<LibrarySource, 'tags' | 'collectionIds'>>;
+export type OrganizationParticipant = {
+  sourceId: string;
+  beforeRevision: number;
+  expectedRevision: number;
+  before: OrganizationFields;
+  after: OrganizationFields;
+};
+export type OrganizationEdit = {
+  originLibraryId: string;
+  createdAt: string;
+  participants: OrganizationParticipant[];
+  editRevision: number;
+  position: 'applied' | 'undone' | 'unchanged';
+  lastActionRequestId: string;
+};
 
 export type LibraryBatchRequest =
   | { kind: 'metadata'; input: LibraryInputs['library.ingest'] }
@@ -49,7 +66,16 @@ export const citationKeys = sqliteTable('citation_keys', {
 export const recordOperations = sqliteTable('record_operations', {
   requestId: text().primaryKey(),
   request: text().notNull(),
-  value: text({ mode: 'json' }).$type<RecordReceipt>().notNull(),
+  kind: text({ enum: ['authority', 'organization', 'organization-history'] })
+    .notNull()
+    .default('authority'),
+  value: text({ mode: 'json' }).$type<RecordReceipt | OrganizationReceipt>().notNull(),
+});
+export const organizationEdits = sqliteTable('organization_edits', {
+  requestId: text()
+    .primaryKey()
+    .references(() => recordOperations.requestId),
+  value: text({ mode: 'json' }).$type<OrganizationEdit>().notNull(),
 });
 export const recordHistory = sqliteTable(
   'record_history',

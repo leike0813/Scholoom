@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { copyFile, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
@@ -33,12 +34,12 @@ const source: LibrarySource = {
   analysisState: 'notGenerated',
 };
 
-async function createVersion3(root: string): Promise<string> {
+async function createLegacy(root: string, version = 3): Promise<string> {
   const profile = join(root, 'profile');
   const migrationsFolder = join(root, 'v3-migrations');
   const original = new URL('../../packages/library/src/migrations/', import.meta.url);
   const journal = JSON.parse(await readFile(new URL('meta/_journal.json', original), 'utf8'));
-  const entries = journal.entries.slice(0, 3) as { tag: string }[];
+  const entries = journal.entries.slice(0, version) as { tag: string }[];
   await mkdir(join(migrationsFolder, 'meta'), { recursive: true });
   for (const entry of entries)
     await copyFile(
@@ -61,7 +62,7 @@ async function createVersion3(root: string): Promise<string> {
       database
         .prepare('INSERT INTO sources(id,doi,version,value) VALUES(?,?,?,?)')
         .run(source.id, null, source.version, JSON.stringify(source));
-      database.pragma('user_version = 3');
+      database.pragma(`user_version = ${version}`);
     })();
   } finally {
     database.close();
@@ -73,7 +74,7 @@ test('v3 library migration preserves CSL without inferring originals or formal k
   const root = await mkdtemp(join(tmpdir(), 'scholoom-library-v3-records-'));
   let catalog: LiteratureCatalog | undefined;
   try {
-    const profile = await createVersion3(root);
+    const profile = await createLegacy(root);
     for (let opening = 0; opening < 2; opening++) {
       catalog = new LiteratureCatalog(profile, () => {});
       await catalog.initialize();
@@ -93,7 +94,7 @@ test('v3 library migration preserves CSL without inferring originals or formal k
       fileMustExist: true,
     });
     try {
-      expect(current.pragma('user_version', { simple: true })).toBe(4);
+      expect(current.pragma('user_version', { simple: true })).toBe(5);
     } finally {
       current.close();
     }
@@ -132,14 +133,14 @@ test('a future library version is rejected while its version and unfamiliar reco
       database
         .prepare('INSERT INTO future_records(id,value) VALUES(?,?)')
         .run('future-source', JSON.stringify(value));
-      database.pragma('user_version = 5');
+      database.pragma('user_version = 6');
     } finally {
       database.close();
     }
     await expect(catalog.initialize()).rejects.toMatchObject({ code: 'unavailable' });
     const preserved = new Database(path, { readonly: true, fileMustExist: true });
     try {
-      expect(preserved.pragma('user_version', { simple: true })).toBe(5);
+      expect(preserved.pragma('user_version', { simple: true })).toBe(6);
       expect(preserved.pragma('quick_check', { simple: true })).toBe('ok');
       expect(
         JSON.parse(
@@ -157,6 +158,147 @@ test('a future library version is rejected while its version and unfamiliar reco
     }
   } finally {
     await catalog.close();
+    await rm(root, { recursive: true });
+  }
+});
+
+test('v4 organization migration preserves authority receipts and forbids cross-kind request reuse', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'scholoom-library-v4-organization-'));
+  let catalog: LiteratureCatalog | undefined;
+  const original = {
+    identity: { instanceId: 'instance', libraryLocator: 'users/local', objectKey: 'ABCD1234' },
+    schemaVersion: 'schema44',
+    itemType: 'radioBroadcast',
+    fields: { title: 'Original', extra: 'untouched' },
+    creators: [],
+    relations: {},
+  };
+  const authorityRequest = {
+    libraryId,
+    requestId: 'old-authority',
+    changes: [
+      {
+        sourceId: source.id,
+        revision: 6,
+        key: { value: 'Pinned2026', pinned: true, intent: 'explicit' as const },
+      },
+    ],
+  };
+  const authorityReceipt = {
+    requestId: 'old-authority',
+    state: 'committed' as const,
+    results: [{ sourceId: source.id, revision: 7 }],
+  };
+  try {
+    const profile = await createLegacy(root, 4);
+    const seed = new Database(join(profile, 'library/library.sqlite'));
+    try {
+      seed
+        .prepare('INSERT INTO source_instances(id,requestId,request,label) VALUES(?,?,?,?)')
+        .run(
+          'instance',
+          'old-registration',
+          JSON.stringify({ requestId: 'old-registration', libraryId, label: 'Legacy source' }),
+          'Legacy source',
+        );
+      seed
+        .prepare('INSERT INTO original_records(identity,sourceId,value) VALUES(?,?,?)')
+        .run(
+          JSON.stringify(['instance', 'users/local', 'ABCD1234']),
+          source.id,
+          JSON.stringify(original),
+        );
+      seed
+        .prepare('INSERT INTO citation_keys(sourceId,normalized,value,pinned) VALUES(?,?,?,?)')
+        .run(source.id, 'pinned2026', 'Pinned2026', 1);
+      seed
+        .prepare('INSERT INTO record_operations(requestId,request,value) VALUES(?,?,?)')
+        .run(
+          authorityRequest.requestId,
+          JSON.stringify(authorityRequest),
+          JSON.stringify(authorityReceipt),
+        );
+      seed
+        .prepare('INSERT INTO history(sourceId,value) VALUES(?,?)')
+        .run(source.id, JSON.stringify({ ...source, revision: 6 }));
+    } finally {
+      seed.close();
+    }
+    catalog = new LiteratureCatalog(profile, () => {});
+    await catalog.initialize();
+    const active = catalog;
+    expect(catalog.get(source.id)).toEqual(source);
+    expect(catalog.commitResult({ libraryId, requestId: authorityRequest.requestId })).toEqual(
+      authorityReceipt,
+    );
+    expect(catalog.record({ libraryId, sourceId: source.id })).toMatchObject({
+      citationKey: { value: 'Pinned2026', pinned: true },
+      originals: [original],
+    });
+    const history = catalog.history({ sourceId: source.id });
+    catalog.grant({ ...grants, write: true });
+    expect(catalog.commitRecords(authorityRequest)).toEqual(authorityReceipt);
+    expect(() =>
+      active.organize({
+        libraryId,
+        requestId: authorityRequest.requestId,
+        changes: [{ sourceId: source.id, revision: source.revision, tags: [] }],
+      }),
+    ).toThrow(expect.objectContaining({ code: 'invalidRequest' }));
+    expect(() =>
+      active.organizationResult({ libraryId, requestId: authorityRequest.requestId }),
+    ).toThrow(expect.objectContaining({ code: 'invalidRequest' }));
+    const request = {
+      libraryId,
+      requestId: randomUUID(),
+      changes: [{ sourceId: source.id, revision: source.revision, tags: ['organized'] }],
+    };
+    const committed = catalog.organize(request);
+    expect(committed.state).toBe('committed');
+    expect(catalog.record({ libraryId, sourceId: source.id })).toMatchObject({
+      citationKey: { value: 'Pinned2026', pinned: true },
+      originals: [original],
+    });
+    expect(catalog.get(source.id).metadata).toEqual(source.metadata);
+    expect(catalog.history({ sourceId: source.id }).sources).toEqual([source, ...history.sources]);
+    expect(() =>
+      active.commitRecords({ ...authorityRequest, requestId: request.requestId }),
+    ).toThrow(expect.objectContaining({ code: 'invalidRequest' }));
+    await catalog.close();
+    catalog = undefined;
+    const current = new Database(join(profile, 'library/library.sqlite'), { readonly: true });
+    try {
+      expect(current.pragma('user_version', { simple: true })).toBe(5);
+      expect(
+        current
+          .prepare('SELECT kind,request,value FROM record_operations WHERE requestId=?')
+          .get(authorityRequest.requestId),
+      ).toEqual({
+        kind: 'authority',
+        request: JSON.stringify(authorityRequest),
+        value: JSON.stringify(authorityReceipt),
+      });
+    } finally {
+      current.close();
+    }
+    const before = new Database(join(profile, 'library/before-migration-v4.sqlite'), {
+      readonly: true,
+    });
+    try {
+      expect(before.pragma('user_version', { simple: true })).toBe(4);
+      expect(
+        before
+          .prepare('SELECT request,value FROM record_operations WHERE requestId=?')
+          .get(authorityRequest.requestId),
+      ).toEqual({
+        request: JSON.stringify(authorityRequest),
+        value: JSON.stringify(authorityReceipt),
+      });
+    } finally {
+      before.close();
+    }
+  } finally {
+    await catalog?.close();
     await rm(root, { recursive: true });
   }
 });

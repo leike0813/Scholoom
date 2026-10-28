@@ -22,6 +22,8 @@ import {
   type LibraryOutputs,
   type LibrarySource,
   type LibraryStatus,
+  type OrganizationInputs,
+  type OrganizationOutputs,
   type ReadingAuthor,
   type ReadingRecord,
   type RecordReceipt,
@@ -36,6 +38,8 @@ import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
 import type { DocumentMethod, DocumentRequest } from './document-parser.js';
 import { MaterialFiles, type StoredMaterial } from './material-files.js';
 import { MaterialReading, type PdfRequest } from './material-reading.js';
+import { OrganizationEditor } from './organization.js';
+import { RecordReceipts } from './record-receipts.js';
 import * as tables from './schema.js';
 
 type FileItem = { path: string; id: string; materialVersionId: string; sourceId: string };
@@ -80,6 +84,23 @@ export class LiteratureCatalog {
   private backingUp: Promise<LibraryBackup> | undefined;
   readonly directory: string;
   private readonly materials: MaterialFiles;
+  private readonly organization = new OrganizationEditor({
+    database: () => this.db,
+    access: (libraryId, write) => this.recordAccess(libraryId, write),
+    source: (id) => this.source(id),
+    validate: (source) => this.validateSource(source),
+    collections: (ids) => this.validateCollections(ids),
+    tags: (tags) => this.validateTags(tags),
+    write: (before, after) => {
+      this.remember(before);
+      this.writeSource(after);
+    },
+    advance: () => this.putMeta('revision', String(this.status().revision + 1)),
+    notify: () => {
+      this.dirty = true;
+      this.notify();
+    },
+  });
   constructor(
     private readonly profile: string,
     private readonly notify: () => void,
@@ -120,8 +141,8 @@ export class LiteratureCatalog {
       database.pragma('busy_timeout = 1000');
       if (database.pragma('quick_check', { simple: true }) !== 'ok') throw new Error('corrupt');
       const version = Number(database.pragma('user_version', { simple: true }));
-      if (version > 4) throw new Error('newer schema');
-      if (version < 4) {
+      if (version > 5) throw new Error('newer schema');
+      if (version < 5) {
         if (stats)
           await database.backup(
             join(
@@ -132,7 +153,7 @@ export class LiteratureCatalog {
         migrate(drizzle(database), {
           migrationsFolder: fileURLToPath(new URL('./migrations/', import.meta.url)),
         });
-        database.pragma('user_version = 4');
+        database.pragma('user_version = 5');
       }
       this.database = database;
       this.store = drizzle(database, { schema: tables });
@@ -279,11 +300,10 @@ export class LiteratureCatalog {
   ): LibraryOutputs['library.commitResult'] {
     this.recordAccess(input.libraryId);
     return (
-      this.db
-        .select()
-        .from(tables.recordOperations)
-        .where(eq(tables.recordOperations.requestId, input.requestId))
-        .get()?.value ?? { requestId: input.requestId, state: 'notFound' }
+      new RecordReceipts(this.db).get('authority', input.requestId) ?? {
+        requestId: input.requestId,
+        state: 'notFound',
+      }
     );
   }
   commitRecords(input: LibraryInputs['library.commitRecords']): RecordReceipt {
@@ -293,16 +313,9 @@ export class LiteratureCatalog {
       Buffer.byteLength(JSON.stringify(input)) > recordLimits.requestBytes
     )
       throw new OperationError('invalidRequest', '原子题录请求超出范围或字节上限。');
-    const previous = this.db
-      .select()
-      .from(tables.recordOperations)
-      .where(eq(tables.recordOperations.requestId, input.requestId))
-      .get();
-    if (previous) {
-      if (!isDeepStrictEqual(JSON.parse(previous.request), input))
-        throw new OperationError('invalidRequest', '请求身份已用于其他内容。');
-      return previous.value;
-    }
+    const receipts = new RecordReceipts(this.db);
+    const previous = receipts.get('authority', input.requestId, input);
+    if (previous) return previous;
     let receipt: RecordReceipt;
     try {
       receipt = this.db.transaction(() => {
@@ -462,24 +475,36 @@ export class LiteratureCatalog {
           },
         );
         const value: RecordReceipt = { requestId: input.requestId, state: 'committed', results };
-        this.db
-          .insert(tables.recordOperations)
-          .values({ requestId: input.requestId, request: JSON.stringify(input), value })
-          .run();
+        receipts.save('authority', input, value);
         this.putMeta('revision', String(this.status().revision + 1));
         return value;
       });
     } catch (error) {
       receipt = { requestId: input.requestId, state: 'rejected', error: failure(error) };
-      this.db
-        .insert(tables.recordOperations)
-        .values({ requestId: input.requestId, request: JSON.stringify(input), value: receipt })
-        .run();
+      receipts.save('authority', input, receipt);
       return receipt;
     }
     this.dirty = true;
     this.notify();
     return receipt;
+  }
+  organize(input: OrganizationInputs['library.organize']): OrganizationOutputs['library.organize'] {
+    return this.organization.organize(input);
+  }
+  organizationResult(
+    input: OrganizationInputs['library.organizationResult'],
+  ): OrganizationOutputs['library.organizationResult'] {
+    return this.organization.result(input);
+  }
+  organizationEdit(
+    input: OrganizationInputs['library.organizationEdit'],
+  ): OrganizationOutputs['library.organizationEdit'] {
+    return this.organization.edit(input);
+  }
+  revertOrganization(
+    input: OrganizationInputs['library.revertOrganization'],
+  ): OrganizationOutputs['library.revertOrganization'] {
+    return this.organization.revert(input);
   }
   selection(
     input: LibraryModuleInputs['library.selection'],
@@ -588,7 +613,7 @@ export class LiteratureCatalog {
       if (!this.db.select().from(tables.collections).where(eq(tables.collections.id, id)).get())
         throw new OperationError('notFound', '目标集合不存在。');
   }
-  private writeSource(source: LibrarySource): void {
+  private validateSource(source: LibrarySource): void {
     this.validateMetadata(source.metadata);
     if (
       [source.tags, source.collectionIds, source.relatedIds, source.origins].some(
@@ -596,6 +621,13 @@ export class LiteratureCatalog {
       )
     )
       throw new OperationError('resourceLimit', '条目关系或来源超过当前上限，请核查已有记录。');
+  }
+  private validateTags(tags: string[]): void {
+    if (tags.some((tag) => !tag.trim() || tag.length > 100))
+      throw new OperationError('invalidRequest', '标签需非空且不超过100字符。');
+  }
+  private writeSource(source: LibrarySource): void {
+    this.validateSource(source);
     this.db
       .insert(tables.sources)
       .values({
@@ -618,8 +650,7 @@ export class LiteratureCatalog {
     this.check('write');
     this.validateMetadata(input.metadata);
     this.validateCollections(input.collectionIds);
-    if (input.tags.some((tag) => !tag.trim() || tag.length > 100))
-      throw new OperationError('invalidRequest', '标签需非空且不超过100字符。');
+    this.validateTags(input.tags);
     return this.db.transaction(() => {
       const before = this.source(input.sourceId);
       if (before.revision !== input.revision)

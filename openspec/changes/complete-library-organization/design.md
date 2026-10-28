@@ -23,7 +23,7 @@ flowchart LR
   DB --> Copy[现有SQLite备份和新身份副本]
 ```
 
-新端口均为计划中的同源契约，尚未实现／发布。本轮没有生产代码、模型、宿主或业务验收结果。
+第十五轮已实施叶契约及library内四个方法，实际提供者结果见[delivery](delivery.md)。图中公共客户端／宿主注册仍为3.1目标，未发布公共操作；真实进程恢复及UI兼容性分别留3.2／3.3。以下保留完整C1目标设计，不将领域直调验收写成整条公共路径已接线。
 
 ## 方案与接口
 
@@ -37,7 +37,7 @@ flowchart LR
 
 ### 2. 同源DTO
 
-唯一schema源拟为`packages/protocol/src/library-organization.ts`。1.1先提供叶schema、派生类型／验证器及library具名导出供提供者独立测试；3.1与实际handler一起组合公共操作并生成business／client映射，不提前发布尚无handler的端口。下列为实施定义，不是已注册接口。
+唯一schema源为`packages/protocol/src/library-organization.ts`。1.1提供叶schema、派生类型／验证器及library具名导出供提供者独立测试；3.1与实际handler一起组合公共操作并生成business／client映射，不提前发布尚无handler的端口。下列已有叶定义及领域实现，尚未注册公共接口。
 
 | 方法 | 输入 | 输出与语义 |
 | --- | --- | --- |
@@ -58,7 +58,7 @@ flowchart LR
 
 复用`recordLimits.changes=100`、`recordLimits.requestBytes=262144`；新增组织before/after实际变更参与集投影预算262144。预算计算用UTF-8序列化实际捕获值，先于任何source/history写入；不包括CSL或原值。样本字节见investigation；这些是本片拟定的资源限制，不是吞吐承诺。响应复用整包512KiB字节分页，limit最多100；成员差异每行一项，不能返回100份完整快照。超限不自动chunk，缩小范围由调用方明确重新发起。
 
-提交顺序：当前read/write及libraryId→schema／请求预算→namespace及同ID结果→同一数据库事务内再次检查权限／库身份→读全部指定source→逐项修订／标签／集合及投影预算预检→一次写全部实际变更、旧source历史、组织依据及成功回执、库revision→事务成功后dirty和通知。任一预检／写入失败回滚全部源更正；结构有效且可确认的拒绝用独立短事务保存唯一rejected回执并使其进入dirty／备份。拒绝回执／通知是操作诊断，不是源数据部分成功。数据库无法确认最终持久化时抛实际错误，不伪造终态。
+提交顺序：当前read/write及libraryId→schema／请求预算→namespace及同ID结果→同一数据库事务内再次检查权限／库身份→读全部指定source→逐项修订／标签／集合及投影预算预检→一次写全部实际变更、旧source历史、组织依据及成功回执、库revision→事务成功后dirty和通知。预检确认拒绝时尚无源写入，直接在同一事务持久唯一rejected回执和库revision，无需先回滚再开第二事务；拒绝记录同样进入dirty／备份。发生数据库写入异常则整事务回滚并抛实际错误，不伪造终态；原authority的既定拒绝语义不改变。拒绝回执／通知是操作诊断，不是源数据部分成功。
 
 SQL事务内不await外部依赖、不做文件操作。请求signal在进入提交前检查；客户端取消或断线不保证事务撤回，完成后用原身份核查。操作等待、busy_timeout及生产容量不改；发生真实迟延先保留阶段诊断，不能加统一timeout。
 
@@ -76,8 +76,7 @@ sequenceDiagram
   else 新请求
     O->>D: transaction 预检所有项及预算
     alt 有任何阻塞
-      D-->>O: 回滚 无源写入
-      O->>D: 持久rejected及逐项原因
+      O->>D: 无源写入 仅持久rejected及逐项原因
     else 全部有效
       O->>D: source历史 组织依据 回执 库revision同事务
     end
@@ -98,11 +97,13 @@ library v4→v5新增：
 
 首次实际组织更正position=applied／editRevision=1。undo期望applied，redo期望undone；在同一事务内核editRevision、originLibraryId与全部实际变更项当前整条source.revision（不含原no-op项），并验证要恢复的集合仍存在。任何不符整组拒绝；不允许force、字段级静默rebase或仅比“值又相同”。成功将本次变化字段恢复到before或after，每个源revision+1、保存当前完整source历史、记录代次+1、更新预期source修订及位置，并同事务保存新动作回执。
 
+实际变化前同时核对条目修订与记录代次的下一值仍为safe integer；上限拒绝不改变源、历史或记录head。条目无变化不增加source.revision；新回执及组织依据的持久化仍推进库revision，使dirty／自动备份可以感知记录变化。组织持久类型与表在schema同源声明，避免schema反向依赖组织实现。
+
 原请求重复只返回旧committed结果，即使当前position已undone；不会变成redo。动作新ID重放同理。两个客户端同时撤销同一代次，最多一个成功，另一个依据失效；不需要全局撤销栈，不撤销别人的后续更正。
 
 迁移沿现有Drizzle journal及`before-migration-v4.sqlite`，未来版本门槛更新为5；旧v4权威回执填authority，不猜字段。组织操作未扩大现有库read/write/send资源种类，不增授或清除既有授权；独立restore继续原有read=true/write=false/send=false。新表随SQLite备份自动纳入；不改材料文件备份循环。
 
-正常重启保留同一libraryId及组织head。副本restore重新生成libraryId，组织originLibraryId和冻结请求保持旧值：result包装当前库／原outcome供审计，edit诊断originMismatch，revert在权限重新授予后仍instanceMismatch，不能因sourceId／revision相同而跨库执行。副本新操作必须读副本当前状态、使用新requestId；不重写项目引用，也不宣称现有ResourceRef已绑定库ID。
+正常重启保留同一libraryId及组织head。副本restore重新生成libraryId，组织originLibraryId和冻结请求保持旧值：result包装当前库／原outcome供审计，edit以原／当前库身份及既有instanceMismatch错误诊断来源不符，revert在权限重新授予后仍instanceMismatch，不能因sourceId／revision相同而跨库执行；不新增originMismatch错误码。副本新操作必须读副本当前状态、使用新requestId；不重写项目引用，也不宣称现有ResourceRef已绑定库ID。
 
 ### 5. 独立交付与后续消费者
 
