@@ -76,7 +76,13 @@ flowchart LR
 
 ## 续做入口
 
-本轮基线ba29ee61ac6f8700cfe6a9fbaa529a8a7a75aad1（相对e3c815b仅两份Markdown），主线同步已验；第16组及窗口观察已合入。第17组只收敛本次后续会话UI完成等待；闸门修正不重做，Windows初始化前边界与平台/科研整项继续开放。
+本轮基线f4ab1e5f1ed17ae9af656c1f9945005a2786d911，起始clean且主线已同步验证。第18组仅核Windows专项回执及Linux Electron普通委派工具行失败，不重修已绿harness后续会话；17.2历史缺证、平台及科研整项继续开放。所有新输入/入口/运行根均用cache，不依赖旧/tmp。
+
+## 18. Linux Electron委派工具行边界
+
+- [x] 18.1 核40613967285同head/三例输入与通过边界，不替代完整Windows46失败；消费40613967267原Electron model/trace/error，按同次身份区分实际派发与UI工具消息缺证，不以Browser或取消例补证。完成依据：日志及本树git show e3c815b源码核三例3/3、无所选skip，专属trace缺证不隐瞒；原Linux同run只有3ms queued样本及清理采样错误、HTTP=null，无可判定派发/投影的连续阶段，精确来源与时间窗见本轮delivery/cache事实表。
+- [ ] 18.2 原预算复现必要代表例，只修闭合本域根因；仅缺特定事实时复用uiRpc/model-kernel及断言边界的有界HTTP计数/只读snapshot，保留原错误、5秒断言和120秒用例预算，不新增RPC/全局等待或修改生产准入/停止。已交子范围：uiRpc清理前落盘、原断言HTTP计数/同scope快照及missingSession/rejected/timedOut/observed分类。原CI缺原断言结束时模型请求数、实际run/工具状态和watch送达，无法判定原受理到onStart间机制；本机原样及新增观察均通过，不关闭原CI根因，不改等待。
+- [x] 18.3 cache静态承载/5993独立配置，图形实跑逐次预检显示；适用双宿主最小代表及静态/OpenSpec/diff，更新原delivery并交独立增量，确认自有收尾与必要工件无旧/tmp前置，完整平台/科研整项不关闭。完成依据：原样Electron1/1、观察双宿主2/2、快照分类修正后Electron1/1分别记录；原5秒/120秒不变，类型/架构/OpenSpec/diff及元数据自检通过，Biome退出0/原有1 warning。已取delivery instructions更新原记录并导出独立补丁；三个profile均stopped，必需配置/静态入口/调查代码均在Git或cache。46/52，18.2原CI根因保持开放。
 
 ## 17. 同次后续会话的完成观察
 

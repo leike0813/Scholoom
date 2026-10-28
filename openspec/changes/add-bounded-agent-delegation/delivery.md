@@ -1,5 +1,46 @@
 # 实际交付与交接
 
+## f4ab1e5f后的Linux Electron委派入口取证
+
+起始HEAD=`f4ab1e5f1ed17ae9af656c1f9945005a2786d911`、clean，主线已同步构建/tools与定向复验。本轮只交付普通委派工具行的诊断增量；**原Linux CI根因未闭合，18.2保持开放**。18.1/18.3完成后为46/52，原4.2/4.3、6.1/6.2及17.2仍开放。不重放旧patch、不修已绿harness后续会话或旧152ms等待，不改其他线文件。
+
+### Windows回执与Linux原失败
+
+正式输入根为`/home/joshua/.cache/scholoom-round13-acceptance/`（R）。Windows专项40613967285检出head为e3c815b3af6bd4b9718820f641b10bab57a69b24，`windows-diagnostic-ci.log:99`核head，356–372行核实际命令及三例3/3（52.7秒）：取消16.4秒、excerpt6.5秒、附件22.3秒。只读`git show`同head的三份kernel测试核输入与无所选skip分支：真实受限worker/childHold、材料42/允许report输出与父子实例、所属取消及重启不重放；显式摘录/草稿/checkpoint；真实RPC附件字节、reader/PDF记录、撤send无新增模型及撤read拒绝。只在HTTP模型边界受控，不当科研质量或任意科研角色验收。
+
+安全细节在本轮`windows-receipt.json`，区分“同head源码断言+实际pass”与逐步骤trace：原artifact没有windows-agent专属trace，execution-report属于另一2×5组，不能用它伪造三例完整时间线；现有日志与Git源码已足够接收专项3/3，未重跑或新增下载。完整Checks同head的Windows692通过/46失败/42跳过仍是另一组，专项不关闭4.2/4.3。
+
+Linux Checks40613967267同head，目标为`user observes actual delegation, opens its saved report and retains the conversation draft`，原60行toHaveCount期待1实际0、5000ms。消费R的`linux-ci.log`及artifact12786678615的同次Electron `ui-5174/agent-delegation-user-obse-362c0-ains-the-conversation-draft-ui-electron/`中的trace.zip、error-context.md和model附件`model-kernel-execution-36ad0372d4b0ef6c69cf692aef2269da871ed13e.json`。下载状态另见artifact-trace-download-status.json；条目均已存在cache，不凭另一Browser/取消例或selected entries的complete标记补证。当前目标测试、model-kernel/observer/remote-agent相对该head无源码差异（本轮增量之前），没有归因于后续未知改动。
+
+原project=`7a1aa308-7e35-4ac7-955f-5ba54fa375b1`、session=`7447261a-beab-4dbf-b918-bb038c31fa5c`、run=`a142fb84-c7a5-471e-abe1-b3819449a79e`；capture startedAt=1793153124885，首3ms样本queued/instruction accepted，无工具或实例。原断言1793153125039–1793153130041，14次计数仍0。后两个5175ms样本是清理期间samplingError=unavailable，并非连续5秒状态记录；controls/children为空且无丢弃。HTTP计数null表示未观测，不能记0。trace没有目标工具的Electron浏览器轮询帧或同次watch附件，原用例未消费uiRpc。只能确认该次工具行未出现，不能证明worker未启动、模型没请求或已派发未显示。精确来源/窗口与缺证在`linux-original-timeline.json`；未下载失败，无远端HTTP错误可报告。
+
+### 实际增量及边界
+
+仅改`tests/ui/agent-delegation.spec.ts`和本change原tasks/delivery。用例接入已合入的uiRpc，清理前落盘；选中session身份取实际导航行，模型计数来自自有HTTP服务器。原工具行断言前后固定startedAt/endedAt/outcome及计数，finally最多等待500ms的一次既有workbench.snapshot，投影只保存同project/session/run、最近16条指令/工具的身份/状态/工具名，无正文、材料、token或错误文案。原错误继续传播；该读不刷新UI，不把清理时或稍后的状态冒充原断言时状态。
+
+snapshotStatus区分missingSession/observed/rejected/timedOut，拒绝只记复用observationErrorCode的白名单码，首次结果固定、晚到RPC不覆盖超时。500ms只界定采集等待；底层最多一条原RPC受既有期限/dispose约束，未声称500ms取消。附件写入失败只加固定注释；硬总超时附件仍可能不完整。不新增RPC/schema或生产接点，不改默认5秒工具行等待、120秒用例预算、权限/容量/停止/unknown，不并改窗口fixture或计算launcher。取消分支只共享新增诊断，本轮没有宣称该UI分支新增通过。
+
+### 原失败、实际验证与审查
+
+新根`/home/joshua/.cache/scholoom-agent-round14-8MivYs/`（A）在首次运行前建立；所有命令先export TMPDIR=A，payload用bash，配置/项目/profile/结果/补丁均在cache。`node R/create-ui-config.mjs A/ui.config.mts`在本树cwd生成配置，静态入口为`R/preserved-tmp/static-ui.mjs`；端口始终5993，每组独立profile，逐次DISPLAY=:99的xdpyinfo预检均通过。没有读取旧/tmp入口或BBT原包，本任务不需BBT；没有新Xvfb，不停止共享显示。只改测试，复用主线已验产物，测试期间未构建。
+
+| 验证组 | 实际结果与限度 |
+| --- | --- |
+| `baseline` | 原样Electron1/1，35.1秒；没有复现原CI工具行失败，不能写为已修 |
+| `observed` | 新观察双宿主2/2，Browser31.3秒/Electron42.7秒，总94.86秒；工具行各4356/4342ms通过，实际模型累计0→2、同run快照delegate_agent complete/wait_delegation streaming。报告真实保存/读回/打开及原草稿/刷新断言均执行 |
+| 审查修正 | 原生gpt-6.1-sol/high、fork_context:false辅助只读发现候选snapshotUnavailable合并三种失败导致缺证；补固定状态及白名单错误码。静态复核首次状态/晚到保护/原错误传播无问题，未运行测试/构建/CI，现已关闭 |
+| `final` | 状态细分后仅补Electron代表1/1，36.4秒，总54.96秒；工具行4339ms通过、HTTP0→2、snapshotStatus=observed，同project/session/run与实际受理指令相符。Browser的2/2证据属于上一组，不称最终重复2/2 |
+
+最后命令：`export TMPDIR=A; DISPLAY=:99 xdpyinfo > A/final-electron-display.log 2>&1`预检成功后，`SCHOOLOOM_UI_PORT=5993 SCHOOLOOM_UI_DATA_DIR=A/final-profile DISPLAY=:99 PLAYWRIGHT_JSON_OUTPUT_NAME=A/final.json node node_modules/@playwright/test/cli.js test --config A/ui.config.mts tests/ui/agent-delegation.spec.ts --grep 'opens its saved report' --project ui-electron --workers=1 --reporter=list,json --output=A/final-results`（A/R按上文绝对根展开）。baseline/observed命令、JSON与原log均保留；代表例没有重试、统一sleep或加时。新结果的三端身份、16项/16KiB容量与合成敏感字串排除自检通过（`summarize.mjs`、`observed-summary.json`、`final-summary.json`）；原model附件仍是父子进程与委派仓储事实源，不把工具行当child running。
+
+tools类型、architecture（14模块/0 findings/0 granted exceptions）、OpenSpec strict/schema及diff通过；Biome最终退出0，保留原有SCHOOLOOM_UI_DATA_DIR非空断言的一条warning，首次格式错误及修正日志保留。新正例控制窗口有截断，summary保留丢弃计数，不把未保留阶段当作未发生或把窗口当完整时间线。没有schema/生成文件/生产变动，不重复生成或全仓构建。独立补丁`A/delegation-ui-evidence-f4ab1e5f.patch`临时index导出、前向cached/当前树反向检查通过，真实index不变。原样及后两组profile只读核均stopped、model附件childClosed/phase=stopped；项目和结果保留，原配置退役后不删除登记项目目录。
+
+### 具体缺证与停止
+
+18.2尚缺原失败1793153125039–1793153130041内：实际模型HTTP请求数、真实父instance/onStart/initialize/consume/工具开始，以及同run watch工具消息送达；旧包只有受理后3ms样本，清理报错不能补足。新观察能在后续相同失败时区分：HTTP0且同run无工具→继续核受理至worker/model边界；HTTP已发且仓储有工具而窗口无对应watch→核发送/投影；watch已有工具而DOM无行→核UI应用。缺原事实不选择其中一条，更不从空controls推断生产根因。需要下一次该目标的同次新附件，非等待泛化跨线结论；本轮不重复绿色组或扩大启动调查。
+
+内部UI/RPC/broker、父子worker、仓储、材料/报告文件及授权真实；外部模型仅由delegationModel的HTTP夹具控制，Electron目录选择沿既有宿主替身。不是科研角色或质量验收。Windows专项3/3已接收但完整46失败、4.2/4.3、真实I3/I5/I6保持开放，17.2旧152ms不修。本轮必要输入与调查代码都在Git或上述cache，精确入口见cleanup-check.json，无现有/tmp内容作为接续前置；历史旧路径仅作旧证据。无依赖安装/升级/下载、开发服务、真实库、其他树操作、提交/同步/推送/PR/归档，交接后停止。
+
 ## 第十三轮主线验收
 
 本场景被动观察与三份工件已保全合入。独立两轴审查对本线无确证缺陷；完整构建／类型／架构通过，主线后续会话普通场景双宿主均通过，原5秒期限保持。主线13项内核组合含四个model-kernel归属／失败／IPC回归全部通过。新正例不补旧152ms缺证，17.2继续开放。
