@@ -1,6 +1,44 @@
 # 调查依据
 
-## 本机前置机制实跑（2026-10-28，29cd728）
+## 最小文件视图与继承句柄实跑（2026-10-28，ba29ee6）
+
+本片开始核HEAD=`ba29ee61ac6f8700cfe6a9fbaa529a8a7a75aad1`且clean，无`.codegraph/`；已读AGENTS、共同计划“第十二轮验收后的安排”、本change原工件、scholoom-dev及当前apply。只消费本树正式源码和`/home/joshua/.cache/scholoom-round12-acceptance-NagGbw/`交接证据，不重放旧补丁。用户直接授权有限文件／FD原生调查；仓库写集只有本change四工件，未改platform、协议、UI、CSP或生产期限／unknown／容量保护。
+
+全部临时原生源码、控制器和原始结果保留在`/home/joshua/.cache/scholoom-report-files-round13-Wfc0WT/`，TMPDIR同根。实际工具为systemd259.5用户manager、bwrap0.11.1、cc15.2.0，已有普通权限入口可用；未提权、安装或修改全局配置／用户权限。复用上一轮scope-probe只作可信目标scope读回／等待，不重复已绿CPU／OOM／pids压力或停止负载。
+
+### 实际条件矩阵
+
+`file-first-result.json`保存编译、启动参数、样本消息、宿主PID核对、内核限额及收尾；`file-conditions-matrix.json`是其一致性复核索引，不是另一轮OS实跑。以下全部文件内容和代理响应都是本轮固定合成数据，没有真实凭据、项目、库或profile。
+
+| 条件／有限反例 | 实际观察 | 可支持的结论 |
+| --- | --- | --- |
+| 宿主正向控制 | 批准文件、未映射文件和凭据诱饵分别读得18／16／24字节；自有pathname／abstract Unix服务均返回19字节固定响应 | 文件及服务确实可用，不能以样本不存在解释后面的拒绝 |
+| 预执行／限额 | 三case进入main时user／mount／pid／net／cgroup句柄异于控制端，NoNewPrivs=1、CapEff=0；外部在G动作前读回源及目标scope的cpu.max=`20000 100000`、memory.max=`67108864`、swap.max=`0`、pids.max=`16` | 有限样本在策略及限额下执行；不把属性请求当兑现，不重复资源压力试验 |
+| closed：只读批准文件及隐藏路径 | 可信launcher先close_range关闭FD≥3；main首次fstat的FD3–15均EBADF。批准文件可读，写打开EROFS(30)；隐藏文件、诱饵、`/proc/1/root`诱饵及未映射pathname均ENOENT(2)，宿主abstract socket连接ECONNREFUSED(111) | 此最小视图对被测路径／句柄拒绝成立；不是通用文件／代理隔离证明 |
+| inherit：文件／目录FD | 故意保留FD3–7穿过bwrap；FD3直接读得24字节诱饵，FD4通过openat读得16字节未映射文件 | namespace和路径不可见不能撤销已继承文件／目录权威 |
+| inherit：已连接Unix／TCP FD | FD5／6各发送9字节固定请求、收到19字节自有宿主代理响应，服务各记录1次请求 | 新netns不能撤销已连接socket；无网络策略必须审可信launcher及继承代理 |
+| socket：只读映射pathname socket | 即使FD3–15全关，`/approved/relay.sock`的只读bind仍完成同样请求／响应，服务记录1次请求 | 只读文件挂载不把socket IPC变成只读或取消其宿主能力；资源映射不能只检查ro标志 |
+| inherit：迁移范围反例 | FD7对本轮目标scope的cgroup.procs写入`2\n`返回2；宿主PID1442151从源成员消失并进入目标成员，宿主`/proc/1442151/cgroup`也指向目标。源原成员1442149／1442150仍在；目标原guardian1442135仍在 | cgroup namespace、NNP和零CapEff不能撤销继承迁移句柄。不能把原scope空／退出视为全部执行已停止；本片只迁入同样有限的自有scope，未迁入Orca／他人或无约束scope |
+| 无迁移句柄及挂载扩张 | closed／socket的FD7为EBADF，直接cgroup路径ENOENT，宿主PID留在原scope；三个case的直接bind／remount均EPERM(1)，有限子进程nested unshare亦EPERM，无forcedKill | 此环境拒绝了被测入口；nested后续tmpfs／remount／隐藏文件读取为null，即未执行，不能分别记作拒绝。未确证EPERM来自哪一宿主策略 |
+| 收尾 | 宿主正向控制、目标guardian及三个case共五个唯一unit均自然退出0，最终inactive／not-found；源及目标cgroup移除、控制器原cgroup未变。控制器等待自有服务器关闭；一致性复核另只读查询这五unit仍inactive | 本次有限样本和服务已收尾，不等于控制器丢失／并发逃逸或生产完整停止已验 |
+
+迁移精确源unit为`scholoom-report-fd-inherit-703ed07c-7276-498d-8858-f09967835dfd.scope`，目标为`scholoom-report-fd-target-494d5b71-908c-4e7f-9b32-fa260b9d72b7.scope`。没有打开其他scope的迁移文件；目标上限在保留FD前已由独立读回证明，与源相同。
+
+计数将trusted launcher连接与payload请求分开：closed的Unix／TCP各accept1但requests0；inherit各accept1／requests1；socket的Unix accept2／requests1、TCP accept1／requests0。launcher为构造正反例在隔离前建立自有连接，故不能说整条启动链零连接。两项宿主Unix正向控制各accept1／requests1。原始计数无推算、无外部目标。
+
+### 可信边界与仍缺证部分
+
+`file-launcher.c`只读映射公开系统运行库、固定样本及批准文件，私有proc／dev／tmp，清空环境；socket case额外映射自有socket。三个case没有为通过添加自定义seccomp或disable-userns选项。继承FD测试在首次打开文件前记录fstat身份，后续核身份，避免把重复使用FD误认为继承。FD0–2实际是Node控制I/O的socketpair，不是FIFO；它们的通用代理／SCM_RIGHTS行为未校准。样本只枚举0–15，未实测高FD、迟到获取、FD转移或恶意输出；控制器只服务固定有限native程序，不能作为不可信报告控制器交付。其输出超额分支仍会追加缓冲区，不能据本片最大3026字节输出宣称恶意输出有硬内存上限。
+
+文件视图、cgroup及socket为真实OS机制；数据／服务／程序为合成校准样本，没有生产ResourceRef、ReportResources授权或harness替身冒充真实接入。反例足以要求先闭合句柄、特殊文件和迁移权威；closed正例不足以证明全部代理已拒绝，故活动报告保持unavailable。外部DNS／LAN、Windows／macOS、浏览器完整进程图、控制器丢失／恢复、unknown／容量组合与双宿主呈现仍缺证。Mac受管执行不可用不变。
+
+首次大payload因bash here-doc仍使用/tmp而EDQUOT失败，`payload-first-failure.log`保留，当时未启动样本或监听器。改用内置apply_patch写控制器，node语法检查通过；两个C程序以`cc -O2 -Wall -Wextra -std=c11`编译退出0且无warning。唯一有限实验为`file-calibration.mjs`，退出0只表示调查完成；没有重试或重跑。随后`check-file-evidence.mjs`读取既有结果并独立核对宿主PID迁移、样本控制／拒绝、服务计数和五unit收尾，通过。独立只读复核未发现确证的假阳性、越权目标或收尾遗漏，未新增OS实跑。
+
+当前CI沿主线已完成29cd728／40591705520：Linux内核750通过26跳过、UI126通过32失败6跳过；Windows723通过11失败42跳过；Mac人工UI13通过1失败、fallback4／入口4通过。新e3c815b的40613967285／40613967267只保留交接截点运行中，本片未查询、轮询或计通过。没有新的目标平台结论。
+
+最小下一步是主线审独立platform Adapter的预执行FD白名单、普通文件映射、不可转移的控制通道和迁移防护，职责输入见design同名节。浏览器维护／分发、OS部署权限、呈现体验和预算仍待决定；本片没有降低产品保证、采纳画面流或实施2.1b。
+
+## 前一轮本机前置机制实跑（2026-10-28，29cd728）
 
 本轮先确认HEAD为`29cd7283388dfd752911eacb9c3bf8416031db15`、工作区干净，无`.codegraph/`。消费`/tmp/scholoom-round11-acceptance-Jx5Oez/`的本线冻结／接收记录与本树正式工件，不重放source.patch。用户只授权候选A的普通权限前置校准，不采纳像素／画面UI，不写生产platform／协议／ReportView。以下不是浏览器或双宿主通过结论。
 

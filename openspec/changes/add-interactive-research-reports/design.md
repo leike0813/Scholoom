@@ -2,7 +2,7 @@
 
 ## 变更总览
 
-用户已采纳 [investigation](investigation.md#已获得本轮产品选择) 的项目内有界产品范围；资源及来源授权已接入，活动承载仍阻塞。当前共同源码29cd728，本片只校准候选A的本机原生前置，结果由investigation维护；没有采纳画面流或实施2.1b。既有资源限额保持；实验保护值不是新的产品执行／呈现预算。
+用户已采纳 [investigation](investigation.md#已获得本轮产品选择) 的项目内有界产品范围；资源及来源授权已接入，活动承载仍阻塞。当前共同源码ba29ee6，本片只校准候选A的文件视图及继承句柄，结果由investigation维护；没有采纳画面流或实施2.1b。既有资源限额保持；实验保护值不是新的产品执行／呈现预算。
 
 ```mermaid
 flowchart LR
@@ -59,7 +59,30 @@ ReportResources 是 `packages/editor` 内的 module，不新建包／数据库�
 
 ### 隔离与页面桥
 
-#### 本机普通权限前置校准（29cd728，本片执行范围）
+#### 最小文件视图及继承句柄校准（ba29ee6，已执行的调查片）
+
+本片仅调查：复用上一轮systemd用户scope＋显式bwrap及20%／64MiB／swap0／16tasks保护，先核工具、当前权限与实际限额；不重跑CPU／OOM／pids负载，不运行浏览器或产品UI。临时C样本／可信launcher／控制器及原始结果保留在自有`/home/joshua/.cache/scholoom-report-files-round13-*`，TMPDIR使用同根；仓库只改原四份工件。
+
+批准文件只读映射到固定位置，未映射文件及凭据诱饵全部来自本轮合成目录；禁止读真实凭据或用户profile。正向控制先证明这些自有文件／socket在宿主可用，再分开运行：无多余继承FD的最小视图；显式保留文件／目录／已连接Unix及TCP socket的危险正例；将自有pathname Unix socket只读映射进视图的危险正例。不能以netns或只读mount属性自动宣称代理拒绝。
+
+样本进入时核namespace、NoNewPrivs／capability和实际FD集合，策略必须先于测试动作。实际尝试原映射写打开、隐藏路径／proc路径、pathname及abstract Unix socket、继承FD／openat、直接及嵌套namespace挂载扩张。scope迁移只尝试本轮另一同样有限的自有目标scope及其cgroup.procs，不能迁入Orca／其他已有scope；若写句柄根本无法注入，应标缺证而非伪造拒绝。所有正负例如实记录，包括能扩展私人挂载但不能取得宿主数据的情况；不为通过另加隐藏的权限限制或新seccomp策略。
+
+每个scope及服务唯一命名、有限运行，finally仅停止本轮所有源／目标unit并核整组回收。结果只作为独立platform Adapter的最小职责输入；组外／继承代理没有证明拒绝则保持unavailable。外部DNS、Windows／macOS、控制器丢失／恢复、呈现／部署／运行时分发及正式2.1b仍不在本片。
+
+本片实际完成一次有限实验，精确根为`/home/joshua/.cache/scholoom-report-files-round13-Wfc0WT/`；完整矩阵、首次环境失败及边界只由investigation维护。关闭多余FD后，批准普通文件可读不可写、隐藏路径拒绝；故意保留FD时却可读取隐藏文件、调用宿主Unix／TCP代理并迁移到本轮同限额目标scope。只读映射的pathname socket也可调用宿主服务。活动报告继续unavailable，不能以netns、ro或源scope回收代替安全保证。原样本明确是调查工件，不接产品运行时。
+
+独立platform Adapter的最小职责输入如下，尚不是新增公共接口或实施授权：
+
+| 责任归属／现有入口 | 必须闭合的职责及下一窄校准 |
+| --- | --- |
+| platform预执行／原生启动门，复用ManagedNode监督语义 | 在不可信程序进入前核资源范围和FD白名单，关闭未授权FD；包含0–2控制I/O，不能把socketpair默认视为无权通道。核高FD、SCM_RIGHTS及迟到获取；本次0–15观察不足。明确可信launcher自身的宿主连接权限，无通用代理或可转移文件／cgroup控制句柄 |
+| editor ReportResources／ResourceAccess继续掌握字节及read/send，platform负责受控映射 | 对实际批准ref/basis取到的字节作有界只读暂存及前后核对，映射普通文件并核真实类型／身份；拒绝目录、socket及其他特殊文件，不能只检查ro。沿原身份／basis，不新建ResourceRef、存储或来源表。字节暂存与发布接口须主线审查，本片未实现 |
+| platform归属／controller，复用现有unknown及容量机制 | 不向样本暴露cgroup路径／迁移句柄或其他可扩大归属权威；完整停止核整个实际范围及泄漏／迁移可能，不以原scope空或根PID消失释放容量。先以本次继承FD迁移为反例，再校准控制器丢失、恢复／unknown及多代停止组合，不回退现有保证 |
+| platform OS策略／部署条件，主线决定 | 解释当前nested EPERM的实际提供者，并核需要的syscall／nested namespace策略；本次后续动作未执行，不证明独立拒绝。Windows和Mac无新增证据，缺必要提供者保持unavailable；不借安装、提权或新服务补齐 |
+
+下一片若获授权，先在平台所属边界审句柄／文件映射和归属机制，再独立校准，不能直接将此处临时控制器移入生产。生产接口、运行时分发／维护、OS权限、呈现与文本／无障碍体验及预算仍交用户／主线决定，不预设截图替代。当前总览图仍是目标，不表示ReportView或隔离桥已接入。
+
+#### 本机普通权限前置校准（29cd728，前一调查片）
 
 用户只授权候选A的平台前置，不采纳下方画面／输入承载。仓库写集仍为本change四份工件；临时原生样本、命令和原始结果保留在本次独立`/home/joshua/.cache/scholoom-report-platform-round12-*`，TMPDIR指向该根，避开本机/tmp的EDQUOT，不清理旧目录。
 

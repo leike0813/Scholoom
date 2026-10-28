@@ -1,5 +1,36 @@
 # 实际交付与交接
 
+## 第十二轮验收后的文件／句柄原生校准（ba29ee6）
+
+2026-10-28先确认HEAD=`ba29ee61ac6f8700cfe6a9fbaa529a8a7a75aad1`且clean，读取AGENTS、共同计划第十二轮安排、原工件和scholoom-dev／apply；实际执行后取得当前delivery instructions，更新同一记录。消费`/home/joshua/.cache/scholoom-round12-acceptance-NagGbw/`正式交接及本树源码，未重放旧patch、同步或取他树在研内容。仓库写集严格为本change的investigation／design／tasks／delivery，未改生产、协议或测试源码。当前任务仍6/13，2.1b及活动报告unavailable保持。
+
+**实际成果：** 候选A的最小文件视图有有限正例，但继承权威反例明确成立：文件／目录FD绕过隐藏路径、已连接Unix／TCP保留宿主代理，只读映射pathname socket仍可收发；继承cgroup.procs写句柄使样本实际迁入本轮另一同限额scope。批准文件只读、关闭多余FD后的被测路径／句柄拒绝，不足以证明所有代理／迁移已拒绝。完整数值、真实PID与计数由investigation首节维护；design增加独立platform Adapter职责输入，没有新增接口或生产实现。既有目标架构图不代表隔离承载已经接线。
+
+证据根为`/home/joshua/.cache/scholoom-report-files-round13-Wfc0WT/`，源码／原始结果明确保留为调查，不成为第二份报告业务实现。只用已有cc、systemd用户manager及bwrap，无安装／下载、sudo、系统配置／用户权限修改或新特权服务；不运行浏览器／VM／容器服务或真实profile。前片CPU／OOM／pids／多代停止负载不重跑。
+
+| 文件／入口 | 实际验证与边界 |
+| --- | --- |
+| `prerequisites.json`、`bwrap-help.txt` | 只读核已有systemd259.5／bwrap0.11.1／cc15.2.0及用户manager。没有以W_OK代替机制执行，没有假定本版存在preserve-fds参数 |
+| `file-probe.c`、`file-launcher.c` | 固定native有限动作及可信预执行策略。两个C均以`cc -O2 -Wall -Wextra -std=c11`编译退出0、无warning；关闭FD与故意保留FD分开，首次fstat先于文件打开并按身份核对，避免FD复用假阳性 |
+| `file-calibration.mjs`、`file-first.log`／`file-first-result.json` | 唯一有限实跑退出0，无重试。宿主合成控制、独立目标scope、closed／inherit／socket三case顺序执行；动作前读回源及目标实际20%CPU／64MiB／swap0／16tasks上限。继承FD7迁移由源／目标cgroup成员和宿主PID实际cgroup交叉佐证，仅指向本轮目标，没有迁入Orca或无约束范围 |
+| `check-file-evidence.mjs`、`evidence-check.log`／`file-conditions-matrix.json` | 读取既有原始结果做独立预期一致性核对：合成固定marker、errno、迁移成员、计数及五个自有unit收尾均通过；另只读查询这五unit仍inactive。不是新一轮OS／平台测试 |
+
+实际执行入口如下；重跑须另建自有根，不能覆盖这里的首轮证据：
+
+```sh
+FILE_CALIBRATION_ROOT=/home/joshua/.cache/scholoom-report-files-round13-Wfc0WT
+TMPDIR="$FILE_CALIBRATION_ROOT" node "$FILE_CALIBRATION_ROOT/file-calibration.mjs" "$FILE_CALIBRATION_ROOT"
+TMPDIR="$FILE_CALIBRATION_ROOT" node "$FILE_CALIBRATION_ROOT/check-file-evidence.mjs" "$FILE_CALIBRATION_ROOT"
+```
+
+**首次失败与收尾：** 大payload的bash here-doc因/tmp配额EDQUOT失败，`payload-first-failure.log`保留；当时未启动样本／服务。改用内置apply_patch写临时控制器，node语法检查通过后才编译运行。五个唯一scope自然退出0，均inactive／not-found且源／目标cgroup消失，控制器原cgroup未变；自有Unix／TCP服务等待关闭。Node stdio控制FD实际为socketpair，不当作已验证无权的FIFO。可信launcher预先连接服务，closed虽无payload请求仍各有1次accept；不谎称启动链零连接。原始源码和结果未作事后改写。
+
+固定C样本、合成文件和loopback服务是调查输入；内部OS／scope／namespace／FD／socket及迁移真实，没有用模块替身充当生产ResourceRef／ReportResources授权或harness。FD清单只观测0–15，0–2控制通道、高FD／SCM_RIGHTS／迟到获取仍缺证；控制器输出超额分支不是对恶意输出的硬内存限制，不移入生产。nested unshare实际EPERM，后续动作未执行，原因未确证；不通过隐藏附加策略或未执行项制造通过。独立只读复核（gpt-6.1-sol／high，无fork历史）核源代码与原始结果，未发现确证的假阳性、越权目标或收尾遗漏；辅助已结束关闭，没有另起会话、跨树消息或常驻任务。
+
+适用收尾为OpenSpec strict、scholoom-dev schema、diff检查及本地补丁reverse-check，实际命令／结果保留在同根。只改Markdown，无生产类型／生成映射变化，未重复共同基线已验构建、kernel或双宿主UI，未启动开发服务器或触发全仓CI。当前CI及新job交接截点见investigation首节；本片未查询／后台等待或新增Windows／Mac通过结论。
+
+**交回与停止：** 主线需审platform预执行FD／控制通道、普通文件映射、迁移防护与完整停止／unknown组合职责，然后决定是否授权独立Adapter；不能将临时systemd脚本视为生产提供者。浏览器运行时维护／分发、OS部署权限、呈现及文本／无障碍和预算继续待用户／主线决定。本片不采纳画面流、不扩权限或新协议；外部DNS、Windows／Mac、控制器丢失／恢复、真实报告／双宿主、2.1b／2.2／3.x、目标及旧版本Adapter、完整I5与科研质量继续开放。未提交／push／PR／archive，无真实库访问或其他树操作。
+
 ## 第十二轮主线接收原生校准
 
 本轮四份原生校准工件已保全合入，两轴独立审查无确证夸大。主线核实际conditions-matrix及原始数据索引：普通用户独立scope的CPU节流、64MiB内存／16进程、有限多代整组停止与本机loopback正反样本成立；首轮TCP计数缺口和网络窄补验分开保留。没有在主线重跑OS实验或将脚本自检当新平台实跑，原四scope已收尾证据保持。
