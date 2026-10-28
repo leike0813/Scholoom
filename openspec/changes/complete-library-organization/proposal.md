@@ -1,0 +1,33 @@
+# 变更提议
+
+## Why
+
+B 批已交付稳定选择和类型化题录，但现有 library.update 只更正单条完整题录，集合／标签的多选整理缺少原子提交、明确逐项结果和保护后续修订的撤销。record_operations 已有共同持久回执，可以复用，不能再造一套库或把题录历史当作撤销。本 change 是 C 的首个有界片：经真实公共客户端整理既有条目的集合成员／标签，再按原回执查询、撤销及重做；附件独立化、关联更正和集合结构操作继续单独闭合，不将本片称为整个 C 或 B 全平台完成。
+
+## What Changes
+
+- 增加同源 `library.organize`、`library.organizationResult`、`library.organizationEdit`、`library.revertOrganization` 四个领域端口，落实客户端→宿主 broker→library 的真实注册；本片先交可调用提供者，不预先挂占位 GUI 或开放更广原值／正式键工具。
+- 显式提交 `libraryId`、稳定 `requestId` 和最多100个 `sourceId/revision` 及指定字段的新集合。每条只可改 `tags`、`collectionIds`；跨集合沿同一 sourceId 更正，不复制条目、附件或材料版本。
+- 复用 `record_operations` 保存唯一稳定结果，增设组织变更依据表；整组原子，失败逐项区分阻塞与未应用，不把逐项报告变成部分提交。输入和变更依据各受明确字节预算保护。
+- 撤销／重做以变更记录的当前代次及实际受影响条目修订为前提，只还原该次组织字段并递增修订；任一后续变化整组拒绝。重启查询不重放，恢复副本只读保留原记录，不自动跨库重绑定。
+- 不实施集合删除、独立附件／移父、附件更名／用途、关系编辑、元数据撤销、笔记、合并／回收、索引、生态写入、GUI／Agent 工具消费或 CLI 持久配置。附件与资源库绑定的准确缺口／推荐交主线，不能为项目等待提前伪造 E 的删除分类。
+
+## 完成判据
+
+1. 在隔离真实库中，公共客户端一次将不同集合内多条题录整理到目标成员集合并更正标签；源身份、CSL未知字段、原值／来源／正式键及附件／阅读记录保持。新端口可脱离模型、GUI和完整生态宿主独立调用。
+2. 任一过期修订、不存在的集合、非法标签或预算超限不部分污染；有界结果明确每项应用／未变／阻塞／未应用，失联后按原请求身份查询真实提交。
+3. 撤销及重做递增修订、保留历史；其他客户端或旧接口后续更正后整组拒绝，保留新成果。重复同一请求只返回原结果，不把重复提交当重做。
+4. v4迁移、真实重启和独立副本恢复可核查组织记录；副本使用新库身份及原授权规则，原操作不能直接在副本撤销／重放；失败保留现场。
+5. 契约、注册、生成映射、真实 broker／SQLite／持久化及必要独立审查有证据后，才可称本提供者首片完成。GUI、root工具、整个 C、B 的1.4／6.1／6.2和跨平台／科研质量不据此关闭。
+
+## Capabilities
+
+### Modified Capabilities
+
+- `literature-catalog`：增加有界原子集合成员／标签整理、持久逐项结果、可逆组织记录及副本来源保护。现行有界查询、身份、授权、逐项摄取、备份恢复契约继续生效。
+
+## 决策与授权依据
+
+- [文献职责](../../../.scratch/domain-development/issues/02-literature-knowledge-scope.md#answer)、[C分批计划](../../../.scratch/domain-development/library-foundation-plan.md#四实施批次文件与验收)、[#13存储与变更](../../../.scratch/scholoom-foundations/issues/13-storage-and-change-model.md#answer)、[材料引用红线](../../../.scratch/domain-development/issues/03-project-research-assets-scope.md#库引用完整性红线)。
+- 以共同源码 `58eda1404fcc60036ce0e0f3ce30d5453ce1ee30` 开工，B字段父项已接收；B整体和完整平台仍开放。主线本轮委托技术局部选择，跨模块产品缺口以证据和推荐交回。
+- 本轮用户只授权调查及 `scholoom-dev` 实施规划，止于 apply 所需工件，不授权实施本 change 或创建 delivery。无依赖安装／下载、服务启动、真实库、Git提交／同步／推送／PR／归档；接续输入和结果使用 Git／cache，不依赖当前 `/tmp`。
