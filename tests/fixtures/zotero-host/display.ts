@@ -34,7 +34,8 @@ export async function electronTestCommand(
         },
       },
     );
-    diagnostics = result.stderr.slice(-4096);
+    // Program-mode receipts omit text already delivered through observe.
+    diagnostics = (result.stderr || diagnostics).slice(-4096);
     if (result.code !== 0) throw new Error(`display probe exited ${result.code}`);
   } catch (error) {
     throw new Error(

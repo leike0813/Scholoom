@@ -64,5 +64,5 @@ test('display preparation reports new Xvfb scratch failure before launching Elec
       DISPLAY: '',
       TMPDIR: join(directory, 'missing'),
     }),
-  ).rejects.toThrow(/display preflight failed \(new Xvfb\)/);
+  ).rejects.toThrow(/display preflight failed \(new Xvfb\)[\s\S]*mktemp/);
 });

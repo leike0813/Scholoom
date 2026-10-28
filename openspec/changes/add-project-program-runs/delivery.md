@@ -25,6 +25,10 @@ Windows专项触发范围及完整四场景步骤已保全合入，两轴审查�
 
 ## 当前状态与成果
 
+当前续做起点为58eda1404fcc60036ce0e0f3ce30d5453ce1ee30，工作区开始时干净。第18组修复显示测试helper确证的诊断覆盖，并显式声明Linux CI显示工具前置；负例红绿、新Xvfb与已有DISPLAY两分支均本机通过，原后代收尾不变。结果和可重建脚本位于 `/home/joshua/.cache/scholoom-project-execution-round14-CXHAoy/`，不依赖现有/tmp内容。Windows58eda14／40630840362的新步骤已实际3通过1失败，真实PID628最后观察preparing-runtime，根因仍开放。未修改生产、安装本机依赖、扩大超时或继续轮询，5.2／6.2不关闭。
+
+### 第十三轮状态（历史）
+
 当前续做起点为f4ab1e5f1ed17ae9af656c1f9945005a2786d911，开始时工作区干净，主线已接收第16组并完成同步构建／tools及定向验证。正式输入为 `/home/joshua/.cache/scholoom-round13-acceptance/`，本轮第17组只接入既有Windows专项workflow，完整四场景本机通过；未发现安全JSON附件缺口，测试／生产源码未改。新采样步骤尚无Windows目标回执，5.2／6.2及历史启动根因继续开放。新输入／payload／结果均在Git或本轮cache，现有/tmp不是接续前置。TaskPort／FileEdit、库权威、CSL草稿及报告授权不变，不重放补丁、同步其他树或触发CI。
 
 第三轮同步证据仅保留当时结果：`/tmp/scholoom-sync-recovery-wyn13R/recovery.md`、`synchronized.json`及当时日志（主线65项内核／双宿主2项），不替代最新A/B验收。旧公共及累计patch均为历史工件，已合入共同1026796，不再次应用。用户允许本地补丁／提交；继续禁止推送、PR、归档、依赖下载／安装、真实库和开发服务器。
@@ -567,3 +571,40 @@ Archimedes原生辅助保持gpt-6.1-sol/high、fork_context:false，仅写isolat
 独立可复验脚本入口为本轮check-workflow.mjs；case列表、命令日志、artifact-audit.json、结果／profile和补丁均在本轮cache。审计确认所需源码、可信入口、构建产物和Playwright／TypeScript／yaml实路径均不在/tmp；不依赖旧static-ui、XPI、oracle或显示服务，因此无需复制／访问它们。后续若开展UI／BBT，应另用主线cache保全入口，本片没有使用旧路径。测试配置及材料保留至配置退役，不清理旧目录。
 
 Hubble原生辅助保持gpt-6.1-sol/high、fork_context:false，只读复核workflow、四场景和输出路径，未发现确证问题，未改文件或代跑验收；父执行并接收结果。辅助已关闭，本轮自有进程收尾后交回01-windows-isolated-kernel-workflow.patch及02-openspec-evidence.patch、README／manifest，仅当前基线独立增量，不含旧累计patch。下一步由主线接入并正常push后消费同源码Windows该新步骤的四场景、首失败trace及诊断JSON；没有新目标回执就保持未验。5.2／6.2、Windows启动稳定性和完整change保持开放；到此停止，不自行提交／同步／push／PR／归档或触发workflow。
+
+## 第十四轮：Linux显示预检与首失败诊断
+
+起点58eda1404fcc60036ce0e0f3ce30d5453ce1ee30，工作区干净，已读本轮安排、原tasks／delivery并取apply，初始52/54。正式输入 `/home/joshua/.cache/scholoom-round14-acceptance/`，本轮独立根 `/home/joshua/.cache/scholoom-project-execution-round14-CXHAoy/`。bash先export TMPDIR到该根，所有payload、profile、结果和补丁保留其中；实际后已取delivery instructions，不复用旧/tmp输入或重放补丁。
+
+### 固定失败及已闭合因果
+
+固定40622631905／f4ab1e5的Linux完整内核758通过1失败26跳过，原生ownership19通过。linux-ci.log:4885、4904及原trace只确认scope首场景在无DISPLAY的新Xvfb预检401ms内返回127，尚未进入renderer／Worker。原stderr没有可判定原因，不能认定xdpyinfo缺失。日志确认Ubuntu26.04.1 LTS镜像20261012.163.1，Playwright依赖准备升级并配置了xvfb；没有xauth／x11-utils／xdpyinfo的安装或查找记录，缺的是证据，不等于未安装。
+
+代码核对及真实故障注入闭合了诊断丢失：runCommand的program模式已用observer送达stderr，最终receipt的stdout／stderr按既有契约为空；helper随后用空result.stderr覆盖诊断。给TMPDIR一个不存在的cache子目录，原始managed命令明确收到mktemp stderr／code1，原helper却只剩code1。先强化原scratch负例保留red-results／red.log，再仅将helper改为(result.stderr || diagnostics).slice(-4096)，原负例转绿。原截取单位是4096个UTF-16字符，不新增容量、白名单或框架；没有改platform原程序模式、停止或准入。
+
+本机原managed env只保留允许字段，PATH未由此helper从用户环境转发；bootstrap清空环境后，实际/bin/sh产生默认搜索路径。隔离搜索校准只记录PATH是否设置及工具present／missing，不输出原始环境：本机Xvfb、xvfb-run、xdpyinfo、xauth、mktemp、mcookie均可找到。仅用这些事实排除本机缺项，不能倒填CI。本机首个真实新Xvfb预检code0；stderr保留了既有显示号监听冲突及socket目录警告，原xvfb-run -a最终成功，不据警告反推CI127，也没有新增重试。
+
+### 实际改动及验证
+
+tests/fixtures/zotero-host/display.ts只保留已有流式诊断；tests/kernel/zotero-host-scope.spec.ts仅在原缺scratch负例增加mktemp语义断言。原完整Browser／Tab／busy Worker就绪、取消、全部metrics PID已退出及共享DISPLAY仍可用断言逐字保留。checks.yml在已有Linux setup:ui --with-deps后声明xauth／x11-utils，记录xvfb／xauth／x11-utils版本，并核四个/usr/bin工具可执行；这是必需测试前置的显式声明，不声称历史缺包已被证明。仅未来CI安装，本机没有安装／下载。矩阵、原其他步骤、预算、权限、重试及生产HostConnection／zotero／platform全未改。
+
+| 实际命令／阶段 | 首次失败／最终结果 |
+| --- | --- |
+| `node <本轮根>/probe-display.mjs` | display-investigation-first.json／.log保留修复前managed env、原始流stderr、覆盖结果及真实新Xvfb预检；代码在cache可重建，非替代业务实现 |
+| 原scope spec `--grep 'scratch failure' --output <本轮根>/red-results` | **1失败**，red.log；预期mktemp而旧helper丢失该诊断。受控的是不存在的scratch目录，不把code1反例当作重现历史code127 |
+| 同spec `--grep 'display preparation' --output <本轮根>/negative-green-results` | **2/2通过，2.0s**，negative-green.log：不可达已有DISPLAY严格拒绝，缺scratch保留实际工具失败；未回退成新显示 |
+| 先xdpyinfo预检当前DISPLAY，再明确清空DISPLAY运行原首场景，output new-xvfb-results | **1/1通过，4.1s**，new-xvfb.log；renderer／busy Worker和完整原收尾均真实走新Xvfb，未借共享DISPLAY替代 |
+| 另一次xdpyinfo预检后，保留已有DISPLAY运行原首场景，output existing-display-results | **1/1通过，3.0s**，existing-display.log；原共享显示保护查询也通过，未停止共享服务 |
+| tools／Biome／architecture | tools.log及biome.log通过，14模块254文件0 findings。仅测试／CI／工件变更，复用父已验同源产物，没有重建／跑全仓或TeX |
+| `node <本轮根>/check-ci-display.mjs` | ci-static.log通过：复用已装yaml2.9.1核YAML／bash语法、Linux准备位置，删除这一个新增步骤后与HEAD原workflow结构完全相同；未在本机执行apt install |
+| OpenSpec／diff | strict／scholoom-dev schema及最终diff／独立补丁检查通过；无正式规格、同源schema、生成映射或生产模块变化 |
+
+图形命令之前均用xdpyinfo实查当前DISPLAY并保存precheck日志；清空DISPLAY的worker仍由helper自身新Xvfb＋xdpyinfo预检，已有显示成功不冒充新显示。两份真实Electron userData及ready.json在本轮scholoom-owned-electron-*目录，evidence-audit.json记录实际Browser／Tab类型及分支。没有真实Zotero库／BBT／模型／业务替身，只有原固定Electron scope数据页与实际busy Worker，取消和native完整归属仍走原实现。Xvfb仍按系统协议使用新X锁／socket，本轮已真实通过；不依赖旧/tmp payload、不sudo改配额、不清旧文件或停止他人显示。
+
+### 一次Windows目标消费及交回
+
+只查询一次当前head的Windows专项，命中已完成58eda14／40630840362（windows-run-query.json），随后仅读取该完成run的原日志和artifact12791757137到cache。新isolated-kernel步骤实际 **3通过1失败**：exit／wait受控反例及解析器通过；真实配置首次start失败，实际PID628原因为readyTimeout，最后观察preparing-runtime，尚无runtime-prepared／取锁／业务初始化收据。清理前ready／exit／close均false，父kill后才记录exit／close SIGKILL。不能把受控wait样本PID1368的initializing-library当作真实提供者事实，或用清理后close倒推自然退出；windows-diagnostics-safe.json保留逐case／PID来源。采样入口和分类有了实际目标输入，真实Windows根因仍未闭合，本片不展开修复，也不再查询／等待。
+
+Feynman原生辅助gpt-6.1-sol/high、fork_context:false，只读CI包日志及本片三文件diff，确认stderr修正、原断言和CI位置，无阻塞问题；父持有故障注入、所有实跑和最终接收。辅助未写文件、代跑业务或自行查询CI。历史127的具体缺包／PATH／exec原因仍需新Linux目标stderr及前置版本事实；本片修复的是已证实的诊断覆盖，并声明必要系统前置，不把本机绿色称整组CI修复。
+
+必需源码／产物及已安装工具实路径经evidence-audit.json核对不在/tmp；保留入口为本轮probe-display.mjs、check-ci-display.mjs、display-investigation-first.*、red／green／两分支结果、Windows原log／zip／安全JSON。所有输入在Git或cache，未来重跑需重新检显示和X锁条件。交回01-display-preflight.patch（helper及负例）、02-ci-display-prerequisites.patch、03-openspec-evidence.patch，父负责接入／提交／推送；仅check、不应用旧增量。5.2／6.2、历史CI根因及平台／科研质量保持开放。自有执行收尾、共享显示仍可用后停止，不改N1／业务、不安装本机依赖、不触发全仓或再轮询。

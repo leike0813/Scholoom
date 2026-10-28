@@ -57,7 +57,7 @@ flowchart TD
 ## 5. 明确等待的输入与CI前置
 
 - [x] 5.1 已消费主线正式设计及源码输入；历史路径和符号冲突记录于design。共同1026796已合入全部七域源码，当前executionResources／taskPort／delegationOptions／programs、根工具、三域restore及task／programs标签均在本树；不再等待同步或使用旧累计补丁。真实联合操作另由8.4验收，不把代码合入当作实际整合完成。
-- [ ] 5.2 沿固定run／head和实际stage承接CI。来源识别及公共isolated-kernel安全诊断已交付，主线Linux13/13及本机四场景不关闭Windows稳定性。e3c815b专项40613967285成功但未执行新诊断；完整Checks40613967267 Windows692通过46失败42跳过，旧isolated-kernel单例ready-ipc失败仍保留。第17组已补新workflow触发及完整四场景入口，等待主线接入后的同源码Windows新步骤、首失败trace与自有子PID原原因／清理前后收据；没有这些目标结果不称通过，不从清理后close倒推自然退出，不轮询或触发CI。旧8c2／938c33f／29cd728样本按原run分别保留，历史TeX、跨平台及分发仍开放；不放宽生产期限、权限、停止／容量、锁或重试。
+- [ ] 5.2 沿固定run／head和实际stage承接CI。新Windows采样入口已实际运行：58eda14／40630840362新四场景3通过1失败，实际配置首启PID628为readyTimeout，最后观察preparing-runtime；清理前ready／exit／close均未收到，父kill后才有exit／close，不倒推自然退出。两个受控反例及解析器通过，采样／分类窄项有目标依据，真实启动根因仍开放。固定Linux40622631905／f4ab1e5唯一显示预检127的具体命令来源缺证；本轮已修确证的stderr空串覆盖，并声明CI工具前置，新Xvfb／已有DISPLAY各本机通过，仍待新Linux CI。历史各run及TeX／完整平台／分发分别保留，不放宽生产期限、权限、停止／容量、锁或重试，不继续轮询。
 
 5.1的输入核对不意味着新增报告适配属于本change；只有共同符号冲突或相关必要回归才阻塞对应整合，其他任务不串行等待。
 
@@ -77,7 +77,7 @@ flowchart TD
 
 ## 续做入口
 
-当前起点为f4ab1e5f1ed17ae9af656c1f9945005a2786d911，开始时工作区干净，主线已接收第16组并完成同步／定向复验。证据为 `/home/joshua/.cache/scholoom-round13-acceptance/`；本轮只推进第17组Windows采样入口。仅workflow／原tasks／delivery变更，复用已验构建及原四场景，不改生产、测试实现或Agent／窗口夹具。所有新工件、TMPDIR、profile及结果在 `/home/joshua/.cache/scholoom-project-execution-round13-E9XEZH/`，旧/tmp仅作历史证据，不作前置；不重放补丁、自行同步、触发或轮询CI。
+当前起点为58eda1404fcc60036ce0e0f3ce30d5453ce1ee30，开始时工作区干净，主线已接收第17组并完成同步及必要验证。证据为 `/home/joshua/.cache/scholoom-round14-acceptance/`；本轮只推进第18组Linux显示预检。仅所属测试／CI准备／原工件变更，生产源码与已验f4ab1e5相同，不重建相同产物。所有新工件、TMPDIR、profile及结果在 `/home/joshua/.cache/scholoom-project-execution-round14-CXHAoy/`，不依赖现有/tmp输入，不自行同步、触发或循环轮询CI。
 
 ## 8. 公共同步后的实际消费
 
@@ -139,3 +139,9 @@ flowchart TD
 
 - [x] 17.1 仅为既有windows-execution workflow补isolated-kernel helper、kernel-fixture、两个可信fixture及自身spec触发路径；availability后新增完整spec独立步骤，--list核实四个当前场景，沿用单worker／零重试／原预算及!cancelled条件，不改首批旧步骤条件。
 - [x] 17.2 核test-results/windows-isolated-kernel下安全JSON纳入既有artifact，失败trace及首失败不被重跑覆盖；未发现缺口，未改测试实现。本机同一四场景4/4及tools类型、YAML结构／workflow差异、OpenSpec／diff通过，已取delivery instructions更新原记录并交独立补丁。审计必需输入实路径及所有新工件均在Git／cache，不依赖现有/tmp。Windows目标未跑保持5.2／6.2开放，不触发或轮询远端。
+
+## 18. Linux显示预检与诊断覆盖
+
+- [x] 18.1 消费固定40622631905／f4ab1e5日志及trace，核managed env／命令查找和程序模式输出；真实缺scratch故障注入与原负例确认流式stderr被空result覆盖，首次红例保留，不据127猜定缺包。新Xvfb及共享DISPLAY实际条件分别核查。
+- [x] 18.2 display helper只保留已有4096字符流式stderr尾，scope原负例新增mktemp语义断言并由红转绿；checks既有Linux准备后声明xauth／x11-utils、核包版本与四工具绝对路径。原业务、后代收尾、共享显示、预算、权限、停止及重试均未改。
+- [x] 18.3 缺scratch首次1红，修复后两个负例2/2、新Xvfb原完整场景1/1、已有DISPLAY原场景1/1分别通过；类型／格式／CI静态／架构／OpenSpec／diff通过。新Windows40630840362按本轮head一次查询并消费完成日志／安全JSON，真实配置1失败与三个校准通过分开，未循环等待。已取delivery instructions更新原记录，交增量及cache入口；历史127具体来源、新Linux CI及Windows根因／5.2／6.2保持开放即停。
