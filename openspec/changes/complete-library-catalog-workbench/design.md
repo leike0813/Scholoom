@@ -1,5 +1,15 @@
 # 实现设计
 
+## ba29ee61：Mac分页返回滚动的有界诊断
+
+Checks40591705520／29cd728的新Browser负例为返回上一页scrollTop预期200实际0；相关library.spec与CatalogItemList在当前共同源码未变。已读取同run的diagnostics-macos-latest（artifact12774334158），仅提取该场景trace／error-context。trace可核离页前200、虚拟首行变化、第二页短列表及返回后700px占位，但没有恢复门、草稿写入或真实clientHeight，不能仅由此确定产品或夹具根因。
+
+本片复用原library.spec单场景及真实静态产品／两宿主，先加只读的测试侧滚动／保存／几何观察，保持全部行为断言和预算。实际布局仍由当前组件与语义token决定；不改公共fixture、RPC闸门、model-kernel，不重跑6.1b／5.4a。只有确定性证据闭合后才修改唯一滚动拥有者或夹具；若不足，交回确切缺失字段。生产修改先按影响构建再冻结测试；仅测试修改复用主线同源产物。结果／profile／TMPDIR使用本轮cache根，DISPLAY=:99预检后只关自有窗口；Mac目标没有新实跑时保持未验。
+
+原场景自然运行Linux双宿主2/2，未自然复现。随后仅在该场景延后可释放的浏览器animation-frame回调：第一轮返回已加载第一页后滚动200，原生scroll和虚拟首行已提交，但恢复门仍等frame，未写草稿；释放frame再离页返回，实际读取0。RED观察记录scrollHeight700／clientHeight136／top200与无save，排除该实验中的几何不可滚动或隐藏节点；请求及内部领域保持真实。该因果实验闭合一个产品竞态，不替代Mac内部状态证明。
+
+唯一修改点为CatalogItemList恢复effect：使用useLayoutEffect，在当前DOM占位提交后、浏览器交互前恢复滚动并同步设置现有restoredRange；空载入及清理仍同步关闭门。移除“下一frame才可保存”的空窗，不新增状态／缓存／恢复权威，不改虚拟化、条目范围、CSS或时限。原场景保留延后frame的代表回归，仍按真实用户滚动／原200返回断言验证；测试侧观察只输出有界几何与保存事件，允许删除临时重载scrollTop setter的详细探针。
+
 ## 29cd728后的6.1 Linux业务整合子片
 
 开工时本树HEAD29cd7283388dfd752911eacb9c3bf8416031db15且clean。仅扩`tests/ui/context-bridge.spec.ts`既有题录选择场景，复用已交付组件、现有createDevelopmentKernel及startModelKernel，不改本轮项目独占fixture.ts、Agent独占model-kernel.ts／execution-diagnostics。先人工入口导入含未知嵌套的独立CSL样本→已有字段／数字日期／circa类型化更正→集合归属及导航→列配置→关闭内核并重启读回；人工结果在模型准入前独立核对并记录。重启经现有development bootstrap启动真实CLI内核、附着owner，不用普通独立CLI实例冒充开发宿主可接管实例；不改变产品启动或锁归属契约。

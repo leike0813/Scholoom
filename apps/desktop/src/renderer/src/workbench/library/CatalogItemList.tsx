@@ -5,7 +5,7 @@ import type { LibrarySource } from '@scholoom/protocol';
 import {
   type CSSProperties,
   useCallback,
-  useEffect,
+  useLayoutEffect,
   useRef,
   useState,
   useSyncExternalStore,
@@ -32,17 +32,14 @@ export function CatalogItemList({ entries, selection, scope, rangeKey }: Catalog
   const visibleIds = entries.map((entry) => entry.id);
   const restoredRange = useRef<string | null>(null);
   const scrollRange = entries.length ? rangeKey : null;
-  useEffect(() => {
+  useLayoutEffect(() => {
     restoredRange.current = null;
     if (!scrollRange) return;
     const container = containerRef.current;
     if (!container) return;
     container.scrollTop = Number(readDraft(draftKey(scrollRange, 'scroll'))) || 0;
-    const frame = requestAnimationFrame(() => {
-      restoredRange.current = scrollRange;
-    });
+    restoredRange.current = scrollRange;
     return () => {
-      cancelAnimationFrame(frame);
       restoredRange.current = null;
     };
   }, [scrollRange]);

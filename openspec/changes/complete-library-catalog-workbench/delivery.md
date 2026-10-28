@@ -1,5 +1,45 @@
 # 实际交付与交接
 
+## ba29ee61：分页滚动本机竞态修复，Mac目标待验
+
+开工HEAD`ba29ee61ac6f8700cfe6a9fbaa529a8a7a75aad1`且clean。本轮完成3.2b本机子项，当前**27/32**；没有用CLI状态关闭完整change、Mac或科研质量。只改CatalogItemList、原library.spec单场景及本change的design／investigation／tasks／delivery，共六文件。原字段不支持表达清单、6.1b／5.4a接收范围保持；没有重复这些已绿整合或BBT、改公共fixture／rpc-gate／model-kernel或增加生产配置。
+
+### 已核事实及唯一修复
+
+已消费Checks40591705520／29cd728的目标Mac Browser trace（artifact12774334158），原断言是返回第一页scrollTop200→0，不是列宽；Electron同run通过。当前相关测试／列表源码与该run相同。trace证明离页前原生200、虚拟首行变化及分页空载入／占位变化，没有草稿写入、恢复门或真实clientHeight；**不能据此断言Mac实际内部根因已经确定**。细节与时间点沿[investigation](investigation.md#ba29ee61新mac滚动回执与本机因果实验)维护。
+
+本机原场景自然双宿主2/2，随后在同一场景用可释放帧门延后浏览器RAF回调，确定性RED1失败：clientHeight136／scrollHeight700足够滚动，真实scroll200与虚拟首行已提交，但旧restoredRange仍关闭、没有save200，翻页返回实际0。该实验直接证明“列表可交互而保存门等待下一frame”的产品窗口。窗口闭合后使用同一延后frame场景GREEN双宿主2/2；实际save200及返回200由有界诊断记录。
+
+生产修改只在`CatalogItemList`：useLayoutEffect在DOM占位提交后恢复位置，随即同步开启**同一个**restoredRange保存门；空列表和清理仍关闭。移除RAF延后开门，不新增状态、恢复权威、查询、DOM耦合或尺寸等待。虚拟化、页容量、身份选择、CSL／原值权威与所有生产时限未变。该修复没有结构／样式／token变化，现有UI设计及导航契约适用，无新规格行为。
+
+原library.spec场景保留上述代表时序回归，原200精确断言、90秒预算与默认5秒poll不变。测试帧门仅延后回调，不注入UI选择、库响应、保存结果或工具结果；真实客户端、内核／领域、SQLite、静态产品、Browser与Electron均沿既有接线，模型未参与。有界诊断最多256事件／文档，记录同一列表的scroll／实际保存、几何及对应滚动偏好；跨reload保留前段观察。详细临时scrollTop setter探针已删除，RED完整证据仍保留。
+
+### 实际命令、首次失败及最终结果
+
+证据根`/home/joshua/.cache/scholoom-literature-round12-adT7WM/`。UI／诊断使用独立profile／输出／TMPDIR，DISPLAY=:99先经xdpyinfo预检；不启新Xvfb或开发服务器，不关闭共享显示服务。一次zsh heredoc出现/tmp配额失败后改bash及cache TMPDIR，未把它计为产品回归或清理旧工件。
+
+共同UI命令为：`TMPDIR=<根>/tmp DISPLAY=:99 SCHOOLOOM_UI_PORT=5841 SCHOOLOOM_UI_DATA_DIR=<独立profile> SCHOOLOOM_ROUND_OUTPUT=<对应输出> node node_modules/@playwright/test/cli.js test --config <根>/ui.config.mts tests/ui/library.spec.ts --grep 'library selection, collection navigation'`。config只替换为既有`/tmp/scholoom-sync-recovery-wyn13R/static-ui.mjs`静态承载，原fixture与同源业务路径不变；没有依赖DEV样例。
+
+| 执行 | 实际结果与证据 |
+| --- | --- |
+| 原产物、profile-first／ui-first，原单场景加观察 | **2/2通过，1.1分钟**，`ui-first.log`／`ui-first.json`。未自然复现，不称Mac问题在本机稳定出现。 |
+| 同源未改生产产物、profile-red／ui-red，增加可释放帧门，附`--project ui-browser` | **1失败**，原200→0及真实几何／无save在`ui-red.log`、`ui-red.json`、目标catalog-scroll-observation.json和trace。RED发生在帧释放前已有漏存，后续测试闸门取消映射修正不改变该证据。 |
+| `pnpm --config.optimisticRepeatInstall=false --filter @scholoom/desktop build` | **通过**，`build-desktop.log`。只构建受影响桌面；共享／内核沿主线已验同源产物，产物冻结后才运行GREEN，没有测试期间重建。 |
+| 构建后同UI命令、profile-green／ui-green，保留延后frame | **2/2通过，1.0分钟**，Browser18.6秒／Electron21.8秒，`ui-green.log`／`ui-green.json`及两宿主catalog-scroll-observation.json；提取`green-scroll-facts.json`显示Browser136／700、Electron161／700下真实save200及恢复200。只跑这个代表场景，不重复14UI／6.1b／原包。 |
+| `pnpm --config.optimisticRepeatInstall=false --filter @scholoom/desktop typecheck`；`node node_modules/typescript/bin/tsc --noEmit -p tsconfig.tools.json` | **通过**，`desktop-types.log`／`tools-types-final.log`。 |
+| `node node_modules/@biomejs/biome/bin/biome check apps/desktop/src/renderer/src/workbench/library/CatalogItemList.tsx tests/ui/library.spec.ts`；`node scripts/check-architecture.ts` | **通过**，`biome.log`／`architecture.log`，架构0 findings。无协议／生成映射改动，不新增生成任务。 |
+| 当前apply及delivery instructions；OpenSpec strict／scholoom-dev schema；diff／增量patch核查 | **通过**，`apply-final.json`／`delivery-instructions.json`／`openspec-strict.log`／`openspec-schema.log`／`diff-check.log`／`patch-check.log`。仅3.2b本机子项勾选。 |
+
+使用原生gpt-6.1-sol／high、fork_context:false辅助只读核调用链及独立审查。产品layout effect修改未发现阻塞问题：旧scroll事件读取派发时当前DOM位置，空载入仍拒绝保存，不能把旧事件晚到直接等同跨范围覆盖；仅删除RAF但继续普通effect仍缺提交前保证。辅助指出测试释放RAF后应保留原ID→重排原生ID映射，父Agent已修取消与同状态早返，辅助再核确认闭合；最终GREEN由父执行。没有新增共享接口或产品选择需要本轮定案。
+
+### 交回与未验
+
+新Checks40613967267只读核一次，head e3c815b与输入一致；截点整体／Linux／Windows仍in_progress、Mac job completed/failure，`ci-current.json`保留状态。未消费该job指定场景或查其失败原因，未继续查询／轮询／触发CI；不能当修复源码的Mac实跑。Windows diagnosis40613967285没有本轮新增结论。旧29cd728完整CI的正式平台输入见主线第十二轮记录，计数不推同因。
+
+结束时5841无监听、profile-green CLI status为stopped，原UI／静态进程及自有窗口已收尾，隔离库／配置留在cache根，未清理登记目录；共享DISPLAY保持。辅助只读Agent已关闭。无安装／下载依赖、真实用户库、其他树、提交／推送／PR／归档或自主同步。
+
+交付`<证据根>/catalog-scroll.patch`，仅六文件，依赖共同ba29ee61；没有额外公共补丁顺序或旧累计内容。Mac目标需将该增量接入后，在实际Mac运行同一场景并保留几何／保存阶段；本机因果实验及GREEN不能替代它。完整Windows、父4.1／4.2收尾、完整6.1／6.2、标准CLI持久配置、分发与科研质量继续开放；达到本片边界停止。
+
 ## 第十二轮主线验收
 
 6.1b五文件增量已保全合入，独立两轴审查无确证缺陷。主线完整构建后用已合入的新model-kernel运行原整合：Browser通过，Electron首次显示服务启动失败，复用预检通过的已有DISPLAY后通过。真实产品入口收录／更正、集合／列／多选、原会话工具读取及手动／模型内核重启读回均执行，外部模型受控，未代写工具结果。首次与补验分别在`/home/joshua/.cache/scholoom-round12-acceptance-NagGbw/main-ui*`及electron-recheck，不称一次2/2。

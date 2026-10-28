@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { Page } from '@playwright/test';
@@ -630,13 +630,76 @@ test('user imports, edits and groups real library metadata without losing the co
 
 test('library selection, collection navigation and columns survive bounded view changes', async ({
   uiPage,
-}) => {
+}, info) => {
   test.setTimeout(90000);
   const client = createKernelClient(
     await runningKernel(process.env.SCHOOLOOM_UI_DATA_DIR as string),
   );
   const suffix = randomUUID().slice(0, 8);
   const prefix = `稳定选择-${suffix}`;
+  let beforeReload: unknown[] = [];
+  await uiPage.addInitScript(() => {
+    let held = false;
+    const frames = new Map<number, { callback: FrameRequestCallback; scheduled: number }>();
+    const requestFrame = window.requestAnimationFrame.bind(window);
+    const cancelFrame = window.cancelAnimationFrame.bind(window);
+    window.requestAnimationFrame = (callback) => {
+      const id = requestFrame((time) => {
+        if (held) frames.set(id, { callback, scheduled: id });
+        else callback(time);
+      });
+      return id;
+    };
+    window.cancelAnimationFrame = (id) => {
+      const frame = frames.get(id);
+      if (frame) cancelFrame(frame.scheduled);
+      frames.delete(id);
+      cancelFrame(id);
+    };
+    Reflect.set(window, 'catalogScrollFrames', (hold: boolean) => {
+      if (held === hold) return;
+      held = hold;
+      if (!hold) {
+        for (const [id, frame] of frames)
+          frame.scheduled = requestFrame((time) => {
+            frames.delete(id);
+            frame.callback(time);
+          });
+      }
+    });
+    const events: unknown[] = [];
+    Reflect.set(window, 'catalogScrollObservation', events);
+    const observe = (kind: string, extra: object = {}) => {
+      const list = document.querySelector<HTMLElement>('[role="listbox"][aria-label="题录列表"]');
+      if (!list || events.length >= 256) return;
+      events.push({
+        time: performance.now(),
+        kind,
+        ...extra,
+        top: list.scrollTop,
+        height: list.clientHeight,
+        scrollHeight: list.scrollHeight,
+        spacer: list.firstElementChild?.getAttribute('style'),
+        first: list.querySelector('[role="option"]')?.getAttribute('aria-label'),
+        saved: Object.fromEntries(
+          Object.entries(localStorage).filter(([key]) => key.endsWith('|scroll')),
+        ),
+      });
+    };
+    const setItem = Storage.prototype.setItem;
+    Storage.prototype.setItem = function (key, value) {
+      setItem.call(this, key, value);
+      if (key.endsWith('|scroll')) observe('save', { key, value });
+    };
+    document.addEventListener(
+      'scroll',
+      (event) => {
+        if ((event.target as Element).getAttribute?.('aria-label') === '题录列表')
+          observe('scroll');
+      },
+      true,
+    );
+  });
   try {
     await client.connect();
     await client.call('library.grant', { read: true, write: true, send: false, autoBackup: false });
@@ -725,6 +788,8 @@ test('library selection, collection navigation and columns survive bounded view 
     );
     await panel.getByRole('button', { name: '下一页题录', exact: true }).click();
     await expect(panel.getByRole('status', { name: '题录选择' })).toContainText('已选 0 项');
+    // A native scroll can arrive before the next animation frame after the page commits.
+    await uiPage.evaluate(() => Reflect.get(window, 'catalogScrollFrames')(true));
     await panel.getByRole('button', { name: '上一页题录', exact: true }).click();
     await expect(
       panel.getByRole('listbox', { name: '题录列表' }).getByRole('option', { selected: true }),
@@ -740,6 +805,7 @@ test('library selection, collection navigation and columns survive bounded view 
     );
     await expect.poll(() => listbox.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
     const scroll = await listbox.evaluate((element) => element.scrollTop);
+    await uiPage.evaluate(() => Reflect.get(window, 'catalogScrollFrames')(false));
     await panel.getByRole('button', { name: '下一页题录', exact: true }).click();
     await expect(panel.getByRole('status', { name: '题录选择' })).toContainText('已选 0 项');
     await panel.getByRole('button', { name: '上一页题录', exact: true }).click();
@@ -758,6 +824,7 @@ test('library selection, collection navigation and columns survive bounded view 
     await expect(panel.getByRole('status', { name: '题录选择' })).toContainText('已选 0 项');
     await nav.getByRole('button', { name: '下一页导航集合', exact: true }).click();
     await expect(nav.getByRole('button', { name: '上一页导航集合', exact: true })).toBeVisible();
+    beforeReload = await uiPage.evaluate(() => Reflect.get(window, 'catalogScrollObservation'));
     await uiPage.reload();
     await uiPage.getByRole('button', { name: '文献库', exact: true }).click();
     await openLibraryDetails(uiPage);
@@ -771,7 +838,24 @@ test('library selection, collection navigation and columns survive bounded view 
         .getByRole('button', { name: '上一页导航集合', exact: true }),
     ).toBeVisible();
   } finally {
-    client.dispose();
+    try {
+      await uiPage.evaluate(() => Reflect.get(window, 'catalogScrollFrames')?.(false));
+      const path = info.outputPath('catalog-scroll-observation.json');
+      await writeFile(
+        path,
+        JSON.stringify(
+          [
+            ...beforeReload,
+            ...(await uiPage.evaluate(() => Reflect.get(window, 'catalogScrollObservation'))),
+          ],
+          null,
+          2,
+        ),
+      );
+      await info.attach('catalog-scroll-observation', { path, contentType: 'application/json' });
+    } finally {
+      client.dispose();
+    }
   }
 });
 
