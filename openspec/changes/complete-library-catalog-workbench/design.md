@@ -1,5 +1,13 @@
 # 实现设计
 
+## 29cd728后的6.1 Linux业务整合子片
+
+开工时本树HEAD29cd7283388dfd752911eacb9c3bf8416031db15且clean。仅扩`tests/ui/context-bridge.spec.ts`既有题录选择场景，复用已交付组件、现有createDevelopmentKernel及startModelKernel，不改本轮项目独占fixture.ts、Agent独占model-kernel.ts／execution-diagnostics。先人工入口导入含未知嵌套的独立CSL样本→已有字段／数字日期／circa类型化更正→集合归属及导航→列配置→关闭内核并重启读回；人工结果在模型准入前独立核对并记录。重启经现有development bootstrap启动真实CLI内核、附着owner，不用普通独立CLI实例冒充开发宿主可接管实例；不改变产品启动或锁归属契约。
+
+随后复用原外部模型夹具，只发read_workbench_context及library_get工具调用；library_get身份由真实上一次上下文工具结果取得，不注入结果或UI选择。原17项题录与显式材料独立预算保持，使用实际列表键盘范围选择；先在第二页获得真实上下文工具回执，再返回选择已更正对象读取最新上下文及library_get，发送仍沿原会话。第二次模型响应仅在外部边界用显式promise门等待选择提交，不替代内部工具或回执。工具完成后关闭model内核并经同一既有development入口重启，核同库、同来源身份、完整metadata、集合、列及原会话三条完整工具回执；工具id／runId／input／output／状态均比较，不能只保留名称即通过。仅模型HTTP响应受控，仓储／客户端／工具／worker／文件真实。
+
+日期oracle沿既有固定CSL官方两端样本1987-08-03／2003-10-23及circa=1，预期静态核对，未知嵌套为显式合成保留样本。不新增字段映射或产品政策；4.1／4.2精确剩余由本轮只读核查写investigation／tasks。只复用当前已验构建，结果／profile／TMPDIR均在本轮.cache独立根；有共同harness缺口则保留人工子验收和准确阶段，不改共享夹具或逐项加时限。
+
 ## 938c33f后的5.4a真实进程消费者
 
 主线已选定并同步A，当前源码938c33f且开工前clean；配置不再等待方案。本片仅修改原`tests/ui/zotero-original.spec.ts`及原工件，复用现有构建，不改共享helper／生产CLI／UI组件。
@@ -102,7 +110,7 @@
 
 ## 共同基线1026796后的5.3实施切片
 
-本树已快进到1026796d854b8f568c3e819f13268a9638980bc1且clean，七域源码、X1、原值权威和已支持编辑声明均已入dev。证据为`/tmp/scholoom-round5-acceptance-WBreMJ/{acceptance.md,synchronized.json}`，不再应用旧累计补丁或等待同步。完整复杂映射4.1／4.2继续开放，5.3实际依赖1.2、2.2、3.2及4.1a／b、4.2a／b。
+在1026796阶段，七域源码、X1、原值权威和已支持编辑声明均已入dev。证据为`/tmp/scholoom-round5-acceptance-WBreMJ/{acceptance.md,synchronized.json}`，不再应用旧累计补丁或等待同步。5.3实际依赖1.2、2.2、3.2及4.1a／b、4.2a／b；4.1／4.2随后补齐a–d的授权范围，当前具体覆盖与保留边界见investigation首节。
 
 唯一文献状态拥有者仍为LibraryContents，保留CatalogSelection、完整JSON草稿、librarySaves及原保存函数。新增库内`library-details.tsx`的窄视图贡献：每个business-session实例持有一个贡献对象，仅发布ReactNode及带身份核对的释放函数；LibraryContents以生命周期发布原CatalogItemPane，右栏消费者订阅该派生视图。贡献不保存metadata／草稿副本，不查询DOM、不读取仓储；卸载拥有者时释放自己的视图，过期释放不清除新贡献。详情从中间区移出，同一时刻只挂载一次。
 
@@ -321,6 +329,6 @@ R1实际快照的位置增量保持：text.location引用readingLocationSchema�
 
 ## 待办边界
 
-- **剩余缺口**：完整复杂映射4.1／4.2仍需独立证据，Windows1.4及整体验收保持开放。X1、原值权威首片及共同基线已到位；来源副本、键冲突及有界原子提交政策已有决议，不再列为未决。5.3本轮按已完成编辑子范围独立验收，不等待生态完整接入。
+- **剩余缺口**：4.1／4.2的a–d授权编辑已交付；精确未支持表达保留JSON核查，见investigation首节。父项覆盖／验收收尾、Windows1.4及整体6.x仍开放，不能据Linux6.1b关闭跨平台／分发或科研质量。X1、5.3、原值权威及既有政策均已具备实际证据，不再等待相同公共接入。
 - P1沿原B/F分批闭合为本批列配置、F统一查询排序；没有新增排序实施。若将来确认B要按列排序，另补服务端契约、稳定次序与跨页oracle，不在本轮扩展。
 - C负责组织／附件及批量动作，D负责笔记与共用阅读，E回收合并，F搜索／排序，G引用格式，生态负责H提供者。正式引用键归文献域，但本批只保证不损坏既有信息；不顺带确定存储和生成。

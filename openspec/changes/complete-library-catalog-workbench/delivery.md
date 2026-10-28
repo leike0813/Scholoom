@@ -1,5 +1,45 @@
 # 实际交付与交接
 
+## 29cd728：6.1b Linux真实业务整合
+
+开工核HEAD`29cd7283388dfd752911eacb9c3bf8416031db15`且clean；本轮只完成6.1b，当前**26/31**。未改生产源码或共享fixture／model-kernel／execution-diagnostics，也未重跑5.4a／14UI。写集为`tests/ui/context-bridge.spec.ts`及本change的design／investigation／tasks／delivery五文件。原spec已有题录更正、当前选择及持久化契约，本片只补整合证明，没有新协议或正式规格变化。
+
+### 实际路径与覆盖
+
+扩展原catalog选择场景而非新增另一套工作台／server／launcher：真实UI上传30条CSL文件，其中一条含明确合成的未知嵌套及姓名扩展；在同一CatalogItemForm／JSON草稿更正出版者、数字区间结束日和circa。日期端点／circa的独立来源与目录覆盖核查见investigation首节，不用映射实现生成预期。
+
+经产品入口创建集合、勾选归属并保存，进入集合验证一条结果，再回全部范围；列显隐／宽度沿现有设置。先绑定当前client.shutdown、CLI status确认stopped，再用既有createDevelopmentKernel bootstrap真实重启并reload原窗口，核sourceId、revision、完整metadata、未知嵌套、集合、查询、列和表单读回。人工验收发生在模型启动前，失败trace中的`manual-restart`附件及`lifecycle-checkpoint.json`保留独立结果；不会因后续harness未完成抹去人工事实。
+
+随后复用原startModelKernel及真实worker，通过原会话产品发送入口启动。17项题录范围选择仍与空显式材料选择分开；模型第一请求等待期间翻到第二页，真实read_workbench_context核offset25及新主选。返回第一页以已有Home键选择更正对象并核准确sourceId，模型再调真实read_workbench_context与library_get；后者身份只取前一真实工具输出，模型收到完整更正metadata。模型HTTP及其显式等待门是唯一受控依赖，没有注入工具结果、UI状态、仓储或broker替身。
+
+模型完成后，既有stop等待自有child退出，再经development入口重启同库并reload；题录／集合／列／表单仍正确，原会话三条完整工具记录深比较一致，覆盖id、sessionId、tool.runId、输入、输出及complete状态。既有未知操作、原值／键、16KiB及容量／生产期限均未改变；本轮没有原包或真实模型科研结论。仅列显隐／宽度纳入本片，不声称新增列排序验收。
+
+4.1／4.2核查结论：固定32类型／44文本／22角色／4日期键及数字区间／circa已交付，无本授权目录遗漏。父项继续用于覆盖／验收收尾；具体数字型字段、复杂日期、额外CSL类型／角色、姓名扩展等JSON保留边界已列investigation，不能将其笼统算成“复杂映射待实现”或借此新增Zotero逆映射／季节／别名政策。
+
+### 验证、首次失败及修正
+
+本轮证据根为`/home/joshua/.cache/scholoom-literature-round11-N9NcJZ/`。Linux／Node24.12.0、已安装Chromium／Electron；profile／输出／TMPDIR均在自有cache根，端口5835，未触发/tmp解包或依赖安装。静态产品承载复用`/tmp/scholoom-sync-recovery-wyn13R/static-ui.mjs`，不启开发服务器。没有需要DEV样例的场景、生产源码修改或运行中重建。
+
+| 命令／阶段 | 实际结果 |
+| --- | --- |
+| 主线已验本树构建：`/tmp/scholoom-round11-acceptance-Jx5Oez/sync-build-results.json`的literature-workbench，及正式转交的该树sync-build.log | code=0。本轮按用户指令复用既有产物，未重复记为新构建。 |
+| `node node_modules/typescript/bin/tsc --noEmit -p tsconfig.tools.json`；`node node_modules/@biomejs/biome/bin/biome check tests/ui/context-bridge.spec.ts` | 最初新测试有model可能undefined及格式问题，实施中修正；最终均通过，`tools-typecheck-final.log`／`biome-final.log`。未改schema或生产文件，不重复全仓检查／生成。 |
+| `TMPDIR=<根>/tmp SCHOOLOOM_UI_PORT=5835 SCHOOLOOM_UI_DATA_DIR=<独立profile> SCHOOLOOM_ROUND_OUTPUT=<对应输出> xvfb-run -a node node_modules/@playwright/test/cli.js test --config <根>/ui.config.mts tests/ui/context-bridge.spec.ts --grep 'catalog product ingestion'`，profile-first／ui-first | Browser首次失败：30条导入后样本在后页，夹具直接点第一页；Electron处于相同阶段时主动中断自有runner，保留1失败／1中断及trace。修为先按准确题名查找、更正保存后恢复prefix范围；不改分页实现或时限。 |
+| 同命令，profile-corrected／ui-corrected | 2失败：Browser已完成保存，但重启误用普通CLI独立实例，UI按契约拒绝接管；随后Electron fixture亦被该独立实例拒绝。修为消费现有createDevelopmentKernel真实生命周期；不改归属保护或共享helper。 |
+| 同命令，profile-lifecycle／ui-lifecycle | Browser人工重启检查完成、真实第二页工具回执已产生；返回样本的鼠标自动滚动使虚拟行卸载，原90秒失败。Electron主动中断，保留1失败／1中断。改用现有列表Home键及准确主选断言，不加sleep／retry／超时。人工及阶段附件提取为`lifecycle-checkpoint.json`，原trace仍保留。 |
+| 同命令，profile-final／ui-final | **2/2通过，2.8分钟**，Browser／Electron各约1.2分钟，`ui-final.log`。保持原90秒场景及原模型首请求／完成预算。未重复其他14UI或5.4a；本片没有需改生产代码的确证缺陷。 |
+| `openspec validate complete-library-catalog-workbench --strict`；`openspec schema validate scholoom-dev`；当前apply／delivery instructions；`git diff --check`与补丁核查 | 通过，`openspec-strict.log`／`openspec-schema.log`／`apply-final.json`／`delivery-instructions.json`及diff／patch日志。只勾6.1b，父项及整体交付不由CLI ready关闭。 |
+
+原生只读辅助Agent使用gpt-6.1-sol／high、fork_context:false，先核固定来源与声明覆盖，再审代表测试。审查促成：补第二页真实工具验证、重启后三条完整回执比较、停止回调调用前清空及嵌套finally清理；同时指出工具runId属于tool对象，父Agent核runtime创建代码后修正。无验收的列前移动作删除。最终双宿主结果由父Agent执行核验；辅助已关闭，没有后台写树任务。
+
+### 交回与未完项
+
+一次只读查询Checks40591705520，head29cd728一致，截点整体／Linux／Windows仍in_progress，macOS job已completed/failure，`ci-observed.json`保存原状态。未查询失败原因，不从job状态推本域因果，也未再次查询／轮询或将启动计通过；Windows diagnosis40591705558无新增消费结论。沿用户提供的938c33f历史CI与本轮本机结果分别表达。
+
+结束时5835无监听，profile-final CLI status为stopped；模型helper等待自有child退出，UI／static runner由既有生命周期收尾。最终配置及库保留在cache根，临时teardown仅停止本轮配置不删除目录；最早profile-first沿当次旧teardown在该配置退役后收尾，没有登记外部项目。未接用户真实库、操作其他树、安装／下载依赖、提交／推送／PR／归档。
+
+可审查增量为`<证据根>/linux-integration.patch`，唯一基线依赖29cd728已含前片；仅五文件，不含累计补丁、公共配置或其他线符号。应用顺序无新公共依赖。Windows1.4、父4.1／4.2覆盖收尾、完整6.1／6.2、I6／E6、分发／跨平台原包与真实科研质量保持开放；A测试侧可信注入不等于B标准CLI持久配置。达到本轮边界即停止，不开始后续业务批。
+
 ## 第十一轮主线验收
 
 5.4a六文件增量已冻结、建立本地检查点并合入dev。Standards／Spec两路gpt-6.1-sol／high独立只读审查未发现确证缺陷，核对了原发送及错误语义、真实committed／notFound、冻结请求及草稿、查询后旧revision真实CAS拒绝。主线完整构建后冻结产物，tools、格式、架构、生成映射和13个change strict／schema通过；可信进程夹具1/1及相关内核组合11/11通过。
