@@ -1,10 +1,13 @@
 import { type ChildProcess, fork } from 'node:child_process';
-import { realpath } from 'node:fs/promises';
+import { realpath, writeFile } from 'node:fs/promises';
+import { Socket } from 'node:net';
+import { join } from 'node:path';
 import { inspectKernel } from '../apps/kernel/dist/lifecycle.js';
 import type { IsolatedZotero } from '../apps/kernel/dist/zotero.js';
 import { createKernelClient, type KernelClient } from '../packages/client/dist/index.js';
 import { type KernelEndpoint, limits } from '../packages/protocol/dist/index.js';
 import {
+  createKernelLifecycleDiagnostics,
   developmentKernelConnectionTimeout,
   kernelResultSummary,
   runKernel,
@@ -24,6 +27,7 @@ export type IsolatedKernel = {
 export async function startIsolatedKernel(
   directory: string,
   configuration: IsolatedZotero,
+  entry = new URL('./fixtures/isolated-kernel-process.mjs', import.meta.url),
 ): Promise<IsolatedKernel> {
   const canonical = await realpath(directory);
   const initial = await inspectKernel(canonical);
@@ -32,18 +36,55 @@ export async function startIsolatedKernel(
       `Isolated kernel directory is occupied: ${JSON.stringify(kernelResultSummary(initial))}`,
     );
   }
-  const child = fork(new URL('./fixtures/isolated-kernel-process.mjs', import.meta.url), [], {
+  const child = fork(entry, [], {
     execArgv: [],
-    stdio: ['ignore', 'ignore', 'ignore', 'ipc'],
+    stdio: ['ignore', 'ignore', 'pipe', 'ipc'],
     env: {},
   });
-  // No pipes to fill, raw stderr to disclose credentials, or unhandled process errors.
+  const lifecycle = createKernelLifecycleDiagnostics();
+  let stderrFailed = false;
+  child.stderr?.on('data', (chunk: Buffer) => lifecycle.write(chunk));
+  child.stderr?.once('end', () => lifecycle.end());
+  child.stderr?.on('error', () => {
+    stderrFailed = true;
+  });
   child.on('error', () => {});
   let ended = false;
+  let exit: ChildExit | undefined;
+  let processExit: ChildExit | undefined;
+  child.once('exit', (code, signal) => {
+    processExit = { code, signal };
+  });
+  let readyReceived = false;
+  const exitFacts = () => ({
+    exitReceived: processExit !== undefined,
+    exitCode: processExit?.code ?? null,
+    exitSignal: processExit?.signal ?? null,
+    closeReceived: ended,
+    closeCode: exit?.code ?? null,
+    closeSignal: exit?.signal ?? null,
+  });
+  const unref = () => {
+    child.channel?.unref();
+    child.unref();
+    if (child.stderr instanceof Socket) child.stderr.unref();
+  };
+  const persist = async (diagnostic: object) => {
+    try {
+      await writeFile(
+        join(canonical, 'isolated-kernel-diagnostics.json'),
+        JSON.stringify(diagnostic),
+      );
+      return true;
+    } catch {
+      return false;
+    }
+  };
   const exited = new Promise<ChildExit>((resolve) => {
     child.once('close', (code, signal) => {
       ended = true;
-      resolve({ code, signal });
+      exit = { code, signal };
+      resolve(exit);
     });
   });
   const waitForExit = async () => {
@@ -67,21 +108,31 @@ export async function startIsolatedKernel(
   let onMessage: (message: unknown) => void = () => {};
   let onError: () => void = () => {};
   let phase = 'ready-ipc';
+  let reason: string | undefined;
   try {
     await new Promise<void>((resolve, reject) => {
+      let settled = false;
+      const fail = (failure: string) => {
+        if (settled) return;
+        settled = true;
+        reason = failure;
+        reject(new Error('Isolated kernel was not ready'));
+      };
       onMessage = (message) => {
         if (typeof message !== 'object' || message === null || !('state' in message)) return;
-        if (message.state === 'ready') resolve();
-        else reject(new Error('Isolated kernel did not acquire its directory'));
+        if (message.state === 'ready') {
+          readyReceived = true;
+          if (!settled) {
+            settled = true;
+            resolve();
+          }
+        } else fail('notReady');
       };
-      onError = () => reject(new Error('Isolated kernel process or IPC failed'));
+      onError = () => fail('processOrIpcError');
       child.on('message', onMessage);
       child.on('error', onError);
-      void exited.then(() => reject(new Error('Isolated kernel exited before ready')));
-      startupTimer = setTimeout(
-        () => reject(new Error('Isolated kernel readiness timed out')),
-        developmentKernelConnectionTimeout,
-      );
+      void exited.then(() => fail('closedBeforeReady'));
+      startupTimer = setTimeout(() => fail('readyTimeout'), developmentKernelConnectionTimeout);
       child.send({ directory: canonical, configuration }, (error) => {
         if (error) onError();
       });
@@ -130,11 +181,23 @@ export async function startIsolatedKernel(
         }
       } catch {
         // Preserve diagnostics without targeting a newly discovered instance or blocking the runner.
-        child.channel?.unref();
-        child.unref();
-        throw new Error(
-          `Isolated kernel stop is unknown at ${phase}; preserved ${canonical} (child ${child.pid})`,
-        );
+        unref();
+        const diagnostic = {
+          kind: 'stop',
+          phase,
+          reason: 'stopUnconfirmed',
+          processId: child.pid ?? null,
+          instanceId: endpoint.instanceId,
+          readyReceived,
+          killRequested: false,
+          ...exitFacts(),
+          stderrFailed,
+          lifecycle: lifecycle.snapshot(),
+        };
+        const diagnosticsPersisted = await persist(diagnostic);
+        throw new Error(`Isolated kernel stop is unknown at ${phase}; owned profile preserved.`, {
+          cause: { ...diagnostic, diagnosticsPersisted },
+        });
       } finally {
         owner.dispose();
       }
@@ -142,19 +205,54 @@ export async function startIsolatedKernel(
     return { endpoint, client: owner, child, exited, stop: () => (stopping ??= stop()) };
   } catch {
     client?.dispose();
+    const beforeCleanup = {
+      at: Date.now(),
+      readyReceived,
+      ...exitFacts(),
+      lastPhase: lifecycle.snapshot().records.at(-1)?.phase ?? null,
+    };
+    const originalReason =
+      reason ??
+      ({
+        'inspect-owned-endpoint': 'ownerMismatch',
+        'connect-owner': 'connectFailed',
+        'attach-owner': 'attachFailed',
+      }[phase] ||
+        'startupUnknown');
+    const base = { kind: 'startup', phase, reason: originalReason, processId: child.pid ?? null };
+    const beforeCleanupPersisted = await persist({
+      ...base,
+      beforeCleanup,
+      killRequested: false,
+      afterCleanup: exitFacts(),
+      stderrFailed,
+      lifecycle: lifecycle.snapshot(),
+    });
+    let killRequested = false;
     // Startup failure has no accepted work: terminate only the child we forked, never a discovered PID.
-    if (!ended && child.pid !== undefined) child.kill('SIGKILL');
+    if (!ended && child.pid !== undefined) {
+      killRequested = true;
+      child.kill('SIGKILL');
+    }
     try {
       await waitForExit();
     } catch {
       if (child.connected) child.disconnect();
-      child.unref();
-      throw new Error(
-        `Isolated kernel startup failed at ${phase}; child exit unknown; preserved ${canonical}`,
-      );
+      unref();
     }
+    const diagnostic = {
+      ...base,
+      beforeCleanup,
+      beforeCleanupPersisted,
+      killRequested,
+      afterCleanup: exitFacts(),
+      stderrFailed,
+      lifecycle: lifecycle.snapshot(),
+    };
+    const diagnosticsPersisted = await persist(diagnostic);
     throw new Error(
-      `Isolated kernel startup failed at ${phase}; owned child closed; preserved ${canonical}`,
+      `Isolated kernel startup failed at ${phase}; child exit ${ended ? 'confirmed' : 'unknown'}; owned profile preserved.`,
+      { cause: { ...diagnostic, diagnosticsPersisted } },
     );
   } finally {
     clearTimeout(startupTimer);

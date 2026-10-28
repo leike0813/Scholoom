@@ -68,31 +68,108 @@ export function kernelResultSummary(result: BootstrapResult) {
   };
 }
 
+const lifecyclePhases = [
+  'preparing-runtime',
+  'runtime-prepared',
+  'lock-busy',
+  'loading-application',
+  'initializing-application',
+  'initializing-library',
+  'library-initialized',
+  'initializing-projects',
+  'projects-initialized',
+  'initializing-program-records',
+  'program-records-initialized',
+  'initializing-program-environments',
+  'program-environments-initialized',
+  'initializing-harness',
+  'harness-initialized',
+  'initializing-research',
+  'research-initialized',
+  'application-ready',
+  'server-listening',
+  'endpoint-published',
+  'server-closed',
+  'lock-released',
+];
+
+function lifecycleRecord(line: Buffer) {
+  try {
+    const value = JSON.parse(line.toString('utf8'));
+    if (!lifecyclePhases.includes(value?.phase)) return;
+    return {
+      phase: value.phase as string,
+      at: Number.isFinite(value.at) ? (value.at as number) : undefined,
+      instanceId: typeof value.instanceId === 'string' ? value.instanceId.slice(0, 256) : undefined,
+      processId: Number.isSafeInteger(value.processId) ? (value.processId as number) : undefined,
+    };
+  } catch {
+    // Raw stderr, incomplete JSON and private payloads are never retained.
+  }
+}
+
+/** One bounded projection for file tails and live stderr; input is always drained. */
+export function createKernelLifecycleDiagnostics() {
+  const records: { value: NonNullable<ReturnType<typeof lifecycleRecord>>; bytes: number }[] = [];
+  let retainedBytes = 0;
+  let pending = Buffer.alloc(0);
+  let discarding = false;
+  let discardedLines = 0;
+  let discardedRecords = 0;
+  const consume = () => {
+    const value = lifecycleRecord(pending);
+    if (!value) {
+      discardedLines++;
+      return;
+    }
+    const bytes = Buffer.byteLength(JSON.stringify(value)) + 1;
+    while (records.length >= 64 || retainedBytes + bytes > 32768 - 2) {
+      const removed = records.shift();
+      if (!removed) break;
+      retainedBytes -= removed.bytes;
+      discardedRecords++;
+    }
+    records.push({ value, bytes });
+    retainedBytes += bytes;
+  };
+  return {
+    write(chunk: Buffer) {
+      let offset = 0;
+      while (offset < chunk.length) {
+        const newline = chunk.indexOf(10, offset);
+        const end = newline === -1 ? chunk.length : newline;
+        if (!discarding) {
+          if (pending.length + end - offset > 4096) {
+            pending = Buffer.alloc(0);
+            discarding = true;
+            discardedLines++;
+          } else {
+            pending = Buffer.concat([pending, chunk.subarray(offset, end)]);
+          }
+        }
+        if (newline === -1) break;
+        if (!discarding) consume();
+        pending = Buffer.alloc(0);
+        discarding = false;
+        offset = newline + 1;
+      }
+    },
+    end() {
+      if (!discarding && pending.length) consume();
+      pending = Buffer.alloc(0);
+      discarding = false;
+    },
+    snapshot() {
+      return {
+        records: records.map(({ value }) => ({ ...value })),
+        discardedLines,
+        discardedRecords,
+      };
+    },
+  };
+}
+
 export async function kernelLifecycleDiagnostics(directory: string) {
-  const phases = [
-    'preparing-runtime',
-    'runtime-prepared',
-    'lock-busy',
-    'loading-application',
-    'initializing-application',
-    'initializing-library',
-    'library-initialized',
-    'initializing-projects',
-    'projects-initialized',
-    'initializing-program-records',
-    'program-records-initialized',
-    'initializing-program-environments',
-    'program-environments-initialized',
-    'initializing-harness',
-    'harness-initialized',
-    'initializing-research',
-    'research-initialized',
-    'application-ready',
-    'server-listening',
-    'endpoint-published',
-    'server-closed',
-    'lock-released',
-  ];
   let file: Awaited<ReturnType<typeof open>> | undefined;
   try {
     file = await open(join(directory, 'runtime', 'kernel.log'), 'r');
@@ -104,31 +181,10 @@ export async function kernelLifecycleDiagnostics(directory: string) {
       buffer.length,
       Math.max(0, size - buffer.length),
     );
-    return buffer
-      .subarray(0, bytesRead)
-      .toString('utf8')
-      .split('\n')
-      .flatMap((line) => {
-        try {
-          const value = JSON.parse(line);
-          return phases.includes(value?.phase)
-            ? [
-                {
-                  phase: value.phase,
-                  at: typeof value.at === 'number' ? value.at : undefined,
-                  instanceId:
-                    typeof value.instanceId === 'string'
-                      ? value.instanceId.slice(0, 256)
-                      : undefined,
-                  processId: typeof value.processId === 'number' ? value.processId : undefined,
-                },
-              ]
-            : [];
-        } catch {
-          return [];
-        }
-      })
-      .slice(-64);
+    const diagnostics = createKernelLifecycleDiagnostics();
+    diagnostics.write(buffer.subarray(0, bytesRead));
+    diagnostics.end();
+    return diagnostics.snapshot().records;
   } catch {
     return [];
   } finally {

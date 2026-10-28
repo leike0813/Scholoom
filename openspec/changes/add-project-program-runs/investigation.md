@@ -59,6 +59,12 @@ flowchart LR
 
 ### 当前CI基线（2026-10-27）
 
+第十二轮起点ba29ee6，正式输入 `/home/joshua/.cache/scholoom-round12-acceptance-NagGbw/`。最新已完成29cd728／Checks40591705520：Linux内核750通过26跳过、UI126通过32失败6跳过；Windows内核723通过11失败42跳过；macOS人工UI13通过1失败，降级4及入口4通过。原isolated-kernel失败仍不能按较少失败数关闭，安全stderr候选A已由主线明确授权本轮实施。ba29ee6相较已验e3c815b只有共同计划及交付两份Markdown变化，实际git差异与构建产物存在已核，测试改动复用既有构建。未重新查询或等待新CI，本轮实现尚无Windows目标结果。
+
+本轮事实为Linux Node24.12.0、既有真实fork／IPC及原44s等待：ready前exit1记录closedBeforeReady、清理前close=true/code1、kill=false；未发ready进程44.0s后记录readyTimeout、清理前close=false/exit未知、kill=true，最终真实close收据单列。约512KiB无换行及非法JSON被排空丢弃，合法阶段保留但私有额外字段丢弃；分片UTF-8、64条／32KiB记录及旧kernel.log不混入均通过。两个进程反例最终安全文件分别686／692字节；这是诊断行为校准，不解释历史Windows根因。原真实配置／进程替换32.1s及原文件尾投影2.4s通过，没有改生产源码或预算。详细命令／首次格式失败及结果沿本轮delivery和 `/home/joshua/.cache/scholoom-project-execution-round12-TjguNl/`。
+
+### 第十一轮CI消费（历史）
+
 第十一轮起点29cd728，正式输入 `/tmp/scholoom-round11-acceptance-Jx5Oez/`。已完成Checks40540362614／938c33f：Linux内核748通过26跳过、UI125通过33失败6跳过；Windows内核677通过55失败42跳过；macOS job成功。本轮Windows artifact12754788905显示**并发首批**四入口均unknown，持锁PID3188的父prepare541ms、spawn相对本批+3.729s，子准备+7.018s／完成+7.584s、loading+7.589s、initializing+11.471s；启动者回执+13.204s，采样+13.340s。其余PID7040／7056／5244实际busy；没有ready、退出或更细提供者回执，只知该次采样缺失，不能称死锁／永久阻塞。旧head尚无提供者标记，与上轮8c2重启失败分别保留。
 
 同run的isolated-kernel首次start（spec:34）在ready-ipc失败，清理后“owned child closed”；实际PID、清理前是否已close、退出code／signal、原始原因和最后阶段均缺失。trace只有测试错误和上下文，保留profile不在上传artifact内。源码确认helper忽略stderr，子入口直接serveKernel也不创建kernel.log；裸catch丢弃超时／提前退出／IPC／非ready状态的区别。因此确证的是公共fixture诊断丢失，非实际启动根因。本线仅交design内最小候选与反例，不改tests/isolated-kernel.ts或其归属策略。

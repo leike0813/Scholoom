@@ -14,7 +14,7 @@
 
 ## 当前状态与成果
 
-当前续做起点为29cd7283388dfd752911eacb9c3bf8416031db15，开始时工作区干净，主线已接收第14组并保全合入／同步复验。正式输入为 `/tmp/scholoom-round11-acceptance-Jx5Oez/`，第15组结果见文末“第十一轮”：分别消费938c33f完整Windows负例及29cd728已完成诊断正例，仅更新原工件，47/49，5.2／6.2保持开放。来源观察子项已交付，仍缺新完整组同一失败run／PID的提供者时点；公共fixture诊断候选交主线，未修改归属或启动机制。TaskPort／FileEdit、各域恢复、工具／标签、唯一库权威、未保存CSL及报告旧摘录／save／undo／来源授权均保留。没有复跑TeX、全仓或UI，没有重用旧累计patch或扩大产品结论。
+当前续做起点为ba29ee61ac6f8700cfe6a9fbaa529a8a7a75aad1，开始时工作区干净，主线已接收第15组并保全合入／同步复验。正式输入为 `/home/joshua/.cache/scholoom-round12-acceptance-NagGbw/`，第16组结果见文末“第十二轮”：已实施公共isolated-kernel诊断A，安全负例3项及原进程替换／文件尾2项本机通过，测试变更复用既有构建。来源观察子项已交付，5.2／6.2及实际Windows启动根因保持开放，等待接入后同一失败run／子PID的安全原因与前后收据。TaskPort／FileEdit、各域恢复、工具／标签、唯一库权威、未保存CSL及报告旧摘录／save／undo／来源授权均保留。未修改生产机制、重跑TeX／全仓／UI或使用旧累计patch。
 
 第三轮同步证据仅保留当时结果：`/tmp/scholoom-sync-recovery-wyn13R/recovery.md`、`synchronized.json`及当时日志（主线65项内核／双宿主2项），不替代最新A/B验收。旧公共及累计patch均为历史工件，已合入共同1026796，不再次应用。用户允许本地补丁／提交；继续禁止推送、PR、归档、依赖下载／安装、真实库和开发服务器。
 
@@ -496,3 +496,39 @@ Fermat原生辅助为gpt-6.1-sol/high、fork_context:false，限定只读本根h
 Fermat对新增design候选再作只读复核，stdio／日志来源、清理前后退出及候选A的归属／保密／原预算边界未发现确定错误；父接受为待实施方案，非修复结论。本轮没有启动任何产品进程或写树辅助任务，辅助已关闭。
 
 本轮仅四份原OpenSpec工件变更，交01-openspec-evidence.patch与README／manifest，只有当前29cd728的文档增量，不含任何旧累计业务patch；反向可应用性仅check，不执行。第15组完成，47/49，5.2／6.2与目标平台稳定性保持开放。下一输入精确为新完整Windows组**同一失败run／新子PID**的提供者时点，或主线对公共fixture候选A的审核与有界反例结果；没有这些输入不选机制修复。来源观察等已接收子项不回退。到此停止，不后台轮询、提交／推送／PR／归档、操作其他树或真实用户库。
+
+## 第十二轮：公共isolated-kernel诊断A实施
+
+### 实际接入与不变边界
+
+本轮HEAD为ba29ee61ac6f8700cfe6a9fbaa529a8a7a75aad1，开始时工作区干净。已读主线第十二轮安排、原design／tasks／delivery及scholoom-dev，apply初始47/49，先落第16组具体设计再实施。主线明确授权候选A及本轮公共测试写集；正式输入 `/home/joshua/.cache/scholoom-round12-acceptance-NagGbw/`，既有候选依据 `/home/joshua/.cache/scholoom-project-execution-round11-dVkuM9/`。本轮结果根 `/home/joshua/.cache/scholoom-project-execution-round12-TjguNl/`。未重放旧补丁或操作其他树。
+
+`tests/kernel-fixture.ts`将原固定phase及安全标量过滤提取为唯一规则，导出createKernelLifecycleDiagnostics供stderr流及原kernelLifecycleDiagnostics文件尾入口共用。每行至多4KiB，超长行丢弃到换行后恢复；仅保留固定phase、有限at／整数processId及原256字符instanceId投影。至多64条、含JSON分隔符的记录序列化至多32KiB；满额淘汰旧记录并计数，非法／非JSON／超长行计数，不保留token／argv／路径／正文等额外字段。所有输入仍排空，pending只留至多4KiB，不将整块超长数据转为字符串或缓存。原文件读取仍最多末尾64KiB，投影经同一规则，不维护第二份白名单。
+
+`tests/isolated-kernel.ts`只把stderr改pipe并立即排空；不记录原始stderr、异常、配置或旧kernel.log。ready等待沿原事件分支固定首次readyTimeout／closedBeforeReady／processOrIpcError／notReady原因，后续阶段按ownerMismatch／connectFailed／attachFailed记录。清理前保存readyReceived、exitReceived／exitCode／exitSignal、closeReceived／closeCode／closeSignal及最后观察阶段，各收据分别来自真实exit／close事件；父killRequested和清理后的收据单列。未收到对应事件时null为未知，不从exit推断管道close。摘要先保存到本profile唯一isolated-kernel-diagnostics.json，再以最终收据更新；Error.cause携带同一安全结构及落盘是否成功。记录／固定元数据总量小于64KiB，不累积每个启动的新文件。保存失败不替换原失败原因。stop异常沿同一入口保留阶段及已知收据；未知收尾时新增stderr pipe同原child／IPC解除runner保活，监听仍排空。
+
+原空环境、私有配置IPC、原实例／PID核对、竞争拒绝、旧stop保护、shutdown次数、CLI status及全部生命周期预算不改。没有生产选项或RPC；helper仅增加可信测试侧可选第三参数entry URL，正常默认仍用原isolated-kernel-process.mjs，该原入口未改。新isolated-kernel-diagnostic.mjs只在两个明确反例替换此测试进程入口，不作为真实kernel／BBT业务提供者。原真实配置用例继续走正常serveKernel、broker、库／SQLite及真实进程替换。
+
+### 首次失败、实际验证与产物
+
+本机Linux Node24.12.0、已有依赖。git核对e3c815b→ba29ee6只有共同计划和公共交付两份Markdown差异，metadata-only.txt保存；主线已构建产物存在。本轮仅测试／工件变化，按用户纪律没有重复构建或在测试间重建。所有临时／结果与TMPDIR均在本轮cache，未写默认/tmp、清理旧目录、启动显示服务／开发服务器或安装依赖。
+
+| 实际命令／阶段 | 结果与证据 |
+| --- | --- |
+| `node node_modules/typescript/bin/tsc --noEmit -p tsconfig.tools.json` | tools-final.log通过；覆盖helper可选入口及现有调用方，无产品契约／生成映射变化 |
+| 四份源码Biome | 首次格式检查发现父实现的缩进／分行及非空断言，biome-first.log保留。内置patch修正后biome-final.log四文件通过；没有机械更改其他线文件 |
+| `TMPDIR=<本轮根> node node_modules/@playwright/test/cli.js test --config playwright.kernel.config.ts tests/kernel/isolated-kernel.spec.ts --grep 'isolated startup\|lifecycle diagnostics handle' --output <本轮根>/safety-results` | **3/3通过，58.1s**，safety.log：exit反例83ms，等待反例实际44.0s，解析边界24ms；没有缩短原预算或重试 |
+| 同入口 `tests/kernel/isolated-kernel.spec.ts tests/kernel/lifecycle.spec.ts --grep 'trusted IPC configuration\|bounded lifecycle log' --output <本轮根>/real-results` | **2/2通过，46.3s**，real.log：真实配置／竞争／显式替换／旧stop保护32.1s，原文件尾投影2.4s；同树测试期间产物冻结 |
+| 区分exit／close后，同入口两文件 `--grep 'isolated startup\|trusted IPC configuration\|bounded lifecycle log' --output <本轮根>/exit-close-final-results` | **4/4通过，1.5m**，exit-close-final.log；父自查补被动exit事实后复验受影响四例，真实替换28.8s、exit72ms、原预算wait44.0s、文件尾2.1s。不是新增四种场景或重试凑数；纯解析器未改不重复 |
+| `node scripts/check-architecture.ts` | 14模块254文件0 findings，architecture.log。正式schema／生成类型／产品模块未变，不重复全仓或生成补丁 |
+| OpenSpec／diff | 实际执行后已取delivery instructions，strict／scholoom-dev schema、源码diff及补丁检查随本目录保存；原设计控制流图不变，观察字段在本片design维护 |
+
+首组两个真实进程反例文件为686／692字节，原profile及文件保留在safety-results；补分开的exit事实后最终文件为792／810字节，见exit-close-final-results及safety-final-summary.json，首组safety-summary.json不覆盖。exit1反例在清理前已收到exit与close、code1，kill=false；wait反例清理前未收到ready／exit／close、退出未知，父kill=true，最终exit与close在本机均实际SIGKILL/null code。测试不锁该信号的跨平台表现。约512KiB无换行输出超过pipe常见容量后仍完整排空并丢弃；后续两个合法阶段被保留，私有额外字段、非法JSON和旧文件残留不进入摘要。纯解析器一例核分片UTF-8、两类容量及尾部记录继续可见，不逐文案镜像实现。原真实用例profile移入test.info.outputPath，保留配置／库直至其退役，未运行BBT原包或接触真实用户库。
+
+本轮产品／进程测试首跑均通过，未伪造本机红绿或历史Windows根因修复；首次失败是保留的静态格式／lint输出，历史真实CI负例仍沿第十一轮记录。替身仅可信测试子入口（真实fork／IPC／退出）及其中固定诊断流；真实配置／替换用例无模块替身、模型或原包依赖。未跑UI、TeX、全仓、Windows／macOS或分发包，不将Linux5项作为目标平台稳定性通过。未查询／轮询新CI或触发重跑。
+
+### 审查、交回与未完项
+
+Archimedes原生辅助保持gpt-6.1-sol/high、fork_context:false，仅写isolated-kernel.spec.ts及新受控入口，父拥有helper／共用解析器、设计及所有实跑。父将超长样本增至约512KiB并核对JSON分隔符计入容量；收尾自查补分开的exit观察，辅助两次只读复核父代码，未发现确定的泄漏、有界性、清理归属或预算缺陷，未代跑验收。新增exit仅记录，原ended／exited和等待／清理仍由close驱动。原生产unknown／容量／完整停止／锁及Agent／项目夹具保持，不改model-kernel或harness。
+
+交回01-isolated-kernel-diagnostics.patch（共用解析及helper）、02-isolated-kernel-regressions.patch（直接测试及新入口）、03-openspec-evidence.patch，依赖顺序01→02→03。不应用／回滚或混入旧累计补丁，只核反向可应用性。第16组完成，50/52；公共诊断A的本机行为已交付，5.2／6.2仍开放，主线接入后的Windows同一失败run／自有子PID原原因、阶段及前后收据仍待验。诊断补齐不代表历史启动根因或整体科研质量关闭。到本片边界停止，不提交／推送／PR／归档、同步其他树或继续扩环境／平台。
