@@ -1,5 +1,13 @@
 # 实现设计
 
+## 当前平台收敛片：真实ACL环境与重复调用对照
+
+共同cb5f7ed续做时，1c84937／Checks40701191661的Windows完整内核实际700通过／63失败／44跳过，不能沿用旧唯一失败清单。真实isolated首启PID5712在runtime准备耗29.664s，加载应用3.878s，最后停在library初始化；父清理前无ready／exit／close。CLI并发同run另有ready超时，不能把稍后约0.5s的runtime准备当作随机环境对照。Node v24.12官方libuv会为env:{}补PATH／SYSTEMROOT／TEMP等必要变量，缺少这些变量不是已证根因，证据见investigation本片。
+
+主线通过本Task的ask决定先交最小真实ACL对照，取得目标事实后才修因果闭合的根因。仅新增可信测试子入口及isolated-kernel ACL spec，在既有Windows专项原四场景之后运行；不提前暖机影响原失败。最小环境／既有nodeEnvironment按正反顺序各一次，每个独立Node内真实调用privateDirectory新目录、同目录再调用并核验目录与文件权限；两组共同指定隔离临时目录，明确不是原env:{}的逐字复刻。环境只输出固定存在布尔，不输出值；每个真实PowerShell命令只记录固定用途、标准flags、耗时和真实close结果，不记录命令正文／路径／凭据。子入口按真实句柄收尾本轮直接命令，预算沿已有developmentKernelConnectionTimeout及lifecycleMs，未知保留而不延长或重试。
+
+写集限`tests/fixtures/isolated-kernel-acl.mjs`、`tests/kernel/isolated-startup-acl.spec.ts`、既有Windows专项触发及后置步骤、本change工件。生产privateDirectory／bootstrap／lifecycle／harness／HostConnection不变。Linux运行相同真实目录调用与POSIX权限分支、原isolated替换及并发代表；Windows目标与ACL语义须由主线接入CI实跑，未到达前5.2／6.2开放。
+
 ## 变更总览
 
 依据[调查](investigation.md)和[运行契约](specs/project-program-runs/spec.md)。以下是拟实施方案，不是当前实现。首个change完整交付项目内固定程序闭环与受管Python环境准备，仍以已有共同资源打开实际输出。

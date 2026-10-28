@@ -1,5 +1,30 @@
 # 实际交付与交接
 
+## 当前续做：Windows目标事实及主线批准的真实ACL对照
+
+共同HEAD cb5f7ed30f69b45301c83f296268578051b84e0b、开始时干净；本轮用户要求完成既有任务，主线随后在ask msg_521379247eb9选择先交最小真实ACL对照、目标CI回来再修确证根因。5.2／6.2继续开放，56/58不是整个change完成。本轮没有修改生产源码或重建同源产物；没有推送／触发CI、依赖安装、开发服务器、真实用户库或其他工作树操作。
+
+### 首失败与实际变化
+
+一次查询1c84937／Checks40701191661时整run未完，但Windows job122861144463及artifact12827896108已完成。原日志kernel700通过／63失败／44跳过、后续smoke／UI未运行。真实isolated失败在初启spec:34而非旧restart：PID5712 runtime准备29.664s、应用加载3.878s，末到initializing-library；父清理前无ready／exit／close，退出只在父kill后收到。并发首批四请求unknown另列，不与占锁两例通过或跨run正例混算。具体事实及官方Node v24.22.1的libuv环境补入反证见[investigation](investigation.md#当前续做1c84937-windows目标及acl对照决定)。Agent同次三例实际失败的原摘录／完整artifact已通过主线交付，不并改其内部。
+
+`tests/fixtures/isolated-kernel-acl.mjs`与`tests/kernel/isolated-startup-acl.spec.ts`直接复用真实privateDirectory／atomicPrivateFile和既有nodeEnvironment。四样本按minimal→node-environment、node-environment→minimal排序，每个独立Node真实准备新目录／同目录再调用并核目录与文件权限。Windows沿既有private-files测试的只读DACL核查语义，断言受保护、当前owner、唯一允许主体FullControl、文件继承；Linux检查0700／0600。两环境共同隔离临时目录，仅输出固定环境存在布尔；不是原空环境的逐字重放，也不清系统缓存。每次真实PowerShell用途、允许flags的实际argv形状、耗时、PID和close code／signal可查，无原始命令正文、路径或凭据。生产ACL／生命周期／admission／native／HostConnection／ProgramRuns回调均未改。
+
+`.github/workflows/windows-execution.yml`仅增加两文件触发及原isolated四场景之后的独立对照步骤，保留!cancelled及既有artifact目录／15分钟job预算。文件命名也保证完整kernel发现顺序在原isolated spec之后。失败仍有acl-comparison.json及trace，不用暖机或重试让原例变绿；这份workflow尚未由本线触发，Windows新对照未验。
+
+### 命令、结果与审查
+
+所有新输入／profile／结果均在`/home/joshua/.cache/scholoom-finish-active/project-execution/`；每个shell先export TMPDIR为该根，Node v24.12.0、Linux，使用已有产物及依赖。`reproduce-linux.sh`为重建本轮验证的入口，不依赖现有/tmp。
+
+- 首轮命令：`node node_modules/@playwright/test/cli.js test --config playwright.kernel.config.ts tests/kernel/isolated-kernel-acl.spec.ts tests/kernel/isolated-kernel.spec.ts tests/kernel/lifecycle.spec.ts --grep 'real private directory ACL|trusted IPC configuration|concurrent entries share' --output "$TMPDIR/linux-acl-results"`，6/6通过（1.4m，`linux-acl.log`）。其中新增spec后改名为isolated-startup-acl，保证发现顺序；原替换31.1s／并发36.7s不再机械重跑。
+- 最终四对照命令：`node node_modules/@playwright/test/cli.js test --config playwright.kernel.config.ts tests/kernel/isolated-startup-acl.spec.ts --output "$TMPDIR/linux-acl-receipts-results"`，最终4/4通过（6.0s，`linux-acl-receipts.log`）。argv形状及清理分支的前次复验另保留在`linux-acl-final.log`／`linux-acl-cleanup.log`，没有覆盖首次结果。新Windows命令和最终四场景入口在workflow，尚未运行，不把Linux POSIX分支当作DACL结果。
+- tools类型、两个新文件Biome、architecture、已装yaml@2.9.1的workflow结构／步骤／artifact断言通过。`--list`核实原四场景在前、新四样本在后。OpenSpec strict／schema／diff检查及最终状态见同根日志；无生产变更不重建。
+- 原生Codex只读辅助均为gpt-6.1-sol／high、无历史fork。一项审查发现父取消后只disconnect／unref可能遗留Node，已在原10s清理预算内加实际ChildProcess句柄终止和close核查，5s为预算内部的强制终止时点，不延长总预算；IPC断开也不跳过这一步。父请求／清理前close／真实close分列，强制Node终止或缺收据时命令收尾明确unknown，不从根退出推出PowerShell停止。最终只读复核无阻塞问题，辅助已停止。本轮Linux成功路径通过，Windows取消分支实际表现仍待目标环境。只有预先声明的可信故障／环境输入，没有替身代替目录、权限或进程权威。
+
+### 停止条件与交回
+
+主线按已批准方向冻结本轮文件后接入推送，取得新Windows对照每个样本的实际环境存在布尔、三次PowerShell用途／耗时／close和权限结果，再与同run原isolated首启／restart失败比较。没有目标结果之前不改生产ACL、不以nodeEnvironment候选或系统工具替换既有权限语义，不关闭5.2／6.2、跨平台或真实科研质量。旧失败与本轮新采样分别保留；本轮到可交CI的最小增量停止，不后台轮询。最终apply仍56/58，所有构建／测试／辅助已结束，按本轮TMPDIR及其子目录核查无遗留进程（owned-processes.json）；独立增量与冻结文件集合见cache内increment.patch及REPORT.md，接续无需现有/tmp。
+
 ## 第十六轮主线接收
 
 主线接收恢复回调直接按原commandInstanceId调用唯一ProcessAdmission.retainUnknown；删除私有Set／匿名永久预留，满容量及释放无关live槽不会漏计，原ID重复恢复不双计。两轴冻结审查各0确证发现；共同产物完整构建、类型、架构和生成映射通过。`program-runs.spec.ts`及`host-connection.spec.ts`恢复代表组合6/6在主线通过，位于18/18边界组合；命令及结果见`/home/joshua/.cache/scholoom-round16-integration/main-boundaries.{log,json}`。
@@ -59,7 +84,7 @@ Windows专项触发范围及完整四场景步骤已保全合入，两轴审查�
 
 ## 当前状态与成果
 
-当前起点为7aff2c7，R16.1已在本树局部完成，实际变化及验证见本记录首节。只修manual恢复装配的计数缺口，不代表Windows启动、完整change或科研质量验收完成。当前必需输入／命令／结果均在Git或本轮cache，旧/tmp路径仅保留为历史证据。
+当前起点为cb5f7ed，R16.1已共同接收；本轮Windows目标事实和主线批准的ACL对照增量见本记录首节。仍缺Windows根因闭合与新目标回执，不代表完整change或科研质量验收完成。必需输入／命令／结果均在Git或本轮cache，旧/tmp路径仅保留为历史证据。
 
 ### 第十四轮状态（历史）
 

@@ -61,7 +61,7 @@ flowchart TD
 ## 5. 明确等待的输入与CI前置
 
 - [x] 5.1 已消费主线正式设计及源码输入；历史路径和符号冲突记录于design。共同1026796已合入全部七域源码，当前executionResources／taskPort／delegationOptions／programs、根工具、三域restore及task／programs标签均在本树；不再等待同步或使用旧累计补丁。真实联合操作另由8.4验收，不把代码合入当作实际整合完成。
-- [ ] 5.2 沿固定run／head和实际stage承接CI。新Windows采样入口已实际运行：58eda14／40630840362新四场景3通过1失败，实际配置首启PID628为readyTimeout，最后观察preparing-runtime；清理前ready／exit／close均未收到，父kill后才有exit／close，不倒推自然退出。两个受控反例及解析器通过，采样／分类窄项有目标依据，真实启动根因仍开放。固定Linux40622631905／f4ab1e5唯一显示预检127的具体命令来源缺证；本轮已修确证的stderr空串覆盖，并声明CI工具前置，新Xvfb／已有DISPLAY各本机通过，仍待新Linux CI。历史各run及TeX／完整平台／分发分别保留，不放宽生产期限、权限、停止／容量、锁或重试，不继续轮询。
+- [ ] 5.2 沿固定run／head和实际stage收敛平台缺口。主线已接收7aff2c7的Linux kernel764／0失败及新Xvfb通过，旧显示127具体来源不倒填。当前已消费1c84937／Checks40701191661完成Windows job122861144463／artifact12827896108：kernel700通过／63失败／44跳过，真实isolated首次启动PID5712在runtime准备29.664s后到library初始化，清理前无ready／exit／close；并发首批另有unknown，不能与旧restart混算。官方同版libuv反证env:{}缺SystemRoot／PATH／TEMP推论。按主线ask决定已实施真实ACL正反环境／首次及重复调用的最小对照，复用既有专项后置步骤，Linux四对照＋原替换／并发代表6/6通过，Windows新对照未跑，根因修复及稳定性仍开放。历史TeX／分发分开保留，不放宽期限、权限、停止／容量、锁或重试；由主线接入后取得目标回执，不循环等待。
 
 5.1的输入核对不意味着新增报告适配属于本change；只有共同符号冲突或相关必要回归才阻塞对应整合，其他任务不串行等待。
 

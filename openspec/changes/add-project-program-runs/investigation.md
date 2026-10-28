@@ -1,5 +1,15 @@
 # 调查依据
 
+## 当前续做：1c84937 Windows目标及ACL对照决定
+
+2026-10-28从干净共同cb5f7ed续做，用户要求完成既有change；旧“本轮不再派发”不再是等待条件。一次查询Checks40701191661，head精确为1c84937346effef407ed01378f35873338790294：查询时整run仍运行，但Windows job122861144463已failure、artifact12827896108可下载。已完成job原日志表明kernel700通过／63失败／44跳过，后续smoke／UI均跳过；不是旧7aff2c7的唯一kernel失败清单。标准run日志接口拒绝进行中run，后改用完成job的REST logs取得；CLI首次拒绝输出escape序列后用明确flag保存原文件，没有触发重跑或轮询。原job日志、artifact、解压的目标文件及可重建摘要均保存在`/home/joshua/.cache/scholoom-finish-active/project-execution/`，入口`extract-target-facts.mjs`与`target-facts.json`。
+
+- 真实isolated失败在spec:34首次启动，PID5712：preparing-runtime→runtime-prepared相隔29664ms；loading→initializing-application为3878ms，最后到initializing-library。readyTimeout清理前没有ready、exit或close；父SIGKILL后才有退出，不能称自然提前退出。runtime区间包含canonicalDirectory／mkdir／lstat／真实Windows ACL，不足以把全部29.664s归给PowerShell。
+- 同run并发首批PID1048的父preparationMs=546、子runtime准备525ms、应用加载3989ms，采样末到initializing-program-environments；四个请求均unknown，发起者ready-timeout，跟随者availability／held。同run占锁释放两例通过。CLI发生更晚，冷暖顺序不同，不是环境差异的因果对照，也不能与旧restart样本拼时间线。
+- CI使用Node v24.22.1（原log:137）。官方同版[libuv源码](https://github.com/nodejs/node/blob/v24.22.1/deps/uv/src/win/process.c#L50)的required_vars及make_program_env会为env:{}补PATH、SYSTEMROOT、TEMP、USERPROFILE等；本机v24.12也相同。源码只读保存在cache，不能因JS传空对象就宣称子进程缺这些变量。APPDATA等差异仍需真实目标验证。
+
+主线在ask msg_521379247eb9回复采用最小真实ACL冷／热／环境对照，由本线先交可信夹具、直接spec和既有专项后置步骤，再由主线接入推送取得Windows事实；先不改生产ACL或以nodeEnvironment替换原isolated环境来声称修复。对照复用privateDirectory与nodeEnvironment，交换两种环境先后顺序，分别记录每个新Node内首次／同目录再次调用及真实目录／文件权限；不清OS缓存，不把新Node第一次调用称为机器冷启动。两环境共同使用隔离TEMP／TMP／TMPDIR，明确不是原env:{}逐字重放。原isolated四场景在专项和完整kernel发现顺序均先运行，不以预热制造通过。目标Windows未跑时5.2／6.2保持开放。
+
 ## 当前事实与复用选择
 
 规划调查日期 2026-10-25，源码基线 `e3d58fc807827a78493dcd16e38de28c8d02766e`，开始时工作区干净且无.codegraph。下文“当前事实／本轮规划检查”为实施前快照；用户后续授权实施，实施发现见末节，实际运行与验证以delivery为准。原生辅助调查、实现及独立审查保持gpt-6.1-sol／high。
