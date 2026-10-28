@@ -1,5 +1,65 @@
 # 实际交付与交接
 
+## 主线接收：首批任务已完成
+
+2026-10-29主线接收本轮五文件增量。独立审查逐项核对真实来源故障、原错误与版本、明确选择后的持久化、新会话接续及双宿主结果，未发现确证缺陷；报告为`/home/joshua/.cache/scholoom-finish-active/project-independent-review.md`。三来源3/3与双宿主2/2的原始JSON及附件由审查者独立核对，相关9/9回归与类型检查已通过；主线当前tools类型和strict验证也通过。没有生产代码变动，不为接收机械重复长UI。
+
+本change按proposal首批范围为33/33；完整库删除恢复分类及主题知识仍由后续提供者交付，不在本次已实现能力中。下文“待主线审查／不归档”为工作线交接时状态。
+
+## 4.1首批来源异常消费：当前交付
+
+本轮从clean的`cb5f7ed30f69b45301c83f296268578051b84e0b`继续。主线明确批准按proposal的首批项目文件／库附件及未修改的“来源异常保留事实并等待决定”Requirement验4.1，不要求本change实现整套D／E或主题知识。旧轮32/33及等待描述保留为历史，当前范围以本节、design第12节和tasks 4.1为准；完整删除／恢复与主题／分析知识依然没有本片可消费的真实提供者，不宣称完整行为矩阵已实现，不归档。
+
+本轮未发现需要新增生产代码／DTO的本域缺陷。`ProjectTasks`保留任务原引用，`ResourceAccess.read`沿原ref／basis实际核查，`MaterialFiles.status/read`报告真实storage／state／ErrorInfo，任务工具已有暂停询问指导。仅扩展`tests/kernel/research-task-agent.spec.ts`原来源故障用例和`tests/ui/research-tasks.spec.ts`一个双宿主代表用例，并统一原design／tasks的首批验收边界；来源异常Requirement原文未删改。没有改library schema／迁移／删除provider、harness执行资格、FileEditor、TaskPort或任何共享生产装配。
+
+| 4.1首批要求 | 实跑证据与边界 |
+| --- | --- |
+| 真实来源失败及原错误 | 三个参数分别先创建并读到真实项目文件、managed附件、linked附件，取得真实ref／basis，再移除隔离文件。读取返回的完整ErrorInfo与真实worker工具结果逐字段相同；TaskLink和原材料版本不变。库附件仍有登记，storage分别为managed／linked，state为missing，资源describe报告不可读；文件丢失不等于库对象被删除 |
+| 分类不可用、暂停询问 | 受控外部模型经真实工具取得读取错误及`library_attachments`状态，明确说明删除记录查询unavailable，提出选择并结束本轮依赖工作。真实消息／ToolRecord证明没有任务保存、文件编辑或成果生成，原任务及既存过程／成果不变。unavailable是消费者对未提供分类能力的明确表达，不是伪造的删除查询结果，未声称已查无历史／删除者／恢复 |
+| 明确选择后持久化 | 实际下一条`session.send`携带新的instructionId，经真实worker单次`save_research_task`，把原ErrorInfo／ref／basis、库storage／state、分类不可用、用户选择、跳过范围和下一步保存到任务文件；保留全部链接和既存材料，未读来源不计为已采用。不忽略用户选择前的错误，也不重跑生成或自动重试来源 |
+| 新会话接续 | 新session只经发现任务→重读入口→读取原process／result接续；它没有旧选择指令消息，仍能取得已保存选择及下一步，实际工具返回两份原文，磁盘原材料不变。linked同路径出现不同字节后原版本读仍拒绝contentChanged，不称恢复 |
+| 双宿主代表 | Browser与真实Electron任务详情点击实际库来源后显示不可读，原任务内容和引用不变；刷新及新会话仍能从任务打开原过程和成果。此UI例没有模型，不单独证明Agent暂停；它消费真实broker／库／任务／资源／文件，未用成功端口替身 |
+
+本轮cache根`/home/joshua/.cache/scholoom-finish-active/research-task-workspace`（下称`<root>`），TMPDIR为`<root>/tmp`。Linux／Node24.12.0／Playwright1.63.0，沿共同基线已验构建，只有测试／文档改动，不重建同源生产产物。独立UI端口6023；`ui.config.mts`由保全的round13生成入口从本树cwd生成，底层静态产品及脚本位于cache，未启动开发服务器。每轮双宿主前都用`DISPLAY=:99 xdpyinfo`预检，未启动或停止共享显示。
+
+### 首次失败、修正与最终验证
+
+- `kernel-first.log`保留首次3项失败：新增断言把ToolRecord.input的JSON字符串误当对象；同次已取得真实notFound及暂停回答。仅改断言为JSON.parse，未修改生产错误、期限或策略。`kernel-first/`保留原trace／error context。
+- `kernel-second.log`：修正后真实三来源**3/3**通过（59.1秒）。随后补充“未采用原来源”和新会话无旧指令断言，整份Agent接续及任务工具相关回归**9/9**通过（1.3分钟），见`kernel-final.log`。
+- `ui-first.log`保留缓存外置`.ts`配置缺ESM语境导致的模块加载失败，业务尚未运行；改用同一生成器输出`.mts`后，代表双宿主**2/2**通过（1.1分钟），见`ui-second.log`。没有修改产品或测试期限。
+- `tools-verified.log`对应`node node_modules/typescript/bin/tsc --noEmit -p tsconfig.tools.json`，通过；`biome-final.log`对应已有Biome直接入口检查两个测试文件，通过。
+
+最终可重建命令及带附件JSON结果见本节收尾。本轮只控外部HTTP模型回答，不评价真实模型的科研质量或其所有自主选择；内部Kernel／broker／仓储／worker／授权／文件均真实。managed文件丢失是隔离profile内的定点磁盘故障，linked／项目文件丢失也是隔离文件动作，不替代删除历史provider。分类未知的暂停语义没有新增强制harness等待状态机；一般对话以提出问题结束该轮，后续须实际用户消息。
+
+本片自查了原错误／引用版本、写入前明确选择、无库正文副本和既存成果保护；没有新增数据迁移或共享生产接口。主线负责最终独立审查、整合及规格同步。Windows／macOS目标、完整删除恢复、主题知识、真实科研质量及全仓CI本片未验；未来提供者到达时须单独实跑其真实分类／恢复，不能以本轮首批通过代替。
+
+### 本片收尾与重建入口
+
+最终记录以JSON reporter保存成功附件供主线独立核对：`kernel-evidence.json`／`kernel-evidence.log`为三来源**3/3，1.0分钟**；`ui-final.json`／`ui-final.log`为双宿主**2/2，1.1分钟**。`extract-evidence.mjs`解出`kernel-evidence-{1,2,3}.json`和`ui-final-{1,2}.json`，`evidence-index.json`绑定每例TaskRef、来源ref及检查／选择／新会话的实际run；解包自查同一检查run与失败工具、选择run与保存工具相符。首次失败及中间结果全部保留，未用新成功覆盖原失败。
+
+```sh
+export TMPDIR=/home/joshua/.cache/scholoom-finish-active/research-task-workspace/tmp
+# 在本树cwd；已有直接工具入口，不触发pnpm隐式安装
+PLAYWRIGHT_JSON_OUTPUT_FILE=/home/joshua/.cache/scholoom-finish-active/research-task-workspace/kernel-evidence.json \
+node node_modules/@playwright/test/cli.js test --config playwright.kernel.config.ts tests/kernel/research-task-agent.spec.ts \
+  --grep 'real .* source failure' --output /home/joshua/.cache/scholoom-finish-active/research-task-workspace/kernel-evidence --reporter list,json
+# 双宿主运行前再次预检；配置／profile每次独立生成，登记项目保留到配置退役
+DISPLAY=:99 xdpyinfo
+node /home/joshua/.cache/scholoom-round13-acceptance/create-ui-config.mjs /home/joshua/.cache/scholoom-finish-active/research-task-workspace/ui.config.mts
+DISPLAY=:99 SCHOOLOOM_UI_PORT=6023 \
+SCHOOLOOM_UI_DATA_DIR=/home/joshua/.cache/scholoom-finish-active/research-task-workspace/ui-profile-final \
+PLAYWRIGHT_JSON_OUTPUT_FILE=/home/joshua/.cache/scholoom-finish-active/research-task-workspace/ui-final.json \
+node node_modules/@playwright/test/cli.js test --config /home/joshua/.cache/scholoom-finish-active/research-task-workspace/ui.config.mts tests/ui/research-tasks.spec.ts \
+  --grep 'unavailable task library source' --output /home/joshua/.cache/scholoom-finish-active/research-task-workspace/ui-final --reporter list,json
+node /home/joshua/.cache/scholoom-finish-active/research-task-workspace/extract-evidence.mjs
+```
+
+相关9项回归命令为`node node_modules/@playwright/test/cli.js test --config playwright.kernel.config.ts tests/kernel/research-task-agent.spec.ts tests/kernel/task-tools.spec.ts --output <root>/kernel-final --reporter list`。实际执行后已取得`delivery-instructions-final.json`，按当前apply定位完成4.1；`apply-final.json`为**33/33、all_done**，只代表已批准的首批任务状态，不替代主线最终审查或扩大Requirement实现范围。严格OpenSpec／schema及diff检查通过；生产源码和构建未改，未安装依赖或跑全仓CI。
+
+独立增量为`<root>/001-task-source-failure-consumption.patch`，精确五文件：两份测试及本change原design／tasks／delivery，基于cb5f7ed，无生产共享符号。`report.md`为本片交接摘要，`patch-verification.log`记录当前树反向check；所有必需输入与结果在Git或上述cache，历史/tmp路径仅是旧回执。本轮测试已完成finally／globalTeardown：内核／模型及Electron／静态承载均收尾，6023无监听，自有cache根无残留执行，登记项目未提前删除，隔离配置按既有teardown退役。到首批4.1及补丁交回停止，不自行归档、提交或继续其他模块。
+
+以下各轮保留原回执及当时限制，不作为本轮当前状态。
+
 ## 第十六轮主线接收
 
 主线接收FileEditor保存前强读取原身份／基础正文、重新定位并单次CAS的修复；旧submitted不能使用后来reload的正文依据覆盖新内容。冻结Standards／Spec独立审查均0确证发现。合入后先完整构建，再跑`file-workbench.spec.ts`两个代表场景：Browser与Electron合计4/4通过，含上一轮Electron回收恢复后保存和本轮pending-save／reload竞争。资源身份／条件保护6/6同时通过，位于18/18边界组合。

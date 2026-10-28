@@ -1,10 +1,11 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
-import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, unlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { Page } from '@playwright/test';
 import { createKernelClient, KernelClientError } from '../../packages/client/dist/index.js';
+import type { TaskMetadata } from '../../packages/protocol/dist/projects.js';
 import { runningKernel } from '../kernel-fixture.js';
 import { addProject, createSession, expect, test } from './fixture.js';
 import { rendererUrl } from './renderer-url.js';
@@ -216,6 +217,139 @@ test('research tasks share file authority, source navigation and project drafts 
     await expect(instruction).toHaveValue('保留本会话未发送要求');
     expect(errors).toEqual([]);
   } finally {
+    client.dispose();
+  }
+});
+
+test('unavailable task library source keeps its reference and existing materials across a fresh session', async ({
+  uiPage,
+}, info) => {
+  const root = await mkdtemp(join(tmpdir(), 'scholoom-task-source-ui-'));
+  const client = createKernelClient(
+    await runningKernel(process.env.SCHOOLOOM_UI_DATA_DIR as string),
+  );
+  await client.connect();
+  try {
+    const project = await client.call('project.create', {
+      path: join(root, 'project'),
+      trust: 'restricted',
+    });
+    const sourcePath = join(root, 'source.txt');
+    await writeFile(sourcePath, 'unread_source_must_not_be_adopted');
+    await client.call('library.grant', { read: true, write: true, send: false, autoBackup: false });
+    const batch = await client.call('library.importFiles', {
+      batchId: randomUUID(),
+      paths: [sourcePath],
+      storage: 'linked',
+      purpose: '正文',
+      version: 'unspecified',
+      origin: 'task-source-ui',
+    });
+    await expect
+      .poll(async () => (await client.call('library.batch', { batchId: batch.id })).batch.state)
+      .toBe('completed');
+    const imported = (await client.call('library.batch', { batchId: batch.id })).entries[0];
+    assert(imported?.attachmentId);
+    const attachment = await client.call('library.attachment', {
+      attachmentId: imported.attachmentId,
+    });
+    const metadata: TaskMetadata = {
+      kind: 'research-task',
+      formatVersion: 1,
+      id: randomUUID(),
+      title: '来源待核查',
+      status: 'waiting',
+      links: [
+        {
+          id: 'source',
+          role: 'source',
+          target: {
+            kind: 'library-material',
+            attachmentId: attachment.id,
+            materialVersionId: attachment.materialVersionId,
+          },
+          basis: attachment.materialVersionId,
+        },
+      ],
+    };
+    assert(metadata.links);
+    for (const role of ['process', 'result'] as const) {
+      await client.call('files.save', {
+        projectId: project.id,
+        path: `${role}.md`,
+        content: `${role}: existing independent material\n`,
+      });
+      const material = await client.call('resources.describe', {
+        locator: { source: 'project', projectId: project.id, path: `${role}.md` },
+      });
+      assert(material.ref.source === 'project');
+      metadata.links.push({
+        id: role,
+        role,
+        target: { kind: 'project-file', fileId: material.ref.fileId },
+        basis: material.basis,
+      });
+    }
+    const content = `---\n${JSON.stringify(metadata)}\n---\n\n目标：保留已有结果。下一步：等待用户核查来源；删除记录查询不可用，不认定删除或恢复。\n`;
+    const created = await client.call('tasks.create', {
+      projectId: project.id,
+      path: 'tasks/source.task.md',
+      operationId: randomUUID(),
+      content,
+    });
+    assert(created.state === 'complete');
+    const task = {
+      projectId: project.id,
+      taskId: metadata.id,
+      fileId: created.resource.ref.fileId,
+    };
+    await unlink(sourcePath);
+    const unavailable = await client.call('library.attachment', { attachmentId: attachment.id });
+    expect(unavailable).toMatchObject({
+      storage: 'linked',
+      state: 'missing',
+      materialVersionId: attachment.materialVersionId,
+      error: { code: 'notFound' },
+    });
+    assert(unavailable.error);
+    await uiPage.goto(rendererUrl);
+    await expect(uiPage.getByRole('status', { name: '连接状态' })).toContainText('已连接');
+    await addProject(uiPage, project.path, { trust: 'restricted' });
+    await createSession(uiPage, { projectId: project.id });
+    await uiPage.getByRole('tab', { name: '任务', exact: true }).click();
+    await uiPage.getByRole('option', { name: /^来源待核查 / }).click();
+    const detail = uiPage.getByRole('region', { name: '研究任务详情', exact: true });
+    await detail.getByRole('button', { name: '打开来源材料', exact: true }).click();
+    await expect(uiPage.getByRole('alert').filter({ hasText: /不可读取|不存在/ })).toBeVisible();
+    expect((await client.call('tasks.read', { task })).content).toBe(content);
+    await createSession(uiPage, { projectId: project.id });
+    await uiPage.reload();
+    await expect(uiPage.getByRole('status', { name: '连接状态' })).toContainText('已连接');
+    await uiPage.getByRole('tab', { name: '任务', exact: true }).click();
+    await uiPage.getByRole('option', { name: /^来源待核查 / }).click();
+    await expect(detail.getByRole('region', { name: '任务正文' })).toContainText('下一步');
+    for (const [role, label] of [
+      ['process', '过程'],
+      ['result', '成果'],
+    ] as const) {
+      await detail.getByRole('button', { name: `打开${label}材料`, exact: true }).click();
+      await expect(
+        uiPage.getByRole('textbox', { name: `文件内容 ${role}.md`, exact: true }),
+      ).toContainText(`${role}: existing independent material`);
+      await uiPage.getByRole('tab', { name: /^来源待核查 关闭/ }).click();
+      expect(await readFile(join(project.path, `${role}.md`), 'utf8')).toBe(
+        `${role}: existing independent material\n`,
+      );
+    }
+    const saved = await client.call('tasks.read', { task });
+    expect(saved.content).toBe(content);
+    expect(saved.metadata.links).toEqual(metadata.links);
+    await info.attach('task-source-evidence', {
+      body: JSON.stringify({ task, source: unavailable, links: saved.metadata.links }),
+      contentType: 'application/json',
+    });
+  } finally {
+    // Registered project and profile stay together until this isolated configuration retires.
     client.dispose();
   }
 });

@@ -1,10 +1,14 @@
 # 执行任务
 
-## 下一片：恢复后的草稿保存回归
+## 当前有界交付：4.1首批来源异常
+
+cb5f7ed共同基线上，主线已明确4.1按proposal的项目文件／库附件首批验收及分类不可用保护闭合。本轮内核真实来源3/3、任务／工具相关回归9/9、双宿主代表2/2通过；具体证据见delivery开头和design第12节。当前33/33仅记录本change约定首批任务完成，完整删除恢复／主题知识提供者、平台整项及科研质量不据此关闭，归档和最终审查仍交主线。
+
+## 已接收：恢复后的草稿保存回归
 
 - [x] R16.1 第十五轮主线定向UI中，首文件Browser通过，Electron在恢复为`recovered/draft.md`后，编辑器仍显示最新草稿，点击保存后磁盘未包含该段落，原5秒断言失败。实际模型已请求并完成取消，不属于旧queued／onStart缺证。先从同次trace、保存入口、resource描述／basis、草稿与恢复时序核原因；现有uiRpc仅观察指令／run，不能据无保存事件断言没有发送。必要时在原场景增加有界保存参数／结果与编辑器状态观察，定位后修共享根因，保留身份／版本核查、冲突留稿及原持久化断言。拥有project-ui及原文件／资源控制局部、file-workbench该场景及本change记录；按实际根因收敛，不放宽期限、自动重试或静默覆盖。双宿主最小复验，首次失败保留。本项不关闭4.1，也不解释旧CI的启动失败。
 
-2026-10-27本轮共同HEAD为4b13183f7489d3cae12fd0a7d1a9e83fb33d7384；主线round6验收／同步及本树构建复验已完成。沿已接收I1、M2和通用worker TaskPort，核对4.4c及当前来源身份，轻量修正project-backend旧CI夹具；不再应用旧补丁或等同步。仅改所属任务／交付、必要事实源及测试；不改生产Manual／Kernel装配、runtime／生态、来源hook或资格提供者。历史第8组保留，当前切片归第9组。
+历史整合起点：2026-10-27共同HEAD为4b13183f7489d3cae12fd0a7d1a9e83fb33d7384；主线round6验收／同步及本树构建复验后，沿已接收I1、M2和通用worker TaskPort核对4.4c及来源身份，校正project-backend旧CI夹具。该切片结果归第9组；后续共享代码已接收，不重新应用旧补丁或等待相同同步。
 
 ```mermaid
 flowchart TD
@@ -17,7 +21,7 @@ flowchart TD
   F --> G
   D --> H[5.1 独立审查与范围回归]
   G --> H
-  W1[W1 库分类恢复提供者待交付] -.-> I[4.1 库引用提供者复核]
+  W1[后续库分类恢复提供者待交付] -. 分类缺失明确不可用 .-> I[4.1 首批来源异常消费]
   W2[W2 已收到两份阅读design] --> J[4.2 阅读交互边界复核]
   W3[1026796已接科研产品适配及实际库取材] --> K[4.3 I1机械整合]
   D --> K
@@ -27,7 +31,7 @@ flowchart TD
   K -. 完成整合后补记 .-> L
 ```
 
-图中W1的完整库分类／恢复继续开放，不阻塞已有材料实际读取的I1机械组合；资料到达和静态核对不代替实际接入。本图仅表示交付依赖，不安排其他工作树执行。当前第8组记录正式源码上的真实组合，历史验证仍保留在同一delivery。
+图中完整库分类／恢复属于后续提供者，4.1按proposal首批项目文件／库附件消费及分类不可用保护验收；不以缺失附件冒充删除，不阻塞已有材料实际读取的I1机械组合。资料到达和静态核对不代替实际接入。本图仅表示交付依赖，不安排其他工作树执行。第8组记录正式源码上的真实组合，历史验证仍保留在同一delivery。
 
 ## 1. 无模型的文件任务闭环
 
@@ -47,7 +51,7 @@ flowchart TD
 
 ## 4. 跨线输入与真实整合
 
-- [ ] 4.1 【原值来源身份已有，完整库分类／恢复仍开放】固定Zotero10.0.5调查已收到；当前library.createSourceInstance、record／commitRecords／recordHistory及sourceInstances／originalRecords已提供原值来源身份{instanceId,libraryLocator,objectKey}。它不替代任务材料attachmentId／materialVersionId，不新增TaskLink union。题录／附件完整删除记录与恢复分类、主题／分析知识及其项目侧消费仍待正式契约和真实验收；不将notFound当删除或已查询无历史，也不以源key重现判定恢复。
+- [x] 4.1 【首批项目文件／库附件来源异常消费】按proposal及原来源异常Requirement核真实已有项目文件、managed附件缺失、linked附件失效：保留原ErrorInfo／ref／basis、实际storage／state及原过程／成果；无删除分类提供者明确unavailable，Agent暂停询问且不继续依赖写入，明确用户选择后才保存跳过范围和下一步，新会话从任务／材料实际接续，未读材料不计为已采用。原值来源身份{instanceId,libraryLocator,objectKey}已提供但不替代attachmentId／materialVersionId；notFound不代表删除或已查无历史，源key或路径重现不代表恢复。题录／附件完整删除恢复及主题／分析知识属于后续提供者，未交付、不冒充已验，完整来源异常Requirement保持原文。本项依据主线本轮闭合判据及真实内核／双宿主结果验收，不表示完整行为矩阵已实现。
 - [x] 4.2 【W2设计复核完成】分别读取用户快照中 `add-material-annotation-interactions/design.md` 与 `add-interactive-research-reports/design.md`，核对资源ref／basis、context、共同composer及正文保存触点。结论及精确路径见design第7节；不接管批注／报告协议，不合并两个change，不将设计到达称为实现接入。
 - [x] 4.3 【I1机械整合】在1026796正式源码上由任务详情经默认broker调用科研所属human→host适配，真实库／项目／固定worker／仓储完成首次成果、过程指针、条件关联与新会话文件接续。第8组及delivery记录实际双宿主和故障证据；校准图仅构造注入，生产目录继续空，不验科研综合质量或W1整体恢复。
 - [x] 4.4a 【任务契约正式交接及静态消费核对】以主线快照的本线task-contracts.ts／projects.ts正式交接tasks四操作、TaskRef三元组、可选workItemId、入口Evidence和部分关联语义。逐份核对科研、Agent、计算design及实际DTO：均可消费材料Evidence，但尚无完整任务字段；程序不要求绑定任务，session成果association不等于task links。
@@ -61,7 +65,7 @@ flowchart TD
 
 ## 续做入口
 
-续做先读specs、design第8–9节及delivery最新节，对照代码和任务继续。公共同步、I1和项目侧通用worker任务消费已有证据；第7组保留历史注入端口结果。4.1完整库分类／恢复仍开放，原值来源身份已存在；不重新应用旧/tmp补丁或等待已经收到的提供者。科研角色和质量不由项目侧机械闭环关闭。
+续做先读specs、design第12节及delivery最新节，对照首批实际来源异常结果；第8–9节的I1和通用worker任务消费已有证据，第7节为历史注入端口结果。4.1只验首批项目文件／库附件和不可用保护；完整删除恢复／主题知识仍待后续提供者，不凭原值来源身份宣称完成，不重新应用旧/tmp补丁。科研角色和质量不由项目侧机械闭环关闭。
 
 ## 6. 主线第二阶段公共对接准备
 

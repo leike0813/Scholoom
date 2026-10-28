@@ -2,7 +2,7 @@
 
 ## 变更总览
 
-本文件记录文件任务核心及公共对接设计，实际结果见[delivery](delivery.md)。当前共同源码为4b13183：I1及父TaskPort→子资源→父任务关联机械闭环已具备真实提供者，最新校正在第9节；第7节保留历史快照证据。W1完整删除／恢复和主题知识仍开放，原值来源身份已有提供者。projects内部的深层Module `ProjectTasks`把格式核对、发现、身份、保存和诊断集中在小Interface后，复用原文件机制，不另建包、进程、任务数据库、调度器或关系事务。
+本文件记录文件任务核心及公共对接设计，实际结果见[delivery](delivery.md)。当前共同源码cb5f7ed已包含I1及父TaskPort→子资源→父任务关联机械闭环；第7节保留历史快照证据。4.1按proposal的项目文件／库附件首批消费验收，当前方案见第12节；W1完整删除／恢复和主题知识提供者仍开放，原值来源身份已有提供者。projects内部的深层Module `ProjectTasks`把格式核对、发现、身份、保存和诊断集中在小Interface后，复用原文件机制，不另建包、进程、任务数据库、调度器或关系事务。
 
 ```mermaid
 flowchart LR
@@ -129,7 +129,7 @@ projects只保存任务自己的引用与采用理由，不直接调用库、科
 | 阅读交互 ↔ 本线 | 现有资源打开、ContextItem和共同composer；任务提供入口或现有链接ref／basis | W2两份设计已通过正式快照分别复核，未在当前树接入其新实现。批注、差异、报告和写回保持各自change，本线不增加私有消息通道 |
 | 宿主／harness → 本线 | CallContext绑定项目、主体及有效执行；人工与Agent经同一ProjectTasks，Agent模型外发和取消仍复用既有检查 | 人工组合不需要harness。任务工具只操作当前项目；全局／其他项目任务可沿现有read_target_project按已登记文件读取，不通过tasks.list在目标登记fileId |
 
-首批库取用异常：保留原ErrorInfo、所指ref、已有storage/availability；未知删除分类显示“删除记录查询不可用”，不返回伪造deleted/noHistory。任务工具指导沿材料行为矩阵：暂停依赖工作，询问用户并等下一条明确消息；不自动重试／忽略。受控Agent用例核对失败后确实提出选择且无后续依赖写入，收到用户选择后才继续；不新增独立等待引擎。固定Graph的interrupt／等待由科研线消费同一诊断并在自身图中落实，W3未提供时不承诺其接线。
+首批库取用异常：保留原ErrorInfo、所指ref、已有storage/availability；未知删除分类显示“删除记录查询不可用”，不返回伪造deleted/noHistory。任务工具指导沿材料行为矩阵：暂停依赖工作，询问用户并等下一条明确消息；不自动重试／忽略。受控Agent用例核对失败后确实提出选择且无后续依赖写入，收到用户选择后才继续；不新增独立等待引擎。固定Graph的interrupt／等待由科研线在自身图中落实；既有I1机械组合不替代本节来源异常暂停验收。
 
 ### 5. 工作台与UI方案
 
@@ -287,7 +287,7 @@ TaskGraphs核对入口和来源后，通过已有resources.create保存`tasks/<p
 
 主线`/tmp/scholoom-round6-acceptance-dXuzCA/acceptance.md`及`synchronized.json`确认共同接入；当前真实TaskPort来自Kernel构造注入的`ManualApplication.projectTasks(context)`，经broker及`createTaskTools`到ProjectTasks四操作。`tests/kernel/delegation-task-port.spec.ts`及`tests/fixtures/delegation-model.ts`明确父read入口→ResourceEvidence交子→子实际保存→父重读save关联result/workItemId。完整、材料变化、关联冲突、取消四场景核对实际文件及关联，项目侧4.4c无需第二套TaskRef或委派DTO。子不取得任务写入／程序启动权限，计算首批仍可无任务；科研角色、标准及质量保持所属方开放。
 
-当前`protocol/library-records.ts`、`library/schema.ts`和`LiteratureCatalog.createSourceInstance/record/commitRecords`已经提供原值来源实例及身份`{instanceId,libraryLocator,objectKey}`，同源操作由Manual真实注册。该身份约束外部原值对象绑定，不替代附件／材料版本，也不证明删除记录或恢复；任务材料继续使用原指针，不扩TaskLink union。完整删除／恢复行为矩阵、主题／分析知识及其项目消费仍是4.1剩余范围。
+当前`protocol/library-records.ts`、`library/schema.ts`和`LiteratureCatalog.createSourceInstance/record/commitRecords`已经提供原值来源实例及身份`{instanceId,libraryLocator,objectKey}`，同源操作由Manual真实注册。该身份约束外部原值对象绑定，不替代附件／材料版本，也不证明删除记录或恢复；任务材料继续使用原指针，不扩TaskLink union。完整删除／恢复行为矩阵及主题／分析知识依赖后续提供者；当前4.1首批验收不把这些尚不存在的能力计作已交付。
 
 最新CI为6b22d60／40315429083，两项project-backend失败在当前源码复现。原测试以未装harness的Manual和缺session/run/instance的合成调用保存，被FileEdit来源检查提前拒绝，尚未走到原撤权／无关目录场景。修正只在`tests/kernel/project-backend.spec.ts`增加自含`BackendApplication`测试资格seam：绑定完整项目／会话／run／instance并核对Agent主体。继承真实broker、fileOrigin及ProjectStore保存锁／依据／最终权限检查；不覆盖来源、不改生产Manual默认unavailable、不改harness资格提供者。两个场景的项目／profile保留于各自结果目录；等待后撤销信任仍拒绝，人工编辑可用，无关目录改名不阻断notes保存。生产执行来源另由已有真实worker回归核对；测试资格seam本身不称真实harness身份。
 
@@ -312,3 +312,13 @@ TaskGraphs核对入口和来源后，通过已有resources.create保存`tasks/<p
 若原场景失败，先消费该次窗口及执行附件，闭合本域根因后才作所属测试／观察局部的最小修复；非本域缺陷按原身份精确交回。必要测试增强只针对真实回执／仓储和各项目草稿／标签，不造新业务状态或提供者。复用现成已构建产品的静态承载；先xdpyinfo预检共享DISPLAY=:99，不启动／停止共享显示。独立缓存根及TMPDIR保留首次和后续实际结果，登记项目不提前删除。完整4.1及平台／科研质量继续开放。
 
 本次原场景首次双宿主均通过，所属测试／观察／执行提供者无需修正。实际消费在本轮独立证据根的`correlate.mjs`完成：按每份窗口session.send的同连接回执取得instruction／run，再匹配同project／session的执行capture、目标指令consumed、该run／instance的model.output、正常退出及窗口completed；不以样本当前run绑定全部历史指令，也不以累计model.requests替代归属。项目identity.json绑定四个实际临时项目，核原文件未因草稿或模型运行被覆盖。原UI草稿／标签断言在发送前切换阶段通过，不扩称发送完成后的UI草稿检查；本片无新增业务／测试行为，不需改spec或生成映射。
+
+## 12. 4.1首批来源异常消费验收
+
+主线本轮明确按proposal首个有界交付和未修改的“来源异常保留事实并等待决定”Requirement核4.1。真实项目文件和库附件必须先取得实际ref／basis，再让隔离夹具中的文件不可读；随机未创建fileId不再作为这项验收的唯一依据。库仍通过真实library附件登记、storage／state／error及资源读取表达事实；`missing`不表示库对象已删除，删除分类查询没有提供者，明确为unavailable。任务不保存第二份库正文或虚构deleted／noHistory。
+
+复用`research-task-agent.spec.ts`的来源失败用例，参数覆盖项目文件、managed附件与linked附件。外部HTTP模型受控，内部Kernel／broker／worker／库／文件／工具全部真实；实际资源读返回的完整ErrorInfo与原ref／basis，以及实际附件storage／state保留到用户明确选择后的任务正文。失败阶段提出选择、停止依赖工作且不写任务／材料；下一条明确忽略只记录跳过范围，未读材料不计为已采用。新会话重读任务及既存过程／成果，取得已保存选择与下一步，无旧transcript依赖。外链同路径出现不同字节后仍按原版本拒读，不称恢复。
+
+复用`research-tasks.spec.ts`的任务详情入口，增加一个最小双宿主代表：真实linked附件失效后打开来源得到不可读诊断，任务引用及既存过程／成果不变，刷新后新会话仍可从入口打开过程／成果。此例不运行模型；Agent暂停与明确选择由上述真实worker测试负责。不改UI视觉、FileEditor、harness、library schema或删除提供者，不新增重复诊断系统；仅测试和所属工件变更复用共同基线已验构建产物。
+
+4.1完成只表示上述首批消费和不可用保护经实跑成立，不表示完整材料行为矩阵、题录／附件删除恢复、主题／分析知识、平台整项或科研质量完成。完整Requirement保留；后续提供者交付时再验其实际分类和恢复，不能以notFound、原值身份或源key重现替代。
