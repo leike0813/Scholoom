@@ -1,5 +1,9 @@
 # 实际交付与交接
 
+## 完整浏览器校准尚未通过（2026-10-29）
+
+实际两轮完整浏览器前置见[investigation](investigation.md#完整浏览器前置校准2026-10-29)，证据保存在独立cache而非现有/tmp。限额实际读回、两条sandbox初始化错误和收尾分别记录；两轮均未到main／renderer／截图，不将Chromium错误中的可能原因当唯一诊断，不因没有运行恶意页声称隔离已通过。当前环境的普通userns限制另已实测。2.1b／2.2／3.x／I5均未因此关闭，生产活动报告继续unavailable。
+
 ## 2.2a追加通知结果修正（2026-10-29）
 
 父最终核对新增boolean接收结果时发现原drafts.writeDraft在提交后执行订阅回调，异常会沿updateContext误报false。`context-subscriber-red.{log,json}`真实复现result=false但stored=1，后续通知和浏览器错误诊断均未发生。现仅在共同writeDraft的通知循环分别捕获，沿标准reportError报告并继续其他订阅；不回滚已提交内容，不扩大原内存fallback的持久性承诺。原2.2a为修正与复验暂时重开，最终关闭依据本节后续结果，不改写下节首轮记录。

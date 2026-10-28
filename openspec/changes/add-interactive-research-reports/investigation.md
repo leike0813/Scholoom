@@ -1,5 +1,13 @@
 # 调查依据
 
+## 完整浏览器前置校准（2026-10-29）
+
+主线证据根`/home/joshua/.cache/scholoom-finish-active/report-browser-calibration/`，最新事实以`report-current.md`、`facts-current.json`及`run-prpZRU/`为准。首次`MemoryMax=512MiB`被systemd参数解析拒绝，未启动scope／浏览器；改为等值536870912后才有以下两次实际执行，首败保留而不计浏览器尝试。
+
+同一Electron44.5.1、固定可信HTML、systemd用户scope＋bwrap受限文件视图，两次均在启动前读回CPU20%（20000／100000）、512MiB、swap0、128tasks及30秒期限。默认sandbox在SUID helper初始化报配置错误；唯一后续对照仅增加`--disable-setuid-sandbox`，报`No usable sandbox!`。均退出133，未到应用main、renderer、页面动作或截图。没有借宿主显示／DBus、关闭sandbox、安装、提权或改系统策略；最终原unit／cgroup不存在、已见PID出生身份退出，仅证明本样本收尾，不能替代完整浏览器归属／逃逸验收。
+
+主线另只读核到`apparmor_restrict_unprivileged_userns=1`，宿主`unshare --user --map-root-user true`实际在写uid_map返回EPERM；本机`/etc/apparmor.d/bwrap-userns-restrict`的子profile声明`audit deny capability`。随后以相同`bwrap --unshare-all --cap-drop ALL`和只读/usr、私有proc/dev运行可信shell作有限机制探针，实际子label为`bwrap//&unpriv_bwrap (enforce)`、uid_map为1000→0的一项映射，内层unshare也在写uid_map返回EPERM；原输出保存在`userns-policy-probe.log`。这补充了实际子域及嵌套限制，不等于捕获了原浏览器失败处的完整syscall／audit因果。显示与呈现尚未达到可评估阶段。此前静态native提供者绿色不能补充这些未执行阶段，2.1b及完整报告I5保持开放。
+
 ## 高FD、SCM_RIGHTS与普通文件门实跑（2026-10-28，f4ab1e5）
 
 本片开始HEAD=`f4ab1e5f1ed17ae9af656c1f9945005a2786d911`、工作区干净，无`.codegraph/`。已读AGENTS、共同计划“第十三轮验收后的安排”、原四工件、scholoom-dev及apply；实际执行后取delivery instructions。正式交接消费`/home/joshua/.cache/scholoom-round13-acceptance/{source-preservation.json,sync-directed-summary.json}`及共同计划的主线回执，未重放旧累计patch或操作其他树。该目录没有acceptance.md，未假定存在；精确来源以上述实际文件为准。
