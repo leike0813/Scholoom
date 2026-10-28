@@ -1,5 +1,43 @@
 # 实际交付与交接
 
+## 第十一轮验收后的本机原生校准（29cd728）
+
+2026-10-28先核HEAD=`29cd7283388dfd752911eacb9c3bf8416031db15`及clean，读AGENTS／共同计划第十一轮安排／原design/tasks/delivery及当前apply instructions；实际执行后取得delivery instructions。仅执行用户明确授权的候选A普通权限前置，仓库仍只改原investigation／design／tasks／delivery。任务保持6/13、正式2.1b及活动报告继续unavailable；没有采用画面流或新的产品架构。
+
+正式交接输入为`/tmp/scholoom-round11-acceptance-Jx5Oez/`的本线冻结和主线接收记录、post-integration-ci及本树正式源码，不重放source.patch。原iframe的STUN／CPU反例和完整首次失败记录继续保留，不重复报告浏览或借主线CLI状态关闭整项。新CI只保留交接截点“已启动”，未查询或后台等待，不添加Windows／macOS通过结论。
+
+**实际结论：** 普通用户在本机可另建有CPU控制的transient user scope，不能将Orca自身无cpu.max扩大为不可用。实际scope上限20% CPU／64MiB memory／swap0／16 tasks，与显式bwrap的七类namespace、NoNewPrivs=1／CapEff=0共同作用于固定原生样本；CPU节流、pids拒绝、内核OOM及含setsid孙进程的整组停止均取得代表性证据。自有IPv4／IPv6 loopback目标未收到隔离样本的TCP／UDP，UDP sendto仍可在新namespace内返回成功，不能据此宣布禁止socket、外部DNS或全网络零外发。完整条件矩阵只由investigation“本机前置机制实跑”维护。
+
+证据根为`/home/joshua/.cache/scholoom-report-platform-round12-fNGQLv/`，所有命令继承TMPDIR到该根，避开本机/tmp EDQUOT。三个实验入口及结果分别是：
+
+| 执行与原始结果 | 实际范围 |
+| --- | --- |
+| `scope-calibration.mjs`／`scope-result.json`、`namespace-calibration.mjs`／`namespace-result.json` | 已有cc先编译有限C读回样本；新scope运行时样本与外部控制端分别读内核文件；显式bwrap固定true退出0。不是属性受理或W_OK检查代替限制 |
+| `native-calibration-first.mjs`／`native-first.log`／`native-result.json` | 唯一完整负载轮，原执行文件名为native-calibration.mjs，当时代码另存first快照；CPU／P／M／T实际完成。T先经pipe确认孙setsid再读scope五个实际成员，stop唯一unit后整个cgroup移除；systemd-run以SIGTERM close是明确实验停止，不改生产unknown语义 |
+| `native-network-final.mjs`／`network-final.log`／`network-final-result.json` | TCP观测修正后仅补验网络、namespace及现有限额，退出0；TCP按accept计数且native结果明确失败，四项最终计数均只含正向控制1。未重跑已绿资源／树负载 |
+| `check-evidence.mjs`／`evidence-check.log`／`conditions-matrix.json` | 对上述独立原始内核计数／scope／消息做一致性复核通过，不运行新实验；完整样本源码、编译器输出、命令参数和清理记录都保留 |
+
+实际执行命令使用独立cache根（下列为命令记录，复跑须复制到新的自有根，不能在原根覆盖证据）：
+
+```sh
+CALIBRATION_ROOT=/home/joshua/.cache/scholoom-report-platform-round12-fNGQLv
+TMPDIR="$CALIBRATION_ROOT" node "$CALIBRATION_ROOT/scope-calibration.mjs" "$CALIBRATION_ROOT"
+TMPDIR="$CALIBRATION_ROOT" node "$CALIBRATION_ROOT/namespace-calibration.mjs" "$CALIBRATION_ROOT"
+TMPDIR="$CALIBRATION_ROOT" node "$CALIBRATION_ROOT/native-calibration.mjs" "$CALIBRATION_ROOT"
+TMPDIR="$CALIBRATION_ROOT" node "$CALIBRATION_ROOT/native-network-final.mjs" "$CALIBRATION_ROOT"
+node "$CALIBRATION_ROOT/check-evidence.mjs" "$CALIBRATION_ROOT"
+```
+
+原生入口均先执行已有`cc -O2 -Wall -Wextra -std=c11`再运行样本，不重建共享产品产物。CPU测试2.065秒内用0.404秒CPU、nr_throttled增加21；pids反例对应内核max事件，memory反例对应oom_kill增加且forcedKill=false。本次OOMPolicy=continue只给实验scope保留观察父进程；RuntimeMaxSec=15s仅是开始终止的保护门，不是全部清理的产品期限。controller在scope外，最终四个唯一unit全部inactive／not-found，原cgroup已回收、控制端scope未变，自有TCP／UDP全部关闭；systemd可能自动启用祖先controller，本片没有手改／回滚父层配置或声称启用状态完全复原。
+
+**首次失败／审查修正：** 启动负载前临时控制器syntax检查首次失败，缺失一个闭括号；保留controller-syntax-first.log，修正后通过，首次没有启动样本／监听器。完整负载脚本退出0后，独立审查发现P2：TCP仅connect而旧观察器按data计数，不能用其计数证明无连接。保留首轮输入／结果及代码，改为accept计数、相同行为正向控制和connect失败断言，再仅补验网络。只读复核确认该缺口闭合。C编译均退出0，原日志保留scope-probe的1条read及native样本的2条write返回值warning，不写成零warning或抹去记录。
+
+实际OS／systemd／cgroup／bwrap及C进程真实；固定合成负载和自有loopback是调查样本，没有模块替身充当生产授权／worker。本片没有接入ManagedCommands／ManagedNode、ReportResources、harness、真实项目／库或双宿主，没有新的程序运行／UI注册。自定义完整syscall／继承句柄策略、外部DNS／LAN／浏览器网络、控制器丢失／迁移逃逸／重启unknown和容量接线均未验，不能由本次cgroup回收推定这些保证。可信bwrap包装器仍在宿主net namespace，不能让它执行报告或做代理。
+
+适用收尾检查为`openspec validate add-interactive-research-reports --strict`、`openspec schema validate scholoom-dev`、`git diff --check`及文档补丁reverse-check；日志保留在同根。只改四份Markdown，没有生产类型／生成映射变化，不重复主线已验构建、kernel／UI或全仓CI。源码HEAD不变，无提交、push／PR／archive、安装／下载、sudo／新特权服务、全局配置／权限修改、其他树操作或真实用户库访问；原生样本和二进制明确保留为本片调查依据，不进入生产或成为第二份报告实现。
+
+**停止与最小下一步：** 交主线审独立platform Adapter的预执行、句柄／syscall策略、控制器丢失和持久unknown／容量组合，不能直接拿临时systemd脚本当提供者。Mac受管执行仍不可用，Windows及非本机Linux条件缺证。浏览器运行时／分发、正式呈现及文本／无障碍、部署权限和产品预算仍待用户／主线决定；不自动启动浏览器、VM／容器服务或接图像流。2.1b、2.2／3.x、目标／旧版本Adapter、完整I5及科研质量保持开放。
+
 ## 第十一轮主线接收与校准范围
 
 四份候选调查工件已冻结合入，两轴独立审查未发现确证夸大；未运行新的隔离／双宿主实验，2.1b仍未实施。下一片只准许本机已有工具、普通权限下的有限原生机制校准，先查必要namespace／配额／归属条件，缺失即明确交回；不采纳画面流或新的UI／产品架构，不安装／提权／改变系统配置或运行无约束浏览器。正式呈现体验、部署权限、运行时分发和资源预算继续待定，活动页不可用及完整I5开放保持。具体边界沿[共同计划](../../../.scratch/domain-development/parallel-development-plan.md#第十一轮验收后的安排)。

@@ -1,6 +1,39 @@
 # 调查依据
 
-## 当前承载调查（2026-10-28，938c33f）
+## 本机前置机制实跑（2026-10-28，29cd728）
+
+本轮先确认HEAD为`29cd7283388dfd752911eacb9c3bf8416031db15`、工作区干净，无`.codegraph/`。消费`/tmp/scholoom-round11-acceptance-Jx5Oez/`的本线冻结／接收记录与本树正式工件，不重放source.patch。用户只授权候选A的普通权限前置校准，不采纳像素／画面UI，不写生产platform／协议／ReportView。以下不是浏览器或双宿主通过结论。
+
+证据与可复跑临时样本完整保留在`/home/joshua/.cache/scholoom-report-platform-round12-fNGQLv/`；TMPDIR指向该根，沿本轮/tmp EDQUOT安排使用自有cache空间。关键原始文件为`prerequisites.json`、`scope-{probe.c,calibration.mjs,result.json}`、`namespace-{calibration.mjs,result.json}`、`native-{mechanisms.c,calibration-first.mjs,result.json,first.log}`及修正后的`native-network-final.mjs`／`network-final-result.json`。仅编译已有cc可构建的固定C样本，没有依赖安装／下载、sudo、系统配置文件／权限修改或新特权服务。
+
+### 实际条件矩阵
+
+| 条件 | 实际观察与反例 | 结论边界 |
+| --- | --- | --- |
+| 普通权限入口 | uid1000、Linux7.0.0-38-generic，systemd259.5用户manager可达；bwrap0.11.1非setuid，unshare2.41.3已存在 | 本机有入口，不推断其他Linux发行／启动方式可用；没有以W_OK代替执行 |
+| 独立user scope及限额 | 唯一transient unit，可信C读自身cgroup；控制端独立读回cpu.max=`20000 100000`、memory.max=`67108864`、swap.max=`0`、pids.max=`16`。原Orca scope仍无cpu.max，但新scope有cpu controller | **已证**普通权限可取得该独立scope；上一轮“当前Orca scope无CPU”不能扩大为独立用户scope不可用。systemd可按需启用父层controller，本片不手改或回滚父层配置，也不承诺启用状态全部复原 |
+| 必要namespace／预执行门 | 固定true使用显式user／net／pid／ipc／uts／cgroup参数，bwrap同时构造mount视图，退出0；原生样本main进入时七类namespace句柄均异于外部控制端，NoNewPrivs=1、CapEff=0，readErrno=0 | **有限样本通过**，没有用unshare-all的try路径或可选参数跳过。仅映射公开/usr／lib、样本及私有proc／dev／tmp，未读取真实profile；不是任意浏览器启动／syscall策略的完整安全证明 |
+| 宿主loopback TCP／UDP | 经独立审查修正TCP按data计数的缺口，最终TCP在accept计数，正向控制同为无payload连接；IPv4及IPv6的TCP、UDP各1次控制送达。隔离样本尝试后，直到整组停止／服务器关闭四计数均未增加，另明确核TCP结果失败；样本仅见lo、无外部路由 | **仅被测宿主端口无送达**。TCP均ECONNREFUSED(111)，UDP sendto均返回21字节成功：独立namespace内仍可使用loopback，不是禁用socket系统调用。未测外部DNS／LAN／HTTP浏览器／STUN协议，不据此宣布全网络零外发 |
+| CPU上限 | 2.065410823秒墙钟内消耗0.403976464秒进程CPU；同scope独立cpu.stat的nr_throttled从0到21，throttled_usec增加1661001 | **该公平调度类有限样本的实际节流成立**，不等于绝对UI延迟、任意调度类／GPU或浏览器完整进程图预算 |
+| pids上限 | 上限16时创建13名等待子进程后fork返回EAGAIN(11)；pids.events max从0到1，pipe／wait错误均0；样本全部回收后才报告完成 | **该scope进程／线程计数上限有实际反例**，没有无界fork或只凭返回码猜归因 |
+| 内存上限 | scope64MiB／swap0，一名子进程尝试96MiB逐页触碰；内核memory.events oom_kill从0到1、oom从0到1；该子SIGKILL，样本forcedKill=false | **该内存反例成立**。本次unit设OOMPolicy=continue以保留观察父进程，仅是夹具策略；不选择产品OOM政策，不把memory.max描述为无瞬时超额的绝对上限 |
+| 整组停止归属 | T阶段孙进程setsid后经pipe ACK再报告；外部cgroup.procs记录5名成员。仅stop原唯一unit，控制端收到systemd-run close(SIGTERM)，scope inactive／unloaded且整个cgroup目录移除，父控制端未换scope | **该多代／detached样本整组回收成立**，依据整组cgroup而非根PID。未测控制器丢失、持续fork／逃逸迁移、重启核查、持久unknown／容量接线或既有ManagedNode组合 |
+
+本轮四个unit的精确名称由各原始JSON的unit字段维护：scope读回、namespace门、首轮native和最终network窄项各一。前两项自然结束，后两项明确stop；最终均not-found／inactive，只处理本次唯一随机unit。自有TCP／UDP服务全部关闭，原生源码／二进制和原始结果保留，不删除旧轮目录。bwrap可信启动包装进程仍处宿主net namespace，固定样本及其子孙处新net namespace；包装器不是不可信报告，也不能被扩充为网络代理。
+
+### 实跑与缺证边界
+
+先只读查权限／版本，再独立scope读回，再固定true namespace门，全部通过后才执行有限CPU／pids／memory／loopback／tree反例。`native-first.log`是唯一完整负载轮，控制器退出0；独立复核指出TCP只connect不发data、旧观察器可能漏计accept，不能以首轮计数器证明TCP零送达，虽然保存的connect实际均被拒绝。保留原代码快照`native-calibration-first.mjs`及原结果；修正accept计数和TCP结果断言后，只补跑网络／namespace／限额窄项，`network-final.log`退出0，未重复已绿CPU／内存／pids／tree负载，不写成首轮观测无缺口。
+
+没有运行重试、延长期限或无约束浏览器。启动负载前`node --check`首次因临时控制器缺一个闭括号失败，`controller-syntax-first.log`保留；补正后syntax-final通过，该失败未启动样本或监听器。编译日志保留scope-probe一条read返回值和native-mechanisms两条write返回值warning；树ACK还由接收端长度及errno核对，不将warning抹去或按零warning交付。
+
+被测实际提供者是systemd用户manager、Linux cgroup、bwrap及固定C程序；未以注入替身证明OS。没有自定义完整seccomp过滤／继承句柄攻击校准，不证明通用文件访问隔离、浏览器兼容性或产品harness／授权接线。Windows／macOS、外部DNS、运行时分发及双宿主呈现均缺证，Mac原受管执行不可用不变。
+
+CI仍沿主线明确的938c33f／Checks40540362614：Linux内核748通过26跳过、UI125通过33失败6跳过，Windows内核677通过55失败42跳过、macOS job成功。新29cd728的40591705558／40591705520在post-integration-ci交接截点仅已启动；本片没有查询或后台等待，不把它们计通过，不按不同运行数目猜因果。
+
+**本机结论：普通权限的独立user scope与bwrap组合，在本次有限原生样本可以同时取得上述前置与观察到的保护。** 这推翻的是“继承Orca scope没有cpu所以候选A本机必不可用”的外推，不是2.1b已经可交付。最小下一步为主线审独立platform Adapter的预执行、句柄／syscall策略、完整停止与unknown／容量组合校准；不据此启动浏览器或选择画面流。正式呈现、安装／部署、运行时维护与产品预算仍待决定。
+
+## 前一轮承载调查（2026-10-28，938c33f）
 
 当前HEAD为`938c33f2c9fcafb2cce11b0c165b2fb1e9a818c3`，开始时工作区干净；无`.codegraph/`。本片授权只有下一承载的调查／可审查设计，写集为本change的investigation、design、tasks、delivery，不实现跨系统沙箱、图像流或协议。原2.1a调查已接收，2.1b尚未实施。项目HTML＋显式本地资源、无网络／任意文件／内核直连、双宿主共同UI的产品保证不降低。
 

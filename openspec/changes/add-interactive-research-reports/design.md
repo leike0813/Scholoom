@@ -2,7 +2,7 @@
 
 ## 变更总览
 
-用户已采纳 [investigation](investigation.md#已获得本轮产品选择) 的项目内有界产品范围；资源及来源授权已接入，活动承载仍阻塞。当前共同源码938c33f，本片只提交“下一承载候选与待决范围”，不据原iframe候选或CLI状态进入2.1b。既有资源限额保持；新的执行／呈现预算须在架构选择后校准。
+用户已采纳 [investigation](investigation.md#已获得本轮产品选择) 的项目内有界产品范围；资源及来源授权已接入，活动承载仍阻塞。当前共同源码29cd728，本片只校准候选A的本机原生前置，结果由investigation维护；没有采纳画面流或实施2.1b。既有资源限额保持；实验保护值不是新的产品执行／呈现预算。
 
 ```mermaid
 flowchart LR
@@ -59,20 +59,30 @@ ReportResources 是 `packages/editor` 内的 module，不新建包／数据库�
 
 ### 隔离与页面桥
 
+#### 本机普通权限前置校准（29cd728，本片执行范围）
+
+用户只授权候选A的平台前置，不采纳下方画面／输入承载。仓库写集仍为本change四份工件；临时原生样本、命令和原始结果保留在本次独立`/home/joshua/.cache/scholoom-report-platform-round12-*`，TMPDIR指向该根，避开本机/tmp的EDQUOT，不清理旧目录。
+
+先核版本、用户manager、实际cgroup及namespace权限。独立transient user scope先启动可信的有限原生等待／读回样本，实验上限CPUQuota=20%、MemoryMax=64MiB、MemorySwapMax=0、TasksMax=16、RuntimeMaxSec=15秒；这些是夹具保护，不是产品预算，15秒只界定开始终止，不保证全部收尾恰在15秒内完成。原生样本读自身cgroup，控制端独立读scope属性及实际cpu／memory／pids文件，不能只检查属性请求、W_OK或当前Orca scope。
+
+再以本机已有bwrap／unshare执行固定true核预执行namespace门，记录实际退出码、错误、是否进入样本。必要namespace／配额／归属条件不满足即停止，不运行busy／内存／fork／网络负载、浏览器、VM／容器服务。仅全部前置成立时才继续有限原生反例；网络目标仅为自有loopback，不能据此关闭外部DNS或全网络保证。scope使用唯一随机unit，finally仅停止该unit并查询状态／归属；没有完整后代样本时不将短进程退出记为完整停止证明。禁止sudo、改系统配置／权限、安装或启动新特权服务；Mac、Windows与浏览器／双宿主均未因此验收。
+
+本轮已按该门槛执行，独立scope与显式bwrap门通过后，唯一完整负载轮取得CPU节流、pids拒绝、内存OOM和多代整组回收；实际数值及限制见investigation“本机前置机制实跑”。内存样本仅本次scope设OOMPolicy=continue以观察独立子OOM，不写生产政策。宿主loopback目标无送达不等于禁socket或外部DNS已隔离。可信bwrap启动包装器仍在宿主net namespace，不得执行报告或作网络broker。该结果仅供后续独立platform Adapter审查，不能替代句柄／syscall策略、持久unknown／容量、浏览器及双宿主验证。
+
 #### 下一承载候选与待决范围（938c33f，仅调查设计）
 
-机制事实、官方来源L／W／C索引及本机条件由investigation“当前承载调查”维护。本片不修改正式规格／同源schema；既有“页面隔离与有界动作桥”的保证不变。新的物理承载未定，不将像素投影、OS新权限或新传输当已批准产品能力。
+机制事实、官方来源L／W／C索引及本机条件由investigation的实跑与前一轮承载调查维护。本片不修改正式规格／同源schema；既有“页面隔离与有界动作桥”的保证不变。新的物理承载未定，不将像素投影、OS新权限或新传输当已批准产品能力。
 
 排除近路：只增加renderer／BrowserWindow／WebContentsView不能覆盖组外browser／network／GPU服务，也不自动限制CPU。WebContentsView仅属Electron main，普通Browser不能嵌入该原生视图。新窗口或开放CDP端口不保持共同UI，也可能泄露控制能力；DOM API覆盖、Electron HTTP过滤、禁摄像头不替代OS网络拒绝。
 
-只保留两个待校准候选，目前都没有可用提供者：
+只保留两个承载候选；A完成的仅是本机原生前置，都还没有正式报告提供者：
 
 | 候选 | 必需组合 | 权限、安装及不足 |
 | --- | --- | --- |
-| A：OS隔离的独立完整浏览器进程图＋可信呈现控制器 | Linux独立namespace／最小文件视图／受控FD与syscall策略，加实际委托的cpu／memory／pids cgroup；Windows无网络AppContainer／LPAC、ACL及受限句柄，加Job配额／归属。主browser、renderer、network、utility和崩溃进程都入范围；控制器通过私有pipe管理 | 复用现有监督语义，但新增OS策略归platform／主线。当前Linux scope无cpu controller，namespace未试建；Windows浏览器兼容性、DNS代理和句柄覆盖未验。需WFP／特权服务则另审，不自动安装。还需可维护的浏览器运行时／字体分发与许可，不能借用户profile或开发Playwright缓存冒充产品依赖 |
+| A：OS隔离的独立完整浏览器进程图＋可信呈现控制器 | Linux独立namespace／最小文件视图／受控FD与syscall策略，加实际委托的cpu／memory／pids cgroup；Windows无网络AppContainer／LPAC、ACL及受限句柄，加Job配额／归属。主browser、renderer、network、utility和崩溃进程都入范围；控制器通过私有pipe管理 | 复用现有监督语义，新增OS策略归platform／主线。29cd728本轮已证本机独立用户scope和namespace的有限原生组合，尚无生产Adapter或浏览器通过。Windows浏览器兼容性、DNS代理和句柄覆盖未验。需WFP／特权服务则另审，不自动安装。还需可维护的浏览器运行时／字体分发与许可，不能借用户profile或开发Playwright缓存冒充产品依赖 |
 | B：无网络的容器／VM浏览器＋同一可信呈现控制器 | 容器仍需namespace／配额；VM另需guest镜像、hypervisor及guest／host资源与退出证明。Windows Sandbox／Hyper-V仅是机制候选，不是现成provider | 安装、磁盘、虚拟化、可能重启及镜像更新成本更大；Windows版本／Home边界、默认联网、共享目录／剪贴板必须收口。VM主进程退出不证明全部归属停止；本机未核KVM／Hyper-V可用，不承诺Mac。此候选也没有消除双宿主呈现问题 |
 
-建议主线优先选择**A的有条件机制校准**，以复用执行归属并避免立即引入guest镜像；这只是待审建议。实际权限不能兑现保证便继续unavailable，不自动回退B、无配额或受信项目执行。B只在明确接受更大安装／维护范围后推进。
+用户本轮已单独授权A的本机原生前置并取得有限结果；这不采纳完整浏览器／呈现架构。正式Adapter及浏览器下一片仍由主线按剩余保证决定；权限或平台不能兑现时继续unavailable，不自动回退B、无配额或受信项目执行。B只在明确接受更大安装／维护范围后推进。
 
 **普通Browser的具体呈现候选：** 报告脚本在执行端独立浏览器运行；Browser／Electron共同React tab仅显示可信控制器输出的有界画面及宿主控件，转发当前视图的指针／键盘／滚动，不执行回传HTML／CSS／JS。Browser父工作台仍持既有认证连接，**报告进程**不持KernelClient、token、preload或通用broker方法。Electron走同一路径，不另做原生业务页。本片没有实现画面／输入流或新协议。
 
@@ -116,7 +126,7 @@ CDP截图／输入或独立Electron offscreen仅是控制器内部Adapter候选�
 
 **须交用户／主线决定：**
 
-- 是否选择A进入机制校准，以及是否接受“共同UI可信画面＋输入／语义桥”；若要求完整原生DOM体验，需另一可兑现隔离方案，不能恢复已否定iframe。
+- A的本机有限原生校准已获单独授权并完成；下一步是否形成独立platform Adapter及浏览器校准仍由主线决定。“共同UI可信画面＋输入／语义桥”未获采纳；若要求完整原生DOM体验，需可兑现的隔离方案，不能恢复已否定iframe。
 - Linux委托scope／namespace如何提供；Windows先校准无网络AppContainer＋Job，还是承担WFP服务／VM的安装维护。权限不足不可用，不先承诺免安装或三平台覆盖。
 - 浏览器随产品分发还是人工登记已安装版本；Node内核不依赖开发缓存，运行时更新、签名／许可及目标安全版本维护归谁。
 - 中文IME、可访问性、查找／复制、WebGL的验收范围与单视图预算／多视图容量；不能靠禁用功能或只保留截图降低报告保证。
