@@ -2,9 +2,11 @@
 
 ## Windows子文件元数据独立取证（2026-10-29）
 
+2b55465／run40770348500的独立private-files job123105541706已success，Node24.22.1／libuv1.52.1。原四项各三次12/12：三份元数据before=after=opened且正文保持，真实损坏三类ACL后修复也通过；随后未修改的组织恢复RPC1/1，38秒，原附件版本／可读／正文断言通过。artifact12852830922上传成功并一次解包至windows-ace-equality；原库／备份／副本材料43字节、同一ID及SHA256一致，结构化读回windows-ace-equality-reviewed.json。原始日志windows-ace-equality-private.log和job状态已保全。最终权限独审对Equals及原保护条件无新增发现。该结果关闭[组织恢复任务](../complete-library-organization/delivery.md)，但完整Checks与本workflow的execution job尚未结算，不据独立job关闭本change5.2／6.2。
+
 后续0c4a6fa／run40769249566的private-files job123101647156仍6通过／6失败，Int32 RHS不是足够修复；恢复仍未ready。原log windows-acl-0c4.log保留，上传结果另核。当前改为复用原setter唯一目标ACE，调用GenericAce.Equals比较原始ACE，删除手工枚举谓词；微软Framework源码确认其比较type／flags及完整二进制，静态来源cache/dotnet-framework-ace.cs。构建／Biome通过，新目标结果尚待；失败没有作为修正版通过计数。
 
-修正首个目标e322570／run40768434719的private-files job123098793356为6通过／6失败：原metadata三次和missing-inheritance三次在普通ACE的AccessMask与枚举比较时报InvalidCast，extra-rule／conditional-rule各三次通过；恢复RPC未ready，不能称已验恢复。原日志windows-acl-e322570.log保全；上传读取被故意破坏权限的probe.txt发生EPERM，无artifact。当前已将AccessMask右侧明确转为int，并在上传中仅排除故障private-profile子树，trace／JSON／错误上下文仍保留。条件夹具另按独审将SDDL限定Access-only，避免无意请求SACL；原三P2和SACL项静态闭合，目标新版本仍待实跑，不将e322570失败当作新版本结果。
+修正首个目标e322570／run40768434719的private-files job123098793356为6通过／6失败：原metadata三次和missing-inheritance三次在普通ACE的手工字段比较条件中报InvalidCast，不能从整段异常定位唯一子表达式，extra-rule／conditional-rule各三次通过；恢复RPC未ready，不能称已验恢复。原日志windows-acl-e322570.log保全；上传读取被故意破坏权限的probe.txt发生EPERM，无artifact。当时将AccessMask右侧转为int，并在上传中仅排除故障private-profile子树，trace／JSON／错误上下文仍保留。条件夹具另按独审将SDDL限定Access-only，避免无意请求SACL；原三P2和SACL项静态闭合，不将e322570失败当作新版本结果。
 
 已取得1887eed／run40766436204的独立private-files job123091722891 success，artifact12849199213一次下载至cache的windows-private-files-40766436204。三份JSON中仅ctime从before到after改变，opened与after一致、正文保持true，其余dev／ino／size／mtime保持；新证据支持重复ACL影响子文件ctime的局部机制，不单独证明恢复故障所有因果。修正候选沿design首节每次真实重查安全ACL，目标验证及恢复链路尚待后续实际修正版结果。
 

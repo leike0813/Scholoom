@@ -1,6 +1,6 @@
 # 执行任务
 
-本轮基于共同cb5f7ed补齐3.1／3.2／3.3及4.1／4.2，C1有界任务9/9完成；实际公共接线、真实重启／恢复、双宿主兼容性、首次失败及独立审查见[delivery](delivery.md)。结果待主线统一整合验收，不因CLI all_done归档或宣称完整C及B的平台／独审任务完成。后续附件／关系方向仍按design另片实施。
+主线已完成共同接线及必要整合验收；Windows恢复附件状态失败经platform权限幂等修正后，2b55465目标12项权限及原恢复RPC1项实际通过，重开的3.2已完成，C1有界任务9/9。真实重启／恢复、双宿主兼容性、首次失败及独立审查见[delivery](delivery.md)。不因CLI all_done自动归档或宣称完整C及B的平台／独审任务完成。后续附件／关系方向仍按design另片实施。
 
 ```mermaid
 flowchart TD
@@ -28,7 +28,7 @@ flowchart TD
 ## 3. 独立调用与恢复验收
 
 - [x] 3.1 依赖2.2，在`ManualApplication::foundationHandlers`完整注册四方法，生成受影响business／client／module映射，保留全部原handler、根工具、构造参数及恢复接线。文献线负责这些符号增量和真实KernelClient→JSON-RPC／broker→library的整合；公共hook若超出已定符号交主线，不另造server／provider。完成依据：隔离真实内核／SQLite经客户端完成读取现状、organize、差异查询、undo／redo；缺授权／撤权／错库不能误作notFound，不可自报actor提升权限，旧authority接口及现有工具可继续使用。外部模型无需参与，不以注入工具结果或假仓储代替。
-- [ ] 3.2 依赖3.1，复用现有可信隔离进程／锁／备份／restore夹具验收真实重启及副本。完成依据：已提交丢回执在同库重启后查得原结果且不重放；未送达notFound仍待核查；新表随SQLite备份，恢复新libraryId及read=true／write=false／send=false，原库后续成果保持。副本原记录可审计，originLibraryId不符以instanceMismatch诊断，重新授予write后仍拒绝旧origin撤销；副本新请求基于当前状态独立成功。保留原材料版本／阅读记录；不声称现有ResourceRef已解决恢复副本库绑定，不扩标准CLI持久配置。 Windows新回执的副本附件状态失败已重开，见delivery最新节；原Linux证据保留。
+- [x] 3.2 依赖3.1，复用现有可信隔离进程／锁／备份／restore夹具验收真实重启及副本。完成依据：已提交丢回执在同库重启后查得原结果且不重放；未送达notFound仍待核查；新表随SQLite备份，恢复新libraryId及read=true／write=false／send=false，原库后续成果保持。副本原记录可审计，originLibraryId不符以instanceMismatch诊断，重新授予write后仍拒绝旧origin撤销；副本新请求基于当前状态独立成功。保留原材料版本／阅读记录；不声称现有ResourceRef已解决恢复副本库绑定，不扩标准CLI持久配置。 Windows恢复失败及修正后的实际新回执见delivery最新节；原Linux证据保留。
 - [x] 3.3 依赖3.1，可与3.2并行但不共写配置／产物：只扩原`tests/ui/library.spec.ts`一个代表草稿／选择场景，领域组织更正从真实公共客户端发起，UI仍用真实单一状态。完成依据：双宿主有界刷新保留source身份、主选和dirty CSL草稿，旧revision保存发生冲突后草稿不丢失／不自动rebase，重读行为沿B；没有新C GUI／第二草稿／跨DOM读取。保留主线既有诊断catch、空观察及save参数有界副本；不改fixture／rpc-gate／model-kernel，不重复全部B／BBT绿色组。GUI结构无变化时不新增视觉事实源。
 
 ## 4. 整合与交付

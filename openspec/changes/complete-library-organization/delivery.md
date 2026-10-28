@@ -1,5 +1,13 @@
 # 实际交付与交接
 
+## Windows恢复失败已修复并真实验收（2026-10-29）
+
+主线接收2b55465／run40770348500的独立job123105541706 success，Node24.22.1／libuv1.52.1。private-files四例各重复三次12/12，包含原不可加载cmdlet环境、重复调用完整元数据保持、额外授权／缺继承／条件ACE同进程损坏后修复；三份metadata的before=after=opened、正文保持true。随后原未修改的library-organization-rpc实际1/1，38秒，恢复附件列表／原材料版本及实际正文读回断言全部执行通过，既有丢回执／独立副本／origin与授权保护不变。
+
+artifact12852830922已成功上传并一次下载解包至本轮cache的windows-ace-equality。父独立读回原库、备份、恢复副本三份材料，均为独立预置43字节正文、同一材料ID及相同SHA256；该静态读回不冒充在Linux复现Windows文件stat。原日志及阶段状态分别为windows-ace-equality-private.log／windows-ace-equality-private-job.json，结构化核对为windows-ace-equality-reviewed.json。修复只在platform每次实际检查权限，已安全的原始ACE与同一目标ACE完全相等时避免重复SetAccessControl；ctime版本保护及恢复业务代码／断言均未删改。
+
+权限独审三P2及后续夹具SACL项已整改，最终Equals方案无新增确证发现；详情见公共平台交付及windows-acl-idempotence-independent-review.md。两次失败候选、原Checks附件changed、上传EPERM均保留各自输入／结果，不回填为成功。主线据既有Linux联合7/7、双宿主／原领域证据与本轮Windows恢复结果，完成重开的3.2，当前C1有界任务9/9。其他change的平台、完整分发、科研质量及C2–I不随之关闭，不自动归档。
+
 ## Windows备份副本新失败（2026-10-29）
 
 完整Checks40745284164／head0b5c5e3的Windows job123017309438在`library-organization-rpc.spec.ts:355`发现恢复副本的附件状态由available变为changed／contentChanged。题录及阅读记录已读回，后续正文读取断言未执行。独立局部核查确认原库、备份及副本材料字节相同，恢复记录已重绑新文件指纹；尚无失败时实际stat，不能猜为复制后仍用旧inode或直接忽略状态差异。原材料及用户数据未改动。
