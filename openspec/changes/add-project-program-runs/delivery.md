@@ -1,5 +1,25 @@
 # 实际交付与交接
 
+## R16.1：程序恢复归属统一计数
+
+本轮从共同`7aff2c763504f0ddf3b2304eb6ea18b7ef0e389c`干净工作区续做，按第十五轮主线已定方案实施。`apps/kernel/src/manual.ts`只删除unknownPrograms私有Set及满额时跳过／空位时匿名永久reserve的重复路径，ProgramRuns回调直接消费既有`ProcessAdmission.retainUnknown(commandInstanceId)`。实际身份仍由ProgramRuns从持久记录传入，唯一准入实现、平台保证和library handlers均未改。对应proposal判据4的unknown占用／恢复保护；不扩大其他完成判据。核对design总览及第5节恢复路径，纠正旧reserve／饱和描述，不新增状态、结清入口或正式规格。
+
+### 实际验证与首失败
+
+所有命令在本树执行，先`export TMPDIR=/home/joshua/.cache/scholoom-project-execution-round15-39VPvO`；Node v24.12.0、pnpm 11.10.0、Linux。工件根下`reproduce-green.sh`为可重建命令入口，使用已有依赖及新cache结果目录，不依赖现有/tmp。未安装依赖、启动开发服务器或读取真实用户库。
+
+- 红例：在旧已验产物上运行`node node_modules/@playwright/test/cli.js test --config playwright.kernel.config.ts tests/kernel/program-runs.spec.ts --grep 'host loss retains unknown' --output "$TMPDIR/red-results"`。三个真实host-loss场景均失败，`red.log`及trace保留：empty恢复后按实际身份重复保留得到2；full恢复后释放无关live槽得到0；already-retained预置同身份再恢复得到2；预期均为1，没有超时或启动失败混入。
+- 修复后先运行`pnpm --config.optimisticRepeatInstall=false --filter @scholoom/kernel build`，`build-kernel.log`通过；随后冻结产物。定向命令为`node node_modules/@playwright/test/cli.js test --config playwright.kernel.config.ts tests/kernel/program-runs.spec.ts tests/kernel/host-connection.spec.ts --grep 'host loss retains unknown|recovery retains capacity for an unconfirmed|unknown scope recovery cannot lose|recovery does not count a still-retained' --output "$TMPDIR/green-results"`，`green.log`为**6/6通过（30.1s）**。三种程序恢复均继续走真实备份／独立副本恢复，副本清除command／host身份，取消副本及重开源项目不改变源记录或未知占用；HostConnection原有未知、满额及同身份live租约代表未回归。
+- `node node_modules/typescript/bin/tsc --noEmit -p tsconfig.tools.json`、两个改动源码的Biome、`node scripts/check-architecture.ts`均通过，日志分别为`tools-typecheck.log`、`biome.log`、`architecture.log`。OpenSpec strict／schema及diff结果见同根验证日志。
+
+### 真实接线、审查与边界
+
+ProgramRuns测试复用原真实Node程序／独立宿主SIGKILL／SQLite记录／项目备份恢复；commandInstanceId从崩溃后的真实ProgramRecords读取，没有伪造仓储或领域结果。仅用测试子类的准入入口预置无关live槽或同身份recovered占用。HostConnection沿既有受控宿主夹具，复用真实ProcessAdmission；不将其替身当作Zotero原包验证。
+
+原生Codex辅助以gpt-6.1-sol／high、无历史fork只读核对最小diff、三场景和既有代表测试，未发现本轮阻塞问题。其指出沿用测试在子进程首次message之前退出时，等待位于try/finally外的既有收尾盲区；本轮实际三个宿主均已收到身份并退出，不扩写该夹具。活跃owners身份去重沿既有HostConnection测试覆盖，不另造镜像测试。辅助已关闭；测试／构建全部结束，按独立TMPDIR核查`owned-processes.json`无遗留本轮进程。
+
+本轮完成R16.1，最终apply核实56/58（`apply-final.json`）；5.2／6.2与完整change继续开放。Windows40630840362的readyTimeout／preparing-runtime仍缺根因，本轮未查询或扩加诊断，Linux计数回归不替代目标Windows验证。独立补丁入口`/home/joshua/.cache/scholoom-project-execution-round15-39VPvO/r16.1.patch`供主线审查接入；没有自行提交／同步／推送／PR／归档，达到本片边界后停止。
+
 ## 第十五轮主线验收及恢复计数后续
 
 显示helper／回归／CI准备及原记录已保全合入，冻结两轴审查0确证问题。主线完整构建／类型通过，无DISPLAY条件运行真实新Xvfb的Electron renderer／忙Worker完整收尾及两个拒绝反例，3/3通过；旧流式stderr保留生效，未把新CI依赖准备视为旧127根因已证。58eda14／Checks40630840280的Linux仍758通过／1失败／26跳过，失败仍旧显示预检127；本轮新准备尚待后续目标回执。
@@ -33,7 +53,11 @@ Windows专项触发范围及完整四场景步骤已保全合入，两轴审查�
 
 ## 当前状态与成果
 
-当前续做起点为58eda1404fcc60036ce0e0f3ce30d5453ce1ee30，工作区开始时干净。第18组修复显示测试helper确证的诊断覆盖，并显式声明Linux CI显示工具前置；负例红绿、新Xvfb与已有DISPLAY两分支均本机通过，原后代收尾不变。结果和可重建脚本位于 `/home/joshua/.cache/scholoom-project-execution-round14-CXHAoy/`，不依赖现有/tmp内容。Windows58eda14／40630840362的新步骤已实际3通过1失败，真实PID628最后观察preparing-runtime，根因仍开放。未修改生产、安装本机依赖、扩大超时或继续轮询，5.2／6.2不关闭。
+当前起点为7aff2c7，R16.1已在本树局部完成，实际变化及验证见本记录首节。只修manual恢复装配的计数缺口，不代表Windows启动、完整change或科研质量验收完成。当前必需输入／命令／结果均在Git或本轮cache，旧/tmp路径仅保留为历史证据。
+
+### 第十四轮状态（历史）
+
+该轮起点为58eda1404fcc60036ce0e0f3ce30d5453ce1ee30，工作区开始时干净。第18组修复显示测试helper确证的诊断覆盖，并显式声明Linux CI显示工具前置；负例红绿、新Xvfb与已有DISPLAY两分支均本机通过，原后代收尾不变。结果和可重建脚本位于 `/home/joshua/.cache/scholoom-project-execution-round14-CXHAoy/`，不依赖现有/tmp内容。Windows58eda14／40630840362的新步骤已实际3通过1失败，真实PID628最后观察preparing-runtime，根因仍开放。该轮未修改生产、安装本机依赖、扩大超时或继续轮询，5.2／6.2不关闭。
 
 ### 第十三轮状态（历史）
 

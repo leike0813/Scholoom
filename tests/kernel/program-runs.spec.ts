@@ -29,6 +29,12 @@ class ProgramApplication extends KernelApplication {
   get capacity() {
     return this.processes.status;
   }
+  reserveProcess() {
+    return this.processes.reserve();
+  }
+  retainUnknownProcess(commandInstanceId: string) {
+    this.processes.retainUnknown(commandInstanceId);
+  }
 }
 
 async function fixture(source: string) {
@@ -310,83 +316,110 @@ test('moving a queued entry cannot make it execute the replacement at its origin
   }
 });
 
-test('host loss retains unknown ownership and independent backup restore never controls the original run', async () => {
-  const f = await fixture(`setInterval(()=>{},1000);`);
-  const profile = join(f.root, 'profile');
-  await f.app.close();
-  const child = fork(
-    new URL('../fixtures/domain-execution-worker/program-host.mjs', import.meta.url),
-    [],
-    { stdio: ['ignore', 'ignore', 'pipe', 'ipc'], execArgv: [] },
-  );
-  let stderr = '';
-  child.stderr?.on('data', (chunk) => {
-    stderr += String(chunk);
-  });
-  const accepted = once(child, 'message');
-  child.send({ profile, projectPath: f.project.path });
-  const [message] = await accepted;
-  const identity = message as { projectId: string; programRunId: string };
-  expect(identity.programRunId, stderr).toBeTruthy();
-  const exit = once(child, 'exit');
-  child.kill('SIGKILL');
-  await exit;
-  const app = new ProgramApplication(profile);
-  try {
-    await app.initialize();
-    expect(await app.call('programs.run', identity)).toMatchObject({
-      state: 'unknown',
-      stop: 'unknown',
+for (const capacity of ['empty', 'full', 'already-retained'] as const) {
+  test(`host loss retains unknown ownership and independent backup restore never controls the original run: ${capacity}`, async () => {
+    const f = await fixture(`setInterval(()=>{},1000);`);
+    const profile = join(f.root, 'profile');
+    const internal = f.app.projects.get(f.project.id).internal;
+    await f.app.close();
+    const child = fork(
+      new URL('../fixtures/domain-execution-worker/program-host.mjs', import.meta.url),
+      [],
+      { stdio: ['ignore', 'ignore', 'pipe', 'ipc'], execArgv: [] },
+    );
+    let stderr = '';
+    child.stderr?.on('data', (chunk) => {
+      stderr += String(chunk);
     });
-    expect(app.capacity.active).toBe(1);
-    const originalRecords = new ProgramRecords(app.projects.get(identity.projectId).internal);
-    let original: ReturnType<ProgramRecords['get']>;
+    const accepted = once(child, 'message');
+    child.send({ profile, projectPath: f.project.path });
+    const [message] = await accepted;
+    const identity = message as { projectId: string; programRunId: string };
+    expect(identity.programRunId, stderr).toBeTruthy();
+    const exit = once(child, 'exit');
+    child.kill('SIGKILL');
+    await exit;
+    const crashedRecords = new ProgramRecords(internal);
+    let commandInstanceId: string;
     try {
-      original = originalRecords.get(identity.programRunId);
+      const stored = crashedRecords.get(identity.programRunId);
+      assert(stored.commandInstanceId);
+      commandInstanceId = stored.commandInstanceId;
     } finally {
-      originalRecords.close();
+      crashedRecords.close();
     }
-    await expect(
-      app.call('programs.start', { ...f.input, operationId: randomUUID() }),
-    ).rejects.toMatchObject({ code: 'outcomeUnknown' });
-    const backup = await app.call('project.backup', { projectId: identity.projectId });
-    const restored = await app.call('project.restore', {
-      projectId: identity.projectId,
-      backupId: backup.id,
-      destination: join(f.root, 'restored'),
-    });
-    expect(
-      await app.call('programs.run', {
+    const app = new ProgramApplication(profile);
+    const live = [];
+    try {
+      if (capacity === 'full') {
+        for (let i = 0; i < app.capacity.limit; i++) {
+          const lease = app.reserveProcess();
+          live.push(lease);
+          await lease.ready;
+        }
+      } else if (capacity === 'already-retained') {
+        app.retainUnknownProcess(commandInstanceId);
+      }
+      await app.initialize();
+      expect(await app.call('programs.run', identity)).toMatchObject({
+        state: 'unknown',
+        stop: 'unknown',
+      });
+      for (const lease of live) lease.release();
+      expect(app.capacity.active).toBe(1);
+      app.retainUnknownProcess(commandInstanceId);
+      app.retainUnknownProcess(commandInstanceId);
+      expect(app.capacity.active).toBe(1);
+      const originalRecords = new ProgramRecords(app.projects.get(identity.projectId).internal);
+      let original: ReturnType<ProgramRecords['get']>;
+      try {
+        original = originalRecords.get(identity.programRunId);
+      } finally {
+        originalRecords.close();
+      }
+      await expect(
+        app.call('programs.start', { ...f.input, operationId: randomUUID() }),
+      ).rejects.toMatchObject({ code: 'outcomeUnknown' });
+      const backup = await app.call('project.backup', { projectId: identity.projectId });
+      const restored = await app.call('project.restore', {
+        projectId: identity.projectId,
+        backupId: backup.id,
+        destination: join(f.root, 'restored'),
+      });
+      expect(
+        await app.call('programs.run', {
+          projectId: restored.id,
+          programRunId: identity.programRunId,
+        }),
+      ).toMatchObject({ state: 'interrupted', stop: 'unknown' });
+      expect((await app.call('programs.run', identity)).state).toBe('unknown');
+      const copyRecords = new ProgramRecords(app.projects.get(restored.id).internal);
+      try {
+        expect(copyRecords.get(identity.programRunId)).toMatchObject({ historical: true });
+        expect(copyRecords.get(identity.programRunId).commandInstanceId).toBeUndefined();
+        expect(copyRecords.get(identity.programRunId).hostInstanceId).toBeUndefined();
+      } finally {
+        copyRecords.close();
+      }
+      await app.call('programs.cancel', {
         projectId: restored.id,
         programRunId: identity.programRunId,
-      }),
-    ).toMatchObject({ state: 'interrupted', stop: 'unknown' });
-    expect((await app.call('programs.run', identity)).state).toBe('unknown');
-    const copyRecords = new ProgramRecords(app.projects.get(restored.id).internal);
-    try {
-      expect(copyRecords.get(identity.programRunId)).toMatchObject({ historical: true });
-      expect(copyRecords.get(identity.programRunId).commandInstanceId).toBeUndefined();
-      expect(copyRecords.get(identity.programRunId).hostInstanceId).toBeUndefined();
+      });
+      await app.call('project.open', { path: f.project.path });
+      expect(app.capacity.active).toBe(1);
+      const records = new ProgramRecords(app.projects.get(identity.projectId).internal);
+      try {
+        expect(records.get(identity.programRunId)).toEqual(original);
+      } finally {
+        records.close();
+      }
     } finally {
-      copyRecords.close();
+      for (const lease of live) lease.release();
+      await app.close();
+      await rm(f.root, { recursive: true });
     }
-    await app.call('programs.cancel', {
-      projectId: restored.id,
-      programRunId: identity.programRunId,
-    });
-    await app.call('project.open', { path: f.project.path });
-    expect(app.capacity.active).toBe(1);
-    const records = new ProgramRecords(app.projects.get(identity.projectId).internal);
-    try {
-      expect(records.get(identity.programRunId)).toEqual(original);
-    } finally {
-      records.close();
-    }
-  } finally {
-    await app.close();
-    await rm(f.root, { recursive: true });
-  }
-});
+  });
+}
 
 test('Agent tools and the manual API query the same real program run', async () => {
   const root = await mkdtemp(join(tmpdir(), 'scholoom-program-agent-'));
