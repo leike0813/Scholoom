@@ -64,6 +64,7 @@ jobs:
           path: |
             test-results/windows-private-files/
             test-results/windows-library-restore/
+            !test-results/windows-private-files/**/private-profile/**
           if-no-files-found: warn
   execution:
     runs-on: windows-latest

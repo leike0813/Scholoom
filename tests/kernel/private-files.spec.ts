@@ -126,7 +126,7 @@ for (const fault of ['extra-rule', 'missing-inheritance', 'conditional-rule'] as
         : []),
       ...(fault === 'conditional-rule'
         ? [
-            '$acl.SetSecurityDescriptorSddlForm("O:" + $sid.Value + "D:P(XA;OICI;FA;;;" + $sid.Value + ";(Member_of {SID(S-1-1-0)}))")',
+            '$acl.SetSecurityDescriptorSddlForm("D:P(XA;OICI;FA;;;" + $sid.Value + ";(Member_of {SID(S-1-1-0)}))", [System.Security.AccessControl.AccessControlSections]::Access)',
           ]
         : []),
       '[System.IO.Directory]::SetAccessControl($env:SCHOOLOOM_ACL_TEST_PATH, $acl)',
