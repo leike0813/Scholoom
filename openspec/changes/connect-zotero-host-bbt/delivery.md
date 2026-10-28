@@ -1,5 +1,40 @@
 # 实际交付与交接
 
+## 当前交回：N2精确规划（7aff2c7）
+
+2026-10-28，共同HEAD `7aff2c763504f0ddf3b2304eb6ea18b7ef0e389c`、起始clean。已消费下面第十五轮主线验收及共同计划最新安排，N1.2与两个消费者不再等待／重跑。本轮实际完成的是**源码调查及N2实施规划**，只修改原investigation／design／tasks／本记录；没有生产实现、settings文件、loader、资源登记或新规格落地。已有delivery用于记录这次调查交接，未新建delivery或伪写N2实现成果。
+
+### 本轮成果及需主线审查的精确增量
+
+- investigation新增当前启动链和监督／准入源码依据，现状图说明恢复还在首次host.start；design的N2节维护目标顺序、精确schema、错误、所有权和验收，不另建配置或进度台账。
+- 建议唯一`<canonical dataDirectory>/host-settings.json`，首版仅生态leaf和单项离线资源登记；绑定实际libraryId及配置目录，显式禁用／无效分开，无默认grant。离线资源根固定派生在同配置的`native-resources/zotero-journals-v1/`，复用现有applicationDirectory文件访问保护，schema也不接受任意root。固定Linux x64 Electron＋managed入口布局不接受请求executable／env／目录，不把普通安装包index当managed。短期凭据不持久化；settings不替代库、键或回执权威。
+- 先交独立N2.2：抽`recoverHostSupervision({directory, admission})`，在Manual.initialize首步完成原scope记账，library就绪后再绑定，programs／harness恢复在后。无设置／禁用／配置坏或无资源也必须先核旧监督；scope已停但插件／领域未决不占原生槽，坏记录保留现场并保守计入单host，只有记账无法建立才禁止发布执行入口。没有全局停用开关或解除unknown API。
+- 公共候选另包括真实serve status.instanceId供应、HostConnection仅DISPLAY／XAUTHORITY／操作TMPDIR及稳定beforeLaunch透传、两个私有叶Module的architecture适配登记。**这些均未实现或接入**，主线需审签名、两处初始化调用及配置目录绑定语义；不再问D14-2／3。后续N2.1先补批准delta，再分独立恢复／叶设置／原包装配／普通入口整合，不把本轮规划当自动实施授权。
+
+资源存在性／显示仅在确需原包时惰性校准；独立inspect／replaceTitle不额外依赖显示。首片不启动产品Xvfb、不复制测试env包装或默认no-sandbox；新配方若需额外平台能力，带真实失败交主线，不猜成功。N1、共同授权、原值／CSL分离、键保护及100项原子提交均复用。完整E4／I6、E6／真实用户库、Windows原包、macOS managed execution及正式分发没有新增通过结论。
+
+### 实际命令、原失败与未运行边界
+
+本轮独立根为`/home/joshua/.cache/scholoom-zotero-n2-97Zf3t/`，多行payload使用bash且先export其中tmp为TMPDIR。只读核查不依赖旧/tmp，未读取真实用户配置／库或操作其他树。
+
+| 命令／动作 | 本轮实际结果及证据 |
+| --- | --- |
+| `git rev-parse HEAD`、`git status --short` | 起点如上且clean，无同步／旧补丁应用／提交。结束仅原四工件改动 |
+| 当前apply及investigation／design／tasks instructions | 已读取并保存本轮cache；按scholoom-dev续做原change，CLI ready不证明N2实现。实际调查后已取delivery instructions再更新本记录 |
+| 只读源码／测试核对、`node <cache>/collect-source.mjs` | 保存20个当前源码文件片段至source-evidence.txt；可从本树同HEAD重建。包括serve持锁／实例、Manual初始化、配置及项目路径保护、现有监督与准入、固定资源／包入口及环境白名单，未执行其中业务方法 |
+| `openspec validate connect-zotero-host-bbt --strict`、`openspec schema validate scholoom-dev` | 均通过，strict-final.log／schema-final.log；验证结构不证明N2已实现。新图人工核对图文／顺序，未运行Mermaid渲染器 |
+| `git diff --check`、四文件范围核对、`git apply --reverse --check <cache>/planning.patch` | 均通过，仅原四工件；独立补丁和manifest同cache。没有更改正式规格／公共schema，无需build／类型／生成重跑。R16三项规划已勾，新增N2五项实施均未勾 |
+
+本轮**没有新的业务测试首失败、修复或绿例**。第一次补写investigation因旧标题上下文不匹配被apply_patch拒绝、未写入，核当前标题后正确应用；这不是业务失败。上轮主线内核15/15及原值动作2/2只作已接收证据，整合UI5/6的项目保存失败、CI目标未验均原样保留，不从静态规划关闭。未运行CLI／BBT／Electron／显示／UI或CI查询，没有启动任何服务、安装或下载依赖。
+
+只读辅助gpt-6.1-sol/high、无历史fork，承担HostConnection恢复／ProcessAdmission及已有测试事实提取；父负责设置／资源／启动链、公共签名取舍及最后核查。已按原源码抽查retainUnknown及目录准备try外的缺口，辅助已关闭。本轮没有内部模块替身、合成库或外部模型调用；下一实施片的真实／替身边界见design验收表。
+
+### 接续入口与停止点
+
+下一步交主线审查design中恢复、真实父实例、受限环境和冷启动路径绑定hook，优先批准N2.1／2独立恢复切片；N2设置／loader及原包冷启动待后续实施，不把两者与旧N1只读接续混记。后续任务均保持未勾，2.3／3.1及整个change仍未完。原N1消费者候选已合入，不再应用历史cache补丁。
+
+本轮必需工件为Git原change四文件，独立增量`/home/joshua/.cache/scholoom-zotero-n2-97Zf3t/planning.patch`；instructions／校验／源片段和重建脚本同根。不需要XPI／DISPLAY／当前/tmp或历史probe。没有自有后台进程、profile／项目或服务要停止，没有碰共享显示；到此停止等主线验收，不提交／推送／PR／归档。
+
 ## 第十五轮主线验收
 
 N1.2已保全合入，冻结成果两轴审查无确证问题。主线补齐`isolated-kernel`及`zotero-original`四处旧消费者断言：无native配置查询当前库返回原回执／notFound，错库返回instanceMismatch；原撤权、草稿、写入次数和记录历史断言保留。完整构建／类型及生成映射检查通过；主线定向内核15/15包含普通CLI三例与隔离内核四例，原值动作真实BBT双宿主2/2通过。命令与首次结果在`/home/joshua/.cache/scholoom-round15-acceptance/`的main-kernel／main-ui日志及JSON，原消费者候选现已接入实跑。
