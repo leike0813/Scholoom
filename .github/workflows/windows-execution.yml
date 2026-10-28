@@ -32,12 +32,51 @@ on:
       - tests/kernel/managed-commands.spec.ts
       - tests/kernel/platform-processes.spec.ts
       - tests/smoke/entrypoints.spec.ts
+      - tests/kernel/zotero-host.spec.ts
+      - tests/kernel/journal-catalog.spec.ts
+      - tests/smoke/zotero-host.spec.ts
+      - tests/fixtures/zotero-host/archive.ts
+      - tests/fixtures/zotero-host/display.ts
+      - apps/zotero-host/**
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
+  zotero-original:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm --config.optimisticRepeatInstall=false install --frozen-lockfile
+      - run: pnpm --config.optimisticRepeatInstall=false build:shared
+      - run: pnpm --config.optimisticRepeatInstall=false --filter @scholoom/zotero-host build
+      - run: pnpm --config.optimisticRepeatInstall=false setup:electron
+      - name: Fetch the unchanged fixed Better BibTeX release
+        shell: pwsh
+        run: |
+          $archive = Join-Path $env:RUNNER_TEMP 'zotero-better-bibtex-9.0.68.xpi'
+          Invoke-WebRequest -Uri 'https://github.com/retorquere/zotero-better-bibtex/releases/download/v9.0.68/zotero-better-bibtex-9.0.68.xpi' -OutFile $archive
+          "SCHOOLOOM_BBT_XPI=$archive" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+      - name: Verify common transactions and original package on Windows
+        run: pnpm --config.optimisticRepeatInstall=false exec playwright test --config playwright.kernel.config.ts tests/kernel/journal-catalog.spec.ts tests/kernel/zotero-host.spec.ts --grep 'creator|stale revisions|notification|committed readback|failed operation|plugin SQL|commit and readback|real library/broker/managed original BBT|unselected case-insensitive key collision' --workers=1 --reporter=list --output test-results/windows-zotero-common
+      - name: Verify original package lifecycle on Electron
+        if: '!cancelled()'
+        run: pnpm --config.optimisticRepeatInstall=false exec playwright test tests/smoke/zotero-host.spec.ts --workers=1 --reporter=list --output test-results/windows-zotero-lifecycle
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: windows-zotero-original
+          path: |
+            test-results/windows-zotero-common/
+            test-results/windows-zotero-lifecycle/
+          if-no-files-found: warn
   private-files:
     runs-on: windows-latest
     timeout-minutes: 15

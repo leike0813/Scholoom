@@ -9,6 +9,9 @@ export async function electronTestCommand(
   tail: readonly string[] = [],
   environment: NodeJS.ProcessEnv = process.env,
 ) {
+  const electron: string = createRequire(import.meta.url)('electron');
+  if (process.platform === 'win32')
+    return { executable: electron, args: [fileURLToPath(entry), ...tail] };
   const env: Record<string, string> = { TMPDIR: environment.TMPDIR ?? tmpdir() };
   const display = environment.DISPLAY;
   if (display) {
@@ -45,7 +48,6 @@ export async function electronTestCommand(
       },
     );
   }
-  const electron: string = createRequire(import.meta.url)('electron');
   return {
     executable: '/usr/bin/env',
     args: [

@@ -1,9 +1,9 @@
-import { execFileSync } from 'node:child_process';
 import { mkdir, mkdtemp, readFile, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { _electron as electron, expect, test } from '@playwright/test';
+import { readPluginMember, unpackPlugin } from '../fixtures/zotero-host/archive.js';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const xpi = process.env.SCHOOLOOM_BBT_XPI;
@@ -12,7 +12,7 @@ test.skip(process.platform === 'darwin', 'Managed plugin execution remains unava
 
 async function sample(directory: string, manual = false) {
   const packageDirectory = join(directory, 'package');
-  execFileSync('unzip', ['-q', xpi as string, '-d', packageDirectory]);
+  unpackPlugin(xpi as string, packageDirectory);
   const app = await electron.launch({
     args: [join(root, 'tests/fixtures/zotero-host/main.cjs')],
     env: {
@@ -90,7 +90,7 @@ test('original BBT on Electron preserves keys and exports committed sample chang
   test.setTimeout(45_000);
   const directory = await mkdtemp(join(tmpdir(), 'scholoom-bbt-electron-'));
   const packageDirectory = join(directory, 'package');
-  execFileSync('unzip', ['-q', xpi as string, '-d', packageDirectory]);
+  unpackPlugin(xpi as string, packageDirectory);
   const original = await readFile(xpi as string);
   const launchOptions = {
     args: [join(root, 'tests/fixtures/zotero-host/main.cjs')],
@@ -211,7 +211,7 @@ test('original BBT on Electron preserves keys and exports committed sample chang
   ]) {
     expect(
       (await readFile(join(packageDirectory, member))).equals(
-        execFileSync('unzip', ['-p', xpi as string, member], { maxBuffer: 20 * 1024 * 1024 }),
+        readPluginMember(xpi as string, member),
       ),
     ).toBe(true);
   }
@@ -220,7 +220,7 @@ test('original BBT on Electron preserves keys and exports committed sample chang
 test('closing during startup cannot make a closed host ready again', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'scholoom-bbt-cancel-'));
   const packageDirectory = join(directory, 'package');
-  execFileSync('unzip', ['-q', xpi as string, '-d', packageDirectory]);
+  unpackPlugin(xpi as string, packageDirectory);
   const app = await electron.launch({
     args: [join(root, 'tests/fixtures/zotero-host/main.cjs')],
     env: {

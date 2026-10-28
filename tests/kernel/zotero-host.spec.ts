@@ -1,4 +1,4 @@
-import { execFile, execFileSync } from 'node:child_process';
+import { execFile } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import {
   chmod,
@@ -26,11 +26,12 @@ import { createKernelClient } from '../../packages/client/dist/index.js';
 import type { ZoteroOutputs, ZoteroSnapshot } from '../../packages/protocol/dist/zotero.js';
 import { expectExecutionCompleted } from '../execution-diagnostics.js';
 import { delegationOutput } from '../fixtures/delegation-model.js';
+import { unpackPlugin } from '../fixtures/zotero-host/archive.js';
 import { electronTestCommand } from '../fixtures/zotero-host/display.js';
 import { cliPath, runKernel } from '../kernel-fixture.js';
 import { createModelServer } from '../model-server.js';
 
-test.skip(process.platform !== 'linux', 'Bounded Linux managed Electron calibration');
+test.skip(process.platform === 'darwin', 'Managed plugin execution remains unavailable on macOS');
 const xpi = process.env.SCHOOLOOM_BBT_XPI;
 test.skip(!xpi, 'Supply the unchanged local BBT 9.0.68 release');
 
@@ -58,7 +59,7 @@ async function fixture(
   const directory = await mkdtemp(join(tmpdir(), 'scholoom-library-bbt-'));
   test.info().annotations.push({ type: 'isolated-fixture', description: directory });
   const packageDirectory = join(directory, 'package');
-  execFileSync('unzip', ['-q', xpi as string, '-d', packageDirectory]);
+  unpackPlugin(xpi as string, packageDirectory);
   const configuration: IsolatedZotero = {
     libraryId: '',
     packageDirectory,
@@ -152,7 +153,7 @@ async function fixture(
 
 test('ordinary persistent host settings cold-start the unchanged package and retain the common commit across restart', async () => {
   test.skip(
-    process.env.SCHOOLOOM_ZOTERO_NATIVE_COLD !== '1',
+    process.platform !== 'linux' || process.env.SCHOOLOOM_ZOTERO_NATIVE_COLD !== '1',
     'Explicit offline native-layout calibration',
   );
   const f = await fixture({}, 3, true);

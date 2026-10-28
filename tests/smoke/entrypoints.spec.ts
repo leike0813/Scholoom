@@ -80,6 +80,17 @@ test('desktop loads React and its sandbox preload', async () => {
       });
       await expect(window.getByRole('checkbox')).toHaveCount(0);
     } catch (error) {
+      const renderer = await app
+        .windows()[0]
+        ?.evaluate(() => ({
+          at: performance.now(),
+          readyState: document.readyState,
+          headings: [...document.querySelectorAll('h1')].map((heading) => ({
+            visible: heading.checkVisibility(),
+          })),
+          bridge: typeof Reflect.get(window, 'scholoomDesktop'),
+        }))
+        .catch(() => null);
       const windows = await app
         .evaluate(({ BrowserWindow }) =>
           BrowserWindow.getAllWindows().map((window) => {
@@ -100,6 +111,7 @@ test('desktop loads React and its sandbox preload', async () => {
           body: JSON.stringify({
             elapsedMs: Math.round(performance.now() - started),
             windows,
+            renderer,
             rendererEvents,
           }),
           contentType: 'application/json',

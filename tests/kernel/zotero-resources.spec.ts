@@ -205,16 +205,48 @@ test('missing DISPLAY fails only when resolving resources', async () => {
   });
 });
 
-test('the fixed system sandbox link is witnessed and replacement refuses the original launch', async () => {
-  const helper = '/opt/google/chrome/chrome-sandbox';
-  const installed = await fs.promises.lstat(helper).catch((error: NodeJS.ErrnoException) => {
-    if (error.code === 'ENOENT') return undefined;
-    throw error;
+const systemSandbox = '/opt/google/chrome/chrome-sandbox';
+async function installedSandbox() {
+  const entries = [];
+  for (const path of ['/', '/opt', '/opt/google', '/opt/google/chrome', systemSandbox]) {
+    const stat = await fs.promises.lstat(path).catch((error: NodeJS.ErrnoException) => {
+      if (error.code === 'ENOENT') return undefined;
+      throw error;
+    });
+    if (!stat) return { present: false, trusted: false };
+    entries.push({
+      path,
+      uid: stat.uid,
+      gid: stat.gid,
+      mode: stat.mode & 0o7777,
+      trusted:
+        stat.uid === 0 &&
+        !stat.isSymbolicLink() &&
+        (await realpath(path)) === path &&
+        (path === systemSandbox
+          ? stat.isFile() && stat.gid === 0 && (stat.mode & 0o7777) === 0o4755
+          : stat.isDirectory() && (stat.mode & 0o022) === 0),
+    });
+  }
+  await test.info().attach('system-sandbox-prerequisites', {
+    body: JSON.stringify(entries),
+    contentType: 'application/json',
   });
-  test.skip(!installed, 'Requires the already installed root-owned system sandbox helper');
+  return { present: true, trusted: entries.every((entry) => entry.trusted) };
+}
+
+test('the fixed system sandbox link requires a trusted installation and witnesses replacement', async () => {
+  const installed = await installedSandbox();
+  test.skip(!installed.present, 'Requires an already installed system sandbox helper');
   const f = await fixture();
   const link = join(f.root, 'electron', 'chrome-sandbox');
-  await symlink(helper, link);
+  await symlink(systemSandbox, link);
+  if (!installed.trusted) {
+    await expect(resolveZoteroResource(registration, f.directory)).rejects.toMatchObject({
+      code: 'unavailable',
+    });
+    return;
+  }
   const launch = await resolveZoteroResource(registration, f.directory);
   await launch.beforeLaunch();
   await rename(link, `${link}-original`);
@@ -242,14 +274,10 @@ for (const fault of ['wrong-target', 'wrong-slot'] as const) {
 }
 
 test('beforeLaunch rejects a safe permission change to a system sandbox ancestor', async () => {
-  const helper = '/opt/google/chrome/chrome-sandbox';
-  const installed = await fs.promises.lstat(helper).catch((error: NodeJS.ErrnoException) => {
-    if (error.code === 'ENOENT') return undefined;
-    throw error;
-  });
-  test.skip(!installed, 'Requires the already installed root-owned system sandbox helper');
+  const installed = await installedSandbox();
+  test.skip(!installed.trusted, 'Requires a safe root-owned helper and complete ancestor chain');
   const f = await fixture();
-  await symlink(helper, join(f.root, 'electron', 'chrome-sandbox'));
+  await symlink(systemSandbox, join(f.root, 'electron', 'chrome-sandbox'));
   const launch = await resolveZoteroResource(registration, f.directory);
   const original = fs.promises.lstat;
   let observed = false;
