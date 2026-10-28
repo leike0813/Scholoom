@@ -1,5 +1,19 @@
 # 实现设计
 
+## 可信自有model-kernel观察（29cd728）
+
+本片按第十一轮主线分工提供执行侧事实，不改项目线拥有的窗口fixture。保留`startModelKernel(directory, endpoint)`返回可调用异步stop；旧调用无需变化，helper在初始化失败及stop时自动保存有界附件。只使用原serveKernel，不新建业务server或Zotero配置launcher。现有serveKernel没有应用实例观察注入，可信测试子入口对原KernelApplication.initialize作一次透传hook，保留原实现/参数/结果/错误，初始化成功后恢复hook并订阅实际应用；不替换业务、授权、worker或仓储。
+
+将既有observer拆成不依赖Playwright的采集核心，由原execution-diagnostics适配与测试子入口共用。子入口最多观察8个实际project/session，身份来自原应用变更与所属仓储，保留实际instruction/run/instance、初始化/消费/模型准入及退出阶段；必要时只在RemoteAgent补首次实际模型输出的无正文标记。子进程不知道外部HTTP夹具计数，明确为未观测/null，不伪造0请求或将准入当HTTP请求。内核PID/instance来自自有child与真实RPC核对，worker PID/父链来自原仓储，controller退出单列且不代替完整停止。
+
+可信父子仅以私有IPC传递启动参数与现有ready状态；安全阶段通过diagnostics_channel及自有子写入的有界诊断文件保留。输出只有白名单字段，不含文字/材料/连接URL/token/原始帧；采集总时长不超过当前测试预算及120秒上限，固定数量/256KiB输出、单个合并在途写入与原500ms读取界限，截断计数可见。失败附件在清理前保存，诊断失败不能改业务结果。
+
+启动保留旧UI夹具配置替换行为，但先固定当前真实endpoint，通过绑定该instance的RPC请求停止，仅只读核查该配置停止；不重新发现另一个实例发送CLI stop。自有child ready后核PID/配置/instance、连接并attachDevelopment。返回stop只对本次绑定实例shutdown，等待自有child close及配置停止；遇接替者则拒绝并保留其运行，不杀发现的PID。初始化失败无已受理工作时只终止本次fork，等待close；未知停止不重放，不凭根exit释放受管归属。
+
+写集为model-kernel、必要测试子入口/采集核心/定向测试、execution-diagnostics、必要RemoteAgent窄标记及原工件；不修改lifecycle/bootstrap、isolated-kernel、窗口或业务协议。只改测试先复用同步产物；生产标记修改后先构建再测试并冻结产物。最小验收为真实子进程的初始化/消费/准入/首模型输出与退出可关联，原调用兼容、失败清理、接替者保护、容量/脱敏及必要独立审查；CI最多一次现状查询，目标未完成不等待。
+
+断开私有诊断IPC的负例保留实际受理模型执行，断线只停观察，不发信号或退出。Node24独立探针证明父主动disconnect后有exit却可缺close；仅此主动断线负例同时核退出code0、原serveKernel成功收尾记录与配置stopped，不能由根exit单独推断完整停止。正常helper仍严格等待child close；不修改生产生命周期或期限。后续真实session.rename触发8scope采集上限，不增加模型执行来伪造丢弃计数。
+
 ## 附件完整路径与初始化观察（938c33f）
 
 共同源码938c33f已接收reader独立观察及采样修正。主线第十轮组合仍2通过/1失败：撤权后的新run缺证，不能由已停止的reader记录解释。本片先保留原断言和期限，将既有observer按导入/reader/记录三个实际session各装配一次，直到测试finally、内核清理前才全部stop。活跃阶段显式切换，首次错误只归当前操作所属observer；reader跨撤权新run保留同session快照中的实际run/instance/指令身份，不重发操作。阶段标记记录导入/字节/记录/撤权/拒绝的实际完成点，模型为夹具累计计数，以各observer起点及撤权前mark为基准。仍为最多三个有界观察器，不建立应用级全局缓存。

@@ -76,7 +76,14 @@ flowchart LR
 
 ## 续做入口
 
-本轮基线938c33f2c9fcafb2cce11b0c165b2fb1e9a818c3，公共增量已同步。第14组已接收；第15组覆盖完整附件路径到清理与新Windows初始化边界，不借用已停止observer解释下一run。原授权/恢复及生产期限保持。
+本轮基线29cd7283388dfd752911eacb9c3bf8416031db15，主线同步已验；第15组本机附件与发送拒绝已接收，不重修采样。第16组只交付可信自有model-kernel公共执行诊断，窗口fixture归项目线，原业务授权及停止/容量/期限保持。
+
+## 16. 自有model-kernel诊断提供者
+
+- [x] 16.1 复用采集核心与可信子入口，在原serveKernel路径关联真实配置内instruction/run/instance及初始化/消费/准入/首模型/退出；固定白名单、容量/时间及失败落盘，不造业务server/公共RPC或HTTP假计数。完成依据：真实双run附件核初始化/消费/准入/model.output/controller退出与仓储实例、实际内核PID；8scope/240KiB子附件及256KiB总输出、时间上界/丢弃计数、无HTTP计数时null，旧调用自动落盘。
+- [x] 16.2 保持旧异步stop调用，启动及关闭绑定实际实例；等待自有child close，初始化失败仅清理自有child，接替者不被停止，不把根退出当完整受管停止。完成依据：旧UI式配置替换/重复stop、接替者保护及初始化失败均通过；正常helper核实际child close/code0与配置stopped。主动断IPC负例按design联合核真实serveKernel收尾、正常exit及配置停止，诊断失联不强退，unknown不重放。
+- [x] 16.3 用真实内部路径与受控外部HTTP最小验收关联、脱敏/上界、失败清理、旧调用与接替者保护；复用原回归，保留首次失败及实际替身，独立审查后必要修正。完成依据：最终8/8（四个model-kernel例、取消、excerpt、有/无观察器发送拒绝），首次1通过/2失败及后续夹具修正原记录保留；独立gpt-6.1-sol/high只读审查所见IPC失联强退已移除，最终无确证阻断。
+- [x] 16.4 适用构建/类型/架构/Biome/OpenSpec/diff及可审查增量，CI最多一次查询，取delivery instructions更新同一记录后停止；平台/科研整项继续开放。完成依据：构建/类型/Biome/架构/生成映射/OpenSpec/diff通过；42/46保持四项开放，已取delivery instructions更新本轮原记录并导出独立补丁，单次查询的29cd728 Windows三例失败与Checks未完成分别保留，不把新增诊断当目标平台修复。
 
 ## 15. 完整路径与初始化边界
 
