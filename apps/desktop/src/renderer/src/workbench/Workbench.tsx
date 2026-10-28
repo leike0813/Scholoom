@@ -775,7 +775,7 @@ function WorkbenchContent({ session }: { session: WorkbenchSession }) {
   return (
     <ContextContributionProvider
       items={session.contextItems}
-      appendContextItem={session.appendContextItem}
+      appendContextItems={session.appendContextItems}
       removeContextItem={session.removeContextItem}
       updateContextComment={session.updateContextComment}
       contextError={session.contextError}

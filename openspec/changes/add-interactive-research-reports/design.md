@@ -67,6 +67,8 @@ ReportResources 是 `packages/editor` 内的 module，不新建包／数据库�
 
 页面动作只带本版本objectIds和request（<=4096 UTF-16），宿主按manifest取对象说明，不信页面提供新的ref/basis。转为既有 `ContextItem.object`（providerId固定为本报告提供者，objectId来自清单，ref/basis取报告入口）；对象的明确来源还作为原资源项加入同一批草稿。超过16项／64KiB时整批拒绝，不能只附半组对象与来源。复用贡献端口新增 `appendContextItems(items)` 的原子批量形状，由原会话一次合并／校验；单项append转用同一实现，不增加第二份草稿。
 
+共同批量入口现沿ContextContribution／WorkbenchSession实现同步boolean结果：原useBusinessSession读取当前草稿一次、完整合并校验后单次写入，拒绝返回false并保留草稿；原单项仍返回void并委托批量路径。provider只有批量追加callback，不并存两套追加权威。接收会话／项目／配置键变化即更换该次接收者实例，旧callback即使切回同名键也拒绝，且不修改新错误状态。成功表示原草稿适配已接收，不扩大原writeDraft的磁盘持久性保证；桥不得把false当queued，报告版本／对象／receiver的最终检查仍归未来报告消费者。
+
 页面要求写入选中对象的comment，原有composer展示并允许修改；输入框正文继续由用户填写／检查，发送仍满足现有非空文字契约。本变更不自动替用户填充或发送“继续分析”。对象多选只贡献当前已加载清单，不读取文献表格DOM或全库投影。
 
 ### 隔离与页面桥
@@ -75,7 +77,7 @@ ReportResources 是 `packages/editor` 内的 module，不新建包／数据库�
 
 用户委托主线选择方案后，主线采用候选A的Linux普通权限前置，先形成独立platform提供者的OpenSpec实施规格。它负责批准字节的有界只读交付、启动前FD／stdio策略、namespace及实际资源限额、完整归属／停止和重启unknown核查；ReportResources继续掌握ref／basis与read/send。已有普通权限不能履行保证时保持unavailable，不安装特权服务或静默降级。
 
-正式提供者前置已落在独立[add-linux-isolated-report-provider](../add-linux-isolated-report-provider/design.md)规划；公共签名及剩余OS策略／恢复校准按其tasks交主线审，尚未实现或接入。这里仅消费该能力，不在报告change复制另一套准入／控制器；冻结字节领域Adapter仍需按本change的原ref／basis与来源授权另外接入。
+独立[add-linux-isolated-report-provider](../add-linux-isolated-report-provider/delivery.md)已完成9/9并获主线接收，限定Linux x86_64静态native策略，真实预执行、scope停止、恢复及唯一准入已验。它尚未接入产品宿主或浏览器，不能据此启用活动报告。这里消费原六操作，不复制另一套准入／控制器；ReportResources.freeze已实现，按原ref／basis及来源授权消费冻结字节的生产Adapter仍需接入。
 
 下一片止于apply所需规划工件齐备，不把临时C launcher复制成生产提供者。设计必须复用现有准入／归属与监督，明确控制器丢失、迟到能力和恶意样本下可独立验收的保证；不能另建容量计数或以根PID消失释放。Linux机制先独立交付，Windows另需目标校准，macOS继续不可用。完整浏览器、共同呈现／输入、分发及多视图预算尚未纳入本片，不以原生样本替代报告UI验收，2.1b／I5保持开放。
 

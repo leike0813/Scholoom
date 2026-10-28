@@ -61,7 +61,7 @@ test.beforeAll(async () => {
           const [items,setItems]=React.useState([]),[snapshot,setSnapshot]=React.useState(null),
             [mounted,setMounted]=React.useState(true),[enabled,setEnabled]=React.useState(true);
           const publish=React.useCallback(value=>setSnapshot(value),[]);
-          return <ContextContributionProvider items={items} appendContextItem={item=>setItems(values=>[...values,item])}
+          return <ContextContributionProvider items={items} appendContextItems={batch=>{setItems(values=>[...values,...batch]);return true}}
             activeViewId="image" receiver={{projectId:'project',sessionId:'session'}} publishContext={publish}>
             <button onClick={()=>{readable=false;notify()}}>撤回读取权限</button>
             <button onClick={()=>{readable=true;notify()}}>恢复读取权限</button>

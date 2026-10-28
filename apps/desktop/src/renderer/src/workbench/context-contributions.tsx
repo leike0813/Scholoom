@@ -27,7 +27,7 @@ export interface ContextSelection {
 export interface ContextContributionProviderProps {
   children: ReactNode;
   items?: readonly ContextItem[] | undefined;
-  appendContextItem?: ((item: ContextItem) => void) | undefined;
+  appendContextItems?: ((items: readonly ContextItem[]) => boolean) | undefined;
   removeContextItem?: ((itemId: string) => void) | undefined;
   updateContextComment?: ((itemId: string, comment: string) => void) | undefined;
   contextError?: string | undefined;
@@ -40,6 +40,7 @@ export interface ContextContribution {
   items: readonly ContextItem[];
   contextError?: string | undefined;
   available: boolean;
+  appendContextItems(items: readonly ContextItem[]): boolean;
   appendContextItem(item: ContextItem): void;
   removeContextItem(itemId: string): void;
   updateContextComment(itemId: string, comment: string): void;
@@ -49,6 +50,7 @@ export interface ContextContribution {
 const empty: ContextContribution = {
   items: [],
   available: false,
+  appendContextItems: () => false,
   appendContextItem: () => {},
   removeContextItem: () => {},
   updateContextComment: () => {},
@@ -75,7 +77,7 @@ function sameSelection(left: ContextSelection, right: ContextSelection): boolean
 export function ContextContributionProvider({
   children,
   items = empty.items,
-  appendContextItem,
+  appendContextItems,
   removeContextItem = empty.removeContextItem,
   updateContextComment = empty.updateContextComment,
   contextError,
@@ -182,8 +184,11 @@ export function ContextContributionProvider({
     () => ({
       items,
       ...(selectionError || contextError ? { contextError: selectionError || contextError } : {}),
-      available: appendContextItem !== undefined,
-      appendContextItem: appendContextItem ?? empty.appendContextItem,
+      available: appendContextItems !== undefined,
+      appendContextItems: appendContextItems ?? empty.appendContextItems,
+      appendContextItem: (item) => {
+        (appendContextItems ?? empty.appendContextItems)([item]);
+      },
       removeContextItem,
       updateContextComment,
       contributeSelection,
@@ -192,7 +197,7 @@ export function ContextContributionProvider({
       items,
       selectionError,
       contextError,
-      appendContextItem,
+      appendContextItems,
       removeContextItem,
       updateContextComment,
       contributeSelection,

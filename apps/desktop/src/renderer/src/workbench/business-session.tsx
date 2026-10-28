@@ -114,14 +114,22 @@ export function useBusinessSession(
   } catch (reason) {
     contextReadError = reason instanceof Error ? reason.message : '附加上下文无法恢复。';
   }
-  const updateContext = (change: (items: ContextItem[]) => ContextItem[]) => {
+  const contextReceiver = useRef({ key: contextKey });
+  if (contextReceiver.current.key !== contextKey) contextReceiver.current = { key: contextKey };
+  const receiver = contextReceiver.current;
+  const updateContext = (change: (items: ContextItem[]) => ContextItem[]): boolean => {
+    if (contextReceiver.current !== receiver) return false;
     try {
       writeContextDraft(contextKey, change(readContextDraft(contextKey)));
       setContextError('');
+      return true;
     } catch (reason) {
       setContextError(reason instanceof Error ? reason.message : '附加上下文无法保存。');
+      return false;
     }
   };
+  const appendContextItems = (items: readonly ContextItem[]): boolean =>
+    updateContext((previous) => [...previous, ...items]);
   const contextRevision = useRef(0);
   const publishContext = useCallback(
     (snapshot: WorkbenchContextSnapshot | null) => {
@@ -596,7 +604,10 @@ export function useBusinessSession(
     contextItems,
     publishContext,
     contextError: contextReadError || contextError,
-    appendContextItem: (item) => updateContext((items) => [...items, item]),
+    appendContextItems,
+    appendContextItem: (item) => {
+      appendContextItems([item]);
+    },
     removeContextItem: (itemId) =>
       updateContext((items) => items.filter((item) => item.itemId !== itemId)),
     updateContextComment: (itemId, comment) =>

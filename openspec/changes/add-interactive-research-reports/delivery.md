@@ -1,5 +1,25 @@
 # 实际交付与交接
 
+## 共同composer原子批量附加（2026-10-29）
+
+完成2.2a公共子范围，当前8/14，完整2.2及报告I5仍开放。实际写集为renderer的context-contributions／session／business-session／Workbench及原context-contributions、image-selection夹具：provider改为唯一批量callback，提供同步boolean接收结果；单项void调用委托同一实现。真实useBusinessSession只读取一次当前草稿、完整合并交原writeContextDraft验证后写入一次，非法项、16项／64KiB超限不写半组，不另建composer或传输。旧回调在会话／项目／配置键变化后失效，错误和草稿均不串入新接收者。成功只表示原草稿适配接收，不把原内存fallback写成磁盘持久成功。
+
+本片独立审查发现P2：仅比较键会在A→B→A时重新接收旧动作。扩现有真实hook夹具后，`context-append-aba-red.{log,json}`在首个会话往返确实返回true并改变原草稿；未说该红例已执行后两类。修正按键变化更换接收者对象、callback核该次identity，删除重复重算键分支；三类往返都走同一规则。`context-append-independent-review.md`追加静态窄复核确认闭合、无新增发现，父核对并接收。
+
+证据根`/home/joshua/.cache/scholoom-finish-active/`：
+
+- 修正前`context-append-joint.{log,json}`为context＋image22/22，保留图片消费者及原贡献路径证据，不算作P2修正后实跑。修正后`context-append-final3.{log,json}`为3/3、10.1秒，真实hook／贡献／草稿覆盖成功原子提交、非法／数量／字节整批拒绝及三类往返；仅客户端／不相关导航组件为明确替身，不算完整报告产品链。
+- 重新desktop构建`context-append-desktop-build-final.log`通过（1m34s）后冻结产物，`context-final-ui.{log,json}`为原显式文本附加／模型工具读回及迟到send回执保护两场景双宿主4/4、2.7分钟，0跳过／失败／flaky、retries=0。正文、原comment、后补项、真实持久消息与reload草稿均沿产品入口验证；内部工作台／broker／worker／文件真实，仅模型HTTP受控。该组不是活动报告呈现／页面桥I5。
+- desktop／tools类型、指定六文件Biome通过，见`context-append-final-{types,tools,biome}.log`。首次类型命令误指不存在的tsconfig.web.json，仅命令入口失败，已按package.json改用tsconfig.json，不计产品红例。最终根lint587文件无error、既有114warnings／39infos，架构14模块263文件0 findings（`main-last-{lint,architecture}.log`）；diff检查通过。
+
+静态harness使用独立cache配置与端口6035，图形前置先xdpyinfo，结束teardown仅收尾本轮配置。没有安装／开发服务器／真实用户库／付费模型，必需输入不在当前/tmp。普通HTML、材料单项与原发送可靠性保持；完整浏览器策略、呈现／可访问性、版本发布更新及报告草稿仍须原2.1b／2.2／3.x实做，不能由本公共子项关闭。
+
+## 主线提供者前置接收（2026-10-29）
+
+`add-linux-isolated-report-provider`的9/9任务已接入主线并通过独立审查整改与真实OS验证，详见其[交付记录](../add-linux-isolated-report-provider/delivery.md)。主线`main-final-kernel.{log,json}`联合118/118中，固定静态native提供者17项实际执行、无跳过；完整归属／停止、恢复／唯一准入及预执行限制仅对登记的Linux x86_64静态策略成立。提供者仍是内部六操作，不接生产宿主、报告浏览器、呈现或工作台，不能由此关闭本change的2.1b／I5。
+
+本change已提交的冻结字节、历史授权及严格单目标修正也在上述联合组回归通过；资源安全两项祖先追加修正另有21/21窄验证，不混算118的产物版本。完整浏览器策略、私有呈现／输入通道、可访问性及运行时分发尚未确定并实现，报告2.2／3.x／4.x保持原任务。接收该前置时为7/13，后续批量公共子项见上节；不将静态样本或普通HTML阅读视为活动报告可用。
+
 ## 主线实施：冻结字节、历史与严格单目标读取
 
 2026-10-29主线完成1.2b.2b，当前**7/13**。`ReportResources.freeze`与snapshot共用一次完整load，保留该次实际读到的入口／显式依赖Buffer，不重读同路径新版，不复制来源正文或新增存储。historical Adapter只替换可信文件权威提供的原入口正文／Evidence／path，来源与依赖继续核原版本及read/send；缺原依据拒绝。

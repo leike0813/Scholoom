@@ -83,6 +83,7 @@ export interface WorkbenchSession {
   connection?: WorkbenchConnection;
   /** 用户显式附加、随下一条指令发送的上下文；与实时选择快照分别表达。 */
   contextItems?: readonly ContextItem[] | undefined;
+  appendContextItems?: ((items: readonly ContextItem[]) => boolean) | undefined;
   appendContextItem?: ((item: ContextItem) => void) | undefined;
   removeContextItem?: ((itemId: string) => void) | undefined;
   updateContextComment?: ((itemId: string, comment: string) => void) | undefined;
