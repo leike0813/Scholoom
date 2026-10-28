@@ -152,3 +152,11 @@ Agent可从两份已绑定Browser回执继续核`Harness.send/schedule`（runtim
 Electron同一实际窗口的RPC135请求于1793140025669、成功回执于1793140025706，绑定project `60c0bac1-e200-4445-877a-3dd05276f45e`、session `87885264-8ce3-4cca-b101-93aacca20add`、instruction `d3898d7c-1752-4bca-8b53-1f9d9e390ce3`、run `13d33d9d-6eda-4a92-b2ab-fd08f2ec498a`。随后1793140025721和1793140025761的watch均为revision12、同session／run的queued及同instruction的accepted。监听／丢弃／无效字段／待回执计数均0，真实窗口原先空network造成的身份缺口已有本次实际证据；观察不包含instance／PID或worker阶段，不能据queued替Agent判初始化根因。
 
 Browser两次发送均有同连接成功回执及匹配watch，最终两个run均completed。Electron首模型计数在原5000ms仍为0，不证明文件保存／草稿损失；该场景此前文件／草稿切换断言已执行，后续Beta发送未执行。下一轮由主线／Agent将上述原身份和本地时点与实际执行侧关联，本树不修改harness或model-server，也不重放发送。完整4.1所需库删除／恢复及主题知识提供者仍未提供。
+
+## 2026-10-28：ba29ee61多项目同次链路已核
+
+第十二轮共同观察已合入。本轮原resident project sessions场景仅运行一次双宿主，Browser31.3秒、Electron41.2秒均通过。证据根`/home/joshua/.cache/scholoom-project-r13/`，`ui-first.log`及每宿主的ui-window-rpc／model-kernel-execution均保留。`same-run-correlation.json`以真实发送回执绑定四组project／session／instruction／run／instance，每组均有指令consumed、同run／instance模型输出、仓储与窗口completed及正常进程退出。确切身份、时点和边界见原delivery新末节，不依赖旧场景、别的run或模型累计计数。
+
+四个capture在收尾停机后各多一条samplingError=unavailable；其前已有同一run的完成样本和窗口revision20／25，不能抹去该末次采样，也不将它当成业务失败。模型请求计数在执行观察中为null，model.acquire只表明准入；模型推进证据取同run／instance的model.output。四组样本／控制无丢弃、snapshot未超时，但仍不表示完整时间线或稳定性保证。
+
+原场景实际核对了发送前的双项目文件树／草稿／标签切换、迟到会话创建不改选中、发送时接收者及消息隔离，随后两边均达到UI执行完成。所属四个项目根仍保留，identity.json与回执项目相符，alpha.md／beta.md保持原已保存内容；没有把未保存草稿写盘，也不声称测过完成后的UI草稿再打开。现无证据要求修项目业务、harness、观察器或共享闸门，故不新增测试／提供者、不重复已通过场景。完整4.1仍待真实库删除／恢复与主题知识提供者；旧失败是各自源码与样本的历史证据，不由本次单跑关稳定性。
