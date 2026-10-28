@@ -57,7 +57,7 @@ flowchart TD
 ## 5. 明确等待的输入与CI前置
 
 - [x] 5.1 已消费主线正式设计及源码输入；历史路径和符号冲突记录于design。共同1026796已合入全部七域源码，当前executionResources／taskPort／delegationOptions／programs、根工具、三域restore及task／programs标签均在本树；不再等待同步或使用旧累计补丁。真实联合操作另由8.4验收，不把代码合入当作实际整合完成。
-- [ ] 5.2 沿固定run／head和实际stage承接CI。来源识别窄项已交付；29cd728新诊断40591705558的实际安全JSON核得来源正负及两种占锁／提供者阶段，不能据正例关闭稳定性。938c33f完整组40540362614首批四入口unknown，新PID3188父准备／spawn和子准备／加载／初始化已分段，旧head缺各提供者；isolated-kernel首次ready-ipc失败只保留清理后closed，确定诊断丢失但启动根因未知。新Checks40591705520唯一查询截点Windows仍运行，不等或轮询。当前待主线提供同一失败run／新子PID提供者时点，并审查公共isolated-kernel诊断候选；历史8c2重启、938c33f首批与新占锁正例分开。历史PDF／TeX仍保留，不据一次stopped称根因修复。其他Agent／生态失败由所属线处理，不放宽生产时限、停止／容量、锁或统一重试。
+- [ ] 5.2 沿固定run／head和实际stage承接CI。来源识别窄项已交付，29cd728提供者正例不关闭稳定性。最新已完成Checks40591705520的Windows723通过11失败42跳过，isolated-kernel仍失败；旧938c33f并发PID3188及8c2重启与其分开。主线已批准并由本轮实现公共isolated-kernel诊断A：真实exit1／原44s无ready／解析边界3项、原配置及进程接替／文件尾2项本机通过；诊断缺字段保护已交付，实际Windows启动根因仍未知。下一输入为主线接入后的同一失败run／自有子PID安全阶段、原原因及清理前后收据，不用清理后close倒推自然退出，不等待或轮询本轮尚无目标回执。历史PDF／TeX及跨平台／分发保持原边界，其他Agent／生态失败由所属线处理，不放宽生产时限、停止／容量、锁或重试。
 
 5.1的输入核对不意味着新增报告适配属于本change；只有共同符号冲突或相关必要回归才阻塞对应整合，其他任务不串行等待。
 
@@ -77,7 +77,7 @@ flowchart TD
 
 ## 续做入口
 
-当前起点为29cd7283388dfd752911eacb9c3bf8416031db15，开始时工作区干净，主线已接收第14组并完成同步／定向复验。证据为 `/tmp/scholoom-round11-acceptance-Jx5Oez/`。本轮只推进第15组，分别消费完整Windows组的并发首批与isolated-kernel失败、新源码已完成诊断；新Checks唯一查询截点仍运行，不轮询或等待。只读公共isolated-kernel夹具，诊断候选交主线，不自行实施归属变更；不重复TeX或全仓，不使用旧累计patch，不自行同步。
+当前起点为ba29ee61ac6f8700cfe6a9fbaa529a8a7a75aad1，开始时工作区干净，主线已接收第15组并完成同步／定向复验。证据为 `/home/joshua/.cache/scholoom-round12-acceptance-NagGbw/`；本轮只推进第16组已授权的安全stderr／失败分类。仅测试变更复用已验构建，不改生产或Agent／项目夹具；不重复TeX、全UI或全仓，不使用旧累计patch，不自行同步。
 
 ## 8. 公共同步后的实际消费
 
@@ -128,3 +128,9 @@ flowchart TD
 - [x] 15.1 消费40540362614／938c33f目标trace，分开记录并发首批PID3188的父准备／spawn／子阶段及isolated-kernel首次ready-ipc失败；核29cd728新诊断完成样本与唯一Checks查询截点，不倒填旧提供者或等待新结果。
 - [x] 15.2 只读追踪公共isolated-kernel夹具，给出诊断丢失的具体证据、最小候选及区分自然退出／清理退出的反例，交主线而不修改该文件、子入口或归属策略；内核实际根因未闭合则保持开放。
 - [x] 15.3 实际执行后已取delivery instructions，更新原记录与必要当前事实，OpenSpec strict／schema／diff通过，只读复核诊断候选未发现确定错误，交四工件文档增量；无源码变化未重建／重跑已绿测试。5.2／6.2与目标平台稳定性保持开放，到精确缺证处停止。
+
+## 16. 公共isolated-kernel安全诊断
+
+- [x] 16.1 提取唯一生命周期phase／安全标量过滤，原文件尾与持续stderr排空共享；4KiB单行／64条／32KiB序列化记录上限，非法／超长／私有字段丢弃且计数，预算耗尽不停止读取，分片UTF-8及容量回归通过。
+- [x] 16.2 helper记录原ready失败类别、清理前ready／close／exit及父kill请求／真实close分开；安全摘要清理前保存再更新，失败不泄漏原始配置／异常，不混旧kernel.log。真实exit1及原44s无ready反例通过，归属／shutdown／预算与旧stop保护保持。
+- [x] 16.3 沿原真实配置／进程替换及代表exit1／原预算无ready／安全解析五个场景通过；分开exit事实后四个受影响场景最终复验通过。类型／格式／架构／OpenSpec／diff通过，已取delivery instructions更新同一记录并交增量。仅测试变化未重建，Windows未验及5.2／6.2保持开放，完成即停。

@@ -212,6 +212,14 @@ runtime合并还须保留Agent的instanceLifecycle.onStopping中childrenControll
 
 ## 待办边界
 
+### 共同ba29ee6后的isolated-kernel诊断候选A实施
+
+主线第十二轮已授权候选A，本轮拥有tests/isolated-kernel.ts、kernel-fixture解析窄接点和对应测试／可信测试子入口，不改生产代码、model-kernel或harness。kernel-fixture提取唯一固定phase／标量规则，同时供原文件尾读取和本次stderr流使用；流按4KiB单行、至多64条／32KiB序列化记录保存，超长行丢弃至换行，非法／非JSON及未知字段不保留，溢出只淘汰记录并计数。始终消费所有字节，不能在预算满后停止读管道；不读取旧kernel.log作为本次fork依据。
+
+helper将stderr由ignore改pipe，立即订阅，只记录本次child的安全阶段。ready等待的原分支记录固定原因码（readyTimeout、closedBeforeReady、processOrIpcError、notReady），ready后的失败按实际阶段分类；清理前快照ready／exit／close及最后观察阶段，exitReceived／exitCode／exitSignal与closeReceived／closeCode／closeSignal分别来自真实事件，父killRequested与清理后收据单列。未收到对应事件时null表示未知，不从exit推断close、自然提前停止或完整归属。安全摘要写同一profile内isolated-kernel-diagnostics.json（每profile仅一份、每份小于64KiB），清理前保存，之后以最终收据更新；保存失败明确标志，不能覆盖原失败。Error.cause携带同一有界结构，不传出原始异常、路径或配置。停止异常沿同一诊断入口保存原阶段，不多发shutdown或改变原实例／接替者核对。新增stderr管道在未知收尾时也须解除对runner的保活，保持排空、不据此杀进程。
+
+仅测试helper增加可选第三参数entry URL，默认仍为现有可信子入口，供两个受控进程反例使用；正常serveKernel及产品配置无新选项。测试根放test.info.outputPath下，保留profile及安全文件直到所属配置退役；cache TMPDIR用于本轮临时文件。沿原真实配置／竞争／显式替换／旧stop保护回归，再校准ready前exit1、原44s预算无ready至父清理、超长无换行／分片／非法JSON及合法JSON私有额外字段、旧文件残留不混入、64条／32KiB容量。预期只断言结构／原因及真实收据，不锁完整文案或信号的跨平台表现。只改测试不重建已验产物；先类型／安全负例，再必要真实接替者回归，Windows未实跑仍待验，5.2／6.2开放。
+
 ### 共同29cd728后的两类启动失败证据与公共夹具候选
 
 本片只读消费 `/tmp/scholoom-round11-acceptance-Jx5Oez/` 与实际CI artifact，不改生产或测试源码。938c33f／Checks40540362614的Windows artifact12754788905表明并发首批四入口均unknown，持锁子PID3188在父prepare541ms、spawn后到preparing-runtime、runtime-prepared、loading、initializing；旧head没有各提供者标记，不能倒写。isolated-kernel另在首次start（spec:34）ready-ipc失败，只知清理后自有child已close，不知原因为超时、提前退出、IPC或非ready消息，不能与并发例按耗时归同因。
