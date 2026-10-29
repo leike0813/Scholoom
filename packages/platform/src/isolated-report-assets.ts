@@ -86,25 +86,21 @@ export class IsolationAssets {
         await file.close();
       }
     }
-    const sealed: Record<string, string> = {};
+    receipt.sealed ??= { program: '', gate: '' };
     for (const [name, bytes] of [
-      ['program.bin', programImage],
-      ['gate.bin', await readFile(isolationGate)],
+      ['program', programImage],
+      ['gate', await readFile(isolationGate)],
     ] as const) {
-      const file = await open(join(directory, name), 'wx', 0o600);
+      const file = await open(join(directory, `${name}.bin`), 'wx', 0o600);
       try {
         await file.writeFile(bytes);
         await file.chmod(0o400);
         await file.sync();
-        sealed[name] = isolationFileStamp(await file.stat({ bigint: true }));
+        receipt.sealed[name] = isolationFileStamp(await file.stat({ bigint: true }));
       } finally {
         await file.close();
       }
     }
-    receipt.sealed = {
-      program: sealed['program.bin'] as string,
-      gate: sealed['gate.bin'] as string,
-    };
     const directoryHandle = await open(directory, constants.O_RDONLY | constants.O_DIRECTORY);
     try {
       await directoryHandle.sync();
