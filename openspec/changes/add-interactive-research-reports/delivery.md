@@ -1,5 +1,26 @@
 # 实际交付与交接
 
+## R2可信呈现／输入校准交回（第18轮，e4c4e422）
+
+从指定共同HEAD及clean开始，仅修改本change的R2四工件与`tests/fixtures/report-surface/`；未重放WIP、改生产renderer／protocol／kernel／provider、共享fixture登记或2.1d／2.2c事实。按apply执行后取得当前delivery instructions。当前仍11/18，2.1b／T1／T2／I5及活动报告unavailable保持；本片交回的是可重复观测及候选缺口，不是完整报告呈现通过。
+
+夹具使用实际Workbench／TabGroups／renderResource及原生React文本／表单。独立Chromium里的固定可信页实际处理筛选、排序和展开，控制器从当前DOM取3行以内快照，父页没有源页HTML／脚本或第二份排序／过滤逻辑。实际双宿主测试结果与MathML反例由[investigation首节](investigation.md#r2有限可信语义投影的双宿主校准第18轮e4c4e422)维护；原型代码与自动／手动入口见[README](../../../tests/fixtures/report-surface/README.md)。HTTP控制器、session及ResourceTarget均为合成替身，不提供ReportResources授权、独立身份服务或隔离／完整停止／容量保证。未重新实施报告选择模块，未接模型或真实库。
+
+证据根`/home/joshua/.cache/scholoom-round18-acceptance-tkEm2H/next/research-interaction/`，所有源码输入在Git工作区，配置／编译产物／profile／结果在该cache；无当前/tmp前置。真实产品main／preload和内核复用共同基线已验产物，Workbench源码由夹具构建重新bundle；未冒称重建产品。原静态测试服务及配置生成器使用round13已保全cache入口。
+
+实际命令与首次失败：
+
+- `node tests/fixtures/report-surface/run.mjs <cache>/attempt-1`：显示预检通过，首构建因KaTeX字体loader缺失失败，未进入测试。原build.log保留；后续只在夹具esbuild使用现成dataurl loader，未新增依赖。ESM输出同时消除未挂载Markdown worker的import.meta格式警告。
+- `...run.mjs <cache>/attempt-2`：构建／夹具类型通过，两宿主均因合成session未声明与ResourceTarget匹配的projectId而没有开tab。trace／错误上下文保留；仅补夹具projectId，未绕过共同资源入口核查。
+- `...run.mjs <cache>/attempt-3`：修正后两宿主2/2，0失败／跳过／重试。随后仅整理格式、NodeNext导入、控制器手动静态入口与关闭读回，未改生产。tools类型首查发现扩展名及exactOptionalPropertyTypes问题，原`tools-types-first.log／tools-types-final.log`保留，已修正。
+- `...run.mjs <cache>/final`：先构建、夹具类型检查，再冻结产物运行同组Browser／Electron2/2，48.3秒，0失败／跳过／重试。两端均测真实源页／投影状态一致、指针选字及Control+C实际剪贴板、可见正文查找、键盘／焦点和CDP组合输入；同时均观测到分数1/2→12及数学辅助结构丢失。用例绿色表示反例可重复，不能记为候选语义通过。
+- `node <cache>/check-manual-entry.mjs`：Browser有窗口入口真实失败于长cache路径的SingletonSocket，未到页面；Electron实际打开，但SIGTERM使Playwright源页关闭后的末次读取报错，原JSON保留。入口现在明确保存`unavailableAfterClose`，不把缺失末次正文当成功读取；只针对Electron复核`check-manual-electron-final.mjs`，ready=true、exit0，实际关闭读回为browserConnected=false、serverListening=false。未重复已知失败Browser或改变sandbox／系统配置。自动Browser是headless承载，不能代替手动有窗口条件。
+- `node node_modules/typescript/bin/tsc --noEmit -p tsconfig.tools.json`最终通过（`tools-final.log`）；夹具类型在final/types.log通过。指定目录Biome最终0error／22warning，固定DOM非空断言等warning原样记录；architecture最终14模块268文件0findings。OpenSpec strict和diff收尾结果见cache RESULT；无生产协议变化，未重复生成类型或全量构建／内核回归。
+
+两次最终UI的自有源浏览器／HTTP均通过实际连接和监听读回关闭；Electron沿原closeDesktop等原进程退出，测试内核由原teardown在确认stopped后退役自有配置。本片未登记项目或启动Agent／scope，不以这些夹具退出证明生产停止保证。辅助gpt-6.1-sol／high仅只读核对宿主接缝，已关闭；没有独立安全验收，本片自查与主线后续审查分别记录。
+
+正式方案差分：当前仅把已提交表单值／展开动作送源页，不保持任意报告的原始键盘、组合／焦点事件序列；纯文本字段还丢失数学结构。系统IME／候选窗及取消、真实读屏、源页自主变化、高频／迟到输入、跨tab恢复、全文搜索及正式版本／资源授权均未验。主线需决定保留结构语义、文本范围／输入与辅助树的可信接缝，随后安排相应目标验证；不扩大字段表或自行采纳画面流。没有Windows／macOS／科研质量结论，不安装／改权限、查询CI、提交／推送／归档或操作其他树。交回独立patch及新文件清单后停止。
+
 ## 第18轮主线验收（2026-10-29）
 
 已冻结并合入准备接缝、可信选择夹具及Windows只读Module三份实现；本change只关闭2.1c和2.2c。当前11/18，新增2.1d是既有2.1b中默认真实Linux准备接线的独立验收片，不扩服务／浏览器范围。R2呈现线实际在读AGENTS后因429中断，未改文件、无交付，重新派发，不能把“Agent结束”算完成。
