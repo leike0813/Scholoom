@@ -4,6 +4,15 @@
 
 2026-10-29用户明确“按既定首批范围完成，后置功能另立变更”。本change按proposal收尾固定BBT普通期刊补键、显式原值题名更正及两格式、真实共同保存和生命周期；复杂类型／多原值／更广保存、茉莉花及Reader／PDF写回转入[后续提议](../extend-zotero-ecosystem-compatibility/proposal.md)。这些扩展保持未交付，不改变本片拒绝及真实库禁用要求。Linux／Windows原包与生命周期目标、完整I6及独立审查仍按以下任务验收，不因范围澄清自动完成。
 
+## 当前轮：2.3 Windows普通布局（8d8f339）
+
+Linux普通入口N2已由主线接收；Windows私有fd0／可信注入原包已有实际结果，百条例endpoint rename EPERM及其公共lifecycle修复仍归主线。本片只补普通设置的可信资源布局，当前Windows只读树／ACL提供者及启动窗口策略尚缺；不回退旧Linuxsandbox阻塞，不改公共lifecycle、platform或CI，不先放开永远不可用的枚举分支。
+
+- [x] W1 核固定44.5.1 Windows发行入口、host产物／asar区别、原BBT9.0.68及当前设置／资源／原生提供者；在原investigation／design／delta明确只读核验缺口、同源布局候选、ACL及启动窗口选项、所有权和真实Windows验收入口。完成依据：本树来源及反例可核对，Linux现资源组25/25；这只是实际调查成果，不是Windows实现或目标通过。
+- [ ] W2 【主线前置，阻塞】确认design W1的ACL信任策略及A/B启动窗口保证，提供真实Windows只读设置文件／资源树核验和明确的所有权／释放接口；平台源码、native构建及公共导出由主线负责。完成依据：真实Windows根／后代ACL、reparse／对象身份、扫描竞争及选定窗口边界验证，不能以privateDirectory修复、内存ACL或Linux句柄代替。
+- [ ] W3 【依赖W2及叶契约批准】在host-settings／resolveZoteroResource接受同源Windows固定布局，派生固定electron.exe与已构建managed目录并复用版本、成员、beforeLaunch规则；不新增exec/env/root或第二登记。完成依据：私有设置与全树核验真实接入，Linux保护回归保持；需要变更TrustedZoteroLaunch消费者／公共注册先交主线，不能留下空壳分支。
+- [ ] W4 【依赖W3、目标Windows及主线停机前置】扩原窄资源／普通CLI／原包持久用例，真实离线资源→关闭准备实例→普通冷启动／bootstrap→补键与两格式→完整停机／重启原ID；保留不安全后代、链接、资源替换及撤权／unknown代表边界。完成依据：真实Windows原生与原BBT结果，原包字节对照；公共endpoint失败不吞。Linux25/25不抵该目标，2.3／4.2父项保持开放。
+
 ## 当前轮：N2实施（cb5f7ed）
 
 2026-10-29，主线已接收N2.1–5：固定Linux普通原包与真实产品静态bootstrap入口、持久回执／两格式、持续撤权及unknown保护均有实际结果和独审，41/50。原sandbox／缓存失败保留在delivery，不能用旧阶段停止描述当前状态；更广2.1–5.2及Windows原包仍按各自判据开放，不据本片勾完整E4／I6。
@@ -52,7 +61,7 @@ flowchart LR
 
 58eda140本树完成N1实现及三个代表回归；第十五轮主线已迁移isolated-kernel／zotero-original四处断言并实际通过内核15/15及原值双宿主2/2，见delivery主线回执。原候选已接入，不再应用历史cache补丁，也不再等待相同消费者输入；整合UI其他场景5/6仍部分失败。
 
-N2沿原2.3／3.1承接，schema／加载／恢复接点已有当前实现，目标原包仍受真实sandbox前置阻断。N1不依赖原包ready；不因library provider已有或独立绑定通过而假称普通原包装配就绪。
+N2沿原2.3／3.1已完成Linux普通布局／原包装配，原sandbox失败保留在delivery；Windows普通布局按本轮W1–W4独立承接。N1不依赖原包ready，不据Linux接收宣称Windows普通入口已验。
 
 ## 已接收：原包测试显示前置适配
 
@@ -154,7 +163,7 @@ flowchart LR
 
 - [x] 2.1 接收普通期刊的来源命名空间、原类型／字段与Extra保留、正式键／固定状态和冲突schema及真实端口，核对来源副本／重复登记及不支持形态的明确拒绝。完成依据：共同接口与首批映射联合核查，生态不另存正式键，项目继续用共同指针；对象删除／重入／恢复及Reader写回由后续变更承接，本片真实库仍禁用，不以备份副本恢复声称对象恢复。实际依据为authority-audit、真实共同7/7及BBT百条／冲突／缺映射拒绝，见delivery首批收尾节。
 - [x] 2.2 消费文献所属schema／provider，核对首批补键的`save/saveTx/executeTransaction`原子范围、revision、授权、稳定结果及通知。原包多条fill汇集为一次共同原子提交，不缩成逐条成功；共同失败／未知提交必须实跑，不编共同事务假Adapter或假回执。超出补键／独立题名更正的通用保存及复杂事务由后续变更承接，不从方法存在宣称支持。真实共同事务／SQL保护及原包百条、提交后观察失败按原身份查询通过，独审反例已修复复核，原失败保留。
-- [ ] 2.3 【已验注入装配及Linux普通绑定／原包；Windows原包仍未验】R3.1–R3.4提供独立认证／stdin／实例／双向RPC／ready／正常shutdown／恢复及原包吞错修复；Windows公共HostConnection结果已由主线接收，不再称全部未验。N2.1–5完成普通设置／初始化恢复及固定Linux原包装配；Windows原包／正式装配仍未验，macOS受管执行不可用。不用普通spawn或PID消失替代原生保证，不把scopeStopped当pluginClosed。
+- [ ] 2.3 【Linux普通布局已验；Windows可信注入已有结果，普通布局及整项仍未完成】R3.1–R3.4提供独立认证／stdin／实例／双向RPC／ready／正常shutdown／恢复及原包吞错修复；Windows公共HostConnection及私有fd0／真实原包子项已有实际结果，不能再统称未跑。N2.1–5完成固定Linux普通装配；Windows普通布局沿W1–W4，百条例停机endpoint EPERM沿主线公共lifecycle，正式分发仍未验，macOS受管执行不可用。不用普通spawn或PID消失替代原生保证，不把scopeStopped当pluginClosed。
 - [x] 2.4 【E6保持生产阻塞】核对并在能力状态中准确表达题录／附件删除、操作者及恢复／重新入库提供者的实际可用性。完成依据：缺少保护时真实用户库仍不可启用，不把备份副本恢复替代对象恢复，不以未发现引用宣称可安全撤回。此任务验收的是限制确实生效，无需本change实现删除恢复；待E6实际能力齐备后，生产启用由后续变更承接。1组及隔离I6可继续，本change不实施迁入。
 
 ## 3. 共同权威接线与保存一致性
@@ -176,4 +185,4 @@ flowchart LR
 
 ## 续做入口
 
-先读delivery最新普通原包／产品入口节及design／investigation。N2.1–5已接收，当前41/50；证据根为`/home/joshua/.cache/scholoom-finish-active/`，原失败仍在zotero-ecosystem及各阶段目录，现有/tmp非前置。后续沿2.1–5.2的复杂映射／事务、完整I6及真实原包平台矩阵推进，不重放旧unknown、不扩大执行参数或权限；E6真实库生产启用由后续变更承接，不以本片进度宣布整个change完成。
+先读delivery最新Windows普通布局节及design／investigation的W1。N2.1–5及首批Linux成果已接收；本轮证据根为`/home/joshua/.cache/scholoom-parallel-resume-20261029-A5WuXN/zotero-ecosystem/work/`，历史原失败沿原delivery保留，不依赖/tmp。下一步由主线确认Windows只读原生能力／ACL与启动窗口保证，再实施W3／目标W4；公共停机EPERM单独处理，不重放旧unknown、不扩大执行参数或权限。E6真实库生产启用及正式分发仍不在本片，不据W1规划或Linux通过关闭父任务。

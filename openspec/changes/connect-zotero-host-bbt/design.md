@@ -1,5 +1,82 @@
 # 实现设计
 
+## Windows普通布局W1：待主线接收的原生前置（8d8f339）
+
+本节补2.3普通持久资源的独立缺口。Linux N2已接收，Windows可信注入原包及fd0也有实跑；百条例停机EPERM由主线公共lifecycle承接，不从ACL快照推唯一原因。investigation的Windows节已确证缺少只读原生树核验；**本轮只落实方案／契约及验收设计，不改生产schema、resolver或公共注册**。跨模块接缝未确认前不加入永远unavailable的Windows空壳，也不放宽Linux资源保护。
+
+```mermaid
+flowchart LR
+  Settings[唯一私有host-settings] --> Layout[生态固定布局和版本规则]
+  Main[主线决定ACL及启动窗口保证] --> Native[平台只读树核验 待提供]
+  Native --> Layout
+  Layout --> Check[稳定beforeLaunch复查]
+  Check --> Command[既有ManagedCommands和Job]
+  Command --> Host[managed及未改BBT]
+  Host --> Library[唯一共同library及回执]
+```
+
+### 固定布局与同源声明
+
+推荐首片仍是可信操作者离线供应完整runtime＋已构建host，不增加安装器或renderer设置。根固定`<canonical dataDirectory>/native-resources/zotero-journals-v1/`，注册ID不构成路径。Windows路径用实际node:path派生；拟增`windows-x64-electron-managed-v1`是**待审名称，当前schema不接受**。
+
+| 同一叶schema／resolver的规则 | Linux当前实现 | Windows候选 |
+| --- | --- | --- |
+| layout及实际平台 | `linux-x64-electron-managed-v1`，linux／x64 | 待提供者接收后新增`windows-x64-electron-managed-v1`，仅win32／x64；平台或原生核验不符拒绝，不猜替代 |
+| runtime | `electron/electron`及完整目录 | `electron/electron.exe`和完整官方`electron-v44.5.1-win32-x64.zip`发行目录；不以开发机node_modules、缓存或产品改名exe作为运行来源 |
+| host／BBT | `host/out/main/managed.cjs`及全部chunks／preload／renderer、host/resources、bbt | 同相对布局，复用已修fd0及认证。9.0.68原XPI完整解包不改成员，不能替换算法、禁缓存或简化Worker |
+| 版本／核查界限 | 唯一package.json／versions.json；4096成员，版本文件64KiB | 复用Electron44.5.1／Zotero10.0.5／BBT9.0.68同一事实源和有界值，不添可覆盖版本表。标记文本不证明exe正确，同次ready核实际运行版本 |
+| 环境 | 可信DISPLAY／XAUTHORITY及操作私有TMPDIR | 不要求DISPLAY，沿现受管Windows系统环境白名单；如实际还需TEMP／TMP等，先交主线具体调用差异，不引入任意env继承 |
+| 文件系统及保护 | 私有owner／mode、无链接全树及精确系统helper例外 | 推荐首片本机NTFS、普通目录／单链接文件；Windows原生ACL、File ID及reparse逐对象核查，无Windows系统helper链接例外。UNC／网络卷或不能验证的文件系统拒绝 |
+| 支持声明 | 当前叶schema const与resolver共同生效 | 提供者及策略明确后才将host-settings layout const改为两值enum，resolver消费派生类型；不另建公共DTO／字符串支持表。asar／正式安装器未交付，不因本配方开放 |
+
+操作仍只有原DTO中的libraryId／sourceId／revision／稳定操作ID／表达选择，不接受root、exec、argv、env或凭据。`host-settings.json`本身也须只读核私有ACL／路径身份和同句柄有界读；不能只验证资源树而沿用Windows跳过mode／uid作为充分保护。设置、库身份、授权和原回执不新增权威，缺失／disabled／invalid仍先恢复旧scope，N1独立。
+
+### 平台最小接口及需主线决定的保证
+
+推荐先交只读树核验Module，集中Windows原生实现，对齐Linux“扫描对象绑定＋启动前变化拒绝”，明确不承诺对同权限可信操作者的原子执行绑定。候选窄签名如下，**并非已注册接口**；参数仅由可信kernel供应，不进业务协议：
+
+```ts
+type PrivateTreeSnapshot = {
+  readFile(relativePath: string, maxBytes: number): Promise<Uint8Array>;
+  verifyUnchanged(): Promise<void>;
+  close(): Promise<void>;
+};
+function inspectPrivateResourceTree(input: {
+  configurationDirectory: string;
+  resourceRelativePath: string;
+  maxEntries: number;
+}): Promise<PrivateTreeSnapshot>;
+```
+
+生态传固定资源相对路径及4096上限，用snapshot.readFile读版本文件／核必需成员，稳定beforeLaunch调用verifyUnchanged；snapshot只保存内存见证，不持久化句柄／SID或新增资源账本。host-settings读取固定文件的同句柄ACL检查复用该Module内部原语；如需导出独立叶，候选为`readPrivateFile({ configurationDirectory, relativePath, maxBytes }): Promise<Uint8Array>`，消费者固定传host-settings.json／16KiB，由主线一并统一，不在叶模块复制ACL算法。readFile有界并核原对象，verifyUnchanged保留原见证，变化拒绝而非重新采纳。
+
+原生提供者须证明：
+
+- 逐层取得本地卷／File ID、reparse属性／tag及安全描述符，在已核目录对象上枚举；核配置目录以上到可信卷／用户目录的祖先和全部资源后代，尤其父目录替换／删除子对象的能力。拒绝junction、symlink及未知重定向，不能只核根ACL或realpath仍在范围。不能要求系统祖先owner都等于当前用户，也不能因此省略祖先核查。
+- 写／删除／改变DACL或owner的权限包含继承、受保护ACL及父目录DELETE_CHILD；缺失／NULL／无法解释的DACL、条件／未知ACE保守拒绝。owner相符与当前token可访问分开判断。**允许的系统管理主体、资源文件能否由非当前用户拥有，需要主线统一策略**：推荐资源树按可信操作者私有准备，系统祖先使用单独明确的可信管理主体规则，不自行忽略Everyone修改权。
+- 核硬链接数量、完整成员集合和身份／ctime等变化见证；版本读取绑定同一已核句柄。exe须能由当前token执行且为相符Windows x64文件，不能用POSIX执行位断言；实际加载／版本仍须同次Electron ready。扫描／权限检查只读，不修复或复制现场，不调用privateDirectory掩盖拒绝。
+
+**启动窗口必须由主线选择**：当前beforeLaunch经异步IPC后按路径spawn，Linux扫描返回也关闭fd。方案A（推荐最小片）维持扫描前后对象及授权检查，以只读ACL拒绝非可信主体修改；明确不保证同权限可信操作者在检查结束到loader之间替换时的原子绑定。主线接受该信任模型／ACL策略并经目标反例核验后才能启用。方案B若要求完整阻止这一窗口，则需平台scope持有目录／exe及惰性DLL、BBT成员的原生lease，持续相关write／delete共享限制至scope确认停止；不得在unknown的普通finally提前释放，也不能只锁exe声称整树保护。B需由主线决定command／worker／native scope的精确租约及释放接缝，当前beforeLaunch的void结果不承载它。CreateFile共享模式对属性／ACL变化有独立边界，不能把禁delete共享当成所有安全描述符不变。
+
+A/B以及ACL策略均未被本线擅自定案；本轮已满足“需要新原生能力或跨模块决定则交方案停止”的条件，不实施额外平台机制或宽松fallback。
+
+### 最小切片、所有权及真实验收入口
+
+| 顺序及负责人 | 精确写集／完成依据 |
+| --- | --- |
+| W1 本线已调查 | 原investigation／design／delta／tasks／delivery，记录当前来源、三个反例、Linux25/25及停点；不作Windows实现成果 |
+| W2 主线公共前置，待提供 | `packages/platform/src/private-files.ts`的只读共享原语或新私有resource-tree Module、`src/node.ts`导出、Windows native实现及构建登记；若选B再限定command／scope lease接点。代表例沿private-files／platform-resources核真实Windows ACL／句柄。保持既有privateDirectory准备语义，本线不写这些文件 |
+| W3 本线前置获准后实施 | `host-settings.ts`叶schema／私有读取；`zotero-resources.ts::resolveZoteroResource`共用版本／成员规则，按平台匹配路径及核验Adapter。TrustedZoteroLaunch／beforeLaunch若需生命周期变化先交主线，不改manual、lifecycle、harness。原Linuxhelper与资源拒绝行为不放宽 |
+| W4 本线目标检查、主线整合 | 窄资源测试及原cli-runtime／zotero-host普通持久用例。当前原包cold夹具硬编码Linux executable／layout并限制Linux，须按获准同源规则派生Windows路径、保持真实内部接线，不能把测试传win32或内存ACL当目标结果。公共endpoint EPERM单独待主线修复，夹具不吞停机失败 |
+
+Windows资源组最小反例：安全根但后代可写ACE；同配置junction／未知reparse；同名exe或后代DLL／BBT成员替换而version不变；设置不私有／库身份错；在核查完成与派发之间的可观察阶段替换。按A/B实际获选保证断言，不用sleep、全错unknown或重试造绿。核验拒绝时无host／无共同新revision；已经可能派发时沿原unknown／完整停止处理。
+
+真实普通入口：在Windows自有cache配置离线放置固定runtime、构建host及未改原XPI／解包成员；真实library准备合成schema44期刊和固定键后关闭准备实例，写唯一私有设置，再普通CLI start及共用desktop bootstrap冷启动，不供应IsolatedZotero。核同次kernel／host／command实例、fd0、原包ready、一次补缺键共同事务、两格式及稳定回执；完整关闭后start再核键／CSL／原值／原ID，notFound不重放。原包成员与原XPI逐字节对照，manifest不能代替；资源合成文件只验布局／拒绝，不冒充原包。GUI代表在普通backend真实通过后接，不用CLI替代双宿主UI。
+
+W2／W3落地后，Windows独立测试入口沿已装Playwright，无CI依赖：将现`zotero-resources.spec.ts`文件级Linux skip收进Linux describe，Windows组以`Windows fixed resource`命名，命令为`node node_modules/@playwright/test/cli.js test --config playwright.kernel.config.ts --workers=1 tests/kernel/zotero-resources.spec.ts --grep "Windows fixed resource" --output <自有cache>/resources-results`；普通持久例沿`tests/kernel/zotero-host.spec.ts --grep "ordinary persistent host settings"`，显式`SCHOOLOOM_ZOTERO_NATIVE_COLD=1`及操作者离线原XPI路径。profile／TMPDIR／output全部自有，先构建再冻结测试；当前skip和硬编码尚未改，此处是待实施入口，当前在Windows执行会跳过，不能计通过。正负原生例必须真实目标运行，GUI后续入口仍沿原双宿主zotero-original消费者，不扩大本片UI写集。
+
+本机Linux25/25只保护既有实现，未跑Windows原生／普通冷启动、asar分发或产品GUI。2.3／4.2及5.x、完整E4／I6与真实用户库仍开放。
+
 ## Windows原包验收接线
 
 Windows GUI的process.stdin由固定Electron原生初始化替换为EOF模拟流，详见[一手源码报告](../../../.scratch/scholoom-foundations/research/electron-windows-private-stdin.md)。宿主统一通过公开fs有界读取继承fd 0：不新增第二传输，原launchInput、同一Job、实例／token认证及期限保持。输入按字节限额收齐后一次UTF8解析，非法JSON不回显载荷；控制台变量不作为修复。Windows同源合成负／正对照与真实共同库原包须分别通过，不能以Node fixed-host或普通smoke代替。
