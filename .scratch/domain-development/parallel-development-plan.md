@@ -553,6 +553,8 @@ Codex／gpt-6.1-sol／high保持。先提交本轮整合及上述决定，七树
 
 主线已整合Windows模块node导出及architecture单叶登记，架构通过；目标native未编译／实跑，普通Windows布局继续不可用。三任务的写集无交叉；报告工件仅阅读线可更新R2，计算线交cache记录由主线合入2.1d。真实模型、系统安装和目标支持不由本次派发推定授权。不归档尚未完整交付的change。
 
+第18轮同步回执：整合修复为a2083db，原三树冻结提交以无内容差异的祖先桥接保全，源码基线016ece2；最初octopus内容合并因已接修复与原文件不同而拒绝，未留下合并状态，随后明确保留已验主线内容，diff核对为空。七树均保全快进、clean，各自重建实际变化的platform，复用未变其他包／产品产物；tools类型、架构及每树一项代表共7/7通过。详细见本轮cache的synchronized.json、sync-checks.json及sync-final.json，主线最终检查见final-checks.json。纯文档回执再快进，不重复构建；共同HEAD将写入dispatch/plan.json，原Prompt、受理／实际启动证据沿同目录保存。派发后不再次修改各树基线。
+
 ## 首轮 Agent 的共同起始任务
 
 各线采用下述共同要求，并附上本文件中该开发线的小节：
