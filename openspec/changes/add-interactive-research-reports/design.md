@@ -26,6 +26,27 @@ ReportResources 是 `packages/editor` 内的 module，不新建包／数据库�
 
 ## 方案与接口
 
+### 第22轮接收与下一片
+
+主线接收固定gate离线5/5、真实KernelClient／领域／Workbench汇合双宿主4/4，以及R2d和私有IO静态调查。没有生产承载变化，任务仍20/26；汇合页为可信固定React组件，不执行报告HTML／脚本，不关闭完整3.1／3.2／I5。
+
+**服务路线选择C作为唯一原records、冻结字节及日志的创建／管理者，M只负责固定系统模板、OS采证和许可。** C为受保护非root控制账户，复用现有IsolationRecords；K保留领域授权、freeze及唯一ProcessAdmission。P仅写既定日志FD。M不承载Node records、不维护第二份记录或容量；C的`/proc/self/fd/N`不能跨进程传递。原安装研究的M-writer布局及cache模板是历史候选，不是此路线的当前安装说明。系统安装与T1仍未授权、未验。
+
+后续私有接缝须明确：C拥有原私有根并生成／读取原configId，K经受信binding固定它；configId不等于K profile ID。C持原writer锁并一次核完整库存，K恢复全部原unknown后才能开放该binding；无可核查身份时阻断初始化，不伪造匿名槽。scopeIntent提交ACK先于M启动；M采得原范围后由C落盘ACK，再允许后续门；K末次授权及launchIntent持久确认先于许可。M停止必须核预期的原boot／InvocationID／cgroup对象，C确认stopped落盘后K才释放。丢ACK只查原实例，不自动重放put／start／许可。新system service须显式新route／格式，不放宽或重解释旧version1 user-scope记录。PID1实际打开对象与C封存对象的连续性、M停止时接替者竞争仍须验证，尚未发布生产Interface。
+
+下一批所有权：
+
+| 线 | 有界任务／写集 | 完成判据与停止点 |
+| --- | --- | --- |
+| project-execution | 原`isolated-report-records.ts`及相邻records测试，补有界根目录库存与index交叉核查 | 识别未索引目录／未知对象／残留临时文件即失败且保留现场，正常恢复仍通过；不删、认领、重建index或发新身份，不扩为系统服务／全宿主启动屏障 |
+| zotero-ecosystem | 新`tests/fixtures/report-system-calibration/`离线构建／配置包 | 准备固定合成输入、gate／probe、临时system unit及精确权限／观察／收尾计划；普通UID构建与可运行的离线自检。不得安装、执行root／PID1／账户／策略命令，不把旧gate的当前UID／FD3观察机制直接当部署实现；缺前置据实交回 |
+| literature-workbench | 仅cache：C-writer私有操作及持久ACK设计 | 基于现有调用表给config bootstrap、字节封存、scope／launch／stopped顺序、丢ACK查询及新route的最小接口／字段所有权和代表验证；PID1路径及停止竞争不能凭假设填上。主线先审再派生产重构 |
+| research-graph-runtime | 仅cache：旧版本／旧独有来源授权接缝核查 | 追当前client／updates／drafts和真实领域，明确当前报告已移除来源时如何核原草稿；不按新版权限推原版可读、不改生产、不重复绿色矩阵。若有确证缺口交精确复现和最小写集 |
+
+库存修复由[提供者恢复规格](../add-linux-isolated-report-provider/specs/linux-isolated-report-provider/spec.md#scenario-私有根存在未索引或未知对象)及其tasks 4.1跟踪，当前9/10。在持锁、已验证index后，对pin住的根有界枚举，只容许config.json、index.json、writer.lock及本index的storageId目录；超限、未知、缺失或错误对象拒绝且不修改已有材料。create的已知预算失败仍在物理写入前拒绝；真实崩溃遗留不得静默丢弃。实例目录的资源与封存沿原验证，不扩成任意全树扫描。这只是原records的完整性修复，不宣称单一provider失败已阻断宿主所有其他准入。
+
+呈现方向保留共同tab、原生文本／MathML、输入及辅助语义。R2d否定WebContentsView外部UID导入和直接rrweb，新增[WorkerDOM／Remote DOM静态核查](../../../.scratch/scholoom-foundations/research/report-worker-dom-feasibility.md)也否定直接接入；WorkerDOM仅保留为需要维护适配的有界研发候选。允许先审查一个与业务布局无关的决定性探针计划，不要求现成组件已满足全部产品契约；但不因探针而批准通用镜像生产实现。引入候选前须依用户AGENTS另获依赖安装授权，未获授权时只做现有源码和接口设计。Remote DOM不进入探针，T1/T2、系统IME／读屏与完整I5均保持开放。
+
 ### R2d正式呈现路线比较（第21轮本片，待主线选择）
 
 本片不新增实现，只比较两条能脱离固定科研页面组织的路线；一手事实与精确版本见investigation的R2d节。**建议停止把固定模板补丁泛化为生产呈现，优先保留A的“一个原生活文档拥有执行及输入”方向；当前A也没有满足Browser共同tab与跨身份嵌入的提供者，不能因此批准A接线。** B的现有成熟组件仍是记录／回放器，不建议以“引入rrweb”代替新的通用交互系统。原产品范围不变时，两条均保持unavailable。
@@ -39,7 +60,7 @@ ReportResources 是 `packages/editor` 内的 module，不新建包／数据库�
 | Electron／Browser宿主 | WebContentsView只能把本Main的WebContents放到本原生窗口；当前没有独立UID／外部进程导入API，普通Browser更无此View。外部原生窗口是呈现位置变更，不等同共同资源tab | 两宿主禁脚本frame形态已有可信试验证据，但一般回放的资源／渲染预算和输入语义未证。不能把Electron HTTP拦截或DOM API覆盖当跨宿主隔离 |
 | 预算／停止／成本 | 完整浏览器、运行库／字体、私有profile、显示／输入／辅助技术的受控通道、OS图及丢失恢复均是实质部署成本；唯一ProcessAdmission／原records继续为权威。不能给报告直接共享可信DISPLAY／DBus／剪贴板代理来填空 | 新依赖与持续安全维护、序列化／mutation流／重建／输入协议及双DOM同步成本不可消除；source浏览器已隔离不代表trusted回放布局CPU／内存也受同一预算。不能另造容量或恢复台账，也不在本片设计整套协议 |
 
-**主线最小待决项：** 如果继续要求“独立受限身份执行＋Browser／Electron共同资源tab＋原生文本／输入／辅助语义”，应先取得能真实满足挂载与交互的成熟提供者及其接口证据；当前两条查到的API都不具备。若准备改为独立原生窗口或调整宿主产品范围，必须由主线另作明确产品决定，不能由worker把窗口当tab、把Browser降为位图或取消输入／辅助要求。没有该决定／提供者时，不再投入另一张固定页或通用镜像实现，保持活动报告不可用。
+**第21轮交回的待决项：** 当前两条查到的API都不具备“独立受限身份执行＋Browser／Electron共同资源tab＋原生文本／输入／辅助语义”的完整能力。主线第22轮保留原产品范围，允许先审有界的维护适配探针；尚无通过的提供者。若改为独立原生窗口或调整宿主产品范围，须另作明确产品决定，不能由worker把窗口当tab、把Browser降为位图或取消输入／辅助要求。活动报告仍不可用。
 
 最小下一验证按前置分开，不在本片执行：
 

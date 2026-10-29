@@ -1,5 +1,7 @@
 # 固定 native T1：独立身份的安装前方案
 
+**当前路线以[报告design第22轮](../../../openspec/changes/add-interactive-research-reports/design.md#第22轮接收与下一片)为准：C唯一管理原records／冻结字节，M仅固定OS动作。** 本文下方的M-writer布局、流程图及第21轮cache模板保留为原候选调查依据，不能作为现行安装指令。C-owned根、config bootstrap、持久ACK及PID1对象连续性尚待具体设计与验证；本文未授权任何系统部署。
+
 2026-10-30；基线 `825f3fac57664a8d07f70e1145a3baee1434273c`，初始 Git clean。本片为第20轮 2.1e 的**候选规划**，只新增本文，未安装、加载策略、启动服务或运行 T1。报告 tasks／delivery 由主线维护，本片不勾任务；T1／2.1b／I5、完整活动报告与 Windows W2 继续开放。
 
 依据：[第20轮设计](../../../openspec/changes/add-interactive-research-reports/design.md#第20轮接收及下一片)、[第17轮账户模型和单租约决定](../../../openspec/changes/add-interactive-research-reports/design.md#第17轮主线接收与下一片)、[原独立身份研究](report-independent-identity-service.md)。后者较强的同 UID 对手假设不成为本片新增要求。已否决的 [AppArmor 入口](apparmor-fixed-launcher-ptrace.md)与 [bwrap 挂载路径](bwrap-fixed-launch-mounts.md)研究保留，不重试其 launcher，不改变 stock 策略或 sysctl。

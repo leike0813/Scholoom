@@ -1,5 +1,21 @@
 # 实际交付与交接
 
+## 第22轮主线验收（2026-10-30）
+
+接收上一轮四条实际派发：项目IO研究仅cache，无源码增量；生态`d2c4c88`→主线`cc6939d`为固定FIFO gate；阅读`f2fdf4a`→`b408f01`为R2d静态路线比较；文献`e62bb8c`→`79db846`为真实客户端工作台组合。其余三树上一轮是已确认的等待状态，不存在应收而漏收的源提交。全部七树本轮同步前均clean。报告仍20/26，不以夹具新增代码或重复子范围增加完成数。
+
+证据根`/home/joshua/.cache/scholoom-round22-acceptance-noQKV1`；原交回在第21轮根的`next/<tree>/RESULT.md`。主线实际验证：
+
+- `TMPDIR=<本轮cache>/tmp node tests/fixtures/report-system-gate/rebuild.mjs <本轮cache>/gate`与`node --test tests/fixtures/report-system-gate/selftest.mjs`通过5/5，含G＋EOF唯一许可、EOF／非法／重复许可不执行、FD42正控制和放行前实际关闭。编译复用原静态probe及原policy；仅普通当前UID，无PID1、跨UID、文件视图或完整停止证明，FD3观察只用于夹具，不能当安装gate。
+- `DISPLAY=:99 SCHOOLOOM_UI_PORT=6207 TMPDIR=<本轮cache>/tmp node tests/fixtures/report-connected/run.mjs <本轮cache>/connected-ui`完成build／fixture types／tools types／static-config及真实Browser／Electron **4/4**，90.757s，零跳过／重试／flaky。真实认证loopback broker、project／library／report、KernelClient、report-client、updates／drafts／context、useBusinessSession及Workbench共同composer／inspector均接通。页面仍是可信固定React，未执行实际报告HTML或scripts，没有OS runtime或bridge-ready。输出`connected-ui/results.json`，入口结果`connected-check.json`及`connected-ui.log`；专属kernel／profile／server由runner收尾。
+- gate局部Biome及diff通过；组合runner已做tools及静态配置检查。本轮新增主体是fixture／tests／文档，无生产运行代码改动，不重建全部packages或重复主线已绿矩阵。其余最终格式／规格／同步结果留在本轮cache。
+
+原文献自审首败是route.fulfill文档触发Browser LNA websocket拒绝，改为真实私有loopback HTTP；项目粗通知不承诺准确path，修正过严断言。原独审发现同basis重新采用销毁consumer后未重新挂载，经页面实例key修复并核实际附加成功。主线保留这些首败，不改浏览器权限／超时刷绿。阅读R2d和新增WorkerDOM／Remote DOM研究为固定来源静态核查，无新候选运行结果。辅助metadata区分源码SHA与npm gitHead，取得路径和依赖事实在`worker-dom-research/installation-inputs.md`；未下载／执行完整候选或安装依赖。
+
+独立default／gpt-6.1-sol／high辅助按真实fixture链和库存规格／写集定向审查，无确证P1/P2，已关闭；准确源码依据见本轮`review.md`。未重跑已通过矩阵，不将静态审查当新增运行结果。
+
+下一片以design第22轮为准。主线选择非root C唯一管理原records／字节，M为窄OS门；原M-writer模板降为历史候选。IO研究确认缺根库存对照，原提供者新增4.1，9/10待验，不删孤儿或漏库存后准入。其他线分别准备离线系统校准包、C-writer私有提交设计、旧版本草稿来源核查；呈现探针的固定源码引入单独请求授权，授权前不实施。系统账户／安装／策略／T1／T2、真实模型、CI、系统IME／读屏、Windows／macOS和完整2.x／3.x／I5仍未验，不归档。
+
 ## R2c固定可信输入事务交回（第20轮续做，825f3fac）
 
 本片从`825f3fac57664a8d07f70e1145a3baee1434273c`及clean续做；用户中断前没有本片工具执行／新进程。读取当前apply及原交付，实际执行后取得delivery instructions。写集仅新`tests/fixtures/report-input/`与本change的R2c段落，原R2／R2b反例和其他四片源码／事实未改，未同步或重放WIP。当前仍16/26，完整活动报告／正式R2／2.1b／T1／T2／I5未关闭。

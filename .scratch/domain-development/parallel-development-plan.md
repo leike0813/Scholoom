@@ -613,6 +613,24 @@ Codex／gpt-6.1-sol／high保持。所有树先停止并保全原提交祖先，
 
 第21轮同步回执：efc9496为整合／决定，五树原提交经零内容差异祖先桥b7ac52e保全后，七树均先clean快进。各树81份实际desktop运行产物（不含source map）与主线本轮真实重建逐文件同内容，故复用，不重复七次构建；tools类型／直接node架构／各一组代表共21条检查退出0，代表行为共8项通过。命令、产物摘要及前后HEAD见本轮runtime-verification.json、sync-checks.json及sync-final.json。此同步回执提交后仅再快进文档，再生成最终HEAD的任务；正式受理与启动证据保存dispatch目录，不为纯回执再次改变已启动的基线。
 
+## 第22轮验收及下一批
+
+本轮四条派发全部结清：项目IO研究、生态固定gate、阅读R2d及文献真实客户端工作台汇合。计算／科研／Agent三树上一轮已停止等待，没有遗漏的提交。主线接收gate5/5、真实Browser／Electron组合4/4；报告仍20/26，原Linux提供者因库存完整性修复增列4.1，当前9/10。源码、真实／替身、首败及未验由原change delivery维护，证据根`/home/joshua/.cache/scholoom-round22-acceptance-noQKV1`。
+
+共享决定及文件所有权见报告design第22轮：C唯一管理原records／字节、M只固定OS动作。先保留三份源提交祖先，提交验收／决定，七树clean快进到同一dev并验证，之后才发送新Prompt；活动期间不再换基线。继续Codex／gpt-6.1-sol／high，预存终端低层dispatch不宣称拥有其进程生命周期。
+
+| 树 | 下一片 | 独占写集／停止点 |
+| --- | --- | --- |
+| project-execution | 提供者4.1完整根库存 | 原records＋相邻测试；保留未知／孤儿现场，拒绝初始化，不做自动修复／全局准入或跨身份重构 |
+| zotero-ecosystem | 固定native系统校准包的离线准备 | 新report-system-calibration夹具；构建合成输入／配置／可审查权限及清理计划，不执行安装／PID1／root／账户／策略 |
+| literature-workbench | C-writer私有IO／提交ACK设计 | 只写cache最小接口、bootstrap、串行归属及验证计划；不发公共wire、不改生产或另造记录 |
+| research-graph-runtime | 旧版草稿与原来源授权接缝 | 只写cache调用链／确证缺口／最小写集；新版清单不能替旧版授权，不重复旧矩阵 |
+| research-interaction | WorkerDOM决定性原型准备 | 固定源码引入须单独授权；授权前只读已缓存材料形成探针计划，未批准生产镜像／放宽完整产品范围 |
+| research-task-workspace | 等待正式报告ready | 原33/33保持，不新造生产Graph或重复接续 |
+| agent-delegation | 等待目标平台／新模型授权 | 不真实模型、不重放pending、不重复旧诊断 |
+
+所有新输入／TMPDIR／结果使用持久cache，不依赖/tmp。系统部署与T1/T2、目标平台、模型和CI没有新增授权，不归档未完成change。对需授权的源码原型先做具体审批输入，其他无依赖片继续并行；不以终端存活、prompt accepted或fixture成功替代交付验收。
+
 ## 首轮 Agent 的共同起始任务
 
 各线采用下述共同要求，并附上本文件中该开发线的小节：
