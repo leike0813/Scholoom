@@ -1,0 +1,9 @@
+{
+  "extends": "../../../apps/desktop/tsconfig.json",
+  "compilerOptions": {
+    "types": ["node"],
+    "typeRoots": ["../../../node_modules/@types"]
+  },
+  "files": ["../../../node_modules/vite/client.d.ts"],
+  "include": ["entry.tsx", "sample.ts", "../../../apps/desktop/src/renderer/src/**/*.d.ts"]
+}

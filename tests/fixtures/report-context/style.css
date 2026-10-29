@@ -1,0 +1,41 @@
+.fixture-root {
+  max-width: calc(var(--space-unit) * 260);
+  margin-inline: auto;
+  font: var(--font-size-document) / 1.5 var(--font-ui);
+}
+.fixture-section {
+  padding: calc(var(--space-unit) * 3);
+  border-bottom: 1px solid var(--border);
+}
+.fixture-root h1,
+.fixture-root h2 {
+  font: inherit;
+  font-weight: bold;
+}
+.fixture-root :is(input:not([type="checkbox"]), select, textarea) {
+  color: var(--text-primary);
+  background: var(--bg);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  font: inherit;
+}
+.fixture-root table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-block: calc(var(--space-unit) * 2);
+}
+.fixture-root :is(th, td) {
+  text-align: start;
+  padding: var(--space-unit) calc(var(--space-unit) * 2);
+  border-bottom: 1px solid var(--border);
+}
+.fixture-comment {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-unit);
+  margin-block: calc(var(--space-unit) * 2);
+}
+.fixture-comment textarea {
+  min-height: calc(var(--space-unit) * 15);
+  resize: vertical;
+}
