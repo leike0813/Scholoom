@@ -29,6 +29,8 @@ flowchart TD
 - [ ] 2.1b 正式承载仍未完成：独立[platform提供者](../add-linux-isolated-report-provider/delivery.md)9/9已由主线真实Linux固定静态native组接收，网络／syscall／迟到能力、unknown／容量／恢复已有其限定策略证据。该提供者仅内部六操作，未接产品宿主或完整浏览器；真实冻结字节消费者、浏览器完整进程图及呈现／分发仍需实施与实际验证，不能把native样本或临时launcher当活动报告。2.2／3.x及完整I5继续开放。
 
   本片已形成[独立身份服务候选](../../../.scratch/scholoom-foundations/research/report-independent-identity-service.md)；主线选择的账户信任、准备接缝及本轮呈现校准范围见design“第17轮主线接收与下一片”。服务部署／安装及完整呈现尚未通过，不再试同UID固定launcher。T2依赖T1且须证明完整浏览器、双宿主文本／输入／可访问性及实际停止。
+
+  R2本片已有`tests/fixtures/report-surface/`可运行可信调查夹具，实际双宿主2/2观测通过；纯文本投影将原MathML分数1/2变成12并丢失数学辅助结构，故完整呈现未达判据，2.1b不勾。系统IME／读屏器及正式架构仍待主线；详见investigation首节／delivery。本行仅记录R2，不改变2.1d／2.2c进度。
 - [x] 2.1c 独立准备接缝：在现有provider内部沿同一真实ProcessAdmission租约，ready后才调用可信freeze准备回调，复用原记录／分片及失败收尾，不新增wire操作、第二次reserve或假assets。同实例重复准备合并，取消／撤权／失败及迟到结果不得启动或提前释放在途准备；创建OS范围前先持久原intent。实际ReportResources消费者与可替换OS端口独立验证，服务／浏览器仍不启用。
 - [ ] 2.1d 真实Linux准备接线：默认OS提供者与实际ReportResources.freeze经prepare完成真实字节／准入／启动／停止，覆盖满槽后延迟读取及冻结期间取消。复用已登记固定静态native探针及原policy，在自有scope验证持久intent、实际字节、完整停止及容量；不复制原17项原生矩阵，不启用服务／浏览器或改公共wire，前置不满足准确交回。
 - [ ] 2.2 实际文献对比页面支持筛选／排序／展开，已加载对象通过原子appendContextItems进入同一composer，用户检查正文后沿原session.send；核对objectIds、报告basis、明确来源、comment与接收者不变。超限整批拒绝保留草稿。1.2与2.1可分离实现，本线主Agent整合共同贡献及共享资源符号，禁止并行写同一文件。
@@ -48,6 +50,6 @@ flowchart TD
 
 ## 续做入口
 
-当前11/18。下一轮并行实施2.1d真实Linux准备接线与上轮因429中断而无成果的R2固定可信呈现校准；2.2c不重复派发。主线选择及写集见design“第18轮”。系统安装、完整服务／浏览器、R2正式呈现与T1/T2仍未通过，完整2.1b／2.2／3.x／I5保持开放。
+当前11/18。R2固定可信校准本片已交观测与数学语义丢失反例，先交主线选择下一呈现架构；不重复本次基础绿例或2.2c。2.1d仍由计算树／主线维护，本树不代写结论。主线选择及写集见design“第18轮”。系统安装、完整服务／浏览器、R2正式呈现与T1/T2仍未通过，完整2.1b／2.2／3.x／I5保持开放。
 
 下一步由主线按design候选节决定受保护身份／认证、系统部署与共同呈现方案，再明确T1许可；通过后才接完整浏览器与T2。当前不改生产或启用报告，后续不从旧缓存整体应用实现。固定native绿色、只读资料或CLI状态均不代替浏览器通过；macOS及其他目标证据不足保持unavailable。

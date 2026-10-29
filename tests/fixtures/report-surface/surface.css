@@ -1,0 +1,25 @@
+.surface-probe {
+  overflow: auto;
+  padding: calc(var(--space-unit) * 3);
+  font: var(--font-size-document) / 1.5 var(--font-ui);
+}
+.surface-probe h1 {
+  font: inherit;
+  font-weight: bold;
+}
+.surface-probe table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.surface-probe :is(td, th) {
+  padding: calc(var(--space-unit) * 2);
+  border-bottom: 1px solid var(--border);
+  text-align: start;
+}
+.surface-probe :is(input, select) {
+  font: inherit;
+  color: var(--text-primary);
+  background: var(--bg);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+}

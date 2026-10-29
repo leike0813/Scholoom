@@ -1,5 +1,15 @@
 # 调查依据
 
+## R2有限可信语义投影的双宿主校准（第18轮，e4c4e422）
+
+本轮已实际执行，取代第17／18轮派发时尚无成果的状态。源码在`tests/fixtures/report-surface/`，可重建／手动入口见其README；证据根为`/home/joshua/.cache/scholoom-round18-acceptance-tkEm2H/next/research-interaction/`。现有Workbench的`session.renderResource`及TabGroups足以挂载夹具，无需修改生产renderer／CSP；普通HTML的DocumentReader和无脚本HtmlRenderView不提供独立报告执行或呈现传输。Electron main／preload也没有现成通用findInPage接线，不能假定宿主Ctrl+F可用。
+
+执行侧为测试拥有的独立Chromium进程及固定源码，实际处理3条合成文献；可信控制器对真实源页表单／details操作，从当前DOM读取有界字段交工作台React投影。工作台没有第二份筛选／排序结果或执行源页脚本。实际Browser与Electron各一条组合观察用例通过（最终2/2），核对“随机”筛选、降序赵在林前、键盘展开后的源页／呈现状态完全一致；正文双击选区“比较”经Control+C后实际剪贴板读回相同，可见正文查找“剂量20与30”形成同文选区，Tab往返及展开后的焦点保持。CDP组合“队列”期间源页filter仍空，提交后真实源页及投影均只剩队列研究。
+
+**候选未满足完整语义：** 源页原生MathML的`mfrac(1,2)`视觉为分数1/2，源辅助树含`MathMLMath／MathMLFraction／MathMLNumber`；本投影的textContent字段实际显示`12`，对应辅助角色全部缺失。两宿主都保留该反例的实际DOM文本、辅助树及截图。此结果否定本次纯文本字段投影对完整报告的充分性，不证明所有有限语义方案都不可能，也不授权扩成通用DOM镜像／DSL。仅位图同样不能补齐可选文本和辅助结构；正式呈现架构仍交主线选择。
+
+真实系统IME候选窗／取消、读屏器、宿主Ctrl+F、源页自主计时变化、跨tab恢复和高频／迟到输入未验；CDP事件与AX树只证明所测浏览器接缝。未运行恶意页、OS服务／独立身份／完整浏览器政策、Windows／macOS或真实科研。HTTP控制器与资源／会话身份是明确替身，不是安全通道、领域授权或容量权威，不能用于活动报告。下一步需先决定如何从执行侧保留数学／结构语义、文本范围映射、输入焦点与辅助树，并完成系统IME／读屏目标验证；ReportResources.freeze及唯一provider／准入仍沿原权威。2.1b／T1／T2／I5保持开放。
+
 ## 独立身份服务候选的规划核查（2026-10-29，8d8f339）
 
 本轮从指定共同HEAD、起始clean开展仅文档调查；不重放已整合实现，不运行被否定launcher、服务、namespace或浏览器。具体候选、官方事实／假设矩阵、未来文件／Interface、安装面及最小T1/T2集中于[独立身份服务研究](../../../.scratch/scholoom-foundations/research/report-independent-identity-service.md)。该文引用下方两份既有精确研究，不以新的入口mode、dumpable或sysctl重试旧方案。
