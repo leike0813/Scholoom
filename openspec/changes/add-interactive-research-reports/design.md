@@ -40,6 +40,10 @@ ReportResources 是 `packages/editor` 内的 module，不新建包／数据库�
 
 服务停止路线新增[InvocationID寻址依据](../../../.scratch/scholoom-foundations/research/report-invocation-stop.md)：保留M只读cgroup视图，优先校准返回的invocation对象路径；普通按名StopUnit不具同等保护。当前仅官方源码核对及本机XML接口公布证明，异步job到完整停止、原cgroup对象／权限／故障收尾仍待真实T1，不改变安装授权。
 
+下一辅助片仅补项目文件权威的准确版本读取，仍归原3.2：`ProjectStore.versionForEvidence(fileId,basis)`返回原FileEdit的私有投影`{editId,side,path,content,evidence}`或undefined。只按同一fileId和精确原basis取已保留版本；优先复用既有after定位，未保留after记录时可取具有同一准确原依据的before侧，不改变`editForEvidence`原有after语义。返回前核project/fileId/basis与所选Evidence一致；记录损坏或内容／依据无法证明时不给版本，不按最新path／正文／邻近时间猜测。保留原项目read检查，SQL结果有界，不改schema、文件或历史，不存第二份版本索引。
+
+项目树独占`packages/projects/src/store.ts`及新`tests/kernel/project-file-versions.spec.ts`：实际文件／仓储验证after、仅before保留、重命名后原path和错fileId/basis不串版，必要权限／坏依据代表；不造报告特例／新RPC／UI。旧方法调用及既有历史行为保持。主线随后决定kernel的有界读取操作及真实接线，此片不把项目私有DB暴露给editor或renderer，也不放宽files.edit整条两侧报告的联合授权。
+
 ### 第22轮接收与下一片
 
 主线接收固定gate离线5/5、真实KernelClient／领域／Workbench汇合双宿主4/4，以及R2d和私有IO静态调查。没有生产承载变化，任务仍20/26；汇合页为可信固定React组件，不执行报告HTML／脚本，不关闭完整3.1／3.2／I5。

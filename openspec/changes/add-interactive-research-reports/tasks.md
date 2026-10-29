@@ -1,6 +1,6 @@
 # 执行任务
 
-2026-10-30第23轮增加3.2d原版本恢复资格Module，当前20/27；先实现原版权限／字节可得性分离，生产FileEdit定位、kernel／client及页面恢复仍沿完整3.2，不据模块完成关闭整项。范围见design第23轮。
+2026-10-30第23轮3.2d原版本恢复资格Module已由主线39/39与独审接收，当前21/27；生产FileEdit定位、kernel／client及页面恢复仍沿完整3.2，不据模块完成关闭整项。范围见design第23轮。
 
 2026-10-30第22轮接收固定gate离线5/5、真实客户端／领域／Workbench双宿主4/4及R2d／IO静态调查；未新增已完成任务，仍20/26。下一片C-writer、原records库存修复、离线系统校准包与旧版来源核查见design第22轮；正式承载、完整2.2／3.x／I5仍开放。
 
@@ -60,7 +60,7 @@ flowchart TD
 - [x] 3.2a 有界报告状态保管：复用原drafts及既有桥JSON／64KiB限制，按可信配置／窗口／项目入口身份／basis读写原browse／draft／dirty；只读取准确key，损坏／超限／错版本可辨，不迁草稿到新版、不另建存储。独立测试真实适配，内存降级不说磁盘可靠保存。
 - [x] 3.2b 真实registered图报告接续片：固定测试Graph沿真实保存／等待／checkpoint与重启，重连及读取报告不消费等待，合法新session.send才继续；新会话能从实际报告及明确来源读回接续。只验机械链路，无生产业务Graph／真实模型或科研质量，不以单内核例关闭双宿主。
 - [x] 3.2c 可信模块汇合夹具：同一固定文献对比页真实消费updates／report-drafts／report-context及共同session草稿／检查器，核新版保护／显式切换、关闭重开状态、旧动作失效及完整restore封套64KiB拒绝保留草稿。第21轮主线双宿主4/4接收；client／来源授权仍是明确替身，后续真实接线沿原3.2继续，不启用任意报告脚本、不关闭产品3.2／I5。
-- [ ] 3.2d 原版本恢复资格Module：原ReportResources增加reviewHistorical，可信原FileEdit描述／正文确定完整原集合，独立核当前read／相应access与稳定ref，再复用严格historical；仅在前后资格均获肯定时区分完整available和字节unavailable，未知／撤权／坏清单及无关错误不批准copyOnly。复用原模块测试验证R1-only来源、项目basis前进、尝试中撤权和失败分类；不新增公共RPC／历史缓存、渲染接线或假完整快照。主线另行接真实文件权威与内核，完整3.2／I5保持开放。
+- [x] 3.2d 原版本恢复资格Module：原ReportResources增加reviewHistorical，可信原FileEdit描述／正文确定完整原集合，独立核当前read／相应access与稳定ref，再复用严格historical；仅在前后资格均获肯定时区分完整available和字节unavailable，未知／撤权／坏清单及无关错误不批准copyOnly。主线42460c2模块36例＋真实Manual/历史3例共39/39，独审无确证P1/P2；不新增公共RPC／历史缓存、渲染接线或假完整快照。主线另行接真实文件权威与内核，完整3.2／I5保持开放。
 
 ## 4. 整合与交付
 

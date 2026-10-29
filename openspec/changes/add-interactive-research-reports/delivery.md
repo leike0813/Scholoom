@@ -2,6 +2,8 @@
 
 ## 第23轮接续验收与原版恢复下一片（2026-10-30）
 
+原版资格Module原提交6c64d9a→主线42460c2已接收，祖先关系随后以零内容差异merge保全。主线先构建editor，在固定产物运行原模块36例及真实Manual报告操作／两类FileEdit历史3例，**39/39，17.8s**，无跳过；准确日志历史中36条为report-resources、3条为report-production，未运行其余模型／目标／委派矩阵。tools类型、两文件Biome及架构通过，定向独审无确证P1/P2并已关闭。证据在第23轮根historical-checks.json、historical-module-and-production.log、historical-review.md及historical-results/。当前3.2d完成、21/27；6c64d9a源码本身不含公共RPC、FileEdit定位或UI恢复。
+
 当前五条原派发均已结清、保留原终端并处理回执。生态离线校准包原提交2969f56→主线b77fad8，五个fixture文件已接收，零内容差异祖先桥2deff09保全；主线普通UID构建、自检**3/3**、两份unit纯离线verify、MJS格式和静态ELF检查通过，三个自有child均close。证据在第23轮根calibration-checks.json、calibration-selftest.log及system-calibration/offline-results.json。命名OpenFile的真实PID1分配、DynamicUser、实际C/M/LSM/原records/唯一准入尚未接线；当前普通数字FD和不存在scope的ENOENT对照不能代替T1。ADMIN-PLAN明确真实C身份与持久ACK等前置未齐，不能直接申请完整系统执行。
 
 第22轮派发的计算旧版授权核查、阅读WorkerDOM探针计划、文献C-writer IO设计均已只读交回并保留原终端；没有工作区源码增量。事实和局限分别见第22轮证据根next/<tree>/RESULT.md：真实旧版fresh approval缺口、非SERVER源码／输入取消的适配成本、C唯一writer与持久ACK先于许可／释放。主线未取得依赖引入许可，WorkerDOM仍未下载／安装／执行；计划不是候选运行结果。
@@ -13,6 +15,8 @@
 下一片3.2d的行为／写集已在design第23轮和新增spec场景确定，只实现ReportResources原版资格Module，主线另接真实文件版本定位及kernel／client；报告当前20/27，完整3.2／I5和正式活动报告仍未交付。新Module由计算线在先同步核验后接新Dispatch，其他活动树不换基线。
 
 计算树已先clean快进f4076d7，重建实际变化platform并核tools类型后，派Task task_29a18ed5274f／Dispatch ctx_1ec5c2354d54，已观察live／working。Prompt及同步／启动证据在第23轮根dispatch。该活动树保持f4076d7，其后主线只接收无关离线fixture／记录，不再同步它；其他终端等待真实前置，新源码引入授权仍待用户，未据时间默认批准。
+
+该计算Dispatch现已succeeded并retained，回执已处理；原五条及本后续片均结清。下一片是design第23轮的ProjectStore精确版本投影，先同步再交项目树，主线继续统筹真实内核操作；不将原39例称为真实旧版草稿重开已通过。
 
 ## 第22轮主线验收（2026-10-30）
 
