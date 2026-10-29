@@ -631,6 +631,8 @@ Codex／gpt-6.1-sol／high保持。所有树先停止并保全原提交祖先，
 
 所有新输入／TMPDIR／结果使用持久cache，不依赖/tmp。系统部署与T1/T2、目标平台、模型和CI没有新增授权，不归档未完成change。对需授权的源码原型先做具体审批输入，其他无依赖片继续并行；不以终端存活、prompt accepted或fixture成功替代交付验收。
 
+第22轮同步回执：验收／决定af00b7c，三份源提交经零内容差异祖先桥c32d72b保全。七树clean快进、源码树对象一致；每树tools类型与架构共14条检查全部退出0。各树81份实际desktop运行产物与主线一致，生产源码无变化，复用产物、不重建七次或重复代表绿测。前后HEAD与命令见本轮synchronized.json／runtime-verification.json／sync-checks.json／sync-final.json。此纯文档回执提交后再快进，最终HEAD及Prompt／受理／启动事实保存dispatch目录；之后不改变活动基线。
+
 ## 首轮 Agent 的共同起始任务
 
 各线采用下述共同要求，并附上本文件中该开发线的小节：
