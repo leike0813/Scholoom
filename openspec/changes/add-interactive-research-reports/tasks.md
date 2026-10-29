@@ -1,6 +1,6 @@
 # 执行任务
 
-2026-10-30第26轮原版关闭重开由主线真实双宿主4/4及独审接收，含localStorage／文档reload、原来源撤权及有界copyOnly／迟到保护；仍为可信React汇合，不关闭正式承载、完整3.2／I5。当前21/27，下一片原资产IO Module沿2.1b按design第26轮推进。
+2026-10-30第27轮原资产IO Module及部分封存P2已由主线接收，运行中撤权／整组停止代表另归提供者4.2验收；准确范围见delivery当前节。第26轮原版关闭重开仍为可信React汇合，不关闭正式承载、完整3.2／I5。当前21/27，C/M服务、认证及T1/T2仍未完成。
 
 2026-10-30第25轮原版草稿client适配由主线4/4及独审接收，仍沿3.2、21/27。下一片真实localStorage／Workbench双宿主按design第25轮实施；C记录显式初始化并行进行，均不冒称活动承载或完整I5完成。
 
@@ -40,7 +40,7 @@ flowchart TD
 ## 2. 页面内浏览与共同动作
 
 - [x] 2.1a 调查原型已交付：tests/fixtures/report-frame专用候选模块及真实Browser／Electron静态夹具，消费实际ReportResources快照与有版本的资源字节，复用Bridge schema；合法脚本及清单资源、HTTP／UDP探针、CSP／父frame-src／导航／资源通道、宿主访问及有界桥生命周期已有代表性证据。两宿主实际STUN外发、Browser忙循环阻塞反例见delivery；只关闭调查，不算生产已隔离，生产保持unavailable。
-- [ ] 2.1b 正式承载仍未完成：独立[platform提供者](../add-linux-isolated-report-provider/delivery.md)10/10已由主线真实Linux固定静态native组及完整库存修复接收，网络／syscall／迟到能力、unknown／容量／恢复已有其限定策略证据。该提供者仅内部六操作，未接产品宿主或完整浏览器；真实冻结字节消费者、浏览器完整进程图及呈现／分发仍需实施与实际验证，不能把native样本或临时launcher当活动报告。2.2／3.x及完整I5继续开放。
+- [ ] 2.1b 正式承载仍未完成：独立[platform提供者](../add-linux-isolated-report-provider/delivery.md)11/11已由主线真实Linux固定静态native组、完整库存修复及运行撤权代表接收，网络／syscall／迟到能力、unknown／容量／恢复已有其限定策略证据。该提供者仅内部六操作，未接产品宿主或完整浏览器；真实冻结字节消费者已有2.1d限定接线，浏览器完整进程图及呈现／分发仍需实施与实际验证，不能把native样本或临时launcher当活动报告。2.2／3.x及完整I5继续开放。
 
   本片已形成[独立身份服务候选](../../../.scratch/scholoom-foundations/research/report-independent-identity-service.md)；主线选择的账户信任、准备接缝及本轮呈现校准范围见design“第17轮主线接收与下一片”。服务部署／安装及完整呈现尚未通过，不再试同UID固定launcher。T2依赖T1且须证明完整浏览器、双宿主文本／输入／可访问性及实际停止。
 
@@ -79,6 +79,6 @@ flowchart TD
 
 ## 续做入口
 
-当前21/27。准确版本的真实内核／客户端、可信工作台原版恢复、C记录显式初始化及Agent／目标项目范围均按各自子范围接收；下一片原资产IO Module见design第26轮。系统安装、服务运行、完整浏览器与T1/T2尚未通过，其他平台及完整3.x／I5保持开放。
+当前21/27。准确版本的真实内核／客户端、可信工作台原版恢复、C记录显式初始化、资产IO及Agent／目标项目范围均按各自子范围接收；资产IO设计见design第26轮，实际接收见delivery第27轮。系统安装、服务运行、完整浏览器与T1/T2尚未通过，其他平台及完整3.x／I5保持开放。
 
 下一步由主线按design候选节决定受保护身份／认证、系统部署与共同呈现方案，再明确T1许可；通过后才接完整浏览器与T2。当前不改生产或启用报告，后续不从旧缓存整体应用实现。固定native绿色、只读资料或CLI状态均不代替浏览器通过；macOS及其他目标证据不足保持unavailable。

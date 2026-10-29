@@ -677,6 +677,16 @@ Codex／gpt-6.1-sol／high保持。所有树先停止并保全原提交祖先，
 
 本轮仍Codex／gpt-6.1-sol／high；新输入/TMPDIR使用持久cache。WorkerDOM原源码许可尚待答复，C/M系统装配／有限生命周期提交、目标平台和CI／真实模型无新增授权，不通过重复旧绿色矩阵填充七树。
 
+## 第27轮：首批契约收口与下一条业务路径
+
+本轮七树成果已合入dev，来源祖先保全，实际验收沿各change的delivery记录；新增资产部分封存与自动采用竞争P2均已修复、主线复验及独立复核关闭。七个有界change的40项delta要求已同步正式规格，不据此归档仍缺完整承载／目标环境／科研质量的其他change。证据根`/home/joshua/.cache/scholoom-round27-acceptance-O1IWSr`。
+
+下一阶段先核对真实科研业务Graph的已批准范围和可复用入口，由主线选择首条路径并统一跨模块契约，再分拆并行实施。research-graph-runtime先clean快进012ef08、重建实际变化platform并核验后，派只读Task`task_dc0c1aebcf5d`／Dispatch`ctx_280876ebbe67`；只交至多两个来源明确的候选及缺口，不自行选产品范围、创建change或实现生产Graph。该树活动期间不换基线。
+
+其他六树已结清retained、clean快进验收提交d78cda4，实际源码同步回执见`settled-six-source-sync.json`。这只是源码同步，不宣称各树旧构建产物已更新；下一次具体实施或测试前先核受影响产物，必要时构建，再派发。当前不为占满工作树重复绿色矩阵；科研任务／Agent线等主线确定业务切片，项目／生态线等C/M实际接线或目标环境任务，阅读线保留原WorkerDOM源码引入待授权状态，文献线等明确独立业务或Windows验收前置。
+
+所有后续仍使用Codex／gpt-6.1-sol／high；依赖引入、系统账户／策略／服务安装、真实模型和CI没有新增授权。C/M服务及T1/T2、完整活动报告和I5仍按原报告change推进；静态排版批注完成不代表这些路径完成。新输入、TMPDIR及成果不依赖/tmp。
+
 ## 首轮 Agent 的共同起始任务
 
 各线采用下述共同要求，并附上本文件中该开发线的小节：
