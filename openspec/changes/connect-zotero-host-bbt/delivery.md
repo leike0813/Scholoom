@@ -1,5 +1,36 @@
 # 实际交付与交接
 
+## 第18轮W2.1a：P2源码整改交回（e4c4e4，2026-10-29）
+
+用户要求读取`/tmp/scholoom-zotero-w2-1a-handoff.md`并继续未完工作，沿原已授权方案完成本线验证与交回。起点HEAD为`e4c4e422a52302d8b2dc336ab9bf933a185f6dda`，接手时已有6个tracked文件未提交改动；保留这些成果，续做只修正TS条件的格式并更新本任务及交付记录。当前共7个tracked文件差异，无新增工作区文件；未stage／提交／push／归档。W2.1a只表示本线源码交接完成，W2.1仍由主线审收，W2父项／W2.2／W3／W4及2.3／4.2／5.x保持开放。
+
+### 整改与契约对应
+
+独审P2根因为树扫描对所有普通文件要求FILE_EXECUTE，导致合法FR数据被误拒。按design顶部第18轮决定及原变更图，本片在TS增加必填单个`executableRelativePath`，首次await前按值捕获目录、资源、入口及上限；native普通成员只核read，复用已核成员查找，要求声明入口为完整树内同一个普通文件，再在其持有句柄上核execute及原安全描述符一致性。read／verify始终消费原绑定和见证，设置单文件仍只核read。原ACL、身份、完整成员、双扫描、进程上限与close边界保留。
+
+测试沿原fixture增加无扩展名合成入口、FR数据正例／FR入口负例、缺失／目录／越界／无效输入及await前后修改绑定代表例；全部调用已同步。delta与design同步数据／入口分离和绑定契约。没有产品消费者接入，不改node导出、architecture、privateDirectory、host-settings／resolver、command／lifecycle／endpoint或CI，不启用Windows布局。
+
+### 实际验证、首次失败与证据
+
+证据根为`/home/joshua/.cache/scholoom-round18-acceptance-tkEm2H/next/zotero-ecosystem/`，续做原始日志及固定输入记录在`w21a-resume/`，TMPDIR为证据根的`tmp/`。Linux x64、Node v24.12.0；先构建，后固定产物测试，记录的源码／产物SHA-256在测试前后一致。完整命令、时间、exit、文件清单及独立增量见该根`commands.txt`、`manifest.json`、`RESULT.md`与`increment.patch`。
+
+| 实际命令／日志（相对证据根） | 结果与限制 |
+| --- | --- |
+| `node packages/platform/build-process-scope.mjs`；`w21a-resume/build-native.log` | exit 0；本机Linux分支编译既有原生能力，不编译`private-resource-tree.c`，不能作为Windows C编译证据 |
+| `node node_modules/typescript/bin/tsc -p packages/platform/tsconfig.json`；`w21a-resume/build-platform.log`及`build-platform-final.log` | 两次均exit 0；第二次在格式修正后重建，之后不再改源码或构建 |
+| `node node_modules/typescript/bin/tsc --noEmit -p tsconfig.tools.json`；`w21a-resume/typecheck-tools.log` | exit 0；覆盖同源签名与现有测试调用，非Windows C检查 |
+| `node node_modules/@biomejs/biome/bin/biome check packages/platform/src/private-resource-tree.ts tests/kernel/private-resource-tree.spec.ts`；`w21a-resume/biome.log`→`biome-final.log` | 首次exit 1，仅maxEntries条件换行；用apply_patch修正后exit 0。原失败保留，不写成业务红绿 |
+| `node node_modules/@playwright/test/cli.js test --config playwright.kernel.config.ts --workers=1 --output <证据根>/w21a-resume/kernel-results tests/kernel/private-resource-tree.spec.ts tests/kernel/zotero-resources.spec.ts`；`w21a-resume/resource-tests.log` | exit 0，27 passed／28 skipped，Playwright报告3.7秒。私有组2通过（非目标明确拒绝、必填／非法入口输入）、28项Windows目标跳过；原Linux资源保护25通过。合成资源未执行，未运行原包／GUI或真实用户库 |
+| `openspec validate connect-zotero-host-bbt --strict`；`openspec schema validate scholoom-dev`；`node scripts/check-architecture.ts`；`git diff --check`；根下`w21a-static-*.log` | 均exit 0；架构14模块／268文件／0 findings。公共登记已由主线完成，不重复交登记补丁；交付记录落稿后另核最终工件和差异，见`w21a-resume/final-*.log` |
+
+接手前gpt-6.1-sol/high无历史fork的独立静态复核未发现本P2范围内确证缺陷，覆盖TS/native argv、同句柄入口检查、设置read、原绑定／见证及释放；本次读取并关闭其完成回执，未冒称重新编译或目标复核。续做另用gpt-6.1-sol/high无历史fork辅助执行上述四项静态命令并核原始日志，已关闭。交接另记前段主会话发生模型切换；这是交接陈述，本次无法回溯核验或切换父会话模型，辅助模型按显式参数记录，不把它作为源码或目标验证结论。
+
+### 下一接缝与未验范围
+
+主线先审收本片独立patch并决定W2.1接收；在已有Visual C++／SDK的真实Windows x64及自有本地NTFS上运行原构建与`private-resource-tree.spec.ts`，逐项记录实际通过／失败／skip后才判断W2.2／W2。前轮clang-cl探针止于缺`windows.h`，本次未重跑已知缺前置的探针、未安装工具或触发CI，Windows C仍未编译／链接／执行。FR权限正负例及入口绑定变化仅有目标测试定义，不以Linux结果证明P2目标行为通过。
+
+扫描期间替换仍缺可观察阶段屏障；同步排队立即close的测试不证明native已经在途时的收尾。8MiB为每份序列化见证上限，双Scan／双见证及其余分配并存，总RSS和5秒预算尚未在Windows校准。方案A保留核验结束到loader间同权限可信操作者的残余替换窗口，不引入持续lease。W3设置／resolver与普通Windows布局、W4原包冷启动／重启、公共endpoint停机问题均沿原归属后续处理；本片不据源码整改关闭这些任务。
+
 ## 第18轮主线验收：W2代码待整改／目标验证
 
 冻结提交1678e3d已保全并合入dev，主线补node.ts两方法／类型导出及architecture.json单叶child_process登记。主线build:shared、tools／desktop类型、架构通过；私有组在Linux非目标拒绝1通过／23跳过，均不算Windows验证。审查报告保留于 `/home/joshua/.cache/scholoom-round18-acceptance-tkEm2H/windows-review.md`，其架构失败针对原冻结树，主线补登记后的通过针对整合源码，不混为同一状态。

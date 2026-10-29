@@ -13,6 +13,7 @@ import { OperationError } from '../../packages/protocol/dist/core.js';
 const execute = promisify(execFile);
 const supported = process.platform === 'win32' && process.arch === 'x64';
 const resourceRelativePath = 'native-resources/runtime';
+const executableRelativePath = 'fixed-launch-entry';
 const member = 'host/插件/版本.txt';
 const contents = Buffer.from('科研资源 🙂\n', 'utf8');
 type Tree = {
@@ -53,6 +54,10 @@ const getAcl = [
 const setAcl =
   'if ($directory) { [System.IO.Directory]::SetAccessControl($path, $acl) } else { [System.IO.File]::SetAccessControl($path, $acl) }';
 const everyone = '$everyone = [System.Security.Principal.SecurityIdentifier]::new("S-1-1-0")';
+const readOnlyAcl = [
+  '$sid = [System.Security.Principal.WindowsIdentity]::GetCurrent().User',
+  '$acl.SetSecurityDescriptorSddlForm("D:P(A;;FR;;;" + $sid.Value + ")", [System.Security.AccessControl.AccessControlSections]::Access)',
+].join('\n');
 
 function allowEveryone(right: string): string {
   return [
@@ -125,6 +130,7 @@ function inspect(tree: Tree, maxEntries = 64): Promise<Snapshot> {
   return inspectPrivateResourceTree({
     configurationDirectory: tree.configurationDirectory,
     resourceRelativePath,
+    executableRelativePath,
     maxEntries,
   });
 }
@@ -159,6 +165,8 @@ const test = base.extend<{ tree: Tree }>({
     await mkdir(join(resourceDirectory, 'host/插件'), { recursive: true });
     await writeFile(join(resourceDirectory, member), contents);
     await writeFile(join(resourceDirectory, 'empty.txt'), '');
+    // Synthetic metadata-only entry: never executed and deliberately has no extension.
+    await writeFile(join(resourceDirectory, executableRelativePath), contents);
     await use({ ownedDirectory, configurationDirectory, resourceDirectory });
   },
 });
@@ -167,7 +175,12 @@ base('private resource APIs report unavailable on unsupported native targets', a
   base.skip(supported, 'Unsupported-target contract only');
   const configurationDirectory = base.info().outputPath('not-created');
   await expectCode(
-    inspectPrivateResourceTree({ configurationDirectory, resourceRelativePath, maxEntries: 64 }),
+    inspectPrivateResourceTree({
+      configurationDirectory,
+      resourceRelativePath,
+      executableRelativePath,
+      maxEntries: 64,
+    }),
     'unavailable',
   );
   await expectCode(
@@ -179,6 +192,42 @@ base('private resource APIs report unavailable on unsupported native targets', a
     'unavailable',
   );
   await expect(lstat(configurationDirectory)).rejects.toMatchObject({ code: 'ENOENT' });
+});
+
+base('private resource tree rejects missing and invalid executable paths', async () => {
+  const input = {
+    configurationDirectory: base.info().outputPath('not-created'),
+    resourceRelativePath,
+    maxEntries: 64,
+  };
+  await expectCode(
+    // @ts-expect-error Exercise an untyped caller omitting the required executable binding.
+    inspectPrivateResourceTree(input),
+    'invalidRequest',
+  );
+  for (const path of [undefined, null, 42, [executableRelativePath]]) {
+    await expectCode(
+      // @ts-expect-error Exercise untyped callers supplying a value other than a single string.
+      inspectPrivateResourceTree({ ...input, executableRelativePath: path }),
+      'invalidRequest',
+    );
+  }
+  for (const path of [
+    '',
+    '.',
+    '../outside-entry',
+    'host/../fixed-launch-entry',
+    'host\\..\\fixed-launch-entry',
+    '/absolute-entry',
+    'C:\\absolute-entry',
+    'file\0name',
+  ]) {
+    await expectCode(
+      inspectPrivateResourceTree({ ...input, executableRelativePath: path }),
+      'invalidRequest',
+    );
+  }
+  await expect(lstat(input.configurationDirectory)).rejects.toMatchObject({ code: 'ENOENT' });
 });
 
 test('Windows private resource tree reads Unicode and empty members with exact byte bounds', async ({
@@ -227,6 +276,7 @@ test('Windows private resource tree rejects malformed paths and limits', async (
       inspectPrivateResourceTree({
         configurationDirectory: tree.configurationDirectory,
         resourceRelativePath: path,
+        executableRelativePath,
         maxEntries: 64,
       }),
       'invalidRequest',
@@ -260,6 +310,27 @@ test('Windows private resource tree rejects malformed paths and limits', async (
     await snapshot.verifyUnchanged();
   } finally {
     await snapshot.close();
+  }
+});
+
+test('Windows private resource tree requires an executable member inside the scanned tree', async ({
+  tree,
+}) => {
+  await writeFile(join(tree.configurationDirectory, 'outside-entry'), 'outside resource tree');
+  for (const [path, code] of [
+    ['missing-entry', 'unavailable'],
+    ['host/插件', 'unavailable'],
+    ['../outside-entry', 'invalidRequest'],
+  ] as const) {
+    await expectCode(
+      inspectPrivateResourceTree({
+        configurationDirectory: tree.configurationDirectory,
+        resourceRelativePath,
+        executableRelativePath: path,
+        maxEntries: 64,
+      }),
+      code,
+    );
   }
 });
 
@@ -303,6 +374,72 @@ test('Windows private resource tree refuses an Everyone-writable descendant with
     expect(await aclState(tree.resourceDirectory)).toEqual(rootBefore);
   });
 });
+
+for (const path of [member, executableRelativePath]) {
+  test(`Windows private resource readers require execute only for the declared entry: ${path}`, async ({
+    tree,
+  }) => {
+    const file = join(tree.resourceDirectory, path);
+    await withAcl(file, readOnlyAcl, async (before) => {
+      const changed = await aclState(file);
+      expect(changed.owner).toBe(before.owner);
+      expect(
+        Buffer.from(
+          await readPrivateResourceFile({
+            configurationDirectory: tree.configurationDirectory,
+            relativePath: `${resourceRelativePath}/${path}`,
+            maxBytes: contents.length,
+          }),
+        ),
+      ).toEqual(contents);
+      if (path === executableRelativePath) {
+        await expectCode(inspect(tree), 'unavailable');
+      } else {
+        const snapshot = await inspect(tree);
+        try {
+          expect(Buffer.from(await snapshot.readFile(member, contents.length))).toEqual(contents);
+          await snapshot.verifyUnchanged();
+        } finally {
+          await snapshot.close();
+        }
+      }
+      expect(await aclState(file)).toEqual(changed);
+    });
+  });
+}
+
+for (const timing of ['before-await', 'after-await'] as const) {
+  test(`Windows private resource snapshot retains its executable binding after input mutation ${timing}`, async ({
+    tree,
+  }) => {
+    await withAcl(join(tree.resourceDirectory, member), readOnlyAcl, async () => {
+      const input = {
+        configurationDirectory: tree.configurationDirectory,
+        resourceRelativePath,
+        executableRelativePath,
+        maxEntries: 64,
+      };
+      const pending = inspectPrivateResourceTree(input);
+      if (timing === 'before-await') input.executableRelativePath = member;
+      const snapshot = await pending;
+      try {
+        if (timing === 'after-await') input.executableRelativePath = member;
+        await snapshot.verifyUnchanged();
+        expect(Buffer.from(await snapshot.readFile(member, contents.length))).toEqual(contents);
+        await withAcl(
+          join(tree.resourceDirectory, executableRelativePath),
+          readOnlyAcl,
+          async () => {
+            await expectCode(snapshot.verifyUnchanged(), 'unavailable');
+            await expectCode(snapshot.readFile(member, contents.length), 'unavailable');
+          },
+        );
+      } finally {
+        await snapshot.close();
+      }
+    });
+  });
+}
 
 test('Windows private readers interpret OWNER RIGHTS as the current trusted owner', async ({
   tree,
