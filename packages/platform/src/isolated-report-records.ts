@@ -51,6 +51,7 @@ const flags = constants.O_RDONLY | constants.O_NOFOLLOW;
 
 /** Directory handles pin all private writes; on-disk identities are never rebound on recovery. */
 export class IsolationRecords {
+  static readonly maxInstances = 4096;
   private root!: FileHandle;
   private rootIdentity = '';
   private configId = '';
@@ -94,7 +95,7 @@ export class IsolationRecords {
       await this.atomic(this.root, 'index.json', []);
     }
     const index = await this.read(this.base, 'index.json');
-    if (!Array.isArray(index) || index.length > 4096) throw unavailable();
+    if (!Array.isArray(index) || index.length > IsolationRecords.maxInstances) throw unavailable();
     const seen = new Set<string>();
     for (const entry of index) {
       if (
@@ -253,7 +254,7 @@ export class IsolationRecords {
     return this.serialize(async () => {
       if (this.index.some((e) => e.instanceId === stage.instanceId))
         throw new OperationError('invalidRequest', '隔离执行身份已存在。');
-      if (this.index.length >= 4096)
+      if (this.index.length >= IsolationRecords.maxInstances)
         throw new OperationError('resourceLimit', '私有执行记录索引达到上限。');
       const storageId = randomUUID();
       const next = [...this.index, { instanceId: stage.instanceId, storageId }];
