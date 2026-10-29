@@ -1,11 +1,12 @@
 import { isDeepStrictEqual } from 'node:util';
-import { OperationError } from '@scholoom/protocol/core';
+import { compileContract, OperationError } from '@scholoom/protocol/core';
 import { type ReportSnapshot, reportLimits } from '@scholoom/protocol/reports';
 import type {
   ResourceDescriptor,
   ResourceEvidence,
   ResourcePort,
 } from '@scholoom/protocol/resources';
+import { resourceDescriptorSchema } from '@scholoom/protocol/resources';
 import { decodeReportHeader, reportHeaderStart } from './report-codec.js';
 import { relativeFile } from './resources.js';
 
@@ -16,6 +17,7 @@ export type ReportResourcePorts = Pick<ResourcePort, 'describe' | 'read'> & {
 };
 const changed = () => new OperationError('contentChanged', '报告或其声明材料已变化。');
 const denied = () => new OperationError('permissionDenied', '报告资源不在允许范围。');
+const validDescriptor = compileContract({ params: resourceDescriptorSchema, result: true }).params;
 
 /** Validates one complete report without owning files, authorization or a persistent cache. */
 export class ReportResources {
@@ -120,19 +122,55 @@ export class ReportResources {
     return history.snapshot({ ref: resource.ref, basis: resource.basis }, access);
   }
 
-  private async load(entry: Evidence, access: 'read' | 'send', retainBytes: boolean) {
-    if (entry.ref.source !== 'project') throw denied();
-    const projectId = entry.ref.projectId;
-    await this.ports.authorize([entry], access);
-    const resource = await this.verify(entry);
-    if (resource.format !== 'html' || !resource.path) throw denied();
-    const content = await this.read(entry, reportLimits.entryBytes);
-    const files: { path: string; bytes: Buffer }[] = retainBytes
-      ? [{ path: resource.path, bytes: content.bytes }]
-      : [];
+  /** Original descriptor/content must come from the trusted file history authority.
+   * Evidence describes that version; it is not a permission grant or a page restore command.
+   */
+  async reviewHistorical(resource: ResourceDescriptor, content: string, access: 'read' | 'send') {
+    if (!validDescriptor(resource))
+      throw new OperationError('invalidRequest', '原报告描述不完整。');
+    const original = structuredClone(resource);
+    const { evidence } = this.declaration(original, Buffer.from(content));
+    const qualify = async () => {
+      await this.ports.authorize(evidence, access);
+      await this.each(evidence, async (item) => {
+        const current = await this.ports.describe(item.ref);
+        if (!validDescriptor(current))
+          throw new OperationError('invalidRequest', '报告材料描述不完整。');
+        if (!isDeepStrictEqual(current.ref, item.ref)) throw changed();
+        if (!current.capabilities.read) throw denied();
+        if (current.ref.source === 'library' && current.basis !== current.ref.materialVersionId)
+          throw changed();
+      });
+      await this.ports.authorize(evidence, access);
+    };
+    // A missing descriptor is not a positively verified identity, even if its bytes are gone.
+    await qualify();
+    try {
+      const snapshot = await this.historical(original, content, access);
+      return { state: 'available' as const, snapshot, evidence };
+    } catch (error) {
+      if (
+        !(error instanceof OperationError) ||
+        (error.code !== 'contentChanged' &&
+          error.code !== 'notFound' &&
+          error.code !== 'unavailable')
+      )
+        throw error;
+      await qualify();
+      return { state: 'unavailable' as const, reason: error.code, evidence };
+    }
+  }
+
+  private declaration(resource: ResourceDescriptor, bytes: Buffer) {
+    if (resource.ref.source !== 'project' || resource.format !== 'html' || !resource.path)
+      throw denied();
+    if (bytes.length > reportLimits.entryBytes)
+      throw new OperationError('tooLarge', '报告入口超过容量。');
+    const entry = { ref: resource.ref, basis: resource.basis };
+    const projectId = resource.ref.projectId;
     let html: string;
     try {
-      html = new TextDecoder('utf-8', { fatal: true }).decode(content.bytes);
+      html = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
     } catch {
       throw new OperationError('invalidRequest', '报告入口必须是UTF-8文本。');
     }
@@ -143,6 +181,7 @@ export class ReportResources {
     }));
     for (const [index, item] of evidence.entries()) {
       if (
+        (item.ref.source === 'library' && item.basis !== item.ref.materialVersionId) ||
         evidence
           .slice(0, index)
           .some(
@@ -152,8 +191,12 @@ export class ReportResources {
       )
         throw changed();
     }
-    await this.ports.authorize(evidence, access);
-    let loaded = content.size;
+    if (
+      [...manifest.resources, ...manifest.sources].some((item) =>
+        isDeepStrictEqual(item.ref, entry.ref),
+      )
+    )
+      throw denied();
     const paths = new Set<string>();
     const dependencies = manifest.resources.map((item) => {
       if (item.ref.source !== 'project' || item.ref.projectId !== projectId) throw denied();
@@ -169,6 +212,22 @@ export class ReportResources {
       paths.add(path);
       return { item, path };
     });
+    return { manifest, evidence, dependencies };
+  }
+
+  private async load(entry: Evidence, access: 'read' | 'send', retainBytes: boolean) {
+    if (entry.ref.source !== 'project') throw denied();
+    const projectId = entry.ref.projectId;
+    await this.ports.authorize([entry], access);
+    const resource = await this.verify(entry);
+    if (resource.format !== 'html' || !resource.path) throw denied();
+    const content = await this.read(entry, reportLimits.entryBytes);
+    const files: { path: string; bytes: Buffer }[] = retainBytes
+      ? [{ path: resource.path, bytes: content.bytes }]
+      : [];
+    const { manifest, evidence, dependencies } = this.declaration(resource, content.bytes);
+    await this.ports.authorize(evidence, access);
+    let loaded = content.size;
     const verifyPath = async ({ item, path }: (typeof dependencies)[number]) => {
       const resolved = await this.ports.describe({ source: 'project', projectId, path });
       if (!isDeepStrictEqual(resolved.ref, item.ref) || resolved.basis !== item.basis)
@@ -192,7 +251,6 @@ export class ReportResources {
     });
     await this.each(manifest.sources, async (source) => {
       const description = await this.verify(source);
-      if (isDeepStrictEqual(source.ref, entry.ref)) throw denied();
       if (description.format === 'html') {
         const head = await this.read(source, reportHeaderStart.length + 3, true);
         if (new TextDecoder('utf-8').decode(head.bytes).startsWith(reportHeaderStart))

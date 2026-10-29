@@ -195,6 +195,209 @@ test('historical reports use the recorded entry bytes and basis while rechecking
   });
 });
 
+test('historical review uses the complete original declaration after the current report drops a source', async () => {
+  const f = fixture();
+  const current = f.values.get('report');
+  if (!current) throw new Error('fixture setup');
+  const recorded = structuredClone(current.descriptor);
+  current.descriptor.basis = 'r2';
+  current.bytes = Buffer.from(
+    '<!--scholoom-report-v1\n{"version":1,"resources":[],"sources":[],"objects":[]}\n-->\n<html></html>',
+  );
+  const reports = new ReportResources(f.ports);
+  const result = await reports.reviewHistorical(recorded, html, 'send');
+  expect(result.state).toBe('available');
+  if (result.state !== 'available') throw new Error('Original report unavailable');
+  expect(result.snapshot.resource).toMatchObject(entry);
+  expect(result.evidence).toEqual([
+    entry,
+    { ref: { source: 'project', projectId: 'p', fileId: 'data' }, basis: 'd1' },
+    {
+      ref: { source: 'library', attachmentId: 'paper', materialVersionId: 'v1' },
+      basis: 'v1',
+    },
+  ]);
+  expect(
+    f.authorizations.some((value) => value.access === 'send' && value.refs.includes('paper')),
+  ).toBe(true);
+  const authorize = f.ports.authorize;
+  f.ports.authorize = async (evidence, access) => {
+    await authorize(evidence, access);
+    if (evidence.some((item) => item.ref.source === 'library'))
+      throw new OperationError('permissionDenied', 'fixture old source denied');
+  };
+  expect((await reports.snapshot({ ...entry, basis: 'r2' })).manifest.sources).toEqual([]);
+  await expect(reports.reviewHistorical(recorded, html, 'send')).rejects.toMatchObject({
+    code: 'permissionDenied',
+  });
+});
+
+test('historical review separates readable identity from unavailable original bytes', async () => {
+  for (const reason of ['contentChanged', 'notFound', 'unavailable'] as const) {
+    await test.step(reason, async () => {
+      const f = fixture();
+      const recorded = f.values.get('report')?.descriptor;
+      const data = f.values.get('data');
+      if (!recorded || !data) throw new Error('fixture setup');
+      const reports = new ReportResources(f.ports);
+      if (reason === 'contentChanged') data.descriptor.basis = 'd2';
+      else {
+        const read = f.ports.read;
+        f.ports.read = async (input) => {
+          if (input.ref.source === 'project' && input.ref.fileId === 'data')
+            throw new OperationError(reason, 'fixture bytes unavailable');
+          return read(input);
+        };
+      }
+      await expect(reports.historical(recorded, html, 'read')).rejects.toMatchObject({
+        code: reason,
+      });
+      const result = await reports.reviewHistorical(recorded, html, 'read');
+      expect(result).toMatchObject({ state: 'unavailable', reason });
+      expect(result).not.toHaveProperty('snapshot');
+      expect(result.evidence).toContainEqual({
+        ref: { source: 'project', projectId: 'p', fileId: 'data' },
+        basis: 'd1',
+      });
+      expect(f.authorizations.at(-1)).toEqual({
+        access: 'read',
+        refs: ['report', 'data', 'paper'],
+      });
+    });
+  }
+});
+
+test('historical review refuses copy qualification when access changes during a failed read', async () => {
+  for (const invalidation of ['source read', 'send grant', 'final authorization'] as const) {
+    await test.step(invalidation, async () => {
+      const f = fixture();
+      const recorded = f.values.get('report')?.descriptor;
+      if (!recorded) throw new Error('fixture setup');
+      let failed = false;
+      let revoked = false;
+      const read = f.ports.read;
+      f.ports.read = async (input) => {
+        if (input.ref.source === 'project' && input.ref.fileId === 'data') {
+          failed = true;
+          throw new OperationError('unavailable', 'fixture original bytes unavailable');
+        }
+        return read(input);
+      };
+      const describe = f.ports.describe;
+      f.ports.describe = async (locator) => {
+        const value = await describe(locator);
+        if (failed && locator.source === 'library') {
+          if (invalidation === 'source read')
+            return { ...value, capabilities: { ...value.capabilities, read: false } };
+          if (invalidation === 'final authorization') revoked = true;
+        }
+        return value;
+      };
+      const authorize = f.ports.authorize;
+      f.ports.authorize = async (evidence, access) => {
+        await authorize(evidence, access);
+        if (
+          (revoked || (failed && invalidation === 'send grant' && access === 'send')) &&
+          evidence.some((item) => item.ref.source === 'library')
+        )
+          throw new OperationError('permissionDenied', 'fixture original source revoked');
+      };
+      await expect(
+        new ReportResources(f.ports).reviewHistorical(recorded, html, 'send'),
+      ).rejects.toMatchObject({ code: 'permissionDenied' });
+      expect(failed).toBe(true);
+    });
+  }
+});
+
+test('historical review requires positive stable source metadata rather than treating lookup failure as lost bytes', async () => {
+  for (const scenario of [
+    'new material version',
+    'missing metadata',
+    'notFound',
+    'unavailable',
+  ] as const) {
+    await test.step(scenario, async () => {
+      const f = fixture();
+      const recorded = f.values.get('report')?.descriptor;
+      if (!recorded) throw new Error('fixture setup');
+      const describe = f.ports.describe;
+      f.ports.describe = async (locator) => {
+        const value = await describe(locator);
+        if (locator.source !== 'library') return value;
+        if (scenario === 'new material version')
+          return { ...value, ref: { ...locator, materialVersionId: 'v2' }, basis: 'v2' };
+        if (scenario === 'missing metadata') return { ...value, basis: '' };
+        throw new OperationError(scenario, 'fixture identity cannot be confirmed');
+      };
+      await expect(
+        new ReportResources(f.ports).reviewHistorical(recorded, html, 'read'),
+      ).rejects.toMatchObject({
+        code:
+          scenario === 'new material version'
+            ? 'contentChanged'
+            : scenario === 'missing metadata'
+              ? 'invalidRequest'
+              : scenario,
+      });
+    });
+  }
+});
+
+test('historical review rejects invalid original declarations before classifying a byte failure', async () => {
+  const contradictory = html.replace(
+    '"sources":[',
+    '"sources":[{"ref":{"source":"project","projectId":"p","fileId":"data"},"basis":"old"},',
+  );
+  for (const [content, code] of [
+    ['<html>Not a report</html>', 'invalidRequest'],
+    [contradictory, 'contentChanged'],
+    [html.replace('"basis":"v1"', '"basis":"other"'), 'contentChanged'],
+    [html.replace('assets/data.json', '../../outside.json'), 'permissionDenied'],
+    [
+      html
+        .replace('assets/data.json', 'index.html')
+        .replace('"fileId":"data"', '"fileId":"report"')
+        .replace('"basis":"d1"', '"basis":"r1"'),
+      'permissionDenied',
+    ],
+  ] as const) {
+    await test.step(code, async () => {
+      const f = fixture();
+      const current = f.values.get('report');
+      if (!current) throw new Error('fixture setup');
+      const recorded = structuredClone(current.descriptor);
+      current.descriptor.basis = 'r2';
+      f.ports.read = async () => {
+        throw new OperationError('unavailable', 'fixture byte failure');
+      };
+      const reports = new ReportResources(f.ports);
+      await expect(reports.reviewHistorical(recorded, content, 'read')).rejects.toMatchObject({
+        code,
+      });
+    });
+  }
+});
+
+test('historical review propagates unrelated failures without a copy qualification', async () => {
+  for (const error of [
+    new OperationError('invalidRequest', 'fixture invalid read'),
+    new OperationError('permissionDenied', 'fixture denied'),
+    new OperationError('tooLarge', 'fixture capacity'),
+    Object.assign(new Error('fixture non-domain failure'), { code: 'unavailable' }),
+  ]) {
+    const f = fixture();
+    const recorded = f.values.get('report')?.descriptor;
+    if (!recorded) throw new Error('fixture setup');
+    f.ports.read = async () => {
+      throw error;
+    };
+    await expect(
+      new ReportResources(f.ports).reviewHistorical(recorded, html, 'read'),
+    ).rejects.toBe(error);
+  }
+});
+
 for (const invalidation of ['source revoked', 'dependency changed'] as const) {
   test(`freezing refuses publication after ${invalidation} while copying bytes`, async () => {
     const f = fixture();
