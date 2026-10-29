@@ -2,6 +2,8 @@
 
 ## 第23轮接续验收与原版恢复下一片（2026-10-30）
 
+当前五条原派发均已结清、保留原终端并处理回执。生态离线校准包原提交2969f56→主线b77fad8，五个fixture文件已接收，零内容差异祖先桥2deff09保全；主线普通UID构建、自检**3/3**、两份unit纯离线verify、MJS格式和静态ELF检查通过，三个自有child均close。证据在第23轮根calibration-checks.json、calibration-selftest.log及system-calibration/offline-results.json。命名OpenFile的真实PID1分配、DynamicUser、实际C/M/LSM/原records/唯一准入尚未接线；当前普通数字FD和不存在scope的ENOENT对照不能代替T1。ADMIN-PLAN明确真实C身份与持久ACK等前置未齐，不能直接申请完整系统执行。
+
 第22轮派发的计算旧版授权核查、阅读WorkerDOM探针计划、文献C-writer IO设计均已只读交回并保留原终端；没有工作区源码增量。事实和局限分别见第22轮证据根next/<tree>/RESULT.md：真实旧版fresh approval缺口、非SERVER源码／输入取消的适配成本、C唯一writer与持久ACK先于许可／释放。主线未取得依赖引入许可，WorkerDOM仍未下载／安装／执行；计划不是候选运行结果。
 
 项目库存修复已冻结合入5e62200，主线实际8/8及独审接收，原提供者4.1完成、10/10；细节由其delivery首节维护。生态离线系统校准包此时仍在原Dispatch执行，未换其基线或接收未结清产物。
@@ -9,6 +11,8 @@
 主线独立调查补得systemd v259.5按InvocationID对象路径停止的正式机制，并用普通UID实际只读XML introspection确认本机公布GetUnitByInvocationID；未调用生命周期方法，不以此证明目标授权／完整停止。定版源码、竞态与权限差分见[停止依据](../../../.scratch/scholoom-foundations/research/report-invocation-stop.md)，原始证据在第22轮根stop-identity-research。已告知生态线作为待校准候选，保留M只读cgroup视图。
 
 下一片3.2d的行为／写集已在design第23轮和新增spec场景确定，只实现ReportResources原版资格Module，主线另接真实文件版本定位及kernel／client；报告当前20/27，完整3.2／I5和正式活动报告仍未交付。新Module由计算线在先同步核验后接新Dispatch，其他活动树不换基线。
+
+计算树已先clean快进f4076d7，重建实际变化platform并核tools类型后，派Task task_29a18ed5274f／Dispatch ctx_1ec5c2354d54，已观察live／working。Prompt及同步／启动证据在第23轮根dispatch。该活动树保持f4076d7，其后主线只接收无关离线fixture／记录，不再同步它；其他终端等待真实前置，新源码引入授权仍待用户，未据时间默认批准。
 
 ## 第22轮主线验收（2026-10-30）
 

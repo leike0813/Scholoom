@@ -641,6 +641,8 @@ Codex／gpt-6.1-sol／high保持。所有树先停止并保全原提交祖先，
 
 阅读树的WorkerDOM计划已足够进入授权后实施，但源码引入许可仍待用户回复，故保持等待；Agent／科研仍按原目标平台／模型授权及正式ready前置等待，不填充重复绿测。新输入／TMPDIR／成果只使用持久cache，Codex／gpt-6.1-sol／high及系统／安装／CI边界保持。
 
+本轮后续：生态五文件校准包2969f56→b77fad8及祖先桥2deff09已接收，主线3/3／纯离线verify通过，仍缺真实C/M／身份与系统接线。原五派发均结清retained；计算树新3.2d Task task_29a18ed5274f／Dispatch ctx_1ec5c2354d54已在先同步核验的f4076d7上实际working，其他树等待。活动计算树不随此后主线fixture／记录更新再换基线；下一次实施前同步各自目标树。精确事实、Prompt和回执见本轮dispatch，完成范围由原change维护。
+
 ## 首轮 Agent 的共同起始任务
 
 各线采用下述共同要求，并附上本文件中该开发线的小节：
