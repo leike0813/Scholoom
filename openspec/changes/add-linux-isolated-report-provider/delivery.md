@@ -1,5 +1,13 @@
 # 实际交付与交接
 
+## 第27轮主线补验接收与正式规格同步
+
+原`b1f1b49a3c9d1f70d141f8418ca7a5b7115c8ee0`以`7a573c5`合入并保留来源祖先。主线核三文件差异，fixture可选信号仅影响新host-abort分支，生产实现／策略／期限未改。使用独立`native-running-main-cache`及原已核probe，在固定已构建产物复验新host-abort及原显式stop，**2/2、4.0秒，exit0**；真实running、原cgroup身份／三代setsid、原范围清空、原进程出生身份消失、原instance持久stopConfirmed及active由1到0均在最终close前核实。原强制停止failure照实保留；日志及现场为本轮根`running-revocation-main.log`、`running-revocation-main-results/`和`native-running-main-cache/`。作者首次格式失败及2/2另由下一节记录，不相加为一次矩阵。
+
+第27轮只读核验的W1按原design明确为check有界预检、start每次实际兑现；不放宽最终放行条件，也不因预检通过开放浏览器。W2中的运行后撤权已有上述直接代表，其他未实跑的细分故障、压力及版本边界仍沿`next/agent-delegation/RESULT.md`保留，不把当前两例外推为新跑17项或所有OS故障。原独立审查与本次主线源码／实跑共同支撑该有界接收。
+
+七条要求及Purpose已完整同步到正式`openspec/specs/linux-isolated-report-provider/spec.md`；开发说明引用该契约。本change现11/11，完整报告、系统C/M、T1/T2、浏览器／其他平台及科研质量仍未交付，未执行归档。
+
 ## 4.2 运行后宿主撤权直接代表（2026-10-30）
 
 本轮从共同基线`2fb1fff3b038d3bb810ab2971f4ea0f8e5fa7a7e`且clean开工，读取当前apply的工件与新增运行后撤权安排。只在原`isolated-report-provider.spec.ts`的detached参数组增加host-abort分支；本地fixture增加可选可信options.signal，未指定信号的原用例不增加该选项。生产platform/records/controller、策略、预算和check预检/start逐次兑现语义未改，复用主线已构建的同源产物，不冒称本轮重建。
