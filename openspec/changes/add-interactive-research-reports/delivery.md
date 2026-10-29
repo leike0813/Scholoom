@@ -1,5 +1,15 @@
 # 实际交付与交接
 
+## 第23轮接续验收与原版恢复下一片（2026-10-30）
+
+第22轮派发的计算旧版授权核查、阅读WorkerDOM探针计划、文献C-writer IO设计均已只读交回并保留原终端；没有工作区源码增量。事实和局限分别见第22轮证据根next/<tree>/RESULT.md：真实旧版fresh approval缺口、非SERVER源码／输入取消的适配成本、C唯一writer与持久ACK先于许可／释放。主线未取得依赖引入许可，WorkerDOM仍未下载／安装／执行；计划不是候选运行结果。
+
+项目库存修复已冻结合入5e62200，主线实际8/8及独审接收，原提供者4.1完成、10/10；细节由其delivery首节维护。生态离线系统校准包此时仍在原Dispatch执行，未换其基线或接收未结清产物。
+
+主线独立调查补得systemd v259.5按InvocationID对象路径停止的正式机制，并用普通UID实际只读XML introspection确认本机公布GetUnitByInvocationID；未调用生命周期方法，不以此证明目标授权／完整停止。定版源码、竞态与权限差分见[停止依据](../../../.scratch/scholoom-foundations/research/report-invocation-stop.md)，原始证据在第22轮根stop-identity-research。已告知生态线作为待校准候选，保留M只读cgroup视图。
+
+下一片3.2d的行为／写集已在design第23轮和新增spec场景确定，只实现ReportResources原版资格Module，主线另接真实文件版本定位及kernel／client；报告当前20/27，完整3.2／I5和正式活动报告仍未交付。新Module由计算线在先同步核验后接新Dispatch，其他活动树不换基线。
+
 ## 第22轮主线验收（2026-10-30）
 
 接收上一轮四条实际派发：项目IO研究仅cache，无源码增量；生态`d2c4c88`→主线`cc6939d`为固定FIFO gate；阅读`f2fdf4a`→`b408f01`为R2d静态路线比较；文献`e62bb8c`→`79db846`为真实客户端工作台组合。其余三树上一轮是已确认的等待状态，不存在应收而漏收的源提交。全部七树本轮同步前均clean。报告仍20/26，不以夹具新增代码或重复子范围增加完成数。

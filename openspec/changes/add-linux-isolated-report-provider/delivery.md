@@ -1,5 +1,15 @@
 # 实际交付与交接
 
+## 第23轮恢复库存修复验收（2026-10-30）
+
+项目树原始冻结提交与主线均为`5e6220026352df6130f021912b32e285a3fd8ad4`，相对6e88817仅三个文件。原records.load在验证config/index后、读取任何恢复receipt前，对pinned根有界流式枚举并核固定元数据与index目录；未知、缺失、错误类型或枚举失败拒绝，原数据与身份保留。create、writer锁、receipt／scope校验、停止与唯一准入未变。原host-loss测试的两份调查JSON移到本例privateRoot之外，不扩大根白名单或改生命周期断言。
+
+主线证据根`/home/joshua/.cache/scholoom-round23-acceptance-gvcJBu`。实际先运行`node node_modules/typescript/bin/tsc -p packages/platform/tsconfig.json`及原native fixture构建，再在固定产物运行records七例和`real host SIGKILL restores holds before reconciliation and never replays`一个真实scope代表，**8/8，4.9s，无跳过**。故障包括未索引receipt、残留临时文件、错误目录类型及不可枚举根；原配置／index／receipt字节与根成员保全，正常恢复／原预算边界保持。host-loss仍核完整后代退出、停止保存故障unknown、恢复落盘后结清及原锁拒绝第二provider。命令及退出码见project-checks.json，原输出inventory-and-host-loss.log及results/。tools类型、三文件Biome及架构14模块／271文件／0 findings均通过。
+
+独立default／gpt-6.1-sol／high静态审查无确证P1/P2，已关闭，准确源码依据在inventory-review.md；审查未另跑测试，不合并为额外通过数。作者原失败、格式修正及其8/8在第22轮根next/project-execution/RESULT.md保留。主线已取得本change delivery instructions，按实际证据关闭4.1，当前10/10。
+
+这只补本提供者初始化的完整性，不宣称宿主其他模块存在全局恢复屏障，也不证明C-writer跨UID、system service、浏览器／活动报告、T1/T2、其他平台或分发。原Linux native限定策略及后续报告change的未完范围保持，未新增安装／模型／CI授权。
+
 ## 2026-10-29 主线接收补充
 
 独立 native provider 增量已进入主线共同源码，并由主线在本机 Linux x86_64 显式准备 native fixtures 后完成真实 OS 联合验证。本次已重新取得本 change 的 delivery instructions，只补充已有主线结果；下文 1.2 校准与独立实施的原失败、修正及证据边界保留，最终验收与提交由父 Agent 负责。

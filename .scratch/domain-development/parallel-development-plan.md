@@ -633,6 +633,14 @@ Codex／gpt-6.1-sol／high保持。所有树先停止并保全原提交祖先，
 
 第22轮同步回执：验收／决定af00b7c，三份源提交经零内容差异祖先桥c32d72b保全。七树clean快进、源码树对象一致；每树tools类型与架构共14条检查全部退出0。各树81份实际desktop运行产物与主线一致，生产源码无变化，复用产物、不重建七次或重复代表绿测。前后HEAD与命令见本轮synchronized.json／runtime-verification.json／sync-checks.json／sync-final.json。此纯文档回执提交后再快进，最终HEAD及Prompt／受理／启动事实保存dispatch目录；之后不改变活动基线。
 
+## 第23轮接续（局部同步，不改变活动树基线）
+
+证据根`/home/joshua/.cache/scholoom-round23-acceptance-gvcJBu`。第22轮项目库存修复5e62200已在主线8/8及独审通过，原提供者4.1完成、10/10。计算、阅读及文献三份只读结果已结清；生态系统校准包继续原Dispatch，不提前冻结或同步。主线补得InvocationID路径停止的定版依据及本机接口公布证明，没有生命周期动作／T1结果。
+
+下一片仅将已结清的计算树先快进、构建实际变化platform并核clean，再派报告3.2d：独占原editor/report-resources.ts及原模块测试，实现原版本权限／字节可得性分离。精确Interface和失败判据见报告design第23轮；无新RPC／权限缓存／renderer接线，当前报告20/27。主线仍负责真实FileEdit定位、跨模块接线与最后验收。其他树保持原baseline／等待，待各自结清再统一同步；不对活动树执行merge或重建。
+
+阅读树的WorkerDOM计划已足够进入授权后实施，但源码引入许可仍待用户回复，故保持等待；Agent／科研仍按原目标平台／模型授权及正式ready前置等待，不填充重复绿测。新输入／TMPDIR／成果只使用持久cache，Codex／gpt-6.1-sol／high及系统／安装／CI边界保持。
+
 ## 首轮 Agent 的共同起始任务
 
 各线采用下述共同要求，并附上本文件中该开发线的小节：

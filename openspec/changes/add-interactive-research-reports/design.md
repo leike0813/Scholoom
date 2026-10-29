@@ -26,6 +26,20 @@ ReportResources 是 `packages/editor` 内的 module，不新建包／数据库�
 
 ## 方案与接口
 
+### 第23轮：原版本恢复资格Module
+
+计算线只读核查确认：活动旧current仍持原清单时，client已复核旧独有来源；关闭后current销毁，旧草稿只有精确basis下的browse／draft／dirty，不再有原来源清单。真实connected只覆盖当前同basis恢复，不能据新版成功或原版读取错误批准旧草稿copyOnly。原FileEdit历史是版本权威，`ReportResources.historical`已有完整旧版核查，尚缺“全部原来源当前可读，但旧字节不可得”的独立结果。
+
+下一片3.2d只在原`packages/editor/src/report-resources.ts`增加`reviewHistorical(resource, content, access)`，参数须由可信文件权威提供原描述／正文／Evidence，与现有historical同一信任前提；不接页面自报清单。沿原codec和同一原版本Evidence规则取入口／依赖／来源，先按稳定ref逐项describe及read能力、所属authorize核完整原集合，不能用新版清单或把项目basis前进当撤权。读取并发沿原上限4，不扫历史／全库，不持久保存清单或权限。
+
+返回私有判别结果：`{state:'available',snapshot,evidence}`仅在现有严格historical完整成功；或`{state:'unavailable',reason,evidence}`，reason仅原OperationError的contentChanged／notFound／unavailable代码。后者必须在读取尝试前及失败后都独立完成全部原ref身份／read与相应access授权复核，最后再核authorize；任一权限拒绝、身份无法证明、元数据缺失、坏清单／矛盾依据或其他错误均传播，不形成草稿资格。返回的evidence来自该原版本且仅用于宿主末次复核，不是新的授权凭据；unavailable不返回假ReportSnapshot。原资源读取错误不能单独变成copyOnly。
+
+原snapshot／freeze／historical语义保持；提取现有重复规则复用，不维护另一套清单／授权算法。计算树只拥有该文件及原`tests/kernel/report-resources.spec.ts`：完整原版成功、同ref内容前进而旧依赖不可得、R2删除A但R1仍需A、尝试期间撤权、来源身份／元数据不明及无关错误不误批准，复用原端口与手写独立清单。先构建editor再跑受影响模块和必要类型／架构／格式；不新增RPC、FileEdit查询、renderer接线或UI测试，不关闭完整3.2／I5。
+
+后续主线再统一真实文件版本定位及kernel／client接线：必须从原文件权威按准确身份／basis／FileEdit所选侧取得内容；当前普通`resources.report`不自动找历史，现有editForEvidence仅after一侧。不得从localStorage枚举猜版本或把原HTTP错误当权限结论。该后续接口尚未发布；本Module交付不表示真实旧版恢复或正式页面可用。
+
+服务停止路线新增[InvocationID寻址依据](../../../.scratch/scholoom-foundations/research/report-invocation-stop.md)：保留M只读cgroup视图，优先校准返回的invocation对象路径；普通按名StopUnit不具同等保护。当前仅官方源码核对及本机XML接口公布证明，异步job到完整停止、原cgroup对象／权限／故障收尾仍待真实T1，不改变安装授权。
+
 ### 第22轮接收与下一片
 
 主线接收固定gate离线5/5、真实KernelClient／领域／Workbench汇合双宿主4/4，以及R2d和私有IO静态调查。没有生产承载变化，任务仍20/26；汇合页为可信固定React组件，不执行报告HTML／脚本，不关闭完整3.1／3.2／I5。
