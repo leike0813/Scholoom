@@ -6,6 +6,7 @@ import {
   ReportResources,
 } from '../../packages/editor/dist/report-resources.js';
 import { ProcessAdmission } from '../../packages/platform/dist/admission.js';
+import { isolationLock } from '../../packages/platform/dist/isolated-report-controller.js';
 import {
   type IsolatedReportOptions,
   IsolatedReportProvider,
@@ -140,7 +141,7 @@ export async function reportSourceFixture(
   return { state, descriptors, source, load, html, data, authorize };
 }
 
-/** Real files, freeze, admission and records; domain ports and OS are controlled. */
+/** Real files, freeze, admission, records and flock; domain ports and OS checks/controller are controlled. */
 export async function preparationFixture(root: string) {
   const sourceFixture = await reportSourceFixture(root);
   const { state, authorize } = sourceFixture;
@@ -175,19 +176,9 @@ export async function preparationFixture(root: string) {
       },
     ],
   };
-  let locked = false;
   const os: NonNullable<ConstructorParameters<typeof IsolatedReportProvider>[1]> = {
     support: async () => {},
-    lock: async () => {
-      if (locked) throw new OperationError('unavailable', 'test OS lock busy');
-      locked = true;
-      return {
-        alive: () => locked,
-        close: async () => {
-          locked = false;
-        },
-      };
-    },
+    lock: isolationLock,
     controller: (o) => ({
       hasExited: false,
       async start() {
