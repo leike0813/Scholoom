@@ -1,6 +1,3 @@
-import { constants } from 'node:fs';
-import { open, readFile } from 'node:fs/promises';
-import { join } from 'node:path';
 import { compileContract, limits, OperationError } from '@scholoom/protocol/core';
 import {
   type IsolationInputs,
@@ -15,12 +12,10 @@ import {
 import { reportLimits } from '@scholoom/protocol/reports';
 import type { ProcessAdmission, ProcessReservation } from './admission.js';
 import { failure } from './errors.js';
+import { IsolationAssets } from './isolated-report-assets.js';
 import {
-  fileStamp,
   IsolationController,
   type IsolationPolicy,
-  isolationFileStamp,
-  isolationGate,
   isolationLock,
   isolationSupport,
   stopRecoveredIsolation,
@@ -120,6 +115,7 @@ function staticImage(image: Uint8Array): boolean {
 /** Independent host-only deep module; there is no UI, model, or global operation registration. */
 export class IsolatedReportProvider {
   private readonly records: IsolationRecords;
+  private readonly assets: IsolationAssets;
   private readonly programs = new Map<string, IsolationProgram>();
   private readonly policies = new Map<string, IsolationPolicy>();
   private readonly instances = new Map<string, Instance>();
@@ -137,6 +133,7 @@ export class IsolatedReportProvider {
     private readonly os: IsolationNative = native,
   ) {
     this.records = new IsolationRecords(options.privateRoot);
+    this.assets = new IsolationAssets(this.records);
     for (const p of options.policies) {
       if (
         this.policies.has(p.id) ||
@@ -485,16 +482,7 @@ export class IsolatedReportProvider {
     const receipt = item.receipt;
     if (receipt.status.phase !== 'queued') return;
     await this.authorize(receipt.stage.instanceId);
-    const directory = await this.records.files(receipt);
-    for (const [i] of receipt.stage.assets.entries()) {
-      const f = await open(join(directory, `asset-${i}.bin`), 'wx', 0o600);
-      try {
-        await f.sync();
-        receipt.stamps[i] = isolationFileStamp(await f.stat({ bigint: true }));
-      } finally {
-        await f.close();
-      }
-    }
+    await this.assets.prepare(receipt);
     receipt.status.phase = 'preparing';
     this.next(item);
     await this.save(item);
@@ -583,27 +571,14 @@ export class IsolatedReportProvider {
       bytes = Buffer.from(input.base64, 'base64');
     if (index < 0 || input.offset + bytes.length > (r.stage.assets[index]?.byteLength ?? 0))
       throw invalid();
-    const path = join(await this.records.files(r), `asset-${index}.bin`);
-    const file = await open(path, constants.O_WRONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK);
     try {
-      const info = await file.stat({ bigint: true });
-      if (isolationFileStamp(info) !== r.stamps[index] || info.size !== BigInt(input.offset))
-        throw new OperationError('contentChanged', '字节准备对象已变化。');
-      const result = await file.write(bytes, 0, bytes.length, input.offset);
-      if (result.bytesWritten !== bytes.length) throw uncertain();
-      await file.sync();
-      const stamp = isolationFileStamp(await file.stat({ bigint: true }));
-      if ((await fileStamp(path)) !== stamp)
-        throw new OperationError('contentChanged', '字节准备对象已被替换。');
-      r.stamps[index] = stamp;
-      r.offsets[index] = input.offset + bytes.length;
-      this.next(item);
-      await this.save(item);
+      await this.assets.put(r, index, input.offset, bytes, async () => {
+        this.next(item);
+        await this.save(item);
+      });
     } catch (error) {
       await this.unknown(item, error);
       throw error;
-    } finally {
-      await file.close();
     }
     return this.projection(item);
   }
@@ -619,46 +594,7 @@ export class IsolatedReportProvider {
         throw new OperationError('unavailable', '登记策略版本已变化，不能重放原执行。');
       clearTimeout(item.timer);
       try {
-        const directory = await this.records.files(r);
-        for (const [i, a] of r.stage.assets.entries()) {
-          const path = join(directory, `asset-${i}.bin`);
-          const f = await open(
-            path,
-            constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK,
-          );
-          try {
-            const info = await f.stat({ bigint: true });
-            if (isolationFileStamp(info) !== r.stamps[i] || info.size !== BigInt(a.byteLength))
-              throw new OperationError('contentChanged', '封存输入的物理对象或内容已变化。');
-            await f.chmod(0o400);
-            await f.sync();
-            const stamp = isolationFileStamp(await f.stat({ bigint: true }));
-            if ((await fileStamp(path)) !== stamp)
-              throw new OperationError('contentChanged', '封存输入已被替换。');
-            r.stamps[i] = stamp;
-          } finally {
-            await f.close();
-          }
-        }
-        const sealed: Record<string, string> = {};
-        for (const [name, bytes] of [
-          ['program.bin', program.image],
-          ['gate.bin', await readFile(isolationGate)],
-        ] as const) {
-          const f = await open(join(directory, name), 'wx', 0o600);
-          try {
-            await f.writeFile(bytes);
-            await f.chmod(0o400);
-            await f.sync();
-            sealed[name] = isolationFileStamp(await f.stat({ bigint: true }));
-          } finally {
-            await f.close();
-          }
-        }
-        r.sealed = { program: sealed['program.bin'] as string, gate: sealed['gate.bin'] as string };
-        const d = await open(directory, constants.O_RDONLY | constants.O_DIRECTORY);
-        await d.sync();
-        await d.close();
+        await this.assets.seal(r, program.image);
         r.status.phase = 'starting';
         await this.save(item);
         item.controller = this.os.controller({

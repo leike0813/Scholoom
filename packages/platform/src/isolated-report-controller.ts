@@ -1,10 +1,10 @@
 import { type ChildProcessWithoutNullStreams, execFile, spawn } from 'node:child_process';
-import type { BigIntStats } from 'node:fs';
 import { lstat, readFile, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import { limits, OperationError } from '@scholoom/protocol/core';
+import { isolationGate } from './isolated-report-assets.js';
 import type { IsolationReceipt, IsolationScope } from './isolated-report-records.js';
 
 export type IsolationPolicy = {
@@ -21,7 +21,6 @@ export type IsolationPolicy = {
   stopGraceMs: number;
 };
 export const isolationNative = fileURLToPath(new URL('./isolated-report-scope', import.meta.url));
-export const isolationGate = fileURLToPath(new URL('./isolated-report-gate', import.meta.url));
 const execute = promisify(execFile);
 const environment = () => ({
   PATH: '/usr/bin:/bin',
@@ -97,14 +96,6 @@ export async function isolationLock(
       await closed;
     },
   };
-}
-export async function fileStamp(path: string): Promise<string> {
-  const s = await lstat(path, { bigint: true });
-  return isolationFileStamp(s);
-}
-export function isolationFileStamp(s: BigIntStats): string {
-  if (!s.isFile() || s.nlink !== 1n || s.uid !== BigInt(process.getuid?.() ?? -1)) throw unknown();
-  return [s.dev, s.ino, s.size, s.mtimeNs, s.ctimeNs].join(':');
 }
 async function unitInfo(unit: string): Promise<Record<string, string>> {
   // show returns an explicit not-found LoadState for collected scopes.
