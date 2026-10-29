@@ -1,5 +1,17 @@
 # 调查依据
 
+## R2c固定可信输入事务校准（第20轮续做，825f3fac）
+
+新`tests/fixtures/report-input/`只读复用原源页与report-structure控制器；R2／R2b源码和反例未改。首次保留原禁脚本文档，之后仅在独立源确认最新输入后以原生DOM替换固定table／count，活动文档和输入节点不替换、筛选框不赋值。私有事务分别绑定view／合成basis及接收者、原文档token和源请求代次，只有一次在途、一个最新输入意图和一个最新回包，长度／数量与诊断有界；不是通用HTML镜像、生产授权或新的存储。
+
+真实Browser／Electron的透明回包门控中：已发空筛选后，连续输入“随”“随机”被合并；开始组合“队列”，旧回包到达时源已是空筛选，但UI仍保留原2/3、文字“队列”、焦点及同一document／input，readOnly和disabled实际均false。提交“队列”确实送达独立源、源成为1/3；新确认回包仍被门控时UI不先采用，放行后才显示1/3，光标保持2。CDP清除另一段组合后的实际DOM值为空、光标0；该空值另送源确认，放行后UI与源同为3/3且节点／焦点／光标不变。不将该行为猜为系统IME的Escape或候选取消。
+
+版本／接收者替换和关闭各在一次真实请求后保留一个新缓冲输入；迟到成功回包只结清原请求，不采用旧结果、不再发缓冲意图。两个真实源各只有initial read及原已受理filter两条观察，旧源保留自己的实际结果，未写入新源。数学mfrac／MathML namespace、原文表格、实际选字复制、可见正文查找及MathMLFraction辅助结构的一个代表保持。合成接收者未接真实composer或Agent授权，不能据此声称产品动作权限通过。
+
+只读复核发现P2：排序冲突虽拒绝，本地select却显示未受理值。父在桥接处恢复最近实际采用的排序并显示冲突反馈；新的真实held回包例核排序恢复、源未收到排序和原pending文字保持。辅助静态复核确认该问题闭合，未代跑测试。首轮4/4，修正后仅受影响的输入场景双宿主2/2，不混算成一次6项全绿；生命周期场景使用修正前bundle、事务模块未变，未重复该组。实际命令、源／回包／UI证据及源码／产物对应见R2c delivery与cache RESULT。
+
+本片cache为`/home/joshua/.cache/scholoom-round20-acceptance-INWZnx/next/research-interaction/`；短TMPDIR为`/home/joshua/.cache/r2c-ycpMSD`，无当前/tmp输入。手动Browser／Electron均打开并退出0；Electron的userData／sessionData／storagePath实际同指本次cache的独立profile，复用主线已修共享fixture，不再加XDG或unsafe参数。系统IME候选窗／读屏、任意HTML／CSS／canvas、自主脚本更新、跨控件并发UX、reload／跨tab恢复、失败恢复、OS强隔离、目标平台及科研质量均未验。所测有限候选不关闭正式R2／2.1b／T1／T2／I5。
+
 ## R2b保留原结构的可信对照（第19轮本片，0d27cff）
 
 新夹具`tests/fixtures/report-structure/`只读复用原report-surface源页及其真实独立Chromium控制器，原失败代码／断言未改。源页在一次同步读取中给出实际状态及文档克隆，input.value／option.selected按当时实际属性补齐；移除固定唯一脚本后，以保留HTML／MathML命名空间的srcdoc放入Workbench共同资源tab的禁脚本frame。不是任意HTML清洗器、公共DSL或不可信DOM镜像，没有改生产CSP／HtmlRenderView或接OS隔离。

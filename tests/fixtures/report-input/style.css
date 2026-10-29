@@ -1,0 +1,12 @@
+.input-host {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  gap: var(--space-unit);
+}
+.input-host > .structure-probe {
+  flex: 1;
+  height: auto;
+  min-height: 0;
+}

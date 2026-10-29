@@ -33,6 +33,8 @@ flowchart TD
   R2本片已有`tests/fixtures/report-surface/`可运行可信调查夹具，实际双宿主2/2观测通过；纯文本投影将原MathML分数1/2变成12并丢失数学辅助结构，故完整呈现未达判据，2.1b不勾。系统IME／读屏器及正式架构仍待主线；详见investigation首节／delivery。本行仅记录R2，不改变2.1d／2.2c进度。
 
   R2b新增`tests/fixtures/report-structure/`固定可信原结构对照：双宿主保住分数布局／MathMLFraction、普通文本与顺序输入，但真实在途回包替换srcdoc会丢失组合“队列”，故正式输入判据仍未满足。原反例不改，不勾2.1b或R2正式架构，具体命令／限界见R2b调查及delivery；其他3.x进度仍仅主线维护。
+
+  R2c已交新report-input固定可信事务：首轮两场景双宿主4/4，排序拒绝反馈修正后受影响双宿主2/2；真实源确认提交／清除组合，同一文档／输入保持，关闭／换版本迟到不复活。只记录有限调查，不改变正式R2／2.1b／T1／T2／I5或其他3.x勾选；当前仍16/26，范围与限制见R2c investigation／delivery。
 - [x] 2.1c 独立准备接缝：在现有provider内部沿同一真实ProcessAdmission租约，ready后才调用可信freeze准备回调，复用原记录／分片及失败收尾，不新增wire操作、第二次reserve或假assets。同实例重复准备合并，取消／撤权／失败及迟到结果不得启动或提前释放在途准备；创建OS范围前先持久原intent。实际ReportResources消费者与可替换OS端口独立验证，服务／浏览器仍不启用。
 - [x] 2.1d 真实Linux准备接线：默认OS提供者与实际ReportResources.freeze经prepare完成真实字节／准入／启动／停止，覆盖满槽后延迟读取及冻结期间取消。复用已登记固定静态native探针及原policy，在自有scope验证持久intent、实际字节、完整停止及容量；不复制原17项原生矩阵，不启用服务／浏览器或改公共wire，前置不满足准确交回。
 - [ ] 2.1e T1安装前方案：基于已选可信账户模型及现有provider／唯一admission，形成固定native跨身份控制候选的最小安装文件／权限／请求与恢复接缝、验证及卸载方案。只交可审查研究／配置草案，不安装、创建账户／策略或启动服务；方案不等于T1实际通过，主线审后才决定部署授权。
