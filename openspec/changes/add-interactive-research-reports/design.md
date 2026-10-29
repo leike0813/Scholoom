@@ -30,7 +30,7 @@ ReportResources 是 `packages/editor` 内的 module，不新建包／数据库�
 
 原provider仍直接open/readFile/chmod/sync私有asset-i.bin、program.bin与gate.bin，C记录初始化完成并不意味着K已脱离这些物理操作。本片将现有资产IO提取为实际被原provider消费的深Module，减少后续C装配的跨职责调用；不新增远程抽象或假服务。原六操作、byte预算、领域授权、唯一admission、原receipt/stamps/offsets及scope／停止语义保持，无新公开行为或delta DTO。
 
-项目树独占五文件：新增`packages/platform/src/isolated-report-assets.ts`与`tests/kernel/isolated-report-assets.spec.ts`，修改原`isolated-reports.ts`及`isolated-report-controller.ts`，确有需要才对原最小preparation测试补代表；原`isolated-report-records.ts`只读，不并写bootstrap。新`IsolationAssets`构造接原IsolationRecords，私有方法为prepare(receipt)、put(receipt,index,offset,bytes,commit)、seal(receipt,programImage)。复用原receipt字段，不另存资产表／指纹格式／配置／状态机。具体局部签名可收拢，但不能扩大到任意路径、FD或通用write/save接口。
+项目树独占六处：新增`packages/platform/src/isolated-report-assets.ts`与`tests/kernel/isolated-report-assets.spec.ts`，修改原`isolated-reports.ts`及`isolated-report-controller.ts`，`architecture.json`只将原provider的fs/fs-promises许可移动到新assets叶；确有需要才对原最小preparation测试补代表。原`isolated-report-records.ts`只读，不并写bootstrap。新`IsolationAssets`构造接原IsolationRecords，私有方法为prepare(receipt)、put(receipt,index,offset,bytes,commit)、seal(receipt,programImage)。复用原receipt字段，不另存资产表／指纹格式／配置／状态机。具体局部签名可收拢，但不能扩大到任意路径、FD或通用write/save接口。
 
 prepare只创建原固定资产对象并更新同一receipt的stamps；put核原对象／长度／offset，实际完整写、sync、前后指纹核对后更新原stamps/offsets，并在持有原文件FD时await可信宿主commit回调；provider的回调仍走原next及save，后者检查实际writer锁。seal沿原顺序封存资产及固定登记program/gate、更新原stamps/sealed并sync目录。partial IO已取得的原物理事实沿原receipt保留，不能因只在全部成功后返回新数组而丢失；所有文件／目录FD均在失败时关闭。IO异常不返回成功回执，provider继续沿原unknown/confirmed及持久停止后释放规则收尾，不绕过锁或把效果完成当记录已提交。
 
