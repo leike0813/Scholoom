@@ -1,5 +1,33 @@
 # 实际交付与交接
 
+## 再次授权的真实报告缺项与截断保护（2026-10-29）
+
+用户回答“授权再运行一次”后，主线仅执行一轮`research-live/runner.mjs --execute --approved-minimax`，新根`/home/joshua/.cache/scholoom-finish-active/research-live/run-HvCHy0/`。预算仍16次／1MiB累计正文／2048输出tokens／首请求180秒，未重试整项。14次真实转发、976959字节，全部HTTP200／完整返回；gateway另拒绝2次未转发请求，原子额度未放宽。父只创建一个正式evidence-reviewer委派，父子均钉入MiniMax-M2.7，子实际读取原文和问题；原材料及原任务保持不变。父子实例均exited，同一kernel退出0且stopped，采证／收尾错误为空，独立`parent-audit.json`保存核对。
+
+子实际创建5705字节review.md，原领域保存及文件关联confirmed，父通过真实ref/basis读回。文件在A2判定说明中途结束，A3／A4完全缺失；保存字节与首次create_delegation_resource输入逐字相同，因此不是写入过程把完整报告截短。子另换operationId试图再次新建同路径，领域明确contentChanged拒绝，没有覆盖原报告；该创建意图仍pending，委派最终cancelled／resultState=unknown，父failed／remoteOutcome=unknown，没有report_delegation或任务result关联。保留原文件、未决意图及失败，不重建或手工补齐产品成果。
+
+独立样本评估`independent-quality-review.md`核原文及执行前标准，确认A1核心判断／A2可见引文有依据、许可版本未猜测，A2残缺和A3／A4缺失构成失败。其另将source.md抽取身份列为失实，主线不采纳这一部分：实际产品输入就是`prepared-*/source.md`的正文抽取，原文／字节身份与工具读回均可核；评估者最初仅获原HTML参照，缺少这份实际抽取输入。报告把抽取文本称“原始响应全文”的表述仍不准确，“导言”定位亦需更正。上述分歧和输入限制保留，不能把样本失败写成6.2通过。
+
+本轮受控反例进一步确认SDK会将max_tokens截断的部分工具JSON补成可解析参数，旧worker随后完成；`truncated-tool-red.log`保留原失败（收到completed）。真实回执没有保存供应商原始stop_reason，不能仅凭2048上限断言该次真实截断的唯一原因。主线针对已复现机制，在默认worker统一拒绝供应商max_tokens／规范化length的模型响应，早于工具派发且不自动重试。独审发现首版只覆盖有model wrapper的父，已移到全部普通父／子默认安装的唯一中间件；最终父／子反例和合法路径的结果见后续验证记录。该修复不检查报告文字是否完整，也不代替质量验收；此次真实授权已消费，不继续追加请求。
+
+最终`truncated-tool-final.log`为**7/7，51.5秒**：三类非法参数的可见拒绝、合法科研父子保存及读回、父／子输出截断零工具派发、原普通图读写均通过。子反例实际先读原材料，再在create前失败／modelFailed，creations及artifacts为空、原材料保持、无报告文件；父仍能核真实失败并正常收尾。外部HTTP模型受控，内部进程／IPC／领域保存真实。harness最终构建、tools类型、Biome（既有8个warning）、架构14模块264文件0 findings及三个相关change strict／diff通过。首版仅父保护时6/6不覆盖子，现已由新第7例补齐；独审`truncated-tool-independent-review.md`保留首轮P2及最终整改复核，当前无待修生产P1/P2。
+
+完成的是错误反馈和确定的截断保护，6.2仍未完成。下次科研验收需先把四项证据／短引文／必要限定压到明确的简短报告预算内，避免无关元数据长篇抄录；任何新真实运行须另获授权，不能直接重放本次pending创建或手工补写报告来通过。
+
+## 已授权补跑及有界工具诊断（2026-10-29）
+
+用户再次明确“授权，继续工作”后，主线仅补跑一次既定`research-live/runner.mjs --execute --approved-minimax`，没有扩大预算或自动重试整项。新目录`/home/joshua/.cache/scholoom-finish-active/research-live/run-aYtwL8/`保留全部原始回执及独立`parent-audit.json`。真实普通内核／TaskPort／session.send到达MiniMax-M2.7；共转发11次请求、正文941740字节，全部HTTP200且完整返回，随后gateway拒绝1次未转发请求。审计保留请求、单次／累计字节及时间等预算规则，但未记录本次拒绝的具体子条件，不能声称必然是某一个额度耗尽。
+
+前两次delegate_agent输入分别在workPackage额外加入basis及role，被严格schema拒绝且未创建对应委派；材料对象自身的role合法。父随后创建缺少问题材料的probe-shape-01、主动取消，再创建正式check-claims-a1-a4-review-02，违反本次“一次委派”的工作要求。探测子实际读到原文，正式子未读材料；两者均无保存报告。父最终failed／remoteOutcome=unknown，原任务正文／metadata／basis与运行前完全相同，无result关联。没有产物可供A1–A4质量核查，6.2保持未完成，不以请求200或进程执行代替科研通过。
+
+独立离线检查逐一核了父子模型钉入、三条run_instances均exited、原文及问题原字节保持、同一kernel退出0／shutdown-after=stopped，采证和收尾错误均为空。此授权已使用完；后续真实模型请求须另获明确范围，受控回放不消费该授权。
+
+主线据上述失败仅改善既有拒绝回执：复用RemoteAgent已注册校验器，提供有界字段路径／规则／字段名，零业务派发，不回显参数值，原已派发后的unknown转换不变。现有非法输入测试改为缺outputs、workPackage额外basis、数字roleVersion三个代表，并核下一模型请求实际收到诊断及委派列表为空；合法evidence-reviewer父子保存／父读回一并回归。首次测试2通过／1失败，是测试误将材料role当非法，原日志`tool-input-feedback-tests.log`保留；按真实契约改成workPackage.basis后，最终`tool-input-feedback-final-tests.log`为**4/4，34.3秒**。内部worker／broker／仓储真实，仅外部HTTP模型受控。harness构建、tools类型及Biome通过，既有非空断言warnings保留。
+
+独立窄审查`tool-input-feedback-independent-review.md`未见生产P1/P2；最初提出增加workPackage.role重复样例，主线依代表性测试规则未采纳：它与basis属于同一additionalProperties分支，没有独立行为风险。原意见与主线裁决保留，未以增加同类测试凑覆盖。
+
+55ad46a／Windows专项40792137138的execution job123179671913现已success：逐组10、16、25、6、4、4、3、2、3，共**73通过／3个既有平台不适用跳过**，原取消／摘录／附件三例均通过，原期限和断言不变。日志`windows-55ad46a-execution.log`保全。同run的zotero-original仍失败，完整Checks40792137169尚未结算；不据专项关闭4.2／4.3，旧17.2／18.2缺证及6.2仍开放。
+
 ## c29a93a失败后同次观察（2026-10-29）
 
 专项40789279376的execution job123170165986为1失败／2通过的Agent代表组：context本轮通过，附件阅读阶段仍在5秒断言报running。原artifact12861651172已一次下载为`windows-c29a93a-execution.zip`；附件trace的两个execution-stages分别属于导入和阅读，不能合并时钟或模型累计数。

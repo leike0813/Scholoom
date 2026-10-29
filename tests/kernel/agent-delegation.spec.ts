@@ -25,64 +25,91 @@ class CapacityApplication extends KernelApplication {
   }
 }
 
-test('malformed delegation arguments return a tool rejection without losing the parent execution', async () => {
-  const root = await mkdtemp(join(tmpdir(), 'scholoom-delegation-input-'));
-  const model = await createModelServer({
-    respond: async ({ calls }) =>
-      calls.includes('delegate_agent')
-        ? { text: 'The invalid delegation was rejected; no child was started.' }
-        : {
-            tool: {
-              name: 'delegate_agent',
-              input: {
-                delegationId: 'malformed-output-placement',
-                roleId: 'evidence-reviewer',
-                roleVersion: '1',
-                tools: ['resource.read', 'resource.create'],
-                workPackage: {
-                  objective: 'Check synthetic claims',
-                  requirements: 'Read then report',
-                  materials: [],
+for (const invalid of [
+  { name: 'missing outputs', path: '/workPackage', rule: 'required', field: 'outputs' },
+  {
+    name: 'extra work package basis',
+    path: '/workPackage',
+    rule: 'additionalProperties',
+    field: 'basis',
+  },
+  { name: 'numeric role version', path: '/roleVersion', rule: 'type' },
+]) {
+  test(`malformed delegation arguments (${invalid.name}) return a tool rejection without losing the parent execution`, async () => {
+    const root = await mkdtemp(join(tmpdir(), 'scholoom-delegation-input-'));
+    const model = await createModelServer({
+      respond: async ({ calls }) =>
+        calls.includes('delegate_agent')
+          ? { text: 'The invalid delegation was rejected; no child was started.' }
+          : {
+              tool: {
+                name: 'delegate_agent',
+                input: {
+                  delegationId: 'malformed-output-placement',
+                  roleId: 'evidence-reviewer',
+                  roleVersion: invalid.name === 'numeric role version' ? 1 : '1',
+                  tools: ['resource.read', 'resource.create'],
+                  workPackage: {
+                    objective: 'Check synthetic claims',
+                    requirements: 'Read then report',
+                    materials: [],
+                    ...(invalid.name === 'extra work package basis'
+                      ? { basis: 'synthetic-private-value' }
+                      : {}),
+                    ...(invalid.name === 'missing outputs'
+                      ? {}
+                      : { outputs: [{ kind: 'create', path: 'review.md' }] }),
+                  },
                 },
-                outputs: [{ kind: 'create', path: 'review.md' }],
               },
             },
+    });
+    const app = new KernelApplication(join(root, 'profile'), {
+      modelEndpoint: model.url,
+      environment: { MINIMAX_CN_API_KEY: 'synthetic-delegation-key' },
+    });
+    try {
+      await app.initialize();
+      const project = await app.call('project.create', {
+        path: join(root, 'project'),
+        trust: 'trusted',
+      });
+      const session = await app.call('session.create', { projectId: project.id });
+      const scope = { projectId: project.id, sessionId: session.id };
+      await app.call('session.send', {
+        ...scope,
+        instructionId: randomUUID(),
+        text: 'Check input rejection.',
+        materials: [],
+      });
+      await expectExecutionCompleted(app, scope, model);
+      expect((await app.call('delegation.list', scope)).delegations).toEqual([]);
+      const rejected = (await app.snapshot(scope)).messages.find(
+        (message) => message.tool?.name === 'delegate_agent',
+      );
+      expect(rejected).toMatchObject({ state: 'error' });
+      expect(JSON.parse(rejected?.tool?.output ?? '{}')).toMatchObject({
+        error: { code: 'invalidRequest' },
+        issues: [
+          {
+            path: invalid.path,
+            rule: invalid.rule,
+            ...('field' in invalid ? { field: invalid.field } : {}),
           },
+        ],
+      });
+      expect(rejected?.tool?.output).not.toContain('synthetic-private-value');
+      const feedback = JSON.stringify(model.requests[1]?.messages);
+      expect(feedback).toContain('invalidRequest');
+      expect(feedback).toContain(invalid.rule);
+      expect(model.requests).toHaveLength(2);
+    } finally {
+      await app.close();
+      await model.close();
+      await rm(root, { recursive: true });
+    }
   });
-  const app = new KernelApplication(join(root, 'profile'), {
-    modelEndpoint: model.url,
-    environment: { MINIMAX_CN_API_KEY: 'synthetic-delegation-key' },
-  });
-  try {
-    await app.initialize();
-    const project = await app.call('project.create', {
-      path: join(root, 'project'),
-      trust: 'trusted',
-    });
-    const session = await app.call('session.create', { projectId: project.id });
-    const scope = { projectId: project.id, sessionId: session.id };
-    await app.call('session.send', {
-      ...scope,
-      instructionId: randomUUID(),
-      text: 'Check input rejection.',
-      materials: [],
-    });
-    await expectExecutionCompleted(app, scope, model);
-    expect((await app.call('delegation.list', scope)).delegations).toEqual([]);
-    const rejected = (await app.snapshot(scope)).messages.find(
-      (message) => message.tool?.name === 'delegate_agent',
-    );
-    expect(rejected).toMatchObject({ state: 'error' });
-    expect(JSON.parse(rejected?.tool?.output ?? '{}')).toMatchObject({
-      error: { code: 'invalidRequest' },
-    });
-    expect(model.requests).toHaveLength(2);
-  } finally {
-    await app.close();
-    await model.close();
-    await rm(root, { recursive: true });
-  }
-});
+}
 
 for (const roleId of ['worker', 'evidence-reviewer']) {
   test(`${roleId}: two owned executions save a real report and the parent reads it without sharing private context`, async () => {
@@ -303,6 +330,37 @@ async function scenario(options: Parameters<typeof delegationModel>[1] = {}) {
     },
   };
 }
+
+test('output-limited delegation never creates a report from repaired partial arguments', async () => {
+  const f = await scenario({ childOutputLimited: true });
+  try {
+    f.request.roleId = 'evidence-reviewer';
+    await f.start();
+    await expectExecutionCompleted(f.app, f.scope, f.model);
+    const result = await f.result();
+    expect(result).toMatchObject({
+      state: 'failed',
+      resultState: 'missing',
+      error: { code: 'modelFailed' },
+      creations: [],
+      artifacts: [],
+    });
+    expect(result.childProcessId).not.toBe(result.parentProcessId);
+    await expect(readFile(join(f.root, 'project', 'report.md'), 'utf8')).rejects.toMatchObject({
+      code: 'ENOENT',
+    });
+    expect(await readFile(join(f.root, 'project', 'input.md'), 'utf8')).toBe(
+      'Original observation: 42.',
+    );
+    expect(
+      (await f.app.snapshot(f.scope)).messages.some(
+        (message) => message.tool?.name === 'create_delegation_resource',
+      ),
+    ).toBe(false);
+  } finally {
+    await f.close();
+  }
+});
 
 test('evidence-reviewer preserves original material even when the parent grants a save output', async () => {
   const f = await scenario({ forbiddenWrite: true });

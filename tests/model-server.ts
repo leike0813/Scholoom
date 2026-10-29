@@ -31,10 +31,13 @@ export interface ModelServerOptions {
     toolId: string;
   }) => ModelPlan | undefined | Promise<ModelPlan | undefined>;
 }
-type ModelPlan = { tool: { name: string; input: Record<string, unknown> } } | { text: string };
+type ModelPlan = (
+  | { tool: { name: string; input: Record<string, unknown>; partialJson?: string } }
+  | { text: string }
+) & { stopReason?: 'max_tokens' };
 
 interface Turn {
-  stopReason: 'tool_use' | 'end_turn';
+  stopReason: 'tool_use' | 'end_turn' | 'max_tokens';
   blocks: Block[];
 }
 
@@ -106,13 +109,22 @@ function plannedTurn(plan: ModelPlan, toolId: string): Turn {
   const thinking: Block = { type: 'thinking', thinking: THINKING, signature: SIGNATURE };
   return 'tool' in plan
     ? {
-        stopReason: 'tool_use',
+        stopReason: plan.stopReason ?? 'tool_use',
         blocks: [
           thinking,
-          { type: 'tool_use', id: toolId, name: plan.tool.name, input: plan.tool.input },
+          {
+            type: 'tool_use',
+            id: toolId,
+            name: plan.tool.name,
+            input: plan.tool.input,
+            partialJson: plan.tool.partialJson,
+          },
         ],
       }
-    : { stopReason: 'end_turn', blocks: [thinking, { type: 'text', text: plan.text }] };
+    : {
+        stopReason: plan.stopReason ?? 'end_turn',
+        blocks: [thinking, { type: 'text', text: plan.text }],
+      };
 }
 
 function planTurn(
@@ -463,7 +475,10 @@ function streamBody(messageId: string, turn: Turn): string {
           data: {
             type: 'content_block_delta',
             index,
-            delta: { type: 'input_json_delta', partial_json: JSON.stringify(block.input) },
+            delta: {
+              type: 'input_json_delta',
+              partial_json: block.partialJson ?? JSON.stringify(block.input),
+            },
           },
         },
         { event: 'content_block_stop', data: { type: 'content_block_stop', index } },

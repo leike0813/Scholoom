@@ -238,6 +238,15 @@ export class RemoteAgent {
                   status: 'error',
                   content: JSON.stringify({
                     error: { code: 'invalidRequest', message: '工具输入不符合已注册声明。' },
+                    issues: (validate.errors ?? []).slice(0, 4).map((error) => ({
+                      path: error.instancePath.slice(0, 256),
+                      rule: error.keyword.slice(0, 64),
+                      ...(typeof error.params.missingProperty === 'string'
+                        ? { field: error.params.missingProperty.slice(0, 128) }
+                        : typeof error.params.additionalProperty === 'string'
+                          ? { field: error.params.additionalProperty.slice(0, 128) }
+                          : {}),
+                    })),
                   }),
                 });
               }

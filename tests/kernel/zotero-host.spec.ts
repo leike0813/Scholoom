@@ -22,7 +22,7 @@ import { promisify } from 'node:util';
 import { _electron as electron, expect, test } from '@playwright/test';
 import { KernelApplication } from '../../apps/kernel/dist/application.js';
 import { bootstrapKernel } from '../../apps/kernel/dist/bootstrap.js';
-import { inspectKernel, serveKernel, stopKernel } from '../../apps/kernel/dist/lifecycle.js';
+import { inspectKernel, serveKernel } from '../../apps/kernel/dist/lifecycle.js';
 import type { IsolatedZotero } from '../../apps/kernel/dist/zotero.js';
 import { createKernelClient } from '../../packages/client/dist/index.js';
 import type { ZoteroOutputs, ZoteroSnapshot } from '../../packages/protocol/dist/zotero.js';
@@ -599,9 +599,18 @@ test('real library/broker/managed original BBT commits missing keys once and exp
     expect(refreshed.text.toLowerCase()).toContain('updated research agents after common commit');
     expect(refreshed.text).toContain(first.citationKey?.value as string);
     await f.app.close();
-    const serving = serveKernel(f.root, { isolatedZotero: f.configuration });
+    const serving = serveKernel(f.root, { isolatedZotero: f.configuration }).then(
+      () => ({ failed: false as const }),
+      (error: unknown) => ({ failed: true as const, error }),
+    );
+    let owner: ReturnType<typeof createKernelClient> | undefined;
     try {
       await expect.poll(async () => (await inspectKernel(f.root)).state).toBe('running');
+      const running = await inspectKernel(f.root);
+      if (running.state !== 'running' || running.endpoint.processId !== process.pid)
+        throw new Error('Missing in-process test-owned kernel');
+      owner = createKernelClient(running.endpoint);
+      await owner.connect();
       const cli = fileURLToPath(new URL('../../apps/kernel/dist/cli.js', import.meta.url));
       const query = await promisify(execFile)(process.execPath, [
         cli,
@@ -632,8 +641,14 @@ test('real library/broker/managed original BBT commits missing keys once and exp
         body: JSON.stringify(await endpointMetadata(f.root)),
         contentType: 'application/json',
       });
-      await stopKernel(f.root);
-      await serving;
+      try {
+        // The test owns this in-process instance; its PID must remain alive after serving ends.
+        await owner?.shutdown();
+      } finally {
+        owner?.dispose();
+        const stopped = await serving;
+        expect(stopped).toEqual({ failed: false });
+      }
     }
   } finally {
     await f.app.close();

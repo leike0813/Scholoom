@@ -1,5 +1,19 @@
 # 实际交付与交接
 
+## 百条例同进程停机夹具（2026-10-29）
+
+主线另核到原百条例直接在Playwright worker内serveKernel，却调用面向独立守护进程的stopKernel等待同一PID退出；测试进程仍存活时这一路径无法确认daemon stopped。当前夹具在原running检查后核endpoint.processId等于当前PID，以同一endpoint／instanceId建立owner客户端；finally只向该实例请求shutdown，再等待原serving outcome。serve拒绝被及时捕获但仍使最终断言失败，不吞EPERM；停止回执失败时同样进入serving检查，保留原60秒用例／失败worker边界，不增加生产停止句柄或延长期限。
+
+Linux原包百条例`zotero-inline-stop-tests.log`为**1/1，37.5秒**（用例25.2秒），覆盖原百条／更正／两格式／真实kernel重启与关闭；显示预检、tools类型及Biome通过。独审指出首版shutdown拒绝跳过serving的缺口，已改为在finally等待并核原结果；原版本也存在服务未停时等serving的边界，不将其描述为新增跨平台保证。最后finally位置调整未再重复原包实跑，成功路径与已验相同；最终类型／静态核对另记。Windows修正尚未实跑，且此片不是前节rename EPERM的根因修复，原失败／任务状态保留。
+
+## 55ad46a Windows原包及停机前ACL（2026-10-29）
+
+专项run40792137138／zotero-original job123179672088结束为failure。原包共同组10通过／1失败；百条例已完成99条补键、固定键保留、两格式、共同题名更正、真实kernel重启后回执查询及导出，最终在发布stopping endpoint的原子rename报EPERM。正常关闭／初始化／忙执行／失联原包宿主组8/8，私有fd0对照2/2，发现文件并发替换及发布失败仍收尾两例2/2。这些成功不能覆盖百条例整个失败或Windows普通持久布局尚未实现的事实，2.3／4.2及最终5.x不变。
+
+artifact12861713840已一次下载为`/home/joshua/.cache/scholoom-finish-active/windows-55ad46a-zotero-original-artifact12861713840.zip`，对应原始job日志及安全提取简报为同根`windows-55ad46a-zotero-original-job123179672088.log`、`windows-55ad46a-zotero-summary.md`。只提取trace内endpoint-before-stop标量，不读发现文件正文。移除Add-Type后的5秒探针本次正常返回：文件attributes=32（Archive）、mode=33206、nlink=1；文件ownerCurrent=false／protected=false，唯一ACE为type0／flags16／mask2032127／currentUser=true；父目录ownerCurrent=true／protected=true，唯一ACE为type0／flags3／同mask／currentUser=true。当前用户完整权限与文件owner不同分别记录，不能从ownerCurrent=false推定缺权限；也不能仅凭这份停机前快照排除改名时的其他访问限制。旧81e2c35探针被kill仍为缺证，不回填为当时查询成功。
+
+未确认EPERM唯一根因，未加重试、改权限、删除原endpoint或放宽unknown／停止／容量。公共try/finally收尾修复及独立故障测试保持；单独正常宿主生命周期通过不等于本次kernel停机发布成功。后续需针对同一次实际改名的源／目标状态和Windows访问失败取证，不能仅从普通并发reader通过归为没有文件占用。
+
 ## 81e2c35的Windows实跑（2026-10-29）
 
 专项40790713243／zotero-original job123174946195：stdin2/2、两条发现／故障收尾2/2、共同事务与原包组合10通过／1失败，宿主smoke8通过／2不适用跳过。真实resetKeyOnChange事件本轮已经到达并通过：偏好读取[true]、共同revision3、正式键／SQL／原包map均为ScholoomPreserved2026，host保持ready，通知后及重启的四份两格式导出与原XPI字节对照通过；不再沿用c29夹具未就绪作为当前结论。

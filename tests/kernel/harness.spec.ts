@@ -12,6 +12,61 @@ import { protocolVersion } from '../../packages/protocol/dist/index.js';
 import { expectExecutionCompleted } from '../execution-diagnostics.js';
 import { createModelServer } from '../model-server.js';
 
+test('output-limited model arguments never execute a repaired partial file write', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'scholoom-truncated-tool-'));
+  const model = await createModelServer({
+    respond: ({ calls }) =>
+      calls.includes('write_file')
+        ? { text: 'Unexpected partial write.' }
+        : {
+            stopReason: 'max_tokens',
+            tool: {
+              name: 'write_file',
+              input: { file_path: '/result.md', content: 'partial result' },
+              partialJson: '{"file_path":"/result.md","content":"partial result',
+            },
+          },
+  });
+  const app = new KernelApplication(join(root, 'profile'), {
+    modelEndpoint: model.url,
+    environment: { MINIMAX_CN_API_KEY: 'synthetic' },
+  });
+  try {
+    await app.initialize();
+    const project = await app.call('project.create', {
+      path: join(root, 'project'),
+      trust: 'trusted',
+    });
+    const session = await app.call('session.create', { projectId: project.id });
+    const scope = { projectId: project.id, sessionId: session.id };
+    await app.call('session.send', {
+      ...scope,
+      instructionId: randomUUID(),
+      text: 'Save a complete result.',
+      materials: [],
+    });
+    await expect
+      .poll(
+        async () => ['failed', 'completed'].includes((await app.snapshot(scope)).run?.state ?? ''),
+        { timeout: 20000 },
+      )
+      .toBe(true);
+    const snapshot = await app.snapshot(scope);
+    expect(snapshot.run?.state).toBe('failed');
+    await expect(readFile(join(project.path, 'result.md'), 'utf8')).rejects.toMatchObject({
+      code: 'ENOENT',
+    });
+    expect(
+      (await app.snapshot(scope)).messages.filter((message) => message.tool?.name === 'write_file'),
+    ).toEqual([]);
+    expect(model.requests).toHaveLength(1);
+  } finally {
+    await app.close();
+    await model.close();
+    await rm(root, { recursive: true });
+  }
+});
+
 test('real graph reads, writes and retains thinking across model tool turns', async () => {
   const root = await mkdtemp(join(tmpdir(), 'scholoom-harness-'));
   const model = await createModelServer();

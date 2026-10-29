@@ -35,6 +35,7 @@ export async function delegationModel(
     childHold?: boolean;
     forbiddenWrite?: boolean;
     childMissing?: boolean;
+    childOutputLimited?: boolean;
     parentExit?: boolean;
     repeat?: boolean;
     conflict?: boolean;
@@ -184,6 +185,22 @@ export async function delegationModel(
             },
           };
         if (read?.error) return { text: 'Material access failed; no report file was created.' };
+        if (options.childOutputLimited) {
+          const input = {
+            projectId: (material.ref as { projectId: string }).projectId,
+            path: 'report.md',
+            operationId: 'delegation-report-create',
+            content: 'Partial result',
+          };
+          return {
+            stopReason: 'max_tokens',
+            tool: {
+              name: 'create_delegation_resource',
+              input,
+              partialJson: JSON.stringify(input).slice(0, -2),
+            },
+          };
+        }
         if (!calls.includes('create_delegation_resource'))
           return {
             tool: {

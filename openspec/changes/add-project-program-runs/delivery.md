@@ -1,5 +1,11 @@
 # 实际交付与交接
 
+## 55ad46a Windows专项接收（2026-10-29）
+
+run40792137138已结算failure：private-files job123179671655成功，execution job123179671913成功，zotero-original job123179672088失败；不是全部平台成功。execution逐组10、16、25、6、4、4、3、2、3，共73通过／3个既有平台不适用跳过，含父子取消／重启、显式摘录、附件Agent三代表以及Electron入口重复3/3，测试及生产期限未改。日志为`/home/joshua/.cache/scholoom-finish-active/windows-55ad46a-execution.log`。
+
+原包组百条例在发布stopping endpoint时rename EPERM，具体成功范围、安全ACL观测及未定因见[原包交付记录](../connect-zotero-host-bbt/delivery.md#55ad46a-windows原包及停机前acl2026-10-29)。同job发现文件并发替换／故障后仍收尾两例2/2，不能据此宣称原EPERM已修。完整Checks40792137169查询时macOS job123179672144已success，Linux／Windows仍在kernel阶段；活动job日志API返回404，本轮未重试或将空文件当实际结果。5.2／6.2保持未完成，仍待完整目标结果及对应缺口修复，不从专项正例补旧故障唯一因果。
+
 ## 81e2c35的Windows故障收尾已通过（2026-10-29）
 
 专项40790713243／job123174946195的两项发现／停机回归2/2、28.6秒：并发读取期间原子发现，以及真实发布失败后已受理程序stop=confirmed均通过。生产异常没有被吞下，停止失败仍报错；这里只关闭该公共修复的Windows目标缺证，不将生态百条例仍有的原EPERM或整个change5.2自动关闭。最新只读观测与安全工件范围见[生态记录](../connect-zotero-host-bbt/delivery.md#81e2c35的windows实跑2026-10-29)。

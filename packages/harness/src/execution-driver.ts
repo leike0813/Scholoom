@@ -256,6 +256,20 @@ export function startExecutionWorker(graphs = new ExecutionGraphs()): void {
             : {}),
         }),
       );
+      middleware.unshift(
+        createMiddleware<typeof instructionState>({
+          name: 'ScholoomModelCompletion',
+          wrapModelCall: async (request, handler) => {
+            const response = await handler(request);
+            if (
+              response.response_metadata.finish_reason === 'length' ||
+              response.additional_kwargs.stop_reason === 'max_tokens'
+            )
+              throw new OperationError('modelFailed', '模型输出达到上限，未执行本次工具请求。');
+            return response;
+          },
+        }),
+      );
       let saver: InstructionSaver | undefined;
       if (input.checkpointPath) {
         database = new Database(input.checkpointPath, { fileMustExist: true });
