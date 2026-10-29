@@ -1,5 +1,11 @@
 # 实际交付与交接
 
+## 第27轮主线接收与正式规格同步
+
+原`0d79ead43be079fc35e01247f67dddfa30e6e6db`以`47e0f39`合入，`a57ec9e`保留祖先；主线核两文件差异及作者逐次结果。与组织RPC联合运行时，本change的原值类型／metadata-only更正及NFC冲突两项均通过，合组3/3、45.1秒；不是三项均归本change。主线没有重跑作者已验的原BBT撤权1/1，准确保留scopeStopped但pluginClosed未确认的边界。证据在本轮根`library-main.log`和`library-main-results/`，作者原失败／最终结果仍由下一节引用。A-W1/2/3按上述本机限定范围接收。
+
+本change三条ADDED已逐字同步到`openspec/specs/literature-catalog/spec.md`，保留原Purpose及既有条款；与独立组织操作的五条要求并存，不将原值事务扩成集合写入。`library-spec-sync-check.json`核八条唯一且原文保留，目标规格strict通过。全规格strict检查另有未修改的agent-harness及ui-workbench-shell超500字符警告导致失败，原输出保留在`synced-specs-validation.log`；不为本片改动无关规格。尚未执行归档，目标平台及完整生态范围沿原边界。
+
 ## 第27轮：补齐首批三处场景证据（2026-10-30）
 
 按主线确认，本轮目标是本change（派发中`establish-library-original-record-authority`为命名笔误），原tasks保持10/10。基线`bb8b236e0fd37e59cffd30607372e444be633324`、开工clean；只扩原`tests/kernel/library-records.spec.ts`和本交付，不改生产库／schema／protocol或`zotero-host.spec.ts`。对应第26轮`library-contract-review.md`的A-W1/2/3，先查保留cache，未找到精确组合成功记录；撤权标题的原命中均为跳过，不记通过。

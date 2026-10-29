@@ -1,5 +1,11 @@
 # 实际交付与交接
 
+## 第27轮主线接收与旧证据补核
+
+原`5a34267158dcefdabaf101f38d4c77c655236f3d`以`8a2d364`合入并保留祖先。主线核两任务实际附件引用、原关联候选／真实CAS失败及已发送项的断言后，固定产物复验：双任务仅重绑A的内核代表**1/1、9.9秒**；明确附加并发送后任务保存失败的Browser／真实Electron代表**2/2、1.4分钟**。证据在本轮根`tasks-shared-main.log`、`tasks-ui-main.log`及各自main-results目录；UI独立端口6233／profile、外部HTTP模型受控，内部worker／发送／仓储真实，未使用真实模型。W1/W2按该范围接收，未扩为全部场景或科研质量通过。
+
+图线只读补得基础任务8项、I1内核19项、TaskPort四场景及双宿主任务／Graph原逐项结果；准确旧版本、原runner／日志行和差异在同根`next/research-graph-runtime/RESULT.md`及其索引，W3不再笼统记为全部缺失。旧Linux CI整体仍为failure；其局部通过及相同测试文件不能代替当前全部依赖版本重新验收。来源撤权／新版后的完整询问链及后置提供者边界保持，未重跑已绿旧矩阵、未归档。
+
 ## 第27轮：W1／W2原Scenario证据补充
 
 从指定`bb8b236e0fd37e59cffd30607372e444be633324`及clean开始，消费主线`/home/joshua/.cache/scholoom-round26-acceptance-8hG3DX/task-contract-review.md`的W1／W2，按当前apply及实际spec核查。原单任务关联冲突、附加未发送和共同上下文分段结果不替代这两项完整组合，本轮各补一个代表用例；只改`tests/kernel/research-tasks.spec.ts`、`tests/ui/research-tasks.spec.ts`和本记录。原tasks仍33/33，没有新增重定向API、任务正文副本、库删除／恢复分类或生产代码，也未将全部Scenario／历史缺证记为已验。

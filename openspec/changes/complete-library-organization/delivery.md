@@ -1,5 +1,11 @@
 # 实际交付与交接
 
+## 第27轮主线接收与正式规格同步
+
+原`2e3dea31bd3544f78968b9c3b0fd9de01b40fc10`以`8029003`合入，`b2a2540`保留祖先。主线核原样本初态、两条修订、甲乙互换、身份／字节及undo／redo／独立恢复保护后，运行该RPC与两项原值代表，合组**3/3、45.1秒**，本change占一项，原日志与结果为本轮根`library-main.log`及`library-main-results/`。没有修改生产组织接口或放宽原判据，O-W1的两个组合场景按该真实Linux代表接收；不是本轮Windows重跑。
+
+五条ADDED已逐字同步到正式`openspec/specs/literature-catalog/spec.md`，与原值权威条款共同保留，原Purpose／旧规格未改。八条同步一致性及目标strict验证通过，分别见`library-spec-sync-check.json`与`literature-spec-validation.log`。全规格strict另因两份未修改规格的长条款警告失败，详见原`synced-specs-validation.log`；本片不清理其内容，未执行归档。
+
 ## 第27轮：跨既有集合替换Scenario补证（2026-10-30）
 
 本轮从共同`bb8b236e0fd37e59cffd30607372e444be633324`及clean开工，按主线`library-contract-review.md`的O-W1补实际覆盖。原领域／RPC样本只从空成员加入集合，材料保护样本只改标签，旧undo／redo不能代替明确甲→乙的organize请求；没有找到可替代本补证的精确已有实跑结果。

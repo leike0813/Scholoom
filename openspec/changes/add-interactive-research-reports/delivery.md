@@ -1,5 +1,11 @@
 # 实际交付与交接
 
+## 第27轮：部分封存P2修复接收
+
+项目原`cbc38a4324eaeb2015618005eafdca17c02d6f2d`以`376a28a`合入，祖先桥`737cca5`保留来源。原sealed逐项保存已取得的program／gate指纹，未知字段为空字符串；未新增字段／账本或放宽v1验证，完整seal和目录sync仍先于controller构造。作者旧dist真实gate既存红例1失败后才改源码及构建，修复后必要组合6/6、真实Linux默认冻结到完整停止另1/1；原失败、两次运行和收尾分开保留在本轮根`next/project-execution/RESULT.md`。
+
+主线先build platform再固定产物复验同一必要组合，**6/6、3.9秒**，包括原provider持久部分指纹、未知gate及零controller／scope启动；原scope-free停止确认后才释放容量。证据为本轮根`assets-fixed-build.log`、`assets-fixed-main.log`及`assets-fixed-main-results/`。独立`assets-p2-review.md`核冻结两文件与原调用，确认原P2已关闭、无新增确证P1/P2；该审查未运行测试，已结束关闭。目录sync／close等额外故障分支未因此宣称实跑。资产片现按其限定范围接收，C/M跨身份、T1/T2、活动报告承载和完整3.2／I5继续未交付，报告仍21/27。
+
 ## 第27轮：资产IO整合、审查缺口与并行接续
 
 项目线原提交`06fafce724d3a6cb3cdb0dd7bcdc6f20f8ffde72`以`59d61f2`合入dev，`aad0127`保留原祖先。`IsolationAssets`集中原固定资产的prepare／put／seal；provider保留授权、唯一准入、串行、原记录提交及停止责任。共享preparation夹具只将布尔锁接点改为原真实isolationLock，其controller／support／领域仍为已声明替身。主线platform构建后运行整个`isolated-report-assets.spec.ts`及`isolated-report-preparation.spec.ts`，**28/28、6.4秒**；构建与测试均exit0，证据在`/home/joshua/.cache/scholoom-round27-acceptance-O1IWSr/{platform-build,assets-and-preparation}.log`。作者真实Linux默认准备到完整停止1/1为上一轮独立结果，不能算本轮重跑。
