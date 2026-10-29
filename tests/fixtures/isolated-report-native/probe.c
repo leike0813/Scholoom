@@ -31,9 +31,8 @@ static int equal(const char *left, const char *right) {
   return *left == *right;
 }
 
-static void approved_bytes(const char *path) {
-  static const char expected[] = "approved report bytes\n";
-  char bytes[sizeof(expected)];
+static void approved_file(const char *path, const char *expected, unsigned long size) {
+  char bytes[1024];
   long fd = call(__NR_openat, AT_CWD, (long)path, 0, 0, 0, 0);
   if (fd != 0 && fd != 3) finish(10);
   unsigned long used = 0;
@@ -45,12 +44,31 @@ static void approved_bytes(const char *path) {
     used += (unsigned long)count;
     if (used == sizeof(bytes)) finish(12);
   }
-  if (used != sizeof(expected) - 1) finish(12);
+  if (used != size) finish(12);
   for (unsigned long i = 0; i < used; i++) {
     if (bytes[i] != expected[i]) finish(12);
   }
   if (call(__NR_write, fd, (long)expected, 1, 0, 0, 0) != -EACCES_VALUE) finish(13);
   if (call(__NR_close, fd, 0, 0, 0, 0, 0) != 0) finish(14);
+}
+
+static void approved_bytes(const char *path) {
+  static const char expected[] = "approved report bytes\n";
+  approved_file(path, expected, sizeof(expected) - 1);
+}
+
+static void approved_report(const char *path) {
+  /* Literal oracle, independent of the TypeScript codec and freeze output. */
+  static const char entry[] =
+    "<!--scholoom-report-v1\n"
+    "{\"version\":1,\"resources\":[{\"ref\":{\"source\":\"project\",\"projectId\":\"p\","
+    "\"fileId\":\"data\"},\"basis\":\"d1\",\"path\":\"assets/data.json\","
+    "\"mediaType\":\"application/json\"}],\"sources\":[],\"objects\":[]}\n-->\n"
+    "<html><body>真实冻结字节</body></html>";
+  static const char data[] = "{\"approved\":true}\n";
+  if (!equal(path, "/resources/reports/index.html")) finish(15);
+  approved_file(path, entry, sizeof(entry) - 1);
+  approved_file("/resources/reports/assets/data.json", data, sizeof(data) - 1);
 }
 
 static void denied_capabilities(void) {
@@ -145,8 +163,10 @@ __attribute__((used, noreturn)) void probe_entry(unsigned long *stack) {
   int fail = equal(arguments[2], "fail");
   int detach = equal(arguments[2], "detached");
   int detach_exit = equal(arguments[2], "detached-exit");
-  if (!normal && !fail && !detach && !detach_exit) finish(64);
-  approved_bytes(arguments[1]);
+  int report = equal(arguments[2], "report");
+  if (!normal && !fail && !detach && !detach_exit && !report) finish(64);
+  if (report) approved_report(arguments[1]);
+  else approved_bytes(arguments[1]);
   denied_capabilities();
   if (detach || detach_exit) detached(detach_exit);
   finish(fail ? 42 : 0);
