@@ -67,13 +67,11 @@ async function endpointMetadata(directory: string) {
     if (process.platform === 'win32') {
       const script = [
         '$ErrorActionPreference="Stop"',
-        'Add-Type -AssemblyName System.Web.Extensions',
         '$sid=[System.Security.Principal.WindowsIdentity]::GetCurrent().User',
         '$path=$env:SCHOOLOOM_ENDPOINT_TEST_PATH',
-        '$result=@{}',
-        'foreach($kind in @("file","directory")){ if($kind -eq "file"){$acl=[System.IO.File]::GetAccessControl($path)}else{$acl=[System.IO.Directory]::GetAccessControl([System.IO.Path]::GetDirectoryName($path))}; $raw=[System.Security.AccessControl.RawSecurityDescriptor]::new($acl.GetSecurityDescriptorBinaryForm(),0); $aces=@(); foreach($ace in $raw.DiscretionaryAcl){$aces+=@{type=[int]$ace.AceType;flags=[int]$ace.AceFlags;mask=[int]$ace.AccessMask;currentUser=$ace.SecurityIdentifier.Equals($sid)}}; $result[$kind]=@{ownerCurrent=$acl.GetOwner([System.Security.Principal.SecurityIdentifier]).Equals($sid);protected=$acl.AreAccessRulesProtected;aces=$aces}}',
-        '$result.attributes=[int][System.IO.File]::GetAttributes($path)',
-        '[System.Web.Script.Serialization.JavaScriptSerializer]::new().Serialize($result)',
+        '$result=@()',
+        'foreach($kind in @("file","directory")){ if($kind -eq "file"){$acl=[System.IO.File]::GetAccessControl($path)}else{$acl=[System.IO.Directory]::GetAccessControl([System.IO.Path]::GetDirectoryName($path))}; $raw=[System.Security.AccessControl.RawSecurityDescriptor]::new($acl.GetSecurityDescriptorBinaryForm(),0); $aces=@(); foreach($ace in $raw.DiscretionaryAcl){$aces+=\'{"type":\'+[int]$ace.AceType+\',"flags":\'+[int]$ace.AceFlags+\',"mask":\'+[int]$ace.AccessMask+\',"currentUser":\'+$ace.SecurityIdentifier.Equals($sid).ToString().ToLowerInvariant()+\'}\'}; $result+=\'"\'+$kind+\'":{"ownerCurrent":\'+$acl.GetOwner([System.Security.Principal.SecurityIdentifier]).Equals($sid).ToString().ToLowerInvariant()+\',"protected":\'+$acl.AreAccessRulesProtected.ToString().ToLowerInvariant()+\',"aces":[\'+($aces -join ",")+\']}\'}',
+        "[System.Console]::WriteLine('{'+($result -join \",\")+',\"attributes\":'+[int][System.IO.File]::GetAttributes($path)+'}')",
       ].join('; ');
       try {
         const { stdout } = await promisify(execFile)(

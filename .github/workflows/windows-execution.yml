@@ -87,6 +87,8 @@ jobs:
             test-results/windows-zotero-lifecycle/
             test-results/windows-electron-stdin/
             test-results/windows-endpoint-replacement/
+            !test-results/windows-endpoint-replacement/**/configuration/**
+            !test-results/windows-endpoint-replacement/**/program-project/.scholoom/**
           if-no-files-found: warn
   private-files:
     runs-on: windows-latest

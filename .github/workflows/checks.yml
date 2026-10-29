@@ -90,4 +90,7 @@ jobs:
         if: failure()
         with:
           name: diagnostics-${{ matrix.os }}
-          path: test-results/
+          path: |
+            test-results/
+            !test-results/**/lifecycle-failed-stopping--*/configuration/**
+            !test-results/**/lifecycle-failed-stopping--*/program-project/.scholoom/**

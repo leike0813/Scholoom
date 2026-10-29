@@ -1,5 +1,11 @@
 # 实际交付与交接
 
+## c29a93a失败后同次观察（2026-10-29）
+
+专项40789279376的execution job123170165986为1失败／2通过的Agent代表组：context本轮通过，附件阅读阶段仍在5秒断言报running。原artifact12861651172已一次下载为`windows-c29a93a-execution.zip`；附件trace的两个execution-stages分别属于导入和阅读，不能合并时钟或模型累计数。
+
+阅读run bf550412-6822-45c5-9558-c5d9de85fc7c的同次记录：initialize发送1634ms、响应4059ms、两次模型请求均已完成，失败记于4798ms，controller退出4856ms，首次采到completed为4904ms；原5秒窗口尾部确有未采到的完成转换。导入run独立完成于4490ms。本次保留原失败且没有重放，证明新的失败后观察覆盖了这个窗口；不从本轮尾部现象回填0ed2c97原queued的缺证，亦不据此关闭17.2旧watch／DOM事实。两个安全JSON为`windows-c29a93a-attachment-stage{1,2}.json`。原预算及断言未改，后续须基于具体路径修夹具或明确现有契约的验收方式，不能把继续观察当通过。
+
 ## Windows同次初始化缺证的继续观察（2026-10-29）
 
 0ed2c97／专项40784928035的execution job失败：前置10、ownership16／3不适用、HostConnection25、availability6、isolated4、ACL4、取消子Agent1、owner2及Electron重复3项通过；context与附件Agent两例在原5秒断言时queued。`windows-fd0-execution.log`及一次下载的artifact12859168740保全。context同一run记录为受理12ms、执行准备至2282ms、worker报到2864ms、initialize发送2868ms，失败4829ms、模型请求0、无初始化返回或worker stage。它缩小了阶段，不能据此在冷加载、IPC未达、初始化回调等待三者中断言唯一根因。

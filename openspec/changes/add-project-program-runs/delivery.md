@@ -1,5 +1,9 @@
 # 实际交付与交接
 
+## 81e2c35的Windows故障收尾已通过（2026-10-29）
+
+专项40790713243／job123174946195的两项发现／停机回归2/2、28.6秒：并发读取期间原子发现，以及真实发布失败后已受理程序stop=confirmed均通过。生产异常没有被吞下，停止失败仍报错；这里只关闭该公共修复的Windows目标缺证，不将生态百条例仍有的原EPERM或整个change5.2自动关闭。最新只读观测与安全工件范围见[生态记录](../connect-zotero-host-bbt/delivery.md#81e2c35的windows实跑2026-10-29)。
+
 ## 新故障诊断的启动前置（2026-10-29）
 
 c29a93a／专项40789279376的并发发现替换在Windows通过；新增发布失败仍须收尾例尚未进入故障注入，5秒默认准备断言结束时application模块导入才完成（loading→initializing约4998ms）。现该新例明确沿既有limits.lifecycleMs等待启动，不改被测停机语义或原Agent完成预算；Linux原故障例最小复验1/1、11.5秒，目标待回执。生态百条例原EPERM仍失败，事实及新只读元数据观测见[生态记录](../connect-zotero-host-bbt/delivery.md#c29a93a的windows回执与夹具前置整改2026-10-29)。

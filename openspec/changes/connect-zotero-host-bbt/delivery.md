@@ -1,5 +1,13 @@
 # 实际交付与交接
 
+## 81e2c35的Windows实跑（2026-10-29）
+
+专项40790713243／zotero-original job123174946195：stdin2/2、两条发现／故障收尾2/2、共同事务与原包组合10通过／1失败，宿主smoke8通过／2不适用跳过。真实resetKeyOnChange事件本轮已经到达并通过：偏好读取[true]、共同revision3、正式键／SQL／原包map均为ScholoomPreserved2026，host保持ready，通知后及重启的四份两格式导出与原XPI字节对照通过；不再沿用c29夹具未就绪作为当前结论。
+
+剩余原包失败仍是百条例停机发布endpoint的EPERM。原日志`windows-81e2c35-zotero.log`、一次下载的artifact12862365036及trace保全；`windows-81e2c35-endpoint-before-stop.json`的mode33206显示文件可写，ACL查询5秒被终止，尚无ACL结论。只读query现改为仅输出已知整数／布尔值的JSON，不加载序列化程序集或模块；仍保留5秒／16KiB上限，不扩大为生产权限修复。该Windows修订待目标验证，当前类型／Biome及已知源码payload静态自检通过。
+
+新故障例将安全停止回执单独落盘；两份workflow仅排除该例的configuration与项目私有数据库子树，保留trace／安全JSON。该例旧上传中的endpoint属于已停止测试实例，未含模型凭据；后续不依赖或上传该连接记录。Windows普通持久资源配方未由这些结果补齐，2.3／4.2与最终收尾保持开放。
+
 ## c29a93a的Windows回执与夹具前置整改（2026-10-29）
 
 专项40789279376的zotero-original job123170165749仍失败：stdin2/2、并发发现替换1项、共同事务8项／冲突1项及原包smoke8通过／2不适用跳过；百条例仍在停机发布endpoint.json时EPERM，新增reset例在fixture建立前报undefined.catalog，未到偏好触发，不能写作Windows reset保护失败或通过。原日志`windows-c29a93a-zotero.log`及artifact12861390661保留。故障收尾诊断例的默认5秒准备窗口在application动态导入耗时约4998ms后结束，尚未初始化库；这不是其被测的停机收尾阶段。

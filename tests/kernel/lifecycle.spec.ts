@@ -456,8 +456,10 @@ test('failed stopping discovery still closes an accepted managed program', async
     await client.shutdown();
     expect(await serving).toMatchObject({ failed: true });
     const stopped = records.get(accepted.programRunId).run;
+    const receiptPath = test.info().outputPath('discovery-failure-cleanup.json');
+    await writeFile(receiptPath, JSON.stringify({ state: stopped.state, stop: stopped.stop }));
     await test.info().attach('discovery-failure-cleanup', {
-      body: JSON.stringify({ state: stopped.state, stop: stopped.stop }),
+      path: receiptPath,
       contentType: 'application/json',
     });
     expect(stopped.stop).toBe('confirmed');
