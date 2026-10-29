@@ -1,5 +1,19 @@
 # 实际交付与交接
 
+## 第20轮主线验收（2026-10-29）
+
+五树25文件逐树冻结并合入dev，起点0d27cff；原提交、清单及作者终端回执见 `/home/joshua/.cache/scholoom-round20-acceptance-INWZnx/` 的frozen.json、inventory.json及*-terminal.json。主线接收3.1a正常发布／发布前条件冲突、3.1b独立metadata更新、3.2a版本状态保管、3.2b真实registered报告等待接续，当前16/26。3.1a按第19轮已允许的失败代表接收，普通worker保存关联unknown尚未实跑，新增3.1c明确保留；不缩减完整3.1契约。
+
+主线先重建实际变化的desktop，复用未变packages／kernel，固定产物后运行组合：updates7、report-drafts5、普通发布2、等待接续2、原草稿1、共同贡献4，共21/21、1.9分钟。tools／desktop类型与架构14模块270文件0 findings通过。原R2b结构夹具真实Browser／Electron各1，共2/2；数学结构／AX保留，但暂缓真实回包后整体srcdoc替换清空未提交组合输入，两宿主均复现，绿色表示调查可重复，不能采纳为完整呈现。实际命令／日志见main-checks.json、kernel.log、structure-ui/；inputs／TMPDIR均在持久cache，无当前/tmp前置。
+
+三份独立gpt-6.1-sol/high无历史fork审查无确证P1/P2：updates-review.md另7项原例及4个独立竞争探针通过；drafts-review.md实跑7项及突变／零越权读取探针；execution-review.md独立两条业务组合4/4，核保存／关联／执行及实际普通内核／客户端／worker收尾。前两片load及授权批准仍是明确替身，后两片内部真实、模型仅受控HTTP或无模型测试Graph；未把它们相加为主线一次运行或完整报告／科研质量通过。真实页面ready仍未接，不以不send冒充其负例。
+
+R2b交回还指出共享Electron UI夹具仅指定内核目录，浏览器profile未显式隔离。主线用已有44.5.1探针确认--user-data-dir同时控制userData／sessionData／默认storagePath；tests/ui/fixture.ts现按每用例输出目录传入该参数，真实核对三路径并保存electron-profile.json／附件。保持原窗口／自有调试内核收尾，新开同应用窗口仍同profile。主线已有Electron场景首次窄复验1/1，落盘版最终1/1、37.6秒；可读路径记录在profile-ui-final/results/。没有查看或清理默认用户profile，没有推定以前测试profile已隔离。新guard的storagePath可null声明导致首次tools类型失败，已加明确拒绝；附件格式首查失败只修格式，保留原日志，最终类型／格式另验。docs/development.md同步实际入口；此修复不改变产品renderer／内核。
+
+下一轮沿design第20轮五线：unknown实际核查、真实client适配、可信module汇合、输入事务保护，以及T1安装前可审查方案。固定候选仍不含任意报告安全保证，系统IME／读屏、服务安装、完整浏览器、目标平台及I5未完成。T1只研究具体安装文件／权限／接缝与真实判据，不执行系统安装或发起T2；最终授权由主线在具体方案审查后确定。CI后置、不push、不新增模型调用，所有新任务必须先同步验证再发送。
+
+最终profile-review.md独立窄审无确证P1/P2，仅只读源码／实际路径与退出证据，不把跨窗口静态核对或Windows／macOS算实跑。最终tools类型、fixture格式、change strict、scholoom-dev及diff通过，原nullable声明／附件格式失败日志保留；最终UI后只改附件格式，不重复业务测试。架构命令的pnpm入口曾触发环境默认依赖解析，日志明确0下载／0新增、Already up to date，锁文件无改动；后续同步直接用node scripts/check-architecture.ts，避免这次额外解析与网络等待，不增加依赖或安装步骤。
+
 ## R2b原结构可信对照交回（第19轮本片，0d27cff）
 
 先核共同HEAD=`0d27cff726fe50a2545da7f9479694eb7bb3525f`及clean，读取当前上下文／apply；实际执行后取得delivery instructions。只新增`tests/fixtures/report-structure/`并更新本change的R2b段落；原report-surface反例、3.x事实和其他共享源码保持。任务仍12/22，2.1b／T1／T2／I5及正式R2架构未完成，活动报告仍unavailable。

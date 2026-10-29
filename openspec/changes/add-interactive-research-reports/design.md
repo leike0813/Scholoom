@@ -26,6 +26,28 @@ ReportResources 是 `packages/editor` 内的 module，不新建包／数据库�
 
 ## 方案与接口
 
+### 第20轮接收及下一片
+
+四个独立子片按各自契约接收，实际范围见delivery。3.1a采用第19轮已允许的发布前冲突分支；普通worker关联unknown未实跑，单列3.1c保留。R2b保住MathML结构，但整份srcdoc替换丢失在途组合输入，仍不采纳为正式方案。下一轮五线如下，主线单点更新3.x工件，原module及正式协议不由多个树同时改。
+
+| 子片／工作树 | 目标与独占写集 | 停止边界 |
+| --- | --- | --- |
+| 3.1c／project-execution | 扩原report-publication.spec.ts，在真实worker保存后的原saved／关联seam注入一次失败，分别核文件、edit／Evidence、artifact和原指令／实例，沿原身份查询、不重复写入 | 优先只测试，内部仓储／broker／worker真实，外部HTTP受控；原查询不足就交缺口，不造结果／公共查询或修改生产harness／kernel |
+| 3.1d／research-graph-runtime | 新reports/report-client.ts及tests/kernel/report-client.spec.ts，确需小fixture独立目录；真实KernelClient的describe／resources.report／subscribeChanges驱动原createReportUpdates，实际server／领域文件／库 | 不改原updates、公共client／protocol、ResourceView／HtmlRenderView。最少正常更新及撤权／重连代表，不持有OS范围；已发RPC实际settle前不假取消 |
+| 3.2c／literature-workbench | 新tests/fixtures/report-lifecycle/及tests/ui/report-lifecycle.spec.ts，原updates／report-drafts／report-context、business-session／共同草稿及检查器在同一可信样本汇合 | client／load／授权事实明确为替身，不依赖尚未交付report-client；不另造状态或草稿权威，不改生产module／共享UI fixture，不执行任意报告脚本 |
+| R2c／research-interaction | 新tests/fixtures/report-input/，只读复用固定源页及结构控制器，保留R2／R2b反例；保护未提交输入事务，至多一个最新回包及一个最新有界输入意图 | 禁脚本frame和固定可信控件，非通用DOM镜像；不以禁输入、延时或覆盖未提交值换刷新，实际源页须收到提交并与最终状态对应；正式架构／系统IME／读屏仍待验 |
+| 2.1e／zotero-ecosystem | 新.scratch/scholoom-foundations/research/report-t1-installation.md；将固定native T1候选收敛为具体安装文件／路径、身份权限、认证／字节交付、启动停止、unknown恢复、验证及移除方案，配置草案及一手资料保存在cache | 只形成可审查候选，不最终批准共享接口，不写生产服务／wire，不安装或修改/etc／usr／run、账户／策略，不启动服务／浏览器。主线审后才确定部署授权，方案不算T1通过 |
+
+真实client适配只读当前入口及清单最多32依赖／100来源。changeSchema只有projectId／filePaths／libraryChanged等粗事实：明确不相关项目／会话忽略，当前项目粗通知、含库来源时libraryChanged或resync合并为一次当前报告核查，不假造逐材料通知或扫描全库。同basis仍复查权限，已知撤权／身份失效立即封展示资格，失败沿updates显式重查；断连／换配置／dispose隔离旧结果。一项实际在途核查及一个最新待查，不以本地AbortSignal冒充已取消RPC。
+
+汇合夹具只补新module之间的组合：dirty期间新版保护、显式切换保留原共同项basis、关闭重开状态候选、旧consumer失效，以及状态装入当前viewId／generation后完整restore消息超过64KiB时拒绝并保留草稿。不能仅验证最小持久封套就发送新封套，copyOnly不当页面restore或绕撤权。限两类代表／双宿主，不复制旧module全矩阵，不声称真实授权／产品3.2／I5。
+
+R2c选择固定可信输入事务保护：回包不能在composition或未确认输入期间销毁活动文档，须有界合并，源页实际确认最新输入后才采用相容结果；控件、回包、view生命周期分别绑定，关闭／换版本／旧代不得复活。算法由本线局部选择，但不能将旧动作重绑到另一个报告／接收者。保留数学／文本／焦点，不用位图替代，不宣称任意HTML或OS隔离已支持。
+
+T1方案继续沿可信登录账户／正常内核、独立非root控制身份及每实例受限身份候选；peer凭据只证明账户，不新增对恶意同UID程序的代码认证承诺。领域授权及唯一ProcessAdmission归原权威，服务不另建容量／权限表，不接页面自报ready／任意路径／凭据。本次将安装代价和T1判据做到可审查，不将跨UID／PID1／policy／FD未知写成已成立，不重试旧同UID入口或启动T2。
+
+research-task-workspace已完成持久等待组合，agent-delegation待真实目标／模型授权，两树本轮等待，不重跑旧正例。共享UI profile由主线单独修复：Electron启动前指定每用例独立user-data-dir，核实际userData／sessionData／storagePath并落盘；本机通过不代表Windows／macOS。完整3.x／2.1b／I5继续开放。
+
 ### 第19轮验收与五线独立实施
 
 2.1d真实Linux接线已接收，R2纯文本投影只接收调查依据；分数及辅助结构丢失不满足呈现契约。现有清单、来源授权、资源保存、共同草稿及registered图机制足以先行实施下列片，不把完整任务图的最终整合顺序误作所有子项必须串行。以下五片本轮直接实施，关键共享选择由主线负责。

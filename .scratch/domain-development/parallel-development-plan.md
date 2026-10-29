@@ -575,6 +575,24 @@ Codex／gpt-6.1-sol／high保持。先提交本轮验收及决定、保留原冻
 
 第19轮同步回执：验收安排7f935c5及无内容差异祖先桥293bab0已同步七树，各树clean；各自重建实际变化platform，复用未变harness／kernel及产品产物，tools类型／架构与每树一项定向行为共7/7通过。原始前后HEAD、命令及结果见synchronized.json、sync-checks.json、sync-final.json。此文档回执再快进，不重复源码构建；最终共同HEAD写入dispatch/plan.json，发送及独立启动观察在同目录保留，不将accepted:true单独称为已启动。发送后不再次更改各树基线。
 
+## 第20轮集成与下一批（2026-10-29）
+
+用户补充research-graph-runtime亦已结束，本轮按五条实施线全部交回处理。主线冻结并收回五树25文件，接收报告3.1a正常发布／发布前冲突、3.1b候选更新、3.2a状态保管及3.2b真实等待接续；原unknown剩余单列3.1c，不混为通过。主线组合21/21及R2b双宿主2/2，三份独审无确证P1/P2。结构对照保住MathML，但整份srcdoc替换丢组合输入，仍只接收调查，不采纳为完整呈现。证据根 `/home/joshua/.cache/scholoom-round20-acceptance-INWZnx/`，实际任务和范围由原报告tasks／delivery维护。
+
+主线另修共享UI夹具的每用例Electron profile隔离，实际核userData／sessionData／storagePath并落盘，已有Electron代表最终1/1；开发说明同步。仅设置内核目录不能证明浏览器profile隔离；以前缺证保留，不读取／删除默认用户profile。新profile仅本机实跑，Windows／macOS不据此通过。
+
+| 工作树 | 下一片与所有权 | 停止边界 |
+| --- | --- | --- |
+| project-execution | 3.1c：原report-publication实际保存后关联unknown，核原身份／文件／edit／artifact查询且不重放 | 优先仅测试，不造内部成功替身、公共查询或越界修生产harness／kernel；缺提供者交主线 |
+| research-graph-runtime | 3.1d：新report-client Adapter及真实client／server／领域定向测试，消费现有updates | 有界当前报告与粗通知合并，RPC实际结清，不改原updates、公共client／protocol或产品视图；不碰草稿 |
+| literature-workbench | 3.2c：新report-lifecycle固定可信双宿主夹具，汇合updates／drafts／context及共同session／检查器 | 使用当前已交付module和明确load／权限替身，不依赖下一片client Adapter；不造第二状态或执行报告脚本，不改生产／共享fixture |
+| research-interaction | R2c：新report-input，固定可信输入事务保护，保留旧反例 | 回包／输入有限最新意图，源真实确认提交／取消；不禁输入／sleep刷绿、不做通用镜像，系统IME／读屏及完整架构仍未验 |
+| zotero-ecosystem | 2.1e：新report-t1-installation研究，把既有独立身份候选变成具体安装前方案 | 只读一手依据及可审查配置草案，不安装／启动服务、改系统账户／策略或写公共协议；主线审后才决定部署授权；不以此关闭WindowsW2 |
+| research-task-workspace | 报告等待接续子片已接收，等待正式页面生命周期／ready接线 | 原任务33/33不重开，不重复机械组、不自定科研Graph |
+| agent-delegation | 继续等待真实目标／下一次模型授权 | 原普通Electron修复已接收，旧17.2／18.2缺同次事实不猜修，不发付费请求／重复诊断 |
+
+Codex／gpt-6.1-sol／high保持。先提交整合／决定并保全原冻结提交祖先，再七树快进；实际变化在renderer及共享UI测试，重建各树desktop、核tools／架构及最小定向检查，复用未变packages／kernel。全部通过后才发五任务／两等待，之后不再修改各树基线。Prompt、受理及实际启动证据在本轮cache的dispatch，新输入／TMPDIR均在持久cache；CI后置、不push、不归档未完change，不新增系统安装或模型调用授权。
+
 ## 首轮 Agent 的共同起始任务
 
 各线采用下述共同要求，并附上本文件中该开发线的小节：

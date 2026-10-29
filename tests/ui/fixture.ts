@@ -1,4 +1,5 @@
-import { basename, dirname, join } from 'node:path';
+import { writeFile } from 'node:fs/promises';
+import { basename, dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   test as base,
@@ -26,7 +27,7 @@ const desktopPath = fileURLToPath(new URL('../../apps/desktop', import.meta.url)
 
 export const test = base.extend<UiFixtures>({
   uiHost: ['browser', { option: true }],
-  uiPage: async ({ page, uiHost }, use) => {
+  uiPage: async ({ page, uiHost }, use, info) => {
     const directory = process.env.SCHOOLOOM_UI_DATA_DIR;
     if (!directory) throw new Error('Missing isolated UI configuration');
     const owner = createDevelopmentKernel({ dataDirectory: directory });
@@ -38,8 +39,9 @@ export const test = base.extend<UiFixtures>({
         return;
       }
 
+      const profile = info.outputPath('electron-profile');
       const app = await electron.launch({
-        args: [desktopPath],
+        args: [`--user-data-dir=${profile}`, desktopPath],
         env: {
           ...process.env,
           ELECTRON_RENDERER_URL: rendererUrl,
@@ -49,6 +51,21 @@ export const test = base.extend<UiFixtures>({
       });
       try {
         const window = await app.firstWindow();
+        const paths = await app.evaluate(({ app, session }) => ({
+          userData: app.getPath('userData'),
+          sessionData: app.getPath('sessionData'),
+          storagePath: session.defaultSession.storagePath,
+        }));
+        for (const path of Object.values(paths)) {
+          if (path === null) throw new Error('Electron test session has no isolated storage path');
+          expect(relative(profile, path)).toBe('');
+        }
+        const profileRecord = info.outputPath('electron-profile.json');
+        await writeFile(profileRecord, JSON.stringify(paths));
+        await info.attach('electron-profile', {
+          path: profileRecord,
+          contentType: 'application/json',
+        });
         desktops.set(window, app);
         await window.waitForLoadState('domcontentloaded');
         await expect(window.getByRole('status', { name: '连接状态' })).toContainText('已连接');

@@ -479,6 +479,8 @@ Agent 使用 Orca browser skill，先列出当前项目的标签，核对 URL �
 
 UI 测试期间保持源码和共享包构建产物稳定；改动或重新构建会触发 Vite 热刷新，重置正在验收的组件状态。完成构建后再运行交互测试。
 
+共享`tests/ui/fixture.ts`为每个Electron用例传入独立`--user-data-dir`，启动后核对`userData`、`sessionData`及默认会话`storagePath`均位于该用例输出目录，并保存`electron-profile`附件。内核目录仍由`SCHOOLOOM_UI_DATA_DIR`绑定；仅设置内核目录不能证明浏览器profile已隔离。新开工作台窗口沿同一自有应用的profile，关闭时只等待该应用及自有调试内核收尾。
+
 原值恢复的可信测试进程由`tests/isolated-kernel.ts::startIsolatedKernel(directory, configuration)`提供：父进程先准备隔离库，每次经私有IPC显式注入现有IsolatedZotero，子进程调用真实serveKernel，父持有development owner。停止通过绑定原instanceId的客户端shutdown，等待自有子进程close，再用CLI status核对；不使用重新发现实例的CLI stop，未知时保留配置且不接管接替实例。`tests/kernel/isolated-kernel.spec.ts`只验配置门、身份和进程替换，不运行BBT；原包及GUI恢复由文献场景另验，不代表普通CLI配置持久恢复。
 
 模型UI夹具`tests/model-kernel.ts::startModelKernel`保留可调用的异步stop，真实子进程经私有IPC启动serveKernel；停止绑定原实例并等自有child close。失败或停止时保存`model-kernel-execution`安全附件，按所属project／session／run／instance关联初始化、指令消费、模型准入和首输出；HTTP请求数没有观察者时为null，准入事件不等于已发送HTTP。`tests/ui/fixture.ts`的按需`uiRpc`观察真实uiPage的发送、回执和快照，场景在关闭内核前调用save，保存错误由fixture收尾报告。两端都明确数量／时间上限、丢弃及缺证，不能用早期queued快照推断永久阻塞或将内核PID当worker PID。
