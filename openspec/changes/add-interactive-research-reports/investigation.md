@@ -1,5 +1,13 @@
 # 调查依据
 
+## 独立身份服务候选的规划核查（2026-10-29，8d8f339）
+
+本轮从指定共同HEAD、起始clean开展仅文档调查；不重放已整合实现，不运行被否定launcher、服务、namespace或浏览器。具体候选、官方事实／假设矩阵、未来文件／Interface、安装面及最小T1/T2集中于[独立身份服务研究](../../../.scratch/scholoom-foundations/research/report-independent-identity-service.md)。该文引用下方两份既有精确研究，不以新的入口mode、dumpable或sysctl重试旧方案。
+
+一手核查基于本机systemd259.5／man-pages6.17、已给Ubuntu定版源码及Electron三份官方文档：PID1能在exec前选择服务身份；peer UID不认证可信程序，socket activation两个方向的凭据也不能混用；Delegate／ProtectControlGroups／PID1管理授权各有独立语义。候选是独立非root控制身份、受控固定启动门与每实例运行身份，不是现成配置。请求者与唯一准入证明R1、双宿主原生文本／输入／可访问性R2、跨身份部署／范围控制R3都仍待主线选择和真实环境证明。
+
+现有`ReportResources.freeze`、六个隔离叶操作、静态native provider及唯一ProcessAdmission均已在本树；本片不再等待这些公共源码。它们没有提供系统服务认证、Chromium策略或共同呈现。仅同UID／用户token／客户端自报租约的服务方案存在可解释反例，不能通过服务自建执行计数器修补。研究完成只满足本轮可审查规划，不关闭2.1b或I5，不编造新服务实跑／安装许可。必要输入和本轮命令／来源在`/home/joshua/.cache/scholoom-parallel-resume-20261029-A5WuXN/research-interaction/work/`，无现有/tmp前置。
+
 ## 固定入口的部署候选被排除（2026-10-29）
 
 为避免修改stock bwrap域，本轮准备了root管理固定launcher、独立enforce profile及可信T1／T2的候选，保存于`/home/joshua/.cache/scholoom-finish-active/report-browser-deployment/`。静态审查先修了复制后chmod跟随链接、宽base执行／跟踪授权、T1退出早于采证、父UID0映射及renderer跨PID层级匹配问题。当前C编译、策略仅编译、脚本语法及无系统操作自检通过，但没有安装、加载策略或运行该候选。

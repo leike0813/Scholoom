@@ -75,6 +75,47 @@ ReportResources 是 `packages/editor` 内的 module，不新建包／数据库�
 
 ### 隔离与页面桥
 
+#### 独立执行身份与受控服务候选（8d8f339，待主线决定）
+
+本片完整候选由[独立身份服务研究](../../../.scratch/scholoom-foundations/research/report-independent-identity-service.md)维护：系统管理器创建独立于原用户／浏览器的固定代码控制服务，受控启动门只允许登记的每实例浏览器及策略；认证、启动、只读字节、FD、全部进程范围、资源、unknown／恢复、分发和安装面均逐项列明。它替换的是被否定的同UID固定入口候选，不代表已经采用系统服务或获得安装许可。
+
+复用原`freeze`与`stage/put/start/get/stop/check`，只在原reservation.ready后加载同一批准字节，来源和领域权限不移入服务。恢复仍由同一ProcessAdmission保留未知及持久停止后结清。现有静态native的ELF／user-manager／默认syscall假设不能直接当作浏览器或系统服务Adapter，具体新增公共接缝先由主线审；本轮不修改schema、platform、kernel、renderer或生产CSP。
+
+主线决定点仅为R1受保护的请求者／准入证明、R2共同呈现surface及R3跨身份启动／部署权威。同UID客户端、可转交FD／token及profile名称stack反例必须先于T2；没有闭合R1，不接受“客户端说已reserve”。不采用画面流，也不把文本选择／复制／查找／IME／焦点和可访问性树移出首批保证。共同tab、语义token、草稿和composer沿现有UI设计，2.2可信选择模块由research-graph-runtime独立维护，本片只交版本绑定及原子附加的消费需求。
+
+现有代码还有准备顺序缺口：stage自己reserve且要求精确清单，freeze才取得实际字节。推荐审原provider内部的受信准备回调，沿同一reservation.ready后freeze并建立stage／put数据；不能宿主先reserve再调用原stage造成第二预留，也不能排队前读取完整集。候选服务不再另建一个ProcessAdmission。以下仅为待审时序，认证及该私有回调未实现：
+
+```mermaid
+sequenceDiagram
+  participant H as 可信宿主与领域授权
+  participant P as 原provider及唯一准入
+  participant R as ReportResources.freeze
+  participant C as 候选独立身份控制服务
+  participant M as 候选受控启动门与PID1
+  H->>P: 请求准备原instanceId 接缝待审
+  P->>P: 原reservation.ready 仅一次
+  P->>R: 受信回调取得批准冻结集
+  R-->>P: 同一snapshot与实际bytes 或拒绝
+  P->>C: 原stage和put 认证封套待审
+  alt 认证或登记策略不足
+    C-->>P: 拒绝 不创建执行范围
+  else 前置可核查
+    C->>C: 持久范围intent
+    C->>M: 固定程序和策略建立原范围
+    M-->>C: 实际身份 限制与范围证据
+    C->>H: 末次授权与原准入证明
+    alt 撤权或取消
+      C->>M: 停止全部原范围
+      C-->>P: 持久完整停止回执后结清
+    else 仍获准
+      C->>M: 放行本次固定策略
+      C-->>P: 实际执行或unknown 不重放
+    end
+  end
+```
+
+下一步是主线选择及另行授权的T1固定native／服务入口校准；通过后才做T2固定文献对比报告的完整浏览器／两宿主校准。条件不足保持unavailable，不创建新容量／材料权威、不回退旧launcher或降低OS／停止／体验保证。本文档规划已可审查，但上述决定未作出前不声称浏览器实施前置已闭合。
+
 #### 下一片：独立Linux提供者的实施规格
 
 用户委托主线选择方案后，主线采用候选A的Linux普通权限前置，先形成独立platform提供者的OpenSpec实施规格。它负责批准字节的有界只读交付、启动前FD／stdio策略、namespace及实际资源限额、完整归属／停止和重启unknown核查；ReportResources继续掌握ref／basis与read/send。已有普通权限不能履行保证时保持unavailable，不安装特权服务或静默降级。

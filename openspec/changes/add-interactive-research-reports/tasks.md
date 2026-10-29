@@ -1,6 +1,6 @@
 # 执行任务
 
-2026-10-29主线已实现核准字节冻结、原版本历史Adapter及严格单目标报告读取，完成1.2b.2b，当前7/13。真实根／子执行、队列／最终准入／重启、撤权竞争与目标只读联合59/59；独立审查所见授权及合法受理缺口已修复复核。活动页承载2.1b、共同动作／草稿和完整I5继续开放，不能以读取或独立[Linux隔离提供者](../add-linux-isolated-report-provider/tasks.md)替代浏览器呈现。实际命令与必要输入见delivery当前节，不依赖现有/tmp。
+2026-10-29当前8/14：主线已接收核准字节冻结、原版本历史／严格单目标读取及共同原子附加子项，独立[Linux提供者](../add-linux-isolated-report-provider/tasks.md)9/9仍只覆盖固定静态native策略。当前片仅完成2.1b下一片的独立身份服务可审查规划；R1认证／唯一准入、R2共同呈现和R3部署／启动权威待主线决定，未安装或实跑服务。活动承载、完整共同动作／草稿及I5继续开放；来源与实际输入见investigation／delivery，不依赖现有/tmp。
 
 ```mermaid
 flowchart TD
@@ -27,6 +27,8 @@ flowchart TD
 
 - [x] 2.1a 调查原型已交付：tests/fixtures/report-frame专用候选模块及真实Browser／Electron静态夹具，消费实际ReportResources快照与有版本的资源字节，复用Bridge schema；合法脚本及清单资源、HTTP／UDP探针、CSP／父frame-src／导航／资源通道、宿主访问及有界桥生命周期已有代表性证据。两宿主实际STUN外发、Browser忙循环阻塞反例见delivery；只关闭调查，不算生产已隔离，生产保持unavailable。
 - [ ] 2.1b 正式承载仍未完成：独立[platform提供者](../add-linux-isolated-report-provider/delivery.md)9/9已由主线真实Linux固定静态native组接收，网络／syscall／迟到能力、unknown／容量／恢复已有其限定策略证据。该提供者仅内部六操作，未接产品宿主或完整浏览器；真实冻结字节消费者、浏览器完整进程图及呈现／分发仍需实施与实际验证，不能把native样本或临时launcher当活动报告。2.2／3.x及完整I5继续开放。
+
+  本片已形成[独立身份服务候选](../../../.scratch/scholoom-foundations/research/report-independent-identity-service.md)及R1–R3、最小T1/T2和未来写集；只读一手资料及规划不是2.1b通过证据。主线先选受保护的请求者／准入接缝、共同呈现和系统部署权威，另获实际安装／校准许可后才安排T1；不再试同UID固定launcher。T2依赖T1且须证明完整浏览器、双宿主文本／输入／可访问性及实际停止。2.2可信选择模块另线维护，不与其并写。
 - [ ] 2.2 实际文献对比页面支持筛选／排序／展开，已加载对象通过原子appendContextItems进入同一composer，用户检查正文后沿原session.send；核对objectIds、报告basis、明确来源、comment与接收者不变。超限整批拒绝保留草稿。1.2与2.1可分离实现，本线主Agent整合共同贡献及共享资源符号，禁止并行写同一文件。
 - [x] 2.2a 独立共同增量：appendContextItems同步返回成功／失败，一次完整合并校验后单次写回，16项／64KiB或非法项整批拒绝且原草稿不变；原单项委托同一实现，失效接收者及往返切换旧回调拒绝。复用真实useBusinessSession／草稿与贡献测试，补图片夹具消费者，运行必要类型／构建及双宿主单项／迟到回执保护；独立审查整改后只关闭本子项，不据此关闭完整2.2／报告I5。
 
@@ -42,6 +44,6 @@ flowchart TD
 
 ## 续做入口
 
-当前7/13，历史与目标Adapter及冻结字节接口已实现并验收，不重复等待来源授权／schema。独立Linux提供者在所属change实施、审查，正式浏览器及目标策略尚未交付；完整2.1b／2.2／3.x／I5保持开放。
+当前8/14，历史与目标Adapter、冻结字节及静态native提供者已实际接入，不重复等待公共基线。被否定的同UID入口不再作为下一实施方案；本轮独立身份服务仅交可审查规划，R1–R3和T1/T2尚未定案／实跑。完整2.1b／2.2／3.x／I5保持开放。
 
-下一步将已核准的冻结字节接入真实提供者，并完成浏览器全进程范围、呈现／输入／文本与可访问性、分发及资源预算的方案与实际校准，再实现共同UI／草稿。不能把固定native样本当浏览器通过；接续输入在Git／cache，macOS或目标证据不足保持unavailable。
+下一步由主线按design候选节决定受保护身份／认证、系统部署与共同呈现方案，再明确T1许可；通过后才接完整浏览器与T2。当前不改生产或启用报告，后续不从旧缓存整体应用实现。固定native绿色、只读资料或CLI状态均不代替浏览器通过；macOS及其他目标证据不足保持unavailable。

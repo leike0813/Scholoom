@@ -1,5 +1,28 @@
 # 实际交付与交接
 
+## 独立身份服务候选规划（2026-10-29，8d8f339）
+
+本轮先核HEAD=`8d8f339c3e561154b05d4db39b4264c6db2c42e6`且git status为空，消费当前已整合源码，不重放旧WIP或自行同步。按用户明确范围仅完成2.1b下一片的调查及可审查规划；**仍为8/14，2.1b／完整I5未完成，活动报告unavailable**。原静态批注／native provider不重做，2.2可信选择模块由research-graph-runtime独立维护，本轮未写其文件。
+
+实际成果为[独立身份服务研究](../../../.scratch/scholoom-foundations/research/report-independent-identity-service.md)，原investigation／design／tasks仅链接相应事实、候选与下一步。研究给出独立控制身份、受控固定启动门、每实例运行身份及其认证／只读字节／FD／完整浏览器图／配额／unknown恢复／停止／运行时字体／安装升级卸载范围；已核事实、假设与最小T1/T2分开。R1受保护的请求者／唯一准入证明、R2双宿主文本与可访问性surface、R3跨身份启动／部署权威须主线选择，未用名字／配置补齐未知。保留原页面隔离及桥规格，不以未批准候选新增生产SHALL或公共DTO。
+
+同UID固定launcher仍按既有两份精确研究否决，没有重试0755／dumpable／sysctl或向用户申请安装。独立UID可以改变进程创建关系，但SO_PEERCRED仅证明连接时OS身份；用户可读token、exe路径或客户端自报lease不证明可信程序／真实reserve。方案因此不凭这些条件开放启动，也不在服务复制容量或领域权限。现有freeze与六操作可复用，鉴权封套及原范围inventory的服务Adapter是待主线审的窄接缝；浏览器策略、共同呈现与安装没有接线。
+
+### 实际核查及证据
+
+证据根`/home/joshua/.cache/scholoom-parallel-resume-20261029-A5WuXN/research-interaction/work/`；每条执行命令先设置TMPDIR到该根，无当前/tmp输入前置。
+
+- 读取当前AGENTS、开发入口、scholoom-dev、原change上下文和两份AppArmor／bwrap研究；使用项目可用技能的主树只读副本和当前apply、investigation／design instructions。`apply-instructions.json`核14项中8项完成、6项未完成；没有把旧会话未同步条件继续当阻断。
+- 同配置gpt-6.1-sol／high、无历史fork辅助仅做一手资料核查，已停止关闭。`official-service-research/official-service-facts.md`及`sources/`保存systemd259.5／man-pages6.17条目、本机版本和固定Ubuntu两份源码。原始命令、首次PATH中的systemd未找到、改用绝对路径及下载收据均保留；两份源码首次下载成功。没有安装或操作任何服务／策略。
+- `node "$TMPDIR/fetch-presentation-docs.mjs"`只读取得Electron官方WebContentsView／offscreen／accessibility三页，均HTTP200。`official-presentation/fetch-results.json`记录时间／地址／状态，原HTML与检索文本保留；latest文档只证明API说明，未冒充本机44.5.1、跨身份或两宿主实跑。
+- `service-request-sample.json`是cache内不可执行的审查样本，程序／策略显式未登记，R1–R3未闭合。用当前已构建protocol的`validateIsolationStage`只验证其中原stage载荷形状，`sample-shape-result.json`为shapeValid、sent=false、serviceStarted=false、approvedEnvelope=false；没有提交请求，不代表新服务协议已批准。
+- 本change `openspec validate add-interactive-research-reports --strict`、`openspec schema validate scholoom-dev`及diff检查通过，日志同根。仅文档变化，复用主线已验产物；未重建、重跑内核／UI／浏览器夹具、查询或触发CI。T1/T2全部未运行，没有新的平台或科研质量通过结论。
+- 独立只读规划复核及准备顺序追加复核均未发现确证问题，报告为同根`review.md`；范围是研究／design／investigation／tasks，当前delivery由主Agent自查，未冒称也经过独审。复核确认现有stage自行reserve而freeze才返完整集，私有受信准备回调仍待主线批准，不能把本轮文档当现有生产接线。
+
+本片可交回的是主线决定所需方案及反例，不是已选系统架构或实施就绪承诺。后续先决定R1–R3并单独取得实际安装／部署／T1许可；不足就保留unavailable，不能回退被否定入口、采纳画面流、放宽CSP／sandbox／期限／容量，或把公开文本／IME／无障碍后置为优化。没有创建系统账户、加载策略、运行特权服务／namespace／恶意浏览器、改生产platform／kernel／renderer／schema、提交／推送／归档或操作其他工作树；自有辅助已结束，未启动需清理的服务／scope。
+
+交回入口为同一cache根的`research-interaction-planning.patch`（含新增研究全文）、`untracked-files.txt`及`handoff-manifest.json`；生成／校验入口`finalize-planning-evidence.mjs`保留实际argv至`commands-final.json`，按指定HEAD和五文件写集核对后才导出，不stage。补丁反向检查与新增本地链接检查通过，check仅验证路径存在及规划结构，不把它们当服务安全／T1/T2通过。
+
 ## 安装前候选整改与入口否决（2026-10-29）
 
 已准备具体launcher／preflight／候选profile／安装脚本／控制器及可信静态app，并完成静态修正与独审，随后以本机对应Ubuntu版本源码排除了原同UID自动附着入口。事实源为[investigation](investigation.md#固定入口的部署候选被排除2026-10-29)，两份研究已进入Git；具体cache工件及独审`report-browser-deployment-independent-review.md`保留供接续。编译、策略仅编译和self-check不算T1/T2实跑。没有安装／加载策略／启动namespace或浏览器，没有请求用户批准这个已知不满足入口保证的候选；当前无系统安装许可。后续先规划独立执行身份及受控服务，不直接把临时控制器作为产品提供者，仍为8/14。
