@@ -220,7 +220,7 @@ macOS 完整能力恢复另立变更：Darwin 不支持 kqueue 自动后代跟�
 
 `@scholoom/platform/node` 的 `IsolatedReportProvider` 是宿主专用深模块，契约从 `@scholoom/protocol/isolation` 派生；仅独立私有 broker 装配六个 `platform.reportIsolation.*` 操作，尚未注册到产品、harness 或报告页面。宿主注入同一 `ProcessAdmission`、私有目录、固定静态 ELF 程序／策略及当前授权闭包，按 `initialize → stage → put → start/get/stop → close` 使用；重启先恢复原记录及占用，不自动重放。
 
-当前唯一策略为 Linux x86_64 固定原生程序，使用已有普通用户 systemd scope、bwrap、seccomp、pidfd 与可信 controller exec 观察。`check`检查登记及工具前置；每次启动仍在 G 前核真实 CPU／memory／swap／pids 与完整门策略，缺任何条件不放行。预算必须显式登记，测试的20%／64MiB／swap0／16tasks不成为产品默认。字节仅存私有准备视图，原 `ReportResources`／`ResourceAccess` 仍负责 ref／basis／read/send，当前未接领域冻结字节 Adapter。
+当前唯一策略为 Linux x86_64 固定原生程序，使用已有普通用户 systemd scope、bwrap、seccomp、pidfd 与可信 controller exec 观察。`check`检查登记及工具前置；每次启动仍在 G 前核真实 CPU／memory／swap／pids 与完整门策略，缺任何条件不放行。预算必须显式登记，测试的20%／64MiB／swap0／16tasks不成为产品默认。字节仅存私有准备视图，原 `ReportResources`／`ResourceAccess` 仍负责 ref／basis／read/send。`prepare`已在同一真实 `ProcessAdmission` 租约内接入 `ReportResources.freeze`，固定静态native的真实Linux准备／启动／停止已验；具体范围见[报告交付](../openspec/changes/add-interactive-research-reports/delivery.md)。跨身份系统服务、完整浏览器及产品页面尚未接通。
 
 原生适配随 `packages/platform/build-process-scope.mjs` 构建，保留普通命令及其他平台原分支。先通过 `SCHOOLOOM_ISOLATION_TEST_CACHE` 与 `TMPDIR` 指定自己的 cache，再用 `node tests/fixtures/isolated-report-native/rebuild.mjs` 编译独立固定输入，然后运行 `isolated-report-provider.spec.ts`、`isolated-report-records.spec.ts`、`isolation-contracts.spec.ts` 与 `process-admission.spec.ts`。真实OS组需要明确提供该cache及已有systemd／bwrap／委托条件；没有设置时默认内核组合只跑其不可用保护，跳过OS组不代表隔离验收通过。实际命令、首次失败及范围见[提供者交付](../openspec/changes/add-linux-isolated-report-provider/delivery.md)。浏览器进程图、报告 UI、文本／可访问性、分发及 Windows／macOS 均不由该原生模块声明通过。
 
