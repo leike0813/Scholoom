@@ -48,6 +48,35 @@
 - **WHEN** 启动前复核发现原执行文件、依赖、成员集合、权限或路径身份变化，即使版本标记保持相同
 - **THEN** 拒绝该次派发，不静默采纳新树；核验完成到实际执行之间未被原生提供者覆盖的窗口明确保留，不以多扫一次或同名路径宣称原子绑定
 
+### Requirement: Windows只读原生树快照
+
+宿主私有Module SHALL 只读核查Windows x64本地NTFS配置及固定相对资源范围，绑定实际对象、权限和完整成员。snapshot保留原见证，有界读取及verifyUnchanged不得重新采纳；close幂等并收尾自有在途核查，失败释放句柄。不写文件／权限、不改owner、不启动业务host。
+
+本片 SHALL 沿已选方案A及下列ACL规则；不增加跨command租约，不承诺同权限可信操作者在检查结束到loader间的原子替换防护。目标编译／实跑及产品接入分开验收，非目标明确unavailable，跳过不计通过。
+
+```mermaid
+stateDiagram-v2
+  [*] --> Open: 原生核验成功并保留原见证
+  Open --> Open: 同对象有界读取或原见证复查
+  Open --> Closed: close拒绝新调用并收尾在途
+  Closed --> Closed: 再次close
+```
+
+#### Scenario: 安全根下的后代与祖先替换权
+
+- **WHEN** 根自身私有但后代有非可信修改权限，或祖先允许非可信主体删除／替换已选路径
+- **THEN** 原生核验拒绝且保留对象ACL／owner；根、设置和后代须当前SID拥有，修改主体仅当前SID／LocalSystem／Builtin Administrators，系统祖先另允许本机核定的TrustedInstaller。有效ACE结合继承、OWNER RIGHTS和父DELETE_CHILD解释，仅创建无关同级不等于替换；owner不替代token读取／执行能力，NULL／缺失DACL、条件／未知ACE、reparse或普通文件多硬链接均拒绝
+
+#### Scenario: 保留原见证及有界读
+
+- **WHEN** snapshot建立后成员、文件或资源目录修改信息、权限或身份变化，或读取超过指定字节上限
+- **THEN** 相应调用拒绝，不自动采纳新树；内容只从同一已核文件对象有界读取，祖先无关目录时间变化不伪造资源变化，设置读取不遍历可变共同库正文
+
+#### Scenario: 关闭与目标环境缺失
+
+- **WHEN** 调用方重复关闭snapshot、在关闭后读取，或当前环境没有受支持Windows原生适配
+- **THEN** 重复关闭可完成，关闭后不接受新读取，失败或收尾不遗留自有原生句柄；无目标环境明确不可用，不把Linux模块检查算Windows实跑或启用布局
+
 ### Requirement: 受控系统sandbox helper
 
 Linux固定布局的`electron/chrome-sandbox` MAY 显式链接到已安装的`/opt/google/chrome/chrome-sandbox`，仅此槽位例外。系统目标 SHALL 为root:root、4755的普通文件，目标及祖先不得为链接，祖先须root拥有且组／其他人不可写；本地链接须当前操作者拥有且目标精确。资源解析及每次启动前 SHALL 核对目标、权限及同一身份，变更时拒绝原启动，不自动重新采纳或修权限；其余资源保持私有无链接规则，不从任意业务路径或环境选helper。

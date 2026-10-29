@@ -46,9 +46,11 @@ if (process.platform === 'win32') {
       throw new Error('The platform process supervisor requires Visual C++ build tools.');
     const architecture = process.arch === 'arm64' ? 'amd64_arm64' : 'x64';
     const batch = join(temporary, 'compile.cmd');
+    const compile = (name, nativeSource, nativeOutput, libraries = '') =>
+      `cl /nologo /O2 /W4 /WX /Fe:"${nativeOutput}" /Fo:"${join(temporary, `${name}.obj`)}" "${nativeSource}" ${libraries}\r\nif errorlevel 1 exit /b %errorlevel%\r\n`;
     writeFileSync(
       batch,
-      `@echo off\r\ncall "${join(installation, 'VC', 'Auxiliary', 'Build', 'vcvarsall.bat')}" ${architecture} >nul\r\nif errorlevel 1 exit /b %errorlevel%\r\ncl /nologo /O2 /W4 /WX /Fe:"${output}" /Fo:"${join(temporary, 'scope.obj')}" "${source}"\r\n`,
+      `@echo off\r\ncall "${join(installation, 'VC', 'Auxiliary', 'Build', 'vcvarsall.bat')}" ${architecture} >nul\r\nif errorlevel 1 exit /b %errorlevel%\r\n${compile('scope', source, output)}${compile('private-resource-tree', join(root, 'native', 'private-resource-tree.c'), join(root, 'dist', 'private-resource-tree.exe'), 'advapi32.lib')}`,
     );
     execFileSync(process.env.COMSPEC ?? 'cmd.exe', ['/d', '/c', batch], { stdio: 'inherit' });
   } finally {

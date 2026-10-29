@@ -1,5 +1,42 @@
 # 实际交付与交接
 
+## W2只读原生Module实现交回（add1c49，2026-10-29）
+
+起点`add1c49a5de74689351cb26311bb56a790099862`，起始clean。用户已授权本片、主线已选A及ACL策略，不再等待旧W1决策。实际交付私有Module、Windows native、原生构建登记和目标测试定义，W2.1勾选；**W2父项／W2.2真实Windows仍开放**。未启用Windows布局，未改host-settings／resolver、公共lifecycle／endpoint、CI、privateDirectory或其他领域。没有复用旧Dispatch／Run、重放补丁、提交或同步。
+
+### 实现与窄共享接缝
+
+- `packages/platform/src/private-resource-tree.ts`：`inspectPrivateResourceTree`及snapshot的readFile／verifyUnchanged／幂等close；设置共享`readPrivateResourceFile`。固定helper路径，不接受业务executable；输入／成员／字节／进程等待和输出有界。snapshot保留原二进制见证，后续仅比较而不采纳；关闭拒绝新请求、等待自有在途核查。native错误只回固定阶段及整数，不回显路径、文件正文或凭据。
+- `packages/platform/native/private-resource-tree.c`：Windows当前token／本机TrustedInstaller SID、NTFS及卷根、逐段目录相对对象句柄、原生File ID／元数据及owner／group／DACL核验；拒绝reparse、多硬链接、NULL／条件／未知ACE和非可信有效修改权。祖先仅创建无关同级不当成替换权，顺序deny／INHERIT_ONLY／OWNER RIGHTS参与判断。完整树复扫及同一文件句柄有界读取后复核；对象／成员／权限／修改信息与原见证不符不重新采纳。所有失败路径释放自有句柄／缓冲，无写入、权限修复或特权提升。
+- 原`build-process-scope.mjs`的Windows分支复用已安装Visual C++定位／环境，一并构建新exe并链接advapi32，保留原process-scope；Linux原构建行为保持。不安装SDK或新编译器。
+- `tests/kernel/private-resource-tree.spec.ts`：真实Windows正／负定义，含读取／条目上限、Unicode、私有设置、后代ACE、祖先DELETE_CHILD与创建同级区别、OWNER RIGHTS／顺序deny、junction／硬链接、原见证和权限变化、20层目录／目录时间、失败及关闭。PowerShell准备仅操作新自有对象，子进程TEMP／TMP／TMPDIR也指自有输出；缺权限的特殊准备明确skip，不算验证完成。
+
+公共`platform/src/node.ts`和`architecture.json`按所有权未编辑；本轮cache的`shared-registration.patch`仅建议导出两方法／snapshot类型，以及单叶`src/private-resource-tree.ts`的child_process登记，`git apply --check`通过、未应用。当前architecture确有**1项未登记发现**，不是检查全绿；需主线审收并复验这份窄增量。W3当前无消费者，不能从私有测试import宣称产品装配已接。
+
+### 实际检查、首次失败与修正
+
+证据根`/home/joshua/.cache/scholoom-round17-acceptance-fZn1SQ/next/zotero-ecosystem/`，TMPDIR为tmp子目录。可重建命令、输入／输出／新文件清单及独立增量见RESULT.md、commands.txt、manifest.json和increment.patch，不依赖现有/tmp。
+
+| 实际入口／日志 | 结果与边界 |
+| --- | --- |
+| Windows语法前置探针，`windows-compile-prerequisite.log` | clang目标命令在windows.h缺失处失败，未达到目标C语法／链接；无Windows SDK／OS，不安装、不CI，不声称/W4 /WX已通过 |
+| `build-native-final.log`、`build-platform-final.log`、`typecheck-tools-final.log` | Linux原生脚本、platform TypeScript构建及全tools类型通过；Linux分支不编译Windows C，不能作为新native已编译的证据。测试期间未重建产物 |
+| `resource-tests.log`；`private-api-final-tests.log` | 前者26 passed、22 skipped，3.4秒，含25项原Linux保护＋1非目标API拒绝；复用环境白名单／有界排空后只复验新API组，1 passed、23 skipped，1.8秒。后一批与前者重叠，新增Windows队列定义仍未执行，不能将跳过或两批相加当目标通过 |
+| `scope-tests.log` | 原Linuxcontroller忙执行／后代收尾代表1/1，1.8秒；只核受影响原生构建保留原执行能力，不重复完整监督／BBT／TeX |
+| `biome-first.log`→`biome-final.log` | 首轮格式／import／空解构及无用String.raw问题，按内置编辑修正；最终3文件通过。不是原生业务红绿 |
+| `architecture-unregistered.log` | 14模块／268文件／1 finding，仅新叶child_process缺共享登记；没有加例外或擅改清单，待主线接所交补丁 |
+| OpenSpec strict／schema／diff及两补丁检查 | strict首轮仅因新增Requirement正文过长失败，原日志保留strict-first.log；将边界细节移入场景后strict通过，schema通过；最终diff／补丁检查结果见cache。这些只证明工件／增量结构，不关闭目标验证 |
+
+两名gpt-6.1-sol/high无历史fork辅助分别写限定测试和独立只读审查，已结束关闭。审查确证初版漏group会令AccessCheck误拒绝合法树，及过宽忽略目录时间；均按原契约修正并静态复读。64KiB递归栈风险一并改为堆缓冲、递归前释放，深目录目标例保护该风险。没有实际Windows红例／修正后绿例，不将静态复读称为目标闭合。一次文档patch因主线已更新W2文字整体拒绝，核当前任务后正确分文件应用，没有覆盖已有成果。
+
+最后针对枚举File ID与打开对象绑定、固定PrivilegeSet、环境白名单／有界队列的只读复核未发现新的确证API或安全错误；指出8MiB只能称单见证上限，双Scan／双见证及额外分配并存，不能声称总快照／进程内存8MiB。已明确该范围并限制单输出缓冲容量增长，总内存／目标耗时仍待Windows测量；这不是已做目标内存校准。
+
+### 未完与停点
+
+方案A不保证检查返回到loader之间同权限可信操作者无法替换，不新增持续lease或改command。Native API及ACL语义虽然已有代码／静态审查，仍须真实Windows编译、正常树／ACL／对象／读取／收尾结果；扫描期间并发替换尚无可观察阶段，目标定义没有用sleep循环冒充，另保留缺证。未知reparse统一按原生REPARSE_POINT拒绝，未单独制造系统不支持的reparse tag。特殊owner／NULL／条件ACE夹具前置不适用时仍计未验。
+
+主线先审接公共导出／architecture，再在已有Windows工具链与自有NTFS数据运行W2目标；完整目标满足前W2不勾。随后W3才接设置／resolver／叶枚举，W4普通原包／desktop冷启动另验；旧endpoint EPERM仍归公共lifecycle。无真实用户库、原包改动、CI查询、付费模型、系统策略／权限修改或常驻服务，自有Linux测试及辅助均已收尾。2.3／4.2／5.x、E4／I6及三平台分发继续开放。
+
 ## 第17轮主线接收W1（2026-10-29）
 
 W1五工件已冻结、保全并合入dev。独立规划审查无实质阻断，确认只读全树核验和启动窗口缺口，未把Linux25/25当Windows保证；一处GetFileInformationByHandleEx官方链接已修正。主线四个受影响change strict及diff通过，没有新增Windows实跑／CI结果。

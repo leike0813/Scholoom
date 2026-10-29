@@ -1,5 +1,15 @@
 # 调查依据
 
+## W2本轮源码与目标环境核对（add1c49，2026-10-29）
+
+主线已选择W1的方案A及ACL策略，本轮按授权增加`platform/src/private-resource-tree.ts`、`native/private-resource-tree.c`及原生构建登记。私有Module每次通过固定exe执行一次只读扫描／读取；native在本地NTFS卷根、已核目录相对句柄上打开对象、读取owner／group／DACL与File ID，绑定读取对象并复扫完整树。资源／设置owner及可信修改SID、祖先DELETE_CHILD／无关同级创建、继承及OWNER RIGHTS按顶部主线design执行；原见证在snapshot内存保留，关闭不建立持久租约或重新采纳。公共导出及architecture、host-settings／resolver消费者尚未接入。
+
+独立静态审查发现AccessCheck需要group SID（[官方要求](https://learn.microsoft.com/en-us/windows/win32/api/securitybaseapi/nf-securitybaseapi-accesscheck)），初版只请求owner／DACL会误拒绝合法资源；现已请求／核group并纳入见证。另一处初版对所有目录忽略修改时间，现仅祖先目录忽略；枚举64KiB缓冲改堆并在递归前释放，避免默认Windows线程栈被深目录耗尽。原问题复读无确证残留，但这是源码/API核对，**不是Windows红绿实跑**。源码还显式拒绝重定向卷根、全部reparse、多链接及未知ACE，不修改任何ACL或启用特权。
+
+本机Linux x64／Node24.12.0，只有clang、没有已发现的Windows交叉工具链／SDK／Wine。`clang --target=x86_64-w64-windows-gnu -fsyntax-only native/private-resource-tree.c`首个错误为`windows.h file not found`，未完成目标语法／链接检查；没有为此安装依赖。原生脚本Linux分支、platform构建及tools类型通过；资源初批26通过／22Windows跳过（25项原Linux保护＋1非目标拒绝），补环境白名单／有界排空后末次私有组1通过／23跳过，与前批重叠。Linux原生忙执行及后代停止代表1/1通过，没有新的原包／UI／CI或Windows结果。
+
+本轮唯一证据根`/home/joshua/.cache/scholoom-round17-acceptance-fZn1SQ/next/zotero-ecosystem/`：RESULT.md、首次SDK缺失／Biome问题、最终命令结果、静态审查范围及两个独立补丁均保留。W2只交代码／定义及本机结果，W2.2真实目标含扫描期间替换尚缺；没有可观察扫描阶段，不用时间循环假造该验证。W3／W4、普通Windows布局与E4／I6仍未关闭。
+
 ## Windows普通持久布局的原生前置（8d8f339，2026-10-29）
 
 起点`8d8f339c3e561154b05d4db39b4264c6db2c42e6`、clean，产品源码点7a746c0。Linux N2普通入口已经接收，下方历史sandbox失败不再是当前阻塞。已读delivery顶部“百条例同进程停机夹具”和“55ad46a Windows原包及停机前ACL”：Windows私有fd0、共同原包两格式及生命周期已有实际结果，百条例最终endpoint rename EPERM仍归主线公共lifecycle；本轮没有新Windows运行或唯一根因结论。独立缺口是普通设置没有Windows可信资源布局。
