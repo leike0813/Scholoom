@@ -82,4 +82,5 @@ await run('ui', process.execPath, [
   '--config',
   join(root, 'ui.config.mts'),
   'tests/ui/report-connected.spec.ts',
+  ...process.argv.slice(3),
 ]);
