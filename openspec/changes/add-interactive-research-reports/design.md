@@ -32,6 +32,8 @@ ReportResources 是 `packages/editor` 内的 module，不新建包／数据库�
 
 项目树独占六处：新增`packages/platform/src/isolated-report-assets.ts`与`tests/kernel/isolated-report-assets.spec.ts`，修改原`isolated-reports.ts`及`isolated-report-controller.ts`，`architecture.json`只将原provider的fs/fs-promises许可移动到新assets叶；确有需要才对原最小preparation测试补代表。原`isolated-report-records.ts`只读，不并写bootstrap。新`IsolationAssets`构造接原IsolationRecords，私有方法为prepare(receipt)、put(receipt,index,offset,bytes,commit)、seal(receipt,programImage)。复用原receipt字段，不另存资产表／指纹格式／配置／状态机。具体局部签名可收拢，但不能扩大到任意路径、FD或通用write/save接口。
 
+原fa921dc基线实跑暴露preparation夹具的os.lock仅维护布尔量，不建立原records所需writer.lock。允许同一项目线额外只修改`tests/fixtures/isolated-report-preparation.ts`的lock接点为原真实isolationLock；原Linux/x64范围、明确controller/support／领域替身保持，close/reopen须等实际holder关闭。该首败是bootstrap前置变化暴露的夹具失配，不能记为assets实现的行为红例；不放宽production records或伪造锁文件。
+
 prepare只创建原固定资产对象并更新同一receipt的stamps；put核原对象／长度／offset，实际完整写、sync、前后指纹核对后更新原stamps/offsets，并在持有原文件FD时await可信宿主commit回调；provider的回调仍走原next及save，后者检查实际writer锁。seal沿原顺序封存资产及固定登记program/gate、更新原stamps/sealed并sync目录。partial IO已取得的原物理事实沿原receipt保留，不能因只在全部成功后返回新数组而丢失；所有文件／目录FD均在失败时关闭。IO异常不返回成功回执，provider继续沿原unknown/confirmed及持久停止后释放规则收尾，不绕过锁或把效果完成当记录已提交。
 
 原fileStamp/isolationFileStamp只由资产IO消费，移入新Module成为同一事实源；固定isolationGate路径也由该Module管理，controller的support核查从同一处取用。已核repo源码及测试无其他这些导出的调用方，不保留无消费者转发层；isolationNative/锁/OS控制仍在原controller。新Module与records只有真实当前适配，无通用存储Port或第二队列；per-instance串行继续由provider落实，records原写队列保持。
