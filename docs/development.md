@@ -119,7 +119,7 @@ SCHOOLOOM_UI_PORT=5343 node node_modules/@playwright/test/cli.js test --config p
 
 首次创建必须使用稳定operationId；创建未知时通过 `resources.creation` 查询原操作，不另建任务或重写成果。Agent工具为 `list_research_tasks`、`read_research_task`、`create_research_task`、`save_research_task` 及 `read_task_creation`，沿当前可信工作域、实例和项目信任；人工组合无需会话或模型。全局及跨项目任务材料继续经已有目标只读文件入口读取，任务操作不授予目标登记／写入权。
 
-诊断沿TaskRef、入口basis、原创建operationId、ErrorInfo及既有工具记录核查。来源读取异常保留原引用与项目材料；需要用户决定时Agent询问并等待，缺库删除历史提供者时明确不可用，不将missing或notFound冒充删除事实，不用替代材料回填。完整主题知识、删除恢复和科研固定图整合仍等待所属线实际提供者，见 `openspec/changes/establish-file-backed-research-tasks/` 的tasks与delivery。
+诊断沿TaskRef、入口basis、原创建operationId、ErrorInfo及既有工具记录核查。来源读取异常保留原引用与项目材料；需要用户决定时Agent询问并等待，缺库删除历史提供者时明确不可用，不将missing或notFound冒充删除事实，不用替代材料回填。I1固定图已交付真实broker、库／项目资源、worker及持久化的机械接线与新会话接续；完整主题知识、删除恢复仍待所属提供者，生产科研Graph／角色与科研质量不由该机械验证覆盖。范围及结果见 `openspec/changes/establish-file-backed-research-tasks/` 的tasks与delivery。
 
 定向检查：`tests/kernel/research-tasks.spec.ts`（文件任务／人工组合／恢复）、`task-tools.spec.ts`（工具范围）、`research-task-agent.spec.ts`（真实内部执行与受控模型接续）、双宿主 `tests/ui/research-tasks.spec.ts`。构建与UI仍须分开，隔离配置及临时服务只收尾本轮归属。
 
