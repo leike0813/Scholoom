@@ -31,7 +31,7 @@
 
 ### 一手依据与本轮证据等级
 
-只读核对[CreateFileW](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilew)的目录／reparse打开及共享模式、[GetSecurityInfo](https://learn.microsoft.com/en-us/windows/win32/api/aclapi/nf-aclapi-getsecurityinfo)的同句柄owner／DACL和READ_CONTROL要求、[GetFileInformationByHandleEx](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getfileinformationbyhandleex)的信息入口。它们是实现方向，不表示仓库已提供；关闭句柄后的扫描回执不持续限制write／delete共享。[Electron分发文档](https://www.electronjs.org/docs/latest/tutorial/application-distribution)说明Windows app／asar承载和exe重命名；固定44.5.1路径另以已装源码及本树构建配置为准，通用文档不证明本产品managed入口已分发。
+只读核对[CreateFileW](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilew)的目录／reparse打开及共享模式、[GetSecurityInfo](https://learn.microsoft.com/en-us/windows/win32/api/aclapi/nf-aclapi-getsecurityinfo)的同句柄owner／DACL和READ_CONTROL要求、[GetFileInformationByHandleEx](https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-getfileinformationbyhandleex)的信息入口。它们是实现方向，不表示仓库已提供；关闭句柄后的扫描回执不持续限制write／delete共享。[Electron分发文档](https://www.electronjs.org/docs/latest/tutorial/application-distribution)说明Windows app／asar承载和exe重命名；固定44.5.1路径另以已装源码及本树构建配置为准，通用文档不证明本产品managed入口已分发。
 
 本轮Linux复用已验构建，仅运行现`tests/kernel/zotero-resources.spec.ts`：25/25、3.0秒。合成资源从不执行，系统helper只核当前前置；没有Windows OS／ACL／exe实跑、CI查询、安装或系统权限修改。命令、源码片段及结果根为`/home/joshua/.cache/scholoom-parallel-resume-20261029-A5WuXN/zotero-ecosystem/work/`，不依赖/tmp。当前已足以判定需要主线原生前置；目标验收入口与未决保证见design“Windows普通布局W1”。
 

@@ -2,6 +2,16 @@
 
 ## Windows普通布局W1：待主线接收的原生前置（8d8f339）
 
+### 第17轮主线选择与W2实施边界
+
+主线接收W1，并选择方案A：可信操作者离线准备私有资源，平台只读核验、保留原见证并在启动前复查；不增加跨command的持续lease，不承诺对同权限可信操作者在检查结束到loader之间替换的原子阻止。已观察的替换、未知／不安全权限和重定向仍须拒绝。该选择沿当前Linux信任边界，不将Windows mode或单根ACL当保证。
+
+资源根、设置文件及全部资源后代要求owner为当前用户SID；允许修改／删除／改DACL及owner的可信主体仅当前用户、LocalSystem（S-1-5-18）和Builtin Administrators（S-1-5-32-544）。系统祖先的owner／相关管理权限另允许本机解析核定的Windows Modules Installer（TrustedInstaller）服务SID，不允许用显示名或“管理员可能需要”扩大到其他主体。祖先核查针对足以改写、删除或替换这条已核路径／对象的权利，包括目标DELETE、父DELETE_CHILD及WRITE_DAC／WRITE_OWNER；仅能创建无关同级目录不能直接等同于替换既有路径。owner与当前token能否读／执行分别核查，不要求系统祖先都归当前用户。
+
+允许标准可解释ACE及明确继承标记；NULL／缺失DACL、条件／callback或不能解释的ACE、未知reparse及非本地NTFS拒绝。实际继承和OWNER RIGHTS须结合所属对象及owner解释，不能简单丢掉继承项；非可信主体的只读／遍历本身不授予修改能力。验证只读，不修复ACL、改owner或复制资源。实际文件／目录身份及成员集合、同对象有界读取、verifyUnchanged和幂等close采用W1窄Interface；设置文件与资源树共用内部原语。
+
+W2委派生态树实现平台原生只读Module、Windows native适配及目标测试定义；本轮不改host-settings叶schema／resolver或启用Windows支持。主线保留共享`platform/src/node.ts`导出及`architecture.json`登记的最终整合；本树可提供具体补丁建议，不能与其他线并写。native构建登记由生态树独占，计算树不修改。没有Windows真实环境时交回代码与准确未验项，W2父任务仍开放；不能以Linux测试、模拟ACL或未执行的skip宣称目标保证成立，CI仍按用户要求后置。
+
 本节补2.3普通持久资源的独立缺口。Linux N2已接收，Windows可信注入原包及fd0也有实跑；百条例停机EPERM由主线公共lifecycle承接，不从ACL快照推唯一原因。investigation的Windows节已确证缺少只读原生树核验；**本轮只落实方案／契约及验收设计，不改生产schema、resolver或公共注册**。跨模块接缝未确认前不加入永远unavailable的Windows空壳，也不放宽Linux资源保护。
 
 ```mermaid

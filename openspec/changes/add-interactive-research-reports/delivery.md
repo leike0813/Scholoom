@@ -1,5 +1,13 @@
 # 实际交付与交接
 
+## 第17轮主线验收（2026-10-29）
+
+五树增量已冻结、保全并合入dev；本change接收独立身份服务候选及可信选择消费者。消费者模块位于`apps/desktop/src/renderer/src/workbench/report-context.ts`，保持已核快照、原视图／版本和原接收者，完整对象／来源／comment经一次appendContextItems接共同草稿；不是活动报告运行入口。2.2b关闭，完整2.2／2.1b／3.x／I5继续开放；新增下一片2.1c和2.2c，当前9/17。
+
+证据根`/home/joshua/.cache/scholoom-round17-acceptance-fZn1SQ/`：主线`main-context-tests.log`为消费者5项与原共同贡献4项联合9/9，24秒；desktop／tools类型、架构14模块267文件0 findings、两文件Biome、四个受影响change strict及diff检查通过。主线没有为未接入产品的独立模块重跑完整UI或重建所有静态产物。独立`report-context-review.md`另实跑原模块5/5及六组有界探针，未见确证P1/P2；实际原共同草稿接线，client／来源快照为明确替身，不代表真实资源授权或产品浏览器。服务／Windows规划审查`planning-review.md`无实质阻断；其非阻断微软链接错误已在所属调查修正。
+
+主线已直接核原报告spec及平台决议，并选择design“第17轮主线接收与下一片”的账户信任、单租约准备接缝和可信呈现校准边界。候选研究较强的同UID伪程序防御未成为产品契约；受限报告到可信账户能力的隔离要求不降低。没有安装、策略加载、服务／浏览器T1/T2或新增真实模型请求；普通静态HTML仍禁脚本。下一轮分发必须在共同基线同步及必要定向验证之后，不整体重放旧WIP。
+
 ## 独立身份服务候选规划（2026-10-29，8d8f339）
 
 本轮先核HEAD=`8d8f339c3e561154b05d4db39b4264c6db2c42e6`且git status为空，消费当前已整合源码，不重放旧WIP或自行同步。按用户明确范围仅完成2.1b下一片的调查及可审查规划；**仍为8/14，2.1b／完整I5未完成，活动报告unavailable**。原静态批注／native provider不重做，2.2可信选择模块由research-graph-runtime独立维护，本轮未写其文件。

@@ -1,6 +1,6 @@
 # 执行任务
 
-2026-10-29当前8/14：主线已接收核准字节冻结、原版本历史／严格单目标读取及共同原子附加子项，独立[Linux提供者](../add-linux-isolated-report-provider/tasks.md)9/9仍只覆盖固定静态native策略。当前片仅完成2.1b下一片的独立身份服务可审查规划；R1认证／唯一准入、R2共同呈现和R3部署／启动权威待主线决定，未安装或实跑服务。活动承载、完整共同动作／草稿及I5继续开放；来源与实际输入见investigation／delivery，不依赖现有/tmp。
+2026-10-29主线已接收核准字节冻结、历史／单目标读取、共同批量贡献及可信报告选择消费者，当前9/17。主线本轮消费者／共同草稿9/9通过；独立实现审查无确证P1/P2。活动承载、完整共同动作／更新／接续及I5继续开放，不能以模块或独立[Linux提供者](../add-linux-isolated-report-provider/tasks.md)替代浏览器呈现。来源与实际输入见investigation／delivery，不依赖现有/tmp。
 
 ```mermaid
 flowchart TD
@@ -28,9 +28,12 @@ flowchart TD
 - [x] 2.1a 调查原型已交付：tests/fixtures/report-frame专用候选模块及真实Browser／Electron静态夹具，消费实际ReportResources快照与有版本的资源字节，复用Bridge schema；合法脚本及清单资源、HTTP／UDP探针、CSP／父frame-src／导航／资源通道、宿主访问及有界桥生命周期已有代表性证据。两宿主实际STUN外发、Browser忙循环阻塞反例见delivery；只关闭调查，不算生产已隔离，生产保持unavailable。
 - [ ] 2.1b 正式承载仍未完成：独立[platform提供者](../add-linux-isolated-report-provider/delivery.md)9/9已由主线真实Linux固定静态native组接收，网络／syscall／迟到能力、unknown／容量／恢复已有其限定策略证据。该提供者仅内部六操作，未接产品宿主或完整浏览器；真实冻结字节消费者、浏览器完整进程图及呈现／分发仍需实施与实际验证，不能把native样本或临时launcher当活动报告。2.2／3.x及完整I5继续开放。
 
-  本片已形成[独立身份服务候选](../../../.scratch/scholoom-foundations/research/report-independent-identity-service.md)及R1–R3、最小T1/T2和未来写集；只读一手资料及规划不是2.1b通过证据。主线先选受保护的请求者／准入接缝、共同呈现和系统部署权威，另获实际安装／校准许可后才安排T1；不再试同UID固定launcher。T2依赖T1且须证明完整浏览器、双宿主文本／输入／可访问性及实际停止。2.2可信选择模块另线维护，不与其并写。
+  本片已形成[独立身份服务候选](../../../.scratch/scholoom-foundations/research/report-independent-identity-service.md)；主线选择的账户信任、准备接缝及本轮呈现校准范围见design“第17轮主线接收与下一片”。服务部署／安装及完整呈现尚未通过，不再试同UID固定launcher。T2依赖T1且须证明完整浏览器、双宿主文本／输入／可访问性及实际停止。
+- [ ] 2.1c 独立准备接缝：在现有provider内部沿同一真实ProcessAdmission租约，ready后才调用可信freeze准备回调，复用原记录／分片及失败收尾，不新增wire操作、第二次reserve或假assets。同实例重复准备合并，取消／撤权／失败及迟到结果不得启动或提前释放在途准备；创建OS范围前先持久原intent。实际ReportResources消费者与可替换OS端口独立验证，服务／浏览器仍不启用。
 - [ ] 2.2 实际文献对比页面支持筛选／排序／展开，已加载对象通过原子appendContextItems进入同一composer，用户检查正文后沿原session.send；核对objectIds、报告basis、明确来源、comment与接收者不变。超限整批拒绝保留草稿。1.2与2.1可分离实现，本线主Agent整合共同贡献及共享资源符号，禁止并行写同一文件。
 - [x] 2.2a 独立共同增量：appendContextItems同步返回成功／失败，一次完整合并校验后单次写回，16项／64KiB或非法项整批拒绝且原草稿不变；原单项委托同一实现，失效接收者及往返切换旧回调拒绝。复用真实useBusinessSession／草稿与贡献测试，补图片夹具消费者，运行必要类型／构建及双宿主单项／迟到回执保护；独立审查整改后只关闭本子项，不据此关闭完整2.2／报告I5。
+- [x] 2.2b 可信报告选择消费者：createReportContext捕获已核snapshot、视图／版本和原接收者，将实际对象、明确来源及comment原子交原共同草稿；关闭／往返失效、非法／未知／超限整批拒绝。主线消费者与共同贡献9/9、独审5/5及六组有界探针通过；只关闭独立模块，不声称真实资源授权、浏览器或I5接通。
+- [ ] 2.2c 可操作的可信模块夹具：在既有UI harness中以实际消费者、共同草稿及检查／编辑／移除入口承接固定文献对比样本的筛选／排序／展开和显式附加。实际内部草稿、版本／接收者和容量保持，client／来源快照与控制器替身明确；禁止执行任意报告脚本或新增产品工作台，不以夹具通过关闭完整2.2。
 
 ## 3. 完整更新、草稿与接续
 
@@ -44,6 +47,6 @@ flowchart TD
 
 ## 续做入口
 
-当前8/14，历史与目标Adapter、冻结字节及静态native提供者已实际接入，不重复等待公共基线。被否定的同UID入口不再作为下一实施方案；本轮独立身份服务仅交可审查规划，R1–R3和T1/T2尚未定案／实跑。完整2.1b／2.2／3.x／I5保持开放。
+当前9/17。下一轮先并行实施2.1c准备接缝及2.2c模块夹具，并用固定可信样本校准双宿主呈现接缝。主线选择及写集见design；系统安装、完整服务／浏览器、R2正式呈现与T1/T2仍未通过，完整2.1b／2.2／3.x／I5保持开放。
 
 下一步由主线按design候选节决定受保护身份／认证、系统部署与共同呈现方案，再明确T1许可；通过后才接完整浏览器与T2。当前不改生产或启用报告，后续不从旧缓存整体应用实现。固定native绿色、只读资料或CLI状态均不代替浏览器通过；macOS及其他目标证据不足保持unavailable。

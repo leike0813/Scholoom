@@ -1,5 +1,13 @@
 # 实际交付与交接
 
+## 第17轮主线接收W1（2026-10-29）
+
+W1五工件已冻结、保全并合入dev。独立规划审查无实质阻断，确认只读全树核验和启动窗口缺口，未把Linux25/25当Windows保证；一处GetFileInformationByHandleEx官方链接已修正。主线四个受影响change strict及diff通过，没有新增Windows实跑／CI结果。
+
+主线选择方案A及明确的ACL可信主体规则，统一记录于design“第17轮主线选择与W2实施边界”；W2从等待架构输入转为可实施的平台只读Module，native构建写集由生态树独占，公共导出／架构登记由主线整合。没有启用Windows资源布局、修改叶schema或resolver，W2真实目标、W3／W4、2.3／4.2／完整交付均继续开放。原endpoint发布EPERM仍由主线公共收尾负责，不凭本次设计消除。
+
+证据及独审位于`/home/joshua/.cache/scholoom-round17-acceptance-fZn1SQ/`。CI按用户要求后置；Windows代码可以按本片明确契约实施，目标平台保证须在真实结果具备后才验收，不以条件跳过、静态检查或模拟ACL替代。
+
 ## Windows普通持久布局：只读原生前置交回（8d8f339，2026-10-29）
 
 本轮起点`8d8f339c3e561154b05d4db39b4264c6db2c42e6`、工作区clean，产品源码7a746c0。沿用户“Windows普通原包布局”有界任务实际完成本树调查、原工件方案／契约、Linux资源保护最小回归；**没有实现Windows resolver／schema分支**。这是用户指定的“需要新Windows原生机制则给精确接口／反例／计划后停止”，不是继续等待旧Linuxsandbox或相同公共源码。原N2／Linux普通入口已接收，下面Windows注入／fd0原包实跑也保留；2.3普通Windows布局及4.2父项未完成。

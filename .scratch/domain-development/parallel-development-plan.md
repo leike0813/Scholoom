@@ -517,6 +517,24 @@ f4ab1e5／[Checks40622631905](https://github.com/leike0813/Scholoom/actions/runs
 
 各线从当前Git、正式规格和所属tasks／delivery接续，原WIP仅作保全依据。允许本轮有界实现及必要测试，保留首次失败和模拟边界，交付后停下；不提交、推送、归档或操作其他树。模型费用授权、系统安装与真实平台通过不能由本次任务分发推定。可独立实施的子范围不以完整浏览器尚未就绪为由空等，但不能把模块夹具当产品接通。实际分发原Prompt与回执保存在上述cache，任务事实仍由所属OpenSpec维护。
 
+## 第17轮验收与后续实施
+
+主线冻结并收回五树18文件，保留原工作树提交及祖先关系，七树原旧WIP检查点继续保留。报告选择消费者已按独立模块接收；服务承载候选、Windows布局调查、真实科研验收离线准备及题录证据复核分别按原派发边界接收，没有将规划或机械结果提升为完整业务通过。主线消费者／共同贡献9/9、desktop及tools类型、架构14模块267文件0 findings、两源码文件Biome、四change strict及diff通过；独立实现、方案、证据三份审查无实质阻断，修正一处微软文档链接。证据根`/home/joshua/.cache/scholoom-round17-acceptance-fZn1SQ/`，不依赖/tmp。
+
+跨模块选择已进入各自原design：报告以正常内核和登录账户为可信工作机，不以候选研究另加的任意同UID恶意程序模型要求迁移整个内核；受限报告的网络／文件／代理／可信通道边界不降低。provider批准同一租约ready后的私有准备回调，旧六操作保持。Windows采用方案A只读核验／启动前复查和明确ACL信任策略，不引入跨command持续lease；目标验证及resolver仍未具备。共同动作发送按已交付正文／非空批注契约，页面不自行发送。
+
+| 工作树 | 下一阶段范围 | 所有权与停止边界 |
+| --- | --- | --- |
+| project-execution | 报告2.1c：实现provider内单租约、ready后freeze的可信准备接缝 | isolated-reports及必要私有记录／provider窄测试；不写native构建、公共wire、报告工件或启用服务／浏览器。get／stop／恢复及取消竞争保持原语义，交回后停止 |
+| research-graph-runtime | 报告2.2c：现有消费者到实际共同草稿／检查器的可操作固定文献对比夹具 | 独立report-context夹具及相应测试；真实模块／草稿，明确client／快照替身；不改business-session、ResourceView、HtmlRenderView或报告工件，不把夹具当活动报告 |
+| research-interaction | 报告R2双宿主呈现／输入／文本语义的有限可信样本校准 | 独立report-surface试验夹具、cache及本报告change工件；不写上两线源码，不装服务／策略或运行任意／恶意脚本；不能保持共同tab文本、输入和辅助语义时交回具体反例，不以位图替代完成 |
+| zotero-ecosystem | W2平台只读Windows资源树Module／原生适配及目标测试 | 私有resource-tree模块、native及唯一构建登记；不改host-settings／resolver、不启用Windows。公共node导出／architecture由主线整合；无目标环境时交代码及准确未验项，W2父任务保持开放 |
+| agent-delegation | 离线准备已接收，等待下一次真实科研验收的明确预算授权 | 不重跑机械例、重放旧pending或继续CI诊断，不发真实模型请求 |
+| literature-workbench | 证据复核已接收，等待Windows题录目标与平台收尾 | 不重复已绿套件或再整理同一份证据，不查跑CI |
+| research-task-workspace | 原33/33范围保持完成，等待 | 不新增研究Graph、主题知识或删除恢复范围 |
+
+Codex／gpt-6.1-sol／high保持。先提交本轮整合及上述决定，七树保全快进；按实际源码差异核类型／架构和最小定向测试，再发送四任务／三等待。不得在Prompt发送后再次改工作树基线。新任务均限既定首批路径；真实模型调用、系统安装和Windows／完整浏览器实际保证不由本次分发自动授权，CI继续后置。原Prompt、同步、命令及发送／启动回执保存在本轮cache；任务事实沿所属OpenSpec，不新建重复进度账本。
+
 ## 首轮 Agent 的共同起始任务
 
 各线采用下述共同要求，并附上本文件中该开发线的小节：

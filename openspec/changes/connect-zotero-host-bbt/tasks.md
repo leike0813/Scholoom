@@ -9,7 +9,7 @@
 Linux普通入口N2已由主线接收；Windows私有fd0／可信注入原包已有实际结果，百条例endpoint rename EPERM及其公共lifecycle修复仍归主线。本片只补普通设置的可信资源布局，当前Windows只读树／ACL提供者及启动窗口策略尚缺；不回退旧Linuxsandbox阻塞，不改公共lifecycle、platform或CI，不先放开永远不可用的枚举分支。
 
 - [x] W1 核固定44.5.1 Windows发行入口、host产物／asar区别、原BBT9.0.68及当前设置／资源／原生提供者；在原investigation／design／delta明确只读核验缺口、同源布局候选、ACL及启动窗口选项、所有权和真实Windows验收入口。完成依据：本树来源及反例可核对，Linux现资源组25/25；这只是实际调查成果，不是Windows实现或目标通过。
-- [ ] W2 【主线前置，阻塞】确认design W1的ACL信任策略及A/B启动窗口保证，提供真实Windows只读设置文件／资源树核验和明确的所有权／释放接口；平台源码、native构建及公共导出由主线负责。完成依据：真实Windows根／后代ACL、reparse／对象身份、扫描竞争及选定窗口边界验证，不能以privateDirectory修复、内存ACL或Linux句柄代替。
+- [ ] W2 【第17轮主线已选A及ACL策略，本轮实施平台Module】按design“第17轮主线选择与W2实施边界”提供只读设置文件／资源树核验、所有权与释放接口；生态树独占新平台Module／native构建及窄测试，主线整合公共导出／架构登记。不再等待A/B决策；Windows目标缺证仍不能关闭本项。完成依据：真实Windows根／后代ACL、reparse／对象身份、扫描竞争及选定窗口边界验证，不能以privateDirectory修复、内存ACL或Linux句柄代替。
 - [ ] W3 【依赖W2及叶契约批准】在host-settings／resolveZoteroResource接受同源Windows固定布局，派生固定electron.exe与已构建managed目录并复用版本、成员、beforeLaunch规则；不新增exec/env/root或第二登记。完成依据：私有设置与全树核验真实接入，Linux保护回归保持；需要变更TrustedZoteroLaunch消费者／公共注册先交主线，不能留下空壳分支。
 - [ ] W4 【依赖W3、目标Windows及主线停机前置】扩原窄资源／普通CLI／原包持久用例，真实离线资源→关闭准备实例→普通冷启动／bootstrap→补键与两格式→完整停机／重启原ID；保留不安全后代、链接、资源替换及撤权／unknown代表边界。完成依据：真实Windows原生与原BBT结果，原包字节对照；公共endpoint失败不吞。Linux25/25不抵该目标，2.3／4.2父项保持开放。
 
