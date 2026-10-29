@@ -1,0 +1,16 @@
+.structure-probe {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: calc(var(--space-unit) * 3);
+  gap: calc(var(--space-unit) * 2);
+}
+.structure-probe iframe {
+  flex: 1;
+  width: 100%;
+  min-height: calc(var(--space-unit) * 80);
+  border: 1px solid var(--border);
+}
+.structure-probe p {
+  margin: 0;
+}
