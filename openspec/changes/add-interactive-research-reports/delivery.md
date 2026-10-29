@@ -1,5 +1,15 @@
 # 实际交付与交接
 
+## 第25轮：原版草稿客户端接收（2026-10-30）
+
+计算树第24轮Task task_a60718d485d4／Dispatch ctx_e53e801c8454成功交回，已retain原终端并处理Delivery。原82361ae在dev以b571323接收，两文件内容核对一致后用2e5a9d6保留原祖先，无内容差异。新增restoreReportDraft单次准确版本RPC→原草稿恢复，不写入／订阅或缓存第二正文；捕获完整identity，RPC前后核连接／配置／signal，成功snapshot还核ref/basis。RPC错误直接失败，只有成功available／unavailable才能给对应原store资格，已发调用不假取消。
+
+主线在未变且已构建的真实后端产物运行新测试**4/4、12.7秒**，真实Manual／认证server／KernelClient／项目库／FileEdit接通：R1独有来源撤权、可读依赖前进的copyOnly、调用者改identity及abort后仍待真实回执、RPC异常与误路由真实R2成功结果拒绝。仅在真实call完成后的server回包接缝做有界延迟／失败或将请求显式误路由到另一真实已核版本，不造成功ACL／snapshot。Node无window，草稿使用原drafts内存降级，未证明浏览器落盘、真实配置切换／窗口generation或双宿主页面恢复。
+
+证据根`/home/joshua/.cache/scholoom-round25-acceptance-PHGzsJ`：draft-client-tests.log／draft-client-results、draft-tools.log、draft-desktop.log及draft-scoped.log；tools／desktop类型、两文件Biome与架构14模块272文件0 findings均exit0，后台测试及检查进程已结清。作者模块浏览器bundle构建、4/4、首次import顺序失败与修正等原证据保留在第24轮根next/research-graph-runtime/RESULT.md。独立draft-client-review.md只读核源码／测试和调用，无确证P1/P2，已关闭；未冒称重复运行。所有新增输入／TMPDIR在持久cache。
+
+文献树下一片按design第25轮消费该适配接真实localStorage／双宿主，先同步验证后派发。项目Agent／目标授权验收仍保持f0467a8原活动基线；只允许取得实际活动CallContext后绑定单方法原broker测试入口，不扩大context或称worker已具备该工具。生态C记录初始化Module在仅规划增量ae7c5bf开工，原records及完整库存是唯一权威，无C服务／跨UID／系统部署结果；它仍在实施，未接收。报告保持21/27，完整承载、3.2／I5和系统T1/T2不关闭。
+
 ## 第24轮：准确版本真实内核接线（2026-10-30）
 
 证据根`/home/joshua/.cache/scholoom-round24-acceptance-88OiZP`。项目线精确版本投影已停止、冻结为ce383ac并在dev接收，保留原提交祖先；主线projects构建后运行新project-file-versions六项及原报告undo一项，**7/7**。覆盖after优先、仅before、原路径、错身份／basis、受限Agent及损坏原记录拒绝；独立只读version-review.md无确证P1/P2并已关闭。原Dispatch task_3fde7a0b6782／ctx_4a6d9d1c192a succeeded、retained，Delivery已处理；此后全部原派发均结清，没有活动树被更换基线。

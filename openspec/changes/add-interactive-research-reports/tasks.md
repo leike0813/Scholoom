@@ -1,5 +1,7 @@
 # 执行任务
 
+2026-10-30第25轮原版草稿client适配由主线4/4及独审接收，仍沿3.2、21/27。下一片真实localStorage／Workbench双宿主按design第25轮实施；C记录显式初始化并行进行，均不冒称活动承载或完整I5完成。
+
 2026-10-30第24轮补齐真实内核准确版本读取及库身份／字节资格区分，仍21/27，不另拆计数。`resources.reportVersion`接实际FileEdit／资源端口；原版可核且完整才返回snapshot，已核资格但字节不可得只返回状态。客户端草稿适配及真实页面接线沿完整3.2继续；当前验收事实见delivery第24轮。
 
 2026-10-30第23轮3.2d原版本恢复资格Module已由主线39/39与独审接收，当前21/27；生产FileEdit定位、kernel／client及页面恢复仍沿完整3.2，不据模块完成关闭整项。范围见design第23轮。
@@ -34,7 +36,7 @@ flowchart TD
 ## 2. 页面内浏览与共同动作
 
 - [x] 2.1a 调查原型已交付：tests/fixtures/report-frame专用候选模块及真实Browser／Electron静态夹具，消费实际ReportResources快照与有版本的资源字节，复用Bridge schema；合法脚本及清单资源、HTTP／UDP探针、CSP／父frame-src／导航／资源通道、宿主访问及有界桥生命周期已有代表性证据。两宿主实际STUN外发、Browser忙循环阻塞反例见delivery；只关闭调查，不算生产已隔离，生产保持unavailable。
-- [ ] 2.1b 正式承载仍未完成：独立[platform提供者](../add-linux-isolated-report-provider/delivery.md)9/9已由主线真实Linux固定静态native组接收，网络／syscall／迟到能力、unknown／容量／恢复已有其限定策略证据。该提供者仅内部六操作，未接产品宿主或完整浏览器；真实冻结字节消费者、浏览器完整进程图及呈现／分发仍需实施与实际验证，不能把native样本或临时launcher当活动报告。2.2／3.x及完整I5继续开放。
+- [ ] 2.1b 正式承载仍未完成：独立[platform提供者](../add-linux-isolated-report-provider/delivery.md)10/10已由主线真实Linux固定静态native组及完整库存修复接收，网络／syscall／迟到能力、unknown／容量／恢复已有其限定策略证据。该提供者仅内部六操作，未接产品宿主或完整浏览器；真实冻结字节消费者、浏览器完整进程图及呈现／分发仍需实施与实际验证，不能把native样本或临时launcher当活动报告。2.2／3.x及完整I5继续开放。
 
   本片已形成[独立身份服务候选](../../../.scratch/scholoom-foundations/research/report-independent-identity-service.md)；主线选择的账户信任、准备接缝及本轮呈现校准范围见design“第17轮主线接收与下一片”。服务部署／安装及完整呈现尚未通过，不再试同UID固定launcher。T2依赖T1且须证明完整浏览器、双宿主文本／输入／可访问性及实际停止。
 
@@ -73,6 +75,6 @@ flowchart TD
 
 ## 续做入口
 
-当前21/27。准确版本的真实内核读取已实施；下一片为该接口的客户端草稿适配及真实Agent／目标项目授权验证，所有权与依赖见design第24轮。系统安装、服务运行、完整浏览器与T1/T2尚未通过，其他平台及完整3.x／I5保持开放。
+当前21/27。准确版本的真实内核及客户端草稿适配已接收；下一片为真实工作台原版恢复、C记录显式初始化和Agent／目标项目授权验收，所有权与依赖见design第24／25轮。系统安装、服务运行、完整浏览器与T1/T2尚未通过，其他平台及完整3.x／I5保持开放。
 
 下一步由主线按design候选节决定受保护身份／认证、系统部署与共同呈现方案，再明确T1许可；通过后才接完整浏览器与T2。当前不改生产或启用报告，后续不从旧缓存整体应用实现。固定native绿色、只读资料或CLI状态均不代替浏览器通过；macOS及其他目标证据不足保持unavailable。

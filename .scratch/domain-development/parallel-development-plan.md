@@ -665,6 +665,8 @@ Codex／gpt-6.1-sol／high保持。所有树先停止并保全原提交祖先，
 
 第25轮扩展一条真实可独立实施线：生态树先保全快进主线仅规划增量并验证，再派C记录初始化Module，独占原isolated-report-records.ts及新isolated-report-bootstrap测试；精确合同见报告design第25轮。计算／项目两条第24轮任务继续原基线，不更改活动树。该片区分准确打开与显式新建，复用原库存及真实锁，当前普通UID无需系统部署；不再等待根权限才能实现，也不以此关闭T1。其余四树仍按原真实前置等待，报告21/27保持。
 
+第25轮后续：计算适配82361ae→b571323及祖先桥2e5a9d6由主线4/4、类型／格式／架构和独审接收，原Dispatch已结清retained。文献树的真实原版恢复前置现已具备，先同步该目标树并核source/产物，再按报告design第25轮派原connected夹具两类双宿主；不复制资格映射或先写available。项目授权及生态bootstrap仍在各自原基线工作，不随此更新。证据根`/home/joshua/.cache/scholoom-round25-acceptance-PHGzsJ`，原模型与系统权限边界保持；计算停止等待，不重跑原矩阵。
+
 ## 首轮 Agent 的共同起始任务
 
 各线采用下述共同要求，并附上本文件中该开发线的小节：

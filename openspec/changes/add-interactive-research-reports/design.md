@@ -26,6 +26,16 @@ ReportResources 是 `packages/editor` 内的 module，不新建包／数据库�
 
 ## 方案与接口
 
+### 第25轮：原版草稿工作台接线
+
+客户端原提交82361ae→主线b571323及零内容差异祖先桥2e5a9d6已接收；主线实际4/4、types／格式／架构通过，独审无确证P1/P2，具体真实／替身及未验见delivery第25轮。`restoreReportDraft({client,identity,signal?})`返回`{version,restored}`；Node测试用原内存草稿降级，下一片验证实际Browser／Electron及localStorage。
+
+文献树独占原`tests/fixtures/report-connected/`与`tests/ui/report-connected.spec.ts`，消费现有适配，不改生产module、共同fixture或其他UI测试。最多两类代表、两宿主：关闭R1后真实保存不含A的R2，再按原精确identity经适配重开R1，原snapshot／browse／draft只随完整available恢复；撤回A后R2仍可读但R1不能恢复或复制。另一类使原依赖保持身份且内容前进，准确原版的成功unavailable只能给原draft/dirty作copyOnly，不恢复browse、假页面／snapshot或创建共同附加consumer；未知原版／失败不得copyOnly。两类可在各自流程中覆盖迟到回包：关闭／配置或view失效时中止本地候选采用，仍等实际RPC结清，旧页不得复活。
+
+真实KernelClient／认证server／项目库／FileEdit、原report-drafts/localStorage、Workbench/common composer／inspector继续接通，Node控制只做实际save／grant或有界暂扣已完成的真实reportVersion回执；不注入成功权限／snapshot。原正文及显式项保持原key/basis，恢复完整封套仍经原isReportBridgeMessage。不得预先把available写给store或catch失败猜unavailable。旧版选择由可信测试宿主保存的准确ref/basis触发，不枚举存储或按新清单／时间猜版本。局部React视图／generation及取消由该可信夹具落实；普通report-client仍管最新候选，不能让它把原版恢复改成最新basis。
+
+先同步并构建有变化的夹具，固定后跑该两类双宿主及其必要类型／格式；原当前版已绿矩阵按修改影响选择最小代表，不机械再全跑。仅固定可信React页面，不执行报告HTML脚本、不新增renderer布局或公共DTO；实际跨宿主页面ready、OS承载及完整3.2／I5仍开放。
+
 ### 第25轮：C记录初始化Module
 
 第22轮C-writer设计中，现有`IsolationRecords.load()`会在空根自动生成configId；该行为服务原本地提供者，不能直接作为系统C的“打开已知配置”。本片仅关闭这一个初始化接缝，不扩为C服务或通用远程IO。由生态树独占原`packages/platform/src/isolated-report-records.ts`与新`tests/kernel/isolated-report-bootstrap.spec.ts`，其他两条活动树仍保持第24轮基线和所有权。
