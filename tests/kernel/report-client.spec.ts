@@ -5,6 +5,61 @@ import { expect, test } from '@playwright/test';
 import { createReportClient } from '../../apps/desktop/src/renderer/src/workbench/reports/report-client.js';
 import { reportClientDomain } from '../fixtures/report-client/domain.js';
 
+test('throwing report observers cannot block healthy observers or shared client reconnection', async () => {
+  const domain = await reportClientDomain(test.info().outputPath('domain'));
+  const adapter = createReportClient({
+    client: domain.reader,
+    dataDirectory: domain.profile,
+    entry: domain.entry,
+  });
+  const faults = new Set<string>();
+  const unthrow = adapter.subscribe(() => {
+    const stage =
+      domain.reader.getSnapshot().phase === 'reconnecting'
+        ? 'reconnecting'
+        : adapter.read().canDisplay
+          ? 'loaded'
+          : undefined;
+    if (stage && !faults.has(stage)) {
+      faults.add(stage);
+      throw new Error('synthetic report observer failure');
+    }
+  });
+  let healthyLoads = 0;
+  const unreport = adapter.subscribe(() => {
+    if (adapter.read().canDisplay) healthyLoads++;
+  });
+  const phases: string[] = [];
+  const unphase = domain.reader.subscribe(() => phases.push(domain.reader.getSnapshot().phase));
+  try {
+    await expect.poll(() => healthyLoads).toBeGreaterThan(0);
+    expect(faults.has('loaded')).toBe(true);
+    domain.proxy.dropConnections();
+    await expect.poll(() => phases.includes('reconnecting')).toBe(true);
+    expect(faults.has('reconnecting')).toBe(true);
+    expect(adapter.read().canDisplay).toBe(false);
+    await expect.poll(() => domain.reader.getSnapshot().phase).toBe('connected');
+    expect(phases).toContain('connected');
+    await domain.watch();
+    await adapter.recheck();
+    expect(adapter.read().canDisplay).toBe(true);
+    await writeFile(
+      test.info().outputPath('facts.json'),
+      JSON.stringify(
+        { faults: [...faults], phases, healthyLoads, metadata: adapter.read() },
+        null,
+        2,
+      ),
+    );
+  } finally {
+    unthrow();
+    unreport();
+    unphase();
+    adapter.dispose();
+    await domain.close();
+  }
+});
+
 test('real report save notifications discover latest basis, retain dirty metadata and explicitly switch', async () => {
   const domain = await reportClientDomain(test.info().outputPath('domain'));
   const adapter = createReportClient({

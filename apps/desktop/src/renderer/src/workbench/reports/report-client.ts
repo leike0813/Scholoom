@@ -26,7 +26,13 @@ export function createReportClient({
   let disposed = false;
   let observed: Promise<void> | undefined;
   const notify = () => {
-    for (const listener of [...listeners]) listener();
+    for (const listener of [...listeners]) {
+      try {
+        listener();
+      } catch (error) {
+        console.error('Report update listener failed.', error);
+      }
+    }
   };
   const ensure = (signal?: AbortSignal) => {
     signal?.throwIfAborted();
@@ -39,10 +45,12 @@ export function createReportClient({
   const follow = (work: Promise<void>): Promise<void> => {
     if (observed !== work) {
       observed = work;
-      void work.then(() => {
-        if (observed === work) observed = undefined;
-        if (!disposed) notify();
-      });
+      void work
+        .then(() => {
+          if (observed === work) observed = undefined;
+          if (!disposed) notify();
+        })
+        .catch((error) => console.error('Report update observation failed.', error));
     }
     notify();
     return work;
