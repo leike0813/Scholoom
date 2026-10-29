@@ -394,7 +394,7 @@ export async function snapshot(
     await writeFile(
       join(directory, '_quarto.yml'),
       stringify({
-        project: { type: 'default' },
+        project: { type: 'default', render: [input] },
         execute: { enabled: false },
         filters: ['.scholoom-passive.lua'],
         format: {

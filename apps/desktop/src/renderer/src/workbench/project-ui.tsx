@@ -1,6 +1,7 @@
 import type { KernelClient } from '@scholoom/client';
 import type { ContextItem, FileContent, ResourceDescriptor, ResourceRef } from '@scholoom/protocol';
 import { lazy, Suspense, useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
+import { ArtifactAnnotation } from './ArtifactAnnotation';
 import type { ContentSelection } from './content-selection';
 import { useContextContribution } from './context-contributions';
 import { draftKey } from './drafts';
@@ -440,6 +441,13 @@ export function FileEditor({
           >
             {contextItem?.kind === 'object' ? '附加对象' : '附加选区'}
           </button>
+          <ArtifactAnnotation
+            item={
+              contextItem?.kind === 'text' || contextItem?.kind === 'object'
+                ? contextItem
+                : undefined
+            }
+          />
           <button
             type="button"
             className="btn"

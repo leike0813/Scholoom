@@ -583,7 +583,7 @@ async function contextEntry(dock: Locator, index: number): Promise<Locator> {
   return textarea;
 }
 
-test('selected project text reaches the model as an explicit attachment and persists after reload', async ({
+test('annotated project text sends without a main instruction and persists after reload', async ({
   uiPage,
 }) => {
   test.setTimeout(120000);
@@ -618,15 +618,22 @@ test('selected project text reaches the model as an explicit attachment and pers
     await openProject(uiPage, project);
     await uiPage.getByRole('treeitem', { name: '打开文件 context.txt', exact: true }).dblclick();
     await attachSavedSelection(uiPage, 'context.txt');
+    await expect(uiPage.getByRole('button', { name: '发送指令', exact: true })).toBeDisabled();
     const dock = uiPage.locator('.agent-dock');
     const annotation = await contextEntry(dock, 1);
+    await annotation.fill('   ');
+    await expect(uiPage.getByRole('button', { name: '发送指令', exact: true })).toBeDisabled();
     await annotation.fill(comment);
     await annotation.press('Escape');
+    await uiPage.getByRole('button', { name: '展开 Agent 会话', exact: true }).click();
+    const overlay = uiPage.getByRole('dialog', { name: 'Agent 会话', exact: true });
+    await expect(await contextEntry(overlay, 1)).toHaveValue(comment);
+    await overlay.getByLabel('查看附加上下文', { exact: true }).click();
 
     const scope = await workspaceScope(client, project);
     model.hold = true;
-    const instruction = 'MODEL_CHAT 读取明确附加的项目摘录';
-    await uiPage.getByRole('textbox', { name: '研究指令' }).fill(instruction);
+    const instruction = '请处理附加材料中的批注';
+    await expect(uiPage.getByRole('textbox', { name: '研究指令' })).toHaveValue('');
     await uiPage.getByRole('button', { name: '发送指令', exact: true }).click();
     await expect.poll(() => model?.requests.length ?? 0, { timeout: 20000 }).toBe(1);
 
@@ -647,6 +654,7 @@ test('selected project text reaches the model as an explicit attachment and pers
     expect(item.basis).not.toBe('');
     reread = { ref: item.ref, basis: item.basis };
     const persistedItems = sent.contextItems;
+    await uiPage.getByRole('button', { name: '收起会话', exact: true }).click();
     model.release();
 
     await expect(uiPage.getByRole('status', { name: '执行状态' })).toContainText('执行完成', {
@@ -703,6 +711,61 @@ test('selected project text reaches the model as an explicit attachment and pers
     await model?.close();
   }
 });
+test('an accepted annotation with a held reply protects the next main draft until confirmation', async ({
+  uiPage,
+}) => {
+  test.setTimeout(90000);
+  const project = test.info().outputPath(`reply-lock-${test.info().project.name}`);
+  await mkdir(project, { recursive: true });
+  await writeFile(join(project, 'context.txt'), `${EXCERPT}\n`);
+  const model = await createModelServer({ respond: () => ({ text: '已核对批注。' }) });
+  const stop = await startModelKernel(process.env.SCHOOLOOM_UI_DATA_DIR as string, model.url);
+  const client = createKernelClient(
+    await runningKernel(process.env.SCHOOLOOM_UI_DATA_DIR as string),
+  );
+  await client.connect();
+  try {
+    await openProject(uiPage, project);
+    await uiPage.getByRole('treeitem', { name: '打开文件 context.txt', exact: true }).dblclick();
+    await attachSavedSelection(uiPage, 'context.txt');
+    const dock = uiPage.locator('.agent-dock');
+    const annotation = await contextEntry(dock, 1);
+    await annotation.fill('按此摘录核查。');
+    await annotation.press('Escape');
+    const scope = await workspaceScope(client, project);
+    await armRpcGate(uiPage, 'session.send', '', true);
+    await uiPage.getByRole('button', { name: '发送指令', exact: true }).click();
+    await uiPage.waitForFunction(() => !!Reflect.get(globalThis, '__scholoomRpcGate').held);
+    await expect(dock.getByText('1 个附加项', { exact: true })).toHaveCount(0);
+    const input = uiPage.getByRole('textbox', { name: '研究指令', exact: true });
+    await input.fill('下一条正文必须保留。');
+    await expect(uiPage.getByRole('button', { name: '发送指令', exact: true })).toBeDisabled();
+    await input.press('ControlOrMeta+Enter');
+    await expect(input).toHaveValue('下一条正文必须保留。');
+    expect(
+      (await client.call('workbench.snapshot', scope)).messages.filter(
+        (message) => message.role === 'user',
+      ),
+    ).toHaveLength(1);
+    await releaseRpcGate(uiPage);
+    await expect(uiPage.getByRole('button', { name: '发送指令', exact: true })).toBeEnabled();
+    await input.press('ControlOrMeta+Enter');
+    await expect
+      .poll(
+        async () =>
+          (await client.call('workbench.snapshot', scope)).messages.filter(
+            (message) => message.role === 'user',
+          ).length,
+      )
+      .toBe(2);
+    await expect(input).toHaveValue('');
+  } finally {
+    client.dispose();
+    await stop();
+    await model.close();
+  }
+});
+
 test('a late send receipt keeps context added or commented after the send', async ({ uiPage }) => {
   test.setTimeout(90000);
   const project = test.info().outputPath(`context-late-${test.info().project.name}`);
@@ -725,8 +788,8 @@ test('a late send receipt keeps context added or commented after the send', asyn
     await original.fill(originalComment);
     await original.press('Escape');
     const scope = await workspaceScope(client, project);
-    const instruction = 'MODEL_CHAT 迟到回执上下文';
-    await uiPage.getByRole('textbox', { name: '研究指令' }).fill(instruction);
+    const instruction = '请处理附加材料中的批注';
+    await expect(uiPage.getByRole('textbox', { name: '研究指令' })).toHaveValue('');
 
     await armRpcGate(uiPage, 'session.send');
     await uiPage.getByRole('button', { name: '发送指令', exact: true }).click();

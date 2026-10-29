@@ -12,7 +12,12 @@ import {
   useState,
 } from 'react';
 import { jsx, jsxs } from 'react/jsx-runtime';
-import { boundedSelection, type ContentSelection, selectionText } from './content-selection';
+import {
+  boundedSelection,
+  type ContentSelection,
+  domTextSelection,
+  selectionText,
+} from './content-selection';
 import { assetTarget, linkTarget } from './markdown-paths';
 import { acquireMarkdownQueue, type MarkdownQueueHandle } from './markdown-queue';
 import type { PreviewNode } from './markdown-render';
@@ -100,58 +105,6 @@ interface PreviewValue {
 
 const PreviewContext = createContext<PreviewValue | null>(null);
 const ObjectSelectionContext = createContext<((node: PreviewNode) => void) | null>(null);
-
-function* selectedPreviewText(node: Node, range: Range): Generator<string> {
-  let separator = '';
-  let started = false;
-  function* visit(current: Node): Generator<string> {
-    if (!range.intersectsNode(current)) return;
-    const element = current instanceof Element ? current : undefined;
-    if (element?.matches('button, .markdown-image')) return;
-    if (element?.tagName === 'BR') {
-      separator += '\n';
-      return;
-    }
-    if (element?.tagName === 'TR') {
-      let first = true;
-      for (const cell of element.children) {
-        if (!cell.matches('td, th') || !range.intersectsNode(cell)) continue;
-        if (started && separator) yield separator;
-        separator = '';
-        if (!first) yield '\t';
-        started = true;
-        yield* visit(cell);
-        first = false;
-      }
-      if (!first) separator = '\n';
-      return;
-    }
-    const block = element?.matches(
-      'p, h1, h2, h3, h4, h5, h6, pre, blockquote, li, dt, dd, div, section, table, thead, tbody, tfoot, tr, caption',
-    );
-    if (block) separator ||= '\n';
-    const text = element?.classList.contains('katex')
-      ? (element.querySelector('annotation[encoding="application/x-tex"]')?.textContent ?? '')
-      : current.nodeType === Node.TEXT_NODE
-        ? (current.textContent ?? '').slice(
-            current === range.startContainer ? range.startOffset : 0,
-            current === range.endContainer ? range.endOffset : undefined,
-          )
-        : undefined;
-    if (text !== undefined) {
-      if (text) {
-        if (started && separator) yield separator;
-        yield text;
-        started = true;
-        separator = '';
-      }
-    } else {
-      for (const child of current.childNodes) yield* visit(child);
-    }
-    if (block) separator = '\n';
-  }
-  yield* visit(node);
-}
 
 function texAnnotation(node: PreviewNode): PreviewNode | undefined {
   if (node.tagName === 'annotation' && node.properties?.encoding === 'application/x-tex')
@@ -546,35 +499,9 @@ export function MarkdownPreview({
       onSelection(null);
       return;
     }
-    const range = selection.getRangeAt(0);
-    const root = range.commonAncestorContainer;
-    if (root.parentElement?.closest('button, .markdown-image')) {
-      onSelection(null);
-      return;
-    }
-    // A partially intersected formula contains at least one selection endpoint.
-    for (const boundary of [range.startContainer, range.endContainer]) {
-      const formula = (boundary instanceof Element ? boundary : boundary.parentElement)?.closest(
-        '.katex',
-      );
-      if (!formula || !element.contains(formula)) continue;
-      const contents = formula.ownerDocument.createRange();
-      contents.selectNodeContents(formula);
-      if (
-        range.compareBoundaryPoints(Range.START_TO_START, contents) > 0 ||
-        range.compareBoundaryPoints(Range.END_TO_END, contents) < 0
-      ) {
-        textRange.current = range.cloneRange();
-        onSelection({ error: 'partialFormula' });
-        return;
-      }
-    }
-    const formula = (root instanceof Element ? root : root.parentElement)?.closest('.katex');
-    const quote = selectionText(
-      selectedPreviewText(formula && element.contains(formula) ? formula : root, range),
-    );
-    if (quote !== '') textRange.current = range.cloneRange();
-    onSelection(quote === null ? { error: 'tooLarge' } : quote ? { kind: 'text', quote } : null);
+    const result = domTextSelection(element, selection);
+    if (result) textRange.current = selection.getRangeAt(0).cloneRange();
+    onSelection(result);
   };
 
   const status = preview.busy

@@ -20,6 +20,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import { ArtifactAnnotation } from './ArtifactAnnotation';
 import { useContextContribution } from './context-contributions';
 import { prepareReadingRecord, ReadingRecordsPanel } from './ReadingRecordsPanel';
 import type { ReadingRecordAdapter, WorkbenchResourcePort } from './resource-controller';
@@ -688,17 +689,20 @@ export function DocumentReader({
           重新读取文档
         </button>
         {context.available ? (
-          <button
-            type="button"
-            className="btn"
-            disabled={!contextItem || !selectionValid}
-            onClick={() => {
-              if (contextItem && selectionValid)
-                context.appendContextItem({ ...contextItem, itemId: crypto.randomUUID() });
-            }}
-          >
-            附加选区
-          </button>
+          <>
+            <button
+              type="button"
+              className="btn"
+              disabled={!contextItem || !selectionValid}
+              onClick={() => {
+                if (contextItem && selectionValid)
+                  context.appendContextItem({ ...contextItem, itemId: crypto.randomUUID() });
+              }}
+            >
+              附加选区
+            </button>
+            <ArtifactAnnotation item={contextItem} disabled={!selectionValid} />
+          </>
         ) : null}
         {recordAdapter && resource.capabilities.readingRecords ? (
           <>

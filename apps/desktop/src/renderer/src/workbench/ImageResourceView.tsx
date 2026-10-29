@@ -1,5 +1,6 @@
 import type { ContextItem, ResourceDescriptor } from '@scholoom/protocol';
 import { type PointerEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { ArtifactAnnotation } from './ArtifactAnnotation';
 import { useContextContribution } from './context-contributions';
 import { sameResourceRef, type WorkbenchResourcePort } from './resource-controller';
 
@@ -262,6 +263,7 @@ export function ImageResourceView({
         >
           附加图片区域
         </button>
+        <ArtifactAnnotation item={item} />
         <button
           type="button"
           className="btn"

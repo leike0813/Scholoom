@@ -658,8 +658,8 @@ export class EditorRuntime {
   }
   private async savedRender(projectId: string, outputId: string, context: CallContext) {
     const output = await this.saved(projectId, outputId, context);
-    if (output.format !== 'pdf')
-      throw new OperationError('invalidRequest', '只支持 PDF 排版产物资源。');
+    if (output.format !== 'pdf' && output.format !== 'html')
+      throw new OperationError('invalidRequest', '只支持 PDF 或 HTML 排版产物资源。');
     if (
       !output.basis ||
       !output.input ||
@@ -667,7 +667,7 @@ export class EditorRuntime {
       output.input.ref.projectId !== projectId
     )
       throw new OperationError('unavailable', '排版产物缺少可核对的输入或字节依据。');
-    return { ...output, basis: output.basis, input: output.input };
+    return { ...output, format: output.format, basis: output.basis, input: output.input };
   }
   async resource(
     locator: Extract<ResourceLocator, { source: 'render' }>,
@@ -682,7 +682,7 @@ export class EditorRuntime {
         ref: locator,
         basis: output.basis,
         name: output.name,
-        format: 'pdf',
+        format: output.format,
         render: { jobId: output.jobId, input: output.input },
         capabilities: { read: true, write: false, readingRecords: false, render: false },
       };

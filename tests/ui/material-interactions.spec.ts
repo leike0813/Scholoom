@@ -19,7 +19,10 @@ test('a real document annotation reaches the shared composer and changes a proje
   const evidence = 'Material evidence 73.';
   const before = '# Finding\n\nBefore review.\n';
   const after = '# Finding\n\nAfter review.\n';
-  await writeFile(join(root, 'paper.html'), `<html><body><p>${evidence}</p></body></html>`);
+  await writeFile(
+    join(root, 'paper.html'),
+    `<html><body><p>${evidence}</p><p>Another selection 91.</p></body></html>`,
+  );
   await writeFile(join(root, 'note.md'), '# Finding\n\nUnreviewed.\n');
   let inspect:
     | { projectId: string; fileId: string; editId: string; afterEditId: string }
@@ -89,10 +92,10 @@ test('a real document annotation reaches the shared composer and changes a proje
     await uiPage.getByRole('treeitem', { name: '打开文件 paper.html', exact: true }).dblclick();
     const article = uiPage.getByRole('article', { name: '文档正文', exact: true });
     await expect(article).toContainText(evidence);
-    const selectEvidence = () =>
+    const selectEvidence = (index = 0) =>
       article
         .locator('[data-document-start]')
-        .first()
+        .nth(index)
         .evaluate((element) => {
           const range = document.createRange();
           range.selectNodeContents(element);
@@ -106,14 +109,46 @@ test('a real document annotation reaches the shared composer and changes a proje
     await uiPage.evaluate(() => window.getSelection()?.removeAllRanges());
     await expect(uiPage.getByRole('button', { name: '附加选区', exact: true })).toBeDisabled();
     await selectEvidence();
-    await uiPage.getByRole('button', { name: '附加选区', exact: true }).click();
+    await uiPage.getByRole('button', { name: '批注', exact: true }).click();
+    const inlineComment = uiPage.getByRole('textbox', { name: '材料批注', exact: true });
+    await inlineComment.fill('核查这条原始材料。');
+    await uiPage.evaluate(() => window.getSelection()?.removeAllRanges());
+    await expect(uiPage.getByRole('button', { name: '附加选区', exact: true })).toBeDisabled();
+    await expect(inlineComment).toHaveValue('核查这条原始材料。');
+    await uiPage.getByRole('button', { name: '移除批注', exact: true }).click();
+    await expect(inlineComment).toHaveCount(0);
+    await selectEvidence();
+    await uiPage.getByRole('button', { name: '批注', exact: true }).click();
+    await inlineComment.fill('核查这条原始材料。');
+    await selectEvidence(1);
+    const target = uiPage.getByRole('region', { name: '材料批注', exact: true });
+    await expect(target.getByRole('blockquote')).toHaveText(evidence);
+    await expect(target).not.toContainText('Another selection 91.');
     const dock = uiPage.locator('.agent-dock');
     await dock.getByLabel('查看附加上下文', { exact: true }).click();
     await dock.locator('details.menu details summary').click();
     await expect(dock.getByRole('blockquote')).toContainText(evidence);
+    await expect(dock.getByLabel('上下文批注 1', { exact: true })).toHaveValue(
+      '核查这条原始材料。',
+    );
     const comment = '据此核查并修改 note.md。';
     await dock.getByLabel('上下文批注 1', { exact: true }).fill(comment);
+    await expect(inlineComment).toHaveValue(comment);
     await dock.getByLabel('上下文批注 1', { exact: true }).press('Escape');
+    await uiPage.getByRole('button', { name: '关闭批注', exact: true }).click();
+    await expect(inlineComment).toHaveCount(0);
+    await expect(dock.getByRole('region', { name: '附加上下文', exact: true })).toContainText(
+      '1 个附加项',
+    );
+    await createSession(uiPage, { projectId: project.id });
+    await expect(dock.getByRole('region', { name: '附加上下文', exact: true })).toHaveCount(0);
+    await uiPage
+      .locator(`[data-session-id="${session.id}"]`)
+      .getByRole('button', { name: /^打开会话 / })
+      .click();
+    await expect(dock.getByRole('region', { name: '附加上下文', exact: true })).toContainText(
+      '1 个附加项',
+    );
     model.hold = true;
     const instruction = 'MODEL_CHAT 根据明确附加的阅读材料修改项目结论';
     await uiPage.getByRole('textbox', { name: '研究指令', exact: true }).fill(instruction);
@@ -432,3 +467,196 @@ test('real visual and Markdown selections keep unsaved text and objects in the s
     uiPage.getByRole('textbox', { name: '文件内容 paper.qmd', exact: true }),
   ).toContainText('Unsubmitted selection.');
 });
+
+for (const material of ['table', 'image'] as const) {
+  test(`a real ${material} annotation sends without composer text and produces an inspectable tool edit`, async ({
+    uiPage,
+  }, info) => {
+    test.setTimeout(120000);
+    const root = info.outputPath(`annotation-${material}-${info.project.name}`);
+    await mkdir(root, { recursive: true });
+    const before = '# Finding\n\nBefore annotation.\n';
+    const after = '# Finding\n\nAfter annotation.\n';
+    await writeFile(join(root, 'note.md'), before);
+    await writeFile(
+      join(root, 'paper.qmd'),
+      '| Method | Value |\n| --- | --- |\n| Measured | 73 |\n',
+    );
+    const model = await createModelServer({
+      respond: ({ calls }) => {
+        if (!calls.includes('read_file'))
+          return { tool: { name: 'read_file', input: { file_path: '/note.md' } } };
+        if (!calls.includes('edit_file'))
+          return {
+            tool: {
+              name: 'edit_file',
+              input: {
+                file_path: '/note.md',
+                old_string: 'Before annotation.',
+                new_string: 'After annotation.',
+              },
+            },
+          };
+        return { text: '已按所附批注修改项目记录。' };
+      },
+    });
+    const directory = process.env.SCHOOLOOM_UI_DATA_DIR as string;
+    const stop = await startModelKernel(directory, model.url);
+    const client = createKernelClient(await runningKernel(directory));
+    await client.connect();
+    try {
+      await uiPage.goto(rendererUrl);
+      await expect(uiPage.getByRole('status', { name: '连接状态' })).toContainText('已连接');
+      await uiPage.getByRole('button', { name: '设置', exact: true }).click();
+      await uiPage.getByText('模型设置', { exact: true }).click();
+      await uiPage.getByLabel('MiniMax API Key', { exact: true }).fill('synthetic-annotation-key');
+      await uiPage.getByRole('button', { name: '保存凭据', exact: true }).click();
+      const imageBytes = await uiPage.evaluate(() => {
+        const canvas = document.createElement('canvas');
+        canvas.width = 120;
+        canvas.height = 60;
+        const draw = canvas.getContext('2d');
+        if (!draw) throw new Error('Canvas unavailable');
+        draw.fillStyle = '#369';
+        draw.fillRect(0, 0, 120, 60);
+        draw.fillStyle = '#fff';
+        draw.fillRect(12, 6, 48, 24);
+        return canvas.toDataURL('image/png').split(',')[1] as string;
+      });
+      await writeFile(join(root, 'chart.png'), Buffer.from(imageBytes, 'base64'));
+      await addProject(uiPage, root);
+      await createSession(uiPage, basename(root));
+      const project = (await client.call('workbench.snapshot', {})).projects.find(
+        (entry) => entry.path === root,
+      );
+      assert(project);
+      const session = (await client.call('session.list', { projectId: project.id })).sessions[0];
+      assert(session);
+      const scope = { projectId: project.id, sessionId: session.id };
+      const name = material === 'table' ? 'paper.qmd' : 'chart.png';
+      const source = await client.call('resources.describe', {
+        locator: { source: 'project', projectId: project.id, path: name },
+      });
+      const comment = `根据${material === 'table' ? '表格数据' : '图片选区'}修改 note.md。`;
+      await uiPage.getByRole('treeitem', { name: `打开文件 ${name}`, exact: true }).dblclick();
+      const annotation = uiPage.getByRole('textbox', { name: '材料批注', exact: true });
+      if (material === 'table') {
+        await uiPage.getByRole('button', { name: '可视编辑', exact: true }).click();
+        const visual = uiPage.getByRole('region', { name: '可视编辑器', exact: true });
+        const table = visual
+          .locator('.ProseMirror[contenteditable="true"]')
+          .first()
+          .locator('table');
+        await expect(table).toContainText('Measured', { timeout: 45000 });
+        await table.click();
+        await visual.getByRole('button', { name: '选择当前表格', exact: true }).click();
+        await uiPage.getByRole('button', { name: '批注', exact: true }).click();
+        await annotation.fill(comment);
+      } else {
+        const image = uiPage.getByRole('region', { name: '图片 chart.png', exact: true });
+        await expect(image.getByRole('img')).toBeVisible();
+        await image.getByLabel('图片缩放', { exact: true }).selectOption('2');
+        await image.getByRole('button', { name: '旋转图片', exact: true }).click();
+        const region = image.getByRole('group', { name: '图片框选区域', exact: true });
+        await region.scrollIntoViewIfNeeded();
+        const box = await region.boundingBox();
+        assert(box);
+        expect(box.width).toBeCloseTo(120, 0);
+        expect(box.height).toBeCloseTo(240, 0);
+        await uiPage.mouse.move(box.x + box.width * 0.2, box.y + box.height * 0.1);
+        await uiPage.mouse.down();
+        await uiPage.mouse.move(box.x + box.width * 0.6, box.y + box.height * 0.5, { steps: 5 });
+        await uiPage.mouse.up();
+        await image.getByRole('button', { name: '批注', exact: true }).click();
+        await annotation.fill(`${comment} 拖拽区域。`);
+        for (const [label, value] of [
+          ['区域横坐标', '0.2'],
+          ['区域纵坐标', '0.1'],
+          ['区域宽度', '0.5'],
+          ['区域高度', '0.6'],
+        ] as const)
+          await image.getByRole('spinbutton', { name: label, exact: true }).fill(value);
+        await image.getByRole('button', { name: '应用图片区域', exact: true }).click();
+        await expect(annotation).toHaveValue(`${comment} 拖拽区域。`);
+        await image.getByRole('button', { name: '批注', exact: true }).click();
+        await annotation.fill(`${comment} 键盘区域。`);
+      }
+      await uiPage.getByRole('button', { name: '关闭批注', exact: true }).click();
+      const instruction = uiPage.getByRole('textbox', { name: '研究指令', exact: true });
+      await expect(instruction).toHaveValue('');
+      await uiPage.getByRole('button', { name: '发送指令', exact: true }).click();
+      await expect
+        .poll(async () => (await client.call('workbench.snapshot', scope)).run?.state, {
+          timeout: 30000,
+        })
+        .toBe('completed');
+      const snapshot = await client.call('workbench.snapshot', scope);
+      const sent = snapshot.messages.find((message) => message.role === 'user');
+      assert(sent?.contextItems?.length === (material === 'table' ? 1 : 2));
+      for (const item of sent.contextItems)
+        expect(item).toMatchObject({
+          ref: source.ref,
+          basis: source.basis,
+          comment: expect.stringContaining(comment),
+        });
+      if (material === 'table') {
+        expect(sent.contextItems[0]).toMatchObject({
+          kind: 'object',
+          providerId: 'visual',
+          objectId: expect.any(String),
+          name: '表格',
+          semantics: expect.stringContaining('Measured'),
+          contentState: 'saved',
+        });
+        const object = sent.contextItems[0];
+        assert(object?.kind === 'object');
+        expect(object.semantics).toContain('73');
+        expect(JSON.stringify(model.requests.at(-1)?.messages)).toContain(object.objectId);
+      } else {
+        for (const [index, expected] of [
+          { x: 0.1, y: 0.4, width: 0.4, height: 0.4 },
+          { x: 0.2, y: 0.1, width: 0.5, height: 0.6 },
+        ].entries()) {
+          const item = sent.contextItems[index];
+          assert(item?.kind === 'region');
+          expect(item.target).toEqual({ kind: 'image' });
+          for (const field of ['x', 'y', 'width', 'height'] as const)
+            expect(item.region[field]).toBeCloseTo(expected[field], 2);
+        }
+        expect(sent.contextItems[0]?.itemId).not.toBe(sent.contextItems[1]?.itemId);
+      }
+      expect(JSON.stringify(model.requests.at(-1)?.messages)).toContain(comment);
+      expect(await readFile(join(root, 'note.md'), 'utf8')).toBe(after);
+      expect(snapshot.messages.find((message) => message.tool?.name === 'edit_file')?.state).toBe(
+        'complete',
+      );
+      await uiPage.getByRole('treeitem', { name: '打开文件 note.md', exact: true }).dblclick();
+      await uiPage.getByRole('button', { name: '修改历史', exact: true }).click();
+      const file = await client.call('files.read', { projectId: project.id, path: 'note.md' });
+      assert(file.fileId);
+      const edit = (
+        await client.call('files.changes', { projectId: project.id, fileId: file.fileId })
+      ).changes.find((entry) => entry.origin?.kind === 'execution');
+      assert(edit?.origin?.kind === 'execution');
+      expect(edit.origin.sessionId).toBe(session.id);
+      const history = uiPage.getByRole('region', { name: '文件修改历史', exact: true });
+      await history.getByRole('button', { name: `查看修改 ${edit.editId}`, exact: true }).click();
+      await expect(history.getByLabel('内容差异', { exact: true })).toContainText(
+        'Before annotation.',
+      );
+      await expect(history.getByLabel('内容差异', { exact: true })).toContainText(
+        'After annotation.',
+      );
+      if (material === 'image')
+        expect(await readFile(join(root, name))).toEqual(Buffer.from(imageBytes, 'base64'));
+      await info.attach('annotation-execution', {
+        body: JSON.stringify({ scope, contextItems: sent.contextItems, edit, before, after }),
+        contentType: 'application/json',
+      });
+    } finally {
+      client.dispose();
+      await stop();
+      await model.close();
+    }
+  });
+}

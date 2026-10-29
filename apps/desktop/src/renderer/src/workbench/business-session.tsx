@@ -115,6 +115,8 @@ export function useBusinessSession(
     contextReadError = reason instanceof Error ? reason.message : '附加上下文无法恢复。';
   }
   const contextReceiver = useRef({ key: contextKey });
+  const submitting = useRef(new Set<string>());
+  const [submittingKeys, setSubmittingKeys] = useState<ReadonlySet<string>>(new Set());
   if (contextReceiver.current.key !== contextKey) contextReceiver.current = { key: contextKey };
   const receiver = contextReceiver.current;
   const updateContext = (change: (items: ContextItem[]) => ContextItem[]): boolean => {
@@ -496,83 +498,110 @@ export function useBusinessSession(
     ],
     snapshot?.artifacts ?? [],
   );
+  const sendDisabled =
+    submittingKeys.has(contextKey) ||
+    creating ||
+    !!session?.archived ||
+    phase !== 'connected' ||
+    executionUnavailable ||
+    !!contextReadError ||
+    !!contextError ||
+    !snapshot?.provider.configured ||
+    !session ||
+    project?.trust !== 'trusted' ||
+    (recovered?.projectId === selection.projectId && recovered.sessionId === selection.sessionId);
+  const sendInstruction = async (rawText: string, annotationsOnly = false) => {
+    const text = rawText.trim();
+    if (!text || !session || !client) return;
+    if (
+      sendDisabled ||
+      selectedRef.current !== selection ||
+      contextReceiver.current !== receiver ||
+      submitting.current.has(contextKey)
+    ) {
+      const reason = new Error('当前指令尚不能发送，请核对连接和待确认状态。');
+      if (selectedRef.current === selection) setError(reason.message);
+      throw reason;
+    }
+    const sentItems = readContextDraft(contextKey);
+    if (annotationsOnly && !sentItems.some((item) => item.comment?.trim())) return;
+    const pendingKey = draftKey(directory, selection.projectId, session.id, 'pending');
+    const input: BusinessParams<'session.send'> = {
+      projectId: selection.projectId,
+      sessionId: session.id,
+      instructionId: crypto.randomUUID(),
+      text,
+      materials,
+      ...(sentItems.length ? { contextItems: sentItems } : {}),
+      ...(materials.length && materials.every((path) => !!materialFileIds[path])
+        ? { materialFileIds: materials.map((path) => materialFileIds[path] as string) }
+        : {}),
+    };
+    try {
+      const previous = JSON.parse(readDraft(pendingKey));
+      if (
+        validateBusiness('session.send', 'params', previous) &&
+        JSON.stringify({ ...previous, instructionId: '' }) ===
+          JSON.stringify({ ...input, instructionId: '' })
+      )
+        input.instructionId = previous.instructionId;
+    } catch {
+      /* First send in this conversation. */
+    }
+    const instructionId = input.instructionId;
+    const serialized = JSON.stringify(input);
+    submitting.current.add(contextKey);
+    setSubmittingKeys(new Set(submitting.current));
+    if (validateBusiness('session.send', 'params', input)) {
+      writeDraft(pendingKey, serialized);
+      setRecovered(input);
+    }
+    try {
+      await client.call('session.send', input);
+      confirmContextDraft(contextKey, input.contextItems ?? []);
+      if (readDraft(pendingKey) === serialized) writeDraft(pendingKey, '');
+      setRecovered((current) => (current?.instructionId === instructionId ? undefined : current));
+      void refresh().catch(() => {});
+    } catch (reason) {
+      if (
+        reason instanceof KernelClientError &&
+        [
+          'invalidRequest',
+          'permissionDenied',
+          'credentialUnavailable',
+          'tooLarge',
+          'resourceLimit',
+          'contentChanged',
+          'notFound',
+          'unavailable',
+        ].includes(reason.code)
+      ) {
+        if (readDraft(pendingKey) === serialized) writeDraft(pendingKey, '');
+        setRecovered((current) => (current?.instructionId === instructionId ? undefined : current));
+      }
+      if (selectedRef.current === selection)
+        setError(reason instanceof Error ? reason.message : '发送失败，请核查指令状态。');
+      throw reason;
+    } finally {
+      submitting.current.delete(contextKey);
+      setSubmittingKeys(new Set(submitting.current));
+    }
+  };
   const adapter: ExternalStoreAdapter<ThreadMessageLike> = {
     messages,
     convertMessage: (message) => message,
     isRunning: !!running,
     isDisabled: creating || !!session?.archived,
-    isSendDisabled:
-      phase !== 'connected' ||
-      executionUnavailable ||
-      !!contextReadError ||
-      !snapshot?.provider.configured ||
-      !session ||
-      project?.trust !== 'trusted' ||
-      (recovered?.projectId === selection.projectId && recovered.sessionId === selection.sessionId),
+    isSendDisabled: sendDisabled,
     onNew: async (message) => {
       const rawText = message.content
         .filter((part) => part.type === 'text')
         .map((part) => (part.type === 'text' ? part.text : ''))
         .join('\n');
-      const text = rawText.trim();
-      if (!text || !session || !client || phase !== 'connected' || executionUnavailable) return;
-      const pendingKey = draftKey(directory, selection.projectId, session.id, 'pending');
-      const input: BusinessParams<'session.send'> = {
-        projectId: selection.projectId,
-        sessionId: session.id,
-        instructionId: crypto.randomUUID(),
-        text,
-        materials,
-        ...(contextItems.length ? { contextItems } : {}),
-        ...(materials.length && materials.every((path) => !!materialFileIds[path])
-          ? { materialFileIds: materials.map((path) => materialFileIds[path] as string) }
-          : {}),
-      };
       try {
-        const previous = JSON.parse(readDraft(pendingKey));
-        if (
-          validateBusiness('session.send', 'params', previous) &&
-          JSON.stringify({ ...previous, instructionId: '' }) ===
-            JSON.stringify({ ...input, instructionId: '' })
-        )
-          input.instructionId = previous.instructionId;
-      } catch {
-        /* First send in this conversation. */
-      }
-      const instructionId = input.instructionId;
-      const serialized = JSON.stringify(input);
-      if (validateBusiness('session.send', 'params', input)) {
-        writeDraft(pendingKey, serialized);
-        setRecovered(input);
-      }
-      try {
-        await client.call('session.send', input);
-        confirmContextDraft(contextKey, input.contextItems ?? []);
-        if (readDraft(pendingKey) === serialized) writeDraft(pendingKey, '');
-        setRecovered((current) => (current?.instructionId === instructionId ? undefined : current));
-        void refresh().catch(() => {});
+        await sendInstruction(rawText);
       } catch (reason) {
-        if (
-          reason instanceof KernelClientError &&
-          [
-            'invalidRequest',
-            'permissionDenied',
-            'credentialUnavailable',
-            'tooLarge',
-            'resourceLimit',
-            'contentChanged',
-            'notFound',
-            'unavailable',
-          ].includes(reason.code)
-        ) {
-          if (readDraft(pendingKey) === serialized) writeDraft(pendingKey, '');
-          setRecovered((current) =>
-            current?.instructionId === instructionId ? undefined : current,
-          );
-        }
-        if (selectedRef.current === selection)
-          setError(reason instanceof Error ? reason.message : '发送失败，请核查指令状态。');
-        const key = draftKey(directory, selection.projectId, session.id);
+        const key = draftKey(directory, selection.projectId, selection.sessionId);
         writeDraft(key, [readDraft(key), rawText].filter(Boolean).join('\n'));
         throw reason;
       }
@@ -602,6 +631,10 @@ export function useBusinessSession(
       ? { delegations: { ...delegationAccess, revision: delegationRevision } }
       : {}),
     contextItems,
+    sendAnnotations:
+      !sendDisabled && contextItems.some((item) => item.comment?.trim())
+        ? () => sendInstruction('请处理附加材料中的批注', true)
+        : undefined,
     publishContext,
     contextError: contextReadError || contextError,
     appendContextItems,

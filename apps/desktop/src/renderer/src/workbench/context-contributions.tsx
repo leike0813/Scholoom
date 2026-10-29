@@ -27,6 +27,7 @@ export interface ContextSelection {
 export interface ContextContributionProviderProps {
   children: ReactNode;
   items?: readonly ContextItem[] | undefined;
+  sendAnnotations?: (() => Promise<void>) | undefined;
   appendContextItems?: ((items: readonly ContextItem[]) => boolean) | undefined;
   removeContextItem?: ((itemId: string) => void) | undefined;
   updateContextComment?: ((itemId: string, comment: string) => void) | undefined;
@@ -38,6 +39,7 @@ export interface ContextContributionProviderProps {
 
 export interface ContextContribution {
   items: readonly ContextItem[];
+  sendAnnotations?: (() => Promise<void>) | undefined;
   contextError?: string | undefined;
   available: boolean;
   appendContextItems(items: readonly ContextItem[]): boolean;
@@ -77,6 +79,7 @@ function sameSelection(left: ContextSelection, right: ContextSelection): boolean
 export function ContextContributionProvider({
   children,
   items = empty.items,
+  sendAnnotations,
   appendContextItems,
   removeContextItem = empty.removeContextItem,
   updateContextComment = empty.updateContextComment,
@@ -183,6 +186,7 @@ export function ContextContributionProvider({
   const value = useMemo<ContextContribution>(
     () => ({
       items,
+      sendAnnotations,
       ...(selectionError || contextError ? { contextError: selectionError || contextError } : {}),
       available: appendContextItems !== undefined,
       appendContextItems: appendContextItems ?? empty.appendContextItems,
@@ -195,6 +199,7 @@ export function ContextContributionProvider({
     }),
     [
       items,
+      sendAnnotations,
       selectionError,
       contextError,
       appendContextItems,

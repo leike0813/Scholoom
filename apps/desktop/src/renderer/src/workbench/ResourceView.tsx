@@ -2,6 +2,7 @@ import type { KernelClient } from '@scholoom/client';
 import type { ResourceDescriptor } from '@scholoom/protocol';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { DocumentReader } from './DocumentReader';
+import { HtmlRenderView } from './HtmlRenderView';
 import { ImageResourceView } from './ImageResourceView';
 import { PdfReader } from './PdfReader';
 import { FileEditor } from './project-ui';
@@ -65,7 +66,8 @@ export function ResourceView({
       const resource = await port.describe(target.locator);
       if (
         target.locator.source === 'render' &&
-        (resource.format !== 'pdf' || !sameResourceRef(resource.ref, target.locator))
+        (!['pdf', 'html'].includes(resource.format) ||
+          !sameResourceRef(resource.ref, target.locator))
       )
         throw new Error('排版产物身份或格式不匹配。');
       const ref = resource.ref;
@@ -115,6 +117,16 @@ export function ResourceView({
     );
   if (error) return <p role="alert">{error}</p>;
   if (!loaded) return <p role="status">{enabled ? '正在打开资源…' : '需连接内核。'}</p>;
+  if (loaded.resource.ref.source === 'render' && loaded.resource.format === 'html')
+    return (
+      <HtmlRenderView
+        client={client}
+        resource={loaded.resource}
+        port={port}
+        enabled={enabled}
+        viewId={viewId}
+      />
+    );
   return readerKind === 'image' ? (
     <ImageResourceView resource={loaded.resource} port={port} enabled={enabled} viewId={viewId} />
   ) : readerKind === 'pdf' ? (

@@ -1,6 +1,7 @@
 import { ComposerPrimitive, useAui, useAuiState } from '@assistant-ui/react';
 import type { Effort } from '@scholoom/protocol';
 import type { ComponentProps, ReactNode } from 'react';
+import { CommentEditor } from '../ArtifactAnnotation';
 import { ContextItemLocation } from '../ContextItemLocation';
 import { useContextContribution } from '../context-contributions';
 import { resourceSourceLabels } from '../resource-controller';
@@ -40,14 +41,7 @@ export function InstructionContextItems() {
             {item.kind === 'text' ? <blockquote>{item.quote}</blockquote> : null}
             {item.kind === 'object' ? <p>{item.semantics}</p> : null}
             <ContextItemLocation item={item} />
-            <label>
-              批注
-              <textarea
-                aria-label={`上下文批注 ${index + 1}`}
-                value={item.comment ?? ''}
-                onChange={(event) => context.updateContextComment(item.itemId, event.target.value)}
-              />
-            </label>
+            <CommentEditor item={item} label={`上下文批注 ${index + 1}`} />
             <button
               type="button"
               className="text-btn"
@@ -217,6 +211,7 @@ export function ExecutionContext({
 
 export function InstructionInput(props: ComponentProps<typeof ComposerPrimitive.Input>) {
   const aui = useAui();
+  const { sendAnnotations } = useContextContribution();
   return (
     <ComposerPrimitive.Input
       {...props}
@@ -226,12 +221,14 @@ export function InstructionInput(props: ComponentProps<typeof ComposerPrimitive.
           (event.ctrlKey || event.metaKey) &&
           !event.shiftKey &&
           !event.nativeEvent.isComposing &&
-          aui.thread.getState().isRunning &&
-          aui.composer.getState().canSend
+          ((aui.thread.getState().isRunning && aui.composer.getState().canSend) ||
+            (!aui.composer.getState().text.trim() && sendAnnotations))
         ) {
           event.preventDefault();
           event.stopPropagation();
-          aui.composer.send();
+          if (!aui.composer.getState().text.trim() && sendAnnotations)
+            void sendAnnotations().catch(() => {});
+          else aui.composer.send();
         }
       }}
     />
@@ -240,7 +237,12 @@ export function InstructionInput(props: ComponentProps<typeof ComposerPrimitive.
 
 export function InstructionSend() {
   const aui = useAui();
-  const canSend = useAuiState((state) => !state.thread.isDisabled && state.composer.canSend);
+  const { sendAnnotations } = useContextContribution();
+  const canSend = useAuiState(
+    (state) =>
+      !state.thread.isDisabled &&
+      (state.composer.canSend || (!state.composer.text.trim() && !!sendAnnotations)),
+  );
   // 指令由内核持久受理，执行中也直接发送，不另设浏览器队列。
   return (
     <button
@@ -249,7 +251,11 @@ export function InstructionSend() {
       aria-label="发送指令"
       title="发送指令"
       disabled={!canSend}
-      onClick={() => aui.composer.send()}
+      onClick={() => {
+        if (!aui.composer.getState().text.trim() && sendAnnotations)
+          void sendAnnotations().catch(() => {});
+        else aui.composer.send();
+      }}
     >
       <IconSend />
     </button>

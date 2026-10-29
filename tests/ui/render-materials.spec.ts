@@ -1,6 +1,7 @@
 /// <reference lib="dom" />
 import assert from 'node:assert/strict';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { createServer } from 'node:http';
 import { basename, join } from 'node:path';
 import { createKernelClient } from '../../packages/client/dist/index.js';
 import type { ResourceDescriptor } from '../../packages/protocol/dist/index.js';
@@ -9,6 +10,226 @@ import { startModelKernel } from '../model-kernel.js';
 import { createModelServer } from '../model-server.js';
 import { addProject, createSession, expect, test } from './fixture.js';
 import { rendererUrl } from './renderer-url.js';
+
+test('static HTML annotations preserve render evidence through source changes, shared send and reopening', async ({
+  uiPage,
+}, info) => {
+  test.setTimeout(240000);
+  const root = info.outputPath(`html-material-${info.project.name}`);
+  await mkdir(root, { recursive: true });
+  let hits = 0;
+  const trap = createServer((_request, response) => {
+    hits++;
+    response.end('unexpected');
+  });
+  await new Promise<void>((resolve) => trap.listen(0, '127.0.0.1', resolve));
+  const address = trap.address();
+  assert(address && typeof address !== 'string');
+  const remote = `http://127.0.0.1:${address.port}/forbidden`;
+  const evidence = 'HTML render evidence 73.';
+  const revised = 'HTML render evidence revised.';
+  const source = `${evidence}\n\n<script>window.__annotationScriptRan=true;fetch('${remote}')</script>\n\n<img src="${remote}" onerror="window.__annotationEventRan=true">\n`;
+  await writeFile(join(root, 'paper.qmd'), source);
+  let resource: ResourceDescriptor | undefined;
+  let original: ResourceDescriptor | undefined;
+  let sectionId = '';
+  uiPage.on('websocket', (socket) =>
+    socket.on('framereceived', ({ payload }) => {
+      const message = JSON.parse(String(payload));
+      if (message.result?.ref?.source === 'render' && message.result.format === 'html')
+        resource = message.result;
+    }),
+  );
+  const model = await createModelServer({
+    respond: ({ calls }) => {
+      assert(original);
+      const access = { ref: original.ref, basis: original.basis };
+      if (!calls.includes('read_context_resource'))
+        return {
+          tool: { name: 'read_context_resource', input: { ...access, encoding: 'base64' } },
+        };
+      if (!calls.includes('read_context_document'))
+        return {
+          tool: {
+            name: 'read_context_document',
+            input: { ...access, request: { method: 'readDocumentSection', input: { sectionId } } },
+          },
+        };
+      if (!calls.includes('read_file'))
+        return { tool: { name: 'read_file', input: { file_path: '/paper.qmd' } } };
+      if (!calls.includes('edit_file'))
+        return {
+          tool: {
+            name: 'edit_file',
+            input: { file_path: '/paper.qmd', old_string: evidence, new_string: revised },
+          },
+        };
+      return { text: '已核对原产物并修改实际源稿。' };
+    },
+  });
+  const directory = process.env.SCHOOLOOM_UI_DATA_DIR as string;
+  const stop = await startModelKernel(directory, model.url);
+  const client = createKernelClient(await runningKernel(directory));
+  await client.connect();
+  try {
+    await uiPage.goto(rendererUrl);
+    await expect(uiPage.getByRole('status', { name: '连接状态' })).toContainText('已连接');
+    await uiPage.getByRole('button', { name: '设置', exact: true }).click();
+    await uiPage.getByText('模型设置', { exact: true }).click();
+    await uiPage.getByLabel('MiniMax API Key', { exact: true }).fill('synthetic-html-key');
+    await uiPage.getByRole('button', { name: '保存凭据', exact: true }).click();
+    await addProject(uiPage, root);
+    await createSession(uiPage, basename(root));
+    await uiPage.getByRole('treeitem', { name: '打开文件 paper.qmd', exact: true }).dblclick();
+    await uiPage.getByRole('button', { name: '完整排版', exact: true }).click();
+    const render = uiPage.getByRole('region', { name: '完整排版预览', exact: true });
+    const frame = uiPage.frameLocator('iframe[title="HTML 排版预览"]');
+    await expect(frame.getByText(evidence, { exact: true })).toBeVisible({ timeout: 60000 });
+    await expect.poll(() => resource?.format).toBe('html');
+    original = resource;
+    assert(original?.ref.source === 'render' && original.render);
+    expect(original.basis).not.toBe(original.render.input.basis);
+    const projectId = original.ref.projectId;
+    const session = (await client.call('session.list', { projectId })).sessions[0];
+    assert(session);
+    const scope = { projectId, sessionId: session.id };
+    const document = await client.call('resources.document', {
+      ref: original.ref,
+      basis: original.basis,
+      request: { method: 'documentInfo', input: {} },
+    });
+    assert('sections' in document && document.sections[0]);
+    sectionId = document.sections[0].id;
+    const text = frame.getByText(evidence, { exact: true });
+    const box = await text.boundingBox();
+    assert(box);
+    // Native input avoids Playwright's scripted drag detector in this scriptless frame.
+    const input = await uiPage.context().newCDPSession(uiPage);
+    try {
+      const y = box.y + box.height / 2;
+      await input.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: box.x + 1, y });
+      await input.send('Input.dispatchMouseEvent', {
+        type: 'mousePressed',
+        x: box.x + 1,
+        y,
+        button: 'left',
+        clickCount: 1,
+      });
+      await input.send('Input.dispatchMouseEvent', {
+        type: 'mouseMoved',
+        x: box.x + box.width - 1,
+        y,
+        button: 'left',
+        buttons: 1,
+      });
+      await input.send('Input.dispatchMouseEvent', {
+        type: 'mouseReleased',
+        x: box.x + box.width - 1,
+        y,
+        button: 'left',
+        clickCount: 1,
+      });
+    } finally {
+      await input.detach();
+    }
+    await render.getByRole('button', { name: '批注', exact: true }).click();
+    const comment = render.getByRole('textbox', { name: '材料批注', exact: true });
+    await comment.fill('根据这个旧产物更正 paper.qmd 的证据句。');
+    expect(
+      await text.evaluate((element) => {
+        const window = element.ownerDocument.defaultView;
+        if (!window) throw new Error('Missing preview window');
+        return {
+          script: Reflect.get(window, '__annotationScriptRan'),
+          event: Reflect.get(window, '__annotationEventRan'),
+        };
+      }),
+    ).toEqual({ script: undefined, event: undefined });
+    expect(hits).toBe(0);
+    await writeFile(join(root, 'paper.qmd'), `${source}\nNew independently saved version 74.\n`);
+    await render.getByRole('button', { name: '重新编译', exact: true }).click();
+    await expect(render.getByRole('button', { name: '查看新版', exact: true })).toBeVisible({
+      timeout: 60000,
+    });
+    await expect(
+      frame.getByText('New independently saved version 74.', { exact: true }),
+    ).toHaveCount(0);
+    await expect(comment).toHaveValue('根据这个旧产物更正 paper.qmd 的证据句。');
+    await render.getByRole('button', { name: '查看新版', exact: true }).click();
+    await expect(
+      frame.getByText('New independently saved version 74.', { exact: true }),
+    ).toBeVisible({ timeout: 60000 });
+    await expect(comment).toHaveValue('根据这个旧产物更正 paper.qmd 的证据句。');
+    await expect(uiPage.getByRole('textbox', { name: '研究指令', exact: true })).toHaveValue('');
+    await uiPage.getByRole('button', { name: '发送指令', exact: true }).click();
+    await expect(uiPage.getByRole('status', { name: '执行状态' })).toContainText('执行完成', {
+      timeout: 30000,
+    });
+    await expect.poll(() => readFile(join(root, 'paper.qmd'), 'utf8')).toContain(revised);
+    await expect(frame.getByText(revised, { exact: true })).toBeVisible({ timeout: 60000 });
+    const snapshot = await client.call('workbench.snapshot', scope);
+    const sent = snapshot.messages.find(
+      (message) => message.role === 'user' && message.contextItems?.length,
+    );
+    expect(sent?.contextItems?.[0]).toMatchObject({
+      ref: original.ref,
+      basis: original.basis,
+      kind: 'text',
+    });
+    expect(sent?.contextItems?.[0]).not.toHaveProperty('location');
+    const parsed = snapshot.messages.find(
+      (message) => message.tool?.name === 'read_context_document',
+    )?.tool?.output;
+    expect(JSON.parse(parsed ?? '{}').text).toContain(evidence);
+    const file = await client.call('files.read', { projectId, path: 'paper.qmd' });
+    assert(file.fileId);
+    const changes = await client.call('files.changes', {
+      projectId,
+      fileId: file.fileId,
+      limit: 10,
+    });
+    const change = changes.changes.find((value) => value.origin?.kind === 'execution');
+    assert(change);
+    const edit = await client.call('files.edit', {
+      projectId,
+      fileId: file.fileId,
+      editId: change.editId,
+    });
+    expect(edit.before).toContain(evidence);
+    expect(edit.after).toContain(revised);
+    await writeFile(join(root, 'paper.qmd'), '---\ntitle: [broken\n---\n');
+    await render.getByRole('button', { name: '重新编译', exact: true }).click();
+    await expect(render.getByRole('status', { name: '排版状态' })).toContainText('失败', {
+      timeout: 60000,
+    });
+    await expect(frame.getByText(revised, { exact: true })).toBeVisible();
+    await uiPage.getByRole('button', { name: '展开 Agent 会话' }).click();
+    const user = uiPage
+      .getByRole('article', { name: '用户消息' })
+      .filter({ hasText: '请处理附加材料中的批注' });
+    await user.getByText('明确附加上下文（1）', { exact: true }).click();
+    await user.getByRole('button', { name: '打开排版产物', exact: true }).click();
+    await expect(frame.getByText(evidence, { exact: true })).toBeVisible({ timeout: 30000 });
+    await expect(
+      frame.getByText('New independently saved version 74.', { exact: true }),
+    ).toHaveCount(0);
+    await uiPage.reload();
+    await expect(uiPage.getByRole('status', { name: '连接状态' })).toContainText('已连接');
+    expect(
+      (await client.call('workbench.snapshot', scope)).messages.find(
+        (message) => message.id === sent?.id,
+      )?.contextItems,
+    ).toEqual(sent?.contextItems);
+    expect(hits).toBe(0);
+  } finally {
+    client.dispose();
+    await stop();
+    await model.close();
+    await new Promise<void>((resolve, reject) =>
+      trap.close((error) => (error ? reject(error) : resolve())),
+    );
+  }
+});
 
 test('legacy PDF metadata keeps the last successful preview without enabling attachment', async ({
   uiPage,

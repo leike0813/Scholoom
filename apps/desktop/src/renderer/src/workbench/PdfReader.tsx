@@ -13,7 +13,8 @@ import {
 } from '@embedpdf/react-pdf-viewer';
 import { type ContextItem, isContextItems, type ReadingRecord } from '@scholoom/protocol';
 import type { ResourceDescriptor } from '@scholoom/protocol/resources';
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
+import { ArtifactAnnotation } from './ArtifactAnnotation';
 import { useContextContribution } from './context-contributions';
 import { prepareReadingRecord, ReadingRecordsPanel } from './ReadingRecordsPanel';
 import {
@@ -499,6 +500,21 @@ export function PdfReader({
       setUnavailable(true);
     }
   };
+  const annotationPages = new Map<number, ContextItem | undefined>();
+  for (const item of context.items) {
+    if (
+      item.kind === 'text' &&
+      item.location &&
+      'pageIndex' in item.location &&
+      item.basis === resource.basis &&
+      sameResourceRef(item.ref, resource.ref)
+    )
+      annotationPages.set(item.location.pageIndex, undefined);
+  }
+  for (const item of contextItems) {
+    if (item.kind === 'text' && item.location && 'pageIndex' in item.location)
+      annotationPages.set(item.location.pageIndex, item);
+  }
   return (
     <section className="pdf-reader" aria-label={ariaLabel ?? `PDF 阅读 ${resource.name}`}>
       {error ? (
@@ -516,26 +532,23 @@ export function PdfReader({
           </p>
         )}
       </div>
-      {(context.available && contextItems.length) ||
-      (recordAdapter && resource.capabilities.readingRecords) ? (
+      {context.available || (recordAdapter && resource.capabilities.readingRecords) ? (
         <div className="file-view-controls">
           {context.available
-            ? contextItems.map((item) => (
-                <button
-                  key={item.itemId}
-                  type="button"
-                  className="btn"
-                  disabled={!selectionValid}
-                  onClick={() =>
-                    context.appendContextItem({ ...item, itemId: crypto.randomUUID() })
-                  }
-                >
-                  附加第{' '}
-                  {item.kind === 'text' && item.location && 'pageIndex' in item.location
-                    ? item.location.pageIndex + 1
-                    : ''}{' '}
-                  页选区
-                </button>
+            ? [...annotationPages].map(([pageIndex, item]) => (
+                <Fragment key={`${resourceKey}:${pageIndex}`}>
+                  <button
+                    type="button"
+                    className="btn"
+                    disabled={!item || !selectionValid}
+                    onClick={() => {
+                      if (item) context.appendContextItem({ ...item, itemId: crypto.randomUUID() });
+                    }}
+                  >
+                    附加第 {pageIndex + 1} 页选区
+                  </button>
+                  <ArtifactAnnotation item={item} disabled={!selectionValid} />
+                </Fragment>
               ))
             : null}
           {!selectionValid ? <p role="alert">选区超出附加容量，请缩小选择。</p> : null}

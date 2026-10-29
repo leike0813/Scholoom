@@ -12,11 +12,17 @@ import {
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { expect, test } from '@playwright/test';
-import { type EditorPorts, EditorRuntime } from '../../packages/editor/dist/node.js';
+import {
+  type EditorPorts,
+  EditorRuntime,
+  ResourceAccess,
+} from '../../packages/editor/dist/node.js';
 import { EditorRecords, readOutput } from '../../packages/editor/dist/resources.js';
+import { MaterialReading } from '../../packages/library/dist/node.js';
 import { fileFingerprint } from '../../packages/platform/dist/node.js';
 import { type CallContext, OperationError } from '../../packages/protocol/dist/core.js';
 import type { EditorCommandInput } from '../../packages/protocol/dist/editor.js';
+import type { ResourcePorts } from '../../packages/protocol/dist/resources.js';
 
 const context: CallContext = {
   moduleId: 'workbench',
@@ -138,7 +144,8 @@ async function fixture(
 }
 
 const pdf = Buffer.from('%PDF-1.7\nrender fixture\n');
-async function outputFixture() {
+const html = Buffer.from('<!doctype html><meta charset="utf-8"><p>result 文献</p>');
+async function outputFixture(format: 'html' | 'pdf' = 'pdf') {
   const grants = { read: true, checksRemaining: Number.POSITIVE_INFINITY };
   const compiler = { fail: false };
   let runtime: EditorRuntime;
@@ -150,7 +157,7 @@ async function outputFixture() {
       const output = join(directory, 'output');
       await mkdir(output);
       const format = input.args[input.args.indexOf('--to') + 1];
-      await writeFile(join(output, `main.${format}`), format === 'pdf' ? pdf : '<p>result</p>');
+      await writeFile(join(output, `main.${format}`), format === 'pdf' ? pdf : html);
       return { code: 0, stdout: '', stderr: '' };
     },
     undefined,
@@ -161,7 +168,7 @@ async function outputFixture() {
     },
   );
   runtime = setup.runtime;
-  const complete = async (id: string, format: 'html' | 'pdf' = 'pdf') => {
+  const complete = async (id: string) => {
     await setup.render(id, format);
     await expect
       .poll(async () => (await setup.job(id)).state, { intervals: [1, 2, 5] })
@@ -175,7 +182,7 @@ async function outputFixture() {
   const record = (id: string) =>
     join(setup.root, 'editor', 'item-project', 'outputs', `item-${id}.json`);
   const bytesPath = (id: string) =>
-    join(setup.root, 'editor', 'item-project', 'data', id, 'main.pdf');
+    join(setup.root, 'editor', 'item-project', 'data', id, `main.${format}`);
   return { ...setup, grants, compiler, complete, location, record, bytesPath };
 }
 
@@ -241,8 +248,97 @@ test('published PDF resources keep their own bytes and producing input when the 
   }
 });
 
-test('render resource reads reject other formats, stale basis and revoked read authority', async () => {
-  const setup = await outputFixture();
+test('HTML render resources share byte reads and real document parsing without allowing saves', async () => {
+  const setup = await outputFixture('html');
+  const reading = new MaterialReading();
+  const access = new ResourceAccess(
+    () => ({
+      project: {} as ResourcePorts['project'],
+      library: {} as ResourcePorts['library'],
+      render: {
+        describe: (locator) => setup.runtime.resource(locator, context),
+        read: (input) => setup.runtime.readResource(input, context),
+      },
+    }),
+    {
+      run: (load, format, method, input, options) =>
+        reading.run(
+          load,
+          { kind: 'document', format, method: `library.${method}`, input } as Parameters<
+            MaterialReading['run']
+          >[1],
+          options,
+        ),
+    },
+  );
+  try {
+    const output = await setup.complete('html');
+    const descriptor = await access.describe(setup.location(output.id), context);
+    expect(descriptor).toMatchObject({
+      ref: setup.location(output.id),
+      format: 'html',
+      basis: fileFingerprint(await stat(setup.bytesPath(output.id), { bigint: true })),
+      render: { jobId: 'html', input: output.input },
+      capabilities: { read: true, write: false, readingRecords: false, render: false },
+    });
+    const { ref, basis } = descriptor;
+    const chunks: Buffer[] = [];
+    let offset = 0;
+    do {
+      const chunk = await access.read(
+        { ref, basis, encoding: 'base64', offset, limit: 7 },
+        context,
+      );
+      expect(chunk).toMatchObject({ ref, basis, offset, size: html.length, unit: 'byte' });
+      chunks.push(Buffer.from(chunk.data, 'base64'));
+      offset = chunk.nextOffset ?? html.length;
+    } while (offset < html.length);
+    expect(Buffer.concat(chunks)).toEqual(html);
+    const info = await access.document(
+      { ref, basis, request: { method: 'documentInfo', input: {} } },
+      context,
+    );
+    if (!('sections' in info) || !info.sections[0]) throw new Error('Missing HTML section');
+    const request = {
+      ref,
+      basis,
+      request: {
+        method: 'readDocumentSection' as const,
+        input: { sectionId: info.sections[0].id },
+      },
+    };
+    const section = await access.document(request, context);
+    expect(section).toMatchObject({ normalizationVersion: 1 });
+    if (!('text' in section)) throw new Error('Missing HTML text');
+    expect(section.text).toContain('result 文献');
+    await expect(access.save({ ref, basis, content: 'overwrite' }, context)).rejects.toMatchObject({
+      code: 'permissionDenied',
+    });
+    expect(await readFile(setup.bytesPath(output.id))).toEqual(html);
+    await writeFile(setup.path, '# New source\n');
+    setup.compiler.fail = true;
+    await setup.render('failed-html', 'html');
+    await expect.poll(async () => (await setup.job('failed-html')).state).toBe('failed');
+    expect((await setup.job('failed-html')).lastSuccess).toEqual(output);
+    const reopened = setup.reopen();
+    try {
+      expect(await reopened.resource(setup.location(output.id), context)).toEqual(descriptor);
+    } finally {
+      await reopened.close();
+    }
+    setup.grants.read = false;
+    await expect(access.document(request, context)).rejects.toMatchObject({
+      code: 'permissionDenied',
+    });
+  } finally {
+    await reading.close();
+    await setup.runtime.close();
+    await rm(setup.root, { recursive: true });
+  }
+});
+
+test('render resource reads reject invalid encodings, stale basis and revoked read authority', async () => {
+  const setup = await outputFixture('html');
   const { runtime, location, grants } = setup;
   try {
     const output = await setup.complete('read-only');
@@ -265,14 +361,10 @@ test('render resource reads reject other formats, stale basis and revoked read a
     });
     await expect(
       runtime.export(
-        { projectId: 'project', outputId: output.id, operationId: 'export', path: 'export.pdf' },
+        { projectId: 'project', outputId: output.id, operationId: 'export', path: 'export.html' },
         context,
       ),
     ).rejects.toMatchObject({ code: 'permissionDenied' });
-    const html = await setup.complete('html', 'html');
-    await expect(runtime.resource(location(html.id), context)).rejects.toMatchObject({
-      code: 'invalidRequest',
-    });
     for (const read of [
       () => runtime.resource(ref, context),
       () => runtime.readResource(input, context),
@@ -294,29 +386,39 @@ test('render resource reads reject other formats, stale basis and revoked read a
   }
 });
 
-for (const missing of ['basis', 'input'] as const) {
-  test(`legacy output without ${missing} still previews but cannot become a render resource`, async () => {
-    const setup = await outputFixture();
+for (const [format, invalid] of [
+  ['pdf', 'basis'],
+  ['pdf', 'input'],
+  ['html', 'basis'],
+  ['html', 'input'],
+  ['html', 'project'],
+  ['html', 'format'],
+] as const) {
+  test(`${format} output with invalid ${invalid} still previews but cannot become a render resource`, async () => {
+    const setup = await outputFixture(format);
     try {
       const output = await setup.complete('legacy');
       const path = setup.record(output.id);
       const record = JSON.parse(await readFile(path, 'utf8'));
-      delete record[missing];
+      if (invalid === 'project') record.input.ref.projectId = 'other-project';
+      else if (invalid === 'format') record.format = 'docx';
+      else delete record[invalid];
       await writeFile(path, JSON.stringify(record));
+      const code = invalid === 'format' ? 'invalidRequest' : 'unavailable';
       await expect(
         setup.runtime.resource(setup.location(output.id), context),
-      ).rejects.toMatchObject({ code: 'unavailable' });
+      ).rejects.toMatchObject({ code });
       await expect(
         setup.runtime.readResource(
           { ref: setup.location(output.id), basis: output.basis ?? '', encoding: 'base64' },
           context,
         ),
-      ).rejects.toMatchObject({ code: 'unavailable' });
+      ).rejects.toMatchObject({ code });
       const preview = await setup.runtime.output(
         { projectId: 'project', outputId: output.id, offset: 0 },
         context,
       );
-      expect(Buffer.from(preview.base64, 'base64')).toEqual(pdf);
+      expect(Buffer.from(preview.base64, 'base64')).toEqual(format === 'pdf' ? pdf : html);
     } finally {
       await setup.runtime.close();
       await rm(setup.root, { recursive: true });
@@ -324,16 +426,23 @@ for (const missing of ['basis', 'input'] as const) {
   });
 }
 
-for (const change of ['modified', 'replaced', 'missing'] as const) {
-  test(`render descriptors and bytes reject ${change} published output`, async () => {
-    const setup = await outputFixture();
+for (const [format, change] of [
+  ['pdf', 'modified'],
+  ['pdf', 'replaced'],
+  ['pdf', 'missing'],
+  ['html', 'modified'],
+  ['html', 'replaced'],
+  ['html', 'missing'],
+] as const) {
+  test(`render descriptors and bytes reject ${change} published ${format} output`, async () => {
+    const setup = await outputFixture(format);
     try {
       const output = await setup.complete('changed');
       const path = setup.bytesPath(output.id);
-      if (change === 'modified') await writeFile(path, '%PDF-1.7\nchanged bytes\n');
+      if (change === 'modified') await writeFile(path, 'changed bytes');
       else if (change === 'missing') await rm(path);
       else {
-        await writeFile(`${path}.replacement`, pdf);
+        await writeFile(`${path}.replacement`, format === 'pdf' ? pdf : html);
         await rename(`${path}.replacement`, path);
       }
       const code = change === 'missing' ? 'notFound' : 'contentChanged';
@@ -467,14 +576,15 @@ test('history cache evicts old outputs while preserving current and recently rea
   const setup = await fixture(async (input) => {
     const output = join(runtime.commandWorkspace(input.workspaceId).directory, 'output');
     await mkdir(output);
-    await writeFile(join(output, 'main.pdf'), pdf);
+    const format = input.args[input.args.indexOf('--to') + 1];
+    await writeFile(join(output, `main.${format}`), format === 'pdf' ? pdf : html);
     return { code: 0, stdout: '', stderr: '' };
   });
   runtime = setup.runtime;
   const outputs: string[] = [];
   try {
     for (let index = 0; index < 66; index++) {
-      const receipt = await setup.render(`cache-${index}`, 'pdf');
+      const receipt = await setup.render(`cache-${index}`, index % 2 === 0 ? 'html' : 'pdf');
       await expect
         .poll(
           async () => {
@@ -500,6 +610,16 @@ test('history cache evicts old outputs while preserving current and recently rea
     const resource = (outputId: string) =>
       runtime.resource({ source: 'render', projectId: 'project', outputId }, context);
     await expect(resource(outputs[0] ?? '')).rejects.toMatchObject({ code: 'notFound' });
+    await expect(
+      runtime.readResource(
+        {
+          ref: { source: 'render', projectId: 'project', outputId: outputs[0] ?? '' },
+          basis: 'evicted',
+          encoding: 'base64',
+        },
+        context,
+      ),
+    ).rejects.toMatchObject({ code: 'notFound' });
     await expect(resource(outputs[1] ?? '')).resolves.toMatchObject({
       capabilities: { read: true, write: false },
     });

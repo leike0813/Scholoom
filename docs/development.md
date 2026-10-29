@@ -172,7 +172,9 @@ SCHOOLOOM_BBT_XPI=/absolute/path/zotero-better-bibtex-9.0.68.xpi node node_modul
 
 文件树、消息文件链接和文献附件均进入 `resource-controller.ts` 的资源引用及工作台 `renderResource`，由 `ResourceView` 选择同一文本、PDF、EPUB／HTML或栅格图片组件。图片限PNG／JPEG／GIF／WebP、8MiB及解码后1600万像素，沿原资源分片和身份／权限核对，不提供正文写回。库 tab 和库附件跨项目保留，项目切换恢复各自文件组及草稿；资源导航不切换 Agent 会话或项目信任。
 
-排版PDF采用只读`{source:'render',projectId,outputId}`，basis为产物文件自身指纹，`ResourceDescriptor.render`返回生产jobId和实际输入`{ref,basis,dependencies}`。editor runtime提供描述与字节，宿主注入`ResourcePorts.render`；ResourceAccess复用原分片／PDF解析和读取前后授权。首批只同项目，拒绝targetRead跨项目及正文保存；输出淘汰、生产证据缺失或basis变化不回退源码／同名新版。lastSuccess始终沿原成功产物及输入，失败新job不能解释旧PDF。旧记录没有basis/input时保留原预览／导出，直接附加不可用。
+排版PDF／HTML采用只读`{source:'render',projectId,outputId}`，basis为产物文件自身指纹，`ResourceDescriptor.render`返回生产jobId和实际输入`{ref,basis,dependencies}`。editor runtime提供真实格式描述与字节，宿主注入`ResourcePorts.render`；ResourceAccess复用原分片、文档解析和读取前后授权。首批只同项目，拒绝targetRead跨项目及正文保存；输出淘汰、生产证据缺失或basis变化不回退源码／同名新版。lastSuccess始终沿原成功产物及输入，失败新job不能解释旧产物。旧记录没有basis/input时直接附加不可用，既有PDF预览／导出保持。
+
+HTML排版与历史产物共用HtmlRenderView，复用renderedHtml的静态清理和CSP。frame禁用页面脚本，仅授予同源DOM供可信宿主读取当次Range；不会启用活动报告脚本。只读取所选子树，跨frame沿所属DOM处理文字／表格／公式边界，摘录不伪造源码位置。完整新版读取成功才替换；相关附加批注或源码草稿使排版区保留旧输出并提供“查看新版”，旧显式项保持原outputId。权限失效和缓存淘汰有就地诊断。
 
 公共 `resources.describe/read/document/save` 由 editor 的 `ResourceAccess` 经窄端口组合项目与库权威，`ManualApplication` 可在无模型、无 harness 时使用。项目引用使用稳定 fileId，库引用包含附件和材料版本；响应不含 nativePath。UTF-8 文字读取位置以 UTF-16 为单位，base64 以字节为单位，单片最多 256 KiB。项目字节读取绑定内容依据并在读取前后复查；正文保存复用原项目条件保存和文件身份保护。库正文只读，阅读记录仍保存到原库。
 
@@ -343,6 +345,8 @@ EPUB 2／3 重排版与单文件 HTML 快照复用 reader tab 和共同记录。
 资源视图通过 `workbench/context-contributions.tsx` 的 `useContextContribution()` 贡献纯数据，生命周期沿视图释放。例如已有合法资源 `ref/basis` 的领域组件可调用 `contributeSelection(viewId, { selections: [item] })`，卸载时调用 `contributeSelection(viewId)`；`item` 使用 protocol 的 `ContextItem`，资源、文字、归一化区域和有结构对象共用 `isContextItems`／`isWorkbenchContextSnapshot` 容量校验。只贡献自己已加载的对象，不扫描其他视图或全库。普通选择只发布实时线索，明确按钮才调用 `appendContextItem(item)` 加入共同草稿，不自行发送指令。
 
 源码、PDF、EPUB／HTML、可视正文与轻量Markdown预览接入同一贡献端口。PDF的`text.location`复用同版本页／矩形，文档复用章节及规范化UTF-16位置；图片`region.target`指明整图，区域经旋转／缩放换回图像内容坐标。结构对象只采用当前真实编辑或预览结构，`object.contentState`标明尚未保存的内容。历史无位置／目标字段仍可读且不猜基准；嵌入排版PDF复用PdfReader，选区保留render身份及产物basis，消息历史可沿共同入口重开。共同阅读记录继续保存到library，不因附加选区创建记录或取得附件正文写入权。
+
+各格式工具行的“批注”通过ArtifactAnnotation固定当次显式项，材料旁和共同检查器复用CommentEditor编辑同一comment；关闭保留，移除才删除。正文为空且有非空批注时，dock／overlay发送和Ctrl/Cmd+Enter沿business-session同一可靠发送实现，使用“请处理附加材料中的批注”正文及完整contextItems；无批注材料不单独触发执行。连接、项目信任、凭据、会话归档和待核查条件仍限制发送，迟到回执只清理未更正的原发送项。入口验收复用context-bridge、material-interactions及render-materials，受控模型仅替代外部HTTP响应。
 
 M3定向入口为`tests/kernel/editor-runtime.spec.ts`、`editor.spec.ts`、`render-authorization.spec.ts`及双宿主`tests/ui/render-materials.spec.ts`。harness的`read_context_resource`可读实际base64字节，`read_context_document`通过原资源端口执行PDF／文档解析，前后复查执行与材料授权。诊断按outputId、生产jobId、产物basis、input及读取错误区分缺证据、淘汰、变化、跨项目与撤权；不要用当前稿件basis补旧产物。UI旧记录夹具仅删协议投影的可选依据，真实PDF生成、读取和SDK均未替换。
 
