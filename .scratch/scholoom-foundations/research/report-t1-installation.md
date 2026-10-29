@@ -30,7 +30,7 @@ flowchart LR
 
 ### 安装物与精确保护清单
 
-配置草案统一保存于 `/home/joshua/.cache/scholoom-round20-acceptance-INWZnx/next/zotero-ecosystem/drafts/`：`control.{socket,service}.in`、`manager.{socket,service}.in`、`native@.service.in`、`paths-and-installers.tsv`、`policy-requirements.md`。它们未部署；C/M/gate 程序与有效策略尚待实现，`.in` 不能当安装包使用。以下路径和名字是供主线选择的固定安装布局，不是请求参数。
+当前配置草案保存于 `/home/joshua/.cache/scholoom-round21-acceptance-pCcY4R/t1-drafts/`：`control.{socket,service}.in`、`manager.{socket,service}.in`、`native@.service.in`、`paths-and-installers.tsv`、`policy-requirements.md`。原交回草案在第20轮cache保留为审查依据。它们未部署；C/M/gate 程序与有效策略尚待实现，`.in` 不能当安装包使用。以下路径和名字是供主线选择的固定安装布局，不是请求参数。
 
 | 安装对象 | owner／mode 候选 | 创建／修改主体与所需系统权限 |
 | --- | --- | --- |
@@ -80,6 +80,8 @@ M 的 jobs 输入与诊断是原实例暂存物，不是新材料库；K 只保�
 ## 原 intent 到 PID1 真实范围的放行与停止
 
 候选模板只允许 M 从原 receipt 的 storageId 构造名字；unit 固定 `RootDirectory`、`ExecStart=/bin/gate /bin/probe /input/entry`、只读输入 bind、无 Restart、无 notify 给 P。不存在由业务端传入的 User、policy 路径、动态 ExecStart 或任意 transient properties。
+
+storageId沿原records随机生成的带连字符UUID及原index／receipt恢复契约，直接用于固定模板的%i和内部目录，不从instanceId重新派生。M使用`ProtectControlGroups=true`保留宿主cgroup树的只读观察；C/P使用strict私有视图。M必须能读取其他实例真实范围，不能把它限定在自身cgroup namespace根后再声称能核查兄弟服务；三者均`Delegate=no`、无cgroup写权及新增capability。该配置只消除方案内的已知矛盾，实际观察权限仍须T1验证。[Code][S1]
 
 **启动顺序：**
 
