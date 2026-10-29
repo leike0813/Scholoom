@@ -1,5 +1,21 @@
 # 实际交付与交接
 
+## 4.2 运行后宿主撤权直接代表（2026-10-30）
+
+本轮从共同基线`2fb1fff3b038d3bb810ab2971f4ea0f8e5fa7a7e`且clean开工，读取当前apply的工件与新增运行后撤权安排。只在原`isolated-report-provider.spec.ts`的detached参数组增加host-abort分支；本地fixture增加可选可信options.signal，未指定信号的原用例不增加该选项。生产platform/records/controller、策略、预算和check预检/start逐次兑现语义未改，复用主线已构建的同源产物，不冒称本轮重建。
+
+实际固定产物运行新host-abort与原显式stop两个detached代表，**2/2，4.3秒，0失败/跳过/重试**。新分支先确认原实例running/gateReleased、原范围dev/ino与持久scope一致，并从原cgroup.procs及各成员/proc的ppid/pgrp/session/birth/cgroup读回三代连续setsid会话首领链；全部成员属于原scope，原admission.active=1后，才由原宿主置领域撤权并AbortController.abort。没有手工stop或根PID信号代替此触发。
+
+撤权后分别核原范围cgroup.events为populated0或原对象已消失、原provider原instance的stopped及持久stopConfirmed、原configId/storageId/unit/scope不变和active=0；另核撤权前观察的所有成员旧出生身份均已不存在。范围目录消失不单独作为停止证明。以上证据与断言均在fixture最终provider.close前取得，不用清理后的停止倒填abort结果。
+
+证据唯一根`/home/joshua/.cache/scholoom-round27-acceptance-O1IWSr/next/project-running-revocation/`：`tests.log`、`results/`、`native-cache/host-abort-<原instanceId>.json`和`revocation-summary.json`保存同次前后范围/进程/收据/容量。模型、服务、UI或真实库均未使用；替身仅原固定合成批准字节、登记程序/策略和领域授权闭包，broker/default provider/admission/controller/原生scope/文件/锁均真实。信号由可信测试宿主控制，不赋予页面授权能力。
+
+精确运行入口为：`TMPDIR=<证据根> SCHOOLOOM_ISOLATION_TEST_CACHE=<证据根>/native-cache node node_modules/@playwright/test/cli.js test --config playwright.kernel.config.ts tests/kernel/isolated-report-provider.spec.ts --grep 'real detached( after host-abort)? program stops its entire original scope' --output <证据根>/results`，exit0。probe复用上轮已核二进制，当前Git blob仍`8d85c5f418f4c83e9c59f34205b5e2dca1a4bc76`；只复制到新根，`probe-provenance.json`列原路径及目标，未覆盖旧证据或重编native，无/tmp前置。
+
+首查仅测试格式失败，`biome-first.log`保留；用apply_patch整理后格式exit0。tools类型首末均exit0，日志`types-first.log`/`types-final.log`；未出现非预期测试失败，没有改生产、延时、sleep或重试刷绿。host-abort强制结束原暂停程序后，收据保留原实现的failure.code=unavailable，没有将其改写为自然退出0或无失败；它不影响实际整范围停止及持久stopConfirmed的分别核查。原native17矩阵及其他既有绿色组未重跑。各自有scope、native lock/FD/child均沿原provider.close完整await收尾；配置与现场保留，不接管其他执行。
+
+实际执行后已取得当前delivery instructions，本轮派发明确授权通过后勾4.2，主线仍负责独立接收/最终验收与归档。此直接样本不替代生产领域持续授权/结果交付、浏览器全进程图、C/M系统装配、T1/T2、Windows/macOS、分发或科研质量；原报告2.1b/I5保持开放。
+
 ## 第23轮恢复库存修复验收（2026-10-30）
 
 项目树原始冻结提交与主线均为`5e6220026352df6130f021912b32e285a3fd8ad4`，相对6e88817仅三个文件。原records.load在验证config/index后、读取任何恢复receipt前，对pinned根有界流式枚举并核固定元数据与index目录；未知、缺失、错误类型或枚举失败拒绝，原数据与身份保留。create、writer锁、receipt／scope校验、停止与唯一准入未变。原host-loss测试的两份调查JSON移到本例privateRoot之外，不扩大根白名单或改生命周期断言。
