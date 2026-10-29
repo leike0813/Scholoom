@@ -24,6 +24,8 @@ editor/runtime 的 savedRender 接受 PDF／HTML，描述返回真实格式；�
 
 RenderPane 区分最新 job 与当前展示 output；有相关共同项或 dirty 时暂存最新完整候选并提供查看新版，失败仍沿 lastSuccess，异步回执按产物身份丢弃。只读权限核查和资源释放由视图复用既有端口。
 
+HTML／PDF的完整字节准备分别复用同一`prepareHtmlRender`／`preparePdfResource`，RenderPane拥有当前和至多一个候选的实物资源，reader借用时仅清理自身展示／监听；普通独立打开仍由reader负责准备及释放。自动采用与按钮明确采用均在末次核权后核原candidate／latest身份；自动路径还须在实际替换前读取最新dirty／相关显式项，等待期间新出现的保护继续保留原页及pending。明确按钮保留用户选择新版本的语义，不受该自动保护条件封锁。
+
 ```mermaid
 sequenceDiagram
   participant U as 用户

@@ -1,14 +1,24 @@
 # 实际交付与交接
 
+## 第27轮：跨格式修复及自动采用竞争续做
+
+阅读原`674e99465066f2599d95887822476929bf5e4c32`以`67e84ab`合入，`028ea8d`保留来源祖先。五文件集中HTML／PDF原准备过程，完整候选前保留当前reader，原dirty／批注与B/C迟到用例按作者分轮结果通过，见本轮根`next/research-interaction/RESULT.md`及`commands.md`；原旧代码有效红例与夹具错误均保留，没有把分轮8过2败及补跑2过写成同次10/10。
+
+主线desktop构建、desktop／tools类型均exit0，固定产物HTML组件**4/4、10.8秒**；新跨格式、静态HTML发送及独立PDF的双宿主回归仍在本轮根`render-main-ui.log`对应进程执行，结果未提前关闭。构建／类型及组件原日志为`render-main-{build,desktop-types,tools-types,components}.log`。主线不运行测试时修改受测生产源码。
+
+独立`render-candidates-review.md`确认原W1提前卸载根因已关闭，但确证P2：auto effect在无保护时发起adopt，await核权回包后只核candidate／latest，未复查等待期间新出现的dirty／相关显式项。未发现确定PDF选区误绑或资源双释放；这些额外交错仅静态核对，不伪称全矩阵实跑。原2.2／3.1／3.2已重开，当前3/6，不能继续用旧6/6表示最终验收。
+
+阅读树已在旧Task结清／retain后clean快进`028ea8d`，重建变化platform并核desktop类型、原三生产源码未变，再派新Task`task_0768ce54cdc5`／Dispatch`ctx_411910bdf0f9`。新片仅RenderPane与原render-materials测试，先真实自动核权间隙红例，再最小区分自动／明确采用并在回包后核最新保护；保留按钮语义、原身份及释放责任，独立cache`next/research-interaction-race`，不覆盖原证据。最终修复与接收待交回，正式活动报告／I5和平台／科研质量未因此完成。
+
 ## 当前状态与成果
 
-已完成现有格式的材料旁批注、仅批注发送、静态 HTML 产物选择与更新保护；本机 Linux 实际 Browser／Electron 最终 28/28 通过，各宿主 14 项，零失败／跳过／重试／flaky。任务状态以 [tasks](tasks.md) 为准；原理及所有权见 [design](design.md) 的变更总览。尚未推送或归档。
+现有格式的材料旁批注、仅批注发送、静态 HTML 产物选择已有实现及下述历史验收；更新保护仍待上述P2修复接收。原本机 Linux Browser／Electron批次28/28通过、各宿主14项、零失败／跳过／重试／flaky，不代表本轮新增路径全部通过。任务状态以 [tasks](tasks.md) 为准；原理及所有权见 [design](design.md) 的变更总览。尚未推送或归档。
 
 源码、可视编辑／Markdown、PDF、EPUB／HTML 和栅格图片共用 ArtifactAnnotation／CommentEditor：明确固定当次项，原选择变化不改写批注目标；材料旁与共同检查器编辑同一 comment，关闭保留、移除才删除。仅批注发送使用原 session.send，原子捕获实际共同草稿；发送锁覆盖可靠恢复和 RPC 返回之间的间隙，失败恢复正文，迟到确认保护后续输入。
 
 HTML render 沿原 outputId／basis／job／实际输入成为只读资源，重开及实际 worker 读取同一产物。HtmlRenderView 保留静态布局，frame 仅授予 allow-same-origin，页面脚本继续禁用；宿主接管包括 SVG xlink 和 area 的导航，非 about:srcdoc 文档停止贡献。摘录复用原 Markdown 的有界段落／表格／公式规则，使用所属 DOM realm，不伪造源码位置。
 
-HTML 候选完成时按实际展示页和最新草稿重新决定发布；候选在途新增旧页批注也保留原页。PDF 候选仍由父层提供明确切换入口。真实项目保存、FileEdit 来源、版本依据、差异及整次撤销沿原权威；科研理由缺失继续显示未知，库正文和排版产物继续只读。
+HTML／PDF候选由父层在完整准备后按当前展示和草稿决定发布，明确切换保留原显式项；自动核权期间新出现保护的竞争仍按第27轮续做。真实项目保存、FileEdit 来源、版本依据、差异及整次撤销沿原权威；科研理由缺失继续显示未知，库正文和排版产物继续只读。
 
 ## 实际验证
 
