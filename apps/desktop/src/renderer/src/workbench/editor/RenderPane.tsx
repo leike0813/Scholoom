@@ -233,9 +233,10 @@ export function RenderPane({
     };
   }, [pending, port, verify, reject]);
   const adopt = useCallback(
-    async (next: PreparedOutput) => {
+    async (next: PreparedOutput, automatic = false) => {
       try {
         await verify(next);
+        if (automatic && (guards.current.dirty || guards.current.hasAnnotations)) return;
         if (candidate.current === next && latest.current?.id === next.output.id) replace(next);
       } catch (reason) {
         reject(next, reason);
@@ -244,7 +245,7 @@ export function RenderPane({
     [verify, replace, reject],
   );
   useEffect(() => {
-    if (pending && !dirty && !hasAnnotations) void adopt(pending);
+    if (pending && !dirty && !hasAnnotations) void adopt(pending, true);
   }, [pending, dirty, hasAnnotations, adopt]);
   const hasNewOutput = enabled && pending && pending.output.id === latestOutput?.id;
   useEffect(() => {
