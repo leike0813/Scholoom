@@ -567,10 +567,22 @@ git diff --check
 
 保留原非JSON拒绝，序列化每个展开出现都扣除JSON字节数的保守下界预算，超限中止，再核对最终UTF-8实际字节；容量内共享引用及原64KiB边界保持。来源探测多读3字节，沿入口同一TextDecoder BOM语义判断前缀，原短分片核对保留。两项回归先针对旧dist运行，2失败：64MiB隔离子进程不能完成36层共享数据展开，BOM候选错误成功。修复后重建，schema／codec与资源模块组合70/70通过（3.9秒），日志`research-interaction/boundary-red.log`、`boundary-build.log`、`boundary-green.log`。四文件Biome与tools类型通过；只读追加审查未发现误拒合法容量或短分片问题，没有新增依赖、生产API、UI或权限。1.1a／1.2a的模块子范围保持，生产及整体任务继续开放。
 
-## 第21轮阶段验收：3.1c（2026-10-30，整批仍在进行）
+## 第21轮主线验收（2026-10-30）
+
+五树27文件逐树停止、冻结并cherry-pick合入dev，原提交及清单见`/home/joshua/.cache/scholoom-round21-acceptance-pCcY4R/frozen.json`。接收3.1c、3.1d、3.2c及2.1e规划，当前20/26；R2c按固定可信输入试验接收，不关闭正式呈现或完整3.x／I5。
 
 项目线停止后冻结f7f3698，单文件tests/kernel/report-publication.spec.ts经cherry-pick f1cc0b3合入dev。真实普通worker保存新依赖后，测试在实际SQLite关联INSERT处仅失败一次；磁盘、FileEdit、原instruction/run/instance与pending回执分别核实。沿已有artifacts.reconcile补原关联，不重写文件；其协议effect=write，不将补关联称为纯只读。旧完整报告保持，核原实例exited并await应用及受控模型服务关闭。
 
 主线固定未变packages/kernel/desktop产物，运行`node node_modules/@playwright/test/cli.js test --config playwright.kernel.config.ts tests/kernel/report-publication.spec.ts --workers=1 --output /home/joshua/.cache/scholoom-round21-acceptance-pCcY4R/publication-results --reporter line`，3/3通过，42.6秒。证据为同cache的publication.log、publication-check.json与frozen-project-execution.json；TMPDIR也在该cache。作者单项1/1、tools/格式/strict及独立只读复核见上一轮cache的next/project-execution/RESULT.md和review.md；两次测试路径／状态预期首败保持，没有生产修复或真实模型调用。
 
-主线另在39cf7cb校正文档：实际prepare/freeze限定Linux接线已通过；草稿仅存browse/draft/dirty，原最小状态和新完整restore均核64KiB，不缓存旧入口或清单。独立只读接线调查及父核对在本轮cache的integration-seams.md。当前17/26，3.1d／3.2c／R2c／2.1e尚在实施或审查，未同步活动树、未重复派发，不从这一阶段结果推完整3.x、页面或I5通过。
+3.1d原提交f462a03／主线27bebb9，新增真实client Adapter及领域测试。主线运行report-client与report-updates组合11/11、20.5秒；真实入口版本、dirty/pending、旧页独有来源撤权、空闲重连及可读依赖basis前进均有代表。主线监督发现旧basis判定会阻止合法新版，作者在首次测试前修正并补代表，不倒填旧实现红例。独立client-review实跑探针另复现订阅异常会阻断共享重连的P2，主线683010d仅在Adapter逐监听器隔离异常并为派生Promise收尾，新增真实断连回归；修正后原四项加新例5/5、20.1秒，client-review-followup静态复核关闭P2。诊断日志保留预期注入异常，不属于unhandled错误。首次新增测试格式检查失败1处，仅换行修正后格式通过，业务测试后无语义变化。原始命令在client-check.json／client-fixed-check.json，首次探针与新修复数据分别保留。
+
+R2c原提交a645e10／主线0df1461，实际有限算法与原反例范围见本记录R2c节。主线`node tests/fixtures/report-input/run.mjs <本轮cache>/input-ui`先构建再固定，真实Browser／Electron完整4/4、77.3秒，无失败／跳过／flaky；作者两版产物与首败仍按原记录区分。真实文档、输入节点及源确认保持，不据固定table更新宣称任意HTML／系统IME／读屏或安全隔离已实现。
+
+3.2c原提交43beb78／主线64a4cf6，主线`node tests/fixtures/report-lifecycle/run.mjs <本轮cache>/lifecycle-ui`完整双宿主4/4、72.5秒。复用真实Workbench／共同草稿／检查器及三个module，核dirty/pending、原显式项basis、关闭旧consumer、同版恢复、copyOnly/denied及65536→65562字节完整恢复封套拒绝；client/load/授权为明确替身。构建只替换未挂载ResourceView/project-ui，真实被测组合未替换。作者前六轮构建／类型／受控端口不足的失败与超时均保留，没有加用例预算；主线首次即通过。两组UI的实际Electron profile均随共享fixture隔离，结束沿原自有内核／窗口收尾。页面ready及reload不是本片通过项。
+
+2.1e原提交725d6e1／主线122ed02，安装前候选不含实际系统部署。独立t1-review确认M的strict cgroup视图及草案storageId重定义各一项矛盾；主线2657ec9保留原records UUID、仅M改宿主cgroup只读视图，当前草案复制到本轮t1-drafts/，旧稿不改。t1-review-followup关闭两项规划阻断，其余跨UID采证、FIFO、完整库存／停止、安装与T1/T2仍未证。主线选择该方向继续离线验证，不授系统权限。
+
+主线direct electron-vite重建desktop成功，约93秒；tools／desktop类型、直接node架构14模块271文件0 findings、受影响代码Biome、report strict／scholoom-dev／diff通过，命令与日志在desktop-build-check.json、final-checks.json及对应日志；更新后不重复未变packages/kernel或已绿业务矩阵。UI、内核及修复分别是不同运行，不相加为一次整组。主线另在39cf7cb校正文档：实际prepare/freeze限定Linux接线已通过；草稿仅存browse/draft/dirty及64KiB，不缓存旧入口或清单。接线只读调查与父核对在integration-seams.md。
+
+下一批四任务及三等待见design第21轮。全树先同步再发任务，当前/tmp不作输入；不push、不查跑CI、不发真实模型请求、不安装或加载系统策略。跨失联连接远端handler结清无公共确认，Adapter只证明活连接串行，不能据本地Promise结束宣称远端已停。正式浏览器、来源永久失效后同绑定切新候选、真实页面装配、目标平台与完整I5继续开放。

@@ -26,6 +26,21 @@ ReportResources 是 `packages/editor` 内的 module，不新建包／数据库�
 
 ## 方案与接口
 
+### 第21轮接收与下一片
+
+3.1c／3.1d／3.2c及2.1e规划已按delivery接收，当前20/26；R2c仅关闭固定可信输入事务调查。3.1d旧页独有来源继续经领域describe核读权与稳定ref，内容basis前进不等于撤权；旧页仍保留原Evidence，新完整报告可pending。永久拒绝的旧来源会阻止该绑定load，转向合法新版需关闭旧绑定重新打开，不能以缓存继续展示。订阅者异常在Adapter内隔离并诊断，不得穿入共享client的重连循环。每个current／pending清单仍分别最多32依赖、100来源，核两者的有界并集，不扫全库。
+
+主线保留非root C＋固定模板root M作为**离线验证路线**，M使用宿主cgroup树只读视图、原records UUID；K仍持唯一admission、领域授权与freeze。当前接受的是规划和后续固定gate离线实现，不授予系统安装、策略加载、账户、服务启动或真实T1/T2许可。M物理IO与原records的具体私有接口先核现有调用点，由主线定案后才改生产，不把“换OS Adapter”当已经解耦。
+
+| 工作树／片 | 独占写集与可观察结果 | 停止边界 |
+| --- | --- | --- |
+| literature-workbench／3.2真实客户端汇合 | 新tests/fixtures/report-connected/及tests/ui/report-connected.spec.ts，复用已交付原module／共同session／草稿／Workbench和真实KernelClient及领域；正常报告更新形成pending、显式切换保留共同草稿，关闭旧consumer；真实来源撤权封展示。原合成生命周期夹具只读保留，不复制其64KiB矩阵 | 最多两类代表／双宿主；只在外部模型边界用受控HTTP，优先无模型。Node端可复用report-client/domain，renderer实际使用createReportClient；不再手写资源／权限成功结果，不启脚本或改生产/shared fixture |
+| zotero-ecosystem／T1固定gate离线片 | 新tests/fixtures/report-system-gate/，复用现有静态native probe／编译工具和原gate相关实现；固定输入FIFO许可→唯一固定probe，EOF／非法许可不执行，放行前关闭无关FD，至少一个真实正负例，输入／日志路径及程序在构建时固定 | 全部自有cache、当前普通UID；无PID1、跨UID、policy或OS停止证明。不得新增生产服务、公共wire／随请求任意exec、安装、SUID、filecap、策略或账户；若原gate强依赖OS范围，带事实交回不复制整个controller |
+| project-execution／T1私有IO接缝核对 | 只读当前provider／records／controller／native调用，cache给精确调用表、最小接口草案、单writer／原configId与完整inventory／停止落盘顺序及有限迁移差异；覆盖records之外直接fs／程序／gate／锁访问 | 不改工作区或发明第二台账／准入，不实现或发布接口；主线审后统一契约再派生产实现。不为清理重写现有user-scope路径或原恢复格式 |
+| research-interaction／R2正式呈现收敛 | 仅原报告investigation／design的R2d段及cache一手依据；基于R2／R2b／R2c，比较最多两条能适配任意业务组织、双宿主原生文本／输入／辅助语义的具体路线，列清执行、资源字节和呈现权威、真实限制及最小决定性验证 | 不把固定table补丁当通用方案、不预设固定科研业务页、不降低已有输入／无障碍或OS隔离要求；不再扩固定模板功能、造通用DOM镜像／DSL或改生产。共享架构最终由主线选择 |
+
+research-graph-runtime等待上述汇合中的真实提供者缺口，已交付Adapter不重复扩矩阵；research-task-workspace等待正式页面ready，agent-delegation等待目标环境／新模型授权。四任务三等待先全树同步验证再发送，未完树不换基线。接收时分别说明真实模块、合成边界和未证，不从离线gate／资料核对推T1或完整报告通过。
+
 ### 第20轮接收及下一片
 
 四个独立子片按各自契约接收，实际范围见delivery。3.1a采用第19轮已允许的发布前冲突分支；普通worker关联unknown未实跑，单列3.1c保留。R2b保住MathML结构，但整份srcdoc替换丢失在途组合输入，仍不采纳为正式方案。下一轮五线如下，主线单点更新3.x工件，原module及正式协议不由多个树同时改。

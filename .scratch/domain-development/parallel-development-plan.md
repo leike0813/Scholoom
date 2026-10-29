@@ -595,11 +595,21 @@ Codex／gpt-6.1-sol／high保持。先提交整合／决定并保全原冻结提
 
 第20轮同步回执：整合／profile修复d4af884，原五树冻结提交经无内容差异祖先桥2fb37ab保全。七树均快进、clean，各自实际重建desktop；tools类型、直接node架构检查和每树一个定向组全部通过，28条检查退出0，定向行为共11项通过。前后HEAD及命令见synchronized.json、sync-checks.json、sync-final.json，未再触发pnpm默认解析。此纯文档回执再快进，不重复构建；最终共同HEAD写入dispatch/plan.json，原Prompt／受理／独立启动证据同目录保留，发送后不再改变各树基线。
 
-## 第21轮阶段验收（整批进行中）
+## 第21轮验收及下一批
 
-证据根`/home/joshua/.cache/scholoom-round21-acceptance-pCcY4R`，承接第20轮`next/`任务，不重复发送。project-execution的3.1c已冻结f7f3698、cherry-pick f1cc0b3，主线发布组合3/3通过；该树等待整批同步。zotero-ecosystem的2.1e安装前候选已冻结725d6e1，尚在独立审查，不等于批准root管理门或系统部署。research-interaction整理R2c输入试验交付；literature-workbench诊断可信生命周期组合；research-graph-runtime继续真实client适配及旧来源权限／依赖更新回归。后者收到一次原任务内反馈，实际阅读／修改已观察，不重启、不重复发Prompt。agent-delegation及research-task-workspace按原等待范围停止。
+证据根`/home/joshua/.cache/scholoom-round21-acceptance-pCcY4R`，承接第20轮`next/`五片。五树27文件已冻结并合入dev，原提交／清单在frozen.json；主线接收报告3.1c、3.1d、3.2c及2.1e规划，20/26。发布3/3、client＋updates11/11、订阅异常P2修复后client5/5，输入事务／生命周期双宿主各4/4。独立T1规划审查的两项矛盾经主线改正并复核关闭，系统未部署。desktop实际重建，tools／desktop类型、架构、格式及规格检查通过；具体首败、真／替身及未证由原delivery维护。
 
-活动树仍用825f3fa，主线不在任务进行中替换其基线。后续先验实际交付、保全源码及原提交，再在相关树停止后同步验证，最后发下一片；当前没有新一轮Prompt。系统安装、服务启用、T1／T2、真实模型及CI均未新增授权。报告实际任务进度见原tasks／delivery，不从终端存活、输入受理或单项绿色推整项完成。
+| 线 | 下一片 | 独占写集及停止点 |
+| --- | --- | --- |
+| 文献 | 原3.2的真实客户端工作台汇合 | 新report-connected夹具／UI spec，复用真实KernelClient、领域授权、现有module／Workbench与共同草稿；最多两类代表／双宿主，不启脚本、不改生产或复制状态逻辑 |
+| 生态 | T1固定native gate离线验证 | 新report-system-gate夹具，复用现有静态probe／gate／编译工具，真实FIFO许可正负例；仅当前普通UID，不安装或碰PID1／账户／策略，不推T1通过 |
+| 项目 | T1私有物理IO接缝事实核对 | 只读provider／records／controller／native，精确调用表及最小接口候选仅写cache；主线先定单writer／恢复契约再并行生产，不发布第二台账／准入 |
+| 阅读 | R2正式呈现路线收敛 | 仅报告R2d调查／design及一手依据，最多两条具体路线；保留任意业务组织、原生文本／输入／辅助语义，不能把固定table原型当通用呈现或继续堆模板功能 |
+| 计算 | 等待汇合中的具体Adapter／提供者缺口 | 不重复已绿client矩阵、未知断连结清不靠race补齐 |
+| 科研 | 等待正式页面ready | 原任务33/33保持，不自定生产Graph或重复机械接续 |
+| Agent | 等待目标环境／新模型授权 | 不发真实模型请求、不重放pending或重复旧诊断 |
+
+Codex／gpt-6.1-sol／high保持。所有树先停止并保全原提交祖先，再同步同一dev、核源码及产物与必要检查，最后发送四任务／三等待；之后不再替换活动基线。跨UID系统服务仍是离线候选，安装、策略加载、账户／服务、T1／T2、真实模型及CI均未新增授权。具体报告写集与停止点见design第21轮，接续输入／TMPDIR在持久cache；不从CLI、终端存活或单项绿色推整项完成。
 
 ## 首轮 Agent 的共同起始任务
 
