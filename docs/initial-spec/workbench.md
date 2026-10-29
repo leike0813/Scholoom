@@ -20,7 +20,7 @@
 
 ### Requirement: W-02 明确接收者与统一指令
 
-界面 SHALL 展示当前指令接收者，区分正在浏览、主动附加及执行中实际使用的材料。选区旁输入与会话面板 SHALL 编辑同一条待发送指令；执行中追加消息在下一可处理边界消费，已受理和已处理分别呈现，不因浏览切换增加执行授权。
+当前上下文、明确接收者、显式附加项、材料旁批注及仅批注发送见[共同上下文正式规格](../../openspec/specs/workbench-agent-context/spec.md)；格式视图、只读 HTML 排版选择与新版草稿保护见[共同资源正式规格](../../openspec/specs/workbench-resources/spec.md)。执行中追加消息的受理、可靠保存与实际消费沿[Agent 正式规格](../../openspec/specs/agent-harness/spec.md)，不另建选区专用执行路径。
 
 #### Scenario: Agent 忙碌时追加要求
 - **WHEN** 用户向正在执行的会话发送补充要求
@@ -36,11 +36,11 @@
 
 ### Requirement: W-04 开放稿件与共同编辑
 
-W-04 已纳入当前[科研写作编辑器 change](../../openspec/changes/add-research-writing-editor/specs/workspace-editor/spec.md)的 workspace-editor 契约；具体行为以该 active spec 为准，本初设不重复维护第二份契约。该 change 尚未归档并同步到 main specs。
+开放稿件的源码／可视编辑、共同草稿和项目书目见[编辑器正式规格](../../openspec/specs/workspace-editor/spec.md)，本初设不重复维护第二份契约。
 
 ### Requirement: W-05 预览与工程执行边界
 
-W-05 已纳入当前[科研写作编辑器 change](../../openspec/changes/add-research-writing-editor/specs/manuscript-rendering/spec.md)的 manuscript-rendering 契约；具体行为以该 active spec 为准，本初设不重复维护第二份契约。该 change 尚未归档并同步到 main specs；预览与渲染体验的历史调查及未验收边界继续见 [#39](../../.scratch/scholoom-foundations/issues/39-writing-live-preview.md)。
+格式输出、草稿预览、受管编译和最后成功产物见[排版正式规格](../../openspec/specs/manuscript-rendering/spec.md)；预览与渲染体验的历史调查及未验收边界继续见 [#39](../../.scratch/scholoom-foundations/issues/39-writing-live-preview.md)。
 
 ### Requirement: W-06 交互式科研界面与持久报告
 
@@ -56,11 +56,9 @@ W-05 已纳入当前[科研写作编辑器 change](../../openspec/changes/add-re
 
 ### Requirement: W-07 图件选区与生成来源
 
-有结构的图件 SHALL 支持按对象选择；位图区域仅表达几何范围，不声称已识别曲线等科研语义。修改图件 SHALL 尽可能沿可找到的代码、数据或绘图来源重新生成，明确缺少来源时的能力限制。
+已有结构对象及栅格图片区域的当次选择、实际坐标基准与共同附加见[共同上下文正式规格](../../openspec/specs/workbench-agent-context/spec.md)，图片展示及资源生命周期见[共同资源正式规格](../../openspec/specs/workbench-resources/spec.md)。
 
-#### Scenario: 在位图框选一条曲线附近
-- **WHEN** 用户附加框选区域并要求修改
-- **THEN** 保存区域和指令供解释，核对生成来源，不把框选本身当作已确定的曲线对象
+修改图件 SHALL 尽可能沿可找到的代码、数据或绘图来源重新生成，明确缺少来源时的能力限制。图件来源追踪和科研语义重建仍由后续能力承接，不从已有像素框选推定曲线或可编辑结构已经识别。
 
 ### Requirement: W-08 审稿修订与实际交付
 
