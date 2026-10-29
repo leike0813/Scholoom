@@ -19,7 +19,7 @@ import {
 } from 'node:fs/promises';
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { atomicPrivateFile, fileFingerprint, privateDirectory } from '@scholoom/platform/node';
-import { type CallContext, OperationError } from '@scholoom/protocol/core';
+import { type CallContext, compileContract, OperationError } from '@scholoom/protocol/core';
 import {
   type Artifact,
   type FileContent,
@@ -32,6 +32,7 @@ import {
   type ProjectsInputs,
   type ProjectsOutputs,
   projectLimits,
+  projectsOperations,
 } from '@scholoom/protocol/projects';
 import Database from 'better-sqlite3';
 import { desc, eq, sql } from 'drizzle-orm';
@@ -44,6 +45,7 @@ import * as tables from './schema.js';
 export type ContainerInitializer = (database: Database.Database, internal: string) => Promise<void>;
 export type FileEditSource = { origin: FileEditOrigin; revertsEditId?: string };
 
+const validFileEdit = compileContract(projectsOperations['files.edit']).result;
 const hidden = new Set(['.scholoom', '.git', 'node_modules', 'dist', 'build', 'target', '.venv']);
 const accessScope = new AsyncLocalStorage<{
   agent: boolean;
@@ -585,6 +587,53 @@ export class ProjectStore {
       )
       .limit(1)
       .get()?.id;
+  }
+
+  versionForEvidence(
+    fileId: string,
+    basis: string,
+  ):
+    | {
+        editId: string;
+        side: 'before' | 'after';
+        path: string;
+        content: string;
+        evidence: NonNullable<FileEdit['afterEvidence']>;
+      }
+    | undefined {
+    this.check('read');
+    const editId = this.editForEvidence(fileId, basis);
+    const side = editId === undefined ? 'before' : 'after';
+    const row = this.db
+      .select()
+      .from(tables.edits)
+      .where(
+        editId === undefined
+          ? sql`json_extract(${tables.edits.value}, '$.fileId') = ${fileId} AND json_extract(${tables.edits.value}, '$.beforeEvidence.basis') = ${basis}`
+          : eq(tables.edits.id, editId),
+      )
+      .limit(1)
+      .get();
+    if (!row) return undefined;
+    const edit = row.value;
+    if (
+      !validFileEdit(edit) ||
+      edit.id !== row.id ||
+      edit.path !== row.path ||
+      edit.fileId !== fileId
+    )
+      throw new OperationError('unavailable', '保留的文件版本记录无法核查。');
+    const evidence = side === 'after' ? edit.afterEvidence : edit.beforeEvidence;
+    if (
+      evidence?.ref.source !== 'project' ||
+      evidence.ref.projectId !== this.project.id ||
+      evidence.ref.fileId !== fileId ||
+      evidence.basis !== basis ||
+      Buffer.byteLength(edit[side]) > projectLimits.fileBytes
+    )
+      throw new OperationError('unavailable', '保留的文件版本依据无法核查。');
+    this.files.location(fileId);
+    return { editId: row.id, side, path: edit.path, content: edit[side], evidence };
   }
 
   async changes(input: ProjectsInputs['files.changes']): Promise<ProjectsOutputs['files.changes']> {
