@@ -11,6 +11,7 @@ import { startModelKernel } from '../model-kernel.js';
 import { createModelServer } from '../model-server.js';
 import { addProject, createSession, expect, test } from './fixture.js';
 import { rendererUrl } from './renderer-url.js';
+import { armRpcGate, installRpcGate, releaseRpcGate } from './rpc-gate.js';
 
 async function selectRenderText(page: Page, pdf: Locator) {
   const sdk = pdf.locator('embedpdf-container');
@@ -52,6 +53,98 @@ async function selectRenderText(page: Page, pdf: Locator) {
   );
   await page.mouse.up();
 }
+
+test('automatic render adoption rechecks renewed dirty input after authorization, while explicit viewing remains available', async ({
+  uiPage,
+}, info) => {
+  test.setTimeout(120000);
+  const root = info.outputPath(`adoption-race-${info.project.name}`);
+  await mkdir(root, { recursive: true });
+  const saved = 'Saved render adoption evidence 81.\n';
+  await writeFile(join(root, 'paper.qmd'), saved);
+  let pendingResource: ResourceDescriptor | undefined;
+  uiPage.on('websocket', (socket) =>
+    socket.on('framereceived', ({ payload }) => {
+      const message = JSON.parse(String(payload));
+      if (message.result?.ref?.source === 'render' && message.result.format === 'html')
+        pendingResource = message.result;
+    }),
+  );
+  const evidence: Record<string, unknown> = {};
+  await installRpcGate(uiPage);
+  try {
+    await uiPage.goto(rendererUrl);
+    await expect(uiPage.getByRole('status', { name: '连接状态' })).toContainText('已连接');
+    await addProject(uiPage, root);
+    await createSession(uiPage, basename(root));
+    await uiPage.getByRole('treeitem', { name: '打开文件 paper.qmd', exact: true }).dblclick();
+    await uiPage.getByRole('button', { name: '并排排版', exact: true }).click();
+    const render = uiPage.getByRole('region', { name: '完整排版预览', exact: true });
+    const status = render.getByRole('status', { name: '排版状态', exact: true });
+    await render.getByLabel('预览格式', { exact: true }).selectOption('pdf');
+    const pdf = render.getByRole('region', { name: '排版 PDF', exact: true });
+    await expect(pdf.locator('img[src^="blob:"]').first()).toBeVisible({ timeout: 60000 });
+    const originalReader = await pdf.elementHandle();
+    const source = uiPage.locator('.cm-content[contenteditable="true"]').first();
+    const initialText = await source.innerText();
+    await source.press('ControlOrMeta+End');
+    await source.press('x');
+    await expect(status).toContainText('有未保存草稿');
+    await render.getByLabel('预览格式', { exact: true }).selectOption('html');
+    const viewNew = render.getByRole('button', { name: '查看新版', exact: true });
+    await expect(viewNew).toBeVisible({ timeout: 60000 });
+    assert(pendingResource?.ref.source === 'render');
+    evidence.pending = pendingResource;
+    await armRpcGate(uiPage, 'resources.describe', '', true);
+    await source.press('ControlOrMeta+z');
+    expect(await source.innerText()).toBe(initialText);
+    await expect(status).not.toContainText('有未保存草稿');
+    await uiPage.waitForFunction(() => !!Reflect.get(window, '__scholoomRpcGate')?.held);
+    const held = await uiPage.evaluate(() =>
+      JSON.parse(Reflect.get(window, '__scholoomRpcGate').held.payload),
+    );
+    expect(held.result.ref).toEqual(pendingResource.ref);
+    expect(held.result.basis).toBe(pendingResource.basis);
+    evidence.automaticAuthorization = held.result;
+    await source.press('r');
+    const renewedText = await source.innerText();
+    await expect(status).toContainText('有未保存草稿');
+    expect(renewedText).not.toBe(initialText);
+    expect(await readFile(join(root, 'paper.qmd'), 'utf8')).toBe(saved);
+    evidence.beforeReply = { renewedText, status: await status.innerText(), diskUnchanged: true };
+    evidence.readerConnectedBeforeReply = await originalReader?.evaluate(
+      (node) => node.isConnected,
+    );
+    expect(evidence.readerConnectedBeforeReply).toBe(true);
+    await releaseRpcGate(uiPage);
+    await uiPage.evaluate(
+      () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve())),
+    );
+    evidence.readerRetainedAfterReply = await originalReader?.evaluate((node) => node.isConnected);
+    evidence.afterReplyText = await source.innerText();
+    expect(evidence.readerRetainedAfterReply).toBe(true);
+    await expect(pdf).toBeVisible();
+    await expect(viewNew).toBeVisible();
+    expect(await source.innerText()).toBe(renewedText);
+    await viewNew.click();
+    await expect(
+      uiPage.frameLocator('iframe[title="HTML 排版预览"]').getByText(saved.trim(), { exact: true }),
+    ).toBeVisible();
+    expect(await source.innerText()).toBe(renewedText);
+    await expect(status).toContainText('有未保存草稿');
+    expect(await readFile(join(root, 'paper.qmd'), 'utf8')).toBe(saved);
+    evidence.explicitViewSucceeded = true;
+  } finally {
+    await uiPage.evaluate(() => {
+      const gate = Reflect.get(window, '__scholoomRpcGate');
+      if (gate?.held) gate.release();
+    });
+    await info.attach('auto-adoption-evidence', {
+      body: JSON.stringify(evidence),
+      contentType: 'application/json',
+    });
+  }
+});
 
 for (const protection of ['dirty', 'annotation'] as const) {
   test(`cross-format PDF to HTML preserves ${protection} through delayed, failed and superseded candidates`, async ({
