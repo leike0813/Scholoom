@@ -5,8 +5,11 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { Page } from '@playwright/test';
 import { createKernelClient, KernelClientError } from '../../packages/client/dist/index.js';
-import type { TaskMetadata } from '../../packages/protocol/dist/projects.js';
+import type { ErrorInfo } from '../../packages/protocol/dist/core.js';
+import type { ProjectTaskInputs, TaskMetadata } from '../../packages/protocol/dist/projects.js';
 import { runningKernel } from '../kernel-fixture.js';
+import { startModelKernel } from '../model-kernel.js';
+import { createModelServer } from '../model-server.js';
 import { addProject, createSession, expect, test } from './fixture.js';
 import { rendererUrl } from './renderer-url.js';
 import { armRpcGate, installRpcGate, releaseRpcGate } from './rpc-gate.js';
@@ -218,6 +221,178 @@ test('research tasks share file authority, source navigation and project drafts 
     expect(errors).toEqual([]);
   } finally {
     client.dispose();
+  }
+});
+
+test('sent task context retains its original evidence and receiver after a real task save conflict', async ({
+  uiPage,
+}, info) => {
+  test.setTimeout(90000);
+  const root = info.outputPath('task-save-conflict');
+  await mkdir(root, { recursive: true });
+  const model = await createModelServer({
+    respond: () => ({ text: 'The sent task context was received.' }),
+  });
+  model.hold = true;
+  const stop = await startModelKernel(process.env.SCHOOLOOM_UI_DATA_DIR as string, model.url);
+  const client = createKernelClient(
+    await runningKernel(process.env.SCHOOLOOM_UI_DATA_DIR as string),
+  );
+  await client.connect();
+  try {
+    await installRpcGate(uiPage);
+    const project = await client.call('project.create', {
+      path: join(root, 'project'),
+      trust: 'trusted',
+    });
+    await client.call('files.save', {
+      projectId: project.id,
+      path: 'comparison.md',
+      content: '# Independent process material\n',
+    });
+    const metadata: TaskMetadata = {
+      kind: 'research-task',
+      formatVersion: 1,
+      id: randomUUID(),
+      title: '已发送任务的条件保存',
+      status: 'active',
+    };
+    const original = `---\n${JSON.stringify(metadata)}\n---\n\n目标：核对测量条件。下一步：等待人工核查。\n`;
+    const created = await client.call('tasks.create', {
+      projectId: project.id,
+      path: 'tasks/send.task.md',
+      operationId: randomUUID(),
+      content: original,
+    });
+    assert(created.state === 'complete');
+    const task = {
+      projectId: project.id,
+      taskId: metadata.id,
+      fileId: created.resource.ref.fileId,
+    };
+    const prior = await client.call('tasks.read', { task });
+    await uiPage.goto(rendererUrl);
+    await expect(uiPage.getByRole('status', { name: '连接状态' })).toContainText('已连接');
+    await addProject(uiPage, project.path, { trust: 'trusted' });
+    await createSession(uiPage, { projectId: project.id });
+    const selected = uiPage.getByRole('button', { name: /^打开会话 /, pressed: true });
+    const sessionId = await selected.evaluate((button) =>
+      button.closest('li')?.getAttribute('data-session-id'),
+    );
+    assert(sessionId);
+    const scope = { projectId: project.id, sessionId };
+    await uiPage.getByRole('button', { name: '设置', exact: true }).click();
+    await uiPage.getByText('模型设置', { exact: true }).click();
+    await uiPage.getByLabel('MiniMax API Key', { exact: true }).fill('synthetic-task-context-key');
+    await uiPage.getByRole('button', { name: '保存凭据', exact: true }).click();
+    await expect(uiPage.getByLabel('MiniMax API Key', { exact: true })).toHaveValue('');
+    await uiPage.getByRole('tab', { name: '任务', exact: true }).click();
+    await uiPage.getByRole('option', { name: /^已发送任务的条件保存 / }).click();
+    const detail = uiPage.getByRole('region', { name: '研究任务详情', exact: true });
+    await detail.getByRole('button', { name: '附加到指令', exact: true }).click();
+    const instruction = 'TASK_CONTEXT_CAS_CHECK 请核对明确附加的任务入口。';
+    await uiPage.getByRole('textbox', { name: '研究指令', exact: true }).fill(instruction);
+    await uiPage.getByRole('button', { name: '发送指令', exact: true }).click();
+    await expect.poll(() => model.requests.length, { timeout: 20000 }).toBe(1);
+    const accepted = await client.call('workbench.snapshot', scope);
+    const sent = accepted.messages.find(
+      (message) => message.role === 'user' && message.text === instruction,
+    );
+    assert(sent?.contextItems?.length === 1 && accepted.run);
+    expect(sent.contextItems[0]).toMatchObject({
+      kind: 'resource',
+      ref: prior.entry.ref,
+      basis: prior.entry.basis,
+    });
+    expect(sent.state).toBe('consumed');
+    const sentItems = sent.contextItems;
+
+    await detail.getByRole('button', { name: '关联现有材料', exact: true }).click();
+    const association = uiPage.getByRole('form', { name: '关联任务材料', exact: true });
+    const candidateNote = '保留这次失败关联的候选说明，待重读后由用户决定。';
+    await association.getByRole('textbox', { name: '项目内材料路径' }).fill('comparison.md');
+    await association.getByRole('textbox', { name: '采用说明' }).fill(candidateNote);
+    await armRpcGate(uiPage, 'tasks.save');
+    await association.getByRole('button', { name: '保存关联', exact: true }).click();
+    await uiPage.waitForFunction(() => !!Reflect.get(globalThis, '__scholoomRpcGate').held);
+    const candidate = await uiPage.evaluate(
+      () =>
+        JSON.parse(Reflect.get(globalThis, '__scholoomRpcGate').held.payload)
+          .params as ProjectTaskInputs['tasks.save'],
+    );
+    expect(candidate).toMatchObject({ task, basis: prior.entry.basis });
+    expect(candidate.content).toContain(candidateNote);
+    const changedOnDisk = `${original}\n人工在发送后补充：后续成果必须保留。\n`;
+    await client.call('resources.save', {
+      ref: prior.entry.ref,
+      basis: prior.entry.basis,
+      content: changedOnDisk,
+    });
+    // Observe the real rejection for this exact held request; do not fabricate an RPC result.
+    const error = await uiPage.evaluate(
+      () =>
+        new Promise<ErrorInfo>((resolve) => {
+          const gate = Reflect.get(globalThis, '__scholoomRpcGate');
+          const { socket, id } = gate.held;
+          const receive = (event: MessageEvent) => {
+            const response = JSON.parse(event.data);
+            if (response.id !== id) return;
+            socket.removeEventListener('message', receive);
+            resolve(response.error?.data);
+          };
+          socket.addEventListener('message', receive);
+          gate.release();
+        }),
+    );
+    expect(error).toMatchObject({ code: 'contentChanged' });
+    await expect(association.getByRole('alert')).toBeVisible();
+    await expect(association.getByRole('textbox', { name: '项目内材料路径' })).toHaveValue(
+      'comparison.md',
+    );
+    await expect(association.getByRole('textbox', { name: '采用说明' })).toHaveValue(candidateNote);
+    const persisted = await client.call('tasks.read', { task });
+    expect(persisted.content).toBe(changedOnDisk);
+    expect(persisted.entry.basis).not.toBe(prior.entry.basis);
+    expect(persisted.metadata.links).toBeUndefined();
+    expect(await readFile(join(project.path, prior.path), 'utf8')).toBe(changedOnDisk);
+    expect(await readFile(join(project.path, 'comparison.md'), 'utf8')).toBe(
+      '# Independent process material\n',
+    );
+    const after = await client.call('workbench.snapshot', scope);
+    expect(after.messages.find((message) => message.id === sent.id)?.contextItems).toEqual(
+      sentItems,
+    );
+    expect(after.run?.id).toBe(accepted.run.id);
+    expect(
+      await selected.evaluate((button) => button.closest('li')?.getAttribute('data-session-id')),
+    ).toBe(sessionId);
+    await writeFile(
+      info.outputPath('sent-task-save-conflict.json'),
+      JSON.stringify(
+        {
+          task,
+          scope,
+          sent,
+          runId: accepted.run.id,
+          priorEvidence: prior.entry,
+          candidate,
+          error,
+          persisted,
+          afterSent: after.messages.find((message) => message.id === sent.id),
+        },
+        null,
+        2,
+      ),
+    );
+  } finally {
+    const held = await uiPage
+      .evaluate(() => !!Reflect.get(globalThis, '__scholoomRpcGate')?.held)
+      .catch(() => false);
+    if (held) await releaseRpcGate(uiPage);
+    client.dispose();
+    model.release();
+    await stop();
+    await model.close();
   }
 });
 

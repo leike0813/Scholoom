@@ -171,6 +171,163 @@ test('task saves protect manual changes and retain saved process materials when 
   }
 });
 
+test('redirecting one task library link preserves another task adoption and both material identities', async () => {
+  const root = test.info().outputPath('shared-library-tasks');
+  await mkdir(root, { recursive: true });
+  const app = new ManualApplication(join(root, 'profile'));
+  try {
+    await app.initialize();
+    const project = await app.call('project.create', {
+      path: join(root, 'project'),
+      trust: 'restricted',
+    });
+    await app.call('library.grant', { read: true, write: true, send: false, autoBackup: false });
+    const sharedPath = join(root, 'shared.md');
+    const alternativePath = join(root, 'alternative.md');
+    const paths = [sharedPath, alternativePath];
+    await writeFile(sharedPath, 'shared source: large-sample method\n');
+    await writeFile(alternativePath, 'alternative source: small-sample method\n');
+    const batch = await app.call('library.importFiles', {
+      batchId: randomUUID(),
+      paths,
+      storage: 'managed',
+      purpose: '正文',
+      version: 'unspecified',
+      origin: 'task-local-redirection',
+    });
+    await expect
+      .poll(async () => (await app.call('library.batch', { batchId: batch.id })).batch.state)
+      .toBe('completed');
+    const entries = (await app.call('library.batch', { batchId: batch.id })).entries;
+    const attachments = await Promise.all(
+      entries.map((entry) => {
+        assert(entry.attachmentId);
+        return app.call('library.attachment', { attachmentId: entry.attachmentId });
+      }),
+    );
+    const original = attachments.find((attachment) => attachment.name === 'shared.md');
+    const alternative = attachments.find((attachment) => attachment.name === 'alternative.md');
+    assert(original && alternative);
+    const resource = (attachment: typeof original) => ({
+      source: 'library' as const,
+      attachmentId: attachment.id,
+      materialVersionId: attachment.materialVersionId,
+    });
+    const refs: TaskRef[] = [];
+    for (const [id, judgment] of [
+      ['task-a', '排除：当前样本规模不满足此来源的前提。'],
+      ['task-b', '采用：本任务样本规模满足该来源前提。'],
+    ] as const) {
+      const created = await app.call('tasks.create', {
+        projectId: project.id,
+        path: `tasks/${id}.task.md`,
+        operationId: randomUUID(),
+        content: note(id, '研究依据和下一步只属于本任务。', {
+          links: [
+            {
+              id: 'method',
+              role: 'source',
+              target: {
+                kind: 'library-material',
+                attachmentId: original.id,
+                materialVersionId: original.materialVersionId,
+              },
+              basis: original.materialVersionId,
+              note: judgment,
+            },
+          ],
+        }),
+      });
+      assert(created.state === 'complete');
+      refs.push({ projectId: project.id, taskId: id, fileId: created.resource.ref.fileId });
+    }
+    const [taskA, taskB] = refs;
+    assert(taskA && taskB);
+    const a = await app.call('tasks.read', { task: taskA });
+    const b = await app.call('tasks.read', { task: taskB });
+    assert(a.metadata.links && b.metadata.links);
+    expect(a.metadata.links?.[0]?.target).toEqual(b.metadata.links?.[0]?.target);
+    const reason = '仅将A的method引用重定向至小样本方法；原来源仍排除，不代表已读新来源。';
+    const candidate = note(a.metadata.id, '研究依据和下一步只属于本任务。', {
+      ...a.metadata,
+      links: a.metadata.links.map((link) =>
+        link.id === 'method'
+          ? {
+              ...link,
+              target: {
+                kind: 'library-material' as const,
+                attachmentId: alternative.id,
+                materialVersionId: alternative.materialVersionId,
+              },
+              basis: alternative.materialVersionId,
+              note: reason,
+            }
+          : link,
+      ),
+    });
+    const changed = await app.call('tasks.save', {
+      task: taskA,
+      basis: a.entry.basis,
+      content: candidate,
+    });
+    expect(changed.metadata.links).toEqual([
+      {
+        ...a.metadata.links?.[0],
+        target: {
+          kind: 'library-material',
+          attachmentId: alternative.id,
+          materialVersionId: alternative.materialVersionId,
+        },
+        basis: alternative.materialVersionId,
+        note: reason,
+      },
+    ]);
+    const bAfter = await app.call('tasks.read', { task: taskB });
+    expect(bAfter).toEqual(b);
+    expect(await readFile(join(project.path, b.path), 'utf8')).toBe(b.content);
+    expect(await readFile(join(project.path, changed.path), 'utf8')).toBe(candidate);
+    const attachmentsAfter = await Promise.all(
+      attachments.map((attachment) =>
+        app.call('library.attachment', { attachmentId: attachment.id }),
+      ),
+    );
+    expect(attachmentsAfter).toEqual(attachments);
+    for (const attachment of attachments) {
+      expect(
+        (await app.call('library.attachments', { sourceId: attachment.sourceId })).attachments,
+      ).toEqual([attachment]);
+    }
+    expect(
+      (
+        await app.call('resources.read', {
+          ref: resource(original),
+          basis: original.materialVersionId,
+          encoding: 'utf8',
+        })
+      ).data,
+    ).toBe('shared source: large-sample method\n');
+    expect(
+      (
+        await app.call('resources.read', {
+          ref: resource(alternative),
+          basis: alternative.materialVersionId,
+          encoding: 'utf8',
+        })
+      ).data,
+    ).toBe('alternative source: small-sample method\n');
+    await writeFile(
+      test.info().outputPath('task-local-redirection.json'),
+      JSON.stringify(
+        { aBefore: a, aAfter: changed, bBefore: b, bAfter, attachments, attachmentsAfter },
+        null,
+        2,
+      ),
+    );
+  } finally {
+    await app.close();
+  }
+});
+
 test('same-content entry replacement and changed task identity cannot be saved with old evidence', async () => {
   const root = await mkdtemp(join(tmpdir(), 'scholoom-task-identity-'));
   const app = new ManualApplication(join(root, 'profile'));
