@@ -1,5 +1,36 @@
 # 实际交付与交接
 
+## Windows普通持久布局：只读原生前置交回（8d8f339，2026-10-29）
+
+本轮起点`8d8f339c3e561154b05d4db39b4264c6db2c42e6`、工作区clean，产品源码7a746c0。沿用户“Windows普通原包布局”有界任务实际完成本树调查、原工件方案／契约、Linux资源保护最小回归；**没有实现Windows resolver／schema分支**。这是用户指定的“需要新Windows原生机制则给精确接口／反例／计划后停止”，不是继续等待旧Linuxsandbox或相同公共源码。原N2／Linux普通入口已接收，下面Windows注入／fd0原包实跑也保留；2.3普通Windows布局及4.2父项未完成。
+
+### 本轮成果及阻塞证据
+
+- investigation新增固定Electron44.5.1 Windows发行名／electron.exe、managed产物及产品asar入口区别、Windows现有提供者能力表和三个反例；design新增“Windows普通布局W1”的同源配方、ACL／File ID／reparse与设置保护需求、候选只读接口及启动窗口A/B选项。delta补平台支持／只读核验及拒绝／变化场景；tasks只勾实际W1调查，W2原生前置、W3叶实现、W4目标检查均未勾。原2.3标题更正为Windows可信注入已有结果、普通布局及整项未完成，不将目标结果全部抹为未跑。
+- `privateDirectory`不是只读验证：会创建／修复owner与ACL，安全根也不能证明后代无额外可写ACE。ResourceAccess只证明范围／单次读身份，Job证明进程归属；本树没有Windows目录对象／ACL全树核验及执行资源绑定提供者。host-settings本身在Windows也缺只读ACL检查，只增加electron.exe分支不足以构成可信绑定。关键出处及可重复输入见investigation当前节，父抽查privateDirectory快速通过及实际command路径。
+- 当前beforeLaunch之后还经过异步IPC／路径spawn；Linux重扫也不等于原子执行绑定。推荐最小A为共享只读原生树快照／复核，明确可信操作者模型及残余窗口；若主线要求阻止同权限替换，B需原生scope资源lease及unknown时的释放契约。ACL可信管理主体／非当前owner策略及A/B须主线决定，本线不新增公共注册、锁／权限算法或生产空壳。
+
+只改本change的investigation／design／spec delta／tasks／delivery，未改生产源码、平台实现、manual、lifecycle、endpoint发布、harness、CI或后置change。普通资源布局必须等平台能力与叶契约获准后才在host-settings接受候选枚举，不把本轮规范草案称为已接入支持。真实用户库、E6及安装／分发范围保持。
+
+### 实际命令、原失败与边界
+
+本轮唯一证据根为`/home/joshua/.cache/scholoom-parallel-resume-20261029-A5WuXN/zotero-ecosystem/work/`，TMPDIR为其tmp子目录。可重建命令、来源摘录及独立增量见该根report.md、commands.txt、source-evidence.txt、increment.patch和manifest.json；没有现有/tmp输入前置。
+
+| 命令／检查 | 实际结果及局限 |
+| --- | --- |
+| git HEAD／status，当前apply及规划instructions | HEAD如上、起始clean；读取当前contextFiles／原delivery及新instructions，不重放旧WIP或累计patch |
+| 本树源码／安装元数据只读核查、官方API文档阅读 | Windows runtime文件名及原生保护缺口已核；未运行install.js、未下载依赖或XPI。官方文档只证明可实现原语，不能计为本树提供者或Windows实跑 |
+| `node node_modules/@playwright/test/cli.js test --config playwright.kernel.config.ts --workers=1 --output <本轮cache>/linux-resources-results tests/kernel/zotero-resources.spec.ts` | `linux-resources.log`：25 passed (3.0s)，复用主线已验产物，未重建；合成资源不执行，系统helper只核已有安全前置。Linux结果不证明Windows ACL／exe／普通原包通过 |
+| OpenSpec strict／schema、diff、补丁反向检查 | 最终原始结果保存本轮cache，详见report.md；只核工件结构与增量，不代表W2–W4完成 |
+
+本轮没有生产更改或业务测试先红后绿；Linux首次且唯一组即通过。首次合并文档patch因design当前标题不同被内置工具整体拒绝，工作区仍clean；重读当前标题后分文件正确应用，没有覆盖旧成果。一次close_agent参数名不符被工具拒绝，按真实target字段关闭辅助，未改变文件或运行测试。原业务失败是**前轮55ad46a的百条例停机rename EPERM**，原日志／artifact路径继续沿下面原节；本轮既未复跑也未修复，不从ACL快照推其唯一根因。
+
+只读辅助使用gpt-6.1-sol/high、无历史fork，仅核platform／native与已有测试定义，父负责布局与跨模块建议并核关键事实；辅助已关闭。本轮无原包／Electron／GUI／外部模型／CI调用，没有内部权威替身实跑；资源组明确为合成文件校验，非Windows模拟器。没有启动常驻服务或共享显示，自有测试进程已结束，隔离数据及结果保留。
+
+### 交主线的下一步
+
+先接收design W1列出的Windows只读共享原语及ACL／启动窗口保证，主线拥有platform/native和必要公共导出；本线随后才按W3修改host-settings／resolveZoteroResource和窄资源测试。真实Windows普通CLI／desktop冷启动、两格式／重启、ACL／reparse／资源替换及原包字节对照入口已具体列在design W4；公共endpoint停机失败归主线另行闭合。本轮W1完成，W2–W4、2.3／4.2／5.x及完整E4／I6继续开放，不据47/54进度或Linux25项宣称产品／三平台／科研质量通过。
+
 ## 百条例同进程停机夹具（2026-10-29）
 
 主线另核到原百条例直接在Playwright worker内serveKernel，却调用面向独立守护进程的stopKernel等待同一PID退出；测试进程仍存活时这一路径无法确认daemon stopped。当前夹具在原running检查后核endpoint.processId等于当前PID，以同一endpoint／instanceId建立owner客户端；finally只向该实例请求shutdown，再等待原serving outcome。serve拒绝被及时捕获但仍使最终断言失败，不吞EPERM；停止回执失败时同样进入serving检查，保留原60秒用例／失败worker边界，不增加生产停止句柄或延长期限。

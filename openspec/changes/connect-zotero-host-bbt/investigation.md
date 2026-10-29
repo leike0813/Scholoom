@@ -1,5 +1,40 @@
 # 调查依据
 
+## Windows普通持久布局的原生前置（8d8f339，2026-10-29）
+
+起点`8d8f339c3e561154b05d4db39b4264c6db2c42e6`、clean，产品源码点7a746c0。Linux N2普通入口已经接收，下方历史sandbox失败不再是当前阻塞。已读delivery顶部“百条例同进程停机夹具”和“55ad46a Windows原包及停机前ACL”：Windows私有fd0、共同原包两格式及生命周期已有实际结果，百条例最终endpoint rename EPERM仍归主线公共lifecycle；本轮没有新Windows运行或唯一根因结论。独立缺口是普通设置没有Windows可信资源布局。
+
+### 固定版本、路径及复用边界
+
+| 当前本树来源 | 核实事实与不能据此推定的保证 |
+| --- | --- |
+| `host-settings.ts:14`、`zotero-resources.ts:28–49` | 叶schema仅允许`linux-x64-electron-managed-v1`，resolver要求Linux x64及getuid，派生`electron/electron`。Windows可信注入原包通过不能证明此普通绑定可用 |
+| 已装Electron44.5.1的`install.js:102–118`／`checksums.json` | win32入口是`electron.exe`，固定发行资产有`electron-v44.5.1-win32-x64.zip`。这里只读脚本／元数据，未执行下载器；候选应供应完整runtime，不只放一个exe或依赖开发机node_modules／下载缓存 |
+| `apps/zotero-host/electron.vite.config.ts`、`src/main/managed.ts:19–44` | managed产物固定`host/out/main/managed.cjs`，需全部chunks、preload、两renderer及host/resources；按产物相对路径读取。原操作快照／BBT路径、fd0封套和认证可复用，不新增renderer执行参数 |
+| `zotero-host/package.json`及`electron-builder.yml` | 当前产品包main为index.cjs、asar=true；目录包的产品exe／resources/app.asar不是已经接入的managed启动协议。不能把产品exe加脚本参数当成裸Electron配方已验 |
+| `resources/versions.json`及既有原包字节对照 | Zotero10.0.5／BBT9.0.68、原asset和ID复用一处版本源。manifest只证兼容性；原XPI与解包成员字节对照才是原包未改的独立验收，运行时身份／ctime见证不证明初次来源可信 |
+| `zotero-resources.ts:123–278` | Linux已有4096成员／版本文件64KiB上限、目录fd及/proc/self/fd枚举、全树owner／mode／身份核查和beforeLaunch重扫，仅系统helper精确槽位例外。扫描结束关闭句柄，不与之后spawn原子绑定；不能换路径分隔符后当Windows原生实现 |
+
+### 提供者事实及反例
+
+只读辅助gpt-6.1-sol/high、无历史fork核platform，父核关键来源。`privateDirectory`（`platform/src/private-files.ts:8–47`）会mkdir，不符合当前owner／受保护单ACE条件时会SetOwner／SetAccessControl；快速通过只检查传入目录自身。它是准备／修复入口，不能由resolver拿来“验证”未知资源。`ResourceAccess.bind/locate/read/list`（`resources.ts:22–139`）提供范围／授权、单次文件读取身份和变化检查，不逐对象核ACL、完整reparse tag或启动资源归属；`fileFingerprint`已有dev／ino／size／mtimeNs／ctimeNs，不是ACL证明。
+
+`host-settings.ts:79–109`的Windows分支跳过POSIX mode／uid，保留lstat、打开前后dev／ino及有界读，但没有只读ACL核验；新的Windows绑定必须补设置文件自身的保护，不能只补resource树。`ManagedCommands.start`（`kernel/src/commands.ts:139–158`）在容量等待后和供应私有输入附近调用beforeLaunch；随后`platform/src/command.ts`经IPC让`command-worker.ts:31`按路径spawn。Windows `native/process-scope.c`持有的是Job／进程句柄，没有资源树句柄／安全描述符入口。Linux isolated-report的目录fd／memfd也不是Windows提供者。
+
+最小反例输入（仅静态推演，本轮**未在Windows创建或修改权限**）：
+
+1. `C:\R`自身符合privateDirectory快速通过条件，后代`bbt\bootstrap.js`有受保护DACL且额外允许Everyone修改。根检查仍可成功，manifest仍为9.0.68；根私有不证明后代私有。
+2. 初次扫描后将`host\out`换为同配置内junction。realpath仍在范围内也不能证明原资源身份；须核每层reparse属性／tag和对象身份。
+3. beforeLaunch返回后、command IPC消费前，替换同名electron.exe／DLL，保留version和manifest。下一次扫描可拒绝，但当前路径spawn没有保证消费的是刚核对象；ctime、再扫一次或sleep都不取消该窗口。
+
+这些是**现有原生接口缺口**，不是Windows原包算法／缓存失败。不能用POSIX mode、单个isSymbolicLink、根ACL或修现场权限代替，也不宜先加永远unavailable的Windows枚举分支。窗口保证和新平台提供者由主线定案，本轮在design给最小接口及选项后停止。
+
+### 一手依据与本轮证据等级
+
+只读核对[CreateFileW](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilew)的目录／reparse打开及共享模式、[GetSecurityInfo](https://learn.microsoft.com/en-us/windows/win32/api/aclapi/nf-aclapi-getsecurityinfo)的同句柄owner／DACL和READ_CONTROL要求、[GetFileInformationByHandleEx](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getfileinformationbyhandleex)的信息入口。它们是实现方向，不表示仓库已提供；关闭句柄后的扫描回执不持续限制write／delete共享。[Electron分发文档](https://www.electronjs.org/docs/latest/tutorial/application-distribution)说明Windows app／asar承载和exe重命名；固定44.5.1路径另以已装源码及本树构建配置为准，通用文档不证明本产品managed入口已分发。
+
+本轮Linux复用已验构建，仅运行现`tests/kernel/zotero-resources.spec.ts`：25/25、3.0秒。合成资源从不执行，系统helper只核当前前置；没有Windows OS／ACL／exe实跑、CI查询、安装或系统权限修改。命令、源码片段及结果根为`/home/joshua/.cache/scholoom-parallel-resume-20261029-A5WuXN/zotero-ecosystem/work/`，不依赖/tmp。当前已足以判定需要主线原生前置；目标验收入口与未决保证见design“Windows普通布局W1”。
+
 ## 普通Electron与既有系统helper校准（2026-10-29）
 
 主线在全新cache中复制Electron44.5.1，排除原不具备root权限的helper，仅让自身`chrome-sandbox`槽位链接到本机已有`/opt/google/chrome/chrome-sandbox`（root:root、4755，前后身份不变）。没有安装、sudo、修改系统权限、加入no-sandbox或加载插件／用户库；这是普通兼容宿主前置，与报告bwrap全进程隔离是不同目标。生产资源校验器仍拒绝该链接，因此不称N2.4通过。
