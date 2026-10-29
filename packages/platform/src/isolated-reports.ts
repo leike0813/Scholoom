@@ -1,13 +1,14 @@
 import { constants } from 'node:fs';
 import { open, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { limits, OperationError } from '@scholoom/protocol/core';
+import { compileContract, limits, OperationError } from '@scholoom/protocol/core';
 import {
   type IsolationInputs,
   type IsolationOutputs,
   type IsolationPort,
   type IsolationStageInput,
   type IsolationStatus,
+  isolationOperations,
   validateIsolationPut,
   validateIsolationStage,
 } from '@scholoom/protocol/isolation';
@@ -46,7 +47,7 @@ export type IsolatedReportOptions = {
 type Instance = {
   receipt: IsolationReceipt;
   reservation?: ProcessReservation;
-  controller?: IsolationController;
+  controller?: Pick<IsolationController, 'start' | 'stop' | 'hasExited'>;
   stopped: Promise<void>;
   confirm(): void;
   recovered: boolean;
@@ -54,6 +55,34 @@ type Instance = {
   detach?: () => void;
   settling?: Promise<void>;
 };
+type IsolationNative = {
+  support: typeof isolationSupport;
+  lock: typeof isolationLock;
+  controller(
+    options: ConstructorParameters<typeof IsolationController>[0],
+  ): NonNullable<Instance['controller']>;
+  stopRecovered: typeof stopRecoveredIsolation;
+};
+const native: IsolationNative = {
+  support: isolationSupport,
+  lock: isolationLock,
+  controller: (options) => new IsolationController(options),
+  stopRecovered: stopRecoveredIsolation,
+};
+type PreparationInput = Pick<IsolationStageInput, 'instanceId' | 'programId' | 'policyId'>;
+type PreparedFiles = {
+  entryPath: string;
+  files: readonly { path: string; bytes: Uint8Array }[];
+};
+type Preparation = {
+  input: PreparationInput;
+  status: IsolationStatus;
+  reservation?: ProcessReservation;
+  started: boolean;
+  cancelled: boolean;
+};
+const validInstance = compileContract(isolationOperations['platform.reportIsolation.get']).params;
+const validProgram = compileContract(isolationOperations['platform.reportIsolation.check']).params;
 const invalid = () => new OperationError('invalidRequest', '隔离执行请求与当前准备状态不一致。');
 const uncertain = () =>
   new OperationError('outcomeUnknown', '隔离范围尚未完整确认停止，保留原占用。');
@@ -95,10 +124,18 @@ export class IsolatedReportProvider {
   private readonly policies = new Map<string, IsolationPolicy>();
   private readonly instances = new Map<string, Instance>();
   private readonly queues = new Map<string, Promise<unknown>>();
+  private readonly preparations = new Map<
+    string,
+    { work: Preparation; promise: Promise<IsolationStatus> }
+  >();
   private lock: Awaited<ReturnType<typeof isolationLock>> | undefined;
   private initialized = false;
   private closing = false;
-  constructor(private readonly options: IsolatedReportOptions) {
+  private closingTask?: Promise<void>;
+  constructor(
+    private readonly options: IsolatedReportOptions,
+    private readonly os: IsolationNative = native,
+  ) {
     this.records = new IsolationRecords(options.privateRoot);
     for (const p of options.policies) {
       if (
@@ -149,7 +186,7 @@ export class IsolatedReportProvider {
   ): Promise<IsolationOutputs['platform.reportIsolation.check']> {
     try {
       this.registration(input.programId, input.policyId);
-      await isolationSupport();
+      await this.os.support();
       return { available: true };
     } catch (error) {
       return { available: false, reason: failure(error) };
@@ -164,10 +201,10 @@ export class IsolatedReportProvider {
   }
   async initialize(): Promise<void> {
     if (this.initialized || this.lock) throw invalid();
-    await isolationSupport();
+    await this.os.support();
     await this.records.initialize();
     try {
-      this.lock = await isolationLock(this.records.lockPath);
+      this.lock = await this.os.lock(this.records.lockPath);
       const receipts = await this.records.load();
       for (const receipt of receipts) {
         const item = this.instance(receipt, true);
@@ -216,14 +253,17 @@ export class IsolatedReportProvider {
   private async authorize(id: string): Promise<void> {
     if (!this.lock?.alive()) throw uncertain();
     const signal = this.options.signal?.(id);
-    if (signal?.aborted) throw new OperationError('shuttingDown', '隔离执行已取消。');
+    const cancelled = () =>
+      this.closing || this.preparations.get(id)?.work.cancelled || signal?.aborted;
+    if (cancelled()) throw new OperationError('shuttingDown', '隔离执行已取消。');
     try {
       await this.options.authorize(id);
     } catch (error) {
       throw new OperationError(failure(error).code, '领域批准字节的当前授权未确认。');
     }
-    if (signal?.aborted) throw new OperationError('shuttingDown', '隔离执行已取消。');
+    if (cancelled()) throw new OperationError('shuttingDown', '隔离执行已取消。');
     await this.records.check();
+    if (cancelled()) throw new OperationError('shuttingDown', '隔离执行已取消。');
   }
   private projection(item: Instance): IsolationStatus {
     return structuredClone(item.receipt.status);
@@ -273,12 +313,202 @@ export class IsolatedReportProvider {
     item.confirm();
     item.reservation?.release();
   }
+  /** Trusted host only: load complete bytes after one admission; never exposed by port(). */
+  prepare(input: PreparationInput, load: () => Promise<PreparedFiles>): Promise<IsolationStatus> {
+    try {
+      this.ready();
+      if (
+        !validInstance({ instanceId: input.instanceId }) ||
+        !validProgram({ programId: input.programId, policyId: input.policyId }) ||
+        typeof load !== 'function'
+      )
+        throw invalid();
+      const prior = this.preparations.get(input.instanceId);
+      const old = this.instances.get(input.instanceId);
+      const identity = prior?.work.input ?? old?.receipt.stage;
+      if (
+        identity &&
+        (identity.programId !== input.programId || identity.policyId !== input.policyId)
+      )
+        throw invalid();
+      if (prior) return prior.promise;
+      if (this.preparations.size >= IsolationRecords.maxInstances)
+        throw new OperationError('resourceLimit', '本配置准备身份已达到原执行记录上限。');
+      this.registration(input.programId, input.policyId);
+      const work: Preparation = {
+        input: {
+          instanceId: input.instanceId,
+          programId: input.programId,
+          policyId: input.policyId,
+        },
+        status: old
+          ? this.projection(old)
+          : {
+              instanceId: input.instanceId,
+              phase: 'queued',
+              gateReleased: false,
+              stopConfirmed: false,
+            },
+        started: false,
+        cancelled: false,
+      };
+      const signal = this.options.signal?.(input.instanceId);
+      const abort = () => this.cancelPreparation(work);
+      signal?.addEventListener('abort', abort, { once: true });
+      // A restored or publicly staged identity is never reloaded from the current path.
+      const promise = old
+        ? Promise.resolve(this.projection(old))
+        : this.serial(input.instanceId, () => this.loadPrepared(work, load));
+      this.preparations.set(input.instanceId, { work, promise });
+      void promise.finally(() => signal?.removeEventListener('abort', abort)).catch(() => {});
+      return promise;
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  }
+  private cancelPreparation(work: Preparation): void {
+    if (work.status.stopConfirmed) return;
+    work.cancelled = true;
+    work.status.phase = 'stopping';
+    // No callback has begun while queued; releasing cancels that exact waiting reservation.
+    if (!work.started) work.reservation?.release();
+  }
+  private async loadPrepared(
+    work: Preparation,
+    load: () => Promise<PreparedFiles>,
+  ): Promise<IsolationStatus> {
+    const id = work.input.instanceId;
+    // A public stage may have persisted this identity while prepare waited behind it.
+    const existing = this.instances.get(id);
+    if (existing) {
+      if (
+        existing.receipt.stage.programId !== work.input.programId ||
+        existing.receipt.stage.policyId !== work.input.policyId
+      )
+        throw invalid();
+      return this.projection(existing);
+    }
+    try {
+      await this.authorize(id);
+      work.reservation = this.options.admission.reserve(true, id);
+      await work.reservation.ready;
+      work.started = true;
+      await this.authorize(id);
+      work.status.phase = 'preparing';
+      const frozen = await load();
+      if (work.cancelled || this.closing)
+        throw new OperationError('shuttingDown', '隔离执行已取消。');
+      if (
+        !frozen ||
+        !Array.isArray(frozen.files) ||
+        frozen.files.some((file) => !(file?.bytes instanceof Uint8Array))
+      )
+        throw invalid();
+      const input: IsolationStageInput = {
+        ...work.input,
+        entryPath: frozen.entryPath,
+        assets: frozen.files.map((file) => ({
+          path: file.path,
+          byteLength: file.bytes.byteLength,
+        })),
+      };
+      if (!validateIsolationStage(input)) throw invalid();
+      const files = frozen.files.map((file) => ({
+        path: file.path,
+        bytes: Buffer.from(file.bytes),
+      }));
+      await this.authorize(id);
+      const item = await this.create(input, work.reservation);
+      await this.prepareFiles(item);
+      for (const file of files) {
+        for (let offset = 0; offset < file.bytes.length; offset += reportLimits.entryBytes) {
+          await this.putBytes({
+            instanceId: id,
+            path: file.path,
+            offset,
+            base64: file.bytes
+              .subarray(offset, offset + reportLimits.entryBytes)
+              .toString('base64'),
+          });
+        }
+      }
+      await this.authorize(id);
+      return this.projection(item);
+    } catch (error) {
+      const item = this.instances.get(id);
+      if (item && work.reservation && item.reservation === work.reservation) {
+        item.receipt.status.failure ??= failure(error);
+        try {
+          if (!item.receipt.scopeIntent) await this.confirmed(item);
+          else await this.unknown(item, error);
+        } catch (stopping) {
+          await this.unknown(item, stopping);
+        }
+      } else {
+        work.status = {
+          instanceId: id,
+          phase: 'stopped',
+          gateReleased: false,
+          stopConfirmed: true,
+          failure: failure(error),
+        };
+        work.reservation?.release();
+      }
+      throw error;
+    }
+  }
+  private async create(
+    input: IsolationStageInput,
+    reservation?: ProcessReservation,
+  ): Promise<Instance> {
+    const { program, policy } = this.registration(input.programId, input.policyId);
+    const receipt = await this.records.create(input, program.version, policy.version);
+    const item = this.instance(receipt, false);
+    this.instances.set(input.instanceId, item);
+    try {
+      item.reservation = reservation ?? this.options.admission.reserve(true, input.instanceId);
+      item.reservation.retainUntil(item.stopped);
+    } catch (error) {
+      receipt.status.failure = failure(error);
+      await this.confirmed(item);
+      throw error;
+    }
+    const signal = this.options.signal?.(input.instanceId);
+    const abort = () => {
+      void this.stop({ instanceId: input.instanceId }).catch(() => {});
+    };
+    signal?.addEventListener('abort', abort, { once: true });
+    item.detach = () => signal?.removeEventListener('abort', abort);
+    return item;
+  }
+  private async prepareFiles(item: Instance): Promise<void> {
+    const receipt = item.receipt;
+    if (receipt.status.phase !== 'queued') return;
+    await this.authorize(receipt.stage.instanceId);
+    const directory = await this.records.files(receipt);
+    for (const [i] of receipt.stage.assets.entries()) {
+      const f = await open(join(directory, `asset-${i}.bin`), 'wx', 0o600);
+      try {
+        await f.sync();
+        receipt.stamps[i] = isolationFileStamp(await f.stat({ bigint: true }));
+      } finally {
+        await f.close();
+      }
+    }
+    receipt.status.phase = 'preparing';
+    this.next(item);
+    await this.save(item);
+    item.timer = setTimeout(() => {
+      void this.stop({ instanceId: receipt.stage.instanceId }).catch(() => {});
+    }, limits.processWaitMs);
+    item.timer.unref();
+  }
   async stage(input: IsolationStageInput): Promise<IsolationStatus> {
     this.ready();
     if (!validateIsolationStage(input)) throw invalid();
     return this.serial(input.instanceId, async () => {
       await this.authorize(input.instanceId);
-      const { program, policy } = this.registration(input.programId, input.policyId);
+      this.registration(input.programId, input.policyId);
       const old = this.instances.get(input.instanceId);
       if (old) {
         const prior = old.receipt.stage;
@@ -295,44 +525,16 @@ export class IsolatedReportProvider {
           throw invalid();
         return this.projection(old);
       }
-      const receipt = await this.records.create(input, program.version, policy.version);
-      const item = this.instance(receipt, false);
-      this.instances.set(input.instanceId, item);
-      try {
-        item.reservation = this.options.admission.reserve(true, input.instanceId);
-        item.reservation.retainUntil(item.stopped);
-      } catch (error) {
-        receipt.status.failure = failure(error);
-        await this.confirmed(item);
-        throw error;
-      }
-      const signal = this.options.signal?.(input.instanceId);
-      const abort = () => {
-        void this.stop({ instanceId: input.instanceId }).catch(() => {});
-      };
-      signal?.addEventListener('abort', abort, { once: true });
-      item.detach = () => signal?.removeEventListener('abort', abort);
-      void item.reservation.ready
+      if (this.preparations.has(input.instanceId)) throw invalid();
+      const item = await this.create(input);
+      const receipt = item.receipt;
+      void item.reservation?.ready
         .then(
           () =>
             this.serial(input.instanceId, async () => {
               if (receipt.status.phase !== 'queued') return;
               try {
-                await this.authorize(input.instanceId);
-                const directory = await this.records.files(receipt);
-                for (const [i] of input.assets.entries()) {
-                  const f = await open(join(directory, `asset-${i}.bin`), 'wx', 0o600);
-                  await f.sync();
-                  receipt.stamps[i] = isolationFileStamp(await f.stat({ bigint: true }));
-                  await f.close();
-                }
-                receipt.status.phase = 'preparing';
-                this.next(item);
-                await this.save(item);
-                item.timer = setTimeout(() => {
-                  void this.stop({ instanceId: input.instanceId }).catch(() => {});
-                }, limits.processWaitMs);
-                item.timer.unref();
+                await this.prepareFiles(item);
               } catch (error) {
                 receipt.status.failure = failure(error);
                 await this.confirmed(item);
@@ -363,47 +565,47 @@ export class IsolatedReportProvider {
   async put(input: IsolationInputs['platform.reportIsolation.put']): Promise<IsolationStatus> {
     this.ready();
     if (!validateIsolationPut(input) || !input.base64) throw invalid();
-    return this.serial(input.instanceId, async () => {
-      await this.authorize(input.instanceId);
-      const item = this.item(input.instanceId),
-        r = item.receipt;
-      if (
-        r.status.phase !== 'preparing' ||
-        r.status.next?.path !== input.path ||
-        r.status.next.offset !== input.offset
-      )
-        throw invalid();
-      const index = r.stage.assets.findIndex((a) => a.path === input.path),
-        bytes = Buffer.from(input.base64, 'base64');
-      if (index < 0 || input.offset + bytes.length > (r.stage.assets[index]?.byteLength ?? 0))
-        throw invalid();
-      const path = join(await this.records.files(r), `asset-${index}.bin`);
-      const file = await open(
-        path,
-        constants.O_WRONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK,
-      );
-      try {
-        const info = await file.stat({ bigint: true });
-        if (isolationFileStamp(info) !== r.stamps[index] || info.size !== BigInt(input.offset))
-          throw new OperationError('contentChanged', '字节准备对象已变化。');
-        const result = await file.write(bytes, 0, bytes.length, input.offset);
-        if (result.bytesWritten !== bytes.length) throw uncertain();
-        await file.sync();
-        const stamp = isolationFileStamp(await file.stat({ bigint: true }));
-        if ((await fileStamp(path)) !== stamp)
-          throw new OperationError('contentChanged', '字节准备对象已被替换。');
-        r.stamps[index] = stamp;
-        r.offsets[index] = input.offset + bytes.length;
-        this.next(item);
-        await this.save(item);
-      } catch (error) {
-        await this.unknown(item, error);
-        throw error;
-      } finally {
-        await file.close();
-      }
-      return this.projection(item);
-    });
+    return this.serial(input.instanceId, () => this.putBytes(input));
+  }
+  private async putBytes(
+    input: IsolationInputs['platform.reportIsolation.put'],
+  ): Promise<IsolationStatus> {
+    await this.authorize(input.instanceId);
+    const item = this.item(input.instanceId),
+      r = item.receipt;
+    if (
+      r.status.phase !== 'preparing' ||
+      r.status.next?.path !== input.path ||
+      r.status.next.offset !== input.offset
+    )
+      throw invalid();
+    const index = r.stage.assets.findIndex((a) => a.path === input.path),
+      bytes = Buffer.from(input.base64, 'base64');
+    if (index < 0 || input.offset + bytes.length > (r.stage.assets[index]?.byteLength ?? 0))
+      throw invalid();
+    const path = join(await this.records.files(r), `asset-${index}.bin`);
+    const file = await open(path, constants.O_WRONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK);
+    try {
+      const info = await file.stat({ bigint: true });
+      if (isolationFileStamp(info) !== r.stamps[index] || info.size !== BigInt(input.offset))
+        throw new OperationError('contentChanged', '字节准备对象已变化。');
+      const result = await file.write(bytes, 0, bytes.length, input.offset);
+      if (result.bytesWritten !== bytes.length) throw uncertain();
+      await file.sync();
+      const stamp = isolationFileStamp(await file.stat({ bigint: true }));
+      if ((await fileStamp(path)) !== stamp)
+        throw new OperationError('contentChanged', '字节准备对象已被替换。');
+      r.stamps[index] = stamp;
+      r.offsets[index] = input.offset + bytes.length;
+      this.next(item);
+      await this.save(item);
+    } catch (error) {
+      await this.unknown(item, error);
+      throw error;
+    } finally {
+      await file.close();
+    }
+    return this.projection(item);
   }
   async start(input: IsolationInputs['platform.reportIsolation.start']): Promise<IsolationStatus> {
     this.ready();
@@ -459,7 +661,7 @@ export class IsolatedReportProvider {
         await d.close();
         r.status.phase = 'starting';
         await this.save(item);
-        item.controller = new IsolationController({
+        item.controller = this.os.controller({
           receipt: r,
           path: this.records.nativePath(r),
           policy,
@@ -493,11 +695,20 @@ export class IsolatedReportProvider {
   }
   async get(input: IsolationInputs['platform.reportIsolation.get']): Promise<IsolationStatus> {
     this.ready();
+    const pending = this.preparations.get(input.instanceId);
+    if (pending && !this.instances.has(input.instanceId))
+      return structuredClone(pending.work.status);
     return this.projection(this.item(input.instanceId));
   }
   async stop(input: IsolationInputs['platform.reportIsolation.stop']): Promise<IsolationStatus> {
     this.ready();
-    return this.serial(input.instanceId, async () => this.stopItem(this.item(input.instanceId)));
+    const pending = this.preparations.get(input.instanceId);
+    if (pending) this.cancelPreparation(pending.work);
+    return this.serial(input.instanceId, async () => {
+      if (pending && !this.instances.has(input.instanceId))
+        return structuredClone(pending.work.status);
+      return this.stopItem(this.item(input.instanceId));
+    });
   }
   private async stopItem(item: Instance): Promise<IsolationStatus> {
     const r = item.receipt;
@@ -515,7 +726,7 @@ export class IsolatedReportProvider {
         if (!(await item.controller.stop())) {
           if (!item.controller.hasExited) await this.unknown(item, uncertain());
           else {
-            await stopRecoveredIsolation(r);
+            await this.os.stopRecovered(r);
             await this.confirmed(item);
           }
         }
@@ -523,7 +734,7 @@ export class IsolatedReportProvider {
         const { policy, program } = this.registration(r.stage.programId, r.stage.policyId);
         if (policy.version !== r.policyVersion || program.version !== r.programVersion)
           throw uncertain();
-        await stopRecoveredIsolation(r);
+        await this.os.stopRecovered(r);
         await this.confirmed(item);
       }
     } catch (error) {
@@ -537,9 +748,20 @@ export class IsolatedReportProvider {
       if (!item.receipt.status.stopConfirmed)
         await this.serial(item.receipt.stage.instanceId, () => this.stopItem(item));
   }
-  async close(): Promise<void> {
-    if (this.closing) return;
+  close(): Promise<void> {
+    if (this.closingTask) return this.closingTask;
     this.closing = true;
+    for (const pending of this.preparations.values()) this.cancelPreparation(pending.work);
+    const closing = this.closePrepared();
+    this.closingTask = closing;
+    void closing.catch(() => {
+      this.closing = false;
+      delete this.closingTask;
+    });
+    return closing;
+  }
+  private async closePrepared(): Promise<void> {
+    await Promise.allSettled([...this.preparations.values()].map((pending) => pending.promise));
     await Promise.all(
       [...this.instances.values()].map((item) =>
         this.serial(item.receipt.stage.instanceId, () => this.stopItem(item)),
