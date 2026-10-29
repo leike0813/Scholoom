@@ -1,5 +1,15 @@
 # 实际交付与交接
 
+## 第19轮主线验收（2026-10-29）
+
+三树25文件已冻结保全并收回dev，原提交及清单见 `/home/joshua/.cache/scholoom-round19-acceptance-XBzzNC/frozen.json`，起点e4c4e42。2.1d按有限Linux静态native接线关闭；R2接收可重建调查及数学语义反例，纯文本投影不采纳为正式呈现。当前12/22，新增四个3.x子片是既定发布／接续范围的独立拆分，非新增业务。Windows整改归生态change，仍无目标通过。
+
+主线实际build:shared、重建本轮probe、tools／desktop／fixture类型及架构通过；定向内核组合8通过／3个Windows跳过，含真实freeze三例、原native／大字节代表、关闭顺序回归及私有API非目标／非法输入。R2可信对照真实Browser／Electron各1，共2/2、50.2秒；通过表示普通状态／输入可对应及MathML丢失可复现，不是完整呈现通过。命令及日志见main-checks.json、kernel.log、surface-ui/，测试期间产物固定，不从旧/tmp取输入。受影响14文件Biome退出0、22个固定DOM非空断言等warning保留，未为warning重构调查夹具。
+
+独立gpt-6.1-sol/high无历史fork审查linux-review.md无确证P1/P2，并独立重建probe、3例真实OS及2例代表共5/5，三个实际scope均已收尾；可接收2.1d，不证明浏览器／服务。主线直接核R2当前源码、真实状态、文本／AX证据及新双宿主结果：源页mfrac与MathMLFraction存在，投影只有12。原手动Browser因长Unix socket路径失败及系统IME／读屏未验继续保留。新试验不回填原失败或扩授权。
+
+主线选择design第19轮的五条并行片：普通harness多文件发布、完整候选更新、原drafts上的有界版本状态、registered图报告等待接续、R2b保留原结构对照。前三个与图机械组合不依赖尚未选定的完整浏览器；独立调用与UI最终装配分开验收。原drafts返回void，准确降级提示如确需只能扩同一写入返回事实，不能另造存储。真实页面ready负例须等正式装配，不以无send冒充已验证。接口／写集和停止边界均进入原design／tasks，所有新输入及接续工件继续保存本轮cache。
+
 ## R2可信呈现／输入校准交回（第18轮，e4c4e422）
 
 从指定共同HEAD及clean开始，仅修改本change的R2四工件与`tests/fixtures/report-surface/`；未重放WIP、改生产renderer／protocol／kernel／provider、共享fixture登记或2.1d／2.2c事实。按apply执行后取得当前delivery instructions。当前仍11/18，2.1b／T1／T2／I5及活动报告unavailable保持；本片交回的是可重复观测及候选缺口，不是完整报告呈现通过。

@@ -1,5 +1,11 @@
 # 实际交付与交接
 
+## 第19轮主线验收W2.1源码（2026-10-29）
+
+七文件增量冻结为2dd1468，已保全合入dev。显式executableRelativePath按值绑定，普通数据read、固定执行入口在已核同一文件句柄上额外execute；设置读取仍read，原ACL／身份／成员／双扫描／close保证不扩。独审 `/home/joshua/.cache/scholoom-round19-acceptance-XBzzNC/windows-review.md` 无确证P1/P2，确认第18轮误要求所有资源execute的根因在源码层面已修。主线接收W2.1及其W2.1a源码范围，目标行为仍归W2.2。
+
+主线共享构建、tools／desktop类型和架构通过，私有API的非目标拒绝及非法／缺省入口检查通过，原目标Windows用例保持skip；作者27通过／28跳过的组成及原失败沿下节，不相加为主线目标成绩。独审另运行两项非目标检查及platform类型通过，未编译Windows C。主线报告内核组合8通过／3目标skip只选相关代表，不能误写成完整私有组通过。没有SDK／Windows实际编译／ACL原生执行及资源预算证据，W2父项／W2.2／W3／W4继续开放，普通Windows布局未启用，本轮生态线等待目标前置；不重复静态证明、安装或CI查询。
+
 ## 第18轮W2.1a：P2源码整改交回（e4c4e4，2026-10-29）
 
 用户要求读取`/tmp/scholoom-zotero-w2-1a-handoff.md`并继续未完工作，沿原已授权方案完成本线验证与交回。起点HEAD为`e4c4e422a52302d8b2dc336ab9bf933a185f6dda`，接手时已有6个tracked文件未提交改动；保留这些成果，续做只修正TS条件的格式并更新本任务及交付记录。当前共7个tracked文件差异，无新增工作区文件；未stage／提交／push／归档。W2.1a只表示本线源码交接完成，W2.1仍由主线审收，W2父项／W2.2／W3／W4及2.3／4.2／5.x保持开放。

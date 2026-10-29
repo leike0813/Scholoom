@@ -555,6 +555,24 @@ Codex／gpt-6.1-sol／high保持。先提交本轮整合及上述决定，七树
 
 第18轮同步回执：整合修复为a2083db，原三树冻结提交以无内容差异的祖先桥接保全，源码基线016ece2；最初octopus内容合并因已接修复与原文件不同而拒绝，未留下合并状态，随后明确保留已验主线内容，diff核对为空。七树均保全快进、clean，各自重建实际变化的platform，复用未变其他包／产品产物；tools类型、架构及每树一项代表共7/7通过。详细见本轮cache的synchronized.json、sync-checks.json及sync-final.json，主线最终检查见final-checks.json。纯文档回执再快进，不重复构建；共同HEAD将写入dispatch/plan.json，原Prompt、受理／实际启动证据沿同目录保存。派发后不再次修改各树基线。
 
+## 第19轮验收与五线并行（2026-10-29）
+
+用户要求尽可能多线并行。主线收回三树25文件，完成真实Linux准备接线、R2候选校准及Windows权限源码整改验收，证据根 `/home/joshua/.cache/scholoom-round19-acceptance-XBzzNC/`。Linux2.1d关闭，Windows W2.1源码接收但W2／W2.2真实目标仍开放；两份独审无确证P1/P2。主线共享构建／类型／架构通过，内核组合8通过／3个Windows跳过，R2真实双宿主2/2复现数学语义丢失。纯文本投影不采纳为完整报告，普通HTML仍禁脚本，活动报告仍不可用。
+
+扩大并行采用既有报告3.1／3.2的真实独立接缝，避免继续把所有模块排在尚未定案的完整浏览器之后。普通harness发布与registered图等待是不同入口，分别补真实业务组合；更新及状态保管独立于承载。当前报告12/22，任务增加来自四个独立子片，不能按复选框数量推功能增减。具体接口与验收仅由原报告design第19轮及tasks／delivery维护，下表登记所有权。
+
+| 工作树 | 下一片及独占写集 | 停止边界 |
+| --- | --- | --- |
+| project-execution | 3.1a：真实普通harness多文件报告发布；report-publication.spec.ts及必要独立fixture | 现有工具／受控外部HTTP，实际保存／关联／失败或unknown，不新造发布wire／生产Graph，不并改harness／kernel；发现根因交主线 |
+| research-graph-runtime | 3.1b：reports/report-updates.ts及独立模块测试，完整候选／迟到／dirty／撤权 | 复用ReportSnapshot完整加载，不接全局无界订阅、不持有OS或另存字节，不改ResourceView／共享草稿；完整3.1仍开放 |
+| literature-workbench | 3.2a：reports/report-drafts.ts及独立测试；确需时独占drafts.ts最小同次持久结果返回 | 既有存储及桥JSON限制，按配置／窗口／项目身份／basis精确读取，原版本草稿不迁新版；不造第二正文／存储、全局淘汰或假称磁盘保存 |
+| research-task-workspace | 3.2b：report-reconnection.spec.ts及独立report-reconnection测试Graph／worker | 真实客户端／普通内核／报告／等待／重连／重启／合法send，不改旧图或生产生命周期；尚无实际页面ready接线，不冒称该负例完成 |
+| research-interaction | R2b：新report-structure可信结构呈现对照，保留旧report-surface反例；仅R2原工件 | 固定实际源页结构／MathML、禁脚本frame与文本／输入／AX，不扩大为通用不可信DOM镜像；系统IME／读屏与T1／T2未验保持，旧反例不刷绿 |
+| zotero-ecosystem | W2.1源码已接收，等待真实Windows工具链／目标 | 不重跑静态证明或绕W2先启W3，不安装SDK、不查跑CI |
+| agent-delegation | 保持既有完成状态，等待真实目标／下一次模型授权 | 普通Electron完成状态已修并有通过，不重复派；旧17.2／18.2缺同次事实不猜修，不发付费请求 |
+
+Codex／gpt-6.1-sol／high保持。先提交本轮验收及决定、保留原冻结提交祖先关系，再七树保全快进；重建实际变化platform、核tools类型／架构及必要定向行为。全部同步验证后才发五任务／两等待，发送后不再改变各树基线。原Prompt及受理／实际启动证据保存在本轮cache的dispatch目录，新输入／TMPDIR均在持久cache，不依赖/tmp；CI继续后置，不push、不归档未完change、不新增模型／安装授权。
+
 ## 首轮 Agent 的共同起始任务
 
 各线采用下述共同要求，并附上本文件中该开发线的小节：

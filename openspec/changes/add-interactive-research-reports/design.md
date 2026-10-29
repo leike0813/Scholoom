@@ -26,6 +26,28 @@ ReportResources 是 `packages/editor` 内的 module，不新建包／数据库�
 
 ## 方案与接口
 
+### 第19轮验收与五线独立实施
+
+2.1d真实Linux接线已接收，R2纯文本投影只接收调查依据；分数及辅助结构丢失不满足呈现契约。现有清单、来源授权、资源保存、共同草稿及registered图机制足以先行实施下列片，不把完整任务图的最终整合顺序误作所有子项必须串行。以下五片本轮直接实施，关键共享选择由主线负责。
+
+| 子片／工作树 | 输入输出与职责 | 独占写集 |
+| --- | --- | --- |
+| 3.1a／project-execution | 普通session.send→真实harness worker工具先创建新依赖、再按原basis条件保存入口；核实际字节、成果关联、发布前失败及unknown沿原身份查询而不重放。外部模型用既有受控HTTP，人工预置旧报告不算Agent发布 | 新tests/kernel/report-publication.spec.ts，必要新tests/fixtures/report-publication/；复用report.js／model-server，不改共享fixture或生产harness／kernel。生产缺口交主线 |
+| 3.1b／research-graph-runtime | 完整候选更新module：可信入口ResourceEvidence、完整load端口及dirty／相关共同显式项事实→当前／待看ReportSnapshot与失败及替换资格。一项在途load及一个最新候选合并通知；仅metadata，不掌握OS范围或第二份字节缓存 | 新workbench/reports/report-updates.ts及tests/kernel/report-updates.spec.ts；不改ResourceView／HtmlRenderView／business-session／protocol／drafts |
+| 3.2a／literature-workbench | 可信配置／窗口／项目入口ref／basis绑定原browse／draft／dirty，精确key读写原drafts；可恢复状态或缺失／损坏／超限原因。原版本不可得保留可复制草稿，不重绑新版；内存降级不冒称可靠磁盘保存 | 新workbench/reports/report-drafts.ts及tests/kernel/report-drafts.spec.ts；确需准确降级提示时仅本线可最小扩原drafts.ts的同次写入返回事实，忽略返回值调用保持原行为；不改共同正文权威 |
+| 3.2b／research-task-workspace | 仅测试注册的有效报告Graph→真实保存／等待→实际客户端断开重连／内核重启→查询仍waiting→合法新session.send接续；新会话从报告及来源读取。核真实broker／存储／checkpoint／worker／普通内核归属 | 新tests/kernel/report-reconnection.spec.ts及tests/fixtures/report-reconnection/；不改旧domain-execution-worker／生产Graph／protocol／全局lifecycle／fixture |
+| R2b／research-interaction | 固定可信页保留原文档／MathML结构的对照，核独立执行页当前状态、真实选区／复制、键盘／焦点／组合及AX结构；保留原纯文本候选反例 | 新tests/fixtures/report-structure/，只读复用report-surface源页／控制器；R2工件仅本线可写，其余片记录交cache由主线合入 |
+
+更新module的load由可信端口复用resources.report完整核查，不另做清单／领域授权。关闭、较新offer使旧完成失效；无保护才可自动采用，有页面或composer保护保留current和pending；显式查看新版只切metadata、不改原显式项。撤权／身份失效封住受保护展示资格并报失败，不以保留旧页绕权限。模块不直接挂全局订阅：宿主只对入口、最多32依赖／100来源的有界通知调用offer，resync至多触发一次合并核查，不扫全库。私有方法命名由实现者决定，真实页面替换与consumer.dispose留主线正式装配。
+
+状态module只使用ReportBridgeMessage中state／restore既有browse／draft／dirty及64KiB JSON限制，持久内容不含易失viewId／generation或可信权限。恢复前由可信调用方核身份、原basis、可得性和授权；未经核准不交呈现侧，原版本不可得的草稿单独作为可复制内容保留。只存有界状态、不保存依赖字节或建立旧报告历史库，不自行引入全局淘汰政策。原writeDraft如需扩返回值，只返回该次实际localStorage写入是否成功；不额外探测写入、另写localStorage或新增存储，保留原内存降级及订阅异常语义。
+
+3.1a与3.2b分别覆盖普通模型harness发布及registered图持久等待，是不同真实入口，各用独立目录／端口且不并写生产模块。只补多文件完整报告／发布失败或unknown、报告等待接续这些旧组尚无的组合，不复制完整故障矩阵或新增发布wire，不让普通save禁止保存未完稿HTML。3.2b尚无正式页面ready接线，只能证明真实查询／重连不消费等待，不能以手工不send冒充真实ready负例通过。
+
+R2b仅为下一可信调查候选，尚未选择正式架构。实际独立固定页的文档结构保留namespace及数学结构，在禁脚本独立frame中对照；源页脚本／样式不进入工作台父线程。不实现通用不可信DOM镜像／新公共DSL，不用手写预期状态或小标签表假装任意HTML。动作／回传及代次有界；系统IME候选窗、读屏器、canvas、任意页面和正式隔离逐项未验。可在~/.cache下创建较短专用目录复验手动Browser，不改sandbox或借/tmp。
+
+以上片可独立交付，完整3.1／3.2／2.1b／I5仍等主线装配。生态及Agent线等真实Windows／下一次模型授权，不为多开线重复静态证明或旧诊断。没有新增公共协议、系统安装／服务或生产报告启用授权。
+
 ### R2本轮可信呈现试验（第18轮）
 
 写集仅`tests/fixtures/report-surface/`及本change的R2四工件。复用真实Workbench的`session.renderResource`和共同TabGroups，不新增产品路由或修改生产renderer。固定合成文献页在测试所拥有的独立Chromium进程执行；可信测试控制器操作该页的真实表单，再从其当前DOM读取最多3行及当前筛选／排序／展开状态。呈现侧只渲染固定字段的React文本和原生表单，不加载执行侧HTML／CSS／脚本，不维护第二份筛选／排序结果。该有限字段结构仅为本次夹具，不是公共协议、通用DOM镜像或产品DSL。
