@@ -593,6 +593,8 @@ Codex／gpt-6.1-sol／high保持。先提交本轮验收及决定、保留原冻
 
 Codex／gpt-6.1-sol／high保持。先提交整合／决定并保全原冻结提交祖先，再七树快进；实际变化在renderer及共享UI测试，重建各树desktop、核tools／架构及最小定向检查，复用未变packages／kernel。全部通过后才发五任务／两等待，之后不再修改各树基线。Prompt、受理及实际启动证据在本轮cache的dispatch，新输入／TMPDIR均在持久cache；CI后置、不push、不归档未完change，不新增系统安装或模型调用授权。
 
+第20轮同步回执：整合／profile修复d4af884，原五树冻结提交经无内容差异祖先桥2fb37ab保全。七树均快进、clean，各自实际重建desktop；tools类型、直接node架构检查和每树一个定向组全部通过，28条检查退出0，定向行为共11项通过。前后HEAD及命令见synchronized.json、sync-checks.json、sync-final.json，未再触发pnpm默认解析。此纯文档回执再快进，不重复构建；最终共同HEAD写入dispatch/plan.json，原Prompt／受理／独立启动证据同目录保留，发送后不再改变各树基线。
+
 ## 首轮 Agent 的共同起始任务
 
 各线采用下述共同要求，并附上本文件中该开发线的小节：
