@@ -1,5 +1,29 @@
 # 实际交付与交接
 
+## 第27轮：W1／W2原Scenario证据补充
+
+从指定`bb8b236e0fd37e59cffd30607372e444be633324`及clean开始，消费主线`/home/joshua/.cache/scholoom-round26-acceptance-8hG3DX/task-contract-review.md`的W1／W2，按当前apply及实际spec核查。原单任务关联冲突、附加未发送和共同上下文分段结果不替代这两项完整组合，本轮各补一个代表用例；只改`tests/kernel/research-tasks.spec.ts`、`tests/ui/research-tasks.spec.ts`和本记录。原tasks仍33/33，没有新增重定向API、任务正文副本、库删除／恢复分类或生产代码，也未将全部Scenario／历史缺证记为已验。
+
+| 原场景 | 本轮实际结果 |
+| --- | --- |
+| spec“相同来源不同采用与重定向”（W1） | 真实ManualApplication／broker／项目文件／库先建A、B两个任务，共用同一managed附件及原materialVersionId。A说明排除、B说明采用；仅将A的method链接目标／basis／理由改为另一份预先存在的真实附件。重读B的完整TaskRead（含原ref／note／入口basis）及磁盘正文完全相同；两份附件记录和各来源附件列表保持不变。原／新指针实际分别读取各自原文，不以新来源冒充旧读取，也不伪造删除历史。首次实跑1/1通过 |
+| spec“明确附加及保存失败”（W2） | 两宿主都从真实任务详情明确附加入口，经共同session.send进入实际worker及本机受控HTTP模型。核已持久消费用户消息的结构化contextItems为原入口ref／basis。再从任务关联表单产生实际tasks.save候选，经既有RPC闸门暂留请求；人工通过真实resources.save保存新正文后，只释放原请求一次，真实CAS返回ErrorInfo.contentChanged。候选路径／说明仍在表单，完整候选和原ErrorInfo落证；原已发送contextItems与当前接收session不变，磁盘只保留人工新正文、未落候选链接。Browser／真实Electron首次业务实跑2/2通过 |
+
+本轮根`/home/joshua/.cache/scholoom-round27-acceptance-O1IWSr/next/research-task-workspace/`（下记`R`），所有TMPDIR／项目／profile／库／输出位于该cache，不依赖/tmp。已有静态runner配置由本树cwd运行`node /home/joshua/.cache/scholoom-round13-acceptance/create-ui-config.mjs "$R/ui.config.mts"`生成，端口6117运行前确认空闲，图形运行前`DISPLAY=:99 xdpyinfo`通过；没有启动日常dev server或操作共享显示。
+
+生产源码未变，复用主线已同步验证的platform／kernel／desktop产物，未冒称本轮重建。仅模型外部边界由既有createModelServer控制回答／挂起，测试凭据为隔离配置的synthetic值；任务、共同草稿／发送、broker、库／文件、worker与CAS均真实，RPC闸门只控制原请求时点、不注入成功／失败结果。W1无harness／模型，W2不证明模型科研质量或任意模型策略。
+
+实际命令均先`export TMPDIR="$R/tmp"`，使用已安装直接工具入口：
+
+- `node node_modules/typescript/bin/tsc --noEmit -p tsconfig.tools.json`：首次退出1，`types-first.log`保留新测试对可选links未收窄的类型错误；加实际存在断言后第二次退出0，`types-second.log`。未变更生产契约或放宽类型。
+- `node node_modules/@biomejs/biome/bin/biome check tests/kernel/research-tasks.spec.ts tests/ui/research-tasks.spec.ts`：首次与最终退出0，`biome-{first,final}.log`。最终格式与测试源码固定后运行，没有并发重建受测产物。
+- `PLAYWRIGHT_JSON_OUTPUT_FILE="$R/kernel-first.json" node node_modules/@playwright/test/cli.js test --config playwright.kernel.config.ts tests/kernel/research-tasks.spec.ts --grep 'redirecting one task library link' --output "$R/kernel-first" --reporter list,json`：退出0，**1/1，10.8秒**（用例2.2秒）。完整原记录`kernel-first.log/json`，实际任务／附件前后依据在结果目录的`task-local-redirection.json`。
+- 每轮图形动作前预检DISPLAY后，`DISPLAY=:99 SCHOOLOOM_UI_PORT=6117 SCHOOLOOM_UI_DATA_DIR="$R/ui-profile-first" PLAYWRIGHT_JSON_OUTPUT_FILE="$R/ui-first.json" node node_modules/@playwright/test/cli.js test --config "$R/ui.config.mts" tests/ui/research-tasks.spec.ts --grep 'sent task context retains' --output "$R/ui-first" --reporter list,json`：退出0，**2/2，1.4分钟**，Browser24.1秒／Electron37.1秒，无业务失败、skip或retry；保持既有任务UI90秒预算及原状态观察期限。原请求候选、ErrorInfo、scope／instruction／run及原contextItems见两目录的`sent-task-save-conflict.json`。
+
+当前apply与执行后delivery instructions已保存；`evidence-index.json`列出三份逐例证据路径，`collect-evidence.mjs`从真实输出重核A/B不联动、发送项不变和CAS错误。测试结束沿既有finally／fixture teardown收尾：两个model-kernel原始附件均childClosed=true／exit0，自有执行无残留，6117无监听，见`collect-evidence.log`及`cleanup.json`；项目未提前删除，配置按原teardown退役。原始首次编译失败保留，未重跑已绿矩阵或用超时／重试刷绿。
+
+到W1／W2证据补齐交回停止，独立审查／最终接收／归档归主线。W3历史原始证据、撤权或新版后的完整询问／用户决定链、正式报告页面ready、平台整项及科研质量没有由本片新增结论；不以33/33或本机三次场景通过概括全部行为。独立补丁、版本／退出码清单与本地提交见同根RESULT和commit.txt；本轮不改docs/development.md，相关单句纠偏由图线负责。
+
 ## 主线接收：首批任务已完成
 
 2026-10-29主线接收本轮五文件增量。独立审查逐项核对真实来源故障、原错误与版本、明确选择后的持久化、新会话接续及双宿主结果，未发现确证缺陷；报告为`/home/joshua/.cache/scholoom-finish-active/project-independent-review.md`。三来源3/3与双宿主2/2的原始JSON及附件由审查者独立核对，相关9/9回归与类型检查已通过；主线当前tools类型和strict验证也通过。没有生产代码变动，不为接收机械重复长UI。
