@@ -186,7 +186,23 @@ test('public organization RPC preserves frozen outcomes across real restart and 
     });
     const alpha = await port.call('library.saveCollection', { name: 'alpha' });
     const beta = await port.call('library.saveCollection', { name: 'beta' });
+    const unorganized = await port.call('library.get', { sourceId: a.id });
+    expect(
+      (
+        await port.call('library.organize', {
+          libraryId,
+          requestId: randomUUID(),
+          changes: [
+            { sourceId: a.id, revision: unorganized.revision, collectionIds: [alpha.id] },
+            { sourceId: b.id, revision: b.revision, collectionIds: [beta.id] },
+          ],
+        })
+      ).state,
+    ).toBe('committed');
     const before = await port.call('library.get', { sourceId: a.id });
+    const beforeBeta = await port.call('library.get', { sourceId: b.id });
+    expect(before.collectionIds).toEqual([alpha.id]);
+    expect(beforeBeta.collectionIds).toEqual([beta.id]);
     const frozen = {
       libraryId,
       requestId: randomUUID(),
@@ -194,10 +210,15 @@ test('public organization RPC preserves frozen outcomes across real restart and 
         {
           sourceId: a.id,
           revision: before.revision,
-          collectionIds: [alpha.id, beta.id],
+          collectionIds: [beta.id],
           tags: ['organized'],
         },
-        { sourceId: b.id, revision: b.revision, tags: ['second'] },
+        {
+          sourceId: b.id,
+          revision: beforeBeta.revision,
+          collectionIds: [alpha.id],
+          tags: ['second'],
+        },
       ],
     };
     gate = await organizationFault(kernel.endpoint, true);
@@ -245,9 +266,23 @@ test('public organization RPC preserves frozen outcomes across real restart and 
         requestId: undelivered.requestId,
       }),
     ).toEqual({ libraryId, outcome: { requestId: undelivered.requestId, state: 'notFound' } });
-    expect((await restarted.call('library.get', { sourceId: a.id })).revision).toBe(
-      before.revision + 1,
-    );
+    const organizedA = await restarted.call('library.get', { sourceId: a.id });
+    const organizedB = await restarted.call('library.get', { sourceId: b.id });
+    expect(organizedA).toMatchObject({
+      id: a.id,
+      revision: before.revision + 1,
+      collectionIds: [beta.id],
+    });
+    expect(organizedB).toMatchObject({
+      id: b.id,
+      revision: beforeBeta.revision + 1,
+      collectionIds: [alpha.id],
+    });
+    expect(organizedA.metadata).toEqual(before.metadata);
+    expect(organizedB.metadata).toEqual(beforeBeta.metadata);
+    expect(
+      (await restarted.call('library.list', {})).sources.map((source) => source.id).sort(),
+    ).toEqual([a.id, b.id].sort());
     const query = { libraryId, editRequestId: frozen.requestId };
     const page = await restarted.call('library.organizationEdit', { ...query, limit: 1 });
     expect(page).toMatchObject({ editRevision: 1, position: 'applied', nextOffset: 1 });
@@ -257,12 +292,15 @@ test('public organization RPC preserves frozen outcomes across real restart and 
       offset: 1,
       expectedEditRevision: 1,
     });
+    expect([...page.changes, ...remaining.changes]).toHaveLength(6);
     expect([...page.changes, ...remaining.changes]).toEqual(
       expect.arrayContaining([
         { sourceId: a.id, field: 'tags', value: 'organized', before: false, after: true },
-        { sourceId: a.id, field: 'collectionIds', value: alpha.id, before: false, after: true },
+        { sourceId: a.id, field: 'collectionIds', value: alpha.id, before: true, after: false },
         { sourceId: a.id, field: 'collectionIds', value: beta.id, before: false, after: true },
         { sourceId: b.id, field: 'tags', value: 'second', before: false, after: true },
+        { sourceId: b.id, field: 'collectionIds', value: beta.id, before: true, after: false },
+        { sourceId: b.id, field: 'collectionIds', value: alpha.id, before: false, after: true },
       ]),
     );
     const undo = {
@@ -273,7 +311,14 @@ test('public organization RPC preserves frozen outcomes across real restart and 
     };
     expect((await restarted.call('library.revertOrganization', undo)).state).toBe('committed');
     expect(await restarted.call('library.organize', frozen)).toEqual(lost.receipt);
-    expect((await restarted.call('library.get', { sourceId: a.id })).tags).toEqual([]);
+    expect(await restarted.call('library.get', { sourceId: a.id })).toMatchObject({
+      tags: [],
+      collectionIds: [alpha.id],
+    });
+    expect(await restarted.call('library.get', { sourceId: b.id })).toMatchObject({
+      tags: [],
+      collectionIds: [beta.id],
+    });
     expect(
       (
         await restarted.call('library.revertOrganization', {
@@ -286,6 +331,10 @@ test('public organization RPC preserves frozen outcomes across real restart and 
     ).toBe('committed');
     const backup = await restarted.call('library.backup', {});
     const applied = await restarted.call('library.get', { sourceId: a.id });
+    expect(applied.collectionIds).toEqual([beta.id]);
+    expect((await restarted.call('library.get', { sourceId: b.id })).collectionIds).toEqual([
+      alpha.id,
+    ]);
     const later = await restarted.call('library.update', {
       sourceId: a.id,
       revision: applied.revision,
@@ -354,6 +403,9 @@ test('public organization RPC preserves frozen outcomes across real restart and 
     expect(await restored.call('library.readingRecord', { recordId: note.id })).toEqual(note);
     expect((await restored.call('library.attachments', { sourceId: a.id })).attachments).toEqual(
       attachments,
+    );
+    expect((await restored.call('library.attachments', { sourceId: b.id })).attachments).toEqual(
+      [],
     );
     expect(
       await restored.call('library.record', { libraryId: copyStatus.id, sourceId: a.id }),
