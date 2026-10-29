@@ -28,13 +28,11 @@ Scholoom SHALL 提供独立命名、发布及维护的 Connector，支持选择�
 
 ### Requirement: Z-03 引用键与导出保护
 
-系统 SHALL 支持 BBT 引用键生成、BibTeX／BibLaTeX 导出、自动导出、pull export 和对外 JSON-RPC。迁入、用户指定和已生成的键默认稳定；题录更正不自动改键，明确重生成时处理冲突及已知项目引用。项目与库键差异通过映射关联，手工维护的引用文件 SHALL 受到文件编辑保护。
+来源原值与CSL分离、正式引用键／固定状态、冲突及事务提交保护已转入[题录库规格](../../openspec/specs/literature-catalog/spec.md#requirement-来源原值与题录投影分离)。
+
+系统 SHALL 支持 BBT 引用键生成、BibTeX／BibLaTeX 导出、自动导出、pull export 和对外 JSON-RPC；具体插件能力沿各自实施及真实验收范围。明确重生成时还须核对已知项目引用。项目与库键差异通过映射关联，手工维护的引用文件 SHALL 受到文件编辑保护。
 
 引用键与插件状态的职责归属采用[生态职责决定](../../.scratch/domain-development/issues/08-zotero-ecosystem-constraints.md#q1引用键与插件状态归属)，正式键只有一处事实源；项目影响核对遵守该决定引用的范围约束。
-
-#### Scenario: 更正已引用文献的标题
-- **WHEN** 元数据标题被更正且用户未要求重生成引用键
-- **THEN** 已有键保持稳定，已知稿件引用不因题录变化失效
 
 #### Scenario: 外部应用调用 BBT 接口
 - **WHEN** 验收声明支持的对外 JSON-RPC 功能
