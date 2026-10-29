@@ -26,6 +26,16 @@ ReportResources 是 `packages/editor` 内的 module，不新建包／数据库�
 
 ## 方案与接口
 
+### 第25轮：C记录初始化Module
+
+第22轮C-writer设计中，现有`IsolationRecords.load()`会在空根自动生成configId；该行为服务原本地提供者，不能直接作为系统C的“打开已知配置”。本片仅关闭这一个初始化接缝，不扩为C服务或通用远程IO。由生态树独占原`packages/platform/src/isolated-report-records.ts`与新`tests/kernel/isolated-report-bootstrap.spec.ts`，其他两条活动树仍保持第24轮基线和所有权。
+
+在同一原records事实源增加内部Interface：`initializeExisting()`只打开并pin已有根，不创建根或父目录；`loadExisting(expectedConfigId)`只读取准确原configId且核原dev/ino、owner、完整有界index／库存，返回`{configId,receipts}`；`provisionEmpty()`仅在原根除实际writer.lock外完全为空时生成原UUID/config/index，返回相同形状。两种load仍要求原native writer锁已取得，锁生命期和close沿原机制；不能用自报locked布尔量代替实际锁。缺配置、错误expected、非空或复制根均不得自动新建／覆盖／恢复。provision不能把已有有效配置当作新建成功，原create/save及全部v1验证器共用不分叉，原initialize()/load()及旧提供者调用保持原语义。
+
+返回配置身份来自原config.json，库存与现有load同一权威；不暴露根FD、增加公共RPC／schema／v2 system receipt、第二records/index或准入。精确expected引用与安装slot未来由可信宿主绑定；本Module没有运行C，也不能证明跨UID、认证、库存已由K采用或许可／停止持久ACK已接通。缺真实消费者的部分明确保持未装配，不另建示例常驻服务。
+
+先构建platform再固定测试：真实文件／原native flock验证新空根显式provision、已有根准确open、错误expected和provision已有根不改变原文件、已有根初始化缺失不创建、复制根及库存异常拒绝；复用已验原records代表，不复制完整native矩阵。权限／锁／根身份均用真实对象，期望按原磁盘样本独立核对；tools类型、格式、架构及独立审查后由主线接收。全部自有持久cache、当前普通UID，不安装或调用系统服务／策略；完整2.1b／T1/T2保持开放。
+
 ### 第24轮：准确版本的真实内核读取
 
 在原3.2中新增只读`resources.reportVersion({ref,basis})`，与resources.report同一35秒有界读语义，首批入口仍为项目HTML。返回`{state:'available',snapshot}`或`{state:'unavailable',reason}`，reason仅contentChanged／notFound／unavailable；后者不含快照、正文或内部Evidence。其他权限、身份／原版未知、坏清单及无关错误仍走原失败，不由读取错误直接批准草稿。现有resources.report／files.edit／files.history保持其严格及整条历史联合授权语义。

@@ -38,6 +38,8 @@ flowchart TD
 
   本片已形成[独立身份服务候选](../../../.scratch/scholoom-foundations/research/report-independent-identity-service.md)；主线选择的账户信任、准备接缝及本轮呈现校准范围见design“第17轮主线接收与下一片”。服务部署／安装及完整呈现尚未通过，不再试同UID固定launcher。T2依赖T1且须证明完整浏览器、双宿主文本／输入／可访问性及实际停止。
 
+  第25轮沿本项实施C记录初始化Module，区分原配置准确打开与显式空根创建；写集、接口和真实文件／锁验收见design第25轮。本子片不增加独立完成计数，不代表C服务／K采用库存／系统许可或停止ACK接通。
+
   R2本片已有`tests/fixtures/report-surface/`可运行可信调查夹具，实际双宿主2/2观测通过；纯文本投影将原MathML分数1/2变成12并丢失数学辅助结构，故完整呈现未达判据，2.1b不勾。系统IME／读屏器及正式架构仍待主线；详见investigation首节／delivery。本行仅记录R2，不改变2.1d／2.2c进度。
 
   R2b新增`tests/fixtures/report-structure/`固定可信原结构对照：双宿主保住分数布局／MathMLFraction、普通文本与顺序输入，但真实在途回包替换srcdoc会丢失组合“队列”，故正式输入判据仍未满足。原反例不改，不勾2.1b或R2正式架构，具体命令／限界见R2b调查及delivery；其他3.x进度仍仅主线维护。
