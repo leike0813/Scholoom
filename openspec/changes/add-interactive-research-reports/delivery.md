@@ -1,5 +1,14 @@
 # 实际交付与交接
 
+## 第26轮：原版恢复真实双宿主接收
+
+文献Task task_59bc81ddeee3／Dispatch ctx_1d91359a0dbc成功交回，已retain原终端及处理Delivery；原765e872→主线86d9375，六文件逐字一致后祖先桥afbb753保留原提交。主线先构建原connected夹具、核fixture/tools类型，再固定在最新真实后端产物运行新两类×Browser／真实Electron，**4/4、96.032秒**，0失败／跳过／flaky，runner六步骤均exit0；本机DISPLAY=:99、独占端口6241、全新配置/profile与输出。证据根`/home/joshua/.cache/scholoom-round26-acceptance-8hG3DX`，入口connected-main.log及connected-main/{commands,results}.json。
+
+真实核localStorage同次写入、整份文档reload清除module memory后按原window/config/ref/basis恢复R1完整snapshot／browse／draft；R2去A不替R1授权，真实撤读后R2仍可读而R1拒绝且无页面／副本文本。原依赖实际前进仅成功unavailable可给copyOnly draft/dirty，无browse/snapshot/consumer；原已有缓存遇未知basis／真实client断开不批副本，暂扣已完成实际RPC的原回包后关闭视图，必须在release后才计结清且旧页不复活。共同正文／显式项／原basis保持，完整restore封套沿原validator，观察只读准确key。
+
+独立connected-version-review.md核当前六文件diff、原Module及实际回执门，无确证P1/P2；首尾diff未变，审查未实跑，已关闭。作者首轮新4＋受影响旧撤权2为6/6、补强后新4/4分轮保留在第25轮根next/literature-version/RESULT.md；两项证据漏洞补强及import格式首败均保留，不将6＋4当一次全绿。主线八文件Biome、架构14模块272文件0 findings、strict及diff通过。实际CLI核自有kernel-profile state=stopped、端口6241 ECONNREFUSED，cleanup.json保留；未接管DISPLAY或用户默认profile。
+
+页面仍为可信固定React，主线未运行报告HTML脚本、正式ReportView／桥ready、OS服务或真实模型；这不是完整3.2／I5验收，报告保持21/27。全部实际派发现已结清retained，下一片按design第26轮集中原资产IO；七个全勾选change仅整理交付依据／规格重叠，未由任务计数推断全部可归档，亦未执行归档。
 ## 第25轮：控制记录初始化与执行范围验收
 
 生态原8f4808c→主线5cfa5db及祖先桥e83ab42保留两文件；新initializeExisting/loadExisting/provisionEmpty复用原根／配置／有界库存及v1验证，不新增服务／wire或记录权威。主线platform构建后固定产物运行新12＋旧2，**14/14、3.2秒**。独立bootstrap-review.md用同对象、同真实flock探针确证P2：两个并发provision均成功并生成两次配置身份；实际锁不能替代对象内串行。主线新增真实回归先跑旧dist，**1项失败，实际两个fulfilled**；结束后才修改及重建。load/loadExisting/provisionEmpty整个操作共用原serialize和create/save同一队列，含最终库存核对／返回，无新锁或队列。

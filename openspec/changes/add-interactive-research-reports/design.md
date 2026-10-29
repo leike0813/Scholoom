@@ -26,6 +26,18 @@ ReportResources 是 `packages/editor` 内的 module，不新建包／数据库�
 
 ## 方案与接口
 
+### 第26轮：私有资产物理IO Module
+
+原provider仍直接open/readFile/chmod/sync私有asset-i.bin、program.bin与gate.bin，C记录初始化完成并不意味着K已脱离这些物理操作。本片将现有资产IO提取为实际被原provider消费的深Module，减少后续C装配的跨职责调用；不新增远程抽象或假服务。原六操作、byte预算、领域授权、唯一admission、原receipt/stamps/offsets及scope／停止语义保持，无新公开行为或delta DTO。
+
+项目树独占五文件：新增`packages/platform/src/isolated-report-assets.ts`与`tests/kernel/isolated-report-assets.spec.ts`，修改原`isolated-reports.ts`及`isolated-report-controller.ts`，确有需要才对原最小preparation测试补代表；原`isolated-report-records.ts`只读，不并写bootstrap。新`IsolationAssets`构造接原IsolationRecords，私有方法为prepare(receipt)、put(receipt,index,offset,bytes,commit)、seal(receipt,programImage)。复用原receipt字段，不另存资产表／指纹格式／配置／状态机。具体局部签名可收拢，但不能扩大到任意路径、FD或通用write/save接口。
+
+prepare只创建原固定资产对象并更新同一receipt的stamps；put核原对象／长度／offset，实际完整写、sync、前后指纹核对后更新原stamps/offsets，并在持有原文件FD时await可信宿主commit回调；provider的回调仍走原next及save，后者检查实际writer锁。seal沿原顺序封存资产及固定登记program/gate、更新原stamps/sealed并sync目录。partial IO已取得的原物理事实沿原receipt保留，不能因只在全部成功后返回新数组而丢失；所有文件／目录FD均在失败时关闭。IO异常不返回成功回执，provider继续沿原unknown/confirmed及持久停止后释放规则收尾，不绕过锁或把效果完成当记录已提交。
+
+原fileStamp/isolationFileStamp只由资产IO消费，移入新Module成为同一事实源；固定isolationGate路径也由该Module管理，controller的support核查从同一处取用。已核repo源码及测试无其他这些导出的调用方，不保留无消费者转发层；isolationNative/锁/OS控制仍在原controller。新Module与records只有真实当前适配，无通用存储Port或第二队列；per-instance串行继续由provider落实，records原写队列保持。
+
+先构建实际变化platform后固定测试。原独立合成receipt／真实目录／原native flock验证资产创建、分片原字节／offset及对象变化拒绝、封存program/gate／权限和实际指纹；预期从写入输入和原物理对象核对，不由新Module输出自证。复用最小原provider/preparation代表，至少核commit持久失败／锁丢失不成功与原取消/容量责任；若原实际Linux准备入口条件具备，选择一个已有真实正例，不复制native完整矩阵。类型／格式／架构和独立审查由主线接收。该片只集中资产物理IO，native日志、C/M认证／有限提交与真实系统装配仍待后续，不宣称C sole-writer已跨进程落实或T1/T2通过。
+
 ### 第25轮：原版草稿工作台接线
 
 客户端原提交82361ae→主线b571323及零内容差异祖先桥2e5a9d6已接收；主线实际4/4、types／格式／架构通过，独审无确证P1/P2，具体真实／替身及未验见delivery第25轮。`restoreReportDraft({client,identity,signal?})`返回`{version,restored}`；Node测试用原内存草稿降级，下一片验证实际Browser／Electron及localStorage。

@@ -669,6 +669,14 @@ Codex／gpt-6.1-sol／high保持。所有树先停止并保全原提交祖先，
 
 上述文献树已先clean快进85ef694，tools／desktop类型与架构通过，9份后端实际产物及新client源码与主线一致；后端未变复用，不重建。Task task_59bc81ddeee3／Dispatch ctx_1d91359a0dbc已观察live/working，原Prompt、同步与启动证据见本轮dispatch；之后不改其基线。项目ff2b7b4→2faf8c6在主线2/2接收；生态8f4808c→5cfa5db先14/14，独审并发P2以真实红例修复后15/15及复核接收。原提交祖先已各自保留，确切源／首败／未验由原delivery维护；两个Dispatch均结清retained，暂不自增新任务。当前仅文献线活动，其余等待既定前置；系统C完整IO／生命周期装配和WorkerDOM源码许可尚未闭合，不以初始化Module充作服务完成。
 
+## 第26轮：真实原版恢复接收及资产IO
+
+文献765e872→86d9375及祖先桥afbb753由主线connected真实Browser／Electron4/4接收，构建／类型／格式／架构／strict通过，独审无确证P1/P2；真实kernel stopped及端口closed已核。原Dispatch结清retained，当前无活动Orca任务。具体真／替身、首败及限制见原delivery第26轮，证据根`/home/joshua/.cache/scholoom-round26-acceptance-8hG3DX`；报告仍21/27，正式承载及完整3.2／I5未完成。
+
+下一片项目线独占新isolated-report-assets、原provider/controller及有界资产测试，提取真实原资产物理IO；原records只读，精确Interface和保留的锁／commit／unknown责任见报告design第26轮。新Module立即由原provider消费，不造无消费者远程Port或第二记录。其他树没有独立前置时等待；先全树同步核对，再发这一条任务，活动期间不换基线。七个status complete变更只做一次收尾输入提取，主线另按合同判断，不将任务勾选当最终验证或自动归档。
+
+本轮仍Codex／gpt-6.1-sol／high；新输入/TMPDIR使用持久cache。WorkerDOM原源码许可尚待答复，C/M系统装配／有限生命周期提交、目标平台和CI／真实模型无新增授权，不通过重复旧绿色矩阵填充七树。
+
 ## 首轮 Agent 的共同起始任务
 
 各线采用下述共同要求，并附上本文件中该开发线的小节：
