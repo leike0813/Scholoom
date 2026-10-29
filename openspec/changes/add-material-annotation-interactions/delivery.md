@@ -1,5 +1,11 @@
 # 实际交付与交接
 
+## 第27轮：正式规格同步及证据边界
+
+本change的两条workbench-agent-context及四条workbench-resources要求已逐字同步正式规格，保留既有Purpose及正文，继续区分实时选区、显式项、实际保存、FileEdit及关联结果。四份目标规格strict通过，原同步一致性及本次三change共21条的检查为本轮根`core-spec-sync-check.json`和`core-formal-<capability>.log`。这是契约同步，没有新增Office、库正文写入、精确定位或科研质量能力，未执行归档。
+
+原图片组件、批量附加及association失败的精确后期结果已由`next/research-graph-runtime/RESULT.md`找回并注明版本；仍缺直接组合结果的部分继续保留。阅读准备重组后的主线新跨格式、静态HTML及独立库PDF双宿主组另为8/8、5.7分钟，组件另4/4、10.8秒，日志`render-main-ui.log`／`render-main-components.log`，不与历史28项或其他组相加。该组支持原格式回归，独立审查在排版自动采用发现的P2由complete-artifact-annotation-workflow续做，本片不借该8项关闭其保护要求或完整报告I5。
+
 ## 2026-10-29 主线接收补充
 
 本批材料消费者已进入主线共同源码，并由主线完成本机 Linux 联合验证。以下补充主线接收事实；原实施轮次、首次失败及未验边界保留，任务范围仍以 [tasks](tasks.md) 为准，最终验收与提交由父 Agent 负责。本次整理已重新取得本 change 的 delivery instructions，仅核对已有证据，未重新运行构建或测试。

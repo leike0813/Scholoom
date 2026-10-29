@@ -1,5 +1,9 @@
 # 实际交付与交接
 
+## 第27轮：正式文件任务规格同步
+
+本change的Purpose及十条ADDED要求已完整同步新正式`openspec/specs/research-tasks/spec.md`；没有改动原首批范围或将生产科研Graph／主题知识／库删除恢复提供者写成已实现。目标strict通过，连同本轮另外三份目标规格的原结果在`core-formal-<capability>.log`；`core-spec-sync-check.json`逐字核三change共21条且既有正文／Purpose保留。下述主线W1／W2和旧W3补核范围保持，不将契约同步或33/33当成全平台、全部故障组合及科研质量的新运行证明，未归档。
+
 ## 第27轮主线接收与旧证据补核
 
 原`5a34267158dcefdabaf101f38d4c77c655236f3d`以`8a2d364`合入并保留祖先。主线核两任务实际附件引用、原关联候选／真实CAS失败及已发送项的断言后，固定产物复验：双任务仅重绑A的内核代表**1/1、9.9秒**；明确附加并发送后任务保存失败的Browser／真实Electron代表**2/2、1.4分钟**。证据在本轮根`tasks-shared-main.log`、`tasks-ui-main.log`及各自main-results目录；UI独立端口6233／profile、外部HTTP模型受控，内部worker／发送／仓储真实，未使用真实模型。W1/W2按该范围接收，未扩为全部场景或科研质量通过。

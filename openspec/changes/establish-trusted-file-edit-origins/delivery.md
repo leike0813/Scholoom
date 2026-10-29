@@ -1,5 +1,11 @@
 # 实际交付与交接
 
+## 第27轮：现态纠偏与正式规格同步
+
+主线已接收图线`c41eff2`的现态文字修正（主线`fe7bb72`及祖先桥`3246653`）：默认broker→harness.executionFacts及实际父子来源已接通，精确逐工具因果／理由仍未知；没有重写历史结果或新增生产功能。原逐项证据及关联失败三分支、旧协议结果的补核见本轮根`next/research-graph-runtime/RESULT.md`，保留其版本与真实／替身范围，不将旧CI总体failure改为通过。
+
+本change的project-files四条及workbench-resources一条要求已逐字同步正式规格，既有正文及Purpose保持；当前样式没有将editId、文件basis、创建回执或association合并。`core-spec-sync-check.json`核本次三change共21条完整、唯一，四份目标规格分别strict通过，原输出为`core-formal-<capability>.log`。未取得直接结果的不同查询者等组合继续由原独审／补核记录限定，不以规格同步补造实跑、精确工具事实或三平台结论；未归档。
+
 ## 2026-10-29 主线接收补充
 
 可信来源提供者及本批 3.3 真实消费者已进入主线共同源码。本次重新取得本 change 的 delivery instructions，核对主线已有证据后补充接收记录；原提供者与消费者交付历史保持原样，最终验收与提交由父 Agent 负责。
