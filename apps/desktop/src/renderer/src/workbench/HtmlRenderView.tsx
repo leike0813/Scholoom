@@ -7,7 +7,67 @@ import { useContextContribution } from './context-contributions';
 import { renderedHtml } from './editor/render-output';
 import { sameResourceRef, type WorkbenchResourcePort } from './resource-controller';
 
-type Display = { resource: ResourceDescriptor; html: string; release(): void };
+export type PreparedHtml = { resource: ResourceDescriptor; html: string; release(): void };
+type Display = PreparedHtml;
+
+export async function prepareHtmlRender(
+  client: KernelClient,
+  resource: ResourceDescriptor,
+  port: WorkbenchResourcePort,
+  signal: AbortSignal,
+): Promise<PreparedHtml> {
+  const ref = resource.ref;
+  if (ref.source !== 'render' || resource.format !== 'html' || !resource.render)
+    throw new Error('HTML 排版产物缺少可核对的依据。');
+  const chunks: Uint8Array<ArrayBuffer>[] = [];
+  let offset = 0;
+  for (;;) {
+    signal.throwIfAborted();
+    const part = await port.read({
+      ref,
+      basis: resource.basis,
+      encoding: 'base64',
+      offset,
+      limit: 262144,
+    });
+    signal.throwIfAborted();
+    if (
+      !sameResourceRef(part.ref, ref) ||
+      part.basis !== resource.basis ||
+      part.unit !== 'byte' ||
+      part.offset !== offset
+    )
+      throw new Error('产物依据或读取位置已变化。');
+    const bytes = Uint8Array.from(atob(part.data), (char) => char.charCodeAt(0));
+    if (part.size > 67108864 || offset + bytes.length > part.size)
+      throw new Error('排版产物超过读取容量。');
+    chunks.push(bytes);
+    if (part.nextOffset === undefined) {
+      if (offset + bytes.length !== part.size) throw new Error('产物读取不完整。');
+      break;
+    }
+    if (!bytes.length || part.nextOffset !== offset + bytes.length)
+      throw new Error('产物读取位置未推进。');
+    offset = part.nextOffset;
+  }
+  const result = await renderedHtml(client, ref.projectId, ref.outputId, new Blob(chunks), signal);
+  try {
+    signal.throwIfAborted();
+    const fresh = await port.describe(ref);
+    if (
+      fresh.basis !== resource.basis ||
+      !sameResourceRef(fresh.ref, ref) ||
+      !fresh.capabilities.read
+    )
+      throw new Error('产物版本或权限已变化。');
+    signal.throwIfAborted();
+
+    return { resource, ...result };
+  } catch (failure) {
+    result.release();
+    throw failure;
+  }
+}
 
 /** Static content stays in its frame; only the trusted host reads its selection. */
 export function HtmlRenderView({
@@ -15,6 +75,8 @@ export function HtmlRenderView({
   resource,
   port,
   enabled,
+  prepared,
+  onUnavailable,
   dirty = false,
   viewId: suppliedViewId,
 }: {
@@ -22,12 +84,17 @@ export function HtmlRenderView({
   resource: ResourceDescriptor;
   port: WorkbenchResourcePort;
   enabled: boolean;
+  /** Borrowed from the render pane; its owner releases the prepared assets. */
+  prepared?: PreparedHtml | undefined;
+  onUnavailable?: (() => void) | undefined;
   dirty?: boolean;
   viewId?: string | undefined;
 }) {
   const instanceId = useId();
   const viewId = suppliedViewId ?? instanceId;
   const context = useContextContribution();
+  const unavailable = useRef(onUnavailable);
+  unavailable.current = onUnavailable;
   const [display, setDisplay] = useState<Display>();
   const shown = useRef<Display | undefined>(undefined);
   const [pending, setPending] = useState<Display>();
@@ -62,45 +129,14 @@ export function HtmlRenderView({
       return;
     }
     setError('');
+    if (prepared) {
+      replace({ ...prepared, release: () => {} });
+      return;
+    }
     void (async () => {
-      const ref = resource.ref;
-      if (ref.source !== 'render' || resource.format !== 'html' || !resource.render)
-        throw new Error('HTML 排版产物缺少可核对的依据。');
-      const chunks: Uint8Array<ArrayBuffer>[] = [];
-      let offset = 0;
-      for (;;) {
-        controller.signal.throwIfAborted();
-        const part = await port.read({
-          ref,
-          basis: resource.basis,
-          encoding: 'base64',
-          offset,
-          limit: 262144,
-        });
-        if (part.size > 67108864) throw new Error('排版产物超过读取容量。');
-        chunks.push(Uint8Array.from(atob(part.data), (char) => char.charCodeAt(0)));
-        if (part.nextOffset === undefined) break;
-        if (part.nextOffset <= offset) throw new Error('产物读取位置未推进。');
-        offset = part.nextOffset;
-      }
-      const result = await renderedHtml(
-        client,
-        ref.projectId,
-        ref.outputId,
-        new Blob(chunks),
-        controller.signal,
-      );
+      const next = await prepareHtmlRender(client, resource, port, controller.signal);
       try {
         controller.signal.throwIfAborted();
-        const fresh = await port.describe(ref);
-        if (
-          fresh.basis !== resource.basis ||
-          !sameResourceRef(fresh.ref, ref) ||
-          !fresh.capabilities.read
-        )
-          throw new Error('产物版本或权限已变化。');
-        controller.signal.throwIfAborted();
-        const next = { resource, ...result };
         const current = shown.current;
         const blocked =
           current &&
@@ -116,15 +152,17 @@ export function HtmlRenderView({
           setPending(next);
         } else replace(next);
       } catch (failure) {
-        result.release();
+        next.release();
         throw failure;
       }
     })().catch((failure) => {
-      if (!controller.signal.aborted)
-        setError(failure instanceof Error ? failure.message : 'HTML 预览读取失败。');
+      if (!controller.signal.aborted) {
+        const message = failure instanceof Error ? failure.message : 'HTML 预览读取失败。';
+        setError(message);
+      }
     });
     return () => controller.abort();
-  }, [client, port, resource, enabled, replace]);
+  }, [client, port, resource, enabled, replace, prepared]);
   useEffect(() => {
     if (!pending || dirty || !display) return;
     if (
@@ -156,6 +194,7 @@ export function HtmlRenderView({
           if (active && shown.current === display) {
             replace(undefined);
             setError(failure instanceof Error ? failure.message : '排版产物不可用。');
+            unavailable.current?.();
           }
         }
       } while (active && queued);
@@ -236,6 +275,7 @@ export function HtmlRenderView({
             if (!document?.body || document.URL !== 'about:srcdoc') {
               replace(undefined);
               setError('预览已离开原产物，选择已停用，请重新打开。');
+              unavailable.current?.();
               return;
             }
             const navigate = (event: Event) => {

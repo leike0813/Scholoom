@@ -1,9 +1,9 @@
 import type { KernelClient } from '@scholoom/client';
 import type { FileTransfer, RenderFormat, RenderJob, ResourceDescriptor } from '@scholoom/protocol';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useContextContribution } from '../context-contributions';
-import { HtmlRenderView } from '../HtmlRenderView';
-import { PdfReader, RenderedPdf } from '../PdfReader';
+import { HtmlRenderView, type PreparedHtml, prepareHtmlRender } from '../HtmlRenderView';
+import { PdfReader, type PreparedPdf, preparePdfResource, RenderedPdf } from '../PdfReader';
 import { createResourcePort, sameResourceRef } from '../resource-controller';
 import type { FileTarget } from '../session';
 import { Dialog } from '../shell/dialog';
@@ -22,6 +22,14 @@ const stateLabels: Record<RenderJob['state'], string> = {
   unknown: '编译结果待核查',
 };
 const message = (error: unknown) => (error instanceof Error ? error.message : String(error));
+
+type PreparedOutput = {
+  output: NonNullable<RenderJob['output']>;
+  resource?: ResourceDescriptor;
+  html?: PreparedHtml;
+  pdf?: PreparedPdf;
+  release(): void;
+};
 
 export function RenderPane({
   client,
@@ -43,14 +51,7 @@ export function RenderPane({
   const [job, setJob] = useState<RenderJob>();
   const [tick, refresh] = useState(0);
   const [error, setError] = useState('');
-  const [legacyPreview, setLegacyPreview] = useState<{ outputId: string; url: string }>();
   const port = useMemo(() => createResourcePort(client), [client]);
-  const [preview, setPreview] = useState<{
-    outputId: string;
-    resource?: ResourceDescriptor;
-    error?: string;
-  }>();
-  const [resourceAttempt, retryResource] = useState(0);
   const [exporting, setExporting] = useState(false);
   const [exportFormat, setExportFormat] = useState<RenderFormat>(latex ? 'pdf' : 'docx');
   const [destination, setDestination] = useState(
@@ -64,7 +65,39 @@ export function RenderPane({
   const run = useRef<() => Promise<void>>(async () => {});
   const live = useRef(true);
   const latestOutput = job?.output ?? job?.lastSuccess;
-  const [output, setOutput] = useState<RenderJob['output']>();
+  const [display, setDisplay] = useState<PreparedOutput>();
+  const [pending, setPending] = useState<PreparedOutput>();
+  const shown = useRef<PreparedOutput | undefined>(undefined);
+  const candidate = useRef<PreparedOutput | undefined>(undefined);
+  const latest = useRef(latestOutput);
+  latest.current = enabled ? latestOutput : undefined;
+  const [resourceAttempt, retryResource] = useState(0);
+  const retryNeeded = useRef(false);
+  const output = display?.output;
+  const replace = useCallback((next: PreparedOutput | undefined) => {
+    if (candidate.current && candidate.current !== next) candidate.current.release();
+    candidate.current = undefined;
+    setPending(undefined);
+    if (shown.current !== next) shown.current?.release();
+    shown.current = next;
+    setDisplay(next);
+  }, []);
+  useEffect(
+    () => () => {
+      shown.current?.release();
+      candidate.current?.release();
+      shown.current = undefined;
+      candidate.current = undefined;
+      latest.current = undefined;
+    },
+    [],
+  );
+  const invalidate = (value: PreparedOutput) => {
+    if (shown.current !== value) return;
+    replace(undefined);
+    retryNeeded.current = true;
+    setError('排版产物版本或权限已变化，请重新打开。');
+  };
   const context = useContextContribution();
   const hasAnnotations = context.items.some(
     (item) =>
@@ -72,54 +105,148 @@ export function RenderPane({
       item.ref.projectId === target.projectId &&
       item.ref.outputId === output?.id,
   );
+  const guards = useRef({ dirty, hasAnnotations });
+  guards.current = { dirty, hasAnnotations };
+  useEffect(
+    () =>
+      port.subscribe(() => {
+        if (retryNeeded.current) retryResource((value) => value + 1);
+      }),
+    [port],
+  );
+  // biome-ignore lint/correctness/useExhaustiveDependencies: Only a new output or an explicit permission retry starts physical preparation.
   useEffect(() => {
-    if (latestOutput && (!output || latestOutput.format === 'html' || (!dirty && !hasAnnotations)))
-      setOutput(latestOutput);
-  }, [latestOutput, output, dirty, hasAnnotations]);
-  const hasNewOutput =
-    latestOutput && output && latestOutput.format !== 'html' && latestOutput.id !== output.id;
-  const outputId = output?.id;
-  const outputFormat = output?.format;
-  const legacyPdf =
-    output?.format === 'pdf' && (output.basis === undefined || output.input === undefined);
-  useEffect(() => {
-    if (
-      !enabled ||
-      !outputId ||
-      !['pdf', 'html'].includes(outputFormat ?? '') ||
-      legacyPdf ||
-      preview?.resource
-    )
+    const controller = new AbortController();
+    if (!enabled) {
+      replace(undefined);
       return;
-    return port.subscribe(() => retryResource((value) => value + 1));
-  }, [port, enabled, outputId, outputFormat, legacyPdf, preview?.resource]);
-  // biome-ignore lint/correctness/useExhaustiveDependencies: 权限通知重试尚未打开的产物。
-  useEffect(() => {
-    let current = true;
-    if (enabled && outputId && ['pdf', 'html'].includes(outputFormat ?? '') && !legacyPdf) {
-      const locator = { source: 'render' as const, projectId: target.projectId, outputId };
-      void port
-        .describe(locator)
-        .then((resource) => {
-          if (!current) return;
-          if (resource.format !== outputFormat || !sameResourceRef(resource.ref, locator))
-            throw new Error('排版产物身份或格式不匹配。');
-          setPreview({ outputId, resource });
-        })
-        .catch((reason: unknown) => {
-          if (current) {
-            setError(message(reason));
-            setPreview((previous) =>
-              previous?.resource ? previous : { outputId, error: message(reason) },
-            );
-          }
-        });
     }
-    return () => {
-      current = false;
-      port.cancelPending();
+    if (!latestOutput || latestOutput.id === shown.current?.output.id) return;
+    candidate.current?.release();
+    candidate.current = undefined;
+    setPending(undefined);
+    retryNeeded.current = false;
+    setError('');
+    void (async () => {
+      let next: PreparedOutput | undefined;
+      try {
+        const output = latestOutput;
+        if (output.format === 'pdf' && (!output.basis || !output.input)) {
+          const blob = await outputBytes(
+            client,
+            target.projectId,
+            output.id,
+            undefined,
+            controller.signal,
+          );
+          controller.signal.throwIfAborted();
+          const url = URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
+          const pdf = { url, release: () => URL.revokeObjectURL(url) };
+          next = { output, pdf, release: pdf.release };
+        } else {
+          const locator = {
+            source: 'render' as const,
+            projectId: target.projectId,
+            outputId: output.id,
+          };
+          const resource = await port.describe(locator);
+          controller.signal.throwIfAborted();
+          if (
+            !sameResourceRef(resource.ref, locator) ||
+            resource.format !== output.format ||
+            resource.basis !== output.basis ||
+            !resource.capabilities.read
+          )
+            throw new Error('排版产物身份、格式或权限不匹配。');
+          if (resource.format === 'html') {
+            const html = await prepareHtmlRender(client, resource, port, controller.signal);
+            next = { output, resource, html, release: html.release };
+          } else if (resource.format === 'pdf') {
+            const pdf = await preparePdfResource(resource, port, controller.signal);
+            next = { output, resource, pdf, release: pdf.release };
+          } else throw new Error('排版格式无法预览。');
+        }
+        controller.signal.throwIfAborted();
+        if (latest.current?.id !== output.id) {
+          next.release();
+          return;
+        }
+        if (shown.current && (guards.current.dirty || guards.current.hasAnnotations)) {
+          candidate.current = next;
+          setPending(next);
+        } else replace(next);
+      } catch (reason) {
+        if (next && shown.current !== next && candidate.current !== next) next.release();
+        if (!controller.signal.aborted) {
+          retryNeeded.current = true;
+          setError(message(reason));
+        }
+      }
+    })();
+    return () => controller.abort();
+  }, [client, port, target.projectId, latestOutput?.id, enabled, resourceAttempt, replace]);
+  const reject = useCallback((next: PreparedOutput, reason: unknown) => {
+    if (candidate.current !== next) return;
+    candidate.current = undefined;
+    setPending(undefined);
+    next.release();
+    setError(message(reason));
+  }, []);
+  const verify = useCallback(
+    async (next: PreparedOutput) => {
+      if (!next.resource) return;
+      const fresh = await port.describe(next.resource.ref);
+      if (
+        !sameResourceRef(fresh.ref, next.resource.ref) ||
+        fresh.basis !== next.resource.basis ||
+        !fresh.capabilities.read
+      )
+        throw new Error('排版产物版本或权限已变化。');
+    },
+    [port],
+  );
+  useEffect(() => {
+    if (!pending) return;
+    let active = true,
+      checking = false,
+      queued = false;
+    const check = async () => {
+      if (checking) {
+        queued = true;
+        return;
+      }
+      checking = true;
+      do {
+        queued = false;
+        try {
+          await verify(pending);
+        } catch (reason) {
+          if (active) reject(pending, reason);
+        }
+      } while (active && queued);
+      checking = false;
     };
-  }, [port, target.projectId, outputId, outputFormat, legacyPdf, enabled, resourceAttempt]);
+    const unsubscribe = port.subscribe(() => void check());
+    return () => {
+      active = false;
+      unsubscribe();
+    };
+  }, [pending, port, verify, reject]);
+  const adopt = useCallback(
+    async (next: PreparedOutput) => {
+      try {
+        await verify(next);
+        if (candidate.current === next && latest.current?.id === next.output.id) replace(next);
+      } catch (reason) {
+        reject(next, reason);
+      }
+    },
+    [verify, replace, reject],
+  );
+  useEffect(() => {
+    if (pending && !dirty && !hasAnnotations) void adopt(pending);
+  }, [pending, dirty, hasAnnotations, adopt]);
+  const hasNewOutput = enabled && pending && pending.output.id === latestOutput?.id;
   useEffect(() => {
     live.current = true;
     return () => {
@@ -211,31 +338,6 @@ export function RenderPane({
     },
     () => refresh((value) => value + 1),
   );
-  useEffect(() => {
-    const controller = new AbortController();
-    let release = () => {};
-    setLegacyPreview(undefined);
-    if (enabled && outputId && legacyPdf)
-      void (async () => {
-        const blob = await outputBytes(
-          client,
-          target.projectId,
-          outputId,
-          undefined,
-          controller.signal,
-        );
-        const url = URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
-        release = () => URL.revokeObjectURL(url);
-        if (!controller.signal.aborted) setLegacyPreview({ outputId, url });
-        else release();
-      })().catch((reason) => {
-        if (!controller.signal.aborted) setError(message(reason));
-      });
-    return () => {
-      controller.abort();
-      release();
-    };
-  }, [client, target.projectId, outputId, legacyPdf, enabled]);
   const pollTransfer = async (id: string) => {
     let value = await client.call('files.transferStatus', {
       projectId: target.projectId,
@@ -327,7 +429,13 @@ export function RenderPane({
       {hasNewOutput ? (
         <p role="status">
           新版排版已就绪，当前预览和批注已保留。{' '}
-          <button type="button" className="btn" onClick={() => setOutput(latestOutput)}>
+          <button
+            type="button"
+            className="btn"
+            onClick={() => {
+              if (pending) void adopt(pending);
+            }}
+          >
             查看新版
           </button>
         </p>
@@ -347,43 +455,32 @@ export function RenderPane({
           <pre>{job.log}</pre>
         </details>
       ) : null}
-      {legacyPdf ? <p role="status">历史产物缺少附加依据，仅可预览或导出。</p> : null}
-      {outputFormat === 'html' ? (
-        preview?.resource?.format === 'html' ? (
-          <HtmlRenderView
-            client={client}
-            resource={preview.resource}
-            port={port}
-            enabled={enabled}
-            dirty={dirty}
-            viewId={viewId}
-          />
-        ) : (
-          <p role={preview?.error ? 'alert' : 'status'}>{preview?.error ?? '正在核对排版产物…'}</p>
-        )
-      ) : legacyPdf ? (
-        enabled && legacyPreview && legacyPreview.outputId === outputId ? (
-          <RenderedPdf key={outputId} url={legacyPreview.url} />
-        ) : null
-      ) : outputId && outputFormat === 'pdf' ? (
-        preview?.resource?.format === 'pdf' ? (
-          <PdfReader
-            key={preview.outputId}
-            resource={preview.resource}
-            port={port}
-            enabled={enabled}
-            viewId={viewId}
-            ariaLabel="排版 PDF"
-          />
-        ) : (
-          <p role={preview?.outputId === outputId && preview.error ? 'alert' : 'status'}>
-            {preview?.outputId === outputId && preview.error
-              ? preview.error
-              : enabled
-                ? '正在核对排版产物…'
-                : '需连接内核。'}
-          </p>
-        )
+      {!output && latestOutput && !error ? <p role="status">正在核对排版产物…</p> : null}
+      {display?.html && display.resource ? (
+        <HtmlRenderView
+          client={client}
+          resource={display.resource}
+          port={port}
+          enabled={enabled}
+          prepared={display.html}
+          viewId={viewId}
+          onUnavailable={() => invalidate(display)}
+        />
+      ) : display?.pdf && display.resource ? (
+        <PdfReader
+          resource={display.resource}
+          port={port}
+          enabled={enabled}
+          prepared={display.pdf}
+          viewId={viewId}
+          ariaLabel="排版 PDF"
+          onUnavailable={() => invalidate(display)}
+        />
+      ) : display?.pdf && enabled ? (
+        <>
+          <p role="status">历史产物缺少附加依据，仅可预览或导出。</p>
+          <RenderedPdf url={display.pdf.url} />
+        </>
       ) : null}
       {exportOpen ? (
         <Dialog title="导出稿件" onClose={() => setExportOpen(false)}>

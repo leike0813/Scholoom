@@ -23,18 +23,18 @@ test.beforeAll(async () => {
     import {HtmlRenderView} from './src/renderer/src/workbench/HtmlRenderView';
     import {ContextContributionProvider} from './src/renderer/src/workbench/context-contributions';
     const make=id=>({ref:{source:'render',projectId:'project',outputId:id},basis:'basis-'+id,name:'paper.html',format:'html',render:{jobId:'job-'+id,input:{ref:{source:'project',projectId:'project',fileId:'file'},basis:'source-'+id,dependencies:[]}},capabilities:{read:true,write:false,readingRecords:false,render:false}});
-    const resources={a:make('a'),b:make('b')};
+    const resources={a:make('a'),b:make('b'),c:make('c')};
     const html=${JSON.stringify(html)};
     const listeners=new Set();
     const port={describe:async ref=>{if(window.revoked)throw Error('permissionDenied');return resources[ref.outputId]},
       read:async({ref,basis})=>{
-        if(ref.outputId==='b'){window.waiting=true;await new Promise(resolve=>window.releaseCandidate=resolve);window.waiting=false;}
-        const data=ref.outputId==='a'?html:'<p>New complete HTML evidence 74.</p>';
-        return {ref,basis,encoding:'base64',data:btoa(data),offset:0,size:data.length,unit:'byte',truncated:false};
+        if(ref.outputId==='b'){window.waiting=true;await new Promise(resolve=>window.releaseCandidate=resolve);window.waiting=false;window.completedB=true;}
+        const data=ref.outputId==='a'?html:ref.outputId==='b'?'<p>New complete HTML evidence 74.</p>':'<p>Newest complete HTML evidence 75.</p>';
+        return {ref,basis,encoding:'base64',data:btoa(data),offset:0,size:data.length+(window.incomplete&&ref.outputId==='c'?1:0),unit:'byte',truncated:false};
       },subscribe:fn=>{listeners.add(fn);return()=>listeners.delete(fn)},cancelPending(){}};
     const client={call:async()=>{throw Error('Unexpected asset request')}};
     function App(){const [resource,setResource]=React.useState(resources.a),[items,setItems]=React.useState([]);
-      window.next=()=>setResource(resources.b);window.revoke=()=>{window.revoked=true;listeners.forEach(fn=>fn())};
+      window.next=()=>setResource(resources.b);window.choose=id=>setResource(resources[id]);window.revoke=()=>{window.revoked=true;listeners.forEach(fn=>fn())};
       return <ContextContributionProvider items={items} appendContextItems={added=>{setItems(previous=>[...previous,...added]);return true}}
         updateContextComment={(id,comment)=>setItems(previous=>previous.map(item=>item.itemId===id?{...item,comment}:item))}
         removeContextItem={id=>setItems(previous=>previous.filter(item=>item.itemId!==id))}>
@@ -136,4 +136,32 @@ test('a comment added while the next HTML is loading protects the actual old pag
   await page.evaluate(() => Reflect.get(window, 'revoke')());
   await expect(page.locator('iframe')).toHaveCount(0);
   await expect(comment).toHaveValue('Keep the original target.');
+});
+
+test('a late HTML candidate cannot replace a newer complete display', async ({ page }) => {
+  const frame = page.frameLocator('iframe[title="HTML 排版预览"]');
+  await expect(frame.getByText('Original HTML evidence 73.', { exact: true })).toBeVisible();
+  await page.evaluate(() => Reflect.get(window, 'next')());
+  await page.waitForFunction(() => Reflect.get(window, 'waiting'));
+  await page.evaluate(() => Reflect.get(window, 'choose')('c'));
+  await expect(frame.getByText('Newest complete HTML evidence 75.', { exact: true })).toBeVisible();
+  await page.evaluate(async () => {
+    Reflect.get(window, 'releaseCandidate')();
+    await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+  });
+  expect(await page.evaluate(() => Reflect.get(window, 'completedB'))).toBe(true);
+  await expect(frame.getByText('Newest complete HTML evidence 75.', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: '查看新版', exact: true })).toHaveCount(0);
+});
+
+test('an incomplete HTML candidate retains the complete current page', async ({ page }) => {
+  const frame = page.frameLocator('iframe[title="HTML 排版预览"]');
+  await expect(frame.getByText('Original HTML evidence 73.', { exact: true })).toBeVisible();
+  await page.evaluate(() => {
+    Reflect.set(window, 'incomplete', true);
+    Reflect.get(window, 'choose')('c');
+  });
+  await expect(page.getByRole('alert')).toContainText('读取不完整');
+  await expect(frame.getByText('Original HTML evidence 73.', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: '查看新版', exact: true })).toHaveCount(0);
 });
