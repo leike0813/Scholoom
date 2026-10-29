@@ -143,6 +143,8 @@ sequenceDiagram
 
 安全诊断字段只保留instanceId、策略版本、stage、既有ErrorInfo.code、errno／exit／signal、是否进入gate、限制读回及stop／receipt核查标志，长度沿frame上限进一步有界；不输出报告正文、HOME、token、完整环境或外部连接。诊断失败不能覆盖首个异常。check只报告支持／未验条件，不以配置文件存在返回已兑现；start仍逐次核查。
 
+原运行后撤权场景补验只扩现有`isolated-report-provider.spec.ts`：使用原detached程序及真实默认provider／scope，宿主信号沿原options.signal绑定；观察实际running和同范围后代后再abort，核原instance的完整停止、持久收据及唯一准入释放。排队／gate撤权不能替代此运行后代表。测试本地夹具可增加最小可信信号接点，不新增生产API、策略或等待期限；其他缺证分支按实际范围保留，不重跑已绿全矩阵。
+
 真正前置是Linux目标环境的user manager、现成bwrap、必要namespace／syscall机制与实际cpu／memory／pids委托、已校准策略及可持久记录目录。领域批准字节、库／项目、时钟和授权可在模块测试替换；OS、controller、scope／网络／FD实际行为及恢复准入不能用成功替身关闭。人工提供者可完全不装harness；没有模型或工作台前置。
 
 ## 文件变化

@@ -10,6 +10,8 @@
 
 提供者 SHALL 仅在Linux、宿主已登记的程序／策略及其必要机制均可兑现时声明该组合可用。普通用户已有namespace、bwrap及scope委托不足、实际CPU／memory／swap／pids上限不能读回、策略或目标架构未校准时 SHALL 在放行不可信程序前返回unavailable及有界原因。不得自动安装、提权、修改委托或退回普通受信程序执行；普通managedExecution可用不授予本能力，人工资源操作不依赖本能力。
 
+`check` SHALL 仅作登记、已校准策略、工具与管理器的有界预检；其`available`表示可以继续尝试该组合，不是本次执行已兑现隔离条件的证明。`start` SHALL 在每次放行前实际核对namespace、scope身份及资源限额等必要条件，未兑现即拒绝；预检成功不能跳过该核验或据此开放未验证的浏览器／报告。
+
 #### Scenario: 必要条件不足
 
 - **WHEN** 系统缺少已登记策略要求的工具、namespace权限或实际scope资源控制
