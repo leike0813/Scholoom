@@ -242,6 +242,73 @@ test.describe('fixed report assets with real records and native flock', () => {
     }
   });
 
+  test('a preexisting gate preserves the completed program fingerprint and closes both files', async () => {
+    const f = await fixture();
+    const program = Buffer.from('approved partial program image');
+    const gate = Buffer.from('preexisting gate must remain untouched');
+    const programPath = join(f.directory, 'program.bin');
+    const gatePath = join(f.directory, 'gate.bin');
+    try {
+      await f.assets.prepare(f.receipt);
+      for (const i of [0, 1] as const)
+        await f.assets.put(f.receipt, i, 0, payloads[i], () => f.records.save(f.receipt));
+      await writeFile(gatePath, gate, { mode: 0o600 });
+      await expect(f.assets.seal(f.receipt, program)).rejects.toMatchObject({ code: 'EEXIST' });
+      expect(await readFile(programPath)).toEqual(program);
+      expect((await lstat(programPath)).mode & 0o777).toBe(0o400);
+      expect(await readFile(gatePath)).toEqual(gate);
+      expect(await descriptors(programPath)).toHaveLength(0);
+      expect(await descriptors(gatePath)).toHaveLength(0);
+      expect(f.receipt.sealed).toEqual({ program: await stamp(programPath), gate: '' });
+    } finally {
+      await f.close();
+    }
+  });
+
+  test('provider persists the completed program seal after gate failure without creating a controller', async () => {
+    const f = await preparationFixture(test.info().outputPath('case'));
+    const id = randomUUID();
+    const controller = f.os.controller;
+    let controllers = 0;
+    f.os.controller = (options) => {
+      controllers++;
+      return controller(options);
+    };
+    try {
+      const program = f.options.programs[0];
+      if (!program) throw new Error('Expected the registered fixed program.');
+      await f.provider.prepare(f.input(id), f.load);
+      const record = await f.receipt(id);
+      const programPath = join(record.directory, 'program.bin');
+      const gatePath = join(record.directory, 'gate.bin');
+      const gate = Buffer.from('preexisting gate prevents complete sealing');
+      await writeFile(gatePath, gate, { mode: 0o600 });
+      await expect(f.provider.start({ instanceId: id })).rejects.toMatchObject({ code: 'EEXIST' });
+      expect(await readFile(programPath)).toEqual(Buffer.from(program.image));
+      expect((await lstat(programPath)).mode & 0o777).toBe(0o400);
+      expect(await readFile(gatePath)).toEqual(gate);
+      expect(await descriptors(programPath)).toHaveLength(0);
+      expect(await descriptors(gatePath)).toHaveLength(0);
+      const stored = (await f.receipt(id)).value;
+      expect(stored.sealed).toEqual({ program: await stamp(programPath), gate: '' });
+      expect(stored).toMatchObject({
+        scopeIntent: false,
+        launchIntent: false,
+        status: { phase: 'stopped', gateReleased: false, stopConfirmed: true },
+      });
+      expect(controllers).toBe(0);
+      expect(f.state.scopeStarts).toBe(0);
+      expect(f.admission.status.active).toBe(0);
+      await expect(f.provider.start({ instanceId: id })).rejects.toMatchObject({
+        code: 'invalidRequest',
+      });
+      expect(controllers).toBe(0);
+    } finally {
+      f.os.controller = controller;
+      await f.provider.close();
+    }
+  });
+
   for (const fault of ['persistence', 'lock-loss'] as const) {
     test(`provider refuses an ACK after real bytes when ${fault} prevents its original commit`, async () => {
       const f = await preparationFixture(test.info().outputPath('case'));
