@@ -761,7 +761,13 @@ export class IsolatedReportProvider {
     return closing;
   }
   private async closePrepared(): Promise<void> {
+    const stopping = Promise.allSettled(
+      [...this.instances.values()].map((item) =>
+        this.serial(item.receipt.stage.instanceId, () => this.stopItem(item)),
+      ),
+    );
     await Promise.allSettled([...this.preparations.values()].map((pending) => pending.promise));
+    await stopping;
     await Promise.all(
       [...this.instances.values()].map((item) =>
         this.serial(item.receipt.stage.instanceId, () => this.stopItem(item)),

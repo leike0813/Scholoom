@@ -11,7 +11,7 @@
 从本树根目录运行，先指定自己的 cache：
 
 ```bash
-export TMPDIR=/home/joshua/.cache/scholoom-round17-acceptance-fZn1SQ/next/research-graph-runtime
+export TMPDIR="$(mktemp -d "$HOME/.cache/scholoom-report-context-XXXXXX")"
 node tests/fixtures/report-context/build.ts "$TMPDIR/built"
 node node_modules/typescript/bin/tsc --noEmit -p tests/fixtures/report-context/tsconfig.json
 node node_modules/typescript/bin/tsc --noEmit -p tsconfig.tools.json
@@ -31,10 +31,19 @@ node node_modules/typescript/bin/tsc --noEmit -p tsconfig.tools.json
 
 `tests/ui/report-context.spec.ts` 沿已有 `uiPage`，先加载已构建产品并确认宿主连接，再由测试 route 加载本夹具固定 JS/CSS。Browser/Electron 执行相同两条场景，操作都从用户控件进入；只读状态用于独立核对保存结果。未提供构建目录时该专用夹具测试明确跳过，不能记作产品通过。
 
-运行前使用已有静态 UI 配置，显式指定独立端口、数据目录和 `SCHOOLOOM_REPORT_CONTEXT_BUILD`；不要直接使用默认 UI 配置中的开发服务器。Electron 还须绑定已有 binary，图形动作前检查实际 DISPLAY。实际本轮命令、截图、首次失败及最终结果沿本轮 cache `RESULT.md` 交回。
+运行前使用已有静态 UI 配置，显式指定独立端口、数据目录和 `SCHOOLOOM_REPORT_CONTEXT_BUILD`；不要直接使用默认 UI 配置中的开发服务器。以下入口要求本树已有产品构建、Electron binary，以及可用的 `:99` 显示。6131 端口须空闲，数据目录为本次新目录。缺任一前置先报告，不安装依赖或复用其他测试的配置目录。
+
+配置生成器保留在 `/home/joshua/.cache/scholoom-round13-acceptance/create-ui-config.mjs`，其静态服务器是同根 `preserved-tmp/static-ui.mjs`；两者须保留。生成器按执行时的本树绝对路径绑定 `playwright.ui.config.ts` 与真实 kernel bootstrap，只提供已构建页面，不启动开发服务器。迁移机器时须一并复制这两个入口并修正生成器中的服务器路径；本轮验收配置及命令在 `/home/joshua/.cache/scholoom-round18-acceptance-tkEm2H/`。
 
 ```bash
 export SCHOOLOOM_REPORT_CONTEXT_BUILD="$TMPDIR/built"
+export SCHOOLOOM_UI_PORT=6131
+export SCHOOLOOM_UI_DATA_DIR="$TMPDIR/ui-profile"
+export DISPLAY=:99
+export ELECTRON_OVERRIDE_DIST_PATH="$PWD/node_modules/.pnpm/electron@44.5.1/node_modules/electron/dist"
+export ELECTRON_SKIP_BINARY_DOWNLOAD=1
+xdpyinfo -display "$DISPLAY"
+node /home/joshua/.cache/scholoom-round13-acceptance/create-ui-config.mjs "$TMPDIR/ui.config.mts"
 node node_modules/@playwright/test/cli.js test --config "$TMPDIR/ui.config.mts" tests/ui/report-context.spec.ts --workers=1 --output "$TMPDIR/ui-results"
 ```
 

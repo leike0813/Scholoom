@@ -535,6 +535,24 @@ f4ab1e5／[Checks40622631905](https://github.com/leike0813/Scholoom/actions/runs
 
 Codex／gpt-6.1-sol／high保持。先提交本轮整合及上述决定，七树保全快进；按实际源码差异核类型／架构和最小定向测试，再发送四任务／三等待。不得在Prompt发送后再次改工作树基线。新任务均限既定首批路径；真实模型调用、系统安装和Windows／完整浏览器实际保证不由本次分发自动授权，CI继续后置。原Prompt、同步、命令及发送／启动回执保存在本轮cache；任务事实沿所属OpenSpec，不新建重复进度账本。
 
+## 第18轮验收与下一阶段（2026-10-29）
+
+三份有改动成果已逐树冻结、保全合入dev，准备模块和可信选择夹具按子范围接收。准备close的P2由主线修复并独审复核，相关组合32/32；可信夹具真实Browser／Electron4/4，原草稿真实、client／来源快照替身明确，不证明活动报告。Windows独审P2为所有数据成员误需执行权，W2.1重开，代码待整改／目标验证。阅读呈现线在读AGENTS后429中断，无源码／交付，不能当完成。证据根 `/home/joshua/.cache/scholoom-round18-acceptance-tkEm2H/`，原任务／delivery仍为进度事实源。
+
+主线选择三任务／四等待；共享准备和选择已齐，不先新增浏览状态权威或更多合成消费者。先提交本轮验收／决定，保留原冻结提交祖先关系，再七树保全快进、重建受影响platform并核类型／架构与定向行为，全部通过后发送。Prompt发送后不再改各树基线，CI后置，不推送。所有开发继续Codex／gpt-6.1-sol／high，不依赖/tmp。
+
+| 工作树 | 下一片及所有权 | 停止边界 |
+| --- | --- | --- |
+| project-execution | 报告2.1d：ReportResources.freeze经新prepare到默认真实Linux provider的有限准备／启动／停止、满槽延迟读取及在途取消；原provider窄测试／fixture，确有缺口才局部修复 | 复用固定native／policy及自有scope，不改native政策、wire、renderer／报告工件，不安装服务或启用浏览器；最多三类代表，交回即停 |
+| research-interaction | 重派未实施的R2：固定可信页到Browser／Electron呈现／输入／文本／辅助语义的有界试验；report-surface及报告R2工件 | 不重复2.1c／2.2c，不执行任意报告或改生产CSP，不用位图宣称完整呈现；失败交具体反例，T1／T2／I5不关闭 |
+| zotero-ecosystem | W2.1整改：按所属design第18轮由可信宿主声明固定执行入口；普通数据read与入口execute分离，TS／native／目标ACL例及原工件 | 不猜扩展名、不扩大业务任意程序能力；保留ACL／原见证／close保证，Windows缺环境准确未验，不安装SDK／CI，不接W3 |
+| research-graph-runtime | 2.2c夹具已接收，等待R2架构校准 | 不重复夹具／绿例或提前实施3.x |
+| agent-delegation | 离线科研验收准备保持接收，等待下一次明确真实调用授权 | 不重放旧pending、查CI或发付费请求 |
+| literature-workbench | 已接收证据复核，等待Windows题录目标及平台收尾 | 不再整理同一份证据或重跑绿例 |
+| research-task-workspace | 现有33/33保持完成，等待 | 不自定科研Graph／角色／主题知识范围 |
+
+主线已整合Windows模块node导出及architecture单叶登记，架构通过；目标native未编译／实跑，普通Windows布局继续不可用。三任务的写集无交叉；报告工件仅阅读线可更新R2，计算线交cache记录由主线合入2.1d。真实模型、系统安装和目标支持不由本次派发推定授权。不归档尚未完整交付的change。
+
 ## 首轮 Agent 的共同起始任务
 
 各线采用下述共同要求，并附上本文件中该开发线的小节：

@@ -10,7 +10,7 @@ Linux普通入口N2已由主线接收；Windows私有fd0／可信注入原包已
 
 - [x] W1 核固定44.5.1 Windows发行入口、host产物／asar区别、原BBT9.0.68及当前设置／资源／原生提供者；在原investigation／design／delta明确只读核验缺口、同源布局候选、ACL及启动窗口选项、所有权和真实Windows验收入口。完成依据：本树来源及反例可核对，Linux现资源组25/25；这只是实际调查成果，不是Windows实现或目标通过。
 - [ ] W2 【第17轮主线已选A及ACL策略，本轮实施平台Module】按design“第17轮主线选择与W2实施边界”提供只读设置文件／资源树核验、所有权与释放接口；生态树独占新平台Module／native构建及窄测试，主线整合公共导出／架构登记。不再等待A/B决策；Windows目标缺证仍不能关闭本项。完成依据：真实Windows根／后代ACL、reparse／对象身份、扫描竞争及选定窗口边界验证，不能以privateDirectory修复、内存ACL或Linux句柄代替。
-- [x] W2.1 交付私有Module／native／构建登记和窄Windows测试定义，完成本机实际构建／类型／Linux保护及独立静态审查修正，提供主线公共登记窄补丁；目标缺证准确保留，不启用W3叶布局。初批26通过／22跳过、末次私有组1通过／23跳过与Linux收尾1/1分开记录，不相加为不同目标；Windows未编译／执行。architecture仅缺本片受控适配登记，待主线应用所交窄补丁，不冒称全绿。
+- [ ] W2.1 代码／native／构建登记及目标测试定义已合入；第18轮主线补公共导出及受控架构登记，Linux构建／类型／保护通过。独审P2重开：数据被误要求FILE_EXECUTE。按design第18轮区分普通数据read与显式固定入口execute，整改模块和ACL代表用例后交回；不启用Windows布局，未编译／执行的目标证据不得算通过。
 - [ ] W2.2 在真实Windows按既有Visual C++入口构建并运行private-resource-tree目标组，核同对象读取、ACL／OWNER RIGHTS／祖先替换权／链接／变化／深目录／收尾；无SDK／OS或前置不适用逐项记未验，扫描期间替换没有可观察阶段时另留缺证，不用sleep循环或skip提升通过。
 - [ ] W3 【依赖W2及叶契约批准】在host-settings／resolveZoteroResource接受同源Windows固定布局，派生固定electron.exe与已构建managed目录并复用版本、成员、beforeLaunch规则；不新增exec/env/root或第二登记。完成依据：私有设置与全树核验真实接入，Linux保护回归保持；需要变更TrustedZoteroLaunch消费者／公共注册先交主线，不能留下空壳分支。
 - [ ] W4 【依赖W3、目标Windows及主线停机前置】扩原窄资源／普通CLI／原包持久用例，真实离线资源→关闭准备实例→普通冷启动／bootstrap→补键与两格式→完整停机／重启原ID；保留不安全后代、链接、资源替换及撤权／unknown代表边界。完成依据：真实Windows原生与原BBT结果，原包字节对照；公共endpoint失败不吞。Linux25/25不抵该目标，2.3／4.2父项保持开放。

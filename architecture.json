@@ -37,6 +37,7 @@
       "sourceRoot": "src",
       "allows": ["@scholoom/protocol"],
       "systemAdapters": [
+        { "path": "src/private-resource-tree.ts", "apis": ["child_process"] },
         { "path": "src/isolated-report-controller.ts", "apis": ["child_process", "fs/promises"] },
         { "path": "src/isolated-report-records.ts", "apis": ["fs", "fs/promises"] },
         { "path": "src/isolated-reports.ts", "apis": ["fs", "fs/promises"] },

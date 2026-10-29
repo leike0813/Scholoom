@@ -13,5 +13,10 @@ export {
   type IsolationProgram,
 } from './isolated-reports.js';
 export { atomicPrivateFile, privateDirectory } from './private-files.js';
+export {
+  inspectPrivateResourceTree,
+  type PrivateTreeSnapshot,
+  readPrivateResourceFile,
+} from './private-resource-tree.js';
 export { ManagedNode, processIdentity, processMayBeAlive, sameProcess } from './processes.js';
 export { fileFingerprint, ResourceAccess } from './resources.js';

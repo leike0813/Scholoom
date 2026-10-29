@@ -57,6 +57,44 @@ test.describe('single-lease isolated report preparation', () => {
     }
   });
 
+  test('close stops a running instance while another freeze is still pending', async () => {
+    const f = await preparationFixture(test.info().outputPath('case'));
+    const admission = new CountedAdmission(2, 2);
+    f.options.admission = admission;
+    const reading = barrier();
+    const runningId = randomUUID();
+    const pendingId = randomUUID();
+    let pending: Promise<unknown> | undefined;
+    let closing: Promise<void> | undefined;
+    let closed = false;
+    try {
+      await f.provider.prepare(f.input(runningId), f.load);
+      await f.provider.start({ instanceId: runningId });
+      f.state.onRead = async () => reading.wait();
+      pending = f.provider.prepare(f.input(pendingId), f.load).catch((error: unknown) => error);
+      await reading.started;
+      closing = f.provider.close();
+      void closing.then(() => {
+        closed = true;
+      });
+      await expect
+        .poll(async () => (await f.receipt(runningId)).value.status.stopConfirmed)
+        .toBe(true);
+      expect(closed).toBe(false);
+      await expect.poll(() => admission.status.active).toBe(1);
+      reading.release();
+      expect(await pending).toMatchObject({ code: 'shuttingDown' });
+      await closing;
+      expect(admission.status.active).toBe(0);
+      expect(f.state.scopeStarts).toBe(1);
+    } finally {
+      reading.release();
+      await pending;
+      await closing;
+      await f.provider.close();
+    }
+  });
+
   test('queued stop cancels the original waiter without loading or writing a false execution intent', async () => {
     const f = await preparationFixture(test.info().outputPath('case'));
     const live = f.admission.reserve();

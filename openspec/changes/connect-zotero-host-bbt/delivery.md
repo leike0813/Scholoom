@@ -1,5 +1,11 @@
 # 实际交付与交接
 
+## 第18轮主线验收：W2代码待整改／目标验证
+
+冻结提交1678e3d已保全并合入dev，主线补node.ts两方法／类型导出及architecture.json单叶child_process登记。主线build:shared、tools／desktop类型、架构通过；私有组在Linux非目标拒绝1通过／23跳过，均不算Windows验证。审查报告保留于 `/home/joshua/.cache/scholoom-round18-acceptance-tkEm2H/windows-review.md`，其架构失败针对原冻结树，主线补登记后的通过针对整合源码，不混为同一状态。
+
+独审确证P2：native把所有普通数据成员都要求FILE_EXECUTE，合法仅FR数据被误拒。主线重开W2.1，并选定design第18轮的可信固定入口显式路径、数据read／入口execute分离；下轮生态树整改TS／native及代表ACL例，交回后再验。Windows SDK缺失、实际编译和原生组仍未完成；本轮未改C来冒充目标闭合。W2父项／W2.2及后续产品布局均保持开放。已接收的是保全代码及准确边界，不是Windows能力可用或无缺陷实现。
+
 ## W2只读原生Module实现交回（add1c49，2026-10-29）
 
 起点`add1c49a5de74689351cb26311bb56a790099862`，起始clean。用户已授权本片、主线已选A及ACL策略，不再等待旧W1决策。实际交付私有Module、Windows native、原生构建登记和目标测试定义，W2.1勾选；**W2父项／W2.2真实Windows仍开放**。未启用Windows布局，未改host-settings／resolver、公共lifecycle／endpoint、CI、privateDirectory或其他领域。没有复用旧Dispatch／Run、重放补丁、提交或同步。

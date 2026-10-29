@@ -26,6 +26,14 @@ ReportResources 是 `packages/editor` 内的 module，不新建包／数据库�
 
 ## 方案与接口
 
+### 第18轮接收与下一片
+
+准备接缝及可信选择夹具按模块接收，实际范围见delivery；不替代正式浏览器。close先封住新效果、立即向当前已有实例派发原stopItem，与在途freeze结清并行；随后再收尾期间形成的实例并核持久停止，records／锁最后关闭。慢freeze只保留自身准备容量，不能延迟其他运行实例停止。
+
+下一片2.1d由计算树验证默认真实OS adapter、ReportResources.freeze和prepare的有限Linux接线。复用原固定native探针、policy和自有测试根，最多新增正常完整字节／停止、满槽延迟读取、在途取消三类代表。领域描述／授权端口可以是固定合成对象，文件、冻结、provider、admission、OS scope、收尾须真实。仅在有明确行为缺口时改provider；不动native政策、wire、系统服务或renderer。写集为原provider窄测试／准备fixture及必要私有provider修复，不写报告工件，交主线接收。
+
+R2上轮启动后429中断，无实现／实跑，继续原固定可信双宿主呈现校准范围。阅读交互树独占report-surface试验及本change R2工件；选择夹具所属科研树暂停，不另造浏览状态权威或提前写3.x。R2无法保留真实文本／输入／可访问语义时交回反例，由主线决定呈现架构。系统安装、T1／T2和正式报告启用仍未授权或通过。
+
 ### 第17轮主线接收与下一片
 
 主线接收独立身份服务候选及`createReportContext`消费者；实际验收见delivery。本轮选定以下边界，替代候选研究中尚待主线决定的对应条目：

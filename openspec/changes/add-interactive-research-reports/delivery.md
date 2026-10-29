@@ -1,5 +1,17 @@
 # 实际交付与交接
 
+## 第18轮主线验收（2026-10-29）
+
+已冻结并合入准备接缝、可信选择夹具及Windows只读Module三份实现；本change只关闭2.1c和2.2c。当前11/18，新增2.1d是既有2.1b中默认真实Linux准备接线的独立验收片，不扩服务／浏览器范围。R2呈现线实际在读AGENTS后因429中断，未改文件、无交付，重新派发，不能把“Agent结束”算完成。
+
+证据根 `/home/joshua/.cache/scholoom-round18-acceptance-tkEm2H/`。原冻结提交、作者终端和检查入口分别为frozen.json、*-terminal.json、main-checks.json；旧交付输入保留在round17同级cache的next目录。输入、输出及TMPDIR均在持久cache，不依赖/tmp。主线已补private-resource-tree的node导出和受控系统访问登记；Windows待目标验证，不启用。
+
+2.1c复用原provider／records／ProcessAdmission，ready后才freeze，实际文件清单形成后才建原intent，旧六操作不变。准备fixture文件、ReportResources.freeze、admission和records真实，领域授权／版本端口与OS控制器为明确替身，不证明真实scope或服务。独审preparation-review.md确证P2：close先等所有freeze导致已有运行实例延迟停止。主线改为先派发已有实例stop，与准备结清并行，随后再扫实例收尾；新混合实例回归通过，保留在途freeze占用。kernel-fixed.log最终32/32（准备18、records2、admission9、契约3），不能与之前组合的32通过／23个Windows跳过相加。
+
+2.2c由固定17条合成样本提供筛选／排序／展开、选择／批注和显式附加，实际createReportContext、ContextContributionProvider、useBusinessSession、drafts及原检查／编辑／移除组件真实；KernelClient、来源快照及页面控制器替身明确。主线ui-acceptance.log真实Browser／Electron各两项，共4/4；核原正文／原摘录保持、对象及来源版本、批注编辑／移除、单批过量整批拒绝和旧消费者dispose后拒绝。不是合并后全部容量分支或未dispose消息错配的双宿主覆盖，不证明真实资源授权、完整composer发送、隔离或I5。独审fixture-review.md无确证P1/P2；README已补持久静态配置生成器／服务器位置和完整前置命令，仍依赖该保留cache入口。
+
+主线共享构建、tools／desktop／fixture类型及架构通过。冻结源码双宿主通过后仅修provider关闭、回归及README，未改UI代码，不重复UI。最终受影响15文件Biome、两change strict、scholoom-dev schema、diff和修正观测竞态后的关闭单项通过，见final-checks.json；tools最终复验亦通过。Windows native未编译／执行，生态独审发现单独记录在所属change，不能以Linux结果或skip替代。后续先同步并验证七树，再派发2.1d与R2，完整2.1b／2.2／3.x／I5保持开放；不查询CI、不新增付费模型请求、不安装系统服务。
+
 ## 第17轮主线验收（2026-10-29）
 
 五树增量已冻结、保全并合入dev；本change接收独立身份服务候选及可信选择消费者。消费者模块位于`apps/desktop/src/renderer/src/workbench/report-context.ts`，保持已核快照、原视图／版本和原接收者，完整对象／来源／comment经一次appendContextItems接共同草稿；不是活动报告运行入口。2.2b关闭，完整2.2／2.1b／3.x／I5继续开放；新增下一片2.1c和2.2c，当前9/17。
