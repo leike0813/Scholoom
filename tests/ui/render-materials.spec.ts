@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import { basename, join } from 'node:path';
+import type { Locator, Page } from '@playwright/test';
 import { createKernelClient } from '../../packages/client/dist/index.js';
 import type { ResourceDescriptor } from '../../packages/protocol/dist/index.js';
 import { runningKernel } from '../kernel-fixture.js';
@@ -10,6 +11,221 @@ import { startModelKernel } from '../model-kernel.js';
 import { createModelServer } from '../model-server.js';
 import { addProject, createSession, expect, test } from './fixture.js';
 import { rendererUrl } from './renderer-url.js';
+
+async function selectRenderText(page: Page, pdf: Locator) {
+  const sdk = pdf.locator('embedpdf-container');
+  await expect
+    .poll(() =>
+      sdk.evaluate(async (element) => {
+        const registry = await Reflect.get(element, 'registry');
+        return registry.getPlugin('selection').provides().getState().geometry[0]?.runs.length ?? 0;
+      }),
+    )
+    .toBeGreaterThan(0);
+  const points = await sdk.evaluate(async (element) => {
+    const registry = await Reflect.get(element, 'registry');
+    const geometry = registry.getPlugin('selection').provides().getState().geometry[0];
+    const run = geometry.runs.find((run: { glyphs: unknown[] }) => run.glyphs.length > 8);
+    const first = run.glyphs[0],
+      last = run.glyphs.at(-1);
+    const size = registry.getPlugin('document-manager').provides().getActiveDocument()
+      .pages[0].size;
+    return {
+      x1: first.x + 0.1,
+      x2: last.x + last.width - 0.1,
+      y: first.y + first.height / 2,
+      width: size.width,
+      height: size.height,
+    };
+  });
+  const box = await pdf.locator('img[src^="blob:"]').first().boundingBox();
+  assert(box);
+  await page.mouse.move(
+    box.x + (box.width * points.x1) / points.width,
+    box.y + (box.height * points.y) / points.height,
+  );
+  await page.mouse.down();
+  await page.mouse.move(
+    box.x + (box.width * points.x2) / points.width,
+    box.y + (box.height * points.y) / points.height,
+    { steps: 12 },
+  );
+  await page.mouse.up();
+}
+
+for (const protection of ['dirty', 'annotation'] as const) {
+  test(`cross-format PDF to HTML preserves ${protection} through delayed, failed and superseded candidates`, async ({
+    uiPage,
+  }, info) => {
+    test.setTimeout(180000);
+    const root = info.outputPath(`cross-format-${protection}-${info.project.name}`);
+    await mkdir(root, { recursive: true });
+    await writeFile(join(root, 'paper.qmd'), 'Cross format original evidence 73.\n');
+    const formats = new Map<string, string>();
+    const calls: unknown[] = [];
+    let armed: 'describe' | 'read' | undefined;
+    let gateReady = () => {};
+    const arm = (method: 'describe' | 'read') => {
+      armed = method;
+      return new Promise<void>((resolve) => {
+        gateReady = resolve;
+      });
+    };
+    let held: { outputId: string; release(fail?: boolean): void } | undefined;
+    await uiPage.routeWebSocket(/\/rpc(?:\?|$)|^ws:\/\//, (route) => {
+      const server = route.connectToServer();
+      const requests = new Map<
+        string,
+        { method: string; params: { ref?: { outputId?: string }; locator?: { outputId?: string } } }
+      >();
+      route.onMessage((raw) => {
+        const request = JSON.parse(raw.toString());
+        if (request.id !== undefined && request.method) requests.set(String(request.id), request);
+        server.send(raw);
+      });
+      server.onMessage((raw) => {
+        const reply = JSON.parse(raw.toString());
+        const request = requests.get(String(reply.id));
+        requests.delete(String(reply.id));
+        if (reply.result?.ref?.source === 'render' && reply.result.format)
+          formats.set(reply.result.ref.outputId, reply.result.format);
+        const id = request?.params?.ref?.outputId ?? request?.params?.locator?.outputId;
+        if (request?.method.startsWith('resources.') && calls.length < 80)
+          calls.push({ method: request.method, id, format: id && formats.get(id), armed });
+        if (
+          id &&
+          formats.get(id) === 'html' &&
+          request?.method === `resources.${armed}` &&
+          reply.result
+        ) {
+          assert(!held);
+          armed = undefined;
+          held = {
+            outputId: id,
+            release(fail = false) {
+              held = undefined;
+              if (fail)
+                route.send(
+                  JSON.stringify({
+                    jsonrpc: '2.0',
+                    id: reply.id,
+                    error: {
+                      code: -32603,
+                      message: 'Synthetic delivery failure',
+                      data: { code: 'unavailable', message: 'Synthetic delivery failure' },
+                    },
+                  }),
+                );
+              else route.send(raw);
+            },
+          };
+          gateReady();
+        } else route.send(raw);
+      });
+    });
+    const draft = () =>
+      uiPage.evaluate(() =>
+        Object.entries(localStorage).filter(([key]) => key.endsWith('|context-items')),
+      );
+    try {
+      await uiPage.goto(rendererUrl);
+      await expect(uiPage.getByRole('status', { name: '连接状态' })).toContainText('已连接');
+      await addProject(uiPage, root);
+      await createSession(uiPage, basename(root));
+      await uiPage.getByRole('treeitem', { name: '打开文件 paper.qmd', exact: true }).dblclick();
+      await uiPage
+        .getByRole('button', {
+          name: protection === 'dirty' ? '并排排版' : '完整排版',
+          exact: true,
+        })
+        .click();
+      const render = uiPage.getByRole('region', { name: '完整排版预览', exact: true });
+      await render.getByLabel('预览格式', { exact: true }).selectOption('pdf');
+      const pdf = render.getByRole('region', { name: '排版 PDF', exact: true });
+      const image = pdf.locator('img[src^="blob:"]').first();
+      await expect(image).toBeVisible({ timeout: 60000 });
+      const originalImage = await image.elementHandle();
+      if (protection === 'annotation') {
+        await selectRenderText(uiPage, pdf);
+        await pdf.getByRole('button', { name: '批注', exact: true }).click();
+        await pdf
+          .getByRole('textbox', { name: '材料批注', exact: true })
+          .fill('Keep the original PDF evidence.');
+      } else {
+        await uiPage
+          .locator('.cm-content[contenteditable="true"]')
+          .first()
+          .press('ControlOrMeta+End');
+        await uiPage.keyboard.type(' unsaved local draft');
+      }
+      const originalDraft = await draft();
+      const described = arm('describe');
+      await render.getByLabel('预览格式', { exact: true }).selectOption('html');
+      await described;
+      await expect(image).toBeVisible();
+      expect(await originalImage?.evaluate((node) => node.isConnected)).toBe(true);
+      await expect(render.getByRole('button', { name: '查看新版', exact: true })).toHaveCount(0);
+      const bytes = arm('read');
+      held?.release();
+      await bytes;
+      await expect(image).toBeVisible();
+      await expect(render.getByRole('button', { name: '查看新版', exact: true })).toHaveCount(0);
+      held?.release(true);
+      await expect(
+        render.getByRole('alert').filter({ hasText: 'Synthetic delivery failure' }),
+      ).toBeVisible();
+      await expect(image).toBeVisible();
+      expect(await draft()).toEqual(originalDraft);
+      const superseded = arm('read');
+      await render.getByRole('button', { name: '重新编译', exact: true }).click();
+      await superseded;
+      const older = held;
+      assert(older);
+      held = undefined;
+      await writeFile(join(root, 'paper.qmd'), 'Complete newer candidate C 75.\n');
+      await render.getByRole('button', { name: '重新编译', exact: true }).click();
+      await expect(render.getByRole('button', { name: '查看新版', exact: true })).toBeVisible({
+        timeout: 60000,
+      });
+      await expect(image).toBeVisible();
+      await render.getByRole('button', { name: '查看新版', exact: true }).click();
+      const frame = uiPage.frameLocator('iframe[title="HTML 排版预览"]:visible');
+      await expect(
+        frame.getByText('Complete newer candidate C 75.', { exact: true }),
+      ).toBeVisible();
+      older.release();
+      await uiPage.evaluate(
+        () =>
+          new Promise<void>((resolve) =>
+            requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+          ),
+      );
+      await expect(
+        frame.getByText('Complete newer candidate C 75.', { exact: true }),
+      ).toBeVisible();
+      expect(await draft()).toEqual(originalDraft);
+      if (protection === 'dirty')
+        await expect(uiPage.locator('.cm-content[contenteditable="true"]').first()).toContainText(
+          'unsaved local draft',
+        );
+      await info.attach('cross-format-evidence', {
+        body: JSON.stringify({
+          protection,
+          originalDraft,
+          supersededOutput: older.outputId,
+          formats: [...formats],
+        }),
+        contentType: 'application/json',
+      });
+    } finally {
+      held?.release();
+      await info.attach('candidate-rpc-deliveries', {
+        body: JSON.stringify(calls),
+        contentType: 'application/json',
+      });
+    }
+  });
+}
 
 test('static HTML annotations preserve render evidence through source changes, shared send and reopening', async ({
   uiPage,
@@ -353,46 +569,7 @@ test('embedded PDF selection keeps its own render identity through composer, act
     const original = resource;
     expect(original.render?.input.ref.source).toBe('project');
     expect(original.basis).not.toBe(original.render?.input.basis);
-    const sdk = pdf.locator('embedpdf-container');
-    await expect
-      .poll(() =>
-        sdk.evaluate(async (element) => {
-          const registry = await Reflect.get(element, 'registry');
-          return (
-            registry.getPlugin('selection').provides().getState().geometry[0]?.runs.length ?? 0
-          );
-        }),
-      )
-      .toBeGreaterThan(0);
-    const points = await sdk.evaluate(async (element) => {
-      const registry = await Reflect.get(element, 'registry');
-      const geometry = registry.getPlugin('selection').provides().getState().geometry[0];
-      const run = geometry.runs.find((run: { glyphs: unknown[] }) => run.glyphs.length > 8);
-      const first = run.glyphs[0],
-        last = run.glyphs.at(-1);
-      const size = registry.getPlugin('document-manager').provides().getActiveDocument()
-        .pages[0].size;
-      return {
-        x1: first.x + 0.1,
-        x2: last.x + last.width - 0.1,
-        y: first.y + first.height / 2,
-        width: size.width,
-        height: size.height,
-      };
-    });
-    const box = await pdf.locator('img[src^="blob:"]').first().boundingBox();
-    assert(box);
-    await uiPage.mouse.move(
-      box.x + (box.width * points.x1) / points.width,
-      box.y + (box.height * points.y) / points.height,
-    );
-    await uiPage.mouse.down();
-    await uiPage.mouse.move(
-      box.x + (box.width * points.x2) / points.width,
-      box.y + (box.height * points.y) / points.height,
-      { steps: 12 },
-    );
-    await uiPage.mouse.up();
+    await selectRenderText(uiPage, pdf);
     await pdf.getByRole('button', { name: '附加第 1 页选区', exact: true }).click();
     const dock = uiPage.locator('.agent-dock');
     await dock.getByLabel('查看附加上下文', { exact: true }).click();

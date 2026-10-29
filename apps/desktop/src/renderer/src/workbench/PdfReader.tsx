@@ -123,11 +123,64 @@ export function RenderedPdf({ url }: { url: string }) {
   );
 }
 
+export type PreparedPdf = { url: string; release(): void };
+export async function preparePdfResource(
+  resource: ResourceDescriptor,
+  port: WorkbenchResourcePort,
+  signal: AbortSignal,
+): Promise<PreparedPdf> {
+  await port.document(resource, 'pdfInfo', {});
+  const parts: BlobPart[] = [];
+  let offset = 0;
+  for (;;) {
+    signal.throwIfAborted();
+    const result = await port.read({
+      ref: resource.ref,
+      basis: resource.basis,
+      encoding: 'base64',
+      offset,
+      limit: 262144,
+    });
+    signal.throwIfAborted();
+    if (
+      !sameResourceRef(result.ref, resource.ref) ||
+      result.unit !== 'byte' ||
+      result.offset !== offset ||
+      result.basis !== resource.basis
+    )
+      throw new Error('材料依据或读取位置已变化。');
+    const bytes = Uint8Array.from(atob(result.data), (char) => char.charCodeAt(0));
+    if (result.size > 134217728 || offset + bytes.length > result.size)
+      throw new Error('PDF超过128MiB读取上限。');
+    parts.push(bytes);
+    if (result.nextOffset === undefined) {
+      if (offset + bytes.length !== result.size) throw new Error('PDF读取不完整。');
+      break;
+    }
+    if (!bytes.length || result.nextOffset !== offset + bytes.length)
+      throw new Error('材料读取位置未推进。');
+    offset = result.nextOffset;
+  }
+  const fresh = await port.describe(resource.ref);
+  signal.throwIfAborted();
+  if (
+    !sameResourceRef(fresh.ref, resource.ref) ||
+    fresh.basis !== resource.basis ||
+    !fresh.capabilities.read
+  )
+    throw new Error('材料版本或权限已变化。');
+
+  const url = URL.createObjectURL(new Blob(parts, { type: 'application/pdf' }));
+  return { url, release: () => URL.revokeObjectURL(url) };
+}
+
 export function PdfReader({
   resource,
   port,
   records: recordAdapter,
   enabled,
+  prepared,
+  onUnavailable,
   viewId: suppliedViewId,
   ariaLabel,
 }: {
@@ -135,10 +188,15 @@ export function PdfReader({
   port: WorkbenchResourcePort;
   records?: ReadingRecordAdapter | undefined;
   enabled: boolean;
+  /** Borrowed from the render pane; its owner releases the object URL. */
+  prepared?: PreparedPdf | undefined;
+  onUnavailable?: (() => void) | undefined;
   viewId?: string | undefined;
   ariaLabel?: string | undefined;
 }) {
   const [tick, setTick] = useState(0);
+  const unavailableCallback = useRef(onUnavailable);
+  unavailableCallback.current = onUnavailable;
   const [grants, setGrants] = useState({ read: false });
   const [recordWrite, setRecordWrite] = useState(false);
   const [url, setUrl] = useState('');
@@ -213,6 +271,7 @@ export function PdfReader({
           setError(fresh.unavailableReason ?? '');
           setGrants({ read: fresh.capabilities.read });
           setAuthorizedKey(resourceKey);
+          if (!fresh.capabilities.read) unavailableCallback.current?.();
         },
         (reason) => {
           if (current) {
@@ -220,6 +279,7 @@ export function PdfReader({
             setAuthorizedKey('');
             setUnavailable(true);
             setError(messageOf(reason));
+            unavailableCallback.current?.();
           }
         },
       )
@@ -229,6 +289,7 @@ export function PdfReader({
           setAuthorizedKey('');
           setUnavailable(true);
           setError(messageOf(reason));
+          unavailableCallback.current?.();
         }
       });
     return () => {
@@ -262,56 +323,35 @@ export function PdfReader({
 
   useEffect(() => {
     if (!active) return;
-    let current = true;
-    let objectUrl = '';
+    const controller = new AbortController();
+    let loaded: PreparedPdf | undefined;
     setError('');
-    void (async () => {
-      await port.document(resource, 'pdfInfo', {});
-      const parts: BlobPart[] = [];
-      let offset = 0;
-      for (;;) {
-        if (!current) return;
-        const result = await port.read({
-          ref: resource.ref,
-          basis: resource.basis,
-          encoding: 'base64',
-          offset,
-          limit: 262144,
-        });
-        if (!current) return;
-        if (
-          !sameResourceRef(result.ref, resource.ref) ||
-          result.unit !== 'byte' ||
-          result.offset !== offset ||
-          result.basis !== resource.basis
-        )
-          throw new Error('材料依据或读取位置已变化。');
-        const bytes = Uint8Array.from(atob(result.data), (char) => char.charCodeAt(0));
-        if (result.size > 134217728 || offset + bytes.length > result.size)
-          throw new Error('PDF超过128MiB读取上限。');
-        parts.push(bytes);
-        if (result.nextOffset === undefined) {
-          if (offset + bytes.length !== result.size) throw new Error('PDF读取不完整。');
-          break;
+    if (prepared) {
+      setUrl(prepared.url);
+      return () => setUrl('');
+    }
+    void preparePdfResource(resource, port, controller.signal)
+      .then((result) => {
+        if (controller.signal.aborted) {
+          result.release();
+          return;
         }
-        if (result.nextOffset <= offset) throw new Error('材料读取位置未推进。');
-        offset = result.nextOffset;
-      }
-      if (!current) return;
-      objectUrl = URL.createObjectURL(new Blob(parts, { type: 'application/pdf' }));
-      setUrl(objectUrl);
-    })().catch((reason) => {
-      if (current) {
-        setError(messageOf(reason));
-        setUnavailable(true);
-      }
-    });
+        loaded = result;
+        setUrl(result.url);
+      })
+      .catch((reason) => {
+        if (!controller.signal.aborted) {
+          setError(messageOf(reason));
+          setUnavailable(true);
+          unavailableCallback.current?.();
+        }
+      });
     return () => {
-      current = false;
-      if (objectUrl) URL.revokeObjectURL(objectUrl);
+      controller.abort();
+      loaded?.release();
       setUrl('');
     };
-  }, [port, resource, active]);
+  }, [port, resource, active, prepared]);
 
   const ready = useCallback((value: PluginRegistry) => {
     const cleanups: (() => void)[] = [];
