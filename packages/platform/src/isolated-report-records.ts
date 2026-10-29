@@ -65,35 +65,76 @@ export class IsolationRecords {
 
   async initialize(): Promise<void> {
     await mkdir(this.path, { recursive: true, mode: 0o700 });
-    this.root = await open(this.path, flags | constants.O_DIRECTORY);
-    const info = await this.root.stat({ bigint: true });
-    if (info.uid !== BigInt(process.getuid?.() ?? -1) || info.mode & 0o077n) throw unavailable();
-    this.rootIdentity = `${info.dev}:${info.ino}`;
+    await this.initializeExisting();
+  }
+  async initializeExisting(): Promise<void> {
+    const root = await open(this.path, flags | constants.O_DIRECTORY);
+    try {
+      const info = await root.stat({ bigint: true });
+      if (info.uid !== BigInt(process.getuid?.() ?? -1) || info.mode & 0o077n) throw unavailable();
+      this.rootIdentity = `${info.dev}:${info.ino}`;
+      this.root = root;
+    } catch (error) {
+      await root.close();
+      throw error;
+    }
   }
   /** Called only while the native flock holder is alive. */
   async load(): Promise<IsolationReceipt[]> {
     try {
-      const value = (await this.read(this.base, 'config.json')) as {
-        version: number;
-        configId: string;
-        identity: string;
-      };
-      if (value.version !== 1 || !uuid.test(value.configId) || value.identity !== this.rootIdentity)
-        throw unavailable();
-      this.configId = value.configId;
+      this.configId = await this.readConfig();
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
-      // An identity loss is not a new config. Never erase its recovery inventory.
-      for await (const entry of await opendir(this.base))
-        if (entry.name !== 'writer.lock') throw unavailable();
-      this.configId = randomUUID();
-      await this.atomic(this.root, 'config.json', {
-        version: 1,
-        configId: this.configId,
-        identity: this.rootIdentity,
-      });
-      await this.atomic(this.root, 'index.json', []);
+      await this.provision();
     }
+    return this.readInventory();
+  }
+  /** Caller must hold the original native writer lock until close. Never provisions on failure. */
+  async loadExisting(expectedConfigId: string): Promise<{
+    configId: string;
+    receipts: IsolationReceipt[];
+  }> {
+    await this.check();
+    const configId = await this.readConfig();
+    if (configId !== expectedConfigId) throw unavailable();
+    this.configId = configId;
+    const receipts = await this.readInventory();
+    await this.check();
+    return { configId, receipts };
+  }
+  /** Caller must hold the original native writer lock until close. Only accepts an empty root. */
+  async provisionEmpty(): Promise<{ configId: string; receipts: IsolationReceipt[] }> {
+    await this.check();
+    await this.provision();
+    const receipts = await this.readInventory();
+    await this.check();
+    return { configId: this.configId, receipts };
+  }
+  private async readConfig(): Promise<string> {
+    const value = (await this.read(this.base, 'config.json')) as {
+      version: number;
+      configId: string;
+      identity: string;
+    };
+    if (value.version !== 1 || !uuid.test(value.configId) || value.identity !== this.rootIdentity)
+      throw unavailable();
+    return value.configId;
+  }
+  private async provision(): Promise<void> {
+    // An identity loss is not a new config. Never erase its recovery inventory.
+    for await (const entry of await opendir(this.base))
+      if (entry.name !== 'writer.lock') throw unavailable();
+    const lock = await lstat(join(this.base, 'writer.lock'));
+    if (!lock.isFile() || lock.nlink !== 1 || lock.uid !== process.getuid?.()) throw unavailable();
+    this.configId = randomUUID();
+    await this.atomic(this.root, 'config.json', {
+      version: 1,
+      configId: this.configId,
+      identity: this.rootIdentity,
+    });
+    await this.atomic(this.root, 'index.json', []);
+  }
+  private async readInventory(): Promise<IsolationReceipt[]> {
     const index = await this.read(this.base, 'index.json');
     if (!Array.isArray(index) || index.length > IsolationRecords.maxInstances) throw unavailable();
     const seen = new Set<string>();
@@ -202,7 +243,13 @@ export class IsolationRecords {
   }
   async check(): Promise<void> {
     const info = await lstat(this.path, { bigint: true });
-    if (!info.isDirectory() || `${info.dev}:${info.ino}` !== this.rootIdentity) throw unavailable();
+    if (
+      !info.isDirectory() ||
+      `${info.dev}:${info.ino}` !== this.rootIdentity ||
+      info.uid !== BigInt(process.getuid?.() ?? -1) ||
+      info.mode & 0o077n
+    )
+      throw unavailable();
     for (const [id, handle] of this.directories) {
       const current = await lstat(join(this.base, id), { bigint: true });
       const held = await handle.stat({ bigint: true });
