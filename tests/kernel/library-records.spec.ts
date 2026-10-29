@@ -18,7 +18,10 @@ test('atomic records preserve raw values and pinned keys, reject case conflicts 
       batchId: randomUUID(),
       origin: 'synthetic',
       version: 'published',
-      json: JSON.stringify([{ title: '原甲', extension: { nested: true } }, { title: '原乙' }]),
+      json: JSON.stringify([
+        { type: 'broadcast', title: '原甲', extension: { nested: true } },
+        { type: 'broadcast', title: '原乙' },
+      ]),
     });
     await expect.poll(() => catalog.batch({ batchId: batch.id }).batch.state).toBe('completed');
     const [a, b] = catalog.list({}).sources;
@@ -36,11 +39,13 @@ test('atomic records preserve raw values and pinned keys, reject case conflicts 
       creators: [
         { creatorType: 'director', firstName: '小明', lastName: '王', fieldMode: 0, orderIndex: 0 },
         { creatorType: 'author', lastName: '研究所', fieldMode: 1, orderIndex: 1 },
+        { creatorType: 'director', firstName: '小红', lastName: '李', fieldMode: 0, orderIndex: 2 },
       ],
       relations: { related: ['OTHERKEY'] },
     };
     const copyOriginal = {
       ...original,
+      itemType: 'tvBroadcast',
       identity: { ...original.identity, instanceId: copy.id },
       fields: { ...original.fields, title: '原乙' },
     };
@@ -172,18 +177,42 @@ test('atomic records preserve raw values and pinned keys, reject case conflicts 
           {
             sourceId: a.id,
             revision: currentA.revision,
-            metadata: { ...currentA.metadata, title: '新甲' },
+            metadata: { ...currentA.metadata, title: '候选后甲' },
             key: { value: 'GeneratedKey', pinned: false, intent: 'candidate' },
           },
         ],
       }),
     ).toMatchObject({ state: 'committed', results: [{ keyCandidate: 'preserved' }] });
+    expect(catalog.get(a.id).metadata).toEqual({ ...a.metadata, title: '候选后甲' });
+    expect(
+      catalog.commitRecords({
+        libraryId,
+        requestId: randomUUID(),
+        changes: [
+          {
+            sourceId: a.id,
+            revision: catalog.get(a.id).revision,
+            metadata: { ...currentA.metadata, title: '新甲' },
+          },
+          {
+            sourceId: b.id,
+            revision: currentB.revision,
+            metadata: { ...currentB.metadata, title: '新乙' },
+          },
+        ],
+      }),
+    ).toMatchObject({ state: 'committed' });
     const record = catalog.record({ libraryId, sourceId: a.id });
     expect(record).toMatchObject({
       citationKey: { value: 'Smith2024', pinned: true },
       originals: [original],
     });
     expect(catalog.get(a.id).metadata).toEqual({ ...a.metadata, title: '新甲' });
+    expect(catalog.get(a.id).metadata.type).toBe('broadcast');
+    expect(catalog.get(b.id).metadata).toEqual({ ...b.metadata, title: '新乙' });
+    expect(catalog.get(b.id).metadata.type).toBe('broadcast');
+    const secondRecord = catalog.record({ libraryId, sourceId: b.id });
+    expect(secondRecord.originals).toEqual([copyOriginal]);
     const beforeUnpin = catalog.get(a.id);
     const beforeUnpinHistory = catalog.history({ sourceId: a.id }).sources;
     const beforeUnpinRecords = catalog.recordHistory({ libraryId, sourceId: a.id }).records;
@@ -214,6 +243,7 @@ test('atomic records preserve raw values and pinned keys, reject case conflicts 
     await catalog.initialize();
     expect(catalog.commitResult({ libraryId, requestId: initial.requestId })).toEqual(receipt);
     expect(catalog.record({ libraryId, sourceId: a.id })).toMatchObject(record);
+    expect(catalog.record({ libraryId, sourceId: b.id })).toEqual(secondRecord);
     catalog.grant({ read: true, write: false, send: false, autoBackup: false });
     expect(() => catalog.commitRecords({ ...initial, requestId: randomUUID() })).toThrow(
       expect.objectContaining({ code: 'permissionDenied' }),
@@ -221,6 +251,99 @@ test('atomic records preserve raw values and pinned keys, reject case conflicts 
   } finally {
     await catalog.close();
     await rm(root, { recursive: true });
+  }
+});
+
+test('NFC-equivalent citation keys conflict without changing original spelling or any batch records', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'scholoom-record-nfc-'));
+  test.info().annotations.push({ type: 'authority-nfc-fixture', description: root });
+  let notices = 0;
+  let catalog = new LiteratureCatalog(root, () => notices++);
+  try {
+    await catalog.initialize();
+    catalog.grant({ read: true, write: true, send: false, autoBackup: false });
+    const libraryId = catalog.status().id;
+    const batch = catalog.ingest({
+      batchId: randomUUID(),
+      origin: 'synthetic',
+      version: 'published',
+      json: JSON.stringify([{ title: 'Unicode甲' }, { title: 'Unicode乙' }]),
+    });
+    await expect.poll(() => catalog.batch({ batchId: batch.id }).batch.state).toBe('completed');
+    const sources = catalog.list({}).sources;
+    expect(sources).toHaveLength(2);
+    const instance = catalog.createSourceInstance({
+      libraryId,
+      requestId: randomUUID(),
+      label: 'Unicode key sample',
+    });
+    const originals = sources.map((source) => ({
+      identity: { instanceId: instance.id, libraryLocator: 'synthetic', objectKey: source.id },
+      schemaVersion: '44',
+      itemType: 'journalArticle',
+      fields: { title: source.metadata.title },
+      creators: [],
+      relations: {},
+    }));
+    expect(
+      catalog.commitRecords({
+        libraryId,
+        requestId: randomUUID(),
+        changes: sources.map((source, i) => {
+          const original = originals[i];
+          if (!original) throw new Error('Missing synthetic original');
+          return {
+            sourceId: source.id,
+            revision: source.revision,
+            original,
+            key: {
+              value: i === 0 ? 'E\u03012024' : 'Other2024',
+              pinned: true,
+              intent: 'explicit' as const,
+            },
+          };
+        }),
+      }),
+    ).toMatchObject({ state: 'committed' });
+    const snapshot = () =>
+      sources.map((source) => ({
+        source: catalog.get(source.id),
+        record: catalog.record({ libraryId, sourceId: source.id }),
+        history: catalog.history({ sourceId: source.id }),
+        recordHistory: catalog.recordHistory({ libraryId, sourceId: source.id }),
+      }));
+    const before = snapshot();
+    expect(before[0]?.record.citationKey).toEqual({ value: 'E\u03012024', pinned: true });
+    const noticesBefore = notices;
+    const request = {
+      libraryId,
+      requestId: randomUUID(),
+      changes: sources.map((source, i) => {
+        const original = originals[i];
+        if (!original) throw new Error('Missing synthetic original');
+        return {
+          sourceId: source.id,
+          revision: catalog.get(source.id).revision,
+          metadata: { ...source.metadata, title: '冲突批次不应留下CSL' },
+          original: { ...original, fields: { title: '冲突批次不应留下原值' } },
+          ...(i === 1
+            ? { key: { value: 'É2024', pinned: false, intent: 'explicit' as const } }
+            : {}),
+        };
+      }),
+    };
+    const result = catalog.commitRecords(request);
+    expect(result).toMatchObject({ state: 'rejected', error: { code: 'targetAmbiguous' } });
+    expect(catalog.commitResult({ libraryId, requestId: request.requestId })).toEqual(result);
+    expect(snapshot()).toEqual(before);
+    expect(notices).toBe(noticesBefore);
+    await catalog.close();
+    catalog = new LiteratureCatalog(root, () => notices++);
+    await catalog.initialize();
+    expect(snapshot()).toEqual(before);
+    expect(catalog.commitResult({ libraryId, requestId: request.requestId })).toEqual(result);
+  } finally {
+    await catalog.close();
   }
 });
 

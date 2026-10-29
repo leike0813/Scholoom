@@ -1,5 +1,26 @@
 # 实际交付与交接
 
+## 第27轮：补齐首批三处场景证据（2026-10-30）
+
+按主线确认，本轮目标是本change（派发中`establish-library-original-record-authority`为命名笔误），原tasks保持10/10。基线`bb8b236e0fd37e59cffd30607372e444be633324`、开工clean；只扩原`tests/kernel/library-records.spec.ts`和本交付，不改生产库／schema／protocol或`zotero-host.spec.ts`。对应第26轮`library-contract-review.md`的A-W1/2/3，先查保留cache，未找到精确组合成功记录；撤权标题的原命中均为跳过，不记通过。
+
+- **A-W1**：扩原atomic records用例，radioBroadcast与tvBroadcast同用`broadcast` CSL，原创建者为director／author／director交错顺序。一次只更正两条共同CSL题名后，分别核原类型、身份、姓名／顺序、日期、Extra及原关系保持，第二条也在真实SQLite重启后读回；第一条沿原断言核对。共同类型与原值是独立合成样本，映射依据为已保留的`connect-zotero-host-bbt/evidence/zotero-10.0.5-mapping.json`，本例不执行上游转换器或宣称全类型映射通过。
+- **A-W2**：仅新增一个NFC代表，先保存原拼写`E\u03012024`，另一条以`É2024`发起冲突，并让同批两条请求修改CSL／原值。实际`targetAmbiguous`整组拒绝；两条题录／修订、原值、正式键／固定状态、两类历史及通知均不变，拒绝回执可查询；重启真实SQLite后再次核原拼写与全部状态不变。原ASCII大小写保护保留。
+- **A-W3**：只执行既有`zotero.fillKeys rechecks revoked authority after snapshot acceptance`。原共同快照后私有操作文件已出现，再撤销write/send；实际返回`outcomeUnknown`、原selection保持、`zotero.result`为notFound。使用本机未修改BBT9.0.68 XPI、真实KernelApplication／broker／SQLite及原受管宿主路径，无内存authority port、真实模型或真实源库。本例证明撤权分支，不能将其当成一次成功补键或全部原包生命周期验收。
+
+证据根`/home/joshua/.cache/scholoom-round27-acceptance-O1IWSr/next/zotero-ecosystem/`，精确参数、环境、实际退出码在`commands.jsonl`，源码／已存在构建产物指纹在`fixed-versions.json`和`versions-submit.json`（中途NFC修正另存`versions-final.json`）。仅测试变化，沿已同步固定dist运行，没有重建全仓或改受测产物。
+
+```sh
+node node_modules/@playwright/test/cli.js test --config playwright.kernel.config.ts tests/kernel/library-records.spec.ts --grep 'atomic records preserve raw values|NFC-equivalent citation keys' --workers=1 --reporter=list,json --output /home/joshua/.cache/scholoom-round27-acceptance-O1IWSr/next/zotero-ecosystem/records-results
+node node_modules/@playwright/test/cli.js test --config playwright.kernel.config.ts tests/kernel/library-records.spec.ts --grep 'NFC-equivalent citation keys' --workers=1 --reporter=list,json --output /home/joshua/.cache/scholoom-round27-acceptance-O1IWSr/next/zotero-ecosystem/nfc-final-results
+node node_modules/@playwright/test/cli.js test --config playwright.kernel.config.ts tests/kernel/library-records.spec.ts --grep 'atomic records preserve raw values' --workers=1 --reporter=list,json --output /home/joshua/.cache/scholoom-round27-acceptance-O1IWSr/next/zotero-ecosystem/broadcast-final-results
+node node_modules/@playwright/test/cli.js test --config playwright.kernel.config.ts tests/kernel/zotero-host.spec.ts --grep 'zotero[.]fillKeys rechecks revoked authority after snapshot acceptance$' --workers=1 --reporter=list,json --output /home/joshua/.cache/scholoom-round27-acceptance-O1IWSr/next/zotero-ecosystem/bbt-selected-results
+```
+
+环境为本cache的`tmp/`、既有`DISPLAY=:99`、`SCHOOLOOM_BBT_XPI=/home/joshua/.cache/scholoom-round13-acceptance/preserved-tmp/zotero-better-bibtex-9.0.68.xpi`；JSON输出各由`PLAYWRIGHT_JSON_OUTPUT_FILE`固定到本cache。首次records **2/2，10.3秒**；tools类型首查因新夹具数组索引可能undefined失败，补显式存在检查后NFC **1/1，7.8秒**。收尾将A-W1的metadata-only更正与原候选键保护拆成两次请求，精确覆盖“只改CSL”且保留原断言，仅该受影响用例再验 **1/1，7.8秒**；最终tools类型和Biome通过。BBT首次筛选误将完整标题以`^`锚定，未选中任何测试、退出1；修正为上述尾部锚定后原例 **1/1，15.7秒**。这些是分次结果，不合称一次全绿矩阵。diff检查通过；原日志／失败／JSON均保留，未增加超时、重试或放松断言。
+
+原BBT撤权例输出`hostStoppedWithoutShutdown`：`scopeStopped=true`、`pluginClosed=false`、`unresolved=[]`、`pendingCallbacks=0`，保留unknown而不改称插件优雅关闭。原finally已await app.close，测试worker退出；按本轮fixture参数核剩余自有进程为0（`cleanup.json`），操作现场及NFC库保留在cache；未停止共享DISPLAY。三处场景证据已交回，最终独立审查／接收／归档仍归主线。不重跑其余已绿矩阵，不据此扩为全平台、茉莉花、目标分发或科研质量通过。
+
 ## 首批范围确认与最终领域验收
 
 2026-10-29，用户对本change的2.3与生态proposal范围冲突明确选择“按既定首批范围完成，后置功能另立变更”。本change以真实共同原值／来源实例／正式键／有界原子提交及首批BBT普通期刊消费收尾，当前10/10；茉莉花、复杂映射和Reader写回已登记到[后续提议](../extend-zotero-ecosystem-compatibility/proposal.md)，仍未交付。没有把BBT结果改称茉莉花通过，也未修改数据保护规格。
