@@ -110,6 +110,28 @@ export class IsolationRecords {
       seen.add(entry.instanceId);
       seen.add(entry.storageId);
     }
+    const remaining = new Map<string, 'file' | 'directory'>([
+      ['config.json', 'file'],
+      ['index.json', 'file'],
+      ['writer.lock', 'file'],
+      ...index.map(({ storageId }): [string, 'directory'] => [storageId, 'directory']),
+    ]);
+    try {
+      let count = 0;
+      for await (const entry of await opendir(this.base)) {
+        const kind = remaining.get(entry.name);
+        if (
+          ++count > IsolationRecords.maxInstances + 3 ||
+          !kind ||
+          (kind === 'directory' ? !entry.isDirectory() : !entry.isFile())
+        )
+          throw unavailable();
+        remaining.delete(entry.name);
+      }
+      if (remaining.size) throw unavailable();
+    } catch {
+      throw unavailable();
+    }
     this.index = index;
     const records: IsolationReceipt[] = [];
     for (const entry of this.index) {

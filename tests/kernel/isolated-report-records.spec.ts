@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, readdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { expect, test } from '@playwright/test';
@@ -51,6 +51,117 @@ test.describe('private real record storage boundaries', () => {
     expect(actual).toMatchObject({ configId: receipt.configId, status: { stopConfirmed: false } });
   });
 
+  for (const fault of ['unindexed receipt', 'temporary file', 'indexed non-directory'] as const) {
+    test(`provider refuses ${fault} before reconciling any indexed receipt`, async () => {
+      const f = await store();
+      const receipt = await f.records.create(stage('unconfirmed'), '1', '1');
+      await f.records.close();
+      await f.lock.close();
+      let receiptPath = join(f.root, receipt.storageId, 'receipt.json');
+      let extraPath: string;
+      if (fault === 'unindexed receipt') {
+        const orphan = {
+          ...structuredClone(receipt),
+          storageId: randomUUID(),
+          stage: stage('unindexed'),
+          status: { ...receipt.status, instanceId: 'unindexed' },
+        };
+        await mkdir(join(f.root, orphan.storageId), { mode: 0o700 });
+        extraPath = join(f.root, orphan.storageId, 'receipt.json');
+        await writeFile(extraPath, JSON.stringify(orphan), { mode: 0o600 });
+      } else if (fault === 'temporary file') {
+        extraPath = join(f.root, `.${randomUUID()}.tmp`);
+        await writeFile(extraPath, 'interrupted atomic write', { mode: 0o600 });
+      } else {
+        const preserved = join(cache, `preserved-${randomUUID()}`);
+        await rename(join(f.root, receipt.storageId), preserved);
+        receiptPath = join(preserved, 'receipt.json');
+        extraPath = join(f.root, receipt.storageId);
+        await writeFile(extraPath, 'unexpected ordinary file', { mode: 0o600 });
+      }
+      const paths = [
+        join(f.root, 'config.json'),
+        join(f.root, 'index.json'),
+        receiptPath,
+        extraPath,
+      ];
+      const before = await Promise.all(paths.map((path) => readFile(path)));
+      const members = (await readdir(f.root)).sort();
+      const provider = new IsolatedReportProvider({
+        admission: new ProcessAdmission(1),
+        privateRoot: f.root,
+        programs: [],
+        policies: [],
+        authorize: async () => {},
+      });
+      let initialized = false;
+      try {
+        await expect(
+          provider.initialize().then(() => {
+            initialized = true;
+          }),
+        ).rejects.toMatchObject({ code: 'unavailable' });
+        expect(await Promise.all(paths.map((path) => readFile(path)))).toEqual(before);
+        expect((await readdir(f.root)).sort()).toEqual(members);
+      } finally {
+        if (initialized) await provider.close();
+      }
+    });
+  }
+
+  test('incomplete root enumeration refuses recovery and preserves the pinned inventory', async () => {
+    const f = await store();
+    await f.records.create(stage('unconfirmed'), '1', '1');
+    const before = await readFile(join(f.root, 'index.json'));
+    try {
+      // Search still permits config/index reads, but opening a new directory stream is denied.
+      await chmod(f.root, 0o100);
+      await expect(f.records.load()).rejects.toMatchObject({ code: 'unavailable' });
+    } finally {
+      await chmod(f.root, 0o700);
+      await f.records.close();
+      await f.lock.close();
+    }
+    expect(await readFile(join(f.root, 'index.json'))).toEqual(before);
+  });
+
+  test('complete inventory permits default provider recovery without rebinding the original identity', async () => {
+    const f = await store();
+    const receipt = await f.records.create(stage('never-launched'), '1', '1');
+    const paths = [join(f.root, 'config.json'), join(f.root, 'index.json')];
+    const before = await Promise.all(paths.map((path) => readFile(path)));
+    await f.records.close();
+    await f.lock.close();
+    const admission = new ProcessAdmission(1);
+    const provider = new IsolatedReportProvider({
+      admission,
+      privateRoot: f.root,
+      programs: [],
+      policies: [],
+      authorize: async () => {},
+    });
+    await provider.initialize();
+    try {
+      expect(await provider.get({ instanceId: receipt.stage.instanceId })).toMatchObject({
+        phase: 'stopped',
+        gateReleased: false,
+        stopConfirmed: true,
+      });
+      expect(admission.status.active).toBe(0);
+      expect(await Promise.all(paths.map((path) => readFile(path)))).toEqual(before);
+      const restored = JSON.parse(
+        await readFile(join(f.root, receipt.storageId, 'receipt.json'), 'utf8'),
+      );
+      expect(restored).toMatchObject({
+        configId: receipt.configId,
+        storageId: receipt.storageId,
+        unit: receipt.unit,
+      });
+    } finally {
+      await provider.close();
+    }
+  });
+
   test('long valid IDs hit the shared byte budget before changing the last recoverable real index', async () => {
     const f = await store();
     const original = await f.records.create(stage('template'), '1', '1');
@@ -91,10 +202,12 @@ test.describe('private real record storage boundaries', () => {
     const lock = await isolationLock(restored.lockPath);
     try {
       expect((await restored.load()).length).toBe(index.length);
+      const members = (await readdir(f.root)).sort();
       await expect(restored.create(stage(candidate), '1', '1')).rejects.toMatchObject({
         code: 'resourceLimit',
       });
       expect(await readFile(join(f.root, 'index.json'), 'utf8')).toBe(bytes);
+      expect((await readdir(f.root)).sort()).toEqual(members);
       expect((await restored.load()).length).toBe(index.length);
     } finally {
       await restored.close();

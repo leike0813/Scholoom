@@ -659,7 +659,7 @@ test.describe('independent Linux isolated native provider', () => {
       const births = await Promise.all(
         members.map(async (pid) => ({ pid, stat: await readFile(`/proc/${pid}/stat`, 'utf8') })),
       );
-      await writeFile(join(root, 'members-before-loss.json'), JSON.stringify(births));
+      await writeFile(`${config}.members-before-loss.json`, JSON.stringify(births));
       const exited = new Promise<void>((resolve) => host.once('exit', () => resolve()));
       host.kill('SIGKILL');
       await exited;
@@ -694,7 +694,7 @@ test.describe('independent Linux isolated native provider', () => {
         policies: [policy],
         authorize: async () => {},
       };
-      await writeFile(join(root, 'receipt-before-restart.json'), JSON.stringify(original.value));
+      await writeFile(`${config}.receipt-before-restart.json`, JSON.stringify(original.value));
       recovered = new IsolatedReportProvider(options);
       await chmod(original.directory, 0o500);
       await recovered.initialize();
