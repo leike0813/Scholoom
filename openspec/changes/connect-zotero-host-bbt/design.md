@@ -1,6 +1,6 @@
 # 实现设计
 
-## Windows普通布局W1：待主线接收的原生前置（8d8f339）
+## Windows普通布局：已接收W1与W2只读Module实施
 
 ### 第17轮主线选择与W2实施边界
 
@@ -12,12 +12,22 @@
 
 W2委派生态树实现平台原生只读Module、Windows native适配及目标测试定义；本轮不改host-settings叶schema／resolver或启用Windows支持。主线保留共享`platform/src/node.ts`导出及`architecture.json`登记的最终整合；本树可提供具体补丁建议，不能与其他线并写。native构建登记由生态树独占，计算树不修改。没有Windows真实环境时交回代码与准确未验项，W2父任务仍开放；不能以Linux测试、模拟ACL或未执行的skip宣称目标保证成立，CI仍按用户要求后置。
 
-本节补2.3普通持久资源的独立缺口。Linux N2已接收，Windows可信注入原包及fd0也有实跑；百条例停机EPERM由主线公共lifecycle承接，不从ACL快照推唯一原因。investigation的Windows节已确证缺少只读原生树核验；**本轮只落实方案／契约及验收设计，不改生产schema、resolver或公共注册**。跨模块接缝未确认前不加入永远unavailable的Windows空壳，也不放宽Linux资源保护。
+#### W2局部实现及测试计划（add1c49）
+
+只读`platform/src/private-resource-tree.ts`消费固定`dist/private-resource-tree.exe`，每次有界调用原生exe完成扫描／同对象读取；snapshot仅保存初次二进制见证，verify／read必须与其一致，不重新采纳。无需常驻helper或跨command lease；close拒绝新调用、等待自有在途核查并幂等释放内存。每snapshot串行核验、在途加等待最多8项，超限明确resourceLimit，不建立无限Promise队列；此限制只针对私有元数据查询，不替代共同ProcessAdmission。共用`readPrivateResourceFile`承接设置文件核验，不修改privateDirectory准备语义。所有路径只由可信宿主提供，无业务路径端口；helper固定入口、shell=false、5秒／16MiB输出上限，复用nodeEnvironment白名单，不继承全部环境或凭据，单次读最多256KiB，树最多4096项。
+
+Windows native用当前token与本机核定TrustedInstaller SID，按已定规则只读安全描述符／File ID／本地NTFS属性；以目录句柄为RootDirectory逐段打开及枚举，拒绝全部reparse和普通文件多链接。扫描保持目录／文件句柄，完整复扫原路径与成员后才返回；读取从初次扫描持有的同一文件对象进行，再复查树。见证含对象身份、权限描述符、文件修改信息和完整成员集合，祖先忽略无关目录mtime变化；元数据／成员差异返回contentChanged。祖先只创建无关同级文件／目录的权限不视为替换权；有效deny按顺序、INHERIT_ONLY及OWNER RIGHTS映射均明确处理，未知／条件ACE拒绝。目录须当前token可读／遍历，资源文件采用read／execute访问检查，设置读取仅需read；owner条件不代替访问检查。A的检查结束至loader残余窗口保持，不改command。
+
+8MiB限制针对每份序列化见证及每次扫描的相应路径／安全描述符字段，不是整个helper的RSS上限；复查期间同时存在两次Scan和两份见证，另有Entry／目录名及系统分配。输出容量也按该单见证上限收束；总内存与5秒目标耗时尚未在Windows测量，不声明8MiB进程内存或运行性能通过。
+
+新增native文件及构建登记只由本树维护，沿已有Visual C++定位／编译方式；非Windows不编译Windows适配，Module明确不可用。真实Windows测试沿既有自有临时目录／ACL夹具，覆盖有界读取、后代可写、祖先DELETE_CHILD与单纯创建同级的区别、链接、原见证／权限／成员变化及关闭／失败收尾。Linux只检查非目标明确拒绝和现资源保护；没有SDK／目标时保留准确编译／执行缺证，不以模拟或skip计通过。公共导出／architecture另给补丁建议，W2父项待目标结果。
+
+本节补2.3普通持久资源的独立缺口。Linux N2已接收，Windows可信注入原包及fd0也有实跑；百条例停机EPERM由主线公共lifecycle承接，不从ACL快照推唯一原因。8d8f339调查发现的原生缺口已由add1c49授权实施W2；私有Module／native及构建登记已有代码，Windows编译及目标实跑仍待证。不改设置schema、resolver或公共登记，不放宽Linux保护。以下W1比较以顶部第17轮选择及W2局部实现为当前依据，不再等待原A/B决策。
 
 ```mermaid
 flowchart LR
   Settings[唯一私有host-settings] --> Layout[生态固定布局和版本规则]
-  Main[主线决定ACL及启动窗口保证] --> Native[平台只读树核验 待提供]
+  Main[主线已定A及ACL保证] --> Native[W2私有只读树核验 目标待验]
   Native --> Layout
   Layout --> Check[稳定beforeLaunch复查]
   Check --> Command[既有ManagedCommands和Job]
@@ -41,9 +51,9 @@ flowchart LR
 
 操作仍只有原DTO中的libraryId／sourceId／revision／稳定操作ID／表达选择，不接受root、exec、argv、env或凭据。`host-settings.json`本身也须只读核私有ACL／路径身份和同句柄有界读；不能只验证资源树而沿用Windows跳过mode／uid作为充分保护。设置、库身份、授权和原回执不新增权威，缺失／disabled／invalid仍先恢复旧scope，N1独立。
 
-### 平台最小接口及需主线决定的保证
+### 平台最小接口及已选保证
 
-推荐先交只读树核验Module，集中Windows原生实现，对齐Linux“扫描对象绑定＋启动前变化拒绝”，明确不承诺对同权限可信操作者的原子执行绑定。候选窄签名如下，**并非已注册接口**；参数仅由可信kernel供应，不进业务协议：
+只读树核验Module集中Windows原生实现，对齐Linux“扫描对象绑定＋启动前变化拒绝”，明确不承诺对同权限可信操作者的原子执行绑定。下面Interface已在私有叶实现，尚未由platform/node公开导出或产品接入；参数仅由可信kernel供应，不进业务协议：
 
 ```ts
 type PrivateTreeSnapshot = {
@@ -58,24 +68,24 @@ function inspectPrivateResourceTree(input: {
 }): Promise<PrivateTreeSnapshot>;
 ```
 
-生态传固定资源相对路径及4096上限，用snapshot.readFile读版本文件／核必需成员，稳定beforeLaunch调用verifyUnchanged；snapshot只保存内存见证，不持久化句柄／SID或新增资源账本。host-settings读取固定文件的同句柄ACL检查复用该Module内部原语；如需导出独立叶，候选为`readPrivateFile({ configurationDirectory, relativePath, maxBytes }): Promise<Uint8Array>`，消费者固定传host-settings.json／16KiB，由主线一并统一，不在叶模块复制ACL算法。readFile有界并核原对象，verifyUnchanged保留原见证，变化拒绝而非重新采纳。
+W3消费者将传固定资源相对路径及4096上限，用snapshot.readFile读版本文件／核必需成员，稳定beforeLaunch调用verifyUnchanged；snapshot只保存内存见证，不持久化句柄／SID或新增资源账本。设置文件共享叶实际命名为`readPrivateResourceFile({ configurationDirectory, relativePath, maxBytes }): Promise<Uint8Array>`，复用同一native同句柄核验；未来消费者固定传host-settings.json／16KiB，不在叶模块复制ACL算法。readFile有界并核原对象，verifyUnchanged保留原见证，变化拒绝而非重新采纳。
 
 原生提供者须证明：
 
 - 逐层取得本地卷／File ID、reparse属性／tag及安全描述符，在已核目录对象上枚举；核配置目录以上到可信卷／用户目录的祖先和全部资源后代，尤其父目录替换／删除子对象的能力。拒绝junction、symlink及未知重定向，不能只核根ACL或realpath仍在范围。不能要求系统祖先owner都等于当前用户，也不能因此省略祖先核查。
-- 写／删除／改变DACL或owner的权限包含继承、受保护ACL及父目录DELETE_CHILD；缺失／NULL／无法解释的DACL、条件／未知ACE保守拒绝。owner相符与当前token可访问分开判断。**允许的系统管理主体、资源文件能否由非当前用户拥有，需要主线统一策略**：推荐资源树按可信操作者私有准备，系统祖先使用单独明确的可信管理主体规则，不自行忽略Everyone修改权。
+- 写／删除／改变DACL或owner的权限包含继承、受保护ACL及父目录DELETE_CHILD；缺失／NULL／无法解释的DACL、条件／未知ACE保守拒绝。owner相符与当前token可访问分开判断；可信主体／owner规则已由顶部第17轮选择确定，Windows原生代码按该规则实现，不忽略Everyone修改权。
 - 核硬链接数量、完整成员集合和身份／ctime等变化见证；版本读取绑定同一已核句柄。exe须能由当前token执行且为相符Windows x64文件，不能用POSIX执行位断言；实际加载／版本仍须同次Electron ready。扫描／权限检查只读，不修复或复制现场，不调用privateDirectory掩盖拒绝。
 
-**启动窗口必须由主线选择**：当前beforeLaunch经异步IPC后按路径spawn，Linux扫描返回也关闭fd。方案A（推荐最小片）维持扫描前后对象及授权检查，以只读ACL拒绝非可信主体修改；明确不保证同权限可信操作者在检查结束到loader之间替换时的原子绑定。主线接受该信任模型／ACL策略并经目标反例核验后才能启用。方案B若要求完整阻止这一窗口，则需平台scope持有目录／exe及惰性DLL、BBT成员的原生lease，持续相关write／delete共享限制至scope确认停止；不得在unknown的普通finally提前释放，也不能只锁exe声称整树保护。B需由主线决定command／worker／native scope的精确租约及释放接缝，当前beforeLaunch的void结果不承载它。CreateFile共享模式对属性／ACL变化有独立边界，不能把禁delete共享当成所有安全描述符不变。
+**主线已选择方案A**：beforeLaunch经异步IPC后按路径spawn，Linux扫描返回也关闭fd。W2维持扫描前后对象及授权检查，以只读ACL拒绝非可信主体修改；明确不保证同权限可信操作者在检查结束到loader之间替换时的原子绑定。产品启用仍需目标反例核验。原比较中的B持续lease不进入本轮，不改command／worker／native进程scope，不能借现beforeLaunch的void结果声称已有持续绑定。
 
-A/B以及ACL策略均未被本线擅自定案；本轮已满足“需要新原生能力或跨模块决定则交方案停止”的条件，不实施额外平台机制或宽松fallback。
+W1的架构等待条件已闭合，本轮按A推进W2代码与目标测试定义；没有Windows SDK／OS时只对本机实际检查记结果，W2父项和后续普通布局不提前勾选，不扩大到权限修复或宽松fallback。
 
 ### 最小切片、所有权及真实验收入口
 
 | 顺序及负责人 | 精确写集／完成依据 |
 | --- | --- |
 | W1 本线已调查 | 原investigation／design／delta／tasks／delivery，记录当前来源、三个反例、Linux25/25及停点；不作Windows实现成果 |
-| W2 主线公共前置，待提供 | `packages/platform/src/private-files.ts`的只读共享原语或新私有resource-tree Module、`src/node.ts`导出、Windows native实现及构建登记；若选B再限定command／scope lease接点。代表例沿private-files／platform-resources核真实Windows ACL／句柄。保持既有privateDirectory准备语义，本线不写这些文件 |
+| W2 本轮生态实现，目标待验 | `platform/src/private-resource-tree.ts`、`native/private-resource-tree.c`、`build-process-scope.mjs`及`tests/kernel/private-resource-tree.spec.ts`；不改privateDirectory。主线另整合node.ts公共导出及architecture的单叶child_process登记，不与本线并写；真实Windows原生／ACL／句柄验收仍未完成 |
 | W3 本线前置获准后实施 | `host-settings.ts`叶schema／私有读取；`zotero-resources.ts::resolveZoteroResource`共用版本／成员规则，按平台匹配路径及核验Adapter。TrustedZoteroLaunch／beforeLaunch若需生命周期变化先交主线，不改manual、lifecycle、harness。原Linuxhelper与资源拒绝行为不放宽 |
 | W4 本线目标检查、主线整合 | 窄资源测试及原cli-runtime／zotero-host普通持久用例。当前原包cold夹具硬编码Linux executable／layout并限制Linux，须按获准同源规则派生Windows路径、保持真实内部接线，不能把测试传win32或内存ACL当目标结果。公共endpoint EPERM单独待主线修复，夹具不吞停机失败 |
 
