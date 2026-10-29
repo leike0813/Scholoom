@@ -544,3 +544,11 @@ git diff --check
 主线独立规格审查确认两项模块P2，尚未启用生产桥：共享子树可在容量检查前指数展开；UTF-8 BOM被入口TextDecoder移除，却令来源原始前缀漏认递归报告。主线小探针实际接受了BOM递归来源，19个不同节点被序列化为1835108字节；证据在`/tmp/scholoom-round5-acceptance-WBreMJ/report-boundary-repro.mjs`。
 
 保留原非JSON拒绝，序列化每个展开出现都扣除JSON字节数的保守下界预算，超限中止，再核对最终UTF-8实际字节；容量内共享引用及原64KiB边界保持。来源探测多读3字节，沿入口同一TextDecoder BOM语义判断前缀，原短分片核对保留。两项回归先针对旧dist运行，2失败：64MiB隔离子进程不能完成36层共享数据展开，BOM候选错误成功。修复后重建，schema／codec与资源模块组合70/70通过（3.9秒），日志`research-interaction/boundary-red.log`、`boundary-build.log`、`boundary-green.log`。四文件Biome与tools类型通过；只读追加审查未发现误拒合法容量或短分片问题，没有新增依赖、生产API、UI或权限。1.1a／1.2a的模块子范围保持，生产及整体任务继续开放。
+
+## 第21轮阶段验收：3.1c（2026-10-30，整批仍在进行）
+
+项目线停止后冻结f7f3698，单文件tests/kernel/report-publication.spec.ts经cherry-pick f1cc0b3合入dev。真实普通worker保存新依赖后，测试在实际SQLite关联INSERT处仅失败一次；磁盘、FileEdit、原instruction/run/instance与pending回执分别核实。沿已有artifacts.reconcile补原关联，不重写文件；其协议effect=write，不将补关联称为纯只读。旧完整报告保持，核原实例exited并await应用及受控模型服务关闭。
+
+主线固定未变packages/kernel/desktop产物，运行`node node_modules/@playwright/test/cli.js test --config playwright.kernel.config.ts tests/kernel/report-publication.spec.ts --workers=1 --output /home/joshua/.cache/scholoom-round21-acceptance-pCcY4R/publication-results --reporter line`，3/3通过，42.6秒。证据为同cache的publication.log、publication-check.json与frozen-project-execution.json；TMPDIR也在该cache。作者单项1/1、tools/格式/strict及独立只读复核见上一轮cache的next/project-execution/RESULT.md和review.md；两次测试路径／状态预期首败保持，没有生产修复或真实模型调用。
+
+主线另在39cf7cb校正文档：实际prepare/freeze限定Linux接线已通过；草稿仅存browse/draft/dirty，原最小状态和新完整restore均核64KiB，不缓存旧入口或清单。独立只读接线调查及父核对在本轮cache的integration-seams.md。当前17/26，3.1d／3.2c／R2c／2.1e尚在实施或审查，未同步活动树、未重复派发，不从这一阶段结果推完整3.x、页面或I5通过。

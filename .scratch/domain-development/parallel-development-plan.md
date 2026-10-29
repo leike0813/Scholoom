@@ -595,6 +595,12 @@ Codex／gpt-6.1-sol／high保持。先提交整合／决定并保全原冻结提
 
 第20轮同步回执：整合／profile修复d4af884，原五树冻结提交经无内容差异祖先桥2fb37ab保全。七树均快进、clean，各自实际重建desktop；tools类型、直接node架构检查和每树一个定向组全部通过，28条检查退出0，定向行为共11项通过。前后HEAD及命令见synchronized.json、sync-checks.json、sync-final.json，未再触发pnpm默认解析。此纯文档回执再快进，不重复构建；最终共同HEAD写入dispatch/plan.json，原Prompt／受理／独立启动证据同目录保留，发送后不再改变各树基线。
 
+## 第21轮阶段验收（整批进行中）
+
+证据根`/home/joshua/.cache/scholoom-round21-acceptance-pCcY4R`，承接第20轮`next/`任务，不重复发送。project-execution的3.1c已冻结f7f3698、cherry-pick f1cc0b3，主线发布组合3/3通过；该树等待整批同步。zotero-ecosystem的2.1e安装前候选已冻结725d6e1，尚在独立审查，不等于批准root管理门或系统部署。research-interaction整理R2c输入试验交付；literature-workbench诊断可信生命周期组合；research-graph-runtime继续真实client适配及旧来源权限／依赖更新回归。后者收到一次原任务内反馈，实际阅读／修改已观察，不重启、不重复发Prompt。agent-delegation及research-task-workspace按原等待范围停止。
+
+活动树仍用825f3fa，主线不在任务进行中替换其基线。后续先验实际交付、保全源码及原提交，再在相关树停止后同步验证，最后发下一片；当前没有新一轮Prompt。系统安装、服务启用、T1／T2、真实模型及CI均未新增授权。报告实际任务进度见原tasks／delivery，不从终端存活、输入受理或单项绿色推整项完成。
+
 ## 首轮 Agent 的共同起始任务
 
 各线采用下述共同要求，并附上本文件中该开发线的小节：
