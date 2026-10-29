@@ -645,6 +645,24 @@ Codex／gpt-6.1-sol／high保持。所有树先停止并保全原提交祖先，
 
 本轮后续：生态五文件校准包2969f56→b77fad8及祖先桥2deff09已接收，主线3/3／纯离线verify通过，仍缺真实C/M／身份与系统接线。原五派发均结清retained；计算树新3.2d Task task_29a18ed5274f／Dispatch ctx_1ec5c2354d54已在先同步核验的f4076d7上实际working，其他树等待。活动计算树不随此后主线fixture／记录更新再换基线；下一次实施前同步各自目标树。精确事实、Prompt和回执见本轮dispatch，完成范围由原change维护。
 
+## 第24轮：准确版本接线验收及下一批
+
+证据根`/home/joshua/.cache/scholoom-round24-acceptance-88OiZP`。项目精确版本定位原提交ce383ac已保留在dev，主线7/7及独审接收；全部原Orca任务已结清retained，七树clean。主线接实际resources.reportVersion、原ReportResources资格及真实库登记／ACL，独立审查发现的错误分类P2经真实红例修复并复核关闭。具体首败、48/49和受影响2/2、替身与未验由原报告delivery第24轮维护，不另增完成复选框；仍21/27。
+
+先提交本轮整合，再七树保全快进、重建实际变化protocol／projects／editor／kernel并核tools类型／架构与源码／产物，验证完才派任务；活动期间不改基线。Codex／gpt-6.1-sol／high保持，具体Prompt／受理／独立启动观察及同步清单保存在本轮cache的dispatch。
+
+| 树 | 下一片及所有权 | 状态／停止点 |
+| --- | --- | --- |
+| research-graph-runtime | 新report-draft-client及真实client/server／领域测试，核准确版本后接原report-drafts | 可并行实施，不订阅或另存正文／权限；全部失败不误批copyOnly，不改共同module／RPC／Workbench |
+| project-execution | 新report-version-access测试，真实Agent及单目标范围调用新API | 可并行实施，至多两类新接口代表；复用已有worker／受控模型，不造成功身份，不并写生产，确证缺口交主线 |
+| literature-workbench | 客户端适配验收后，原report-connected双宿主补关闭后原版恢复／copyOnly／撤权 | 等待前一接口交付，避免预写第二套映射；不重跑当前版旧绿色矩阵 |
+| research-interaction | WorkerDOM决定性探针 | 等待原源码引入许可，未答不推定批准，不重做计划 |
+| zotero-ecosystem | 系统校准包已接收，后续C/M真实实现及部署 | 等待主线真实bootstrap／持久ACK装配，不安装／启动系统服务 |
+| research-task-workspace | 原33/33及机械等待接续保持接收 | 等待正式页面ready，不自定生产Graph或重复旧矩阵 |
+| agent-delegation | 已接收原任务 | 等待目标环境或新真实模型任务，不重放pending／发付费请求 |
+
+当前并行度由真实独立接缝决定，不为占满七树重复测试或扩范围。新输入、TMPDIR与结果只在持久cache，CI／push、系统账户／策略／服务、依赖引入与真实模型均无新增授权；正式活动报告及完整I5不据本轮后端通过而关闭。
+
 ## 首轮 Agent 的共同起始任务
 
 各线采用下述共同要求，并附上本文件中该开发线的小节：

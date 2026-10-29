@@ -1,5 +1,21 @@
 # 实际交付与交接
 
+## 第24轮：准确版本真实内核接线（2026-10-30）
+
+证据根`/home/joshua/.cache/scholoom-round24-acceptance-88OiZP`。项目线精确版本投影已停止、冻结为ce383ac并在dev接收，保留原提交祖先；主线projects构建后运行新project-file-versions六项及原报告undo一项，**7/7**。覆盖after优先、仅before、原路径、错身份／basis、受限Agent及损坏原记录拒绝；独立只读version-review.md无确证P1/P2并已关闭。原Dispatch task_3fde7a0b6782／ctx_4a6d9d1c192a succeeded、retained，Delivery已处理；此后全部原派发均结清，没有活动树被更换基线。
+
+主线注册只读`resources.reportVersion({ref,basis})`，接实际资源端口及`ProjectStore.versionForEvidence`，原正文／path／Evidence交`reviewHistorical`并最终同步复核完整原来源。只有完整成功返回snapshot；身份及当前资格获肯定而原字节不可得时只返回unavailable状态，不含内部Evidence／正文。未知原版、坏声明、撤权及无关错误仍失败；通用ExecutionResourcePort未扩大。库读取能力含物理可读性，可信身份端口改用实际登记／材料版本和ACL核资格，不伪造read=true。未改数据库schema、历史语义或另存版本。
+
+原生辅助Agent仅修改ReportResources与原测试，editor构建及模块**39/39**、定向类型／格式通过，身份提供者为明确内存替身，记录在identity-port/RESULT.md。主线另在固定真实kernel产物运行新接口四项与原Manual／历史四项，首轮**7/8**：失败源于新测试更新已有文件时误用无basis的files.save，真实防覆盖正确拒绝。改用resources.save传准确依据，并扩展仅before及读途中真实撤权；只重跑受影响及新增三项，**3/3**。两轮共覆盖五个新接口用例和四个旧保护代表，不相加宣称一次完整矩阵。实际library字节缺失通过隔离夹具内重命名自有paper.md制造，登记与materialVersionId保留；拒读用真实library.grant，不注入授权成功。读途中撤权仅包装真实read完成后调用真实grant，不替换读回字节。
+
+protocol／kernel实际构建、tools类型、受影响代码Biome、架构14模块271文件0 findings、contract generator自检、business映射与实际schema逐字符忽略空白一致及OpenSpec strict通过。第一次格式检查仅格式／import顺序失败，已用临时格式工件生成patch并经apply_patch修正；临时工件最初因cache路径被Biome忽略，改stdin处理，没有脚本改写既有源文件。原始日志分别为version-tests.log、backend-tests.log、backend-fixed-tests.log、tools-types.log及identity-port；所有主动临时输入／输出均在持久cache，不依赖/tmp。
+
+独立backend-review.md实跑内存探针发现一项P2：通用describe把tooLarge／invalidRequest／普通异常折为read=false，新增报告端口继而误批为unavailable。主线新增真实Manual单项先红：确实成功返回unavailable；随后只给ResourceAccess.describe增加内部requireReadable选项，报告端口要求保留原探测异常，普通资源展示语义保持。editor／kernel重建后模块39＋新接口6＋旧保护4首轮**48/49**，唯一失败为新断言仍期待此前被折叠的unavailable，但真实缺文件原码是notFound；此即修复要保留的类别，改断言，不改实现。tooLarge／invalidRequest／普通异常已实际逐项拒绝，未授副本；后续只复验受影响缺字节及普通资源代表，结果见final-target.log。红例启动后源码补丁及重建与其进程有短暂交叠，测试已加载旧模块并实际复现错误，不将整段称作固定产物运行；修复后的49项在重建结束后启动。
+
+上述受影响两项最终**2/2**；最终tools类型、Biome、架构、strict及diff通过。backend-review-followup.md独立复核关闭P2，无新的确证P1/P2，审查未冒称重跑主线测试。当前覆盖结果由原失败及定向复验共同成立，不将其改写为一次49项全绿。
+
+客户端／草稿适配和真实Agent／目标项目授权代表为下一批，见design第24轮；工作台旧版重开等适配稳定后接入。报告仍21/27，正式承载、完整3.2／I5、系统T1/T2、目标平台及科研质量未通过。WorkerDOM源码许可仍待原答复，没有引入依赖、系统部署、CI或真实模型调用。
+
 ## 第23轮接续验收与原版恢复下一片（2026-10-30）
 
 原版资格Module原提交6c64d9a→主线42460c2已接收，祖先关系随后以零内容差异merge保全。主线先构建editor，在固定产物运行原模块36例及真实Manual报告操作／两类FileEdit历史3例，**39/39，17.8s**，无跳过；准确日志历史中36条为report-resources、3条为report-production，未运行其余模型／目标／委派矩阵。tools类型、两文件Biome及架构通过，定向独审无确证P1/P2并已关闭。证据在第23轮根historical-checks.json、historical-module-and-production.log、historical-review.md及historical-results/。当前3.2d完成、21/27；6c64d9a源码本身不含公共RPC、FileEdit定位或UI恢复。

@@ -14,6 +14,8 @@ type Evidence = Pick<ResourceDescriptor, 'ref' | 'basis'>;
 export type ReportResourcePorts = Pick<ResourcePort, 'describe' | 'read'> & {
   /** Bound by the host; path descriptions must enforce private and native-link scope. */
   authorize(evidence: readonly ResourceEvidence[], access: 'read' | 'send'): Promise<void>;
+  /** Host confirms the exact ref identity and read eligibility without requiring available bytes. */
+  checkReadIdentity?(evidence: ResourceEvidence): Promise<void>;
 };
 const changed = () => new OperationError('contentChanged', '报告或其声明材料已变化。');
 const denied = () => new OperationError('permissionDenied', '报告资源不在允许范围。');
@@ -133,6 +135,7 @@ export class ReportResources {
     const qualify = async () => {
       await this.ports.authorize(evidence, access);
       await this.each(evidence, async (item) => {
+        if (this.ports.checkReadIdentity) return this.ports.checkReadIdentity(item);
         const current = await this.ports.describe(item.ref);
         if (!validDescriptor(current))
           throw new OperationError('invalidRequest', '报告材料描述不完整。');
@@ -143,7 +146,7 @@ export class ReportResources {
       });
       await this.ports.authorize(evidence, access);
     };
-    // A missing descriptor is not a positively verified identity, even if its bytes are gone.
+    // Identity and read eligibility must be confirmed independently of byte availability.
     await qualify();
     try {
       const snapshot = await this.historical(original, content, access);

@@ -93,6 +93,7 @@
       "provides": [
         "resources.describe",
         "resources.report",
+        "resources.reportVersion",
         "resources.read",
         "resources.save",
         "resources.document",

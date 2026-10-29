@@ -86,6 +86,22 @@ export const reportSnapshotSchema = object(
   ['resource', 'manifest'],
 );
 
+export const reportVersionSchema = {
+  anyOf: [
+    object({ state: { const: 'available' }, snapshot: reportSnapshotSchema }, [
+      'state',
+      'snapshot',
+    ]),
+    object(
+      {
+        state: { const: 'unavailable' },
+        reason: { enum: ['contentChanged', 'notFound', 'unavailable'] },
+      },
+      ['state', 'reason'],
+    ),
+  ],
+} as const;
+
 const envelope = { version: { const: 1 }, viewId: id, generation: count, basis: id } as const;
 const required = ['version', 'viewId', 'generation', 'basis', 'type'] as const;
 const state = { browse: {}, draft: {}, dirty: flag } as const;

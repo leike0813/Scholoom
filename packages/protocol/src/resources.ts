@@ -10,7 +10,7 @@ import type {
   ProjectsOutputs,
   ProjectTargetReadPort,
 } from './projects.js';
-import { reportSnapshotSchema } from './report-contracts.js';
+import { reportSnapshotSchema, reportVersionSchema } from './report-contracts.js';
 import {
   resourceCreationResultSchema,
   resourceDescriptorSchema,
@@ -102,6 +102,11 @@ export const resourceOperations = {
     semantics: { ...readSemantics, waitMs: 35000 },
     params: object(access, ['ref', 'basis']),
     result: reportSnapshotSchema,
+  },
+  'resources.reportVersion': {
+    semantics: { ...readSemantics, waitMs: 35000 },
+    params: object(access, ['ref', 'basis']),
+    result: reportVersionSchema,
   },
   'resources.cancel': {
     semantics: { effect: 'write', returns: 'result', waitMs: 5000 },

@@ -1,5 +1,6 @@
 import { readFileSync, statSync } from 'node:fs';
 import { join, posix } from 'node:path';
+import { isDeepStrictEqual } from 'node:util';
 import { Broker, type Handlers } from '@scholoom/broker';
 import {
   EditorRuntime,
@@ -104,6 +105,7 @@ import {
   type TaskPort,
   type TaskResearchPort,
 } from '@scholoom/protocol/projects';
+import { reportLimits } from '@scholoom/protocol/reports';
 import {
   type ResearchModuleInputs,
   type ResearchModuleOutputs,
@@ -1291,16 +1293,14 @@ export class ManualApplication {
     ).describe(ref);
   }
 
-  private reportResources(context: CallContext): ReportResources {
+  private reportResourcePorts(context: CallContext): ReportResourcePorts {
     if (context.targetRead) {
       const projectId = context.targetRead.targetProjectId;
-      return new ReportResources(
-        this.targetReportPorts(
-          new ProjectTargetReader(this.projects.get(projectId)),
-          projectId,
-          context,
-          this.resourceAuthorization(context, { source: 'project', projectId }, false),
-        ),
+      return this.targetReportPorts(
+        new ProjectTargetReader(this.projects.get(projectId)),
+        projectId,
+        context,
+        this.resourceAuthorization(context, { source: 'project', projectId }, false),
       );
     }
     const scope = (locator: ResourceLocator): CallContext => {
@@ -1315,12 +1315,29 @@ export class ManualApplication {
         ? { ...context, targetRead: { targetProjectId: locator.projectId, access: 'read' } }
         : context;
     };
-    return new ReportResources({
+    return {
       describe: (locator) => {
         const scoped = scope(locator);
         return this.resourceOperation(scoped, locator, false, () =>
-          this.resources.describe(locator, scoped),
+          this.resources.describe(locator, scoped, { requireReadable: true }),
         );
+      },
+      checkReadIdentity: (item) => {
+        const scoped = scope(item.ref);
+        return this.resourceOperation(scoped, item.ref, false, async () => {
+          if (item.ref.source === 'library') {
+            const attachment = await this.library.attachment(item.ref.attachmentId);
+            if (attachment.materialVersionId !== item.ref.materialVersionId)
+              throw new OperationError('contentChanged', '原库材料版本已变化。');
+            this.library.check('read');
+            return;
+          }
+          const resource = await this.resources.describe(item.ref, scoped);
+          if (!isDeepStrictEqual(resource.ref, item.ref))
+            throw new OperationError('instanceMismatch', '报告材料身份已变化。');
+          if (!resource.capabilities.read)
+            throw new OperationError('unavailable', '报告材料读取资格无法核查。');
+        });
       },
       read: (input) => {
         const scoped = scope(input.ref);
@@ -1344,7 +1361,11 @@ export class ManualApplication {
         }
         confirm();
       },
-    });
+    };
+  }
+
+  private reportResources(context: CallContext): ReportResources {
+    return new ReportResources(this.reportResourcePorts(context));
   }
 
   private reportAuthorization(
@@ -1403,6 +1424,79 @@ export class ManualApplication {
     return [snapshot.resource, ...snapshot.manifest.resources, ...snapshot.manifest.sources].map(
       ({ ref, basis }) => ({ ref, basis }),
     );
+  }
+
+  private async reportVersion(
+    entry: ResourceEvidence,
+    context: CallContext,
+  ): Promise<BusinessOutputs['resources.reportVersion']> {
+    if (entry.ref.source !== 'project')
+      throw new OperationError('invalidRequest', '报告版本入口必须是项目文件。');
+    this.checkFileHistoryContext(context);
+    this.checkReportContext(context, [entry]);
+    const ports = this.reportResourcePorts(context);
+    const current = await ports.describe(entry.ref);
+    let original: ResourceDescriptor;
+    let content: string;
+    if (current.basis === entry.basis) {
+      const value = await ports.read({
+        ...entry,
+        encoding: 'base64',
+        offset: 0,
+        limit: reportLimits.entryBytes,
+      });
+      const bytes = Buffer.from(value.data, 'base64');
+      if (value.size > reportLimits.entryBytes)
+        throw new OperationError('tooLarge', '报告入口超过容量。');
+      if (
+        !isDeepStrictEqual(value.ref, entry.ref) ||
+        value.basis !== entry.basis ||
+        value.unit !== 'byte' ||
+        value.offset !== 0 ||
+        value.truncated ||
+        value.nextOffset !== undefined ||
+        bytes.length !== value.size
+      )
+        throw new OperationError('contentChanged', '报告原版字节未完整取得。');
+      const after = await ports.describe(entry.ref);
+      if (
+        !isDeepStrictEqual(after.ref, current.ref) ||
+        after.basis !== entry.basis ||
+        after.path !== current.path
+      )
+        throw new OperationError('contentChanged', '报告入口位置或版本已变化。');
+      original = current;
+      try {
+        content = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+      } catch {
+        throw new OperationError('invalidRequest', '报告入口必须是UTF-8文本。');
+      }
+    } else {
+      const version = this.projects
+        .get(entry.ref.projectId)
+        .versionForEvidence(entry.ref.fileId, entry.basis);
+      if (
+        !version ||
+        !isDeepStrictEqual(version.evidence.ref, entry.ref) ||
+        version.evidence.basis !== entry.basis
+      )
+        throw new OperationError('unavailable', '没有可核查的原报告版本。');
+      original = {
+        ...current,
+        ...version.evidence,
+        path: version.path,
+        name: posix.basename(version.path),
+        format: resourceFormatForName(version.path),
+      };
+      content = version.content;
+    }
+    const access =
+      context.role === 'execution' || this.isInstructionAdmission(context) ? 'send' : 'read';
+    const review = await new ReportResources(ports).reviewHistorical(original, content, access);
+    this.reportAuthorization(context, review.evidence, access)();
+    if (review.state === 'unavailable') return { state: 'unavailable', reason: review.reason };
+    if (access === 'send') this.reportUsed(context, review.evidence);
+    return { state: 'available', snapshot: review.snapshot };
   }
 
   private checkReportHistory(edit: { path: string; before: string; after: string }): void {
@@ -1851,6 +1945,8 @@ export class ManualApplication {
       ),
     'resources.report': (input, context) =>
       this.resourceOperation(context, input.ref, false, () => this.reportSnapshot(input, context)),
+    'resources.reportVersion': (input, context) =>
+      this.resourceOperation(context, input.ref, false, () => this.reportVersion(input, context)),
     'resources.save': async (input, context) => {
       const result = await this.resourceOperation<BusinessOutputs['resources.save']>(
         context,

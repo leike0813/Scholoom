@@ -4,7 +4,11 @@ import {
   ReportResources,
 } from '../../packages/editor/dist/report-resources.js';
 import { compileContract, OperationError } from '../../packages/protocol/dist/core.js';
-import type { ResourceDescriptor, ResourceInputs } from '../../packages/protocol/dist/resources.js';
+import type {
+  ResourceDescriptor,
+  ResourceEvidence,
+  ResourceInputs,
+} from '../../packages/protocol/dist/resources.js';
 import { resourceEvidenceSchema } from '../../packages/protocol/dist/resources.js';
 
 const html =
@@ -267,6 +271,115 @@ test('historical review separates readable identity from unavailable original by
   }
 });
 
+test('trusted identity qualification classifies unavailable bytes while all direct reads stay strict', async () => {
+  const f = fixture();
+  const recorded = f.values.get('report')?.descriptor;
+  if (!recorded) throw new Error('fixture setup');
+  const unavailable = new OperationError('unavailable', 'fixture source bytes unavailable');
+  const describe = f.ports.describe;
+  f.ports.describe = async (locator) => {
+    if (locator.source === 'library') throw unavailable;
+    return describe(locator);
+  };
+  const checked: ResourceEvidence[] = [];
+  f.ports.checkReadIdentity = async (evidence) => {
+    expect(f.authorizations.at(-1)).toEqual({
+      access: 'send',
+      refs: ['report', 'data', 'paper'],
+    });
+    checked.push(evidence);
+  };
+  const reports = new ReportResources(f.ports);
+  for (const read of [
+    () => reports.snapshot(entry, 'send'),
+    () => reports.freeze(entry, 'send'),
+    () => reports.historical(recorded, html, 'send'),
+  ]) {
+    await expect(read()).rejects.toBe(unavailable);
+  }
+  expect(checked).toEqual([]);
+  const result = await reports.reviewHistorical(recorded, html, 'send');
+  expect(result).toMatchObject({ state: 'unavailable', reason: 'unavailable' });
+  expect(result).not.toHaveProperty('snapshot');
+  expect(result.evidence).toContainEqual({
+    ref: { source: 'library', attachmentId: 'paper', materialVersionId: 'v1' },
+    basis: 'v1',
+  });
+  expect(checked).toEqual(expect.arrayContaining(result.evidence));
+  expect(f.authorizations.at(-1)).toEqual({
+    access: 'send',
+    refs: ['report', 'data', 'paper'],
+  });
+});
+
+test('trusted identity failures propagate before and after a failed read without descriptor fallback', async () => {
+  for (const phase of ['before read', 'after read'] as const) {
+    for (const error of [
+      new OperationError('permissionDenied', 'fixture read revoked'),
+      new OperationError('notFound', 'fixture unknown identity'),
+      new OperationError('unavailable', 'fixture identity cannot be confirmed'),
+      new OperationError('contentChanged', 'fixture identity changed'),
+      new Error('fixture provider failed'),
+    ]) {
+      await test.step(`${phase}: ${error.message}`, async () => {
+        const f = fixture();
+        const recorded = f.values.get('report')?.descriptor;
+        if (!recorded) throw new Error('fixture setup');
+        let failedRead = false;
+        const read = f.ports.read;
+        f.ports.read = async (input) => {
+          if (input.ref.source === 'project' && input.ref.fileId === 'data') {
+            failedRead = true;
+            throw new OperationError('unavailable', 'fixture original bytes unavailable');
+          }
+          return read(input);
+        };
+        let describedSource = false;
+        const describe = f.ports.describe;
+        f.ports.describe = async (locator) => {
+          if (locator.source === 'library') describedSource = true;
+          return describe(locator);
+        };
+        f.ports.checkReadIdentity = async (evidence) => {
+          if (evidence.ref.source === 'library' && (phase === 'before read' || failedRead))
+            throw error;
+        };
+        await expect(
+          new ReportResources(f.ports).reviewHistorical(recorded, html, 'send'),
+        ).rejects.toBe(error);
+        expect(failedRead).toBe(phase === 'after read');
+        expect(describedSource).toBe(false);
+      });
+    }
+  }
+});
+
+test('trusted identity qualification still requires complete send authorization before and after checks', async () => {
+  for (const phase of ['before identity', 'after identity'] as const) {
+    const f = fixture();
+    const recorded = f.values.get('report')?.descriptor;
+    if (!recorded) throw new Error('fixture setup');
+    let checked = false;
+    f.ports.checkReadIdentity = async () => {
+      checked = true;
+    };
+    const authorize = f.ports.authorize;
+    const denial = new OperationError('permissionDenied', 'fixture send revoked');
+    f.ports.authorize = async (evidence, access) => {
+      await authorize(evidence, access);
+      if (access === 'send' && (phase === 'before identity' || checked)) throw denial;
+    };
+    await expect(
+      new ReportResources(f.ports).reviewHistorical(recorded, html, 'send'),
+    ).rejects.toBe(denial);
+    expect(checked).toBe(phase === 'after identity');
+    expect(f.authorizations.at(-1)).toEqual({
+      access: 'send',
+      refs: ['report', 'data', 'paper'],
+    });
+  }
+});
+
 test('historical review refuses copy qualification when access changes during a failed read', async () => {
   for (const invalidation of ['source read', 'send grant', 'final authorization'] as const) {
     await test.step(invalidation, async () => {
@@ -314,6 +427,8 @@ test('historical review requires positive stable source metadata rather than tre
   for (const scenario of [
     'new material version',
     'missing metadata',
+    'read denied',
+    'contradictory basis',
     'notFound',
     'unavailable',
   ] as const) {
@@ -328,17 +443,22 @@ test('historical review requires positive stable source metadata rather than tre
         if (scenario === 'new material version')
           return { ...value, ref: { ...locator, materialVersionId: 'v2' }, basis: 'v2' };
         if (scenario === 'missing metadata') return { ...value, basis: '' };
+        if (scenario === 'read denied')
+          return { ...value, capabilities: { ...value.capabilities, read: false } };
+        if (scenario === 'contradictory basis') return { ...value, basis: 'v2' };
         throw new OperationError(scenario, 'fixture identity cannot be confirmed');
       };
       await expect(
         new ReportResources(f.ports).reviewHistorical(recorded, html, 'read'),
       ).rejects.toMatchObject({
         code:
-          scenario === 'new material version'
+          scenario === 'new material version' || scenario === 'contradictory basis'
             ? 'contentChanged'
             : scenario === 'missing metadata'
               ? 'invalidRequest'
-              : scenario,
+              : scenario === 'read denied'
+                ? 'permissionDenied'
+                : scenario,
       });
     });
   }
@@ -368,6 +488,9 @@ test('historical review rejects invalid original declarations before classifying
       if (!current) throw new Error('fixture setup');
       const recorded = structuredClone(current.descriptor);
       current.descriptor.basis = 'r2';
+      f.ports.checkReadIdentity = async () => {
+        throw new Error('Invalid declarations must fail before identity qualification');
+      };
       f.ports.read = async () => {
         throw new OperationError('unavailable', 'fixture byte failure');
       };

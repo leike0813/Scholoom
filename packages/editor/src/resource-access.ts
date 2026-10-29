@@ -68,7 +68,11 @@ export class ResourceAccess {
       throw new OperationError('notFound', '文件已回收或缺失。');
     return location;
   }
-  async describe(locator: ResourceLocator, context: CallContext): Promise<ResourceDescriptor> {
+  async describe(
+    locator: ResourceLocator,
+    context: CallContext,
+    options: { requireReadable?: boolean } = {},
+  ): Promise<ResourceDescriptor> {
     const ports = this.ports(context);
     if (locator.source === 'render') {
       return this.renderPort(ports).describe(locator);
@@ -109,6 +113,7 @@ export class ResourceAccess {
       if (bytes.materialVersionId !== locator.materialVersionId) throw changed();
       readable = true;
     } catch (error) {
+      if (options.requireReadable) throw error;
       if (error instanceof OperationError && error.code === 'permissionDenied') throw error;
       unavailableReason = error instanceof Error ? error.message : '附件材料当前不可读。';
     }

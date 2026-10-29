@@ -26,6 +26,28 @@ ReportResources 是 `packages/editor` 内的 module，不新建包／数据库�
 
 ## 方案与接口
 
+### 第24轮：准确版本的真实内核读取
+
+在原3.2中新增只读`resources.reportVersion({ref,basis})`，与resources.report同一35秒有界读语义，首批入口仍为项目HTML。返回`{state:'available',snapshot}`或`{state:'unavailable',reason}`，reason仅contentChanged／notFound／unavailable；后者不含快照、正文或内部Evidence。其他权限、身份／原版未知、坏清单及无关错误仍走原失败，不由读取错误直接批准草稿。现有resources.report／files.edit／files.history保持其严格及整条历史联合授权语义。
+
+请求basis就是当前完整入口时，经原资源端口取不超过entryBytes的精确UTF-8正文并复核入口身份／basis／path；否则只经`ProjectStore.versionForEvidence`读取准确所选原侧，不按新版、路径、时间或草稿内容猜原版。原path／正文／Evidence交reviewHistorical，最后按它返回的完整原Evidence执行宿主同步授权核查；Agent交回实际snapshot才沿原reportUsed记录使用，单纯不可用状态不伪称全文读取。所有入口保持resourceOperation、checkReportContext、项目read/send及原targetRead范围；目标端口仍只核同一目标项目，不增加库／第三项目权限。
+
+真实库的ResourceDescriptor.capabilities.read包含物理字节可读性，故不能用它独立判断ACL。ReportResourcePorts新增可选可信`checkReadIdentity(evidence)`：仅由宿主绑定，肯定该准确稳定ref与当前读取资格而不要求原字节存在；review的完整authorize仍在其前后核相应read/send，最多4项并行。未提供此能力的现有端口沿原严格descriptor核查，提供者失败时不改走其他依据。常规内核提供者对库复用实际attachment登记的版本身份与library.read，项目／render沿原资源身份核查；不制造read=true的描述或权限缓存。报告端口调用ResourceAccess.describe的内部requireReadable模式，保留附件探测的原结构化错误；普通资源描述继续可提供不可读原因。不得由read=false或unavailableReason字符串猜测错误类别，容量／请求及普通异常不批准副本资格。
+
+主线拥有protocol的report-contracts/resources及生成business-types、architecture.json、kernel/manual.ts、ReportResources的这一可选端口与相邻测试、新tests/kernel/report-version.spec.ts；不并写项目线的store.ts。验证用真实Manual／文件／库／FileEdit，覆盖R2移除A后R1仍需A、after及仅before版本、依赖前进、库登记及ACL有效但字节缺失、查询期间撤权与元数据不明不误批准；现有严格报告读取和历史最少代表回归。客户端／草稿适配在此真实后端稳定后再派，正式HTML运行及完整3.2／I5保持开放。
+
+本轮接线也将`resources.reportVersion`排除于通用ExecutionResourceInputs；该执行端口只提供原describe/read/document/save/create/creation，不因新增报告RPC扩大接口。
+
+下一批在主线验收后、各目标树同步并构建验证后开工：
+
+| 树 | 独占写集及结果 | 边界 |
+| --- | --- | --- |
+| research-graph-runtime | 新`reports/report-draft-client.ts`及新`tests/kernel/report-draft-client.spec.ts`，通过实际KernelClient核准确版本后复用原createReportDrafts恢复 | 单次有界读取，不订阅、不另存正文／manifest／权限。绑定并复制完整ReportDraftIdentity，实际RPC前后核同client／dataDirectory及取消；仅成功的available／unavailable转对应restore资格，错误传播，拒绝不暴露草稿。调用发出后await实际结清，不假取消。真实client/server及领域代表，UI由下一片消费 |
+| project-execution | 新`tests/kernel/report-version-access.spec.ts`，新RPC的实际Agent执行及单目标范围验收，复用既有真实worker／目标／报告fixture | 至多两类代表；核真实允许与read/send拒绝、目标不得扩大为library／第三项目及伪造Agent拒绝，原basis不能由新版替代。优先仅测试，不并写kernel／protocol／项目模块；确证根因交主线，不造内部成功身份，不发真实模型 |
+| literature-workbench | 上述客户端交付后，原report-connected夹具消费该适配，补关闭后R1准确恢复／不可得copyOnly及撤权封住的双宿主代表 | 待Adapter验收再实施，不预写第二套资格映射；原module及shared fixture只读，不运行活动HTML。正式页面ready仍待承载 |
+
+生态系统校准包、阅读WorkerDOM探针计划以及科研／Agent原任务保持已接收；没有新前置时不重跑原绿色矩阵。WorkerDOM源码引入仍待原授权答复，系统部署／策略／账户、真实模型及CI无新增授权。
+
 ### 第23轮：原版本恢复资格Module
 
 计算线只读核查确认：活动旧current仍持原清单时，client已复核旧独有来源；关闭后current销毁，旧草稿只有精确basis下的browse／draft／dirty，不再有原来源清单。真实connected只覆盖当前同basis恢复，不能据新版成功或原版读取错误批准旧草稿copyOnly。原FileEdit历史是版本权威，`ReportResources.historical`已有完整旧版核查，尚缺“全部原来源当前可读，但旧字节不可得”的独立结果。

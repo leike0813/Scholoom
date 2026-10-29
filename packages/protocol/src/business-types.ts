@@ -164,6 +164,9 @@ export type Inputs = {
   'resources.document': FromSchema<(typeof businessSchemas)['resources.document']['params']>;
   'resources.read': FromSchema<(typeof businessSchemas)['resources.read']['params']>;
   'resources.report': FromSchema<(typeof businessSchemas)['resources.report']['params']>;
+  'resources.reportVersion': FromSchema<
+    (typeof businessSchemas)['resources.reportVersion']['params']
+  >;
   'resources.save': FromSchema<(typeof businessSchemas)['resources.save']['params']>;
   'session.archive': FromSchema<(typeof businessSchemas)['session.archive']['params']>;
   'session.cancel': FromSchema<(typeof businessSchemas)['session.cancel']['params']>;
@@ -352,6 +355,9 @@ export type Outputs = {
   'resources.document': FromSchema<(typeof businessSchemas)['resources.document']['result']>;
   'resources.read': FromSchema<(typeof businessSchemas)['resources.read']['result']>;
   'resources.report': FromSchema<(typeof businessSchemas)['resources.report']['result']>;
+  'resources.reportVersion': FromSchema<
+    (typeof businessSchemas)['resources.reportVersion']['result']
+  >;
   'resources.save': FromSchema<(typeof businessSchemas)['resources.save']['result']>;
   'session.archive': FromSchema<(typeof businessSchemas)['session.archive']['result']>;
   'session.cancel': FromSchema<(typeof businessSchemas)['session.cancel']['result']>;

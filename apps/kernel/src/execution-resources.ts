@@ -12,7 +12,7 @@ import type {
 
 export type ExecutionResourceInputs = Omit<
   ResourceInputs,
-  'resources.cancel' | 'resources.report'
+  'resources.cancel' | 'resources.report' | 'resources.reportVersion'
 > &
   ResourceCreationInputs;
 export type ExecutionResourceOutputs = ResourceOutputs & ResourceCreationOutputs;
