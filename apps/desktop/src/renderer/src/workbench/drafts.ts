@@ -18,12 +18,15 @@ export function readDraft(key: string): string {
   }
 }
 
-export function writeDraft(key: string, text: string): void {
+/** Returns only whether this localStorage operation succeeded, not disk durability. */
+export function writeDraft(key: string, text: string): boolean {
   const previous = readDraft(key);
   memory.set(key, text);
+  let localStorageWritten = false;
   try {
     if (text) window.localStorage.setItem(prefix + key, text);
     else window.localStorage.removeItem(prefix + key);
+    localStorageWritten = true;
   } catch {
     // 配额不足或存储不可用：内存草稿仍然有效。
   }
@@ -36,6 +39,7 @@ export function writeDraft(key: string, text: string): void {
         reportError(error);
       }
     }
+  return localStorageWritten;
 }
 
 export function subscribeDraft(key: string, listener: () => void): () => void {
