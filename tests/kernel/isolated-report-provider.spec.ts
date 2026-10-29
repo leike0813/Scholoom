@@ -1,6 +1,16 @@
 import { type ChildProcess, execFileSync, fork } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
-import { chmod, cp, mkdir, readdir, readFile, rename, symlink, writeFile } from 'node:fs/promises';
+import {
+  chmod,
+  cp,
+  mkdir,
+  readdir,
+  readFile,
+  rename,
+  stat,
+  symlink,
+  writeFile,
+} from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { expect, test } from '@playwright/test';
@@ -42,7 +52,11 @@ const policy: IsolationPolicy = {
 };
 const linux = process.platform === 'linux' && process.arch === 'x64';
 type Fixture = Awaited<ReturnType<typeof fixture>>;
-async function fixture(mode = 'normal', admission = new ProcessAdmission(1, 2)) {
+async function fixture(
+  mode = 'normal',
+  admission = new ProcessAdmission(1, 2),
+  signal?: AbortSignal,
+) {
   const root = join(cache, `provider-${randomUUID()}`);
   await mkdir(root, { recursive: true, mode: 0o700 });
   const revoked = new Set<string>();
@@ -59,6 +73,7 @@ async function fixture(mode = 'normal', admission = new ProcessAdmission(1, 2)) 
       },
     ],
     policies: [policy],
+    ...(signal ? { signal: () => signal } : {}),
     authorize: async (id: string) => {
       if (revoked.has(id)) {
         const e = new Error('revoked');
@@ -429,11 +444,21 @@ test.describe('independent Linux isolated native provider', () => {
       }
     });
 
-  for (const mode of ['detached', 'detached-exit', 'fail'])
-    test(`real ${mode} program stops its entire original scope and retains nonzero failure`, async () => {
-      const f = await fixture(mode);
+  for (const [mode, control] of [
+    ['detached', 'explicit-stop'],
+    ['detached', 'host-abort'],
+    ['detached-exit', 'program-exit'],
+    ['fail', 'program-exit'],
+  ] as const)
+    test(`real ${mode}${control === 'host-abort' ? ' after host-abort' : ''} program stops its entire original scope and retains nonzero failure`, async () => {
+      const host = control === 'host-abort' ? new AbortController() : undefined;
+      const f = await fixture(mode, undefined, host?.signal);
+      const observations: Record<string, unknown> = { mode, control };
+      let instanceId: string | undefined;
       try {
         const id = await prepare(f);
+        instanceId = id;
+        observations.instanceId = id;
         await f.provider.start({ instanceId: id });
         if (mode === 'detached') {
           await expect
@@ -453,14 +478,128 @@ test.describe('independent Linux isolated native provider', () => {
                   .split('\n').length,
             )
             .toBeGreaterThan(3);
-          await f.provider.stop({ instanceId: id });
+          if (host) {
+            observations.running = record.value;
+            const group = join('/sys/fs/cgroup', record.value.scope.cgroup);
+            const identity = await stat(group, { bigint: true });
+            expect(String(identity.dev)).toBe(record.value.scope.dev);
+            expect(String(identity.ino)).toBe(record.value.scope.ino);
+            let members: {
+              pid: string;
+              ppid: string;
+              pgrp: string;
+              session: string;
+              birth: string;
+              cgroup: string;
+            }[] = [];
+            await expect
+              .poll(async () => {
+                const pids = (await readFile(join(group, 'cgroup.procs'), 'utf8'))
+                  .trim()
+                  .split('\n');
+                members = await Promise.all(
+                  pids.map(async (pid) => {
+                    const text = await readFile(`/proc/${pid}/stat`, 'utf8');
+                    const fields = text.slice(text.lastIndexOf(')') + 2).split(' ');
+                    return {
+                      pid,
+                      ppid: fields[1] as string,
+                      pgrp: fields[2] as string,
+                      session: fields[3] as string,
+                      birth: fields[19] as string,
+                      cgroup: await readFile(`/proc/${pid}/cgroup`, 'utf8'),
+                    };
+                  }),
+                );
+                observations.observedMembers = members;
+                return members.some((third) => {
+                  const second = members.find((item) => item.pid === third.ppid);
+                  const first = members.find((item) => item.pid === second?.ppid);
+                  const root = members.find((item) => item.pid === first?.ppid);
+                  return (
+                    root &&
+                    [first, second, third].every(
+                      (item) => item && item.pid === item.pgrp && item.pid === item.session,
+                    )
+                  );
+                });
+              })
+              .toBe(true);
+            for (const member of members)
+              expect(member.cgroup.trim().split('\n')).toContain(`0::${record.value.scope.cgroup}`);
+            expect(f.admission.status.active).toBe(1);
+            expect(record.value.status).toMatchObject({
+              phase: 'running',
+              gateReleased: true,
+              stopConfirmed: false,
+            });
+            observations.beforeAbort = {
+              receipt: record.value,
+              members,
+              admission: f.admission.status,
+            };
+            f.revoked.add(id);
+            host.abort();
+            observations.hostAborted = host.signal.aborted;
+            await expect
+              .poll(async () =>
+                readFile(join(group, 'cgroup.events'), 'utf8').then(
+                  (events) => /^populated 0$/m.test(events),
+                  (error) => {
+                    if (error.code !== 'ENOENT') throw error;
+                    return true;
+                  },
+                ),
+              )
+              .toBe(true);
+            observations.scopeObservedEmpty = true;
+            const stopped = await completed(f, id);
+            const stored = (await receipt(f.root, id)).value;
+            observations.persistedAfterAbort = stored;
+            expect(stored).toMatchObject({
+              configId: record.value.configId,
+              storageId: record.value.storageId,
+              unit: record.value.unit,
+              scope: record.value.scope,
+              stage: { instanceId: id },
+              status: { instanceId: id, phase: 'stopped', gateReleased: true, stopConfirmed: true },
+            });
+            const after = await Promise.all(
+              members.map(async (member) => {
+                const text = await readFile(`/proc/${member.pid}/stat`, 'utf8').catch((error) => {
+                  if (error.code !== 'ENOENT') throw error;
+                  return undefined;
+                });
+                const birth = text
+                  ? text.slice(text.lastIndexOf(')') + 2).split(' ')[19]
+                  : undefined;
+                expect(birth).not.toBe(member.birth);
+                return { pid: member.pid, birth: birth ?? null };
+              }),
+            );
+            expect(f.admission.status.active).toBe(0);
+            observations.afterAbort = {
+              status: stopped,
+              receipt: stored,
+              members: after,
+              admission: f.admission.status,
+            };
+          } else await f.provider.stop({ instanceId: id });
         }
         const status = await completed(f, id);
         expect(status).toMatchObject({ gateReleased: true, stopConfirmed: true });
         if (mode === 'fail') expect(status.failure).toBeDefined();
         expect(f.admission.status.active).toBe(0);
       } finally {
-        await f.provider.close();
+        try {
+          if (host && instanceId)
+            await writeFile(
+              join(cache, `host-abort-${instanceId}.json`),
+              JSON.stringify(observations, null, 2),
+            );
+        } finally {
+          await f.provider.close();
+        }
       }
     });
 

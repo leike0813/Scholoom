@@ -40,7 +40,7 @@ flowchart TD
 
 - [x] 4.1 在原IsolationRecords.load沿已持锁／pinned根有界核查根成员与已验证index；未索引目录、未知／残留对象或枚举失败拒绝初始化且保全原数据。只改原records及相邻代表回归，正常恢复与已知预算失败不产生新遗留仍成立；不清理／认领／重建index、不扩为系统服务或全宿主准入屏障。主线5e62200实际8/8及独审已接收，host-loss两份调查JSON移出根，原生命周期断言保持；结果见delivery。
 
-- [ ] 4.2 补原“运行后撤权”的真实Linux代表：原detached默认提供者确认running且后代属于原scope后，由原宿主AbortSignal撤权，核整范围停止、原instance持久stopConfirmed和唯一准入释放；不以排队／gate前取消代替。只扩原provider测试及交付证据，保留check预检／start逐次兑现的既定两阶段语义；无生产API或预算变化，主线独立接收后再完成。
+- [x] 4.2 补原“运行后撤权”的真实Linux代表：原detached默认提供者确认running且后代属于原scope后，由原宿主AbortSignal撤权，核整范围停止、原instance持久stopConfirmed和唯一准入释放；不以排队／gate前取消代替。只扩原provider测试及交付证据，保留check预检／start逐次兑现的既定两阶段语义；无生产API或预算变化，主线独立接收后再完成。
 
 本次按明确授权实施2.x／3.x并交主线独立验收，保留校准原失败和实际新失败。公共增量只在本树完成，生产ReportResources冻结字节Adapter、浏览器全进程图／runtime、共同呈现／文本／可访问性及分发仍是后续范围，本片不开放活动报告。
 
