@@ -1,10 +1,12 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
-import { mkdir, readFile, stat, writeFile } from 'node:fs/promises';
+import { readdirSync, readFileSync } from 'node:fs';
+import { mkdir, readdir, readFile, stat, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { expect, test } from '@playwright/test';
 import { KernelApplication } from '../../apps/kernel/dist/application.js';
 import type { RunInstance } from '../../packages/harness/dist/node.js';
+import type { Artifact } from '../../packages/protocol/dist/projects.js';
 import type { ResourceDescriptor } from '../../packages/protocol/dist/resources.js';
 import { expectExecutionCompleted } from '../execution-diagnostics.js';
 import { reportFixture } from '../fixtures/report.js';
@@ -37,6 +39,235 @@ function toolText(model: ModelServer, name: string): string {
     ? result.content
     : result.content.map((block) => block.text ?? '').join('');
 }
+
+test('ordinary worker retains saved report dependency with association unknown and reconciles the original receipt without replay', async () => {
+  const root = test.info().outputPath('association-unknown');
+  await mkdir(root, { recursive: true });
+  let projectId = '';
+  let dependency: ResourceDescriptor | undefined;
+  const model: ModelServer = await createModelServer({
+    respond: ({ calls }) => {
+      switch (calls.length) {
+        case 0:
+          return tool('read_file', { file_path: '/report.html' });
+        case 1:
+          assert(toolText(model, 'read_file').includes('Fixed dose comparison'));
+          return tool('write_file', { file_path: `/${dependencyPath}`, content: dependencyBytes });
+        case 2:
+          assert(toolText(model, 'write_file').includes('outcomeUnknown'));
+          return tool('describe_program_material', {
+            locator: { source: 'project', projectId, path: dependencyPath },
+          });
+        case 3:
+          dependency = JSON.parse(toolText(model, 'describe_program_material'));
+          assert(dependency?.ref.source === 'project');
+          return tool('read_context_resource', {
+            ref: dependency.ref,
+            basis: dependency.basis,
+            encoding: 'utf8',
+          });
+        default:
+          assert.equal(JSON.parse(toolText(model, 'read_context_resource')).data, dependencyBytes);
+          return {
+            text: 'Candidate bytes exist; association is unknown. Leave the old report unchanged.',
+          };
+      }
+    },
+  });
+  const app = new KernelApplication(join(root, 'profile'), {
+    modelEndpoint: model.url,
+    environment: { MINIMAX_CN_API_KEY: 'synthetic' },
+  });
+  let evidence: Record<string, unknown> = {};
+  try {
+    await app.initialize();
+    const fixture = await reportFixture(app, root);
+    projectId = fixture.project.id;
+    await app.call('library.grant', { read: true, write: true, send: true, autoBackup: false });
+    const session = await app.call('session.create', { projectId });
+    const scope = { projectId, sessionId: session.id };
+    const instructionId = randomUUID();
+    const project = app.projects.get(projectId);
+    const pendingDirectory = join(project.internal, 'pending-artifacts');
+    const failedLinks: {
+      requestedArtifact: Artifact;
+      savedBytes: string;
+      entryBytes: string;
+      receipts: { operationId: string; value: unknown }[];
+    }[] = [];
+    // Fault only the actual association INSERT, after save and the durable pending receipt.
+    project.database.function('reject_report_association_once', (value: unknown) => {
+      failedLinks.push({
+        requestedArtifact: JSON.parse(String(value)),
+        savedBytes: readFileSync(join(fixture.project.path, dependencyPath), 'utf8'),
+        entryBytes: readFileSync(join(fixture.project.path, 'report.html'), 'utf8'),
+        receipts: readdirSync(pendingDirectory).map((operationId) => ({
+          operationId,
+          value: JSON.parse(readFileSync(join(pendingDirectory, operationId), 'utf8')),
+        })),
+      });
+      if (failedLinks.length === 1) throw new Error('synthetic artifact association failure');
+      return 0;
+    });
+    project.database.exec(
+      `CREATE TEMP TRIGGER report_association_failure BEFORE INSERT ON artifacts
+       WHEN json_extract(NEW.value, '$.path') = '${dependencyPath}'
+       BEGIN SELECT reject_report_association_once(NEW.value); END`,
+    );
+    await expect(stat(join(fixture.project.path, dependencyPath))).rejects.toMatchObject({
+      code: 'ENOENT',
+    });
+    const sent = await app.call('session.send', {
+      ...scope,
+      instructionId,
+      text: 'Prepare the new dependency for this report. If saving has an unknown association, inspect it read-only, preserve the existing report, and do not replay writes or publish the entry.',
+      materials: [],
+    });
+    await expectExecutionCompleted(app, scope, model);
+    assert(dependency?.ref.source === 'project');
+    const unknown = await app.snapshot(scope);
+    evidence = { scope, instructionId, sent, dependency, failedLinks, unknown };
+    expect(unknown.artifacts).toEqual([
+      expect.objectContaining({
+        path: dependencyPath,
+        fileId: dependency.ref.fileId,
+        runId: sent.runId,
+        state: 'unknown',
+      }),
+    ]);
+    const attempted = failedLinks[0];
+    assert(attempted);
+    expect(failedLinks).toHaveLength(1);
+    expect(attempted).toMatchObject({
+      requestedArtifact: { path: dependencyPath, fileId: dependency.ref.fileId, runId: sent.runId },
+      savedBytes: dependencyBytes,
+      entryBytes: fixture.html,
+    });
+    expect(attempted.receipts).toHaveLength(1);
+    const operationId = attempted.receipts[0]?.operationId;
+    assert(operationId);
+    const pendingBytes = await readFile(join(pendingDirectory, operationId), 'utf8');
+    expect(attempted.receipts[0]?.value).toEqual(JSON.parse(pendingBytes));
+    expect(JSON.parse(pendingBytes)).toMatchObject({
+      sessionId: session.id,
+      artifact: { path: dependencyPath, fileId: dependency.ref.fileId, runId: sent.runId },
+      basis: expect.any(String),
+    });
+    expect(project.database.prepare('SELECT count(*) AS count FROM artifacts').get()).toEqual({
+      count: 0,
+    });
+    const actual = await app.call('resources.describe', { locator: dependency.ref });
+    expect(actual).toEqual(dependency);
+    expect(await readFile(join(fixture.project.path, dependencyPath), 'utf8')).toBe(
+      dependencyBytes,
+    );
+    const identity = await stat(join(fixture.project.path, dependencyPath), { bigint: true });
+    const edit = await savedEdit(app, actual);
+    expect(edit.after).toBe(dependencyBytes);
+    expect(edit.afterEvidence?.basis).toBe(actual.basis);
+    expect(edit.origin).toMatchObject({
+      kind: 'execution',
+      ...scope,
+      runId: sent.runId,
+      instanceId: expect.any(String),
+      principal: { kind: 'agent', id: session.id },
+    });
+    const changes = await app.call('files.changes', { projectId, fileId: dependency.ref.fileId });
+    expect(changes.changes).toHaveLength(1);
+    const history = await app.harness.executions({ ...scope, instructionId });
+    expect(history.runs.map((run) => run.id)).toEqual([sent.runId]);
+    expect(history.instruction?.id).toBe(instructionId);
+    expect((await app.snapshot(scope)).artifacts).toEqual(unknown.artifacts);
+    expect(await readFile(join(pendingDirectory, operationId), 'utf8')).toBe(pendingBytes);
+    const reportInput = { ref: fixture.entry.ref, basis: fixture.entry.basis };
+    expect(await app.call('resources.report', reportInput)).toEqual({
+      resource: fixture.entry,
+      manifest: fixture.manifest,
+    });
+    expect(await readFile(join(fixture.project.path, 'report.html'), 'utf8')).toBe(fixture.html);
+    expect(unknown.messages).toContainEqual(
+      expect.objectContaining({
+        role: 'tool',
+        state: 'unknown',
+        tool: expect.objectContaining({ name: 'write_file' }),
+      }),
+    );
+    // Remove only the local injected failure; the original query validates fileId/basis and links.
+    project.database.exec('DROP TRIGGER report_association_failure');
+    const query = { ...scope, runId: sent.runId, paths: [dependencyPath] };
+    const reconciled = await app.call('artifacts.reconcile', query);
+    expect(reconciled).toEqual([
+      { path: dependencyPath, fileId: dependency.ref.fileId, runId: sent.runId, state: 'linked' },
+    ]);
+    expect(await app.call('artifacts.reconcile', query)).toEqual(reconciled);
+    expect((await app.snapshot(scope)).artifacts).toEqual([
+      expect.objectContaining(reconciled[0] ?? {}),
+    ]);
+    expect(await readdir(pendingDirectory)).toEqual([]);
+    expect(await stat(join(fixture.project.path, dependencyPath), { bigint: true })).toMatchObject({
+      dev: identity.dev,
+      ino: identity.ino,
+      size: identity.size,
+      mtimeNs: identity.mtimeNs,
+      ctimeNs: identity.ctimeNs,
+    });
+    expect(await app.call('resources.describe', { locator: dependency.ref })).toEqual(actual);
+    expect(await savedEdit(app, actual)).toEqual(edit);
+    expect(await app.call('files.changes', { projectId, fileId: dependency.ref.fileId })).toEqual(
+      changes,
+    );
+    expect(await readFile(join(fixture.project.path, dependencyPath), 'utf8')).toBe(
+      dependencyBytes,
+    );
+    expect(await readFile(join(fixture.project.path, 'report.html'), 'utf8')).toBe(fixture.html);
+    expect(await app.call('resources.report', reportInput)).toEqual({
+      resource: fixture.entry,
+      manifest: fixture.manifest,
+    });
+    expect(await app.harness.executions({ ...scope, instructionId })).toEqual(history);
+    expect(failedLinks).toHaveLength(1);
+    const tools = (await app.snapshot(scope)).messages.filter((message) => message.tool);
+    expect(tools.filter((message) => message.tool?.name === 'write_file')).toHaveLength(1);
+    expect(tools.some((message) => message.tool?.name === 'edit_file')).toBe(false);
+    const instances = () => {
+      const rows = project.database
+        .prepare('SELECT value FROM run_instances WHERE run_id = ?')
+        .all(sent.runId) as { value: string }[];
+      return rows.map(({ value }) => JSON.parse(value) as RunInstance);
+    };
+    await expect.poll(() => instances().map((instance) => instance.state)).toEqual(['exited']);
+    assert(edit.origin?.kind === 'execution');
+    expect(instances()[0]?.instanceId).toBe(edit.origin.instanceId);
+    evidence = {
+      scope,
+      instructionId,
+      sent,
+      actual,
+      edit,
+      history,
+      failedLinks,
+      operationId,
+      pending: JSON.parse(pendingBytes),
+      unknown: unknown.artifacts,
+      reconciled,
+      tools,
+      instances: instances(),
+      modelRequests: model.requests.length,
+    };
+  } finally {
+    await writeFile(join(root, 'unknown-evidence.json'), JSON.stringify(evidence, null, 2));
+    await writeFile(join(root, 'model-exchange.json'), JSON.stringify(model.requests, null, 2));
+    try {
+      await app.close();
+    } finally {
+      await model.close();
+    }
+    await writeFile(
+      join(root, 'cleanup.json'),
+      JSON.stringify({ applicationClosed: true, modelClosed: true }),
+    );
+  }
+});
 
 async function savedEdit(app: KernelApplication, resource: ResourceDescriptor) {
   assert(resource.ref.source === 'project');
