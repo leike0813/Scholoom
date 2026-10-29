@@ -1,5 +1,13 @@
 # 实际交付与交接
 
+## 第27轮：资产IO整合、审查缺口与并行接续
+
+项目线原提交`06fafce724d3a6cb3cdb0dd7bcdc6f20f8ffde72`以`59d61f2`合入dev，`aad0127`保留原祖先。`IsolationAssets`集中原固定资产的prepare／put／seal；provider保留授权、唯一准入、串行、原记录提交及停止责任。共享preparation夹具只将布尔锁接点改为原真实isolationLock，其controller／support／领域仍为已声明替身。主线platform构建后运行整个`isolated-report-assets.spec.ts`及`isolated-report-preparation.spec.ts`，**28/28、6.4秒**；构建与测试均exit0，证据在`/home/joshua/.cache/scholoom-round27-acceptance-O1IWSr/{platform-build,assets-and-preparation}.log`。作者真实Linux默认准备到完整停止1/1为上一轮独立结果，不能算本轮重跑。
+
+独立只读审查在第26轮根`assets-orca-review/RESULT.md`确认P2：program已写入、sync并取得指纹后，gate创建失败会令原receipt缺失该已知事实；现有部分封存用例未覆盖此阶段。审查Task已结清、retain且Delivery已处理。本轮尚未关闭此P2，design明确原sealed逐项保留真实指纹、未知字段为空字符串，整个seal成功前不能启动；项目线获派最小真实红绿及原provider持久失败核查。未因28项通过而宣称资产片最终验收通过。
+
+七树均先clean快进`bb8b236e0fd37e59cffd30607372e444be633324`，各自platform构建exit0，四个相关JS与主线逐字节一致后才派下一轮。七条新Dispatch均已观察到live／working，模型Codex／gpt-6.1-sol／high；任务、写集及启动回执见同根`wave27-dispatches.json`。阅读线修复PDF→HTML在完整候选前卸载旧预览及绕过草稿保护；生态／文献／任务线补原批准场景的精确代表；图线核历史证据并纠正文档，委派线只读核Linux提供者规格。写集互斥，活动树保持该开工基线，最终接收归主线。报告仍21/27；WorkerDOM许可待答复，系统C/M、T1/T2、完整承载／3.2／I5、真实科研质量及目标平台不据此关闭，CI未运行。
+
 ## 第26轮：原版恢复真实双宿主接收
 
 文献Task task_59bc81ddeee3／Dispatch ctx_1d91359a0dbc成功交回，已retain原终端及处理Delivery；原765e872→主线86d9375，六文件逐字一致后祖先桥afbb753保留原提交。主线先构建原connected夹具、核fixture/tools类型，再固定在最新真实后端产物运行新两类×Browser／真实Electron，**4/4、96.032秒**，0失败／跳过／flaky，runner六步骤均exit0；本机DISPLAY=:99、独占端口6241、全新配置/profile与输出。证据根`/home/joshua/.cache/scholoom-round26-acceptance-8hG3DX`，入口connected-main.log及connected-main/{commands,results}.json。
