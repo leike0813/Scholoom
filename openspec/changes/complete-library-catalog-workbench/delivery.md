@@ -1,24 +1,79 @@
 # 实际交付与交接
 
-## 最新目标回执（2026-10-29）
+## 当前交付依据复核（2026-10-29，8d8f339）
 
-0ed2c97／Checks40784927993的macOS目标已success：不可用／人工能力4项、入口4项、双宿主人工工作台14项及目录打包通过；精确入口及签名边界见[公共平台记录](../add-project-program-runs/delivery.md#0ed2c97目标平台回执2026-10-29)。Linux／Windows完整结果仍待结算，Windows专项出现两项Agent初始化queued及生态停机发布EPERM，不将其他通过项覆盖失败。1.4／6.1／6.2保持开放。
+开工HEAD精确为`8d8f339c3e561154b05d4db39b4264c6db2c42e6`（产品源码7a746c0），工作区clean。本轮仅更新本change的tasks／delivery及design待办边界；**29/32，1.4／6.1／6.2均保持开放**。4.1／4.2限定父项、X1、单一草稿右栏、5.4a、6.1b已接收；C1已9/9并由主线接收，不再等待其规划或实现。没有发现需要本轮顺带实施的确定契约缺陷，也没有新接口需要接入。
 
-## 完整Checks新结论（2026-10-29）
+以下定义`F=/home/joshua/.cache/scholoom-finish-active`，`W=/home/joshua/.cache/scholoom-parallel-resume-20261029-A5WuXN/literature-workbench`，`A=<W>/work`。本轮直接读取现有源码、原始JSON／日志和独审；没有运行业务测试、构建、图形动作、服务或远端CI查询。旧/tmp路径只留作历史记录，本节接续输入均为Git／cache。
+
+### 完成判据与现有证据
+
+源码路径相对仓库根；界面文件位于`apps/desktop/src/renderer/src/workbench/library/`。表内通过均为**既有实跑**，不是本轮新增通过或全平台结论。
+
+| proposal／适用spec判据 | 当前真实消费路径 | 原始结果与审查边界 |
+| --- | --- | --- |
+| 判据1；类型化编辑保留完整题录、创建者顺序与类型切换 | `packages/protocol/src/library-metadata.ts`单源32类型／44文本／22角色／四日期键；`CatalogItemForm`、`catalog-metadata`／`catalogDateParts`修改完整JSON草稿；`packages/library/src/catalog.ts`的ingest／update／history负责授权、CAS与持久化 | 字段父项的独立oracle、逐键表和原命令沿下方f4ab1e5f收尾节；`/home/joshua/.cache/scholoom-literature-round13-ke1Xiw/{ui.json,kernel.log}`为表单双宿主4/4、真实领域8/8。F的`catalog-final-ui.{log,json}`另有完整产品链2/2，未知嵌套、完整姓名、数字区间及circa在更正与真实重启后保留。未支持表达继续JSON核查，不反推Zotero原类型／Extra／来源。 |
+| 判据2；身份主选／多选、有界集合及列 | `CatalogSelection`、`CatalogItemList`、`CollectionNavigation`、`CatalogColumns`及`LibraryTab`；真实catalog父范围分页。范围改变按已载入ID求交，布局恢复沿原保存门，无全库投影 | `tests/ui/library.spec.ts`六个现有场景及`tests/kernel/catalog-selection.spec.ts`；已结算Linux日志`<F>/checks-0b5-linux.log`含library双宿主12项通过，覆盖筛选／分页／列／返回滚动／tab／双窗。当前本树主线`<W>/baseline-test.log`仅选择模型1/1（851ms），不是再次完成B整合。Mac目标见平台表，Windows B双宿主仍缺。 |
+| 判据1／2；唯一草稿右栏、迟到保存／失败、并发与数据保留 | `library-state`／`library-details`唯一拥有者、`LibraryTab`捕获原对象／提交快照；`CatalogItemPane`及同一表单消费，`catalog.update`事务核原revision | library的字段冲突及`:866`双窗／迟到场景核后续输入、旧revision拒绝、切项错误归属和明确重读。既有C1双宿主兼容结果及上述Linux12项可复用，不把C1 Windows恢复替作B UI通过；`<F>/catalog-independent-review.md`直接审查保存生命周期、权限、历史及单一草稿，无确证发现。 |
+| 判据3；真实工作台来源与会话不变、无附件选择 | `LibraryTab`→共同连接贡献；`apps/kernel/src/workbench-context.ts`绑定connection／receiver；`packages/harness/src/instruction-context.ts`真实read前后核库与权限，不造题录ResourceRef | `<F>/catalog-final-ui.{log,json}`：产品导入→更正→集合／列／17项发布→翻页后原会话实际`read_workbench_context`与`library_get`→真实停止重启，Browser／Electron2/2（155.8秒）。实际工具分别读第二页及第一页单选；**17项发布不是17项完整工具回执**。真实双连接／歧义／断线定义在`tests/kernel/workbench-context.spec.ts:49`；本轮只读，不追加实跑，已有Windows日志亦含该场景通过。 |
+| 判据3；独立100项容量／64KiB、修订与持续read／send复查 | `packages/protocol/src/catalog-selection.ts`、`catalog.selection/checkSelection`、`instruction-context`；`runtime.catalogContext/rememberCatalog`及kernel授权桥，成功使用的实际库随恢复保存 | `<F>/catalog-context-final.{log,json}`真实库3/3（33.5秒）：0／17／100、错库／missing、观测与当前修订、撤send；普通Agent工具成功后queue／final撤send、拒绝第二模型请求并重启仍拒绝。组合预算／非法主选／重复／超限由既有`catalog-context-contracts.spec.ts`核查，0b5c5e3内核日志亦可定位；不把schema检查算完整模型回执。注册Graph路径已审源码，其他Graph附件专项不是catalog撤权／替库专项。 |
+| 已增加spec：原值题名／显式导出／unknown与可信配置重启 | `CatalogOriginalActions`及单一CSL草稿消费已有zotero端口；`tests/ui/zotero-original.spec.ts`使用真实隔离库／原包／`startIsolatedKernel`，原requestId只查询不重放 | 5.4／5.4a原接收记录保持；第十一轮Browser通过、Electron首轮EDQUOT及迁cache后1/1通过分别保留，cache入口`/home/joshua/.cache/scholoom-round11-ui-euNa9W/`。普通Linux完整组此例因未配置原包跳过，不能由该组补算通过；A为测试父每次显式注入，不是标准CLI持久配置B，更不是Mac受管原包能力。 |
+| 判据4；复用权威、真实内部接线及独审 | client→broker→真实library／SQLite／文件；工作台与真实worker工具，领域授权／CAS不替换；公共上下文和资源接口沿既有提供者 | `<F>/catalog-independent-review.md`为P0–P3零确证发现的独立输入，父仍负最终核对。现有`main-final-*`记录受影响构建／类型、lint、架构、生成映射；本树同步`<W>/{shared-build,tools-types,architecture}.log`通过（架构14模块266文件0 findings），本轮无生产变动而复用，不冒称重建或全仓／科研质量验收。 |
+
+独审以cb5f7ed为生产前提，本轮补核该基线至当前HEAD：`packages/library`、metadata／catalog-selection声明、文献组件目录、`instruction-context.ts`无差异；`packages/protocol/src/library.ts`只增加C1四方法聚合，`packages/harness/src/runtime.ts`只有delegate_agent说明变化，题录复查及既有only-export登记仍在。两份UI测试有已接收C1场景／诊断调整，不能称整个测试树未变。该静态核对支持复用现有证据，不是当前HEAD新实跑；原结果JSON没有sourceHead字段，本轮不自行替它补一个运行提交。
+
+内部真实程度与时序替身分开：产品链仅外部HTTP模型及等待门受控，工具结果／库记录／UI状态未注入。授权专项在真实应用／库／worker上控制选择观察后的等待与final准入交错，不以该时序控制替代真实撤权和持久化。断线／保存送达门只控制发送或回执，不能据此宣称所有执行形态均逐项故障实跑。材料16项与题录100项预算独立，完整快照仍64KiB；选中不等于读正文或允许外发。
+
+### 已有命令与平台回执索引
+
+F的两份结果JSON均保留`config.argv`。UI原命令为`node node_modules/@playwright/test/cli.js test --config <F>/main-final-ui.config.mts tests/ui/context-bridge.spec.ts --grep 'catalog product ingestion correction' --output <F>/catalog-final-ui-results --workers=1 --reporter=line,json`；内核原命令为`node node_modules/@playwright/test/cli.js test --config playwright.kernel.config.ts tests/kernel/library-context.spec.ts --output <F>/catalog-context-final-results --reporter=line,json`。它们在主线cwd执行，UI配置明确引用保全静态入口与主线测试根、端口6033及独立配置／库；**本轮仅读取argv与结果，未执行这些命令**。A的`evidence-index.json`保留解析出的原始argv、stats、原件路径及摘要，避免从报告文字重造结果。
+
+| run／head与原件（均位于F，除非另注） | 已可证明 | 不能据此补齐的目标 |
+| --- | --- | --- |
+| Checks40745284164／0b5c5e3；`checks-0b5-{linux,windows}.log`、`current-head-checks-receipt.json`；共同program-runs交付“0b5c5e3完整Checks回执” | 已结算failure。Linux内核835／0失败／44跳过，smoke6／11跳过，UI137／25失败／6跳过；B业务链双宿主、library12项及附件／资源打开／生命周期目标通过。Windows内核789／5失败／85跳过，后续smoke／UI／目录包未运行。 | Linux25个UI失败不能写成全绿，也不能反推B已绿目标失败；Windows未进入B UI，不计B通过或B确定缺陷。原五失败及原因沿公共记录，不在本轮扩诊断。 |
+| Checks40784927993／0ed2c97，Mac job123155605913；`macos-0ed2c97.log`及共同program-runs交付对应节 | 不可用／人工能力4/4、入口4/4、人工UI14/14、目录包通过；人工14含library六场景双宿主12及降级2。较新40792137169／55ad46a的Mac job123179672144成功也已被共同记录接收。 | 没有受管Agent／Graph／解析／排版目标，签名跳过；不称Mac全功能或签名分发通过，不重开已证滚动缺口。 |
+| Windows专项40792137138／55ad46a；`windows-55ad46a-execution.log`、`windows-55ad46a-zotero-original-job123179672088.log` | execution73通过／3既有不适用；private-files成功；原包job停机发布endpoint的rename EPERM失败，专项整体failure。 | 不是B双宿主业务套件，不能用execution成功覆盖原包失败或完整Windows责任。 |
+| Windows40770348500／2b55465的private-files job123105541706；`windows-ace-equality-private-job.json`、`windows-ace-equality-private.log`、`windows-ace-equality-reviewed.json` | 元数据／权限12/12及组织恢复RPC1/1（38秒），共同C1已接收。 | 只作既有组织恢复兼容证据，不替B表单／选择／工具／资源双宿主验收，不重做C1。 |
+| 较新完整Checks40792137169／55ad46a；共同program-runs交付最新平台记录 | 记录截点Mac成功，Linux／Windows仍kernel，活动job日志API404；本轮没有新的已结算回执可读。 | `checks-55ad46a-{linux,windows}.log`各215字节，实际为BlobNotFound XML，**不是测试日志**。缺job终态、完整目标步骤与结果，不能继续泛称旧40745284164未结算，也不能把这两空缺文件当新通过；本轮不联网补取。 |
+
+### 三个父任务的最后必要验收
+
+1. **1.4平台事实**：主线补取／交接40792137169的Linux／Windows已结算原始job／目标步骤（如已不可取，明确记缺件），核run／head及目标源码差异；不能拿专项计数推完整通过。最后须有Windows B实际目标结果，未完成就继续开放。
+2. **6.1业务与保护**：Linux复用上表2/2、3/3与已结算B及资源目标，不机械重跑；Mac复用人工14、入口／降级4+4并保留受管不可用。Windows一次最小组合为`tests/ui/library.spec.ts`六场景×双宿主12项，`context-bridge.spec.ts`仅`:24`完整B链×双宿主2项，加`attachments.spec.ts`两场景、`resource-opening.spec.ts`及`resource-lifecycle.spec.ts`各一场景×双宿主8项，共22个UI目标。核同源构建／类型／架构／lint／生成映射；现有Windows library-context3及catalog契约／连接内核结果按源码影响复用，只有发生相关差异或缺件才补该目标。Windows不适用的Linux原包GUI不以mock补绿；不新增标准CLI配置或全仓／BBT／C1重跑要求。
+3. **6.2最终审查交付**：已有独审输入不缺，当前无确证整改项。待前两项目标核清，由主线对最终源码／原结果／本表完成判据作一次收口；若后续有真实修复，仅审其差异及必要回归并保留首次失败。不能因本轮维护delivery或CLI29/32而提前勾父项。
+
+不在本轮或本表推定通过的事项：所有执行形态catalog专项故障、标准CLI生态持久配置、三平台实际分发／签名、真实科研模型质量及其他文献批次。它们按各自原范围负责，不用“完整复杂映射”笼统重开已关闭字段父项，也不把本轮扩成新能力或新观察器。
+
+本轮执行入口为本树`openspec instructions apply/delivery --change complete-library-catalog-workbench --json`、只读Git差异／源码／原件解析及`node <A>/collect-evidence.mjs`；适用收尾为OpenSpec strict／scholoom-dev schema与diff／独立patch检查，结果保存在A。未新跑业务套件，故没有新的业务首败或修复转绿；历史EDQUOT、滚动RED、平台失败均沿下文原时点保留。独立增量`<A>/catalog-acceptance-evidence.patch`只依赖当前8d8f339、仅change文档，无公共接口／补丁接入顺序或未跟踪源码。自有服务／写树后台任务未启动，辅助仅只读，复核交回后停止。
+
+| 本轮实际命令 | 结果与A内原件 |
+| --- | --- |
+| `openspec instructions apply --change complete-library-catalog-workbench --json`；`openspec instructions delivery --change complete-library-catalog-workbench --json` | 已取得当前scholoom-dev指引；初次／最终进度均29/32，三个父任务不变。`apply-initial.json`／`apply-final.json`／`delivery-instructions.json`。 |
+| `node <A>/collect-evidence.mjs` | 退出0；解析既有2/2和3/3及原argv，列出的cache输入无缺失，两份BlobNotFound原文单列为不可用日志。`evidence-index.log`／`evidence-index.json`，不计作业务实跑。 |
+| `openspec validate complete-library-catalog-workbench --strict`；`openspec schema validate scholoom-dev` | 均通过，`openspec-strict.log`／`openspec-schema.log`。仅结构／schema有效，不校验实际验收成功。 |
+| `git diff --check`；`git apply --reverse --check <A>/catalog-acceptance-evidence.patch` | 均通过，`diff-check.log`／`patch-check.log`；只核空白与独立增量可反向匹配，未应用patch或更改索引。 |
+
+以下章节均保留历史执行截点；其“本轮”“当前”“未结算”“仅规划”只指对应时点，后续状态以上节及tasks为准。
+
+## 历史：0ed2c97目标回执（2026-10-29）
+
+0ed2c97／Checks40784927993的macOS目标已success：不可用／人工能力4项、入口4项、双宿主人工工作台14项及目录打包通过；精确入口及签名边界见[公共平台记录](../add-project-program-runs/delivery.md#0ed2c97目标平台回执2026-10-29)。当时Linux／Windows完整结果待结算，Windows专项出现两项Agent初始化queued及生态停机发布EPERM，不将其他通过项覆盖失败；后续平台截点见本记录首节。1.4／6.1／6.2保持开放。
+
+## 历史：0b5c5e3完整Checks结算（2026-10-29）
 
 run40745284164现为failure，Mac success；Windows内核5失败、后续UI未运行，Linux内核835通过／44跳过、UI137通过／25失败／6跳过。精确回执及原始证据入口见[共同平台记录](../add-project-program-runs/delivery.md#0b5c5e3完整checks回执及下一次窄取证2026-10-29)。不继续沿用下节in_progress时间点作当前结论；1.4／6.1／6.2保持开放。
 
-## 最新平台输入（2026-10-29）
+## 历史：0b5c5e3平台查询截点（2026-10-29，后被结算替代）
 
-0b5c5e3的Windows专项40745283855已完整成功，74通过／3个既有不适用跳过，含Agent三代表及Electron初始加载重复3/3；精确证据及缺证见[主线接收](../add-bounded-agent-delegation/delivery.md#0b5c5e3-windows专项完整通过2026-10-29)。该组不含catalog双宿主工作台及目录包，不替代1.4的完整目标验证。完整Checks40745284164查询仍in_progress，Mac job已success，Windows／Linux未结算；本机业务及独审证据继续沿下节，不机械重跑或提前关闭1.4／6.1／6.2。
+0b5c5e3的Windows专项40745283855已完整成功，74通过／3个既有不适用跳过，含Agent三代表及Electron初始加载重复3/3；精确证据及缺证见[主线接收](../add-bounded-agent-delegation/delivery.md#0b5c5e3-windows专项完整通过2026-10-29)。该组不含catalog双宿主工作台及目录包，不替代1.4的完整目标验证。当次查询完整Checks40745284164仍in_progress、Mac job已success；随后整run已结算failure，以上节及当前证据表为准。本机业务及独审证据继续沿下节，不机械重跑或提前关闭1.4／6.1／6.2。
 
-## 本次主线整合与独立审查（2026-10-29）
+## 历史：主线整合与独立审查（2026-10-29）
 
 沿现有B批完成判据补齐当前集成源码的真实整合证据，未修改题录生产代码或原测试断言。证据根`/home/joshua/.cache/scholoom-finish-active/`：`catalog-final-ui.{log,json}`为`context-bridge.spec.ts`的完整收录→类型化更正→集合／列／多选→原会话真实工具读取→重启读回场景，Browser／Electron各一项，2/2、155.8秒，0跳过／失败／flaky、retries=0；外部HTTP模型受控，内部工作台、客户端、broker、持久库、实际worker及重启均真实。`catalog-context-final.{log,json}`为真实题录选择／容量／修订及queue／final撤权后重启拒绝，3/3、33.5秒，0跳过／失败／flaky。
 
 `catalog-independent-review.md`直接核契约、调用链、草稿／修订／授权／历史及既有输出，P0–P3确证发现为0；父核其边界并接收审查输入。没有把17项选择发布计作17项完整工具回执，也没有把其他注册Graph的附件授权例算作catalog专项。主线根lint无error、架构14模块263文件0 findings，受影响构建／tools类型及七份需格式化的生成声明归一比对通过，见本根`main-final-*`。本次只复验当前变化需要的两组，没有再次跑已绿字段／滚动目录。
 
-完整6.1的本机业务与6.2的审查输入已具备，1.4的当前Windows完整组尚未结算。606ae82专项首次启动／重启及权限均通过，Agent代表仍1/3；不把专项或本机2/2写作全平台通过，三个整体任务保持开放直至目标回执核清。macOS受管执行仍不可用，人工工作台已验结果保留；三平台分发、真实模型科研质量及其他文献批次均不随本次扩大。静态harness使用端口6033、自有cache配置／库，teardown仅收尾该配置，没有开发服务器或安装。当前必需输入不依赖现有/tmp。
+完整6.1的本机业务与6.2的审查输入已具备；当时Windows完整组尚未结算，后续结算与缺件已在首节区分。606ae82专项首次启动／重启及权限均通过，Agent代表仍1/3；不把专项或本机2/2写作全平台通过，三个整体任务保持开放直至目标回执核清。macOS受管执行仍不可用，人工工作台已验结果保留；三平台分发、真实模型科研质量及其他文献批次均不随本次扩大。静态harness使用端口6033、自有cache配置／库，teardown仅收尾该配置，没有开发服务器或安装。当前必需输入不依赖现有/tmp。
 
 ## 第十五轮主线接收C1规划
 
