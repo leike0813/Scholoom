@@ -39,8 +39,11 @@ export function barrier() {
   };
 }
 
-/** Real files, freeze, admission and records; domain authorization/version ports and OS are controlled. */
-export async function preparationFixture(root: string) {
+/** Actual files and freeze; only domain descriptions and authorization are synthetic. */
+export async function reportSourceFixture(
+  root: string,
+  data = Buffer.from(`{"values":"${'结果'.repeat(50000)}"}`),
+) {
   await mkdir(root, { recursive: true });
   const source = join(root, 'source');
   await mkdir(join(source, 'reports', 'assets'), { recursive: true });
@@ -62,8 +65,7 @@ export async function preparationFixture(root: string) {
   };
   const html = `${encodeReportHeader(manifest)}<html><body>真实冻结字节</body></html>`;
   await writeFile(join(source, 'reports', 'index.html'), html);
-  // More than one put chunk, including multi-byte content.
-  const data = Buffer.from(`{"values":"${'结果'.repeat(50000)}"}`);
+  // The default covers more than one put chunk, including multi-byte content.
   await writeFile(join(source, 'reports', 'assets', 'data.json'), data);
   const descriptors: Record<string, ResourceDescriptor> = {
     entry: {
@@ -130,6 +132,18 @@ export async function preparationFixture(root: string) {
     },
   };
   const reports = new ReportResources(ports);
+  const load = async () => {
+    state.loads++;
+    const frozen = await reports.freeze(entry);
+    return { entryPath: frozen.snapshot.resource.path as string, files: frozen.files };
+  };
+  return { state, descriptors, source, load, html, data, authorize };
+}
+
+/** Real files, freeze, admission and records; domain ports and OS are controlled. */
+export async function preparationFixture(root: string) {
+  const sourceFixture = await reportSourceFixture(root);
+  const { state, authorize } = sourceFixture;
   const admission = new CountedAdmission(1, 2);
   const privateRoot = join(root, 'provider');
   const image = Buffer.alloc(120);
@@ -208,11 +222,6 @@ export async function preparationFixture(root: string) {
   const provider = new IsolatedReportProvider(options, os);
   await provider.initialize();
   const input = (instanceId: string) => ({ instanceId, programId: 'fixed', policyId: 'fixed' });
-  const load = async () => {
-    state.loads++;
-    const frozen = await reports.freeze(entry);
-    return { entryPath: frozen.snapshot.resource.path as string, files: frozen.files };
-  };
   const receipt = async (id: string) => {
     const index = JSON.parse(await readFile(join(privateRoot, 'index.json'), 'utf8')) as {
       instanceId: string;
@@ -227,18 +236,13 @@ export async function preparationFixture(root: string) {
     };
   };
   return {
+    ...sourceFixture,
     provider,
     admission,
     options,
     os,
-    state,
-    descriptors,
     privateRoot,
-    source,
-    load,
     input,
     receipt,
-    html,
-    data,
   };
 }

@@ -18,6 +18,11 @@ import {
   type IsolationStatus,
   isolationOperations,
 } from '../../packages/protocol/dist/platform-isolation.js';
+import {
+  barrier,
+  CountedAdmission,
+  reportSourceFixture,
+} from '../fixtures/isolated-report-preparation.js';
 
 const cache =
   process.env.SCHOOLOOM_ISOLATION_TEST_CACHE ??
@@ -118,6 +123,74 @@ async function completed(f: Fixture, id: string): Promise<IsolationStatus> {
   return f.provider.get({ instanceId: id });
 }
 
+async function frozenReport(f: Fixture) {
+  return reportSourceFixture(join(f.root, 'test-source'), Buffer.from('{"approved":true}\n'));
+}
+async function preparedReport(
+  f: Fixture,
+  id: string,
+  source: Awaited<ReturnType<typeof frozenReport>>,
+) {
+  const record = await receipt(f.root, id);
+  expect(record.value).toMatchObject({
+    launchIntent: false,
+    scopeIntent: false,
+    stage: {
+      entryPath: 'reports/index.html',
+      assets: [
+        { path: 'reports/index.html', byteLength: Buffer.byteLength(source.html) },
+        { path: 'reports/assets/data.json', byteLength: source.data.length },
+      ],
+    },
+    status: { phase: 'preparing', gateReleased: false, stopConfirmed: false },
+  });
+  expect(await readFile(join(record.directory, 'asset-0.bin'))).toEqual(Buffer.from(source.html));
+  expect(await readFile(join(record.directory, 'asset-1.bin'))).toEqual(source.data);
+}
+async function runPreparedReport(f: Fixture, id: string) {
+  await f.provider.start({ instanceId: id });
+  const status = await completed(f, id);
+  expect(status).toMatchObject({ gateReleased: true, stopConfirmed: true });
+  expect(status.failure).toBeUndefined(); // The native literal oracle accepted both actual files.
+  const record = await receipt(f.root, id);
+  expect(record.value).toMatchObject({
+    launchIntent: true,
+    scopeIntent: true,
+    status: { phase: 'stopped', gateReleased: true, stopConfirmed: true },
+    scope: { cgroup: expect.any(String), invocationId: expect.any(String) },
+  });
+  const groupEmpty = await readFile(
+    join('/sys/fs/cgroup', record.value.scope.cgroup, 'cgroup.events'),
+    'utf8',
+  ).then(
+    (events) => /^populated 0$/m.test(events),
+    (error: NodeJS.ErrnoException) => {
+      if (error.code === 'ENOENT') return true;
+      throw error;
+    },
+  );
+  expect(groupEmpty).toBe(true);
+  expect(f.admission.status).toMatchObject({ active: 0, waiting: 0 });
+}
+async function closePreparation(f: Fixture, id: string) {
+  const before = await f.provider.get({ instanceId: id }).catch(() => undefined);
+  try {
+    await f.provider.close();
+  } finally {
+    await test.info().attach('default-linux-preparation', {
+      body: Buffer.from(
+        JSON.stringify({
+          beforeClose: before,
+          admission: f.admission.status,
+          receipt: (await receipt(f.root, id).catch(() => undefined))?.value,
+          index: JSON.parse(await readFile(join(f.root, 'index.json'), 'utf8')),
+        }),
+      ),
+      contentType: 'application/json',
+    });
+  }
+}
+
 test('unregistered isolation programs remain unavailable without allocating process capacity', async () => {
   const admission = new ProcessAdmission(1);
   const provider = new IsolatedReportProvider({
@@ -140,6 +213,104 @@ test.describe('independent Linux isolated native provider', () => {
     !process.env.SCHOOLOOM_ISOLATION_TEST_CACHE,
     'Requires explicitly prepared native fixtures and OS delegation.',
   );
+
+  test('real freeze preparation runs both approved report files through the default Linux scope to full stop', async () => {
+    const admission = new CountedAdmission(1, 2);
+    const f = await fixture('report', admission);
+    const id = randomUUID();
+    try {
+      const source = await frozenReport(f);
+      expect(
+        await f.provider.prepare(
+          { instanceId: id, programId: 'probe', policyId: policy.id },
+          source.load,
+        ),
+      ).toMatchObject({ phase: 'preparing', gateReleased: false, stopConfirmed: false });
+      expect(source.state.loads).toBe(1);
+      expect(source.state.reads).toBe(2);
+      expect(admission.reservations).toBe(1);
+      await preparedReport(f, id, source);
+      await runPreparedReport(f, id);
+    } finally {
+      await closePreparation(f, id);
+    }
+  });
+
+  test('real freeze preparation waits behind full capacity without reading and uses one reservation after release', async () => {
+    const admission = new CountedAdmission(1, 2);
+    const f = await fixture('report', admission);
+    const id = randomUUID();
+    try {
+      const source = await frozenReport(f);
+      const holder = await prepare(f);
+      const input = { instanceId: id, programId: 'probe', policyId: policy.id };
+      const pending = f.provider.prepare(input, source.load);
+      void pending.catch(() => {});
+      expect(f.provider.prepare(input, source.load)).toBe(pending);
+      await expect.poll(() => admission.status.waiting).toBe(1);
+      expect(source.state.loads).toBe(0);
+      expect(source.state.reads).toBe(0);
+      const index = JSON.parse(await readFile(join(f.root, 'index.json'), 'utf8')) as {
+        instanceId: string;
+      }[];
+      expect(index.map((item) => item.instanceId)).toEqual([holder]);
+      expect(await f.provider.stop({ instanceId: holder })).toMatchObject({ stopConfirmed: true });
+      expect(await pending).toMatchObject({ phase: 'preparing' });
+      expect(source.state.loads).toBe(1);
+      expect(source.state.reads).toBe(2);
+      expect(admission.reservations).toBe(2); // One unrelated holder and one preparation.
+      await preparedReport(f, id, source);
+      await runPreparedReport(f, id);
+    } finally {
+      await closePreparation(f, id);
+    }
+  });
+
+  test('real freeze preparation cancelled during a dependency read retains capacity until settlement and never starts', async () => {
+    const admission = new CountedAdmission(1, 2);
+    const f = await fixture('report', admission);
+    const id = randomUUID();
+    const reading = barrier();
+    let pending: Promise<unknown> | undefined;
+    try {
+      const source = await frozenReport(f);
+      source.state.onRead = async (fileId) => {
+        if (fileId === 'data') await reading.wait();
+      };
+      pending = f.provider
+        .prepare({ instanceId: id, programId: 'probe', policyId: policy.id }, source.load)
+        .catch((error: unknown) => error);
+      await reading.started;
+      expect(source.state.reads).toBe(2); // The actual entry was read before the dependency barrier.
+      const stopping = f.provider.stop({ instanceId: id });
+      const deniedStart = expect(f.provider.start({ instanceId: id })).rejects.toMatchObject({
+        code: 'shuttingDown',
+      });
+      expect(await f.provider.get({ instanceId: id })).toMatchObject({
+        phase: 'stopping',
+        gateReleased: false,
+        stopConfirmed: false,
+      });
+      expect(admission.status.active).toBe(1);
+      expect(() => admission.reserve()).toThrow(expect.objectContaining({ code: 'resourceLimit' }));
+      expect(JSON.parse(await readFile(join(f.root, 'index.json'), 'utf8'))).toEqual([]);
+      reading.release();
+      expect(await pending).toMatchObject({ code: 'shuttingDown' });
+      expect(await stopping).toMatchObject({
+        phase: 'stopped',
+        gateReleased: false,
+        stopConfirmed: true,
+      });
+      await deniedStart;
+      expect(admission.status).toMatchObject({ active: 0, waiting: 0 });
+      expect(source.state.loads).toBe(1);
+      expect(JSON.parse(await readFile(join(f.root, 'index.json'), 'utf8'))).toEqual([]);
+    } finally {
+      reading.release();
+      await pending;
+      await closePreparation(f, id);
+    }
+  });
 
   test('real broker reads sealed bytes and denies syscall/FD/mount authority before confirmed full stop', async () => {
     const f = await fixture();
