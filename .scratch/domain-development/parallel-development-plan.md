@@ -667,6 +667,8 @@ Codex／gpt-6.1-sol／high保持。所有树先停止并保全原提交祖先，
 
 第25轮后续：计算适配82361ae→b571323及祖先桥2e5a9d6由主线4/4、类型／格式／架构和独审接收，原Dispatch已结清retained。文献树的真实原版恢复前置现已具备，先同步该目标树并核source/产物，再按报告design第25轮派原connected夹具两类双宿主；不复制资格映射或先写available。项目授权及生态bootstrap仍在各自原基线工作，不随此更新。证据根`/home/joshua/.cache/scholoom-round25-acceptance-PHGzsJ`，原模型与系统权限边界保持；计算停止等待，不重跑原矩阵。
 
+上述文献树已先clean快进85ef694，tools／desktop类型与架构通过，9份后端实际产物及新client源码与主线一致；后端未变复用，不重建。Task task_59bc81ddeee3／Dispatch ctx_1d91359a0dbc已观察live/working，原Prompt、同步与启动证据见本轮dispatch；之后不改其基线。项目ff2b7b4→2faf8c6在主线2/2接收；生态8f4808c→5cfa5db先14/14，独审并发P2以真实红例修复后15/15及复核接收。原提交祖先已各自保留，确切源／首败／未验由原delivery维护；两个Dispatch均结清retained，暂不自增新任务。当前仅文献线活动，其余等待既定前置；系统C完整IO／生命周期装配和WorkerDOM源码许可尚未闭合，不以初始化Module充作服务完成。
+
 ## 首轮 Agent 的共同起始任务
 
 各线采用下述共同要求，并附上本文件中该开发线的小节：

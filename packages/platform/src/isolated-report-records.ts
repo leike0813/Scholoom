@@ -81,34 +81,40 @@ export class IsolationRecords {
   }
   /** Called only while the native flock holder is alive. */
   async load(): Promise<IsolationReceipt[]> {
-    try {
-      this.configId = await this.readConfig();
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
-      await this.provision();
-    }
-    return this.readInventory();
+    return this.serialize(async () => {
+      try {
+        this.configId = await this.readConfig();
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+        await this.provision();
+      }
+      return this.readInventory();
+    });
   }
   /** Caller must hold the original native writer lock until close. Never provisions on failure. */
   async loadExisting(expectedConfigId: string): Promise<{
     configId: string;
     receipts: IsolationReceipt[];
   }> {
-    await this.check();
-    const configId = await this.readConfig();
-    if (configId !== expectedConfigId) throw unavailable();
-    this.configId = configId;
-    const receipts = await this.readInventory();
-    await this.check();
-    return { configId, receipts };
+    return this.serialize(async () => {
+      await this.check();
+      const configId = await this.readConfig();
+      if (configId !== expectedConfigId) throw unavailable();
+      this.configId = configId;
+      const receipts = await this.readInventory();
+      await this.check();
+      return { configId, receipts };
+    });
   }
   /** Caller must hold the original native writer lock until close. Only accepts an empty root. */
   async provisionEmpty(): Promise<{ configId: string; receipts: IsolationReceipt[] }> {
-    await this.check();
-    await this.provision();
-    const receipts = await this.readInventory();
-    await this.check();
-    return { configId: this.configId, receipts };
+    return this.serialize(async () => {
+      await this.check();
+      await this.provision();
+      const receipts = await this.readInventory();
+      await this.check();
+      return { configId: this.configId, receipts };
+    });
   }
   private async readConfig(): Promise<string> {
     const value = (await this.read(this.base, 'config.json')) as {

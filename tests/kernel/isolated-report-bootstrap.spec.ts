@@ -151,6 +151,26 @@ test.describe('explicit private record bootstrap', () => {
     });
   });
 
+  test('concurrent provisioning establishes exactly one original configuration', async () => {
+    const root = await rootDirectory();
+    await withRecords(root, async (records) => {
+      const outcomes = await Promise.allSettled([
+        records.provisionEmpty(),
+        records.provisionEmpty(),
+      ]);
+      const fulfilled = outcomes.filter((result) => result.status === 'fulfilled');
+      const rejected = outcomes.filter((result) => result.status === 'rejected');
+      expect(fulfilled).toHaveLength(1);
+      expect(rejected).toHaveLength(1);
+      expect(rejected[0]?.reason).toMatchObject({ code: 'unavailable' });
+      const result = fulfilled[0];
+      if (!result) throw new Error('Missing original provision result.');
+      const config = JSON.parse(await readFile(join(root, 'config.json'), 'utf8'));
+      expect(config.configId).toBe(result.value.configId);
+      expect(await records.loadExisting(config.configId)).toEqual(result.value);
+    });
+  });
+
   test('opening a missing root does not create its missing parent', async () => {
     const parent = join(await rootDirectory(), 'missing-parent');
     const records = new IsolationRecords(join(parent, 'records'));

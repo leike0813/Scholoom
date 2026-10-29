@@ -1,5 +1,15 @@
 # 实际交付与交接
 
+## 第25轮：控制记录初始化与执行范围验收
+
+生态原8f4808c→主线5cfa5db及祖先桥e83ab42保留两文件；新initializeExisting/loadExisting/provisionEmpty复用原根／配置／有界库存及v1验证，不新增服务／wire或记录权威。主线platform构建后固定产物运行新12＋旧2，**14/14、3.2秒**。独立bootstrap-review.md用同对象、同真实flock探针确证P2：两个并发provision均成功并生成两次配置身份；实际锁不能替代对象内串行。主线新增真实回归先跑旧dist，**1项失败，实际两个fulfilled**；结束后才修改及重建。load/loadExisting/provisionEmpty整个操作共用原serialize和create/save同一队列，含最终库存核对／返回，无新锁或队列。
+
+修复后固定platform运行新13＋旧2，**15/15、3.1秒**；真实磁盘身份与唯一成功回执一致，另一次拒绝后仍可准确open。最终tools类型、三文件Biome、strict及diff通过；bootstrap-review-followup.md只读复核关闭P2，无新的确证P1/P2并已关闭。证据根仍`/home/joshua/.cache/scholoom-round25-acceptance-PHGzsJ`：bootstrap-main-tests.log、bootstrap-red.log、bootstrap-fixed.log、两次构建及bootstrap-fixed-{types,biome,spec}.log，均自有cache／普通UID／真实原native flock，所有锁与FD已关闭。原作者首败只有格式，14/14与本轮红／绿分开记录；Module仍未装配真实C、跨UID、K采用库存或持久许可／停止ACK，不据此关闭2.1b／T1/T2。
+
+项目原ff2b7b4→主线2faf8c6及祖先桥31357f1保留单个新report-version-access测试，主线两类**2/2、24.3秒**：真实session.send、普通worker活动实例和受控HTTP请求产生原CallContext，再经原单方法broker调用；read/send分别实际拒绝，R2去A不替R1授权，未知原basis和错误instance拒绝。单目标上下文来自原production target路径，同目标已登记报告允许、库／第三项目来源及改目标拒绝，实际file_references不变，target撤信后拒绝。只观察super，不覆盖授权；该测试调用是宿主RPC，worker未新增工具，模型未消费该snapshot，不冒称再次模型外发或科研质量。
+
+项目原两类＋旧目标代表3/3及加强read隔离后受影响1/1分轮保留在第24轮根next/project-execution-access/RESULT.md；主线结果在version-access-tests.log／version-access-results。新测试仅改测试文件，types／格式和架构检查通过。两条Dispatch均succeeded且retained、Delivery已处理，主线最终接收；文献原版恢复Dispatch仍在85ef694原活动基线实施，不随本轮整合换基线。
+
 ## 第25轮：原版草稿客户端接收（2026-10-30）
 
 计算树第24轮Task task_a60718d485d4／Dispatch ctx_e53e801c8454成功交回，已retain原终端并处理Delivery。原82361ae在dev以b571323接收，两文件内容核对一致后用2e5a9d6保留原祖先，无内容差异。新增restoreReportDraft单次准确版本RPC→原草稿恢复，不写入／订阅或缓存第二正文；捕获完整identity，RPC前后核连接／配置／signal，成功snapshot还核ref/basis。RPC错误直接失败，只有成功available／unavailable才能给对应原store资格，已发调用不假取消。

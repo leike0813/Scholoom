@@ -42,6 +42,8 @@ ReportResources 是 `packages/editor` 内的 module，不新建包／数据库�
 
 在同一原records事实源增加内部Interface：`initializeExisting()`只打开并pin已有根，不创建根或父目录；`loadExisting(expectedConfigId)`只读取准确原configId且核原dev/ino、owner、完整有界index／库存，返回`{configId,receipts}`；`provisionEmpty()`仅在原根除实际writer.lock外完全为空时生成原UUID/config/index，返回相同形状。两种load仍要求原native writer锁已取得，锁生命期和close沿原机制；不能用自报locked布尔量代替实际锁。缺配置、错误expected、非空或复制根均不得自动新建／覆盖／恢复。provision不能把已有有效配置当作新建成功，原create/save及全部v1验证器共用不分叉，原initialize()/load()及旧提供者调用保持原语义。
 
+同一对象内的bootstrap读取／创建也共用原serialize队列，与create/save顺序一致；native flock只排斥其他持锁者，不能代替同对象异步调用串行。并发provision只能有一次成功，其余看到已建立配置后拒绝；返回的配置身份须与实际磁盘一致，不另加锁或队列。
+
 返回配置身份来自原config.json，库存与现有load同一权威；不暴露根FD、增加公共RPC／schema／v2 system receipt、第二records/index或准入。精确expected引用与安装slot未来由可信宿主绑定；本Module没有运行C，也不能证明跨UID、认证、库存已由K采用或许可／停止持久ACK已接通。缺真实消费者的部分明确保持未装配，不另建示例常驻服务。
 
 先构建platform再固定测试：真实文件／原native flock验证新空根显式provision、已有根准确open、错误expected和provision已有根不改变原文件、已有根初始化缺失不创建、复制根及库存异常拒绝；复用已验原records代表，不复制完整native矩阵。权限／锁／根身份均用真实对象，期望按原磁盘样本独立核对；tools类型、格式、架构及独立审查后由主线接收。全部自有持久cache、当前普通UID，不安装或调用系统服务／策略；完整2.1b／T1/T2保持开放。
