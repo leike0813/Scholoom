@@ -1,5 +1,27 @@
 # 实际交付与交接
 
+## R2c固定可信输入事务交回（第20轮续做，825f3fac）
+
+本片从`825f3fac57664a8d07f70e1145a3baee1434273c`及clean续做；用户中断前没有本片工具执行／新进程。读取当前apply及原交付，实际执行后取得delivery instructions。写集仅新`tests/fixtures/report-input/`与本change的R2c段落，原R2／R2b反例和其他四片源码／事实未改，未同步或重放WIP。当前仍16/26，完整活动报告／正式R2／2.1b／T1／T2／I5未关闭。
+
+`createInputTransaction`把一次在途、最新输入意图、待采用回包及原view／文档token／请求代次封在私有夹具模块；首次加载后保留原文档及输入节点，只在真实源确认最新输入后更新固定表格／count。`InputView`复用实际Workbench共同tab、禁脚本frame和原生表单／DOM／MathML；`createInputController`只按两个固定owner分配原真实结构控制器，未复制筛选／排序状态。合成ResourceTarget／basis／接收者及HTTP控制器是显式替身，无ReportResources授权、composer发送、内核／provider／OS服务或生产容量权威。具体观察与未验由[investigation的R2c节](investigation.md#r2c固定可信输入事务校准第20轮续做825f3fac)维护。
+
+证据根`/home/joshua/.cache/scholoom-round20-acceptance-INWZnx/next/research-interaction/`；短TMPDIR由attempt-1/short-tmpdir.txt记录为`/home/joshua/.cache/r2c-ycpMSD`。必要源码在Git夹具，输入／profile／配置／结果在cache，无现有/tmp前置。Workbench／源页在夹具build重新bundle，产品main／preload／kernel复用主线已验产物，不冒称重建产品。复建与手动入口见[README](../../../tests/fixtures/report-input/README.md)，静态harness沿round13保全入口。
+
+实际验证与首次问题：
+
+- `node tests/fixtures/report-input/run.mjs <cache>/attempt-1`：先xdpyinfo、夹具build／类型，再固定产物跑双宿主两场景；4/4，78.7秒，0失败／skip／flaky／retry。真实回包门控保持原请求／源执行／HTML，不伪造状态；覆盖普通意图合并、composition期间保护、提交及CDP清除后的真实源确认、版本替换和关闭迟到不复活，以及数学／选区复制／可见查找／AX最小代表。首轮无测试红例。
+- 同模型high、无历史fork辅助只读发现排序拒绝未反馈的P2，未运行测试；父补恢复已确认order及controlConflict反馈，不改事务模块或pending文字。补充同次held回包断言；最终`node node_modules/@playwright/test/cli.js test --config <cache>/final/input.config.mts --grep 'fixed input transactions'`在新端口6204／配置、先build／夹具类型并冻结产物后，受影响双宿主2/2，51.1秒、0失败／skip／flaky／retry。静态窄复核确认P2闭合，报告在review.md；未宣称再次独审OS或正式报告。生命周期组未在最终bundle重复运行，原事务模块未变，不把4+2相加为一次全绿。
+- `node <cache>/check-manual.mjs`实际打开Browser和Electron，各ready=true、exit0，使用首轮bundle；只验证入口与收尾，不冒称手动跑完全部竞争。最终反馈修正由上述新bundle定向组验证。manual-electron/electron-profile.json核userData／sessionData／storagePath同在自有profile；自动组沿主线新shared fixture每用例隔离，不新增default profile或unsafe参数。
+- `node node_modules/typescript/bin/tsc --noEmit -p tsconfig.tools.json`首查和修正后均退出0（tools-first／tools-final.log）；夹具类型日志在attempt-1／final内，均通过。首轮后格式检查见3 errors，首次完整stdout未重定向且工具输出截断，cache的first-format-observation.md仅保存真实命令／所见诊断节录；随后通过stdin formatter及apply_patch整理，最终完整Biome日志见RESULT。没有伪造原完整日志或业务红例。
+- 架构直接`node scripts/check-architecture.ts`，14模块270文件0 findings；没有新增架构登记或生产schema，不重复全量packages／kernel构建、生成映射、无关旧UI矩阵或CI。最终strict／schema／diff／补丁反向检查、文件清单与全部实际命令结果见cache RESULT及final-checks.json。
+
+各input-evidence.json保存同次源／候选／已显示代次、文档／输入identity、真实值、光标及请求观察；MathML／文字／AX截图与复制值同目录。CDP清除组合实际产生空值、光标0，本片把这个实际值送源确认，不将其推断为真实系统IME取消。诊断固定40条并显式记录丢弃数，输入／代次上限代码有界，未刷满128代或洪泛验证。传输失败保留输入并停止推进、不自动重发；其恢复UX未验。
+
+各closed.json逐个实际读回源浏览器连接、原源／呈现服务及新入口服务关闭；真实Electron沿原closeDesktop等其进程退出，自有测试内核按既有teardown确认stopped后退役配置。没有项目登记或OS scope，不以这些测试API提升为生产完整停止／容量证明；只读辅助已关闭。没有依赖安装／CI／真实模型／用户库／系统策略操作、提交推送或其他工作树写入。
+
+本片止于固定可信候选交回。它没有解决任意HTML／CSS／canvas、自主页面变化、完整文字范围／跨控件并发、reload／跨tab恢复、真实资源／接收者授权、系统IME候选窗／读屏、OS身份服务、Windows／macOS或科研质量。主线后续需决定正式架构及与来源／动作／生命周期module的接缝，本片不创建公共协议或自行接下一片。独立patch及新文件清单随RESULT交回后停止。
+
 ## 第20轮主线验收（2026-10-29）
 
 五树25文件逐树冻结并合入dev，起点0d27cff；原提交、清单及作者终端回执见 `/home/joshua/.cache/scholoom-round20-acceptance-INWZnx/` 的frozen.json、inventory.json及*-terminal.json。主线接收3.1a正常发布／发布前条件冲突、3.1b独立metadata更新、3.2a版本状态保管、3.2b真实registered报告等待接续，当前16/26。3.1a按第19轮已允许的失败代表接收，普通worker保存关联unknown尚未实跑，新增3.1c明确保留；不缩减完整3.1契约。
