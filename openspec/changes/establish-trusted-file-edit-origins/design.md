@@ -54,7 +54,7 @@ D1采用粗粒度方案，D2采用整次编辑，D3采用有界查询和明确ed
 
 ### 可信绑定与跨进程边界
 
-宿主在ManualApplication／KernelApplication的已验证CallContext处建立只读Origin，并在所属保存被受理时固定；projects独立组合只消费显式窄Origin参数，不依赖harness数据库。产品请求不能自行声明来源，执行上下文仍须核对项目、有效实例和信任。Kernel可注入可信`fileExecutionFacts`，核对project/session/run/instance完全一致后保留提供者的指令集合／委派链；本树尚无Agent私有委派提供者装配，默认instruction unknown且不补造delegation。绑定夹具只验seam，不称真实委派接入。
+宿主在ManualApplication／KernelApplication的已验证CallContext处建立只读Origin，并在所属保存被受理时固定；projects独立组合只消费显式窄Origin参数，不依赖harness数据库。产品请求不能自行声明来源，执行上下文仍须核对项目、有效实例和信任。Kernel默认经broker调用`harness.executionFacts`，从实际执行实例及持久委派记录绑定来源；也可注入可信`fileExecutionFacts`，核对project/session/run/instance完全一致后保留提供者的指令集合／委派链。默认instruction／tool仍为unknown，不把执行或委派身份推成逐工具因果；绑定夹具仅证明seam，真实父子worker及历史消费者的接线另由execution-facts与material-delegation-history验证。
 
 如果选择D1精确分支：宿主工具中间件为已登记收据分配不透明作用域令牌；worker仅在该工具的异步链中转发令牌，新的execution.call在宿主核对实例、收据、仍有效的作用域及操作后还原来源。并发工具使用不同作用域，不能用进程全局“当前工具”。接收普通客户端origin、同run猜tool、把worker token直接当可信收据、在RPC结果回调补来源均不成立。作用域绑定尚无现成生产实现，需单独协议审查；未绑定请求只能记录粗粒度执行事实与unknown工具。
 
@@ -110,10 +110,10 @@ sequenceDiagram
 
 ## 验证与风险
 
-最小样本：人工保存、真实worker粗粒度来源及下一条指令查询人工更改；可信提供者seam中的多指令集合／四元组不符；原创建查询不换来源；任务与资源保存沿同一记录；历史事务失败保留落盘文件且unknown；旧记录／裁剪／外部变更如实诊断；内部改名后整次undo及后续修改拒绝。实际命令、首次失败与最终结果以delivery为准。精确工具令牌和真实委派提供者没有上线验证。
+最小样本：人工保存、真实worker粗粒度来源及下一条指令查询人工更改；可信提供者seam中的多指令集合／四元组不符；原创建查询不换来源；任务与资源保存沿同一记录；历史事务失败保留落盘文件且unknown；旧记录／裁剪／外部变更如实诊断；内部改名后整次undo及后续修改拒绝。实际命令、首次失败与最终结果以delivery为准。真实委派提供者及父子worker→文件→历史／undo→后续工具读回已有双宿主机械验证，外部模型响应受控；精确工具令牌及逐工具因果未实施，机械接线不代表真实科研质量。
 
 只读来源不改变授权；涉及正文历史读取要复查项目及模型外发权限。保留原历史上限与单条正文界限，不因溯源保存全部模型输入或建立永久完整审计。独立审查直接核对实际回执、领域记录和保存故障，不以模型自述作预期。Linux本机通过不能替代三平台验收。
 
 ## 待办边界
 
-D1–D3已确认，公共基线已同步；本轮交提供者局部闭环和独立补丁。M2不等于I5完成；阅读线后续消费、Agent真实委派／逐推进事实提供者、差异块撤销、科研意见状态机和完整历史审计均保留后续边界。schema ready不代表真实跨域验收。
+D1–D3已确认，公共基线已同步；实际委派事实提供者、MaterialChangeView及Agent历史工具已接入并完成上述机械验证。M2不等于I5完成；精确逐工具因果、差异块撤销、科研意见状态机、完整历史审计及真实科研质量仍保留后续边界。schema ready不代表真实跨域验收。
