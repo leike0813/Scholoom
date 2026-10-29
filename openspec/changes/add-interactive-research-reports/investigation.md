@@ -1,5 +1,17 @@
 # 调查依据
 
+## R2b保留原结构的可信对照（第19轮本片，0d27cff）
+
+新夹具`tests/fixtures/report-structure/`只读复用原report-surface源页及其真实独立Chromium控制器，原失败代码／断言未改。源页在一次同步读取中给出实际状态及文档克隆，input.value／option.selected按当时实际属性补齐；移除固定唯一脚本后，以保留HTML／MathML命名空间的srcdoc放入Workbench共同资源tab的禁脚本frame。不是任意HTML清洗器、公共DSL或不可信DOM镜像，没有改生产CSP／HtmlRenderView或接OS隔离。
+
+实际Browser／Electron均保留mfrac与MathML namespace；分子bottom在分母top以上，实际布局与源页一致，源／frame辅助树各有两个MathMLFraction。筛选随机、降序赵在林前、键盘展开赵的状态与源页相同，表格innerText逐次对照源页一致；原生文字选择／Control+C读回“比较”，可见正文查找命中“剂量20与30”并拒绝隐藏详情文字。无在途回包时，CDP组合“队列”不先交源页，提交后1/3且焦点／光标保持。旧代及第二个并行动作实际拒绝；文档上限256元素／64KiB、最多128代、一次在途无等待队列，未为验证上限循环刷满128次。
+
+**原结构仍不足以满足输入保持。** 只读复核指出整文档替换与组合的竞争。父Agent用透明传输门控保留真实请求／源执行／回包，只在源动作已完成后暂缓交付；旧frame开始组合“队列”，放行原回包后srcdoc替换，未提交文字实际从“队列”变为空串。两宿主同次重现，证据为r2b-evidence.json的compositionDuringUpdate。该失败不依赖系统IME；它是CDP实际浏览器组合事件的反例，不能据此冒称真实IME已验。另一焦点竞争已局部修正为仅在父焦点仍属于frame时恢复；晚回包期间移到父查找框，最终双宿主实际保持父焦点。没有为了通过而禁输入／加等待／重试或扩成通用增量镜像；正式方案仍须主线解决活动文档、组合事务与选区稳定性。
+
+短TMPDIR记录于本片cache的`final/short-tmpdir.txt`，实际为`/home/joshua/.cache/r2b-5coaTM`；手动Browser和Electron均打开同一固定原型并退出0，不再遇旧长socket路径失败。首次手动入口在进入页面前报Node `.js`模块不存在，原manual-first-results.json保留；修正新控制器的原生TS加载后才有该结果。后续补齐本夹具Linux XDG_CONFIG_HOME，实际Electron userData／storagePath读回均在自有cache，证据为manual-profile-electron/host-profile.json；早期沿共享fixture的Electron结果只证明内核配置隔离，不计其Chromium profile隔离。未手工查看或清理默认profile内容，未访问真实用户库。
+
+证据根`/home/joshua/.cache/scholoom-round19-acceptance-XBzzNC/next/research-interaction/`；本片原型、控制器、来源与动作／响应边界及复建入口见新README／RESULT。系统IME候选窗／取消、真实读屏、数学复制语义、源页自主变化、高频输入、canvas、任意HTML／CSS、跨tab恢复、OS／独立身份服务、Windows／macOS与科研质量未验。固定可信样本有脚本去除，不证明恶意页隔离；2.1b／T1／T2／I5及正式R2架构保持开放。
+
 ## R2有限可信语义投影的双宿主校准（第18轮，e4c4e422）
 
 本轮已实际执行，取代第17／18轮派发时尚无成果的状态。源码在`tests/fixtures/report-surface/`，可重建／手动入口见其README；证据根为`/home/joshua/.cache/scholoom-round18-acceptance-tkEm2H/next/research-interaction/`。现有Workbench的`session.renderResource`及TabGroups足以挂载夹具，无需修改生产renderer／CSP；普通HTML的DocumentReader和无脚本HtmlRenderView不提供独立报告执行或呈现传输。Electron main／preload也没有现成通用findInPage接线，不能假定宿主Ctrl+F可用。

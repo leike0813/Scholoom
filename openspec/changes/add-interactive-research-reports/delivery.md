@@ -1,5 +1,25 @@
 # 实际交付与交接
 
+## R2b原结构可信对照交回（第19轮本片，0d27cff）
+
+先核共同HEAD=`0d27cff726fe50a2545da7f9479694eb7bb3525f`及clean，读取当前上下文／apply；实际执行后取得delivery instructions。只新增`tests/fixtures/report-structure/`并更新本change的R2b段落；原report-surface反例、3.x事实和其他共享源码保持。任务仍12/22，2.1b／T1／T2／I5及正式R2架构未完成，活动报告仍unavailable。
+
+已交可重建自动／手动入口，见[原型README](../../../tests/fixtures/report-structure/README.md)。原型复用真实独立源页／控制器、Workbench共同资源tab和原生文档克隆／frame；实际状态、表单属性、HTML／MathML结构来自源DOM，源脚本不进入父页或frame。固定合成资源／session及可信HTTP控制器是替身，无ReportResources、provider、服务／隔离、生产容量或完整停止接线。实际结果及架构差分由[investigation的R2b节](investigation.md#r2b保留原结构的可信对照第19轮本片0d27cff)维护：数学结构／普通文本及顺序输入可保留，但在途旧回包替换整份srcdoc会丢失未提交组合“队列”，候选仍不能作为完整报告呈现。
+
+全部证据在`/home/joshua/.cache/scholoom-round19-acceptance-XBzzNC/next/research-interaction/`，短TMPDIR另明确为`/home/joshua/.cache/r2b-5coaTM`（本片final／手动／后续测试），首轮短目录见attempt-1/short-tmpdir.txt。输入来自Git固定源页和现成依赖，所有新数据／配置／profile／产物均在cache，无当前/tmp前置。产品main／preload／kernel复用主线已验产物，Workbench及源页只在夹具构建重新bundle，不声称产品重建。
+
+实际命令和原结果：
+
+- `node tests/fixtures/report-structure/run.mjs <cache>/attempt-1`：首次显示预检、夹具构建／类型通过，双宿主2/2、52.1秒；只覆盖顺序动作，尚无在途竞争证据，不将其当完整输入通过。tools-first.log亦通过。只读同模型／high辅助发现回包可打断组合和抢父焦点；原审查与父处理保存在review.md，辅助未运行测试。
+- 父仅修焦点恢复条件，新增两次透明真实回包门控观察。`...run.mjs <cache>/final`先构建后固定产物，双宿主2/2、51.9秒；普通状态／文本／数学AX保持，父焦点不被抢回，同时两端实际重现组合“队列”→空串。门控只延迟真实传输，不替换源状态或正文；绿色是观测可重复，失败的输入保证仍开放，没有禁输入／加timeout／sleep／重试制造通过。
+- `node <cache>/check-manual.mjs`首次手动Browser／Electron均在加载夹具模块前失败：原生Node无法解析源控制器的`.js`路径，原stderr保存在manual-first-results.json。只在新控制器用实际`.ts` URL加载和原NodeNext类型引用修正；手动两宿主随后ready=true、exit0，旧长socket反例仍保留而本片短路径可运行。runtime-ui.log在复用同一final/built、未重建产物条件下回归2/2、53.2秒，0失败／skip／flaky。
+- 收尾发现原共享Electron fixture未显式设Chromium userData，早期结果不计profile隔离。本夹具run／open改用独立XDG_CONFIG_HOME；manual-profile-results.json实际两宿主ready=true、exit0，manual-profile-electron/host-profile.json读回userData及storagePath均位于本次cache。最终profile-final-ui.log复用同一构建、全新配置／profile及端口6195，真实双宿主2/2、51.4秒，0失败／skip／flaky／retry；相同组合丢失反例保留。没有手工读取或清理默认profile内容，内核目录从始至终独立，没有真实用户库操作。
+- `node node_modules/typescript/bin/tsc --noEmit -p tsconfig.tools.json`在tools-last.log通过；夹具类型在final/types.log通过。Biome首次在原生TS加载的格式处报1error，原日志保留；最终格式／架构／strict／schema／diff及补丁检查见RESULT与相应日志。未改生产schema，不重复生成映射／全量产品构建／无关内核或旧反例测试。
+
+真实layout／namespace／文本及辅助树对照、指针选区与实际Control+C剪贴板、有界可见正文查找、键盘焦点、顺序CDP组合与在途组合反例均在同次r2b-evidence.json；结构／源截图在同次目录。原source.read里effect仍是textContent=12的旧诊断字段，本片不使用它呈现分数，而使用真实mfrac文档；没有改旧读法掩盖反例。有限上限代码、旧代和第二在途拒绝分开表达，不宣称全量128代／洪泛实跑。
+
+本片源浏览器、源HTTP和呈现HTTP在各closed.json实际读回均false；真实Electron按原closeDesktop等待子进程退出，自有测试内核由原teardown确认stopped后退役配置。无新项目登记或OS scope；没有将这些夹具收尾提升为provider完整停止证明。只读辅助已关闭。系统IME候选窗／取消、真实读屏、数学复制语义、任意HTML／CSS／canvas、页面自主变化、高频输入、跨tab恢复、领域授权、OS服务／跨平台和科研质量均未验。主线需选择能保持活动文档、组合事务、选区与辅助结构的正式接缝，本片不自行扩成镜像／新协议或放宽保护；独立patch／新文件清单交回后停止。
+
 ## 第19轮主线验收（2026-10-29）
 
 三树25文件已冻结保全并收回dev，原提交及清单见 `/home/joshua/.cache/scholoom-round19-acceptance-XBzzNC/frozen.json`，起点e4c4e42。2.1d按有限Linux静态native接线关闭；R2接收可重建调查及数学语义反例，纯文本投影不采纳为正式呈现。当前12/22，新增四个3.x子片是既定发布／接续范围的独立拆分，非新增业务。Windows整改归生态change，仍无目标通过。
