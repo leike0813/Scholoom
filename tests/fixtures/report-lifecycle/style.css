@@ -1,0 +1,37 @@
+.lifecycle-pane {
+  padding: calc(var(--space-unit) * 3);
+  overflow: auto;
+}
+.lifecycle-pane h1,
+.lifecycle-pane h2 {
+  font: inherit;
+  font-weight: bold;
+}
+.lifecycle-pane label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-unit);
+  margin-block: calc(var(--space-unit) * 2);
+}
+.lifecycle-pane :is(textarea, select) {
+  background: var(--bg);
+  color: var(--text-primary);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  font: inherit;
+}
+.lifecycle-pane textarea {
+  min-height: calc(var(--space-unit) * 12);
+}
+.lifecycle-pane table {
+  width: 100%;
+  margin-block: calc(var(--space-unit) * 2);
+}
+.lifecycle-pane :is(th, td) {
+  text-align: start;
+  border-bottom: 1px solid var(--border);
+}
+.lifecycle-pane pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
