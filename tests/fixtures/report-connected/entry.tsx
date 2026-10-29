@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { createRoot } from 'react-dom/client';
 import { useBusinessSession } from '../../../apps/desktop/src/renderer/src/workbench/business-session';
 import { useContextContribution } from '../../../apps/desktop/src/renderer/src/workbench/context-contributions';
@@ -9,8 +9,10 @@ import {
 import { readDraft, subscribeDraft } from '../../../apps/desktop/src/renderer/src/workbench/drafts';
 import { createReportContext } from '../../../apps/desktop/src/renderer/src/workbench/report-context';
 import { createReportClient } from '../../../apps/desktop/src/renderer/src/workbench/reports/report-client';
+import { restoreReportDraft } from '../../../apps/desktop/src/renderer/src/workbench/reports/report-draft-client';
 import {
   createReportDrafts,
+  type ReportDraftIdentity,
   type ReportDraftState,
 } from '../../../apps/desktop/src/renderer/src/workbench/reports/report-drafts';
 import type { WorkbenchSession } from '../../../apps/desktop/src/renderer/src/workbench/session';
@@ -21,7 +23,7 @@ import {
   type ReportBridgeMessage,
   type ReportSnapshot,
 } from '../../../packages/protocol/dist/report-contracts.js';
-import type { ConnectedConfiguration, ConnectedObservation } from './types.js';
+import type { ConnectedConfiguration, ConnectedObservation, ExactObservation } from './types.js';
 import '../../../apps/desktop/src/renderer/src/styles.css';
 import '../report-lifecycle/style.css';
 
@@ -47,6 +49,7 @@ let consumers = 0;
 let subscriptions = 0;
 let settled = 0;
 let generation = 0;
+let pageSave: ConnectedObservation['pageSave'] = null;
 const empty: ReportDraftState = { browse: {}, draft: '', dirty: false };
 const string = (value: unknown) => (typeof value === 'string' ? value : '');
 
@@ -56,19 +59,23 @@ function PageState({
   capture,
   reply,
   disposeRef,
+  restored,
+  onRestore,
 }: {
   snapshot: ReportSnapshot;
   configuration: ConnectedConfiguration;
   capture(action: Action): void;
   reply(result: string): void;
   disposeRef: { current: (() => void) | null };
+  restored?: ReportDraftState | null;
+  onRestore?(message: ReportBridgeMessage): void;
 }) {
   const contribution = useContextContribution();
   const basis = snapshot.resource.basis;
   const [envelope] = useState(() => ({
     version: 1 as const,
-    viewId: `connected-view-${++generation}`,
-    generation,
+    viewId: `connected-view-${crypto.randomUUID()}`,
+    generation: ++generation,
     basis,
   }));
   const [store] = useState(() =>
@@ -99,22 +106,27 @@ function PageState({
   useLayoutEffect(() => {
     consumers++;
     disposeRef.current = dispose;
-    const candidate = store.restore({
-      identity: {
-        configurationId: configuration.endpoint.dataDirectory,
-        windowId: workbenchInstanceId(),
-        ref: configuration.entry.ref as Extract<
-          typeof configuration.entry.ref,
-          { source: 'project' }
-        >,
-        basis,
-      },
-      status: 'available',
-    });
-    if (candidate.status === 'restorable') {
-      const restore = { ...envelope, type: 'restore', ...candidate.state };
+    const candidate =
+      restored === undefined
+        ? store.restore({
+            identity: {
+              configurationId: configuration.endpoint.dataDirectory,
+              windowId: workbenchInstanceId(),
+              ref: configuration.entry.ref as Extract<
+                typeof configuration.entry.ref,
+                { source: 'project' }
+              >,
+              basis,
+            },
+            status: 'available',
+          })
+        : null;
+    const initial = restored ?? (candidate?.status === 'restorable' ? candidate.state : undefined);
+    if (initial) {
+      const restore = { ...envelope, type: 'restore', ...initial };
       if (isReportBridgeMessage(restore)) {
-        setApplied(candidate.state);
+        setApplied(initial);
+        onRestore?.(restore);
         record('trustedPageRestore', basis);
       }
     }
@@ -129,19 +141,34 @@ function PageState({
     objectIds: snapshot.manifest.objects.slice(0, 1).map((value) => value.objectId),
     request: string(applied.draft),
   });
+  const save = (next: ReportDraftState) => {
+    const receipt = store.save({ ...envelope, type: 'state', ...next });
+    if (receipt.status === 'stored') {
+      pageSave = { key: store.key, localStorageWritten: receipt.localStorageWritten };
+      setApplied(next);
+    }
+  };
   return (
     <section className="lifecycle-pane" aria-label="真实连接报告页面">
       <h2>{snapshot.resource.name}</h2>
       <p>{snapshot.manifest.objects[0]?.semantics}</p>
+      <label>
+        报告浏览筛选
+        <input
+          aria-label="报告浏览筛选"
+          value={string((applied.browse as { filter?: unknown })?.filter)}
+          onChange={(event) =>
+            save({ ...applied, browse: { filter: event.target.value }, dirty: true })
+          }
+        />
+      </label>
       <label>
         报告页面草稿
         <textarea
           aria-label="报告页面草稿"
           value={string(applied.draft)}
           onChange={(event) => {
-            const next = { ...applied, draft: event.target.value, dirty: true };
-            if (store.save({ ...envelope, type: 'state', ...next }).status === 'stored')
-              setApplied(next);
+            save({ ...applied, draft: event.target.value, dirty: true });
           }}
         />
       </label>
@@ -312,6 +339,109 @@ function Report({
   );
 }
 
+function ExactReport({
+  client,
+  configuration,
+  identity,
+  capture,
+  reply,
+  probe,
+}: {
+  client: Client;
+  configuration: ConnectedConfiguration;
+  identity: ReportDraftIdentity;
+  capture(action: Action): void;
+  reply(result: string): void;
+  probe: { current: (() => ExactObservation) | null };
+}) {
+  const [result, setResult] = useState<ExactObservation['result']>(null);
+  const [error, setError] = useState<string | null>(null);
+  const envelope = useRef<ReportBridgeMessage | null>(null);
+  const disposePage = useRef<(() => void) | null>(null);
+  useEffect(() => {
+    const controller = new AbortController();
+    subscriptions += 2;
+    let active = true;
+    const invalidate = () => {
+      controller.abort();
+      if (active) {
+        setResult(null);
+        envelope.current = null;
+        setError('unverified');
+      }
+    };
+    const unchange = client.subscribeChanges((change) => {
+      if (
+        change.libraryChanged ||
+        change.filePaths ||
+        (change.projectId === configuration.projectId && change.resync && !change.sessionsChanged)
+      )
+        invalidate();
+    });
+    const unconnect = client.subscribe(() => {
+      if (client.getSnapshot().phase !== 'connected') invalidate();
+    });
+    void restoreReportDraft({ client, identity, signal: controller.signal })
+      .then((value) => {
+        if (!active || controller.signal.aborted || workbenchInstanceId() !== identity.windowId)
+          return;
+        setResult(value);
+      })
+      .catch((reason) => {
+        if (!active) return;
+        setResult(null);
+        envelope.current = null;
+        setError(
+          reason && typeof reason === 'object' && 'code' in reason
+            ? String(reason.code)
+            : reason instanceof Error
+              ? reason.name
+              : 'unexpected',
+        );
+      })
+      .finally(() => {
+        settled++;
+        record('exactRestoreSettled', identity.basis);
+      });
+    return () => {
+      active = false;
+      controller.abort();
+      unchange();
+      unconnect();
+      subscriptions -= 2;
+      disposePage.current?.();
+      probe.current = null;
+      record('exactViewDisposed', identity.basis);
+    };
+  }, [client, identity, configuration]);
+  probe.current = () => ({ result, error, envelope: envelope.current });
+  return (
+    <section className="lifecycle-pane" aria-label="准确原版恢复">
+      <output aria-label="准确原版状态">{error ?? result?.restored.status ?? 'loading'}</output>
+      {result?.version.state === 'available' ? (
+        <PageState
+          snapshot={result.version.snapshot}
+          configuration={configuration}
+          capture={capture}
+          reply={reply}
+          disposeRef={disposePage}
+          restored={result.restored.status === 'restorable' ? result.restored.state : null}
+          onRestore={(message) => {
+            envelope.current = message;
+          }}
+        />
+      ) : null}
+      {result?.restored.status === 'copyOnly' ? (
+        <label>
+          仅复制原草稿
+          <textarea aria-label="仅复制原草稿" readOnly value={string(result.restored.draft)} />
+        </label>
+      ) : null}
+      {error ? <p>原版核查未成功，缓存不展示。</p> : null}
+    </section>
+  );
+}
+
 function Fixture({
   client,
   configuration,
@@ -323,6 +453,20 @@ function Fixture({
   const business = useBusinessSession(client, connection.phase);
   const [opening, setOpening] = useState(0);
   const [reply, setReply] = useState('none');
+  const [control, setControl] = useState('none');
+  const act = async (action: string) => {
+    setControl('working');
+    try {
+      await window.reportConnectedAction(action);
+      setControl(action);
+    } catch (error) {
+      setControl(
+        error && typeof error === 'object' && 'code' in error ? String(error.code) : 'failed',
+      );
+    }
+  };
+  const [exactIdentity, setExactIdentity] = useState<ReportDraftIdentity | null>(null);
+  const exactProbe = useRef<(() => ExactObservation) | null>(null);
   const action = useRef<Action | null>(null);
   const probe = useRef<
     (() => { metadata: ReturnType<Adapter['read']>; stored: string | null }) | null
@@ -351,6 +495,8 @@ function Fixture({
       items: readContextDraft(`${key}|context-items`),
       metadata: probe.current?.().metadata ?? null,
       stored: probe.current?.().stored ?? null,
+      exact: exactProbe.current?.() ?? null,
+      pageSave,
       clientPhase: client.getSnapshot().phase,
       consumers,
       subscriptions,
@@ -378,10 +524,44 @@ function Fixture({
             className="btn"
             type="button"
             disabled={!selected}
-            onClick={() => setOpening((value) => value + 1)}
+            onClick={() => {
+              setExactIdentity(null);
+              setOpening((value) => value + 1);
+            }}
           >
             打开真实报告夹具
           </button>
+          {['R1', '未知basis', '当前版'].map((version) => (
+            <button
+              className="btn"
+              type="button"
+              disabled={!selected}
+              key={version}
+              onClick={() => {
+                const entry =
+                  version === '当前版'
+                    ? probe.current?.().metadata.current?.resource
+                    : configuration.entry;
+                if (entry?.ref.source !== 'project') return;
+                setExactIdentity({
+                  configurationId: configuration.endpoint.dataDirectory,
+                  windowId: workbenchInstanceId(),
+                  ref: structuredClone(entry.ref),
+                  basis: version === '未知basis' ? 'independent-unknown-basis' : entry.basis,
+                });
+                setOpening((value) => value + 1);
+              }}
+            >
+              精确重开{version}
+            </button>
+          ))}
+          <button className="btn" type="button" onClick={() => void act('publish-without-source')}>
+            发布无来源R2
+          </button>
+          <button className="btn" type="button" onClick={() => void act('advance-dependency')}>
+            推进原依赖内容
+          </button>
+          <output aria-label="实际控制回执">{control}</output>
           <button
             className="btn"
             type="button"
@@ -389,18 +569,10 @@ function Fixture({
           >
             真实保存下一版
           </button>
-          <button
-            className="btn"
-            type="button"
-            onClick={() => void window.reportConnectedAction('revoke')}
-          >
+          <button className="btn" type="button" onClick={() => void act('revoke')}>
             撤回库来源读取
           </button>
-          <button
-            className="btn"
-            type="button"
-            onClick={() => void window.reportConnectedAction('grant')}
-          >
+          <button className="btn" type="button" onClick={() => void act('grant')}>
             恢复库来源读取
           </button>
           <button
@@ -424,19 +596,33 @@ function Fixture({
       </>
     ),
     ...(target ? { resourceTarget: target } : {}),
-    renderResource: () => (
-      <Report
-        client={client}
-        configuration={configuration}
-        commonKey={key}
-        capture={(next) => {
-          action.current = next;
-          setReply('captured');
-        }}
-        reply={setReply}
-        probe={probe}
-      />
-    ),
+    renderResource: () =>
+      exactIdentity ? (
+        <ExactReport
+          key={opening}
+          client={client}
+          configuration={configuration}
+          identity={exactIdentity}
+          capture={(next) => {
+            action.current = next;
+            setReply('captured');
+          }}
+          reply={setReply}
+          probe={exactProbe}
+        />
+      ) : (
+        <Report
+          client={client}
+          configuration={configuration}
+          commonKey={key}
+          capture={(next) => {
+            action.current = next;
+            setReply('captured');
+          }}
+          reply={setReply}
+          probe={probe}
+        />
+      ),
   };
   return <Workbench session={session} />;
 }

@@ -23,6 +23,7 @@ export async function connectedDomain(root: string) {
     entry: domain.entry,
   };
   const saved = domain.html.replace('Compare dose 10 and 20', 'Compare dose 20 and 30');
+  let expectedHtml = domain.html;
   return {
     configuration,
     domain,
@@ -33,7 +34,32 @@ export async function connectedDomain(root: string) {
           basis: latest.basis,
           content: saved,
         });
+        expectedHtml = saved;
         return { basis: latest.basis };
+      }
+      if (action === 'publish-without-source') {
+        const manifest = {
+          ...domain.manifest,
+          sources: [],
+          objects: domain.manifest.objects.map((value) => ({ ...value, sourceIndexes: [] })),
+        };
+        const content = `<!--scholoom-report-v1\n${JSON.stringify(manifest).replaceAll('-', '\\u002d')}\n-->\n<html><body>Independent R2 without A</body></html>`;
+        latest = await domain.writer.call('resources.save', {
+          ref: latest.ref,
+          basis: latest.basis,
+          content,
+        });
+        expectedHtml = content;
+        return latest;
+      }
+      if (action === 'advance-dependency') {
+        const dependency = domain.manifest.resources[0];
+        if (!dependency) throw new Error('Independent dependency is missing');
+        return domain.writer.call('resources.save', {
+          ref: dependency.ref,
+          basis: dependency.basis,
+          content: '[30,40]',
+        });
       }
       if (action === 'revoke' || action === 'grant') {
         await domain.writer.call('library.grant', {
@@ -61,7 +87,7 @@ export async function connectedDomain(root: string) {
         latest,
         source: domain.source,
         html: await readFile(join(domain.project.path, 'report.html'), 'utf8'),
-        expectedHtml: saved,
+        expectedHtml,
         reportError,
         rpc: domain.facts(),
       };
