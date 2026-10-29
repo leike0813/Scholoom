@@ -1,5 +1,20 @@
 # 实际交付与交接
 
+## 第27轮：跨既有集合替换Scenario补证（2026-10-30）
+
+本轮从共同`bb8b236e0fd37e59cffd30607372e444be633324`及clean开工，按主线`library-contract-review.md`的O-W1补实际覆盖。原领域／RPC样本只从空成员加入集合，材料保护样本只改标签，旧undo／redo不能代替明确甲→乙的organize请求；没有找到可替代本补证的精确已有实跑结果。
+
+只扩原`tests/kernel/library-organization-rpc.spec.ts`的一个真实持久样本：先经公共端口把两个source分别放入既有alpha／beta并读回确认，然后在同一冻结请求中互换为beta／alpha并更正标签。携带独立原值、固定键、未知嵌套CSL、真实附件及阅读记录的alpha source明确离开甲、进入乙；source总量仍为原两项，两个metadata完整保持，差异分页精确核四项成员增删及两项标签。undo恢复原分别成员，redo再次互换；原丢回执／未送达查询、真实进程重启、后续修订拒绝撤销、backup／独立副本origin及授权保护均保留。原材料attachmentId／materialVersionId、阅读记录、原值／固定键／authority回执和43字节独立正文断言继续执行，beta仍无附件。新增初态不改变原副本身份或重放判据，没有复制大fixture或放宽保护。
+
+证据根`/home/joshua/.cache/scholoom-round27-acceptance-O1IWSr/next/literature-workbench/`。本轮仅测试和交付文字变化，生产源码未变；复用本次派发已在七树构建核验的同源产物，没有冒称再次构建。所有输入／TMPDIR／结果均在cache，无当前/tmp前置。实际命令及结果：
+
+- `node node_modules/typescript/bin/tsc --noEmit -p tsconfig.tools.json`：exit0，`tools-types.log`。
+- `node node_modules/@biomejs/biome/bin/biome check tests/kernel/library-organization-rpc.spec.ts`：exit0，`biome.log`。
+- `node node_modules/@playwright/test/cli.js test --config playwright.kernel.config.ts tests/kernel/library-organization-rpc.spec.ts --output <证据根>/rpc-results --reporter=list,json`，`PLAYWRIGHT_JSON_OUTPUT_NAME=<证据根>/rpc-results.json`：首轮**1/1，41.787秒**，例内36.078秒，零跳过／retry／flaky；`rpc.log`、`rpc-results.json`、`commands.json`保留准确argv／cwd／退出码。没有本轮业务红例或生产修正，原历史失败不改写。
+- 原库及副本的独立CLI status均exit0／stopped，`owned-status.json`；原实例绑定shutdown及传输代理收尾仍沿原fixture，未启动模型、UI或系统服务。未重跑旧领域／UI矩阵、Windows或CI。
+
+内部CLI／锁／KernelClient／认证RPC／broker／SQLite／库／材料全部真实；只在原WS传输边界控制送达／回执丢失，没有仓储／权限／结果替身。本轮提供O-W1两个Scenario的Linux定向证据，原Windows恢复专项结果仅保留原范围，不能记为本轮Windows重跑。未改生产模块、其他测试、authority change或tasks；不扩批量GUI、完整C／其他平台／科研质量，不自动归档。独立审查、最终接收及是否关闭WARNING由主线负责；本派发已明确允许本地提交，精确SHA／补丁与收尾见证据根RESULT.md。
+
 ## Windows恢复失败已修复并真实验收（2026-10-29）
 
 主线接收2b55465／run40770348500的独立job123105541706 success，Node24.22.1／libuv1.52.1。private-files四例各重复三次12/12，包含原不可加载cmdlet环境、重复调用完整元数据保持、额外授权／缺继承／条件ACE同进程损坏后修复；三份metadata的before=after=opened、正文保持true。随后原未修改的library-organization-rpc实际1/1，38秒，恢复附件列表／原材料版本及实际正文读回断言全部执行通过，既有丢回执／独立副本／origin与授权保护不变。
