@@ -4,7 +4,7 @@
 
 阅读原`674e99465066f2599d95887822476929bf5e4c32`以`67e84ab`合入，`028ea8d`保留来源祖先。五文件集中HTML／PDF原准备过程，完整候选前保留当前reader，原dirty／批注与B/C迟到用例按作者分轮结果通过，见本轮根`next/research-interaction/RESULT.md`及`commands.md`；原旧代码有效红例与夹具错误均保留，没有把分轮8过2败及补跑2过写成同次10/10。
 
-主线desktop构建、desktop／tools类型均exit0，固定产物HTML组件**4/4、10.8秒**；新跨格式、静态HTML发送及独立PDF的双宿主回归仍在本轮根`render-main-ui.log`对应进程执行，结果未提前关闭。构建／类型及组件原日志为`render-main-{build,desktop-types,tools-types,components}.log`。主线不运行测试时修改受测生产源码。
+主线desktop构建、desktop／tools类型均exit0，固定产物HTML组件**4/4、10.8秒**；新跨格式、静态HTML发送及独立库PDF的Browser／真实Electron组**8/8、5.7分钟**，原日志为本轮根`render-main-ui.log`及`render-main-{build,desktop-types,tools-types,components}.log`。上述测试期间未修改受测生产源码。自有`render-main-ui-profile`随后经CLI确认stopped；这些结果没有覆盖下述自动采用竞争，不能据此关闭重开任务。
 
 独立`render-candidates-review.md`确认原W1提前卸载根因已关闭，但确证P2：auto effect在无保护时发起adopt，await核权回包后只核candidate／latest，未复查等待期间新出现的dirty／相关显式项。未发现确定PDF选区误绑或资源双释放；这些额外交错仅静态核对，不伪称全矩阵实跑。原2.2／3.1／3.2已重开，当前3/6，不能继续用旧6/6表示最终验收。
 
