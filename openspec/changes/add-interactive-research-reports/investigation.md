@@ -1,5 +1,24 @@
 # 调查依据
 
+## R2d正式呈现路线核查（第21轮，393a2b6）
+
+本片只调查／设计，没有新浏览器、服务、探针或运行结论。R2数学丢失、R2b整页替换丢组合及R2c固定table输入保护的既有证据保持；主线接收的R2c双宿主4/4只证明固定模板。当前源码的`ReportResources.freeze`和`IsolatedReportProvider.prepare`已经可用，分别掌握同次批准字节和唯一准入后的准备，不再应用旧独立身份研究中“prepare尚缺”的历史说明；它们没有提供跨身份浏览器呈现。
+
+两条具体路线的事实如下，取舍见design的R2d节：
+
+| 路线 | 一手已核事实 | 对当前契约的精确阻断 |
+| --- | --- | --- |
+| A：执行浏览器的原生活文档，由原生View／窗口直接呈现 | Electron **v44.5.1**的[WebContentsView文档](https://github.com/electron/electron/blob/v44.5.1/docs/api/web-contents-view.md)限定Main；构造参数只接受webPreferences或既有WebContents。[对应源码L276–303](https://github.com/electron/electron/blob/v44.5.1/shell/browser/api/electron_api_web_contents_view.cc#L276)要求本V8中的WebContents对象，再调用CreateFromWebPreferences。本机44.5.1的electron.d.ts吻合。copy／findInPage／focus操作同一实际WebContents，成熟引擎不要求预定义文献表 | 该API不是外部进程／独立UID浏览器的导入句柄；Browser没有Electron Main或View对象。独立原生窗口保留浏览器本体能力，却不满足双宿主共同tab；不能把外部窗口或本账户新建guest默认为已经接入受限身份。跨身份显示／IME／剪贴板／辅助技术通道及完整浏览器归属仍无提供者证据 |
+| B：独立执行页由成熟rrweb snapshot／record输出DOM，再在双宿主禁脚本iframe回放 | 仅核候选上游commit **339683f34bf2dd5df2e7cc18fe59fb924b65661b**，未安装、未执行。[README](https://github.com/rrweb-io/rrweb/blob/339683f34bf2dd5df2e7cc18fe59fb924b65661b/README.md#project-structure)明确snapshot／record／replay用途；[elementNode类型L880](https://github.com/rrweb-io/rrweb/blob/339683f34bf2dd5df2e7cc18fe59fb924b65661b/packages/types/src/index.ts#L880)及[rebuild L332](https://github.com/rrweb-io/rrweb/blob/339683f34bf2dd5df2e7cc18fe59fb924b65661b/packages/rrweb-snapshot/src/rebuild.ts#L332)只有SVG特殊namespace，其余走createElement。[enableInteract L584](https://github.com/rrweb-io/rrweb/blob/339683f34bf2dd5df2e7cc18fe59fb924b65661b/packages/rrweb/src/replay/index.ts#L584)只改scrolling／pointerEvents；applyInput写回放节点的checked／value | 序列化／重建路径不保持MathML namespace，是源码级反例，不能据此承诺mfrac／MathMLFraction；本片未将它写成本机rrweb实跑。回放交互开关不提供原执行页的输入／composition提交、取消、源确认或旧节点生命周期。通用应用组织可由DOM描述，但没有成熟双向事务接缝；不能把R2c的table更新泛化成该提供者 |
+
+路线A的[webContents v44.5.1文档](https://github.com/electron/electron/blob/v44.5.1/docs/api/web-contents.md)同时表明：sendInputEvent仅鼠标／轮／键盘且要求窗口焦点，insertText只是插入已提交文本；它们不等于完整跨宿主系统IME或AX转接。capturePage／beginFrameSubscription产生NativeImage，不另列为候选，也不以画面补文本／辅助语义。批准字节可研究同版本[session.protocol.handle](https://github.com/electron/electron/blob/v44.5.1/docs/api/protocol.md#using-protocol-with-a-custom-partition-or-session)，但必须绑定执行实例的实际session、只服务原freeze文件，不能照搬file／net.fetch示例或bypassCSP。此API不是已实现的跨身份资源服务。
+
+路线B的正常重建可用禁脚本frame，但同commit的UNSAFE_replayCanvas分支显式加入allow-scripts，不符合本候选约束，不启用。本树依赖／锁文件和存档中未找到rrweb／rrdom／CEF通用呈现实现；旧Zotero DOM阅读／SingleFile保存／ResearchSpec导出及ACP trace均不提供活动报告的通用输入确认。候选新依赖还需发行版本、许可／NOTICE、安全与性能维护；未把所查上游commit当产品已锁依赖。
+
+“任意业务组织”不表示已支持全部HTML／CSS／canvas；可以对未支持能力明确unavailable，但不能把基本数学、原生输入／选择、辅助语义或Browser共同tab全部排除后声称正式报告可用。原Bridge的state／select及64KiB限制也不是通用DOM传输协议，临时回放节点号不得成为ResourceRef、来源或授权。两路线目前均不能证明满足原完整契约，保留unavailable；不据本次调查否定所有未来原生／结构方案。
+
+新一手内容、请求状态／时间／摘要及具体接口归属在`/home/joshua/.cache/scholoom-round21-acceptance-pCcY4R/next/research-interaction/`的sources、source-receipts.json、source-facts.md和api-seams.md。Electron资料均来自v44.5.1，不将旧latest网页当锁定运行证明；rrweb首请求master返回422，保存后从官方repo元数据确认main并固定SHA，没有重试同一地址或安装依赖。推荐、不可避免代价、最小决定性验证及主线待决项由design的R2d节维护；tasks／delivery／spec及原夹具未改。
+
 ## R2c固定可信输入事务校准（第20轮续做，825f3fac）
 
 新`tests/fixtures/report-input/`只读复用原源页与report-structure控制器；R2／R2b源码和反例未改。首次保留原禁脚本文档，之后仅在独立源确认最新输入后以原生DOM替换固定table／count，活动文档和输入节点不替换、筛选框不赋值。私有事务分别绑定view／合成basis及接收者、原文档token和源请求代次，只有一次在途、一个最新输入意图和一个最新回包，长度／数量与诊断有界；不是通用HTML镜像、生产授权或新的存储。
