@@ -16,6 +16,7 @@ const unavailable = () => new OperationError('unavailable', '私有资源的原�
 
 function relative(value: string): void {
   if (
+    typeof value !== 'string' ||
     !value ||
     value.length > 32700 ||
     value.includes('\0') ||
@@ -42,6 +43,7 @@ function configuration(value: string): void {
 async function inspect(input: {
   configurationDirectory: string;
   resourceRelativePath: string;
+  executableRelativePath?: string;
   maxEntries: number;
   file?: { relativePath: string; maxBytes: number };
   singleFile?: boolean;
@@ -51,6 +53,7 @@ async function inspect(input: {
     input.resourceRelativePath,
     String(input.maxEntries),
     input.singleFile ? 'file' : 'tree',
+    input.executableRelativePath ?? '',
     ...(input.file ? [input.file.relativePath, String(input.file.maxBytes)] : []),
   ];
   const bytes = await new Promise<Buffer>((resolve, reject) => {
@@ -106,14 +109,25 @@ function readStatus(status: number): void {
 export async function inspectPrivateResourceTree(input: {
   configurationDirectory: string;
   resourceRelativePath: string;
+  executableRelativePath: string;
   maxEntries: number;
 }): Promise<PrivateTreeSnapshot> {
-  relative(input.resourceRelativePath);
-  if (!Number.isSafeInteger(input.maxEntries) || input.maxEntries < 1 || input.maxEntries > 4096)
-    throw new OperationError('invalidRequest', '私有资源成员上限无效。');
-  configuration(input.configurationDirectory);
   // Copy the binding: a caller mutating its input must not silently redirect this snapshot.
-  const binding = { ...input };
+  const binding = {
+    configurationDirectory: input.configurationDirectory,
+    resourceRelativePath: input.resourceRelativePath,
+    executableRelativePath: input.executableRelativePath,
+    maxEntries: input.maxEntries,
+  };
+  relative(binding.resourceRelativePath);
+  relative(binding.executableRelativePath);
+  if (
+    !Number.isSafeInteger(binding.maxEntries) ||
+    binding.maxEntries < 1 ||
+    binding.maxEntries > 4096
+  )
+    throw new OperationError('invalidRequest', '私有资源成员上限无效。');
+  configuration(binding.configurationDirectory);
   let witness: Buffer | undefined = (await inspect(binding)).witness;
   let closed = false;
   let pending = 0;

@@ -52,6 +52,8 @@
 
 宿主私有Module SHALL 只读核查Windows x64本地NTFS配置及固定相对资源范围，绑定实际对象、权限和完整成员。snapshot保留原见证，有界读取及verifyUnchanged不得重新采纳；close幂等并收尾自有在途核查，失败释放句柄。不写文件／权限、不改owner、不启动业务host。
 
+普通成员 SHALL 只核read，只有可信宿主声明的单个入口额外核execute；设置读取仍只核read。
+
 本片 SHALL 沿已选方案A及下列ACL规则；不增加跨command租约，不承诺同权限可信操作者在检查结束到loader间的原子替换防护。目标编译／实跑及产品接入分开验收，非目标明确unavailable，跳过不计通过。
 
 ```mermaid
@@ -61,6 +63,16 @@ stateDiagram-v2
   Open --> Closed: close拒绝新调用并收尾在途
   Closed --> Closed: 再次close
 ```
+
+#### Scenario: 数据读取与固定执行入口分离
+
+- **WHEN** 可信宿主按固定布局调用inspectPrivateResourceTree并提供必填executableRelativePath，普通数据成员只有当前SID的FR读取权限
+- **THEN** 数据成员无需执行权即可核验／读取；声明路径须在范围内，指向完整树中已核同一普通文件，并在其持有句柄上额外核execute。缺失、越界、目录或入口缺执行权均拒绝，不按扩展名猜入口，不自动扩大数据权限，也不允许业务请求选择任意exe
+
+#### Scenario: 执行入口绑定不可被修改重定向
+
+- **WHEN** 调用方在inspect开始或snapshot返回后修改原输入对象，随后读取或verifyUnchanged
+- **THEN** 始终复查已捕获的同一入口及原树见证，不重新采用修改后的路径；原入口权限或身份变化仍拒绝，readPrivateResourceFile不新增执行声明或执行权要求
 
 #### Scenario: 安全根下的后代与祖先替换权
 

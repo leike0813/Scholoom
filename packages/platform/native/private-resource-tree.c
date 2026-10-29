@@ -275,7 +275,7 @@ static int add_entry(Scan *scan, HANDLE handle, wchar_t *path, int ancestor, int
   if ((must_directory && !entry->directory) || entry->standard.DeletePending ||
       (!entry->directory && entry->standard.NumberOfLinks != 1) || GetFileType(handle) != FILE_TYPE_DISK)
     return refuse("object-type", REFUSED);
-  if (!security(entry, ancestor, !entry->directory && !scan->single_file)) return 0;
+  if (!security(entry, ancestor, 0)) return 0;
   {
     size_t bytes = 72 + wcslen(path) * sizeof(wchar_t) + entry->security_length;
     if (bytes > MAX_WITNESS - scan->witness_bytes) return refuse("witness-limit", TOO_LARGE);
@@ -387,7 +387,39 @@ done:
   return ok;
 }
 
-static Scan *scan_tree(const wchar_t *configuration, const wchar_t *relative, DWORD maximum, int single_file) {
+static Entry *find_file(Scan *scan, const wchar_t *relative) {
+  wchar_t *path = NULL, *normalized = NULL;
+  Entry *entry = NULL;
+  if (scan->single_file && !wcscmp(relative, L".")) return &scan->entries[scan->root];
+  normalized = copy_name(relative, wcslen(relative));
+  if (!normalized) return NULL;
+  for (wchar_t *p = normalized; *p; p++) if (*p == L'/') *p = L'\\';
+  path = join_path(scan->entries[scan->root].path, normalized);
+  free(normalized);
+  if (!path) return NULL;
+  for (size_t i = scan->root; i < scan->count; i++)
+    if (!wcscmp(scan->entries[i].path, path)) { entry = &scan->entries[i]; break; }
+  free(path);
+  return entry;
+}
+static int check_executable(Scan *scan, const wchar_t *relative) {
+  Entry *entry = find_file(scan, relative);
+  Entry checked;
+  int ok;
+  if (!entry || entry->directory) return refuse("executable-member", REFUSED);
+  memset(&checked, 0, sizeof(checked));
+  /* This is the already enumerated object, not another open by caller-supplied path. */
+  checked.handle = entry->handle;
+  ok = security(&checked, 0, 1);
+  if (ok && (checked.security_length != entry->security_length ||
+      memcmp(checked.security, entry->security, entry->security_length)))
+    ok = refuse("executable-security-changed", CHANGED);
+  free(checked.security);
+  return ok;
+}
+
+static Scan *scan_tree(const wchar_t *configuration, const wchar_t *relative, DWORD maximum,
+    int single_file, const wchar_t *executable) {
   wchar_t full[MAX_PATH_CHARS + 1], volume[4] = L"C:\\", fs[32];
   wchar_t volume_name[128], *volume_end;
   wchar_t *components = NULL, *resource = NULL;
@@ -430,6 +462,7 @@ static Scan *scan_tree(const wchar_t *configuration, const wchar_t *relative, DW
   scan->root = scan->count - 1; scan->members = 1;
   if (!single_file && !enumerate(scan, scan->root, 0)) goto failed;
   if (single_file && scan->entries[scan->root].directory) { refuse("file-required", REFUSED); goto failed; }
+  if (!single_file && !check_executable(scan, executable)) goto failed;
   free(components); free(resource);
   return scan;
 failed:
@@ -471,22 +504,9 @@ static int witness(Scan *scan, Bytes *output) {
   return 1;
 }
 static int read_file(Scan *scan, const wchar_t *relative, DWORD maximum, Bytes *data) {
-  wchar_t *path = NULL, *normalized = NULL;
-  Entry *entry = NULL;
+  Entry *entry = find_file(scan, relative);
   LARGE_INTEGER zero;
   DWORD received = 0, total = 0;
-  if (scan->single_file && !wcscmp(relative, L".")) entry = &scan->entries[scan->root];
-  else {
-    normalized = copy_name(relative, wcslen(relative));
-    if (!normalized) return 0;
-    for (wchar_t *p = normalized; *p; p++) if (*p == L'/') *p = L'\\';
-    path = join_path(scan->entries[scan->root].path, normalized);
-    free(normalized);
-    if (!path) return 0;
-    for (size_t i = scan->root; i < scan->count; i++)
-      if (!wcscmp(scan->entries[i].path, path)) { entry = &scan->entries[i]; break; }
-    free(path);
-  }
   if (!entry || entry->directory) return refuse("read-member", REFUSED);
   if (entry->standard.EndOfFile.QuadPart < 0 || (ULONGLONG)entry->standard.EndOfFile.QuadPart > maximum)
     return refuse("read-limit", TOO_LARGE);
@@ -557,25 +577,26 @@ int wmain(int argc, wchar_t **argv) {
   DWORD header[3];
   int single_file, ok = 0, read_failure = 0;
   if (_setmode(_fileno(stdout), _O_BINARY) == -1) return REFUSED;
-  if ((argc != 5 && argc != 7) || !initialize()) goto done;
+  if ((argc != 6 && argc != 8) || !initialize()) goto done;
   maximum = wcstoul(argv[3], &end, 10);
   if (*end || !maximum || maximum > MAX_MEMBERS) { refuse("argument-limit", REFUSED); goto done; }
   single_file = !wcscmp(argv[4], L"file");
-  if ((!single_file && wcscmp(argv[4], L"tree")) || (single_file && maximum != 1)) {
+  if ((!single_file && (wcscmp(argv[4], L"tree") || !*argv[5])) ||
+      (single_file && (maximum != 1 || *argv[5]))) {
     refuse("argument-mode", REFUSED); goto done;
   }
-  first = scan_tree(argv[1], argv[2], (DWORD)maximum, single_file);
+  first = scan_tree(argv[1], argv[2], (DWORD)maximum, single_file, argv[5]);
   if (!first || !witness(first, &original)) goto done;
-  if (argc == 7) {
-    unsigned long bytes = wcstoul(argv[6], &end, 10);
+  if (argc == 8) {
+    unsigned long bytes = wcstoul(argv[7], &end, 10);
     if (*end || !bytes || bytes > MAX_READ) { refuse("argument-read", REFUSED); goto done; }
-    if (!read_file(first, argv[5], (DWORD)bytes, &data)) {
+    if (!read_file(first, argv[6], (DWORD)bytes, &data)) {
       read_failure = failure ? failure : REFUSED;
       failure = 0;
       data.length = 0;
     }
   }
-  second = scan_tree(argv[1], argv[2], (DWORD)maximum, single_file);
+  second = scan_tree(argv[1], argv[2], (DWORD)maximum, single_file, argv[5]);
   if (!second || !witness(second, &current)) goto done;
   if (original.length != current.length || memcmp(original.bytes, current.bytes, original.length)) {
     refuse("scan-changed", CHANGED); goto done;
