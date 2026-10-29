@@ -1,5 +1,15 @@
 # 实现设计
 
+## 真实科研四项核查的离线准备（8d8f339）
+
+6.2上轮真实输入/保存字节已核，报告在A2中途结束而A3/A4缺失；另一次同路径创建contentChanged留下pending，不能重放。60614af的父/子截断零工具派发保护已经接收，本片不改中间件、evidence-reviewer指导、Graph/schema或预算。仅在本轮cache保存runner/gateway的新修订与公开输入，原失败目录不变；入口默认plan，实际执行仍须下次明确授权及原执行门，本轮不调用真实模型。
+
+父收到由现有delegationRequestSchema校验的完整唯一委派对象，materials严格为两个实际ResourceEvidence的数组、outputs只在workPackage内；保留一次正式委派、子实际保存/提交报告、父沿真实artifact ref/basis读回及TaskPort条件保存关联。新运行生成全新run/project/操作ID，不接续旧pending。子报告仅四段A1–A4，每段至多180 Unicode字符、引文至多20英文词，依次给判定/规则或章节/短引文/限定；出处末行至多200字符，总目标至多1000字符。完整题录/署名及许可仍在原材料和独立标准中保留，报告正确引用且不猜许可版本，不重复整份元数据或只保留前两项。这个字符目标不保证供应商token数或判断质量，2048输出token硬上限和截断拒绝保持。
+
+复用旧runner所有权/收尾及gateway原限额：16次、每次128KiB、累计1MiB、每次输出2048 tokens、首请求180秒；不创建第二预算权威或重试整项。新入口只缩短任务/父子指令及固定本树/本轮cache路径。用实际schema离线校验完整对象和常见错误形状，复用gateway内存预算self-check；必要机械验证仅一例既有TaskPort受控HTTP闭环，不在review.md手填答案或task result，不把机械样本当真实角色质量。独立评估输入同时包含实际source.md抽取、原HTML、问题、执行前expected-facts及未来真实产物；答案文件不进项目/模型。发现缺项、截断、未知效果/关联冲突或预算结束保留原回执并停止，6.2继续开放。
+
+格式/长度是本次验收工作包要求，不是生产角色或通用质量门禁；没有新产品行为或公开接口，因此不新增规格。完整科研判断仍按原独立来源及限定逐项评估，不能以结构或字符数代替。
+
 ## 工具参数解析与副作用未知分离
 
 真实验收中的错误参数已由受控回放复现：SDK在工具调用前抛普通解析异常，经RPC后被误作失联。RemoteAgent在ScholoomToolReceipts的handler回调里、execution.tool派发前，用既有注册schema校验；失败返回原调用身份的error ToolMessage和invalidRequest，继续由同一收据路径持久保存。未知效果保护只沿原已派发路径，不将解析拒绝伪装成成功或自动修补工作包。delegate_agent描述明确outputs位于workPackage内；回放、实际模型失败及独审见delivery，不以修复回放代替真实质量6.2。

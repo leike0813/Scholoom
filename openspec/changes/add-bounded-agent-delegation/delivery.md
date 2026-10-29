@@ -1,5 +1,42 @@
 # 实际交付与交接
 
+## 四项主张真实验收的离线准备（8d8f339，2026-10-29）
+
+起始HEAD=`8d8f339c3e561154b05d4db39b4264c6db2c42e6`（产品源码7a746c0）、工作区clean。先读当前AGENTS/开发说明、阶段约定、apply/contextFiles及本记录“再次授权的真实报告缺项与截断保护”。旧WIP和60614af父/子截断保护均已整合，未重放旧实现。本轮仅完成6.2a离线准备，53/58；**没有新的真实模型调用授权，真实MiniMax请求0，6.2及4.2/4.3/17.2/18.2均保持开放，未操作CI**。
+
+### 新入口、输入身份及完成判据
+
+本轮独立根`A=/home/joshua/.cache/scholoom-parallel-resume-20261029-A5WuXN/agent-delegation/work/`。可发现入口`A/README.md`，新修订`runner.mjs`/`brief.mjs`/`prepare-source.mjs`与逐字复用的`gateway.mjs`均在A，不覆盖旧research-live失败样本。runner仍沿原serveKernel/KernelClient/session.send、实际instance/PID采证和所属收尾；只缩短任务/指令、固定本树/新cache、在真实材料回执生成后校验完整委派对象。默认plan，execute仍须下一次明确授权及原approved/key双门。本轮未执行execute、未检查/输出真实凭据。
+
+| 本轮输入 | 字节及身份 | 使用边界 |
+| --- | --- | --- |
+| inputs/source.md | 24306；与run-HvCHy0的prepared-kdFCuv/source.md逐字相同，SHA256 `c132485e7a1f7b8bf9c6f09d57b5559c462795c0a3c9c489e6d6e5b85cb7cccb` | 下次实际模型原文输入，正文抽取/空白归一，不冒称原HTML全文 |
+| inputs/sample-material.md | 1898；四项合成问题及限定原字节保留 | 下次模型另一份明确材料，不预设断言为事实 |
+| inputs/plos-1003285.html | 135232；原PLOS响应，DOI10.1371/journal.pcbi.1003285 | 独立评价原始来源，不另抓材料、不交模型 |
+| evaluation/expected-facts.md | 9695；执行前独立标准原字节保留 | 仅评价者，答案不进入项目/父子输入 |
+
+`A/input-manifest.json`记录所有SHA256/字节、精确旧路径、历史实际输入ref/basis及不复用声明。下一次新项目/file/basis由真实resources.create回执分配，离线没有伪造“已接入”的新身份，也不沿旧pending创建重放。新独立评价说明明确同时交付实际抽取、原HTML、问题、原标准及未来真实产物，不再让评价者只依据原HTML误判实际source.md身份；A1–A4的来源/判定/限定标准没有改写，旧审阅结论不作新评价输入。
+
+简短报告契约见[design](design.md#真实科研四项核查的离线准备8d8f339)：A1–A4四段，每段≤180 Unicode字符，包含判定/可核定位/≤20英文词短引文/必要限定；出处末行≤200字符，总目标≤1000字符。完整题录/署名/许可仍保留在材料，报告正确短引用、不猜许可版本，不重复全元数据或删后两项换长度。字符目标不保证2048token内生成或科学质量，不是生产角色/Graph/schema的新规则。原最大2048输出token、16次、每次128KiB、累计1MiB、首请求180秒及截断拒绝不变。
+
+父取得经实际delegationRequestSchema校验的唯一完整参数：materials为两份实际ResourceEvidence数组，outputs只在workPackage内。已静态核对实际角色、子create/report、record.artifacts[].resource读回及TaskPort的task/basis/content与result/workItemId字段；不让模型从错误字段层级试探。子正常保存并提交实际artifact，父只在completed/available且读回四项可交付后，重读原任务、按最新entry.basis保存完整候选关联，保留原头/正文/来源及任务状态。拒绝、缺项、contentChanged、pending/unknown、关联冲突或限额到期均保留原回执/真实成果并停止，不换ID重建、手填review.md或task result。下一次真实执行及独立质量验收仍由主线另行确认授权；入口退出0或机械结果不能关闭6.2。
+
+### 实际离线检查与一次机械接线
+
+每条命令先export TMPDIR=A，bash执行。本树生产源码未改，复用主线已验构建，未重建、安装或启动开发服务器。gpt-6.1-sol/high无历史fork辅助仅静态核当前工具字段/角色及调用链，未读凭据、判断四项结论、编辑或运行测试，已关闭。源代码没有新增公共接口，主线仅需审查本轮cache修订和验收范围，不需接入新生产符号。
+
+| 命令/证据 | 结果与边界 |
+| --- | --- |
+| `node A/runner.mjs --plan`、`--prepare` | plan不启内核/gateway/读凭据；prepare仅将原24306字节抽取复制到新的prepared-iGtwKK/source.md，inputUnchanged=true。plan-final2.json/prepared.json保留结果 |
+| `node A/runner.mjs --self-check` | 最终self-check-final3.log两条passed：原模式/执行门、固定模型配置、真实委派/读/创建/报告/TaskPort参数校验，错误outputs层级/workPackage.basis及顶层metadata拒绝；gateway内存边界核16次/1MiB/2048token/180秒，零网络/内核/gateway/真实凭据读取。schema-only合成身份从未向业务端派发，不抵充权限/所有权验证 |
+| 长度/原字节审计 | `node A/audit-inputs.mjs`：所有输入及旧gateway逐字相同；同历史身份仅作未派发的长度比较，父2910→2430字节，子要求1305→725字节；合成schema样例父2198字节。首次比较父为2934字节尚未变短，原input-audit.log保留；压缩到当前值后未改预算/角色/材料 |
+| 一次既有机械例 | `node node_modules/@playwright/test/cli.js test --config playwright.kernel.config.ts tests/kernel/delegation-task-port.spec.ts --grep 'separate: complete$' --workers=1 --reporter=list,json --output A/mechanical-results > A/mechanical.log 2>&1`：**1/1**，case10.6秒、CLI总24.6秒，零跳过/重试/flaky。mechanical.json及mechanical-audit.json核completed/available、真实父子实例/PID不同、实际报告、父ref/basis读回及结果关联basis/fileId一致，任务仍active |
+| 边界/首次问题 | 机械例仅通用worker/合成观察值/localhost受控HTTP；内部broker/仓储/worker/文件/保存/关联真实，没有手填review.md或task result，也未证明evidence-reviewer科研判断或新指令被真实模型遵循。一次临时stdin审计因相对import从repo cwd解析而ERR_MODULE_NOT_FOUND，first-audit-error-excerpt.log保留，改为cache-local audit-inputs.mjs后通过；不是产品失败/真实重跑 |
+
+五份cache模块`node --check`通过；变更strict、scholoom-dev schema及diff检查见A/checks.json。没有TypeScript/生产/schema变化，不重跑无关类型/全仓/UI/截断绿色组，不把本机编译/机械通过记作产品整合、科研质量或目标平台通过。机械例finally的app/model.close已完成，原登记项目/profile保留在mechanical-results直到配置退役；本轮没有仍拥有的服务/执行或后台轮询。
+
+已在实际执行后取当前delivery instructions更新本记录。按本轮HEAD导出独立`A/offline-preparation-8d8f339.patch`（仅本change三份工件）；cache新修订/原输入/评价说明另打包`A/offline-preparation-fixture.tar.gz`并列`A/cache-bundle-files.json`，不stage工作区改动。补丁前向/反向及真实index不变检查完成后交回；未提交/同步/push/归档。所有必需输入在Git/cache，无现有/tmp前置。准备完成即停止，下一次真实模型请求须主线再确认授权。
+
 ## 再次授权的真实报告缺项与截断保护（2026-10-29）
 
 用户回答“授权再运行一次”后，主线仅执行一轮`research-live/runner.mjs --execute --approved-minimax`，新根`/home/joshua/.cache/scholoom-finish-active/research-live/run-HvCHy0/`。预算仍16次／1MiB累计正文／2048输出tokens／首请求180秒，未重试整项。14次真实转发、976959字节，全部HTTP200／完整返回；gateway另拒绝2次未转发请求，原子额度未放宽。父只创建一个正式evidence-reviewer委派，父子均钉入MiniMax-M2.7，子实际读取原文和问题；原材料及原任务保持不变。父子实例均exited，同一kernel退出0且stopped，采证／收尾错误为空，独立`parent-audit.json`保存核对。
