@@ -101,6 +101,9 @@ export const executionGraphOperations = {
           {
             graph: registeredGraphSchema,
             model: modelDescriptorSchema,
+            tools: agentInitializationSchema.properties.tools,
+            middleware: agentInitializationSchema.properties.middleware,
+            systemPrompt: agentInitializationSchema.properties.systemPrompt,
             attemptId: id,
             originInstructionId: id,
             checkpointRef: id,

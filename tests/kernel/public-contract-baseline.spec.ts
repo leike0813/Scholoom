@@ -112,6 +112,15 @@ test('graph contracts support deterministic initialization, waiting and explicit
       graph,
       attemptId: 'a',
       input: null,
+      tools: [{ name: 'read_context_resource', description: 'Read', schema: {} }],
+      middleware: [{ name: 'instructions', before: true, tool: false, model: false }],
+    }),
+  ).toBe(true);
+  expect(
+    initialize.params({
+      graph,
+      attemptId: 'a',
+      input: null,
       model: { model: 'model', apiKey: 'synthetic', endpoint: 'http://127.0.0.1' },
       checkpointPath: '/owned/checkpoint.sqlite',
     }),
@@ -172,6 +181,69 @@ test('graph contracts support deterministic initialization, waiting and explicit
       }),
     ).toBe(true);
   }
+});
+
+test('graph content facts keep actual ranges and exact saves without requiring new fields on old progress', () => {
+  const progress = compileContract({ params: graphProgressSchema, result: true }).params;
+  const contentReads = [
+    {
+      kind: 'text',
+      offset: 300000,
+      length: 12,
+      size: 400000,
+      truncated: false,
+      nextOffset: 300012,
+    },
+    { kind: 'pdf-page', pageIndex: 2, offset: 20, length: 40, hasText: true },
+    {
+      kind: 'document-section',
+      sectionId: 'chapter',
+      normalizationVersion: 1,
+      offset: 10,
+      length: 25,
+      size: 100,
+      nextOffset: 35,
+    },
+    { kind: 'search' },
+  ].map((content) => ({ resource: evidence, content }));
+  const value = {
+    kind: 'graph.completed',
+    attemptId: 'a',
+    evidence: {
+      ...facts,
+      contentReads,
+      roleResults: [
+        {
+          role: 'report',
+          result: {
+            resource,
+            editId: 'edit',
+            association: { operationId: 'link', state: 'unknown' },
+          },
+        },
+      ],
+    },
+  };
+  expect(progress(value)).toBe(true);
+  expect(progress({ ...value, evidence: facts })).toBe(true);
+  for (const content of [
+    { kind: 'pdf-page', offset: 0, length: 1, hasText: true },
+    { kind: 'text', offset: -1, length: 1, size: 2, truncated: false },
+    { kind: 'search', length: 100 },
+  ])
+    expect(
+      progress({
+        ...value,
+        evidence: { ...facts, contentReads: [{ resource: evidence, content }] },
+      }),
+    ).toBe(false);
+
+  const consume = compileContract(executionControlOperations['execution.consume']).params;
+  const confirmation = { checkpointId: 'checkpoint', instructionIds: ['instruction'] };
+  expect(consume(confirmation)).toBe(true);
+  expect(consume({ ...confirmation, checkpointNamespace: '' })).toBe(true);
+  expect(consume({ ...confirmation, checkpointNamespace: 'agent:original-task' })).toBe(true);
+  expect(consume({ ...confirmation, checkpointNamespace: 1 })).toBe(false);
 });
 
 test('context contracts preserve selections and bound aggregate data and normalized regions', () => {

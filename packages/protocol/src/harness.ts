@@ -187,6 +187,7 @@ export const executionOperations = {
     params: object(
       {
         checkpointId: id,
+        checkpointNamespace: { type: 'string', maxLength: 1024 },
         instructionIds: { type: 'array', items: id, maxItems: 100 },
       },
       ['checkpointId', 'instructionIds'],

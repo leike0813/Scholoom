@@ -63,7 +63,8 @@ flowchart LR
 
 - Agent 子图探针已接收：原 `synthesis-agent-checkpoint-probe/RESULT.md` 固定已安装 LangGraph 1.5.0／DeepAgents 1.15.0，真实子图继承同一 saver／SQLite／thread。修正直接 addNode ReactAgent 的装配首败后，唯一有效运行保存9个 checkpoint、调用一次内存假模型；7条记录型确认中5条子 namespace 的 ID 按原宿主根查询均无法定位，探针明确 exit2。确认回调只记录并 resolve，宿主拒绝依据为原查询／谓词镜像；未运行真实宿主消费事务，不能宣称产品通过。模型外发为0。
 - 主线独立只读审查 `synthesis-checkpoint-design-review.md` 否决仅等整个 Agent 节点完成再确认的方案：它会改变中间消费边界，并缺少子采用信息的恢复。当前选定方向保留原同步确认，按实际 namespace／checkpointId 精确核所属 tuple、原始上下文和真实父根。原探针 SQLite 的子 metadata.parents 确实指向产生该任务的根 checkpoint，主线已 readonly 核实，不从 namespace 字符串猜任务身份。
-- 补充审查 `synthesis-checkpoint-design-review-followup.md` 指出：只恢复 confirmed 集合仍遗漏“子状态已保存、确认尚未提交”的窗口。设计必须在继续实际子任务前，按其原 config／namespace 补核全部已采用上下文并严格补确认；失败继续阻止下一模型／工具。已经确认的完整覆盖引用不能被重启时旧根的子集确认降级。保留原根任务／pending writes，不把子最新状态当替代根；该恢复门的框架装配尚待有限验证，不先修改生产或发布内部字段。
+- 补充审查 `synthesis-checkpoint-design-review-followup.md` 指出：只恢复 confirmed 集合仍遗漏“子状态已保存、确认尚未提交”的窗口。设计必须在继续实际子任务前，按其原 config／namespace 补核全部已采用上下文并严格补确认；失败继续阻止下一模型／工具。已经确认的完整覆盖引用不能被重启时旧根的子集确认降级。保留原根任务／pending writes，不把子最新状态当替代根。
+- 后续 `synthesis-agent-resume-probe/RESULT.md` 已收到，基线 `f4c525a`，仓库只读。两个有效场景各运行一次、exit0：A在同一实际子 task／config 定位未确认的B，补确认继续失败时模型／工具累计保持1／1；解除同一故障后从原子状态继续，最终2／1，B只采用一次。B实际命中成功子任务的 pending writes 已落盘而下一根未保存的窗口；以精确子覆盖引用恢复B，原根子集确认没有降级，SDK跳过成功 consumer 后模型／工具仍2／1。主线核过 evidence-index 的实际 namespace／metadata.parents 与计数。首败是假模型 bindTools 的两个夹具问题，原日志与数据库保留，不算业务通过。完整框架、原 saver／SQLite 和合成文件效果真实；消费覆盖 meta／ACK 仍是有限宿主镜像，未运行 KernelApplication／IPC／权限／真实崩溃。该证据足以选定恢复接缝，生产保证列入实现与独立验收，不再以相同探针等待设计。
 - 既有报告更新调查已接收，来源 `synthesis-updated-artifacts/RESULT.md`：精确 FileEdit 可核本次 afterEvidence、可信 run／instance 及 before 依据，原 artifact 只证明 run 与文件的关系，不能证明保存版本；列表100项截断也不能证明关系不存在。选择在原 GraphProgress 表达有界角色结果，经宿主窄适配分别核精确保存、关联及可读性，必要时由 projects 按原键读取单项关联；不另建历史或逐工具账本。未知保存继续保留未知，不按旧 creation／同内容认定成功，不强制所有修订另存新文件。
 
 主线另核 `task-contracts.ts:21–39`：当前库来源链接必须有 attachmentId 与 materialVersionId，尚不能结构化表达只有题录的候选。正常缺全文不能伪造附件 Evidence，也不能当作已登记材料读取故障；本次来源条件／实际消费表达需要保留这一差别。
@@ -78,4 +79,4 @@ flowchart LR
 
 足以继续的结论是：本次沿 D01 做项目定向综合，保留旧 method/invoke，复用已有可信科研请求、任务文件、实际资源、模型／执行生命周期和文档视图；缺的是业务图及其可靠取材／Agent／接续接线，不能以重跑校准图填补。没有理由为这一路径先建设线上检索、活动报告、多 Agent 或库知识写回。
 
-M／A／T 及保存核查已接收，初次 Agent 子图探针明确当前不兼容。已形成三份 delta 共10项要求，规定真实范围取材、角色保存、来源等待、新会话续做及原消费保证，strict 验证通过；它们是待实施契约，不是实现证据。Agent 子接续恢复门的有限验证和具体 SDK 装配仍影响设计，本 change 尚未 apply-ready。主线继续完成 design／tasks 后才拆实施；实际执行后再写 delivery。科研样本及实际模型内容评价保留独立验收，不以这些合成探针、规格存在或 CLI ready 关闭。
+M／A／T、保存核查及两个决定性恢复场景均已接收。已形成三份 delta 共10项要求，规定真实范围取材、角色保存、来源等待、新会话续做及原消费保证，strict 验证通过；它们是待实施契约，不是实现证据。无阻塞问题，主线据原调用身份、当前授权、已有库材料及文件任务权威制定 [design](design.md)，按 [tasks](tasks.md) 分波实施；只有所需工件齐备才进入 apply，实际执行后再写 delivery。科研样本及实际模型内容评价保留独立验收，不以这些合成探针、规格存在或 CLI ready 关闭。
