@@ -69,9 +69,29 @@ for (const cancel of [false, true]) {
       await composer.fill('Retained user draft');
       await uiPage.getByRole('button', { name: '展开 Agent 会话', exact: true }).click();
       const tool = uiPage.locator('details.tool-call').filter({ hasText: 'Ran delegate_agent' });
-      const assertionStartedAt = Date.now();
+      const setupStartedAt = Date.now();
+      let toolObservedAt: number | undefined;
+      let assertionStartedAt: number | undefined;
       let outcome = 'failed';
       try {
+        if (!sessionId) throw new Error('Selected session unavailable');
+        // Model/worker startup precedes the five-second deterministic UI refresh check.
+        await expect
+          .poll(
+            async () => {
+              const snapshot = await client.call('workbench.snapshot', {
+                projectId: project.id,
+                sessionId,
+              });
+              return snapshot.messages.some(
+                (message) => message.role === 'tool' && message.tool?.name === 'delegate_agent',
+              );
+            },
+            { timeout: 20000, intervals: [100, 250] },
+          )
+          .toBe(true);
+        toolObservedAt = Date.now();
+        assertionStartedAt = Date.now();
         await expect(tool).toHaveCount(1);
         outcome = 'passed';
       } finally {
@@ -126,6 +146,8 @@ for (const cancel of [false, true]) {
               projectId: project.id,
               sessionId,
               delegationId: work.delegationId,
+              setupStartedAt,
+              toolObservedAt,
               assertionStartedAt,
               assertionEndedAt,
               outcome,

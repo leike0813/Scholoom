@@ -2,7 +2,7 @@
 
 ## 当前范围（2026-10-30）
 
-用户已批准Linux Browser＋真实Electron阶段收口并授权按计划修订。原4.2 Windows及17.2／18.2旧CI唯一因果转后续非checkbox责任，53/58改为53/55；4.3 Linux最终核对及6.2真实科研仍未完成。Windows目标未交付，macOS沿既定人工／受管不可用；历史checked、红例、缺证及后续新模型授权条件保持。普通成功分支先等真实终态再核原5秒UI刷新，不称端到端5秒。本轮不调用模型、不跑业务验收。
+用户已批准Linux Browser＋真实Electron阶段收口并授权按计划修订。原4.2 Windows及17.2／18.2旧CI唯一因果转后续非checkbox责任；主线完成4.3后为54/55，6.2真实科研仍未完成。Windows目标未交付，macOS沿既定人工／受管不可用；历史checked、红例、缺证及后续新模型授权条件保持。实际工具记录及委派终态先形成，再核原5秒UI刷新，不称端到端5秒。最新验证和模型未执行范围见delivery。
 
 用户随后明确要求“实现该change”。本线独立实施与Linux验证已执行，实际结果见[delivery](delivery.md)；未到位的跨线输入与目标平台验证继续保留未完成，不因CLI工件齐备而视为已交付。文件／符号范围以[design](design.md#文件变化)为准，原始失败与待输入见[investigation](investigation.md)。本线主Agent负责整合及最终接受。
 
@@ -53,7 +53,7 @@ flowchart LR
 ## 4. 收尾、重启及基线故障证据
 
 - [x] 4.1 扩展execution-isolation、capability-stop-unknown／harness-recovery中适用机制并补通用委派行为：子崩溃、父正常退出／失败、局部与父链取消、已受理保存未收尾、停止未知保占用、旧实例迟到。重启查询保原结果且无新模型请求；新父推进先核查旧效果，不重用旧ID重启，不从根PID消失释放保护。完成依据：实际进程及领域操作，不能以AbortSignal或RPC返回替代停止确认。
-- [ ] 4.3 最终核对Linux Browser＋真实Electron的两个受管执行、产物回读／打开、草稿、取消和重启，复用已有实跑并对应最终源码／构建，只有相关差异、缺项或影响本阶段的当前失败才安排定向补验；macOS核对明确不可用与人工保留。复用`tests/execution-diagnostics.ts`已有阶段材料；同组当前失败如实保留。Windows目标移后续责任，不把Linux通过当三平台完整能力，本项仍未完成。
+- [x] 4.3 最终核对Linux Browser＋真实Electron的两个受管执行、产物回读／打开、草稿、取消和重启；最终通用worker真实保存／父读回1/1、取消重启及controller失联2/2，双宿主委派打开／局部取消四例通过，连同综合路径最终组合6/6。原Browser工具行首败3/4及阶段时间线保留，先等真实工具记录再核原5秒UI，未证明旧CI唯一根因。macOS沿既定真实证据及未变availability核不可用／人工保留，Windows后置；构建、归属及未验范围见delivery，不外推三平台完整能力。
 
 ## 5. 现有会话内呈现与设置
 

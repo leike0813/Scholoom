@@ -14,6 +14,7 @@ import { developmentKernelConnectionTimeout } from './kernel-fixture.js';
 export async function startModelKernel(
   directory: string,
   endpoint: string,
+  options: { taskSaveConflictOnce?: boolean } = {},
 ): Promise<() => Promise<void>> {
   await mkdir(directory, { recursive: true });
   const canonical = await realpath(directory);
@@ -169,6 +170,7 @@ export async function startModelKernel(
             endpoint,
             artifact: childArtifact,
             observationMs: Math.min(info?.timeout || 60_000, 120_000),
+            taskSaveConflictOnce: options.taskSaveConflictOnce === true,
           },
           (error) => {
             if (error) failed();

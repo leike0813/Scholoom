@@ -12,7 +12,8 @@ flowchart LR
   Host --> Graph[源码综合图：检查、取材、比较、自查与交付]
   Graph --> Agent[共用串行 Agent 装配]
   Agent --> Resources[原 resources：题录与真实有界正文]
-  Agent --> Saves[原项目创建及 CAS 保存]
+  Graph --> Intent[持久保存意图与后续路由]
+  Intent --> Saves[独立保存节点：原项目创建及 CAS 保存]
   Graph --> Wait[原持久等待与普通消息]
   Saves --> Files[报告、过程和任务导航]
   Graph --> Progress[现有 GraphProgress：实际读取与角色保存]
@@ -57,6 +58,12 @@ flowchart LR
 复用 `execution-driver.ts` 原普通 Agent 的模型、backend、middleware、工具 token／回执、输出截断保护及同步 InstructionSaver，提取一个由普通 Agent 和 registered 节点立即消费的 worker 本地装配。宿主也共用原 Agent 工具／middleware 装配，registered 输入只增加由可信宿主提供的工具描述与 middleware 元数据；模型仍来自所属执行。不得复制第二 Agent loop、默认模型、执行池或进程额度。
 
 首片限定一个活动 Agent consumer；三个职责节点顺序调用同一共享装配。内部 consumer 接口封装原 RunnableConfig 下的首次调用／原子状态接续，输出须将完整 instruction channels 合入外层状态。GraphFactory 的源码选择工具子集／节点指导，配置数据不能自授权限。最终 TypeScript 本地接口随这两个真实消费者一起交付，业务图在主线接收该接口之后实施。
+
+consumer 未成功返回时保留原节点／task 失败和原 config，不提交缺少完整 channels 的新业务等待根。仅在重建出实际来源失败、原 child 具备完整 channels 且原 config 的 confirmLatest 严格成功后，才能将全部消息和指令通道合回并进入来源等待；其他实际已取得范围只作失败诊断。准备阶段的具体来源失败进入来源等待，明确处理后回到准备，完成剩余来源、目标和快照检查；保存问题前先按原依据读取既有过程，保留其内容。
+
+角色保存先由业务节点返回持久意图（角色、候选、原 before Evidence／创建 operationId、原回执）、保存队列及后续路由；sync checkpoint 屏障之后，独立 save 节点才调用唯一位置的 effect task。task 和保存节点不自动重试。原依据检查位于 effect 内，已持久的精确回执可直接恢复；回执失落而原依据变化时保留对应未知保存和候选，禁止改用当前依据、同文认领或重放。待保存角色不把旧回执作为当前成果，旧事实保存在意图中；原创建仍沿 operationId 查询。统一接收保存结果后推进队列或原路由，不重新解析业务结果或重跑科研。
+
+明确未产生效果的保存拒绝，可在用户普通消息明确继续后重试原意图；保留角色、原 before、候选、队列与原路由，不将其交给通用研究决策重建。条件已变时仍沿原意图转 unknown；效果不确定或无法确认拒绝类别时继续等待。
 
 `execution.consume` 增可选 `checkpointNamespace`，缺省表示根 namespace。保存后仍同步确认；宿主按同一所属DB、thread、有效执行实例、精确 namespace／checkpointId、完整原消息核对。子 tuple 的真实 `metadata.parents['']` 必须指向当前根；原 graphResume 仍在根控制位置校验，不从 namespace 字符串猜 task。
 

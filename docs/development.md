@@ -29,7 +29,7 @@ Electron 工作台和 CLI 共用独立 Node 内核，浏览器开发入口经同
 
 执行控制映射也由 `generate:contracts` 产生 schema 引用。名额申请／释放、健康、停止、checkpoint 消费确认、图初始化、模型事件及工具接续共用声明派生的参数、提供者签名、结果和等待语义，并在 IPC 两侧校验。动态工具的输入仍从原注册 schema 解析，Zod 默认值在宿主执行前应用；模型描述复用 models schema。SDK 消息与 Command 的原生类型适配留在 harness 内。
 
-`startExecutionWorker` 将共同 IPC、健康和停止机制留在 harness；`KernelApplication` 为根执行及能力子执行注入静态 `apps/kernel/src/execution-worker.ts` 入口，客户端载荷不能指定入口。宿主与 worker 共用 `execution-graphs.ts` 的源码注册集合，`ExecutionGraphs` 在构造图前核对身份、版本和配置 schema。生产集合当前为空；固定 StateGraph 仅在 `tests/fixtures/domain-execution-worker` 的宿主与 worker 同源装配，定向测试为 `graph-registration.spec.ts`、`registered-graph.spec.ts`。
+`startExecutionWorker` 将共同 IPC、健康和停止机制留在 harness；`KernelApplication` 为根执行及能力子执行注入静态 `apps/kernel/src/execution-worker.ts` 入口，客户端载荷不能指定入口。宿主与 worker 共用 `execution-graphs.ts` 的源码注册集合，`ExecutionGraphs` 在构造图前核对身份、版本和配置 schema。生产综合图见下文“科研 Graph”；固定 StateGraph 仅在 `tests/fixtures/domain-execution-worker` 的宿主与 worker 同源装配，定向测试为 `graph-registration.spec.ts`、`registered-graph.spec.ts`。
 
 宿主经内部 broker `harness.startGraph` 选择 registered 图，后续沿普通 `session.send` 发送新指令。尝试保存图身份、版本、配置、材料依据、状态格式及 checkpoint 绑定；公共 `workbench.watch/snapshot` 返回 `graphProgress` 和 waiting／waitId。工厂的 `resume` 将新消息映射为已声明等待 schema 的输入与指令身份；不匹配时保留等待和未消费消息，不转为默认 Agent。图使用宿主提供的 `InstructionSaver`，先保存 `instructionIds`／`graphResume` 再确认消费；等待须对应实际 checkpoint 的 interrupt。重启只读取记录，不自动推进；旧版本不可用或 checkpoint 缺失时保留原尝试与成果，显式新版本另建尝试。registered 执行共用当前实例授权、进程准入、模型额度、取消和真实资源端口，无模型图不要求模型凭据。
 
@@ -93,7 +93,7 @@ Agent、能力子执行与 PDF 共用宿主持有的进程容量，默认活动 
 
 项目容器统一为 v4→v5 委派结构→v6 程序运行结构，各步保留保护源副本并事务推进。旧未发布 program-only v5 明确拒绝且保留现场，不自动改写；领域记录恢复钩子等实际模块合入后组合。相关回归为 `project-container.spec.ts`、`project-migration-chain.spec.ts`、`project-recovery.spec.ts`。这些结构已准备不代表领域业务或界面已交付。
 
-固定样例位于 `tests/fixtures/domain-execution-worker/`：`fixed-counter` 只检查实际两节点图及 IPC，其 `execution.custom` 回报由内联测试提供者接收；`fixed-resource` 检查真实材料与首次创建；`durable-resource` 沿完整 KernelApplication 跑真实 SQLite checkpoint、interrupt 和新消息恢复。`worker-v2.mjs`／`worker-model.mjs` 分别提供升级及模型额度边界，额度用例只调用真实 acquire/release，不据此宣称模型生成通过。生产 `apps/kernel/src/execution-graphs.ts` 当前为空，固定图不注册为科研方法。
+固定样例位于 `tests/fixtures/domain-execution-worker/`：`fixed-counter` 只检查实际两节点图及 IPC，其 `execution.custom` 回报由内联测试提供者接收；`fixed-resource` 检查真实材料与首次创建；`durable-resource` 沿完整 KernelApplication 跑真实 SQLite checkpoint、interrupt 和新消息恢复。`worker-v2.mjs`／`worker-model.mjs` 分别提供升级及模型额度边界，额度用例只调用真实 acquire/release，不据此宣称模型生成通过。固定图不注册为科研方法；生产图沿 `apps/kernel/src/execution-graphs.ts` 的共用集合登记。
 
 同目录 `command.mjs` 的 echo／overflow／tree 模式实际运行 Node、输出边界和后代进程。机制用例的工作空间和授权回调是明确替身，broker 用例使用活动会话和真实实例授权。各组合的实跑范围见[领域交接交付](../openspec/changes/archive/2026-10-24-establish-domain-execution-handoffs/delivery.md)。定位失败时，先区分协议拒绝、注册校验、准入等待、实际执行及结果交付，再沿对应测试和所属记录核查。
 
@@ -123,7 +123,7 @@ SCHOOLOOM_UI_PORT=5343 node node_modules/@playwright/test/cli.js test --config p
 
 定向检查：`tests/kernel/research-tasks.spec.ts`（文件任务／人工组合／恢复）、`task-tools.spec.ts`（工具范围）、`research-task-agent.spec.ts`（真实内部执行与受控模型接续）、双宿主 `tests/ui/research-tasks.spec.ts`。构建与UI仍须分开，隔离配置及临时服务只收尾本轮归属。
 
-任务详情的“运行科研图”经`tasks.graphs/runGraph`使用当前选定会话。项目重读完整TaskRef、入口basis、workItemId及sourceLinkIds，派生实际材料依据。Kernel默认TaskResearchPort经broker调用科研所属`research.graphs/requestGraph`，保留原人工身份、会话、执行授权及去重；Manual仍可独立使用，显式注入端口用于模块组合。生产目录保持空，不注册校准图。
+任务详情的“运行科研图”经`tasks.graphs/runGraph`使用当前选定会话。项目重读完整TaskRef、入口basis、workItemId及sourceLinkIds，派生实际材料依据。Kernel默认TaskResearchPort经broker调用科研所属`research.graphs/requestGraph`，保留原人工身份、会话、执行授权及去重；Manual仍可独立使用，显式注入端口用于模块组合。生产综合图及开放配置见下文“科研 Graph”，校准图仅在测试装配。
 
 启动前通过原资源创建操作保存`tasks/<processOperationId>.graph-input.md`，操作身份为`<processOperationId>_input`。输入快照记录原TaskRef／入口Evidence、session／invocation／instruction、工作项、来源指针和入口正文，只作本次历史输入；库正文不复制，入口自己不能重复选择为实时来源。快照完整确认且入口重读未变后，Graph读取快照及所选来源的真实Evidence，容量沿实际图声明。调用回执再保存为独立process材料，包含原调用及快照引用，最后条件关联任务入口。启动未知保留原请求身份；过程保存与任务关联分别核查，不能重跑代替补关联。任务详情有界读取历史输入时保持原ref/basis，外部修改后明确拒绝。
 
@@ -439,11 +439,17 @@ pnpm kernel cancel --project PROJECT_ID --session SESSION_ID
 
 材料分析内容与来源位于 `packages/research/src/builtin/`，随科研包构建复制，仍使用内置 JSON 形式 YAML 声明及既有能力入口。科研业务 Graph 采用源码注册，节点指导及资源随整体实现版本维护；用户／项目自定义 Graph 后置。当前能力记录在项目数据库中，沿既有备份与独立副本恢复保存。
 
+### 科研 Graph
+
 科研图通过 `research.graphs` 分页发现、`research.graph` 精确读取版本描述；`research.graphCalls` 按项目／会话及可选 invocationId 查询业务调用、真实执行与交付检查，默认每页25条、最多100条，响应最多512KiB。每项执行历史默认25条，`nextExecutionOffset` 可随指定调用的 `executionOffset` 继续读取。查询会按调用者当前资源权限核查材料与成果，保留实际依据和失败诊断，不启动执行或自动补关联；`usable` 不表示科研充分性已评估。恢复副本的旧资源引用保留原来源并提示核查，不自动访问原项目或重新开工。
 
-人工产品请求通过唯一的 `research.requestGraph` 提交：`{projectId,sessionId,invocationId,instructionId,graphId,version,config,materials,text}`，返回 `{invocationId,instructionId,runId}`。仅接受宿主绑定的product/human身份；图、开放配置、会话、read/send权限及材料ref/basis均复核。相同输入补交复用受理，不同请求不能抢占现有等待；worker继续即时授权。最终受理检查在harness指令／run事务写入前同步执行，检查闭包不进入RPC载荷。内部 `research.startGraph` 仍仅供host/system，执行Agent工具没有人工启动操作。TaskRef/workItemId、任务entry basis和sourceLinkIds归项目服务端编排，确认后只交本操作的明确材料；任务详情动作与process材料整合仍由项目线验收。默认目录为空，校准图只由测试静态注入。
+人工产品请求通过唯一的 `research.requestGraph` 提交：`{projectId,sessionId,invocationId,instructionId,graphId,version,config,materials,text}`，返回 `{invocationId,instructionId,runId}`。仅接受宿主绑定的product/human身份；图、开放配置、会话、read/send权限及材料ref/basis均复核。相同输入补交复用受理，不同请求不能抢占现有等待；worker继续即时授权。最终受理检查在harness指令／run事务写入前同步执行，检查闭包不进入RPC载荷。内部 `research.startGraph` 仍仅供host/system，执行Agent工具没有人工启动操作。TaskRef/workItemId、任务entry basis和sourceLinkIds归项目服务端编排，确认后只交本操作的明确材料；任务详情及 process 导航沿同一项目端口，校准图只由测试静态注入。
 
-宿主内部 `research.startGraph` 接受稳定 invocationId／instructionId、精确图版本、开放配置及 ResourceEvidence，复用 `harness.startGraph`；普通消息仍沿 `session.send` 接续，取消沿原会话入口。`harness.executions` 只供已登记内部宿主消费，按 runId、instructionId 或 originInstructionId 三种明确选择器之一查询同会话历史；按原指令查询同时返回所属原消息，核对未知回执。来源由宿主建立，普通接续继承，显式新启动另起来源，不能凭相同配置推断调用关系。科研记录不复制运行状态、进程或 checkpoint。生产 Graph 集合仍为空，固定校准图仅在 `tests/fixtures/research-graph-worker` 的科研目录及 worker 同源装配；`research-graphs.spec.ts` 验证真实科研模块、broker、项目／库、首次成果、等待、取消和恢复，不能据此宣称真实综合流程或任务整合已交付。
+宿主内部 `research.startGraph` 接受稳定 invocationId／instructionId、精确图版本、开放配置及 ResourceEvidence，复用 `harness.startGraph`；普通消息仍沿 `session.send` 接续，取消沿原会话入口。`harness.executions` 只供已登记内部宿主消费，按 runId、instructionId 或 originInstructionId 三种明确选择器之一查询同会话历史；按原指令查询同时返回所属原消息，核对未知回执。来源由宿主建立，普通接续继承，显式新启动另起来源，不能凭相同配置推断调用关系。科研记录不复制运行状态、进程或 checkpoint。固定校准图仅在 `tests/fixtures/research-graph-worker` 的科研目录及 worker 同源装配；`research-graphs.spec.ts` 验证其模块接线。
+
+生产 `scholoom.project-literature-synthesis@1` 由 `apps/kernel/src/research-graphs/` 同源装配到宿主和 worker。配置为 `question`、可选 `constraints`、`reportTarget`／`processTarget`（`{kind:'create',path}` 或 `{kind:'update',resource:{ref,basis}}`）、可选 `prior`（最多10项当前项目 Evidence）及必填 `requireIndependentReview`。通过现有任务入口选定会话、来源及配置运行；准备、取材、综合、自查、保存和交付由实际图承载。来源失败的普通消息使用“重试来源 <问题中完整身份>：理由”或“忽略来源 <完整身份>：理由”；其他可续问题使用“继续核查：具体决定”，含糊继续保持等待。要求独立复核而尚未完成时保持不完整。
+
+新会话补材料需从原任务建立新调用，明确 prior 和 update Evidence。报告与过程沿原 FileEdit、所属 run 关联及任务 CAS 导航，原调用和历史依据保留。保存先落持久候选与原依据，再进入独立保存节点；回执丢失不能按当前内容认领成功或重写。诊断读取 `research.graphCalls`／当前 `GraphProgress`、所属文件历史及任务链接，分别核实际正文范围、角色保存、关联与当前版本。`tests/kernel/project-literature-synthesis.spec.ts` 覆盖实际图及恢复窗口，`tests/ui/project-literature-synthesis.spec.ts` 覆盖 Browser／Electron 任务入口、真实等待和新会话续做；外部受控 HTTP 的通过不表示真实科研质量已验收。
 
 `pnpm test:kernel` 使用外部 HTTP 模型夹具，内部图、工具、文件和数据库均为真实实现。真实模型验收需显式运行 `SCHOOLOOM_LIVE_MODEL_TEST=1 pnpm test:kernel tests/kernel/minimax-live.spec.ts`，只使用隔离合成样本；默认测试不会使用真实 Key。该验证检查接线及可判定结果，不代表完整科研质量验收。
 

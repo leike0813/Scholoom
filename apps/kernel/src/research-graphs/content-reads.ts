@@ -55,7 +55,7 @@ export function prepareSynthesisToolResult(
   return result;
 }
 
-export type SourceFailure = { resource: ResourceEvidence; error: ErrorInfo; toolCallId: string };
+export type SourceFailure = { resource: ResourceEvidence; error: ErrorInfo; toolCallId?: string };
 
 /** Rebuild consumption from durable ToolMessages, including results restored inside a child task. */
 export function collectContentReads(messages: readonly BaseMessage[]): {

@@ -64,7 +64,7 @@ test('task synthesis waits in the shared conversation and continues with new evi
     },
   });
   const directory = process.env.SCHOOLOOM_UI_DATA_DIR!;
-  const stop = await startModelKernel(directory, model.url);
+  const stop = await startModelKernel(directory, model.url, { taskSaveConflictOnce: true });
   const client = createKernelClient(await runningKernel(directory));
   await client.connect();
   try {
@@ -182,8 +182,46 @@ test('task synthesis waits in the shared conversation and continues with new evi
     await expect(composer).toHaveValue('');
     await composer.fill(draft);
     await expect
+      .poll(
+        async () => {
+          const run = (await snapshot()).run;
+          return run?.graphProgress?.kind === 'graph.waiting'
+            ? run.graphProgress.wait.nodeKey
+            : undefined;
+        },
+        { timeout: 30000 },
+      )
+      .toBe('delivery-wait');
+    const partial = (await snapshot()).run!;
+    expect(partial.id).toBe(waiting.id);
+    expect(partial.graphProgress?.evidence.roleResults).toHaveLength(2);
+    const reportBeforeRelink = await readFile(join(path, 'report.md'), 'utf8');
+    const processBeforeRelink = await readFile(join(path, 'process.md'), 'utf8');
+    const modelBeforeRelink = model.requests.length;
+    const taskBeforeRelink = await client.call('tasks.read', { task });
+    expect(taskBeforeRelink.content).toContain('人工并发注记');
+    expect(taskBeforeRelink.metadata.links?.some((link) => link.role === 'result')).toBe(false);
+    assert(partial.graphProgress?.kind === 'graph.waiting');
+    await expect(dock).toContainText(partial.graphProgress.wait.prompt);
+    await dock.click();
+    await expect(graph).toContainText(partial.graphProgress.wait.prompt);
+    await graph.getByRole('button', { name: '打开当前成果 report.md', exact: true }).click();
+    await expect(
+      ui.getByRole('textbox', { name: '文件内容 report.md', exact: true }),
+    ).toContainText('相差25');
+    await expect(composer).toHaveValue(draft);
+    await expect(dock).toBeVisible();
+    await composer.fill('继续补链：保留人工注记，只补已保存成果的任务导航');
+    await ui.getByRole('button', { name: '发送指令', exact: true }).click();
+    await expect(composer).toHaveValue('');
+    await composer.fill(draft);
+    await expect
       .poll(async () => (await snapshot()).run?.state, { timeout: 30000 })
       .toBe('completed');
+    expect(model.requests).toHaveLength(modelBeforeRelink);
+    expect(await readFile(join(path, 'report.md'), 'utf8')).toBe(reportBeforeRelink);
+    expect(await readFile(join(path, 'process.md'), 'utf8')).toContain(processBeforeRelink);
+    expect((await client.call('tasks.read', { task })).content).toContain('人工并发注记');
     const firstRun = (await snapshot()).run!;
     expect(firstRun.id).toBe(waiting.id);
     const firstCall = (
@@ -445,6 +483,23 @@ test('task synthesis waits in the shared conversation and continues with new evi
     );
     expect(newSnapshot.sources).toHaveLength(2);
     expect(secondCall.call.config).toEqual(continuedConfig);
+    await expect(composer).toHaveValue('补充后的未提交草稿');
+    await ui.getByRole('tab', { name: /^report\.md 关闭/ }).click();
+    const reportEditor = ui.getByRole('textbox', { name: '文件内容 report.md', exact: true });
+    const humanReport = `${await readFile(join(path, 'report.md'), 'utf8')}\n人工后续备注：等待独立复验。\n`;
+    await reportEditor.fill(humanReport);
+    await ui.getByRole('button', { name: '保存文件', exact: true }).click();
+    await expect.poll(() => readFile(join(path, 'report.md'), 'utf8')).toBe(humanReport);
+    const humanEdit = (
+      await client.call('files.history', { projectId: project.id, path: 'report.md' })
+    )[0];
+    expect(humanEdit).toMatchObject({
+      origin: { kind: 'human' },
+      beforeEvidence: {
+        ref: evidence.roleResults!.find((item) => item.role === 'report')!.result.resource.ref,
+        basis: evidence.roleResults!.find((item) => item.role === 'report')!.result.resource.basis,
+      },
+    });
     await expect(composer).toHaveValue('补充后的未提交草稿');
     await ui.reload();
     await expect(ui.getByRole('status', { name: '连接状态' })).toContainText('已连接');

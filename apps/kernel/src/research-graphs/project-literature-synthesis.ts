@@ -8,8 +8,10 @@ import {
   MessagesAnnotation,
   START,
   StateGraph,
+  task,
 } from '@langchain/langgraph';
-import { type AgentState, callExecutionControl, type GraphFactory } from '@scholoom/harness/node';
+import type { AgentState, GraphFactory } from '@scholoom/harness/node';
+import { callExecutionControl } from '@scholoom/harness/worker';
 import { failure } from '@scholoom/platform/node';
 import { compileContract, type ErrorInfo, OperationError } from '@scholoom/protocol/core';
 import type {
@@ -83,7 +85,14 @@ const nodeOutput = z
   })
   .strict();
 type Phase = keyof typeof nodeGuidance;
-type PendingSave = { role: 'report' | 'process'; content: string; kind: 'create' | 'update' };
+type PendingSave = {
+  role: 'report' | 'process';
+  content: string;
+  previousResult?: ResourceSaveResult;
+} & (
+  | { kind: 'create'; operationId: string; path: string }
+  | { kind: 'update'; before: ResourceEvidence }
+);
 const snapshotContract = compileContract({ params: taskGraphInputSnapshotSchema, result: true });
 const bodyRead = (read: GraphContentRead) =>
   (read.content.kind === 'text' ||
@@ -174,9 +183,13 @@ export const projectLiteratureSynthesisFactory: GraphFactory = {
       error: Annotation<ErrorInfo | undefined>(),
       prompt: Annotation<string>(),
       waitKind: Annotation<string>(),
+      sourceResume: Annotation<'prepare' | 'acquire'>(),
       navigationOnly: Annotation<boolean>(),
       unknownSave: Annotation<boolean>(),
       pendingSave: Annotation<PendingSave | undefined>(),
+      saveQueue: Annotation<PendingSave[]>(),
+      afterSave: Annotation<string>(),
+      saveWait: Annotation<{ waitKind: string; prompt: string; error?: ErrorInfo } | undefined>(),
     });
     type Value = typeof state.State;
     const read = (resource: ResourceEvidence) =>
@@ -232,90 +245,161 @@ export const projectLiteratureSynthesisFactory: GraphFactory = {
         creations: current.creations ?? [],
       };
     };
-    const save = async (
-      value: Value,
-      role: 'report' | 'process',
-      content: string,
-    ): Promise<Partial<Value>> => {
-      const existing = value.roleResults.find((item) => item.role === role)?.result;
-      const target = role === 'report' ? settings.reportTarget : settings.processTarget;
-      let result: ResourceSaveResult;
-      let creations = value.creations;
-      if (existing || target.kind === 'update') {
-        const resource =
-          existing?.resource ?? (target.kind === 'update' ? target.resource : undefined);
-        if (!resource) throw new OperationError('invalidRequest', '缺少原保存依据。');
-        const before = await read(resource);
-        if (!completeTextRead(before)) throw new OperationError('tooLarge', '更新目标未完整读回。');
-        if (before.data === content && existing) return {};
-        observed.pendingSave = { role, content, kind: 'update' };
-        result = await callExecutionControl(peer, 'resources.save', {
-          ref: resource.ref,
-          basis: resource.basis,
-          content,
-        });
-      } else {
-        const operationId = graphArtifactOperation(origin, role);
-        observed.pendingSave = { role, content, kind: 'create' };
-        let creation: ResourceCreationOutputs['resources.create'];
+    const saveEffect = task(
+      { name: 'save-synthesis-role', retry: { maxAttempts: 1 } },
+      async (pending: PendingSave) => {
+        let creation: ResourceCreationOutputs['resources.create'] | undefined;
         try {
-          creation = await callExecutionControl(peer, 'resources.creation', {
-            projectId,
-            operationId,
-          });
+          const { content } = pending;
+          let result: ResourceSaveResult;
+          if (pending.kind === 'update') {
+            let before: Awaited<ReturnType<typeof read>>;
+            try {
+              before = await read(pending.before);
+            } catch (error) {
+              if (failure(error).code === 'contentChanged')
+                throw new OperationError(
+                  'outcomeUnknown',
+                  '原保存依据已变化，需核查本次候选及原写入，不能重放。',
+                );
+              throw error;
+            }
+            if (!completeTextRead(before))
+              throw new OperationError('tooLarge', '更新目标未完整读回。');
+            if (before.data === content && pending.previousResult)
+              return { result: pending.previousResult };
+            result = await callExecutionControl(peer, 'resources.save', {
+              ref: pending.before.ref,
+              basis: pending.before.basis,
+              content,
+            });
+          } else {
+            const { operationId } = pending;
+            try {
+              creation = await callExecutionControl(peer, 'resources.creation', {
+                projectId,
+                operationId,
+              });
+            } catch (error) {
+              if (failure(error).code !== 'notFound') throw error;
+              creation = await callExecutionControl(peer, 'resources.create', {
+                projectId,
+                operationId,
+                path: pending.path,
+                content,
+              });
+            }
+            if (creation.state !== 'complete')
+              throw new OperationError('outcomeUnknown', '原创建操作需要核查，不能重放。');
+            result = {
+              resource: creation.resource,
+              ...(creation.editId ? { editId: creation.editId } : {}),
+              ...(creation.association ? { association: creation.association } : {}),
+            };
+            const saved = await read(result.resource);
+            if (!completeTextRead(saved) || saved.data !== content)
+              throw new OperationError(
+                'outcomeUnknown',
+                '原创建已存在，内容与本次候选不同，需核查。',
+              );
+          }
+          return { result, ...(creation ? { creation } : {}) };
         } catch (error) {
-          if (failure(error).code !== 'notFound') throw error;
-          creation = await callExecutionControl(peer, 'resources.create', {
-            projectId,
-            operationId,
-            path: target.path,
-            content,
-          });
+          signal.throwIfAborted();
+          return { error: failure(error), ...(creation ? { creation } : {}) };
         }
-        creations = [...creations.filter((item) => item.operationId !== operationId), creation];
-        observed.creations = creations;
-        if (creation.state !== 'complete')
-          throw new OperationError('outcomeUnknown', '原创建操作需要核查，不能重放。');
-        result = {
-          resource: creation.resource,
-          ...(creation.editId ? { editId: creation.editId } : {}),
-          ...(creation.association ? { association: creation.association } : {}),
-        };
-        const saved = await read(result.resource);
-        if (!completeTextRead(saved) || saved.data !== content)
-          throw new OperationError('outcomeUnknown', '原创建已存在，内容与本次候选不同，需核查。');
-      }
+      },
+    );
+    const acceptSave = (
+      value: Value,
+      result: ResourceSaveResult,
+      creation?: ResourceCreationOutputs['resources.create'],
+    ): Partial<Value> => {
+      const pending = value.pendingSave;
+      if (!pending) throw new OperationError('invalidRequest', '缺少持久保存意图。');
+      const { role, content } = pending;
       const roleResults = [
         ...value.roleResults.filter((item) => item.role !== role),
         { role, result },
       ];
+      const creations = creation
+        ? [...value.creations.filter((item) => item.operationId !== creation.operationId), creation]
+        : value.creations;
       observed.roleResults = roleResults;
-      observed.pendingSave = undefined;
+      observed.creations = creations;
       return {
         roleResults,
         creations,
-        pendingSave: undefined,
+        pendingSave: value.saveQueue[0],
+        saveQueue: value.saveQueue.slice(1),
+        unknownSave: false,
+        route: value.saveQueue.length ? 'save' : value.afterSave,
+        ...(value.saveQueue.length
+          ? {}
+          : {
+              ...(value.afterSave === 'wait' ? value.saveWait : { error: undefined }),
+              saveWait: undefined,
+            }),
         ...(role === 'process' ? { processText: content } : { reportText: content }),
       };
     };
-    const persistProcess = async (value: Value, addition: string) => {
+    const queueSaves = (
+      value: Value,
+      outputs: { role: 'report' | 'process'; content: string }[],
+      afterSave: string,
+    ): Partial<Value> => {
+      const pending = outputs.map(({ role, content }): PendingSave => {
+        const previousResult = value.roleResults.find((item) => item.role === role)?.result;
+        const target = role === 'report' ? settings.reportTarget : settings.processTarget;
+        const before =
+          previousResult?.resource ?? (target.kind === 'update' ? target.resource : undefined);
+        return {
+          role,
+          content,
+          ...(previousResult ? { previousResult } : {}),
+          ...(before
+            ? { kind: 'update', before }
+            : {
+                kind: 'create',
+                operationId: graphArtifactOperation(origin, role),
+                path: target.kind === 'create' ? target.path : '',
+              }),
+        };
+      });
+      const roleResults = value.roleResults.filter(
+        (item) => !outputs.some(({ role }) => role === item.role),
+      );
+      observed.roleResults = roleResults;
+      return {
+        pendingSave: pending[0],
+        saveQueue: pending.slice(1),
+        roleResults,
+        afterSave,
+        saveWait: undefined,
+        route: 'save',
+      };
+    };
+    const processContent = (value: Value, addition: string) => {
       const content = [value.processText, addition].filter(Boolean).join('\n\n');
       if (content.length > 262144)
         throw new OperationError('tooLarge', '过程文件已到容量，请保留当前成果并新建后续调用。');
-      return save(value, 'process', content);
+      return content;
     };
-    const pauseSource = async (value: Value): Promise<Partial<Value>> => {
+    const pauseSource = async (
+      value: Value,
+      sourceResume: 'prepare' | 'acquire' = 'acquire',
+    ): Promise<Partial<Value>> => {
       const failed = value.failures[0];
       if (!failed) throw new OperationError('invalidRequest', '缺少实际来源错误。');
-      const saved = await persistProcess(
+      const content = processContent(
         value,
         `## 来源读取受阻\n\n${JSON.stringify(value.failures)}\n暂停依赖来源的工作，等待用户明确处理；已读范围：${JSON.stringify(value.contentReads)}。`,
       );
       return {
         ...value,
-        ...saved,
-        route: 'wait',
+        ...queueSaves(value, [{ role: 'process', content }], 'wait'),
         waitKind: 'source-wait',
+        sourceResume,
         error: failed.error,
         prompt: `来源 ${sourceKey(failed.resource)} 读取失败：${failed.error.message}。依赖该来源的工作已暂停。请发送“重试来源 ${sourceKey(failed.resource)}：处理理由”或“忽略来源 ${sourceKey(failed.resource)}：排除理由”；含糊继续不会改变范围。`,
       };
@@ -382,14 +466,6 @@ export const projectLiteratureSynthesisFactory: GraphFactory = {
                 throw new OperationError('permissionDenied', '快照材料不属于原受理范围。');
             await custom('read_research_task', { task: snapshot.task });
           }
-          const catalog = await readCatalog(snapshot);
-          for (const source of value.sources) {
-            const descriptor = await callExecutionControl(peer, 'resources.describe', {
-              locator: source.ref,
-            });
-            if (!sameEvidence(descriptor, source))
-              throw new OperationError('contentChanged', '原材料已变化。');
-          }
           let processText = value.processText;
           for (const target of [settings.processTarget, settings.reportTarget])
             if (target.kind === 'update') {
@@ -402,6 +478,27 @@ export const projectLiteratureSynthesisFactory: GraphFactory = {
                 throw new OperationError('tooLarge', '更新目标需要完整读取。');
               if (target === settings.processTarget) processText = before.data;
             }
+          const catalog = await readCatalog(snapshot);
+          for (const source of value.sources) {
+            try {
+              const descriptor = await callExecutionControl(peer, 'resources.describe', {
+                locator: source.ref,
+              });
+              if (!sameEvidence(descriptor, source))
+                throw new OperationError('contentChanged', '原材料已变化。');
+            } catch (error) {
+              return await pauseSource(
+                {
+                  ...value,
+                  processText,
+                  ...(snapshot ? { snapshot } : {}),
+                  catalog,
+                  failures: [{ resource: source, error: failure(error) }],
+                },
+                'prepare',
+              );
+            }
+          }
           for (const prior of settings.prior ?? []) {
             if (prior.ref.source !== 'project' || prior.ref.projectId !== projectId)
               throw new OperationError('permissionDenied', '既有成果必须属于当前项目。');
@@ -412,15 +509,14 @@ export const projectLiteratureSynthesisFactory: GraphFactory = {
               throw new OperationError('contentChanged', '指定既有成果已变化。');
           }
           const prepared = { ...value, processText, ...(snapshot ? { snapshot } : {}), catalog };
-          const saved = await persistProcess(
+          const content = processContent(
             prepared,
             `# 本次文献综合\n\n研究问题：${settings.question}\n约束：${settings.constraints ?? '无附加约束'}\n原指令：${origin}\n来源范围：${JSON.stringify(value.sources)}\n题录条件：${JSON.stringify(catalog)}\n下一步：按原身份实际取材、比较，独立复核要求：${settings.requireIndependentReview}。`,
           );
           return {
-            ...saved,
+            ...queueSaves(prepared, [{ role: 'process', content }], 'acquire'),
             ...(snapshot ? { snapshot } : {}),
             catalog,
-            route: 'acquire',
             error: undefined,
           };
         } catch (error) {
@@ -430,6 +526,35 @@ export const projectLiteratureSynthesisFactory: GraphFactory = {
       .addNode('acquire', (value, config) => runAgent(value, config, 'acquire'))
       .addNode('synthesize', (value, config) => runAgent(value, config, 'synthesize'))
       .addNode('review', (value, config) => runAgent(value, config, 'review'))
+      .addNode('save', async (value): Promise<Partial<Value>> => {
+        try {
+          if (!value.pendingSave) throw new OperationError('invalidRequest', '缺少持久保存意图。');
+          const saved = await saveEffect(value.pendingSave);
+          if ('error' in saved) {
+            const creation = saved.creation;
+            if (creation)
+              observed.creations = [
+                ...value.creations.filter((item) => item.operationId !== creation.operationId),
+                creation,
+              ];
+            throw new OperationError(saved.error.code, saved.error.message);
+          }
+          return acceptSave(value, saved.result, saved.creation);
+        } catch (error) {
+          return {
+            ...pause(error),
+            ...(value.afterSave === 'wait'
+              ? {
+                  saveWait: value.saveWait ?? {
+                    waitKind: value.waitKind,
+                    prompt: value.prompt,
+                    ...(value.error ? { error: value.error } : {}),
+                  },
+                }
+              : {}),
+          };
+        }
+      })
       .addNode('deliver', async (value): Promise<Partial<Value>> => {
         try {
           await readCatalog(value.snapshot);
@@ -506,7 +631,7 @@ export const projectLiteratureSynthesisFactory: GraphFactory = {
             };
           try {
             const pending = value.pendingSave;
-            const operationId = graphArtifactOperation(origin, pending.role);
+            const operationId = pending.operationId;
             const creation = await callExecutionControl(peer, 'resources.creation', {
               projectId,
               operationId,
@@ -530,57 +655,26 @@ export const projectLiteratureSynthesisFactory: GraphFactory = {
               editId: creation.editId,
               association: creation.association,
             };
-            let recovered: Value = {
-              ...value,
-              creations,
-              roleResults: [
-                ...value.roleResults.filter((item) => item.role !== pending.role),
-                { role: pending.role, result },
-              ],
-              ...(pending.role === 'process'
-                ? { processText: pending.content }
-                : { reportText: pending.content }),
-              unknownSave: false,
-              pendingSave: undefined,
-              error: undefined,
-            };
-            observed.roleResults = recovered.roleResults;
-            observed.pendingSave = undefined;
-            if (!value.turns) return { ...recovered, route: 'prepare' };
-            if (value.failures.length) return pauseSource(recovered);
-            const last = [...value.messages].reverse().find(isAIMessage);
-            const text =
-              typeof last?.content === 'string'
-                ? last.content
-                : (last?.content
-                    .filter((block) => block.type === 'text')
-                    .map((block) => block.text)
-                    .join('') ?? '');
-            const output = nodeOutput.parse(
-              JSON.parse(text.replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '')),
-            );
-            if (pending.role === 'process' && output.report)
-              recovered = { ...recovered, ...(await save(recovered, 'report', output.report)) };
-            recovered = {
-              ...recovered,
-              ...(await persistProcess(
-                recovered,
-                `原创建核查已确认：${operationId}。用户普通消息：${JSON.stringify(choice)}。保留原保存和研究结果，不重新研究。`,
-              )),
-            };
-            const route =
-              output.next === 'wait'
-                ? 'wait'
-                : value.phase === 'acquire' && ['review', 'deliver'].includes(output.next)
-                  ? 'synthesize'
-                  : value.phase === 'synthesize' && output.next === 'deliver'
-                    ? 'review'
-                    : output.next;
-            return { ...recovered, route, prompt: output.prompt ?? value.prompt };
+            return acceptSave(value, result, creation);
           } catch (error) {
             return pause(error);
           }
         }
+        if (value.pendingSave)
+          return {
+            route:
+              choice.action === 'continue' &&
+              value.error &&
+              [
+                'permissionDenied',
+                'invalidRequest',
+                'notFound',
+                'tooLarge',
+                'contentChanged',
+              ].includes(value.error.code)
+                ? 'save'
+                : 'wait',
+          };
         const pending = value.failures.find((item) => sourceKey(item.resource) === choice.source);
         if (
           value.waitKind === 'source-wait' &&
@@ -589,7 +683,6 @@ export const projectLiteratureSynthesisFactory: GraphFactory = {
           return { route: 'wait' };
         const decision = `用户普通消息决定：${JSON.stringify(choice)}\n适用原错误：${JSON.stringify(pending ?? value.error)}\n研究影响：${choice.action === 'exclude' ? '明确缩小本次依据范围，该来源不再支撑当前结论，需重新核查比较和覆盖局限。' : '核查原身份后继续，不替换来源或盲重放保存。'}`;
         try {
-          const saved = await persistProcess(value, decision);
           const excluded =
             choice.action === 'exclude' && choice.source
               ? [...value.excluded, choice.source]
@@ -602,7 +695,15 @@ export const projectLiteratureSynthesisFactory: GraphFactory = {
             (item) => !excluded.includes(sourceKey(item.resource)),
           );
           return {
-            ...saved,
+            ...queueSaves(
+              value,
+              [{ role: 'process', content: processContent(value, decision) }],
+              value.navigationOnly
+                ? 'deliver'
+                : value.waitKind === 'source-wait'
+                  ? value.sourceResume
+                  : 'prepare',
+            ),
             excluded,
             sources,
             contentReads,
@@ -612,15 +713,10 @@ export const projectLiteratureSynthesisFactory: GraphFactory = {
               ...value.handledFailures,
               ...value.failures
                 .filter((item) => sourceKey(item.resource) === choice.source)
-                .map((item) => item.toolCallId),
+                .flatMap((item) => (item.toolCallId ? [item.toolCallId] : [])),
             ],
             error: undefined,
             reviewed: value.navigationOnly ? value.reviewed : false,
-            route: value.navigationOnly
-              ? 'deliver'
-              : value.waitKind === 'source-wait'
-                ? 'acquire'
-                : 'prepare',
           };
         } catch (error) {
           return pause(error);
@@ -633,16 +729,25 @@ export const projectLiteratureSynthesisFactory: GraphFactory = {
       'acquire',
       'synthesize',
       'review',
+      'save',
       'deliver',
       'wait',
       'done',
     ] as const;
-    for (const node of ['prepare', 'acquire', 'synthesize', 'review', 'deliver', 'wait'] as const)
+    for (const node of [
+      'prepare',
+      'acquire',
+      'synthesize',
+      'review',
+      'save',
+      'deliver',
+      'wait',
+    ] as const)
       graph.addConditionalEdges(
         node,
         (value) =>
           value.route === 'done' ? END : (value.route as Exclude<(typeof allowed)[number], 'done'>),
-        ['prepare', 'acquire', 'synthesize', 'review', 'deliver', 'wait', END],
+        ['prepare', 'acquire', 'synthesize', 'review', 'save', 'deliver', 'wait', END],
       );
     const compiled = graph.compile({ checkpointer });
     const config = {
@@ -664,9 +769,11 @@ export const projectLiteratureSynthesisFactory: GraphFactory = {
           error: { code: 'resourceLimit', message: '已到12次业务节点迭代上限，保留部分成果。' },
         };
       let current = value;
+      let consumerPending = false;
       try {
         const catalog = await readCatalog(value.snapshot);
         let calls = collectContentReads(value.messages).toolCalls;
+        consumerPending = true;
         const actual = await agent.invoke(value, nodeConfig, {
           tools: synthesisTools,
           materials: [
@@ -683,6 +790,7 @@ export const projectLiteratureSynthesisFactory: GraphFactory = {
             return prepareSynthesisToolResult(name, args, result);
           },
         });
+        consumerPending = false;
         const collected = collectContentReads(actual.messages);
         const contentReads = collected.contentReads.filter(
           (item) =>
@@ -704,7 +812,7 @@ export const projectLiteratureSynthesisFactory: GraphFactory = {
           failures: collected.failures.filter(
             (item) =>
               !value.excluded.includes(sourceKey(item.resource)) &&
-              !value.handledFailures.includes(item.toolCallId),
+              (!item.toolCallId || !value.handledFailures.includes(item.toolCallId)),
           ),
         };
         Object.assign(observed, { contentReads, sources });
@@ -724,25 +832,34 @@ export const projectLiteratureSynthesisFactory: GraphFactory = {
         );
         if (!parsed.success)
           throw new OperationError('invalidRequest', '节点没有返回可保存的研究过程和明确下一步。');
-        const savedProcess = await persistProcess(
+        const content = processContent(
           current,
           `## ${phase}\n\n${parsed.data.process}\n\n实际读取范围：${JSON.stringify(contentReads)}${current.failures.length ? `\n来源错误：${JSON.stringify(current.failures)}` : ''}`,
         );
-        current = { ...current, ...savedProcess };
-        if (parsed.data.report)
-          current = { ...current, ...(await save(current, 'report', parsed.data.report)) };
         let route: string = parsed.data.next;
         if (phase === 'acquire' && ['review', 'deliver'].includes(route)) route = 'synthesize';
         if (phase === 'synthesize' && route === 'deliver') route = 'review';
-        if (route === 'wait')
-          return {
-            ...current,
+        return {
+          ...current,
+          ...queueSaves(
+            current,
+            [
+              { role: 'process', content },
+              ...(parsed.data.report
+                ? [{ role: 'report' as const, content: parsed.data.report }]
+                : []),
+            ],
             route,
-            waitKind: 'decision-wait',
-            prompt:
-              parsed.data.prompt ?? '请明确本次研究目标或材料范围后发送“继续核查：具体决定”。',
-          };
-        return { ...current, route, error: undefined };
+          ),
+          ...(route === 'wait'
+            ? {
+                waitKind: 'decision-wait',
+                prompt:
+                  parsed.data.prompt ?? '请明确本次研究目标或材料范围后发送“继续核查：具体决定”。',
+              }
+            : {}),
+          error: undefined,
+        };
       } catch (error) {
         if (
           ['resourceLimit', 'contentChanged', 'permissionDenied', 'unavailable'].includes(
@@ -773,14 +890,35 @@ export const projectLiteratureSynthesisFactory: GraphFactory = {
               failures: collected.failures.filter(
                 (item) =>
                   !value.excluded.includes(sourceKey(item.resource)) &&
-                  !value.handledFailures.includes(item.toolCallId),
+                  (!item.toolCallId || !value.handledFailures.includes(item.toolCallId)),
               ),
             };
-            if (current.failures.length) return pauseSource(current);
+            if (current.failures.length) {
+              if (consumerPending) {
+                const channels = child?.checkpoint.channel_values;
+                if (
+                  channels?.instructionRunId !== input.attemptId ||
+                  !Array.isArray(channels.instructionIds) ||
+                  !Array.isArray(channels.instructions)
+                )
+                  throw error;
+                await checkpointer?.confirmLatest(nodeConfig);
+                current = {
+                  ...current,
+                  messages,
+                  instructionRunId: channels.instructionRunId,
+                  instructionIds: channels.instructionIds as string[],
+                  instructions: channels.instructions as AgentState['instructions'],
+                };
+              }
+              return pauseSource(current);
+            }
           }
-          if (failure(error).code === 'resourceLimit')
+          if (!consumerPending && failure(error).code === 'resourceLimit')
             return { ...current, ...observed, route: 'done', error: failure(error) };
         }
+        // Preserve the original task/root until the shared consumer returns complete channels.
+        if (consumerPending) throw error;
         return { ...current, ...pause(error) };
       }
     }
@@ -848,6 +986,7 @@ export const projectLiteratureSynthesisFactory: GraphFactory = {
                     route: 'prepare',
                     navigationOnly: false,
                     unknownSave: false,
+                    saveQueue: [],
                   },
               config,
             );

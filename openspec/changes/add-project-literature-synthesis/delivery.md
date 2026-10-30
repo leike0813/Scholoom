@@ -1,5 +1,27 @@
 # 实际交付与交接
 
+## 生产综合图与恢复接收（2026-10-30）
+
+当前10/12，完成3.2、5.1、6.1及6.2；6.3真实科研及6.4最终交付仍开放。生产图6f821b9接为a67ccc2，任务导航f86b152接为a16d0e3；任务UI验收51b1a1f通过正常合并d0f2265保全来源。宿主／默认worker实际共用`scholoom.project-literature-synthesis@1`源码，复用共用consumer、真实有界工具、原保存／FileEdit与Task CAS；配置及实际独立保存节点见design，开发说明已删除生产目录为空的漂移。
+
+独立来源审查发现准备阶段变基误入交付等待，主线按原Evidence保留具体错误，先读取并保留旧过程，再进入来源等待；明确排除后回prepare完成目标／快照／prior检查。SourceFailure的toolCallId只在真实工具错误时提供，不给准备检查伪造工具身份。其真实红例、修后保留旧过程与同run接续，以及原审查员1/1复跑见`sourcegraph-preflight-red.log`、`sourcegraph-first-repairs-green.log`和`sourcegraph-authorization-rereview.md`。
+
+独立恢复审查先确证两项P2：consumer确认成功回执丢失被错误推进缺channels新根；实际保存成功而外层未落盘丢最新回执。前者未成功返回时保留原task／config；只有实际来源错误且原child完整channels可严格补确认后，才合回全部消息和指令进入来源等待。后者先持久角色候选、原before／创建operation和原回执，再跨sync屏障进独立save节点的effect task；回执已持久精确恢复，失落且原依据变化则unknown，不重写。原回执保留为历史，待保存角色不把旧receipt当当前成果。
+
+SDK辅助SQLite探针确认`await task()`不能证明putWrites已落盘，故没有采用同节点intent task后直接写文件的方案；原探针在`/home/joshua/.cache/scholoom-langgraph-task-5AWIKY/`。独审随后发现明确拒绝后的普通续接会把原pending update换成create并丢候选，主线新增已知无效果错误的原意图续存分支；普通消息明确继续后仍核原before，期间人工变基则unknown。原创建部分回执也随失败保留，unknown创建只查询原operation；不再重新解析研究输出或重跑科研。累计三项恢复／保存P2和原来源P2均由原审查员关闭，报告`sourcegraph-recovery-rereview.md`与来源复核报告；限定范围无新增确证P1/P2，不泛化断电及完整队列故障矩阵。
+
+所有下列新证据位于`/home/joshua/.cache/scholoom-closeout-execution-20261030/`，内部均真实KernelApplication／默认worker／broker／SQLite／文件，只有模型HTTP受控。20个不同内核代表的最近结果分次通过，不是一次20/20：原13项回归首轮12通过／1失败保留`sourcegraph-regression-final.log`；其来源错误／lost-ACK／排除接续最终3/3在`sourcegraph-source-context-final.log`。准备来源与原消费恢复等定向5/5在`sourcegraph-repairs-final.log`；最后未知创建、明确拒绝原候选重试／人工改动保护、cached exact／unknown回执共5/5在`sourcegraph-save-final.log`。新保存拒绝有效红2/2在`sourcegraph-save-rejection-red.log`。独立消费、两种保存窗口及拒绝续存探针另有真实原结果，最终拒绝两例独立复跑2/2；没有改写旧红例。
+
+Browser＋真实Electron最终组合6/6（5.7分钟，`final-ui.log`／`final-ui/`）含两宿主综合各一例：真实任务入口选择图／来源，普通composer答同run真实问题、草稿保留、真实报告／过程打开，再同任务新会话补材料、实际工具读取新旧来源和旧成果、按原fileId更新及保留新旧快照／FileEdit／任务关系。另四例为普通委派打开／局部取消回归。作者此前两宿主正常综合2/2及SQLite／20个自有PID退出材料在`workers/research-task-workspace/ui-integration/RESULT.md`；首次无效夹具／断言失败及委派Browser五秒首败均保留。主线静态服务5727结束无监听，DISPLAY :99复用未停止。
+
+主线kernel与desktop构建、tools noEmit、Biome及架构通过（280 files／0 findings），strict和diff通过；实际退出收据`closeout-final-exit-receipts.json`对应原命令。最后creation回执／拒绝分支经`sourcegraph-rejection-build.log`构建及保存五例复验；只影响失败窗口，不重复正常UI六例。原nonnull warning保留。首次测试把Descriptor与Evidence全等比较、准备输入误带Descriptor额外字段及临时union类型／格式错误均保留，修正后检查通过，不当产品红绿。
+
+6.1产品尾项补验于`closure-ui2.log`／`closure-ui2/`，Browser＋真实Electron2/2（2.9分钟）exit0。测试夹具唯一新增开关taskSaveConflictOnce，在原项目port.save之前作一次真实人工tasks.save，再交原提供者自然CAS拒绝，不造错误结果／权限／文件。页面真实显示交付等待，已存报告可打开、草稿保持；普通composer明确补链后原run完成、模型次数不增、报告字节不变、过程保留原内容并记录决定、任务人工注记保留。后续原两轮综合及新旧快照核查完成，再在真实编辑器人工保存报告，核human FileEdit的原beforeEvidence和草稿／reload。第一轮两宿主因测试误在打开成果已自动收起overlay后再点“收起会话”耗尽原120秒，原trace保留`closure-ui/`；改为断言dock可见，未加timeout或改产品。原无开关model-kernel诊断1/1（37.1秒）及tools／Biome通过，真实owned close沿原机制保留。独立gpt-6.1-sol／high复核真实竞态、默认夹具路径及UI断言，限定无未解决P1/P2，报告`synthesis-product-tail-review.md`；退出收据`closeout-tail-exit-receipts.json`，没有重复运行或扩大UI矩阵。
+
+6.3三篇不同DOI样本及执行前独立标准已备，真实首轮与补材料后第二轮尚未调用。离线入口`synthesis-live-prepared/runner.mjs`默认plan，经真实公共协议及纯预算自检，三份输入逐字节保持196399字节，guard核0网络／0启动／0凭据读取；没有做产品执行。拟两次Graph统一MiniMax-M2.7、合计40次HTTP／每次256KiB／累计4MiB、每次16384输出tokens、首请求900秒，无整项自动重试；仍需新的明确授权及执行前源码／构建核定。独立评价文件不进入模型项目，runner不写科学报告，离线准备不算科研通过，旧真实模型授权不复用。
+
+通用HTML／JS报告仍由独立活动change承担，WorkerDOM输入反例待明确支持边界，不能把本图Markdown报告当通用交互报告交付。当前不归档；下文计数与“尚无生产图”等均为历史接收截点。
+
 ## 有效材料准入及任务导航接收（2026-10-30）
 
 任务线f86b152接为a16d0e3：实际报告／过程导航沿原TaskRef、工作项和CAS合并，只按role／workItem／fileId匹配并更新basis，保原graph-call、其他链接、开放正文与任务状态。CAS／unknown当次保持失败或未知；明确再调用只读取并补关系，不重生成或重保存研究文件。作者真实worker五项5/5及窄边界1/1分次通过；主线核源码／原日志后实跑首次链接、同file更新及旧调用代表1/1（29.4秒）通过。初次主线grep未匹配而No tests found已保留，不计产品失败或通过。准确helper已用apply_patch送图线，cmp相同，没有覆盖其既有写集。

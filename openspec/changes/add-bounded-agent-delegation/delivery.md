@@ -1,5 +1,17 @@
 # 实际交付与交接
 
+## Linux最终组合接收（2026-10-30）
+
+主线完成4.3，当前54/55，仅6.2真实科研未完成。对共享consumer、资源读取及共同会话变化作定向补验：`tests/kernel/agent-delegation.spec.ts --grep 'worker: two owned executions'` 为1/1（27.3秒），实际不同父子实例／PID、子保存及父按原依据读回；取消重启及controller失联组合2/2（37.3秒）。原能力边界、macOS真实历史不可用／人工保留及未变availability的对应核对见本轮`delegation-linux-final-scope.md`，没有补称当前macOS整组或Windows通过。
+
+任务线在其独立c511d7c构建上原UI四例3/4，Browser工具行首败保留；原时间线表明最后DOM poll早于工具streaming的首次采样，不能据此确证UI丢失。主线沿design的新设置／刷新边界，等待所属会话真实工具记录后再计原五秒DOM断言，保持成果打开、取消和草稿检查；新生产综合图同时改从harness/worker窄入口取得callExecutionControl，恢复原worker依赖方向。单次导入3774.9→3087.1ms只作负载下诊断，不证明旧CI因果或性能达标。
+
+主线最终Browser＋真实Electron组合6/6（5.7分钟）exit0，其中委派打开／局部取消四例完整通过，另两例为生产综合图新会话接续。内部真实静态产品构建、默认worker、broker、SQLite、文件及原生进程；仅模型HTTP为合成受控响应。日志`final-ui.log`／`final-ui/`，原worker结果及完整B时间线见`workers/research-task-workspace/ui-integration/RESULT.md`，源码51b1a1f正常合入d0f2265。自有服务5727结束无监听，DISPLAY :99只复用，未停止共享显示服务。UI通过不替代真实科研质量。
+
+全部新证据根为`/home/joshua/.cache/scholoom-closeout-execution-20261030/`。kernel／desktop构建、tools noEmit、Biome（原nonnull warning保留）、架构及本change strict通过；实际退出收据在`closeout-final-exit-receipts.json`，上述日志均保留首败，不靠日志文件名认定exit0。主线源图保存后续窄修不改变普通委派执行路径，其故障验收另归综合change。
+
+6.2下一次有界验收已离线准备`delegation-live-prepared/runner.mjs`及plan：拟MiniMax-M2.7父子一致，24次HTTP（含传输重试）、每次128KiB／累计2MiB、每次16384输出tokens、首请求600秒，无整项自动重试。默认plan不取凭据、不启动产品、不外发；尚未获得本次授权，真实调用0。原A2截断／A3A4缺失与未知效果仍是失败，执行后还需独立内容核对。Windows、旧17.2／18.2及全仓CI保持既定后续责任，本轮未操作CI；下文原计数及未完成描述均为历史截点。
+
 ## Linux阶段范围修订（2026-10-30）
 
 用户已明确采用Linux Browser＋真实Electron阶段收口，并授权按此计划修订工件。原53/58中4.2 Windows调查及17.2／18.2旧CI唯一因果移入同一[tasks后续责任](tasks.md#后续责任不计本阶段复选框)，现53/55；4.3保Linux最终核对与macOS既定人工／受管不可用，Windows目标未交付。旧17.2最后152ms缺watch／DOM时点，18.2缺原断言时模型／工具／watch送达，新正例不回填旧事实，未声称已修。已有普通委派验收为终态设置后原5秒UI刷新，不能改称端到端5秒。

@@ -1,12 +1,22 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
+import { createRequire } from 'node:module';
 import { join } from 'node:path';
 import { expect, test } from '@playwright/test';
 import { KernelApplication } from '../../apps/kernel/dist/application.js';
 import type { SynthesisConfig } from '../../apps/kernel/dist/research-graphs/config.js';
+import {
+  HarnessRecords,
+  InstructionSaver,
+  openCheckpoint,
+} from '../../packages/harness/dist/node.js';
+import { OperationError } from '../../packages/protocol/dist/core.js';
 import type { TaskMetadata } from '../../packages/protocol/dist/projects.js';
-import type { ResourceEvidence } from '../../packages/protocol/dist/resources.js';
+import type {
+  ResourceEvidence,
+  ResourceSaveResult,
+} from '../../packages/protocol/dist/resources.js';
 import { synthesisModelResponse } from '../fixtures/project-literature-synthesis-model.js';
 import type { ModelServerOptions } from '../model-server.js';
 import { createModelServer } from '../model-server.js';
@@ -14,6 +24,9 @@ import { PAGE_ONE_TEXT, syntheticPdf } from '../pdf-fixture.js';
 
 const evidenceRoot =
   '/home/joshua/.cache/scholoom-closeout-execution-20261030/workers/research-graph-runtime/synthesis';
+const Database = createRequire(new URL('../../packages/harness/package.json', import.meta.url))(
+  'better-sqlite3',
+);
 
 async function fixture(respond: ModelServerOptions['respond']) {
   await mkdir(evidenceRoot, { recursive: true });
@@ -573,14 +586,14 @@ test('the actual shared model budget ends an unfinished graph while retaining sa
     material = { ref: d.ref, basis: d.basis };
     f.input.materials = [material];
     await f.start();
-    await f.wait('waiting');
+    await f.wait('failed');
     const view = await f.app.call('research.graphCalls', {
       ...f.scope,
       invocationId: f.input.invocationId,
     });
     const execution = view.calls[0]?.executions[0];
     expect(execution?.check.delivery).toBe('incomplete');
-    expect(execution?.run.graphProgress).toMatchObject({ kind: 'graph.waiting' });
+    expect(execution?.run.graphProgress).toMatchObject({ kind: 'graph.failed' });
     expect(execution?.run.graphProgress?.evidence.contentReads?.length).toBeGreaterThan(0);
     expect(f.model.requests).toHaveLength(32);
     expect(await readFile(join(f.project.path, 'process.md'), 'utf8')).toContain('本次文献综合');
@@ -948,6 +961,382 @@ test('an unknown creation is checked by its original operation before any resear
     await f.model.close();
   }
 });
+
+test('a preparation source race accepts explicit exclusion and rechecks targets without losing prior process', async () => {
+  let first: ResourceEvidence;
+  const f = await fixture(synthesisModelResponse(() => [first]));
+  try {
+    for (const [path, content] of [
+      ['first.txt', 'Healthy A=42 and comparison17.'],
+      ['second.txt', 'Original B=17.'],
+      ['prior-process.md', 'Prior research must survive.'],
+    ] as const)
+      await f.app.call('files.save', { projectId: f.project.id, path, content });
+    const describe = (path: string) =>
+      f.app.call('resources.describe', {
+        locator: { source: 'project', projectId: f.project.id, path },
+      });
+    const a = await describe('first.txt');
+    const b = await describe('second.txt');
+    assert(b.ref.source === 'project');
+    const failedFileId = b.ref.fileId;
+    const prior = await describe('prior-process.md');
+    first = { ref: a.ref, basis: a.basis };
+    f.input.materials = [first, { ref: b.ref, basis: b.basis }];
+    f.input.config.processTarget = {
+      kind: 'update',
+      resource: { ref: prior.ref, basis: prior.basis },
+    };
+    const resources = f.app.executionResources.bind(f.app);
+    let changed = false;
+    f.app.executionResources = (context) => {
+      const port = resources(context);
+      return {
+        ...port,
+        describe: async (locator) => {
+          if (!changed && locator.source === 'project' && locator.fileId === failedFileId) {
+            changed = true;
+            await f.app.call('resources.save', {
+              ref: b.ref,
+              basis: b.basis,
+              content: 'Human changed B after admission.',
+            });
+          }
+          return port.describe(locator);
+        },
+      };
+    };
+    await f.start();
+    await f.wait('waiting');
+    const run = (await f.app.snapshot(f.scope)).run;
+    expect(run?.graphProgress).toMatchObject({
+      kind: 'graph.waiting',
+      wait: { nodeKey: 'source-wait' },
+    });
+    expect(f.model.requests).toHaveLength(0);
+    expect(await readFile(join(f.project.path, 'prior-process.md'), 'utf8')).toContain(
+      'Prior research must survive.',
+    );
+    assert(b.ref.source === 'project');
+    await f.app.call('session.send', {
+      ...f.scope,
+      instructionId: randomUUID(),
+      text: `忽略来源 project:${f.project.id}:${b.ref.fileId}：B已变基且未读，仅采用A并保留覆盖局限`,
+      materials: [],
+    });
+    await f.wait('completed');
+    const after = (await f.app.snapshot(f.scope)).run;
+    expect(after?.id).toBe(run?.id);
+    expect(after?.graphProgress?.evidence.inputs).toEqual([first]);
+    const process = await readFile(join(f.project.path, 'prior-process.md'), 'utf8');
+    expect(process).toContain('Prior research must survive.');
+    expect(process).toContain('B已变基且未读');
+  } finally {
+    await f.app.close();
+    await f.model.close();
+  }
+});
+
+test('a committed child-consumption receipt loss preserves its task and complete context across restart', async () => {
+  let material: ResourceEvidence;
+  let sendSupplement: (() => Promise<unknown>) | undefined;
+  const marker = 'Additional independent condition 7329 must survive recovery.';
+  const supplementId = randomUUID();
+  const respond = synthesisModelResponse(() => [material]);
+  const f = await fixture(async (input) => {
+    const send = sendSupplement;
+    sendSupplement = undefined;
+    await send?.();
+    return respond(input);
+  });
+  let app = f.app;
+  const confirm = HarnessRecords.prototype.confirmConsumption;
+  let injected = false;
+  HarnessRecords.prototype.confirmConsumption = function (...args) {
+    const result = confirm.apply(this, args);
+    if (!injected && args[2].checkpointNamespace && args[2].instructionIds.includes(supplementId)) {
+      injected = true;
+      throw new Error('Synthetic lost receipt after real consumption transaction');
+    }
+    return result;
+  };
+  try {
+    await app.call('files.save', {
+      projectId: f.project.id,
+      path: 'source.txt',
+      content: 'Synthetic A=42 and B=17.',
+    });
+    const d = await app.call('resources.describe', {
+      locator: { source: 'project', projectId: f.project.id, path: 'source.txt' },
+    });
+    material = { ref: d.ref, basis: d.basis };
+    f.input.materials = [material];
+    sendSupplement = () =>
+      app.call('session.send', {
+        ...f.scope,
+        instructionId: supplementId,
+        text: marker,
+        materials: [],
+      });
+    await f.start();
+    await expect
+      .poll(async () => (await app.snapshot(f.scope)).run?.state, { timeout: 30000 })
+      .toBe('failed');
+    const before = (await app.snapshot(f.scope)).run;
+    expect(injected).toBe(true);
+    const requests = f.model.requests.length;
+    await app.close();
+    app = new KernelApplication(join(f.root, 'profile'), {
+      environment: { MINIMAX_CN_API_KEY: 'synthetic' },
+      modelEndpoint: f.model.url,
+    });
+    await app.initialize();
+    await app.call('session.send', {
+      ...f.scope,
+      instructionId: randomUUID(),
+      text: '继续核查：恢复原执行及完整补充条件。',
+      materials: [],
+    });
+    await expect
+      .poll(async () => (await app.snapshot(f.scope)).run?.state, { timeout: 30000 })
+      .toBe('completed');
+    expect((await app.snapshot(f.scope)).run?.id).toBe(before?.id);
+    expect(f.model.requests.length).toBeGreaterThan(requests);
+    expect(JSON.stringify(f.model.requests.at(-1))).toContain(marker);
+  } finally {
+    HarnessRecords.prototype.confirmConsumption = confirm;
+    await app.close();
+    await f.model.close();
+  }
+});
+
+for (const changed of [false, true]) {
+  test(`a rejected save retains its original candidate and ${changed ? 'protects a later edit' : 'retries only that update'}`, async () => {
+    let material: ResourceEvidence;
+    const f = await fixture(synthesisModelResponse(() => [material]));
+    let rejected: { before: ResourceEvidence; content: string } | undefined;
+    const saved: { before: ResourceEvidence; content: string }[] = [];
+    try {
+      await f.app.call('files.save', {
+        projectId: f.project.id,
+        path: 'source.txt',
+        content: 'Synthetic A=42 B=17.',
+      });
+      const d = await f.app.call('resources.describe', {
+        locator: { source: 'project', projectId: f.project.id, path: 'source.txt' },
+      });
+      material = { ref: d.ref, basis: d.basis };
+      f.input.materials = [material];
+      const resources = f.app.executionResources.bind(f.app);
+      f.app.executionResources = (context) => {
+        const port = resources(context);
+        return {
+          ...port,
+          save: async (input) => {
+            const attempt = {
+              before: { ref: input.ref, basis: input.basis },
+              content: input.content,
+            };
+            if (!rejected) {
+              rejected = attempt;
+              throw new OperationError('permissionDenied', 'Synthetic rejection before any write');
+            }
+            const result = await port.save(input);
+            saved.push(attempt);
+            return result;
+          },
+        };
+      };
+      await f.start();
+      await f.wait('waiting');
+      const run = (await f.app.snapshot(f.scope)).run;
+      assert(run && rejected);
+      const original = rejected;
+      expect(original.content).toContain('形成比较维度');
+      expect(saved).toHaveLength(0);
+      const requests = f.model.requests.length;
+      if (changed)
+        await f.app.call('resources.save', {
+          ...original.before,
+          content: 'Later human edit must survive.',
+        });
+      await f.app.call('session.send', {
+        ...f.scope,
+        instructionId: randomUUID(),
+        text: '继续核查：拒绝已解除，核原候选和原保存依据。',
+        materials: [],
+      });
+      await f.wait(changed ? 'waiting' : 'completed');
+      expect((await f.app.snapshot(f.scope)).run?.id).toBe(run.id);
+      if (changed) {
+        expect(saved).toHaveLength(0);
+        expect(f.model.requests).toHaveLength(requests);
+        expect(await readFile(join(f.project.path, 'process.md'), 'utf8')).toBe(
+          'Later human edit must survive.',
+        );
+        const opened = await openCheckpoint(f.app.projects.get(f.project.id).internal, run.id);
+        try {
+          const tuple = await new InstructionSaver(opened.database, async () => {}).getTuple({
+            configurable: { thread_id: run.id },
+          });
+          expect(tuple?.checkpoint.channel_values).toMatchObject({
+            unknownSave: true,
+            pendingSave: { kind: 'update', before: original.before, content: original.content },
+          });
+        } finally {
+          opened.database.close();
+        }
+      } else {
+        expect(saved[0]).toEqual(original);
+        expect(await readFile(join(f.project.path, 'process.md'), 'utf8')).toContain(
+          original.content,
+        );
+      }
+    } finally {
+      await f.app.close();
+      await f.model.close();
+    }
+  });
+}
+
+for (const loseReceipt of [false, true]) {
+  test(`a saved role survives a root persistence cut with ${loseReceipt ? 'unknown' : 'cached exact'} receipt`, async () => {
+    test.setTimeout(90000);
+    let material: ResourceEvidence;
+    const f = await fixture(synthesisModelResponse(() => [material]));
+    let app = f.app;
+    let checkpointPath = '';
+    let armed = true;
+    const saves: { before: ResourceEvidence; result: ResourceSaveResult }[] = [];
+    const instrument = () => {
+      const resources = app.executionResources.bind(app);
+      app.executionResources = (context) => {
+        const port = resources(context);
+        return {
+          ...port,
+          save: async (input) => {
+            const result = await port.save(input);
+            saves.push({ before: { ref: input.ref, basis: input.basis }, result });
+            if (armed) {
+              armed = false;
+              const row = app.projects
+                .get(f.project.id)
+                .database.prepare('SELECT value FROM run_instances WHERE run_id = ?')
+                .get(context.runId) as { value: string };
+              checkpointPath = JSON.parse(row.value).checkpointPath;
+              const db = new Database(checkpointPath, { fileMustExist: true });
+              try {
+                if (loseReceipt)
+                  db.exec(
+                    "CREATE TRIGGER cut_role_writes BEFORE INSERT ON writes WHEN NEW.checkpoint_ns = '' BEGIN SELECT RAISE(ABORT, 'synthetic lost effect receipt'); END",
+                  );
+                db.exec(
+                  "CREATE TRIGGER cut_role_root BEFORE INSERT ON checkpoints WHEN NEW.checkpoint_ns = '' BEGIN SELECT RAISE(ABORT, 'synthetic root cut'); END",
+                );
+              } finally {
+                db.close();
+              }
+            }
+            return result;
+          },
+        };
+      };
+    };
+    try {
+      await app.call('files.save', {
+        projectId: f.project.id,
+        path: 'source.txt',
+        content: 'Synthetic A=42 B=17.',
+      });
+      const d = await app.call('resources.describe', {
+        locator: { source: 'project', projectId: f.project.id, path: 'source.txt' },
+      });
+      material = { ref: d.ref, basis: d.basis };
+      f.input.materials = [material];
+      instrument();
+      await f.start();
+      await f.wait('failed');
+      const before = (await app.snapshot(f.scope)).run;
+      assert(before);
+      expect(saves).toHaveLength(1);
+      const first = saves[0];
+      assert(first);
+      const opened = await openCheckpoint(app.projects.get(f.project.id).internal, before.id);
+      try {
+        const tuple = await new InstructionSaver(opened.database, async () => {}).getTuple({
+          configurable: { thread_id: before.id },
+        });
+        const intent = tuple?.checkpoint.channel_values.pendingSave as {
+          role: string;
+          kind: string;
+          before: ResourceEvidence;
+          content: string;
+        };
+        expect(intent).toMatchObject({ role: 'process', kind: 'update', before: first.before });
+        expect(intent.content).toBe(await readFile(join(f.project.path, 'process.md'), 'utf8'));
+      } finally {
+        opened.database.close();
+      }
+      const requests = f.model.requests.length;
+      const actualBefore = await readFile(join(f.project.path, 'process.md'), 'utf8');
+      await app.close();
+      const db = new Database(checkpointPath, { fileMustExist: true });
+      try {
+        if (loseReceipt) db.exec('DROP TRIGGER cut_role_writes');
+        db.exec('DROP TRIGGER cut_role_root');
+      } finally {
+        db.close();
+      }
+      app = new KernelApplication(join(f.root, 'profile'), {
+        environment: { MINIMAX_CN_API_KEY: 'synthetic' },
+        modelEndpoint: f.model.url,
+      });
+      await app.initialize();
+      instrument();
+      await app.call('session.send', {
+        ...f.scope,
+        instructionId: randomUUID(),
+        text: '继续核查：核原保存，不覆盖后续成果。',
+        materials: [],
+      });
+      await expect
+        .poll(async () => (await app.snapshot(f.scope)).run?.state, { timeout: 30000 })
+        .toBe(loseReceipt ? 'waiting' : 'completed');
+      const after = (await app.snapshot(f.scope)).run;
+      expect(after?.id).toBe(before.id);
+      expect(saves.filter((item) => item.before.basis === first.before.basis)).toHaveLength(1);
+      if (loseReceipt) {
+        expect(saves).toHaveLength(1);
+        expect(f.model.requests).toHaveLength(requests);
+        expect(after?.graphProgress).toMatchObject({ kind: 'graph.waiting' });
+        expect(
+          after?.graphProgress?.evidence.roleResults?.some((item) => item.role === 'process'),
+        ).toBe(false);
+        expect(await readFile(join(f.project.path, 'process.md'), 'utf8')).toBe(actualBefore);
+        await app.call('session.send', {
+          ...f.scope,
+          instructionId: randomUUID(),
+          text: '继续核查：保留未知候选，不重放写入。',
+          materials: [],
+        });
+        await expect
+          .poll(async () => (await app.snapshot(f.scope)).run?.state, { timeout: 30000 })
+          .toBe('waiting');
+        expect(saves).toHaveLength(1);
+        expect(f.model.requests).toHaveLength(requests);
+      } else {
+        expect(saves[1]?.before).toEqual({
+          ref: first.result.resource.ref,
+          basis: first.result.resource.basis,
+        });
+        expect(await readFile(join(f.project.path, 'process.md'), 'utf8')).toContain(actualBefore);
+      }
+    } finally {
+      await app.close();
+      await f.model.close();
+    }
+  });
+}
 
 test('an ordinary explicit exclusion removes an unread failed source from the trusted next-node scope', async () => {
   let first: ResourceEvidence;
