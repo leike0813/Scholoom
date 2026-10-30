@@ -26,6 +26,17 @@ ReportResources 是 `packages/editor` 内的 module，不新建包／数据库�
 
 ## 方案与接口
 
+### Linux阶段收口：完整活动报告
+
+2026-10-30用户确认本轮Linux浏览器与真实Electron均须完成，并明确保留通用HTML／JS；原生固定报告页的收窄建议未采纳。原21/27中已经交付的资源授权、冻结、准备、记录初始化、资产IO、选择／共同草稿、更新及精确原版恢复继续复用，不重复做为新的基础片。本次不再增加活动change，2.1b及其消费者按以下四块汇合验收：
+
+1. **执行身份与恢复**：按已选K/C/M信任与唯一准入，完成真实控制身份、请求绑定、原records／资产单writer、持久启动／停止ACK及重启unknown收尾。安装前先交可审查代码／包与离线证据，实际账户／策略／服务操作另获授权。静态native策略不是完整浏览器或Node策略。
+2. **通用运行与共同呈现**：让真实报告脚本在受限执行中运行，报告布局、数学、原生文本选择／复制、输入／选区／焦点与辅助结构在两宿主共同tab兑现。完整浏览器与受限Node＋DOM适配是尚未实证收敛的候选；WorkerDOM固定源码研究已证实需要适配／fork，不能原样安装即当成熟方案，也不能省略OS隔离。具体跨进程接缝在生产改写前由主线按实际调用点冻结；不发布无消费者的通用镜像或另造业务DSL。
+3. **产品生命周期装配**：实际ResourceView接ReportResources、report-context、report-client／updates和restoreReportDraft，贯通真实页面筛选／排序／展开、共同composer、完整候选采用、dirty保护、撤权及关闭重开。只在真实版本／generation的ready之后恢复页面状态，ready不消费研究等待。
+4. **Linux整体验收及独审**：按任务4.1／4.2跑真实报告→原共同输入→worker→文件保存→刷新／重开，核批准字节、无网络／文件／内核直连、配额及实际整组停止；继续区分机械接线与科研内容。保留原首败和未验，不能以固定模板、独立窗口、位图或字段存在替代正式交付。
+
+2.1b仍是关键路径，未完成前不宣布活动报告可用；可独立的文献综合与旧功能签收并行。性能及通道约束沿原契约，只补当前实际缺口，不扩大到在线报告、全局／库报告、自定义研究图或完整Web平台兼容承诺。
+
 ### 第26轮：私有资产物理IO Module
 
 原provider仍直接open/readFile/chmod/sync私有asset-i.bin、program.bin与gate.bin，C记录初始化完成并不意味着K已脱离这些物理操作。本片将现有资产IO提取为实际被原provider消费的深Module，减少后续C装配的跨职责调用；不新增远程抽象或假服务。原六操作、byte预算、领域授权、唯一admission、原receipt/stamps/offsets及scope／停止语义保持，无新公开行为或delta DTO。
@@ -121,7 +132,7 @@ program/gate的部分封存沿原`sealed: {program, gate}`逐项保留已取得�
 | literature-workbench | 仅cache：C-writer私有操作及持久ACK设计 | 基于现有调用表给config bootstrap、字节封存、scope／launch／stopped顺序、丢ACK查询及新route的最小接口／字段所有权和代表验证；PID1路径及停止竞争不能凭假设填上。主线先审再派生产重构 |
 | research-graph-runtime | 仅cache：旧版本／旧独有来源授权接缝核查 | 追当前client／updates／drafts和真实领域，明确当前报告已移除来源时如何核原草稿；不按新版权限推原版可读、不改生产、不重复绿色矩阵。若有确证缺口交精确复现和最小写集 |
 
-库存修复由[提供者恢复规格](../add-linux-isolated-report-provider/specs/linux-isolated-report-provider/spec.md#scenario-私有根存在未索引或未知对象)及其tasks 4.1跟踪，当前9/10。在持锁、已验证index后，对pin住的根有界枚举，只容许config.json、index.json、writer.lock及本index的storageId目录；超限、未知、缺失或错误对象拒绝且不修改已有材料。create的已知预算失败仍在物理写入前拒绝；真实崩溃遗留不得静默丢弃。实例目录的资源与封存沿原验证，不扩成任意全树扫描。这只是原records的完整性修复，不宣称单一provider失败已阻断宿主所有其他准入。
+库存修复由[提供者恢复规格](../archive/2026-10-30-add-linux-isolated-report-provider/specs/linux-isolated-report-provider/spec.md#scenario-私有根存在未索引或未知对象)及其tasks 4.1跟踪，当前9/10。在持锁、已验证index后，对pin住的根有界枚举，只容许config.json、index.json、writer.lock及本index的storageId目录；超限、未知、缺失或错误对象拒绝且不修改已有材料。create的已知预算失败仍在物理写入前拒绝；真实崩溃遗留不得静默丢弃。实例目录的资源与封存沿原验证，不扩成任意全树扫描。这只是原records的完整性修复，不宣称单一provider失败已阻断宿主所有其他准入。
 
 呈现方向保留共同tab、原生文本／MathML、输入及辅助语义。R2d否定WebContentsView外部UID导入和直接rrweb，新增[WorkerDOM／Remote DOM静态核查](../../../.scratch/scholoom-foundations/research/report-worker-dom-feasibility.md)也否定直接接入；WorkerDOM仅保留为需要维护适配的有界研发候选。允许先审查一个与业务布局无关的决定性探针计划，不要求现成组件已满足全部产品契约；但不因探针而批准通用镜像生产实现。引入候选前须依用户AGENTS另获依赖安装授权，未获授权时只做现有源码和接口设计。Remote DOM不进入探针，T1/T2、系统IME／读屏与完整I5均保持开放。
 
@@ -350,7 +361,7 @@ sequenceDiagram
 
 用户委托主线选择方案后，主线采用候选A的Linux普通权限前置，先形成独立platform提供者的OpenSpec实施规格。它负责批准字节的有界只读交付、启动前FD／stdio策略、namespace及实际资源限额、完整归属／停止和重启unknown核查；ReportResources继续掌握ref／basis与read/send。已有普通权限不能履行保证时保持unavailable，不安装特权服务或静默降级。
 
-独立[add-linux-isolated-report-provider](../add-linux-isolated-report-provider/delivery.md)已完成9/9并获主线接收，限定Linux x86_64静态native策略，真实预执行、scope停止、恢复及唯一准入已验。它尚未接入产品宿主或浏览器，不能据此启用活动报告。这里消费原六操作，不复制另一套准入／控制器；ReportResources.freeze已实现，按原ref／basis及来源授权消费冻结字节的生产Adapter仍需接入。
+独立[add-linux-isolated-report-provider](../archive/2026-10-30-add-linux-isolated-report-provider/delivery.md)已完成9/9并获主线接收，限定Linux x86_64静态native策略，真实预执行、scope停止、恢复及唯一准入已验。它尚未接入产品宿主或浏览器，不能据此启用活动报告。这里消费原六操作，不复制另一套准入／控制器；ReportResources.freeze已实现，按原ref／basis及来源授权消费冻结字节的生产Adapter仍需接入。
 
 下一片止于apply所需规划工件齐备，不把临时C launcher复制成生产提供者。设计必须复用现有准入／归属与监督，明确控制器丢失、迟到能力和恶意样本下可独立验收的保证；不能另建容量计数或以根PID消失释放。Linux机制先独立交付，Windows另需目标校准，macOS继续不可用。完整浏览器、共同呈现／输入、分发及多视图预算尚未纳入本片，不以原生样本替代报告UI验收，2.1b／I5保持开放。
 

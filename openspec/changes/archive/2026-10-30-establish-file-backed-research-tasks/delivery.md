@@ -112,13 +112,13 @@ node /home/joshua/.cache/scholoom-finish-active/research-task-workspace/extract-
 
 本轮两工件已保全合入，规范及规格审查无确证问题；两宿主首文件现场的真实发送／受理身份及缺失执行阶段接收。原断言后清理的unavailable不用于补前5秒时间线，未把未执行的改名／回收写成文件损失。本域无源码修复依据，不重跑旧trace或已绿多项目场景。
 
-下一片将该具体执行侧缺口交Agent统一处理，本线停止重复取证；4.1所需库删除／恢复及主题知识仍未交付，按原C／D／E批次等真实提供者，不造分类或从notFound猜删除。主线及后续所有权见[共同计划](../../../.scratch/domain-development/parallel-development-plan.md#第十四轮验收后的安排)，必需输入仍在Git／cache。完整平台与科研质量继续开放。
+下一片将该具体执行侧缺口交Agent统一处理，本线停止重复取证；4.1所需库删除／恢复及主题知识仍未交付，按原C／D／E批次等真实提供者，不造分类或从notFound猜删除。主线及后续所有权见[共同计划](../../../../.scratch/domain-development/parallel-development-plan.md#第十四轮验收后的安排)，必需输入仍在Git／cache。完整平台与科研质量继续开放。
 
 ## 第十三轮主线验收
 
 本轮仅四工件已保全合入；独立两轴审查无本线确证发现。原resident多项目场景Browser／Electron2/2及四组同次project／session／instruction／run／instance、原文件与停机后采样边界已审接收。所属代码未改，不重复该绿色场景。主线新Linux完整Checks40613967267的首文件场景两宿主仍在首模型请求数0处失败，不能用本机另一场景或旧次通过关闭CI。
 
-下一片只消费这次首场景已有窗口／执行附件并按真实身份收敛；第二场景与4.1提供者等待不混同。新原始日志、启动脚本及后续工件在`/home/joshua/.cache/scholoom-round13-acceptance/`，不依赖现有/tmp；精确范围见[共同计划](../../../.scratch/domain-development/parallel-development-plan.md#第十三轮验收后的安排)。内部机械组合已接收，完整平台、库删除／恢复和科研质量仍开放。
+下一片只消费这次首场景已有窗口／执行附件并按真实身份收敛；第二场景与4.1提供者等待不混同。新原始日志、启动脚本及后续工件在`/home/joshua/.cache/scholoom-round13-acceptance/`，不依赖现有/tmp；精确范围见[共同计划](../../../../.scratch/domain-development/parallel-development-plan.md#第十三轮验收后的安排)。内部机械组合已接收，完整平台、库删除／恢复和科研质量仍开放。
 ## 第十二轮主线接收与共同消费
 
 七文件观察增量已保全合入，两路独立审查无确证缺陷。主线第一file-workbench场景Browser通过；Electron首次显示服务启动失败，复用预检通过的已有DISPLAY后通过。其后共享RPC闸门修正的Electron文件场景再次通过，成功／拒绝分支保留。窗口发送回执与自有model-kernel附件按同次project／session／instruction／run匹配，两宿主均已观察实际推进，不再以旧Electron模型0作为当前第一场景的结论。
@@ -127,7 +127,7 @@ node /home/joshua/.cache/scholoom-finish-active/research-task-workspace/extract-
 
 ## 第十一轮主线接收与下一片
 
-本轮两文档的只读取证已冻结合入，独立规范／规格审查无确证夸大；不将文档接收当作旧CI修复。最新完整CI及逐例矩阵在`/tmp/scholoom-round11-acceptance-Jx5Oez/`。下一片由本线提供真实Browser／Electron窗口的发送／受理／快照安全观察，Agent线独立提供model-kernel执行观察，字段和所有权按[共同计划](../../../.scratch/domain-development/parallel-development-plan.md#第十一轮验收后的安排)。两片先独立交付再由主线关联；本线不并改harness或model-kernel，原4.1提供者仍等待。
+本轮两文档的只读取证已冻结合入，独立规范／规格审查无确证夸大；不将文档接收当作旧CI修复。最新完整CI及逐例矩阵在`/tmp/scholoom-round11-acceptance-Jx5Oez/`。下一片由本线提供真实Browser／Electron窗口的发送／受理／快照安全观察，Agent线独立提供model-kernel执行观察，字段和所有权按[共同计划](../../../../.scratch/domain-development/parallel-development-plan.md#第十一轮验收后的安排)。两片先独立交付再由主线关联；本线不并改harness或model-kernel，原4.1提供者仍等待。
 
 ## 当前状态与成果
 
@@ -243,7 +243,7 @@ node /home/joshua/.cache/scholoom-finish-active/research-task-workspace/extract-
 
 ### M2／I1交回与停止点
 
-M2新增独立[待审change](../establish-trusted-file-edit-origins/proposal.md)，scholoom-dev所需proposal、investigation、两份delta、design、tasks齐备。文件来源仍只提出方案：可信宿主事实、实际保存临界区同事务、旧历史未知、多指令集合／unknown、子实例与委派链、整次FileEdit undo、有界查询及可选editId。没有新的CallContext／FileEdit运行字段、没有迁移或M2 delivery。
+M2新增独立[待审change](../2026-10-30-establish-trusted-file-edit-origins/proposal.md)，scholoom-dev所需proposal、investigation、两份delta、design、tasks齐备。文件来源仍只提出方案：可信宿主事实、实际保存临界区同事务、旧历史未知、多指令集合／unknown、子实例与委派链、整次FileEdit undo、有界查询及可选editId。没有新的CallContext／FileEdit运行字段、没有迁移或M2 delivery。
 
 待主线决定：D1先交粗粒度可证明来源，还是先增精确工具作用域；D2采用原单次FileEdit撤销还是另立差异块范围；D3采纳有界查询及项目资源editId范围。候选分页修正不等于上述选择已批准。
 
@@ -290,7 +290,7 @@ I1实际目录／调用／查询及固定worker事实已消费，产品入口选
 
 ### 独立审查、补丁及停止点
 
-M2来源、保存临界区、整次undo及完整窗口独立审查修复三项P2，详见[独立M2交付](../establish-trusted-file-edit-origins/delivery.md)。任务侧独立审查另发现：科研返回对象的额外projectId/sessionId可通过展开覆盖原归属。现于任何process创建前拒绝冲突，并显式投影声明的invocation/instruction/run字段；新增两例证明outcomeUnknown、一次启动、任务和过程文件不被错误登记。独立静态复核闭合，实际13/13由主Agent核对。没有将注入port当真实科研或委派提供者。
+M2来源、保存临界区、整次undo及完整窗口独立审查修复三项P2，详见[独立M2交付](../2026-10-30-establish-trusted-file-edit-origins/delivery.md)。任务侧独立审查另发现：科研返回对象的额外projectId/sessionId可通过展开覆盖原归属。现于任何process创建前拒绝冲突，并显式投影声明的invocation/instruction/run字段；新增两例证明outcomeUnknown、一次启动、任务和过程文件不被错误登记。独立静态复核闭合，实际13/13由主Agent核对。没有将注入port当真实科研或委派提供者。
 
 可审查工件在`/tmp/scholoom-research-task-round3/`：先`001-trusted-file-edit-origins.patch`（M2公共来源／查询／保存传播、循环依赖叶修正、必要调用方与测试），再`002-task-graph-action.patch`（任务契约／编排／UI、薄挂载、必要映射与验收）。混合公共文件按符号拆分，不整文件覆盖其他域能力；manifest列精确归属。两补丁在临时index及临时object目录按序验证可应用，重建的每份改动与当前树逐字节一致；没有修改本树index／HEAD或声称公共M2已独立接入dev。日志`/tmp/scholoom-round3-patch-verification.log`。详细依赖顺序见该目录README。
 

@@ -12,7 +12,7 @@
 
 证据根为 `/home/joshua/.cache/scholoom-finish-active/`。`main-final-kernel.json`／`.log` 的跨域联合组为 118/118，其中 `file-edit-origins.spec.ts` 10 项全部通过，覆盖可信来源核查、取消／撤权、历史窗口、重命名与身份保护、登记失败及真实 worker 后续查询。`main-final-ui.json`／`.log` 为 Browser、Electron 各 5 项、合计 10/10；两宿主的 `material-delegation-history` 均通过真实子创建→父读改→人工重叠拒绝旧撤销→撤销人工整次修改→原会话新 run 工具读回。两组均 0 skipped／unexpected／flaky、retries=0，统计与 `main-joint-stats.json` 一致；118／10 是联合总数，不全归本 change。
 
-`material-independent-review.md` 对本批材料／来源增量无 P0–P3 确证发现，并核对既有双宿主持久结果及后续真实工具回执。共同 desktop 构建、lint 与架构证据统一见[材料 change 主线接收补充](../add-material-annotation-interactions/delivery.md#2026-10-29-主线接收补充)：lint 无 error、既有 114 warnings／39 infos；架构 14 模块、263 文件、0 findings。审查本身只读，本次整理未重跑测试或构建。
+`material-independent-review.md` 对本批材料／来源增量无 P0–P3 确证发现，并核对既有双宿主持久结果及后续真实工具回执。共同 desktop 构建、lint 与架构证据统一见[材料 change 主线接收补充](../2026-10-30-add-material-annotation-interactions/delivery.md#2026-10-29-主线接收补充)：lint 无 error、既有 114 warnings／39 infos；架构 14 模块、263 文件、0 findings。审查本身只读，本次整理未重跑测试或构建。
 
 接收范围仍为可信粗粒度来源、有界查询、整次 FileEdit 撤销及真实消费者；内部 broker／worker／仓储真实，外部模型响应受控。精确指令／工具因果、科研理由、差异块撤销、科研质量及三平台验收没有扩大。历史首 run 准入失败与 TeX unknown 保留原责任和证据，后续通过不解释其根因；任务勾选仍以 [tasks](tasks.md) 为准。
 
@@ -69,7 +69,7 @@ Linux，Node24.12.0，pnpm11.10.0；使用已有依赖、隔离项目／库／pr
 
 已读取当前apply及实际执行后的delivery instructions，当前HEAD为cb5f7ed，原提供者没有重做。消费者使用正式executionFacts／FileEdit、真实broker／受管worker／项目仓储；材料history组件只作补充接口验证，不冒充真实执行。实际父子实例、委派链、同fileId的父beforeEvidence=子afterEvidence、真实human origin及revertsEditId均有结构断言；原会话新指令的工具输出及磁盘字节核对证明实际消费，不从通知或模型说明推断。
 
-证据根为 `/home/joshua/.cache/scholoom-finish-active/research-graph-runtime/`。execution-facts＋material-history为7/7，其中6项是组件端口测试；原双宿主基线4/4。新增组合首次11通过／5失败，另一轮11通过／1失败分别记录，不能合并为一次全绿；修正组合的material-delegation-history两宿主均通过新链，输出保存scope、delegation、FileEdit/Evidence、human／undo及followUp真实工具消息。readonly-kernel3/3、identity-partial-kernel9/9补充所属身份、权限与部分保存。精确命令与其他材料I5结果统一引用[材料change本次delivery](../add-material-annotation-interactions/delivery.md#本次实际结果修正与交接)，避免另存重复账本。
+证据根为 `/home/joshua/.cache/scholoom-finish-active/research-graph-runtime/`。execution-facts＋material-history为7/7，其中6项是组件端口测试；原双宿主基线4/4。新增组合首次11通过／5失败，另一轮11通过／1失败分别记录，不能合并为一次全绿；修正组合的material-delegation-history两宿主均通过新链，输出保存scope、delegation、FileEdit/Evidence、human／undo及followUp真实工具消息。readonly-kernel3/3、identity-partial-kernel9/9补充所属身份、权限与部分保存。精确命令与其他材料I5结果统一引用[材料change本次delivery](../2026-10-30-add-material-annotation-interactions/delivery.md#本次实际结果修正与交接)，避免另存重复账本。
 
 独立只读审查已核真实来源／undo与工具回读，未发现伪造委派或旧工具历史蒙混通过；发现的M1夹具P2已按真实权限修正。相关desktop／tools类型、架构、schema生成器self-test与Biome通过；来源schema、提供者、FileEdit／保存／undo权威未改。UIReader的唯一生产局部及其构建另归材料change，不把它当来源提供者改动。
 

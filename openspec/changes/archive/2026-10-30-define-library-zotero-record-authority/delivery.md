@@ -29,7 +29,7 @@ node node_modules/@playwright/test/cli.js test --config playwright.kernel.config
 
 ## 首批范围确认与最终领域验收
 
-2026-10-29，用户对本change的2.3与生态proposal范围冲突明确选择“按既定首批范围完成，后置功能另立变更”。本change以真实共同原值／来源实例／正式键／有界原子提交及首批BBT普通期刊消费收尾，当前10/10；茉莉花、复杂映射和Reader写回已登记到[后续提议](../extend-zotero-ecosystem-compatibility/proposal.md)，仍未交付。没有把BBT结果改称茉莉花通过，也未修改数据保护规格。
+2026-10-29，用户对本change的2.3与生态proposal范围冲突明确选择“按既定首批范围完成，后置功能另立变更”。本change以真实共同原值／来源实例／正式键／有界原子提交及首批BBT普通期刊消费收尾，当前10/10；茉莉花、复杂映射和Reader写回已登记到[后续提议](../2026-10-30-extend-zotero-ecosystem-compatibility/proposal.md)，仍未交付。没有把BBT结果改称茉莉花通过，也未修改数据保护规格。
 
 共同数据保护、迁移与恢复沿下节的真实7/7及独立authority-audit。其后固定BBT9.0.68在真实library／broker／受管Electron上的两例回归**2/2，49.7秒**：一次共同补键及两格式／重启，以及未选中键冲突整组拒绝、旧修订／缺映射／撤权拒绝。命令为`DISPLAY=:99 TMPDIR=/home/joshua/.cache/scholoom-finish-active/tmp SCHOOLOOM_BBT_XPI=/home/joshua/.cache/scholoom-round13-acceptance/preserved-tmp/zotero-better-bibtex-9.0.68.xpi pnpm test:kernel tests/kernel/zotero-host.spec.ts --grep 'real library/broker/managed original BBT|unselected case-insensitive key collision' --output /home/joshua/.cache/scholoom-finish-active/creators-bbt-regression --reporter=line`，同根log保留。内部领域提供者真实，未接触真实用户库；普通持久CLI及产品静态入口的独审和产物沿生态N2.5记录。
 

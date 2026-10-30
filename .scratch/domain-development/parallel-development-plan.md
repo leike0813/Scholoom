@@ -704,6 +704,26 @@ Codex／gpt-6.1-sol／high保持。所有树先停止并保全原提交祖先，
 
 所有后续仍使用Codex／gpt-6.1-sol／high；依赖引入、系统账户／策略／服务安装、真实模型和CI没有新增授权。C/M服务及T1/T2、完整活动报告和I5仍按原报告change推进；静态排版批注完成不代表这些路径完成。新输入、TMPDIR及成果不依赖/tmp。
 
+## Linux阶段最小收口（2026-10-30）
+
+用户确认Linux浏览器与真实Electron完整目标、Windows未完能力及验收后置、macOS保持既定人工／受管不可用；随后明确保留通用HTML／JS并授权执行。本阶段停止新增功能change，原有领域权威、权限、数据保护和取消／未知保证保持。目标为现有实施change按本阶段实际可用范围完成并归档，不能把后置任务勾成通过。
+
+七个已完成change的40条要求已复核与正式规格一致并归档到`openspec/changes/archive/2026-10-30-<原名>`：材料／产物批注、修改来源、文件任务、库组织、原值权威及Linux隔离提供者。生态扩展提案以暂缓／未实施留档，茉莉花、复杂映射、Reader写回继续未交付，不新开活动change。历史失败、平台缺证及后续恢复条件在原交付／职责决定保留，不另建进度账本。
+
+| 工作树 | 下一项独占交付 | 汇合边界 |
+| --- | --- | --- |
+| literature-workbench | 文献综合任务1.2真实长UTF8范围；原文献工作台Linux最终证据签收 | 原resources.read根因、身份／依据与8MiB边界；不改Task／Agent／Graph合同 |
+| agent-delegation | 综合任务2.1共用Agent装配及真实Host消费恢复 | ordinary／registered同时消费，保原任务config／ACK／回执及预算；实际科研委派6.2另在具体授权后验收 |
+| research-task-workspace | 综合任务3.1题录来源及v2快照 | TaskLink各调用方、真实题录端口及Task界面；不改会话projection／harness |
+| project-execution | 综合任务4.1精确角色保存核查；程序运行Linux最终签收 | 原FileEdit／run关联／旧basis读回，Task与科研port装配由主线顺序整合 |
+| research-interaction | 综合任务4.2当前会话真实等待与成果入口 | 同一Dock／Overlay／composer，不伪造Message／Artifact；不改Task表单 |
+| zotero-ecosystem | 原BBT的Linux普通启动／原包／导出／停止与消费者最终签收 | 保固定原包与普通期刊边界，不做Windows W2–W4、茉莉花或真实用户库启用 |
+| research-graph-runtime | 等主线接收实际共享consumer及任务／交付port后实施综合任务5.1 | 不猜未来helper、不将通用Agent＋完整Skill冒充业务Graph |
+
+主线负责报告2.1b的执行身份／通用呈现接缝定案与后续实际接线，以及三组成果最终整合。原报告资源、草稿和更新模块已交付，后续按完整报告产品块推进；静态预览、固定报告页和底层模块通过均不关闭正式活动报告。
+
+所有写者先保全同步并核准确源码／受影响产物，再派自含Prompt，活动期间不换基线。Codex／gpt-6.1-sol／high保持；源码引入、系统安装及真实模型仍按具体授权办理。CI及Linux统一回归放在最终整合后，只豁免本阶段以外目标，不豁免当前用户路径失败。实际证据与Prompt在持久cache，进度归各change的tasks／delivery，不依赖/tmp。
+
 ## 首轮 Agent 的共同起始任务
 
 各线采用下述共同要求，并附上本文件中该开发线的小节：

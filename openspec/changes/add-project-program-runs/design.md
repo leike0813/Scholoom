@@ -1,5 +1,9 @@
 # 实现设计
 
+## 本阶段验收范围（2026-10-30）
+
+按用户已批准的Linux阶段收口，5.2／6.2仍待Linux Browser＋真实Electron、人工无模型运行、Agent同源事实与逐次后台移交、环境授权保护、真实输出／日志、取消及重启的最终源码／证据核对。优先复用既有实跑与独审，不相加跨轮计数；缺失或受影响目标才补验。Windows业务／平台整组、TeX／实际分发及旧CI唯一因果沿[tasks后续责任](tasks.md#后续责任不计本阶段复选框)保留，本阶段未交付；下列历史设计不构成本阶段完结前置。macOS仍拒绝新受管运行／准备并保留人工文件、查询及已有成果，公网registry下载未实跑。锁／既有环境保护、完整停止后释放容量、unknown恢复记账及不自动重跑均不变。
+
 ## Windows重复ACL设置与材料版本保护
 
 真实Windows独立取证40766436204／Node24.22.1三份样本均显示：对已安全目录重复SetAccessControl使子文件ctime变化，dev／ino／size／mtime及正文不变。材料版本继续保留ctime，不能为掩盖该现象减少变更检测。修正在既有privateDirectory中每次读取当前实际DACL和owner；仅当protected、owner为当前SID、恰一条显式当前SID Allow FullControl、精确ContainerInherit和ObjectInherit、PropagationFlags.None时不重写。其他情况沿原受保护唯一权限设置修复，读取或设置错误仍拒绝；不缓存已检查路径或扩大权限。

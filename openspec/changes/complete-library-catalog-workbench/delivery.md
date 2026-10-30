@@ -1,5 +1,11 @@
 # 实际交付与交接
 
+## Linux阶段范围修订（2026-10-30）
+
+用户已明确采用Linux Browser＋真实Electron阶段收口，并授权按此计划修订工件。29/32不变，1.4／6.1／6.2仍未完成，现签收边界为Linux最终源码／构建与已有完整业务、授权／恢复及附件／资源双宿主证据；既有独审已接收，不泛称缺独审。17项选择发布不等于17项完整工具回执，原覆盖限度保留；macOS沿既定人工结果／受管不可用。
+
+Windows B业务／资源双宿主22个UI目标及完整Checks缺件未交付，原1.4／6.1中的这部分移入同一[tasks后续责任](tasks.md#后续责任不计本阶段复选框)，不再作为Linux签收前置。下节“三个父任务的最后必要验收”及其Windows要求是2026-10-29历史截点，当前任务以本节及tasks为准；BlobNotFound不能当测试日志，专项和C1不能替B。Linux身份、未知值保留、CAS／迟到草稿、读写／外发授权和真实重启保证不变。本轮仅文字与结构核查，无新业务实跑或独审，不据此勾选；本change严格校验、限定diff及任务／历史保留／归档链接核查通过，执行报告为`/home/joshua/.cache/scholoom-closeout-execution-20261030/linux-scope-edits.md`。
+
 ## 当前交付依据复核（2026-10-29，8d8f339）
 
 开工HEAD精确为`8d8f339c3e561154b05d4db39b4264c6db2c42e6`（产品源码7a746c0），工作区clean。本轮仅更新本change的tasks／delivery及design待办边界；**29/32，1.4／6.1／6.2均保持开放**。4.1／4.2限定父项、X1、单一草稿右栏、5.4a、6.1b已接收；C1已9/9并由主线接收，不再等待其规划或实现。没有发现需要本轮顺带实施的确定契约缺陷，也没有新接口需要接入。
@@ -83,7 +89,7 @@ run40745284164现为failure，Mac success；Windows内核5失败、后续UI未�
 
 ## 58eda140：C首片规划接续
 
-按第十四轮授权在[complete-library-organization](../complete-library-organization/proposal.md)规划既有题录集合成员／标签的有界原子整理及可逆记录；调查、适用规格、设计和任务另归该change，不在B复制。没有新增B业务实现或重跑已绿字段／滚动／5.4a／6.1b，本记录只补接续入口并修正tasks末尾被主线新Mac目标证据取代的等待表述。B的4.1／4.2仍关闭，1.4、完整6.1／6.2仍开放；不据C规划归档或宣称全平台／科研质量完成。
+按第十四轮授权在[complete-library-organization](../archive/2026-10-30-complete-library-organization/proposal.md)规划既有题录集合成员／标签的有界原子整理及可逆记录；调查、适用规格、设计和任务另归该change，不在B复制。没有新增B业务实现或重跑已绿字段／滚动／5.4a／6.1b，本记录只补接续入口并修正tasks末尾被主线新Mac目标证据取代的等待表述。B的4.1／4.2仍关闭，1.4、完整6.1／6.2仍开放；不据C规划归档或宣称全平台／科研质量完成。
 
 ## 第十四轮主线验收
 
@@ -507,7 +513,7 @@ Windows最新文献三项状态观察仍待现场时间线，document-integratio
 - `LiteratureCatalog.selection`按请求身份仅读sourceId／revision，最多100次精确索引读取，不展开metadata／附件、不全库扫描；库身份及read/send在读取前后核对。观察修订保留，当前修订单列，变化为changed；任何缺项／撤权整体失败。
 - `ManualApplication`注册library.selection／checkSelection；`KernelApplication`将可信上下文绑定到窄broker读取及同步核查。保留现有资源权限、连接source及receiver。harness在返回工具结果前持久记录实际库身份及已用库标记，原会话不能悄悄切到新库；普通、registered Graph及共用模型的capability在排队前后、最终同步和恢复／重新准入沿同一授权复查。没有只在工具入口检查一次。
 - `ContextContributionProvider`独立发布catalog，LibraryTab从同一UUID选择及当前已加载范围贡献；切页／加载／清空及卸载沿原生命周期。Workbench仅新增活动library视图条件，库浏览不改变会话接收者。共享来源／历史、project公共v5→v6迁移、projectId与双窗口fixture、阅读位置／区域／草稿对象及资源叶schema均保留。
-- 原值／正式键／事务首片由独立change真实实施，见[其delivery](../define-library-zotero-record-authority/delivery.md)；不混成B批表单任务或声称生态真实接入。
+- 原值／正式键／事务首片由独立change真实实施，见[其delivery](../archive/2026-10-30-define-library-zotero-record-authority/delivery.md)；不混成B批表单任务或声称生态真实接入。
 
 ### 本轮实际验证
 

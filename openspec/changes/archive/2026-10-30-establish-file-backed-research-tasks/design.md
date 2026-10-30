@@ -226,7 +226,7 @@ TaskRef必须完整携带`{projectId,taskId,fileId}`；workItemId是可选的任
 3. `002-ui-fixture-combined.patch`相对共同基线，仅合并openWorkbenchWindow及本线createSession(projectId)修复、必要join导入；目录选择、下载、desktop映射及其他原能力不删。临时组合用例在真实Browser／Electron验证第二窗口、其目录选择、同名项目及各窗口会话／指令不串扰。
 4. 以上候选先交主线在dev应用并验证，再由用户同步消费者；当前仅有git apply --check及本树／隔离验证，没有dev接入证据。其他共享runtime／kernel／Workbench增量须按符号组合，不复制七树私有实现。
 
-M2独立规划为[establish-trusted-file-edit-origins](../establish-trusted-file-edit-origins/design.md)，有明确D1–D3待审。它不是本change已提供的新运行能力，也不新增普通保存事务状态机。
+M2独立规划为[establish-trusted-file-edit-origins](../2026-10-30-establish-trusted-file-edit-origins/design.md)，有明确D1–D3待审。它不是本change已提供的新运行能力，也不新增普通保存事务状态机。
 
 ## 8. I1用户入口与真实组合验收方案
 

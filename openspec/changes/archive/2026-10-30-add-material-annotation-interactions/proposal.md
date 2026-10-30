@@ -27,7 +27,7 @@
 
 ## 决策与授权依据
 
-- [阅读交互职责 Q1–Q6](../../../.scratch/domain-development/issues/07-research-interaction-scope.md#answer)、[对象选择](../../../.scratch/scholoom-foundations/issues/38-workbench-artifact-interaction.md)、[定位范围](../../../.scratch/scholoom-foundations/issues/44-defer-continuous-precise-source-location.md)。
+- [阅读交互职责 Q1–Q6](../../../../.scratch/domain-development/issues/07-research-interaction-scope.md#answer)、[对象选择](../../../../.scratch/scholoom-foundations/issues/38-workbench-artifact-interaction.md)、[定位范围](../../../../.scratch/scholoom-foundations/issues/44-defer-continuous-precise-source-location.md)。
 - 2026-10-25 本轮用户授权：在 `e3d58fc807827a78493dcd16e38de28c8d02766e` 上调查并编写可审查规划，无需再确认规划操作；仅修改本线规划工件与必要依据。
 - 同日用户明确要求“实现openspec/changes/add-material-annotation-interactions”，授权按本change推进业务实施及必要检查。依赖准备与隔离UI服务另按实际授权记录，真实用户库、提交推送及PR未授权。跨线材料修订仍等待明确输入；工件存在不表示生产写回就绪。
 - 用户随后明确回复“允许锁定依赖和隔离 UI 验证”，授权按现有锁文件准备本树依赖及测试夹具管理的隔离UI服务，不升级依赖、不运行日常开发服务。

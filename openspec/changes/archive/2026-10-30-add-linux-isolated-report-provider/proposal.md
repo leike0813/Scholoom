@@ -28,7 +28,7 @@
 
 ## 决策与授权依据
 
-- 用户本轮直接授权规划，主线已选“普通用户namespace＋bwrap＋实际委托scope”的Linux独立提供者先行，见[共同计划第十四轮](../../../.scratch/domain-development/parallel-development-plan.md#第十四轮验收后的安排)。部署条件不足不安装／提权／改委托。
-- [平台职责](../../../.scratch/runtime-architecture/issues/02-platform-access.md#answer)、[进程监督与容量](../../../.scratch/runtime-architecture/issues/03-session-execution-processes.md#answer)、[模块依赖](../../../.scratch/runtime-architecture/issues/01-module-dependencies-and-authority.md#answer)及现有[platform-access](../../specs/platform-access/spec.md)为共同约束。
-- [原报告change](../add-interactive-research-reports/design.md#隔离与页面桥)保持6/13、活动页unavailable；2.1b／I5、目标与旧版本Adapter不因本规划闭合。
+- 用户本轮直接授权规划，主线已选“普通用户namespace＋bwrap＋实际委托scope”的Linux独立提供者先行，见[共同计划第十四轮](../../../../.scratch/domain-development/parallel-development-plan.md#第十四轮验收后的安排)。部署条件不足不安装／提权／改委托。
+- [平台职责](../../../../.scratch/runtime-architecture/issues/02-platform-access.md#answer)、[进程监督与容量](../../../../.scratch/runtime-architecture/issues/03-session-execution-processes.md#answer)、[模块依赖](../../../../.scratch/runtime-architecture/issues/01-module-dependencies-and-authority.md#answer)及现有[platform-access](../../../specs/platform-access/spec.md)为共同约束。
+- [原报告change](../../add-interactive-research-reports/design.md#隔离与页面桥)保持6/13、活动页unavailable；2.1b／I5、目标与旧版本Adapter不因本规划闭合。
 - 规划轮只形成工件及必要原报告链接／交接更新。第十五轮主线已审公共接口，下一片仅推进tasks 1.2原生校准；无生产Adapter／协议／UI／浏览器／新权限实施、安装下载、用户库访问、工作树自行提交推送／PR／归档授权。浏览器运行时分发、产品呈现／文本与可访问性、跨平台及预算不由本片决定。

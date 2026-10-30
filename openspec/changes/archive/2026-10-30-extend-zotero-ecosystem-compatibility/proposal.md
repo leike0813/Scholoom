@@ -1,5 +1,9 @@
 # 变更提议
 
+## 阶段处置：暂缓，未实施
+
+2026-10-30，用户确认按Linux阶段收口现有实施change，并授权执行收口计划。本提案只登记后续目标，本阶段暂缓并作为提案留档；没有实施、验收通过或正式规格同步。茉莉花、复杂原值映射及Reader写回仍未交付，恢复时从[生态职责决定](../../../../.scratch/domain-development/issues/08-zotero-ecosystem-constraints.md)核当前代码、原包及所需授权后重新规划。本次归档不代表这些能力已可用。
+
 ## Why
 
 现有 BBT change 的首个闭环是隔离普通期刊的补键、显式原值导出和共同保存；原值权威任务却同时要求茉莉花实跑，部分生态任务又混入复杂映射和 Reader 写回。用户已明确按既定首批范围完成，将后置功能另立变更。本提议承接这些尚未实现的目标，保留原包、共同权威和数据保护要求，使首批验收与后续兼容工作各有准确范围。
@@ -26,5 +30,5 @@
 ## 决策与授权依据
 
 - 2026-10-29 用户对范围冲突明确选择“按既定首批范围完成，后置功能另立变更”。承接原值权威任务 2.3 中的茉莉花，以及 BBT 任务 2.1 中超出首批的映射／E5；这些目标保持未交付。
-- [原包兼容决定 #05](../../../.scratch/scholoom-foundations/issues/05-zotero-compatibility-policy.md)、[宿主选择 #16](../../../.scratch/scholoom-foundations/issues/16-zotero-host-prototype.md)和[茉莉花一手来源调查](../../../.scratch/scholoom-foundations/research/jasminum-common-authority.md)。既定 Node＋Chromium、原包不改、用户无需安装 Zotero 的方向不变。
+- [原包兼容决定 #05](../../../../.scratch/scholoom-foundations/issues/05-zotero-compatibility-policy.md)、[宿主选择 #16](../../../../.scratch/scholoom-foundations/issues/16-zotero-host-prototype.md)和[茉莉花一手来源调查](../../../../.scratch/scholoom-foundations/research/jasminum-common-authority.md)。既定 Node＋Chromium、原包不改、用户无需安装 Zotero 的方向不变。
 - 当前仅获后续变更登记授权；安装、系统策略、真实库写入及新增付费模型验收不由本提议授予。原值权威及首批 BBT 的实际结果仍在其各自 delivery。

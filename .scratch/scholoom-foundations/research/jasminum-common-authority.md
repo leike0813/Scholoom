@@ -2,7 +2,7 @@
 
 调查日期：2026-10-29。项目基线：`dev b69f08e`。方法：只读本地契约、GitHub 官方仓库 API 与固定 commit 的 raw 源码，另对两个 XPI 地址做 HEAD 请求；未下载 XPI、未核验包内字节，未构建、安装或运行插件、模型及测试，也未接触真实数据。本文是静态事实研究，不能替代任务 2.3 的最终验收。
 
-结论接收方：[共同权威任务 2.3](../../../openspec/changes/define-library-zotero-record-authority/tasks.md)、父任务实施者。父任务选择版本及实施范围；本文不修改 OpenSpec、不设计新公共接口、不把 BBT 结果算作茉莉花结果。
+结论接收方：[共同权威任务 2.3](../../../openspec/changes/archive/2026-10-30-define-library-zotero-record-authority/tasks.md)、父任务实施者。父任务选择版本及实施范围；本文不修改 OpenSpec、不设计新公共接口、不把 BBT 结果算作茉莉花结果。
 
 ## 结论与既有资料核对
 
@@ -130,7 +130,7 @@ Zotero 10.0.5 落在两份源码清单声明范围内。**声明覆盖、完整 
 - [L3] [journal-catalog.ts][L3]（25–45 行 SQL 投影；81–184 行草稿／保存／共同提交；207–264 行 facade；285 行起 Item 方法）。
 - [L4] [environment.ts][L4]（15–25 行 HostCatalog；168–183 行资源及本地化；259–325、380–425 行 Zotero／Services／ChromeUtils）。
 - [L5] [library-records.ts][L5]；[L6] [managed.ts][L6]；[L7] [zotero.ts::journalOriginal][L7]、[LiteratureCatalog.commitRecords](../../../packages/library/src/catalog.ts)（309–489 行）。
-- [L8] [zotero-host.spec.ts][L8]仅阅读测试定义；[共同权威 design](../../../openspec/changes/define-library-zotero-record-authority/design.md)、[delivery](../../../openspec/changes/define-library-zotero-record-authority/delivery.md)用于核对任务与已有证据声明，未据此宣称本次实跑。
+- [L8] [zotero-host.spec.ts][L8]仅阅读测试定义；[共同权威 design](../../../openspec/changes/archive/2026-10-30-define-library-zotero-record-authority/design.md)、[delivery](../../../openspec/changes/archive/2026-10-30-define-library-zotero-record-authority/delivery.md)用于核对任务与已有证据声明，未据此宣称本次实跑。
 
 尚未确定：发布 XPI 内最终 manifest／捆绑 toolkit 与 tag 的对应；原菜单在 Node＋Chromium 宿主中的实际可达性；Jasminum hooks 与未 await 保存的可观察完成边界；creator 数值类型／顺序映射的完整等价性；真实共同 SQL、回执、通知及各失败路径；1.1.43 相对 1.1.39 的完整宿主依赖差异。源码可见的启动网络访问不等于已发生请求；本文没有访问这些第三方业务站点。
 

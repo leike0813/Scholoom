@@ -253,7 +253,7 @@ R2b交回还指出共享Electron UI夹具仅指定内核目录，浏览器profil
 
 ## 主线提供者前置接收（2026-10-29）
 
-`add-linux-isolated-report-provider`的9/9任务已接入主线并通过独立审查整改与真实OS验证，详见其[交付记录](../add-linux-isolated-report-provider/delivery.md)。主线`main-final-kernel.{log,json}`联合118/118中，固定静态native提供者17项实际执行、无跳过；完整归属／停止、恢复／唯一准入及预执行限制仅对登记的Linux x86_64静态策略成立。提供者仍是内部六操作，不接生产宿主、报告浏览器、呈现或工作台，不能由此关闭本change的2.1b／I5。
+`add-linux-isolated-report-provider`的9/9任务已接入主线并通过独立审查整改与真实OS验证，详见其[交付记录](../archive/2026-10-30-add-linux-isolated-report-provider/delivery.md)。主线`main-final-kernel.{log,json}`联合118/118中，固定静态native提供者17项实际执行、无跳过；完整归属／停止、恢复／唯一准入及预执行限制仅对登记的Linux x86_64静态策略成立。提供者仍是内部六操作，不接生产宿主、报告浏览器、呈现或工作台，不能由此关闭本change的2.1b／I5。
 
 本change已提交的冻结字节、历史授权及严格单目标修正也在上述联合组回归通过；资源安全两项祖先追加修正另有21/21窄验证，不混算118的产物版本。完整浏览器策略、私有呈现／输入通道、可访问性及运行时分发尚未确定并实现，报告2.2／3.x／4.x保持原任务。接收该前置时为7/13，后续批量公共子项见上节；不将静态样本或普通HTML阅读视为活动报告可用。
 
@@ -285,9 +285,9 @@ Manual将历史各段的展开Evidence汇集后，在返回整组正文前同步
 
 ## 第十四轮验收后的独立提供者规划交接（58eda140）
 
-本轮先确认HEAD=`58eda1404fcc60036ce0e0f3ce30d5453ce1ee30`且clean，读取AGENTS、原tasks／delivery、共同计划第十四轮及scholoom-dev／当前instructions。主线已选Linux普通权限独立提供者先行；没有同名／等价活动change，已新建[add-linux-isolated-report-provider](../add-linux-isolated-report-provider/proposal.md)，完成proposal／investigation／specs／design／tasks规划。新change没有生产实现、没有delivery，公共签名仍按其1.1交主线审，不自动apply。
+本轮先确认HEAD=`58eda1404fcc60036ce0e0f3ce30d5453ce1ee30`且clean，读取AGENTS、原tasks／delivery、共同计划第十四轮及scholoom-dev／当前instructions。主线已选Linux普通权限独立提供者先行；没有同名／等价活动change，已新建[add-linux-isolated-report-provider](../archive/2026-10-30-add-linux-isolated-report-provider/proposal.md)，完成proposal／investigation／specs／design／tasks规划。新change没有生产实现、没有delivery，公共签名仍按其1.1交主线审，不自动apply。
 
-原报告只更新design／tasks的正式提供者前置链接和本交接记录。报告仍6/13、活动页unavailable，2.1b／I5、目标／旧版本Adapter未关闭。ReportResources继续管原ref／basis／read/send；新provider计划只收批准的有界字节，不把临时C程序、dev／ino或原生实验当领域版本或生产授权。公共分片封存操作、唯一ProcessAdmission恢复结清及先于准入的恢复屏障建议见[新design](../add-linux-isolated-report-provider/design.md)，真正OS前置／syscall／控制器丢失缺证及下一最小校准见其investigation／tasks。
+原报告只更新design／tasks的正式提供者前置链接和本交接记录。报告仍6/13、活动页unavailable，2.1b／I5、目标／旧版本Adapter未关闭。ReportResources继续管原ref／basis／read/send；新provider计划只收批准的有界字节，不把临时C程序、dev／ino或原生实验当领域版本或生产授权。公共分片封存操作、唯一ProcessAdmission恢复结清及先于准入的恢复屏障建议见[新design](../archive/2026-10-30-add-linux-isolated-report-provider/design.md)，真正OS前置／syscall／控制器丢失缺证及下一最小校准见其investigation／tasks。
 
 本轮仅静态复核现有调用点和已接收三cache源码／原始结果，未重跑CPU／OOM／FD或其他原生样本、浏览器、UI、模型／真实用户库。现有生产源码与已验f4ab1e5相同的主线构建回执予以复用，没有声称本轮重建。调查辅助为gpt-6.1-sol／high、无历史fork，只读本树；主会话核对正确platform/native路径、范围／准入事实并保留设计判断。
 

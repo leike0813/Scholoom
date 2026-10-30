@@ -78,7 +78,7 @@ flowchart LR
 | `/home/joshua/.cache/scholoom-report-files-round13-Wfc0WT/{file-probe.c,file-launcher.c,file-calibration.mjs,file-first-result.json,file-conditions-matrix.json}` | 隐藏路径仍可经继承文件／目录FD读取；已连接Unix／TCP与只读pathname socket保留宿主代理；cgroup写FD可迁入另一自有限额scope。netns／ro／NNP不撤销已持权威 |
 | `/home/joshua/.cache/scholoom-report-gate-round14-DocB5o/{gate-launcher.c,gate-payload.c,gate-calibration.mjs,gate-first-result.json,gate-conditions-matrix.json,independent-review.md}` | 高256／1024及SCM危险控制成立；关闭后实际EBADF，可信stdio实际ENOTSOCK；误暴露2能传入迁移FD，另以启动exit77拒绝配置。类型／身份门拒绝特殊文件及替代inode。unsafe直接先迁移，SCM跨组依据用独立stdio-leak。原cgroupExists默认值缺口以六条原preflight路径只读补核，不篡改首轮结果 |
 
-原EDQUOT、编译warning和观察缺口均由原报告[investigation](../add-interactive-research-reports/investigation.md)／[delivery](../add-interactive-research-reports/delivery.md)维护，不重建另一份原生账本。本轮不把历史“原生轮退出0”提升为生产安全、重启或完整浏览器通过。cache是接续输入；现有/tmp内容不在必要输入集合。
+原EDQUOT、编译warning和观察缺口均由原报告[investigation](../../add-interactive-research-reports/investigation.md)／[delivery](../../add-interactive-research-reports/delivery.md)维护，不重建另一份原生账本。本轮不把历史“原生轮退出0”提升为生产安全、重启或完整浏览器通过。cache是接续输入；现有/tmp内容不在必要输入集合。
 
 ## 规划轮未证保证与承接（本轮进展见首节）
 

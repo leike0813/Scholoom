@@ -38,6 +38,6 @@
 ## 决策与授权依据
 
 - 当前源码起点为 `e3d58fc807827a78493dcd16e38de28c8d02766e`，与用户指定共同起点一致。并行计划中的旧短提交只作历史说明。
-- 领域依据：[项目与研究资产职责](../../../.scratch/domain-development/issues/03-project-research-assets-scope.md#answer)、[工作区承接](../../../.scratch/scholoom-foundations/issues/35-research-workspace-context.md#answer)、[会话与任务独立](../../../.scratch/scholoom-foundations/issues/43-free-agent-conversation-and-research-tasks.md#answer)。交付责任沿[七线计划](../../../.scratch/domain-development/parallel-development-plan.md)。
+- 领域依据：[项目与研究资产职责](../../../../.scratch/domain-development/issues/03-project-research-assets-scope.md#answer)、[工作区承接](../../../../.scratch/scholoom-foundations/issues/35-research-workspace-context.md#answer)、[会话与任务独立](../../../../.scratch/scholoom-foundations/issues/43-free-agent-conversation-and-research-tasks.md#answer)。交付责任沿[七线计划](../../../../.scratch/domain-development/parallel-development-plan.md)。
 - 用户初次授权保持 Codex／`gpt-6.1-sol`／`high`，调查并创建 `scholoom-dev` 实施前规划，无需主 Agent 另行确认；该阶段只写规划工件。
 - 初次规划止于实施前，未创建delivery。2026-10-25用户随后明确要求“实现该change”，并明确允许按锁文件安装依赖、运行本轮隔离的Browser／Electron UI验收临时服务。此授权覆盖本change实施和必要验证；跨线前置仍须实际取得，真实用户库、提交／推送／PR和归档未授权。

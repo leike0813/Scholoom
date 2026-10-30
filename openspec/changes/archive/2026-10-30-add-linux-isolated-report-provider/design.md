@@ -2,7 +2,7 @@
 
 ## 变更总览
 
-第22轮续做仅补原records的恢复完整性：已持writer锁、验证index后，在pinned根通过流式目录枚举核对固定元数据成员及index的storageId目录，读取上限由原maxInstances加固定成员约束；未知、未索引、残留临时对象或枚举失败保留现场并拒绝本provider初始化。原目录句柄、receipt／scope验证及create预算先验保持，不自动修复、删除、迁移、另发身份或新建台账。写集为`isolated-report-records.ts`及原`isolated-report-records.spec.ts`，复用实际磁盘／native锁夹具，覆盖崩溃孤儿与未知对象拒绝、正常恢复和预算拒绝不改变原index。tasks 4.1另行验收；该局部失败不声称为宿主其他模块的全局准入屏障。跨身份C-writer方案由[报告design第22轮](../add-interactive-research-reports/design.md#第22轮接收与下一片)统筹，不在此修复中迁写IO／新service route。
+第22轮续做仅补原records的恢复完整性：已持writer锁、验证index后，在pinned根通过流式目录枚举核对固定元数据成员及index的storageId目录，读取上限由原maxInstances加固定成员约束；未知、未索引、残留临时对象或枚举失败保留现场并拒绝本provider初始化。原目录句柄、receipt／scope验证及create预算先验保持，不自动修复、删除、迁移、另发身份或新建台账。写集为`isolated-report-records.ts`及原`isolated-report-records.spec.ts`，复用实际磁盘／native锁夹具，覆盖崩溃孤儿与未知对象拒绝、正常恢复和预算拒绝不改变原index。tasks 4.1另行验收；该局部失败不声称为宿主其他模块的全局准入屏障。跨身份C-writer方案由[报告design第22轮](../../add-interactive-research-reports/design.md#第22轮接收与下一片)统筹，不在此修复中迁写IO／新service route。
 
 已定方向是独立Linux platform提供者。1.1／1.2已接收；本次`cb5f7ed3`起点授权实施2.1–3.3，限定同源叶、独立provider、原生controller／构建、唯一准入恢复结清与真实broker/native测试。普通权限条件不足即unavailable，不安装／改委托。原报告2.1b／I5及活动页保持开放，不选择画面流、浏览器分发、Windows或Mac实现。
 

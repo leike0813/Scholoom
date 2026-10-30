@@ -1,5 +1,11 @@
 # 实际交付与交接
 
+## Linux阶段范围修订（2026-10-30）
+
+用户已明确采用Linux Browser＋真实Electron阶段收口，并授权按此计划修订工件。原53/58中4.2 Windows调查及17.2／18.2旧CI唯一因果移入同一[tasks后续责任](tasks.md#后续责任不计本阶段复选框)，现53/55；4.3保Linux最终核对与macOS既定人工／受管不可用，Windows目标未交付。旧17.2最后152ms缺watch／DOM时点，18.2缺原断言时模型／工具／watch送达，新正例不回填旧事实，未声称已修。已有普通委派验收为终态设置后原5秒UI刷新，不能改称端到端5秒。
+
+**6.2真实科研继续未完成。** run-HvCHy0的review.md仅5705字节，A2中断、A3／A4缺失，创建已保存但委派cancelled／unknown、父failed／unknown，没有最终report_delegation／任务result关联。6.2a离线准备及受控TaskPort机械1/1不等于科研通过。下一次沿已准备短报告入口，保留实际抽取、问题、原HTML及执行前独立标准，另获次数／预算／数据外发的新真实模型授权后，核真实保存→父按ref/basis读回→按最新任务依据关联，并作独立质量评价。本轮无新模型授权或调用，只修订文字及做OpenSpec strict／diff核查；本change严格校验、限定diff及任务／历史保留／归档链接核查通过，执行报告为`/home/joshua/.cache/scholoom-closeout-execution-20261030/linux-scope-edits.md`。下文历史失败、计数和当时未完任务原样保留。
+
 ## 四项主张真实验收的离线准备（8d8f339，2026-10-29）
 
 起始HEAD=`8d8f339c3e561154b05d4db39b4264c6db2c42e6`（产品源码7a746c0）、工作区clean。先读当前AGENTS/开发说明、阶段约定、apply/contextFiles及本记录“再次授权的真实报告缺项与截断保护”。旧WIP和60614af父/子截断保护均已整合，未重放旧实现。本轮仅完成6.2a离线准备，53/58；**没有新的真实模型调用授权，真实MiniMax请求0，6.2及4.2/4.3/17.2/18.2均保持开放，未操作CI**。

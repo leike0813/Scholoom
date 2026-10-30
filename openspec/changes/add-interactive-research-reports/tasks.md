@@ -40,7 +40,7 @@ flowchart TD
 ## 2. 页面内浏览与共同动作
 
 - [x] 2.1a 调查原型已交付：tests/fixtures/report-frame专用候选模块及真实Browser／Electron静态夹具，消费实际ReportResources快照与有版本的资源字节，复用Bridge schema；合法脚本及清单资源、HTTP／UDP探针、CSP／父frame-src／导航／资源通道、宿主访问及有界桥生命周期已有代表性证据。两宿主实际STUN外发、Browser忙循环阻塞反例见delivery；只关闭调查，不算生产已隔离，生产保持unavailable。
-- [ ] 2.1b 正式承载仍未完成：独立[platform提供者](../add-linux-isolated-report-provider/delivery.md)11/11已由主线真实Linux固定静态native组、完整库存修复及运行撤权代表接收，网络／syscall／迟到能力、unknown／容量／恢复已有其限定策略证据。该提供者仅内部六操作，未接产品宿主或完整浏览器；真实冻结字节消费者已有2.1d限定接线，浏览器完整进程图及呈现／分发仍需实施与实际验证，不能把native样本或临时launcher当活动报告。2.2／3.x及完整I5继续开放。
+- [ ] 2.1b 正式承载仍未完成：独立[platform提供者](../archive/2026-10-30-add-linux-isolated-report-provider/delivery.md)11/11已由主线真实Linux固定静态native组、完整库存修复及运行撤权代表接收，网络／syscall／迟到能力、unknown／容量／恢复已有其限定策略证据。该提供者仅内部六操作，未接产品宿主或完整浏览器；真实冻结字节消费者已有2.1d限定接线，浏览器完整进程图及呈现／分发仍需实施与实际验证，不能把native样本或临时launcher当活动报告。2.2／3.x及完整I5继续开放。
 
   本片已形成[独立身份服务候选](../../../.scratch/scholoom-foundations/research/report-independent-identity-service.md)；主线选择的账户信任、准备接缝及本轮呈现校准范围见design“第17轮主线接收与下一片”。服务部署／安装及完整呈现尚未通过，不再试同UID固定launcher。T2依赖T1且须证明完整浏览器、双宿主文本／输入／可访问性及实际停止。
 

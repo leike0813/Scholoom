@@ -1,5 +1,9 @@
 # 执行任务
 
+## 当前范围（2026-10-30）
+
+用户已批准Linux Browser＋真实Electron阶段收口并授权按计划修订。原4.2 Windows及17.2／18.2旧CI唯一因果转后续非checkbox责任，53/58改为53/55；4.3 Linux最终核对及6.2真实科研仍未完成。Windows目标未交付，macOS沿既定人工／受管不可用；历史checked、红例、缺证及后续新模型授权条件保持。普通成功分支先等真实终态再核原5秒UI刷新，不称端到端5秒。本轮不调用模型、不跑业务验收。
+
 用户随后明确要求“实现该change”。本线独立实施与Linux验证已执行，实际结果见[delivery](delivery.md)；未到位的跨线输入与目标平台验证继续保留未完成，不因CLI工件齐备而视为已交付。文件／符号范围以[design](design.md#文件变化)为准，原始失败与待输入见[investigation](investigation.md)。本线主Agent负责整合及最终接受。
 
 ```mermaid
@@ -13,7 +17,7 @@ flowchart LR
   S --> X[4.1 取消与重启]
   S --> UI[5.2 双宿主会话入口]
   D[5.1 UI设计及共享符号核对] --> UI
-  CI[4.2 Windows阶段诊断] --> W[4.3 目标平台验证]
+  W[4.3 Linux及既定macOS边界核对]
   X --> W
   E[6.1 跨线输入到位后核对] --> I[6.2 I3实际整合]
   S --> I
@@ -49,8 +53,7 @@ flowchart LR
 ## 4. 收尾、重启及基线故障证据
 
 - [x] 4.1 扩展execution-isolation、capability-stop-unknown／harness-recovery中适用机制并补通用委派行为：子崩溃、父正常退出／失败、局部与父链取消、已受理保存未收尾、停止未知保占用、旧实例迟到。重启查询保原结果且无新模型请求；新父推进先核查旧效果，不重用旧ID重启，不从根PID消失释放保护。完成依据：实际进程及领域操作，不能以AbortSignal或RPC返回替代停止确认。
-- [ ] 4.2 按run/head核Windows取消、恢复与context阶段，不以跨次计数推同因。0b5c5e3／专项40745283855完整74通过／3跳过，新占锁释放两例、ACL5项、Agent三代表及Electron重复3次均通过，提前上传亦成功；具体阶段及3份最终快照超时见delivery。旧40739213209两红／取消／无artifact、606ae82两红及17.2／18.2缺证均保留，不从新正例推唯一因果或补造旧阶段。完整Checks尚未结算，平台整项保持开放，不改生产期限／停止／容量。
-- [ ] 4.3 Linux与Windows真实验证两个受管执行、产物回读、取消和重启，按4.2诊断修复影响验收的基线失败后定向复验；macOS核对明确不可用与人工保留。复用`tests/execution-diagnostics.ts`并附阶段材料；同组基线仍失败时如实记录，不把Linux通过当三平台完整能力。
+- [ ] 4.3 最终核对Linux Browser＋真实Electron的两个受管执行、产物回读／打开、草稿、取消和重启，复用已有实跑并对应最终源码／构建，只有相关差异、缺项或影响本阶段的当前失败才安排定向补验；macOS核对明确不可用与人工保留。复用`tests/execution-diagnostics.ts`已有阶段材料；同组当前失败如实保留。Windows目标移后续责任，不把Linux通过当三平台完整能力，本项仍未完成。
 
 ## 5. 现有会话内呈现与设置
 
@@ -77,7 +80,7 @@ flowchart LR
 
 ## 续做入口
 
-当前基线8d8f339c3e561154b05d4db39b4264c6db2c42e6（产品源码7a746c0），起始clean。旧实现及60614af截断保护已整合，不重放WIP；本轮6.2a只准备四项核查的紧凑入口、原字节材料和独立评价，真实模型请求未授权/未发出。53/58，6.2及4.2/4.3/17.2/18.2继续开放，本轮不查询CI。入口在/home/joshua/.cache/scholoom-parallel-resume-20261029-A5WuXN/agent-delegation/work/README.md；实际结果、命令、补丁和停止条件见同一delivery。下一次真实验收由主线另行确认授权后执行。
+2026-10-30沿dev@a460832的Linux范围继续，53/55，4.3及6.2仍未完成；Windows4.2／4.3目标和17.2／18.2旧CI因果见后续责任。旧实现及60614af截断保护已整合，不重放WIP；6.2a只准备四项核查的紧凑入口、原字节材料和独立评价，没有新真实模型授权／请求。入口在/home/joshua/.cache/scholoom-parallel-resume-20261029-A5WuXN/agent-delegation/work/README.md；实际结果、命令和停止条件见同一delivery。主线先完成Linux通用目标对应核对，真实科研须另获次数／预算／数据外发授权及独立质量评价；不将机械1/1或受控模型样本记为6.2通过。
 
 ## 20. 普通委派完成与UI刷新阶段
 
@@ -93,13 +96,11 @@ flowchart LR
 ## 18. Linux Electron委派工具行边界
 
 - [x] 18.1 核40613967285同head/三例输入与通过边界，不替代完整Windows46失败；消费40613967267原Electron model/trace/error，按同次身份区分实际派发与UI工具消息缺证，不以Browser或取消例补证。完成依据：日志及本树git show e3c815b源码核三例3/3、无所选skip，专属trace缺证不隐瞒；原Linux同run只有3ms queued样本及清理采样错误、HTTP=null，无可判定派发/投影的连续阶段，精确来源与时间窗见本轮delivery/cache事实表。
-- [ ] 18.2 原预算复现必要代表例，只修闭合本域根因；仅缺特定事实时复用uiRpc/model-kernel及断言边界的有界HTTP计数/只读snapshot，保留原错误、5秒断言和120秒用例预算，不新增RPC/全局等待或修改生产准入/停止。已交子范围：uiRpc清理前落盘、原断言HTTP计数/同scope快照及missingSession/rejected/timedOut/observed分类。原CI缺原断言结束时模型请求数、实际run/工具状态和watch送达，无法判定原受理到onStart间机制；本机原样及新增观察均通过，不关闭原CI根因，不改等待。
 - [x] 18.3 cache静态承载/5993独立配置，图形实跑逐次预检显示；适用双宿主最小代表及静态/OpenSpec/diff，更新原delivery并交独立增量，确认自有收尾与必要工件无旧/tmp前置，完整平台/科研整项不关闭。完成依据：原样Electron1/1、观察双宿主2/2、快照分类修正后Electron1/1分别记录；原5秒/120秒不变，类型/架构/OpenSpec/diff及元数据自检通过，Biome退出0/原有1 warning。已取delivery instructions更新原记录并导出独立补丁；三个profile均stopped，必需配置/静态入口/调查代码均在Git或cache。46/52，18.2原CI根因保持开放。
 
 ## 17. 同次后续会话的完成观察
 
 - [x] 17.1 消费main-ui、browser-session-execution-summary及electron/gate-recheck，按同次project/session/instruction/run/instance对齐原断言起止、执行阶段、仓储completed、watch与UI应用；旧证据不足则在原预算与断言下补最小取证，不拼接各实跑。完成依据：原Browser断言结束前152ms首次采到completed，但末UI采样同一毫秒仍running，旧包无watch/UI应用附件；本树原样1/1及新增被动观察双宿主均通过。新三端同次关联与有界/脱敏检查通过，不能回填旧失败缺证，17.2保持开放。
-- [ ] 17.2 因果闭合后在design记录具体依据，仅修唯一局部等待/夹具点并保持业务断言与5秒预算；没有证据则保留失败交精确缺证方案，不以诊断/重试/加时替代契约。未闭合：原失败最后152ms缺同run的watch completed送达及DOM completed时点，无法判断投影晚到或轮询遗漏；本轮未重现原失败。现有新正例只证明新观察有效，不据此修等待或宣称根因关闭。
 - [x] 17.3 复用已验产物及静态UI承载，运行本场景双宿主最小代表回归和适用静态/OpenSpec/diff检查；保留首次失败/替身/未验，取delivery instructions更新同一记录、导出独立增量后停止，不关闭平台或科研整项。完成依据：原样Browser1/1、观察候选双宿主2/2及审查修正后普通模式双宿主2/2分别保留；删除误算fixture预算的候选续观察，最终原断言5秒/总60秒不变，三端同run/容量/脱敏检查及静态/OpenSpec/diff通过。已取delivery instructions更新原记录并导出独立补丁，44/49；未复现旧失败不关闭17.2或原平台/质量整项。
 
 ## 16. 自有model-kernel诊断提供者
@@ -162,3 +163,11 @@ flowchart LR
 - [x] 9.1 只读确认HEAD=2cb6aed4d0f3034ca2d1426858a64a0039e51ede、0519904祖先及起始clean，消费主线同步构建／34项内核证据；保留harness.executions、Graph来源、统一v6、资源叶及双窗口基础，不改迁移链。主线证据见同一delivery，不扩大平台／科研结论。
 - [x] 9.2 提供内部harness.executionFacts：只从实际可信CallContext核对当前principal/session/run/instance及持久child-parent委派关系；参数为空、结果有界、无模型工具／公开入口。失效或无法证明返回unknown，instructionContext/tool明确unknown；不推断文本／配置作者，不增加FileEdit来源权威。经真实保存提供者取得父子上下文，验证根／委派／错误实例／重启失效及原history兼容。
 - [x] 9.3 先构建再运行最小父子、A1／首次创建权限、父退出／取消、恢复及公共history组合；从最终schema生成映射。把公共执行事实端口与本线领域接线分别整理为可审查补丁，保留实际调用方、注册和测试；更新同一delivery后停止。任务引用保持可选，未同步真实任务提供者不强行引入TaskRef／workItemId或宣称I3。
+
+## 后续责任（不计本阶段复选框）
+
+2026-10-30按用户批准的Linux阶段决定移出4.2及17.2／18.2复选框，保留原ID与工作全文，均未完成、未证明已修。4.3中的Windows真实双执行／成果回读／取消／重启目标一并后置未交付；恢复由主线安排真实Windows及目标授权，按run/head逐项核证，不以专项代替完整目标。17.2／18.2恢复于可取得原同次缺失事实或原预算代表例再次出现时，沿已有有界观察保全原红例；不能补取则继续记缺证，不以新绿色补造旧唯一因果。以下“完整Checks尚未结算”等保留原记录截点，当前Linux验收见4.3，科研6.2仍未通过。
+
+- 4.2 按run/head核Windows取消、恢复与context阶段，不以跨次计数推同因。0b5c5e3／专项40745283855完整74通过／3跳过，新占锁释放两例、ACL5项、Agent三代表及Electron重复3次均通过，提前上传亦成功；具体阶段及3份最终快照超时见delivery。旧40739213209两红／取消／无artifact、606ae82两红及17.2／18.2缺证均保留，不从新正例推唯一因果或补造旧阶段。完整Checks尚未结算，平台整项保持开放，不改生产期限／停止／容量。
+- 18.2 原预算复现必要代表例，只修闭合本域根因；仅缺特定事实时复用uiRpc/model-kernel及断言边界的有界HTTP计数/只读snapshot，保留原错误、5秒断言和120秒用例预算，不新增RPC/全局等待或修改生产准入/停止。已交子范围：uiRpc清理前落盘、原断言HTTP计数/同scope快照及missingSession/rejected/timedOut/observed分类。原CI缺原断言结束时模型请求数、实际run/工具状态和watch送达，无法判定原受理到onStart间机制；本机原样及新增观察均通过，不关闭原CI根因，不改等待。
+- 17.2 因果闭合后在design记录具体依据，仅修唯一局部等待/夹具点并保持业务断言与5秒预算；没有证据则保留失败交精确缺证方案，不以诊断/重试/加时替代契约。未闭合：原失败最后152ms缺同run的watch completed送达及DOM completed时点，无法判断投影晚到或轮询遗漏；本轮未重现原失败。现有新正例只证明新观察有效，不据此修等待或宣称根因关闭。

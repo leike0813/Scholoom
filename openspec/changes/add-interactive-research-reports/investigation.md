@@ -288,7 +288,7 @@ flowchart LR
 
 ### 基线失败与证据边界
 
-首次规划Checks40100596838只作历史输入；当前CI见本文件当前承载调查及共同计划“第十轮验收后的收敛安排”。写作PDF首次unknown的旧记录沿[材料调查](../add-material-annotation-interactions/investigation.md#ci-输入写作-pdf-预览)，诊断已交计算线，不在报告本片无目标重跑；报告独立验证不以PDF编译为前置。
+首次规划Checks40100596838只作历史输入；当前CI见本文件当前承载调查及共同计划“第十轮验收后的收敛安排”。写作PDF首次unknown的旧记录沿[材料调查](../archive/2026-10-30-add-material-annotation-interactions/investigation.md#ci-输入写作-pdf-预览)，诊断已交计算线，不在报告本片无目标重跑；报告独立验证不以PDF编译为前置。
 
 ### 尚需跨线输入
 

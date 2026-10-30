@@ -33,7 +33,7 @@ artifact12852830922已成功上传并一次下载解包至本轮cache的windows-
 
 完整Checks40745284164／head0b5c5e3的Windows job123017309438在`library-organization-rpc.spec.ts:355`发现恢复副本的附件状态由available变为changed／contentChanged。题录及阅读记录已读回，后续正文读取断言未执行。独立局部核查确认原库、备份及副本材料字节相同，恢复记录已重绑新文件指纹；尚无失败时实际stat，不能猜为复制后仍用旧inode或直接忽略状态差异。原材料及用户数据未改动。
 
-证据、待证假设和原有privateDirectory窄取证见[公共平台回执](../add-project-program-runs/delivery.md#0b5c5e3完整checks回执及下一次窄取证2026-10-29)及cache的`windows-organization-restore-diagnosis.md`。3.2重开直到实际恢复状态与版本保护核清；原Linux通过及独审保留其范围，不因已有9/9记录宣称目标已完整通过，不归档本change。
+证据、待证假设和原有privateDirectory窄取证见[公共平台回执](../../add-project-program-runs/delivery.md#0b5c5e3完整checks回执及下一次窄取证2026-10-29)及cache的`windows-organization-restore-diagnosis.md`。3.2重开直到实际恢复状态与版本保护核清；原Linux通过及独审保留其范围，不因已有9/9记录宣称目标已完整通过，不归档本change。
 
 ## 主线接收与联合验证
 

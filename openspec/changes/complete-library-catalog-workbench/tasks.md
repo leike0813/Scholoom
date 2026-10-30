@@ -1,5 +1,9 @@
 # 执行任务
 
+## 当前范围（2026-10-30）
+
+用户已批准Linux Browser＋真实Electron阶段收口并授权按计划修订。29/32不变，1.4／6.1／6.2仍未完成，现为Linux最终源码／构建、已有业务与保护证据及已接收独审的最终签收；Windows B业务／资源双宿主和完整Checks缺件沿后续责任保留，未交付，不作为本阶段Linux前置。macOS沿既定人工／受管不可用，原失败、历史checked及安全／身份／授权保证不变；下节及分阶段计数保留原截点。
+
 ## 当前验收状态（2026-10-29，8d8f339）
 
 共同HEAD为`8d8f339c3e561154b05d4db39b4264c6db2c42e6`（产品源码7a746c0），本轮起始clean。当前29/32，仅1.4、6.1、6.2开放；本轮只复核交付依据，不新增业务、重跑绿色套件或查询远端CI。proposal／spec→源码／原始结果／独审的对应及精确平台缺件见[delivery当前复核](delivery.md#当前交付依据复核2026-10-298d8f339)。
@@ -74,7 +78,7 @@ flowchart LR
   T12 --> T53
   T42ab[4.1a/b 4.2a/b 已支持编辑] --> T53
   T13[1.3 P1排序范围] --> T33[3.3 排序条件分支]
-  T14[1.4 Windows阶段诊断] --> T61[6.1 真实独立验收]
+  T14[1.4 Linux阶段平台事实] --> T61[6.1 Linux真实独立验收]
   T33 --> T61
   T52 --> T61
   T53 --> T61
@@ -88,7 +92,7 @@ flowchart LR
 - [x] 1.2a 逐份消费阅读材料／报告design、ContextItem同源增量及项目AuxiliaryPane实际源码，核对R1边界与右栏符号、taskNavigator／活动task及多窗口fixture合并点，精确路径见investigation；不再等待同一设计重复转交。
 - [x] 1.2b 已闭合独立题录贡献的精确100项DTO、范围／主选、16项材料独立预算、修订／授权及三类模型准入复查、提供者清单和独立增量顺序；真实实现与验证由5.1记录，历史候选补丁不再代表当前接线状态。
 - [x] 1.3 P1按原B／F分批边界核对：本批列显示／顺序／宽度，查询排序留F；不实施未经确认的新排序，保留服务端默认顺序，依据见design及本轮主线协调计划。
-- [ ] 1.4 核清平台目标及原始回执：已结算0b5c5e3／Checks40745284164的Linux内核835通过／44跳过、UI137通过／25失败／6跳过，其中B业务链及library双宿主目标通过；Windows内核789通过／5失败／85跳过，后续UI未运行。0ed2c97的Mac降级4、入口4、人工工作台14及目录包通过，受管执行仍不可用。55ad46a的Windows专项73通过／3不适用及C1恢复专项不替B；完整Checks40792137169的Linux／Windows原始结算缺件（现存两份所谓日志是BlobNotFound正文）。沿delivery最小组合补齐Windows B业务／资源双宿主目标并核对应源码；不由Linux成功、Mac人工或专项正例关闭本项，不要求本轮重跑或取远端。
+- [ ] 1.4 核清Linux阶段平台事实及最终源码／构建与原始回执对应：已结算0b5c5e3／Checks40745284164的Linux内核835通过／44跳过、UI137通过／25失败／6跳过，其中B业务链及library双宿主目标通过；只将影响本change当前Linux目标且无有效后续证据的失败列为补验，不要求旧全仓CI全绿。macOS复用0ed2c97降级4、入口4、人工工作台14及目录包结果并保留受管不可用。Windows和较新完整Checks缺件转后续责任，不从专项推B通过，不把BlobNotFound或静态核对当实跑；本项仍未完成。
 
 ## 2. 稳定选择与对象草稿：首批独立成果
 
@@ -122,10 +126,18 @@ flowchart LR
 
 ## 6. 独立验收与交付
 
-- [ ] 6.1 文献线主Agent在已构建、独立配置／库／项目／端口的真实内部接线中验收：收录 → 类型化更正 → 集合／列与多选 → 原会话工具读取实际选择 → 重启读回；复用library／context-bridge及必要attachments／resource-opening／resource-lifecycle定向双宿主。运行受影响类型、架构、lint、构建及生成映射检查，逐项保留结果；Windows相关验证未通过不称跨平台完成，macOS沿人工降级，未用真实模型则明确证据边界。当前Linux主线业务2/2、真实库授权／恢复3/3及既有资源目标已具备，构建／静态检查沿原证据复用；剩Windows B双宿主目标及最终源码／结果对应核对，详见delivery，不重跑已绿Linux或把人工路径绑到harness就绪。
+- [ ] 6.1 文献线主Agent最终签收Linux Browser＋真实Electron真实内部接线：收录 → 类型化更正 → 集合／列与多选 → 原会话工具读取实际选择 → 重启读回；复用独立配置／库／项目／端口的library／context-bridge及必要attachments／resource-opening／resource-lifecycle证据。当前Linux业务2/2、真实库授权／恢复3/3及既有资源目标已具备，逐项核最终源码／构建和受影响类型、架构、lint、生成映射原结果，只有相关差异或缺项才补验。保留未知CSL／创建者顺序、CAS／迟到草稿、有界身份选择、read／send分别授权及真实重启；17项发布不等于17项工具回执。macOS沿人工／受管不可用，Windows最小组合移后续责任；不机械重跑已绿Linux或把人工路径绑到harness，本项仍未完成。
 - [x] 6.1a 本轮5.3本机子验收：构建后在隔离Linux配置中运行library／context-bridge／resource-opening／attachments双宿主，核对右栏唯一详情、主选／多选、折叠／展开、项目／会话及库tab生命周期、原冲突／迟到草稿、共同附件入口和当前主选有界读取；相关类型／架构／lint及生成映射只读检查通过。首次重复实例RED、视觉问题和最终复验详见delivery；不据此关闭完整映射或Windows／整体I6。
-- [ ] 6.2 对关键接口、读写／外发权限、修订冲突、迟到回执和数据保留完成独立只读审查，主Agent核对整改及最小复验。实际执行后再取delivery instructions并填写`delivery.md`，对照proposal完成判据、所有未决项和验证范围；全部必要结果真实完成后才更新本项，不由CLI ready代替验收。现有`catalog-independent-review.md`为P0–P3零确证发现的已接收输入，本轮已完成证据索引和当前差异核对；不再泛称“缺独审”。待1.4／6.1目标闭环后主线最终核对；如有真实整改，只审其差异和必要回归，不无故再造整份审查。
+- [ ] 6.2 主Agent对本阶段Linux proposal判据、1.4／6.1最终源码／原结果及已接收独审作最终核对，实际签收后再取delivery instructions更新同一`delivery.md`，明确Windows未交付及macOS既定边界。现有`catalog-independent-review.md`为P0–P3零确证发现的已接收输入，不泛称缺独审；关键接口、读写／外发权限、修订冲突、迟到回执和数据保留要求不变。如有真实新差异，仅窄审其整改和必要回归。最终签收尚未完成，本项继续未勾选，不以本轮工件修订或CLI ready代替。
 
 ## 续做入口
 
-从当前8d8f339及delivery首节索引继续，仅剩1.4平台、完整6.1／6.2的验收收口。4.1／4.2的明确JSON保留边界不再充作泛泛“完整复杂映射未完成”；不扩Zotero逆映射、原值同步或CLI持久配置。C1另见[已接收交付](../complete-library-organization/delivery.md)，不重做、不重放旧WIP。主线按精确缺件及一次Windows最小组合安排后续验收，本轮在文档复核结束停止；不机械重跑5.4a／6.1b／滚动，不恢复旧诊断逻辑。接续必需材料在Git／cache，不依赖当前/tmp；分发、真实科研质量及完整平台仍按实际不足开放。
+从dev@a460832及delivery的Linux阶段范围继续，1.4／6.1／6.2仅剩本阶段最终证据核对和主线签收。4.1／4.2的明确JSON保留边界不再充作泛泛“完整复杂映射未完成”；不扩Zotero逆映射、原值同步或CLI持久配置。C1另见[已接收交付](../archive/2026-10-30-complete-library-organization/delivery.md)，不重做、不重放旧WIP。Windows最小组合、缺件及恢复时机见下节；本轮在工件修订／校验结束停止，不机械重跑5.4a／6.1b／滚动。接续必需材料在Git／cache，不依赖当前/tmp；分发、真实科研质量及完整平台不由本阶段宣称完成。
+
+## 后续责任（不计本阶段复选框）
+
+原1.4／6.1的Windows B业务／资源双宿主目标未完成、未交付；6.2只签收本阶段Linux，不消除此责任。恢复由主线安排真实Windows、同源构建及目标权限，先核原始结算与源码影响，再执行缺失的最小组合，不重复已接收C1或Linux绿色组。
+
+- 原1.4 Windows平台事实：0b5c5e3／Checks40745284164内核789通过／5失败／85跳过，后续UI未运行；55ad46a专项73通过／3不适用及C1恢复专项不替B。较新完整Checks40792137169的Linux／Windows原始结算缺件，两份所谓日志实际各215字节BlobNotFound XML，缺job终态、目标步骤和结果，不能计通过；恢复时补取／交接原件，不可取则明确缺件，不补造或以专项替代。
+- 原6.1 Windows最小组合：`tests/ui/library.spec.ts`六场景×双宿主12项，`context-bridge.spec.ts`完整B业务链×双宿主2项，`attachments.spec.ts`两场景及`resource-opening.spec.ts`／`resource-lifecycle.spec.ts`各一场景×双宿主8项，共22个UI目标；核对应源码／构建、类型／架构／lint／生成映射，已有Windows library-context3及catalog契约／连接结果按影响复用，仅相关差异或缺件补验。Windows不适用的Linux原包GUI不以mock补绿，不新增CLI配置或全仓／BBT／C1重跑要求。
+- 原1.4／6.1较新Linux完整Checks缺件与旧全仓失败保留原证据边界；恢复旧run取证不作为当前Linux签收前置，但若发现同一Linux目标当前仍失败或无有效证据，交主线继续验收，不能用后置消除。本批三平台实际分发／签名与科研质量不由上述UI目标推定通过。

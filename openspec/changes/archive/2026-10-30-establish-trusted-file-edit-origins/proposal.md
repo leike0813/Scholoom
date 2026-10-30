@@ -31,6 +31,6 @@
 ## 决策与授权依据
 
 - 用户本轮“主线验收及下一阶段协调”第4项明确要求本线牵头M2，先形成OpenSpec规划／精确delta，禁止未经审核字段上线。
-- 既有规则：[存储与变化模型](../../../.scratch/scholoom-foundations/issues/13-storage-and-change-model.md#answer)、[项目文件规格](../../specs/project-files/spec.md)、[资源规格](../../specs/workbench-resources/spec.md)。普通改稿不建立跨文件／数据库通用事务，撤销保护后续成果。
+- 既有规则：[存储与变化模型](../../../../.scratch/scholoom-foundations/issues/13-storage-and-change-model.md#answer)、[项目文件规格](../../../specs/project-files/spec.md)、[资源规格](../../../specs/workbench-resources/spec.md)。普通改稿不建立跨文件／数据库通用事务，撤销保护后续成果。
 - 正式输入：`/tmp/scholoom-phase2-handoff-VZS5mS/coordination-plan.md`的M2分工，以及快照中Agent委派design、材料交互design；精确路径和源码证据见investigation。
 - 沿用Codex／gpt-6.1-sol／high。只读快照和本树规划获授权；不操作其他真实工作树，不提交／推送／归档、不安装新依赖、不操作真实用户数据。

@@ -97,7 +97,7 @@ TaskLink.target 增 `library-source`，字段为 `libraryId`／`sourceId`；原�
 
 ### 精确保存、关联与会话呈现
 
-`roleResults` 每项为 `{role,result:ResourceSaveResult}`，角色由本图定义为 `report`／`process`；保留真实editId和after Evidence，不从路径、正文或旧creation推更新成功。科研模块的窄宿主核查端口接原run和角色保存，内核沿现有files.edit核after Evidence及可信project／session／run／instance来源；projects按原run／fileId键读取单项artifact，避开列表100条截断，保持所属session校验。保存、run关联及当前旧basis读回分别表达，缺证据为unknown／不完整，不新建历史表或通用因果账本。
+`roleResults` 每项为 `{role,result:ResourceSaveResult}`，角色由本图定义为 `report`／`process`；保留真实editId和after Evidence，不从路径、正文或旧creation推更新成功。科研模块的窄宿主核查端口接原run和角色保存，内核沿现有files.edit核after Evidence及可信project／session／run／instance来源；projects按原run／fileId键读取单项artifact，避开列表100条截断，保持所属session校验。单项查询复用内部`project.artifacts`：原projectId／sessionId不变，增加可选`item: {runId,fileId}`；未给item继续原列表，给定则按原键只返回0或1项，不能从截断列表筛选。返回仍用原Artifact数组，不另增公共操作／DTO或扩大权限。项目线在同一提交中实现该最小schema、实际提供者和科研核查消费者。保存、run关联及当前旧basis读回分别表达，缺证据为unknown／不完整，不新建历史表或通用因果账本。
 
 原creation路径与原校准行为保留，新图角色更新走同一交付职责。查询不save／reconcile，不自动补关系；已知原回执只经原核查／补关联入口处理。用户后改文件时，本次历史保存可成立而当前读回失败，分别诊断。
 

@@ -1,5 +1,11 @@
 # 实际交付与交接
 
+## Linux阶段范围修订（2026-10-30）
+
+用户已明确采用Linux Browser＋真实Electron阶段收口，并授权按此计划修订工件。原49/57任务中W2／W2.2／W3／W4转入同一[tasks后续责任](tasks.md#后续责任不计本阶段复选框)，现49/53；2.3／4.2仅保Linux必要验收，5.1／5.2继续未完成。Windows普通布局未启用，原生C／ACL目标未验，百条例endpoint rename EPERM仍是原失败，Windows普通启动／完整生命周期及分发未交付；macOS保留人工能力／受管不可用。
+
+已有Linux普通N2、真实原包两格式／共同保存／撤权／unknown及文献消费者双宿主结果沿下文复用，尚需主线核齐最终源码与普通冷启动、无注入重启、Browser／真实Electron消费者和正常／中断／忙Worker／失联完整归属各目标，不能由静态入口或本轮文字核查替代。Linux安全、身份、授权、CAS及真实库禁用不变。下文所有原失败、未验和计数保留为历史截点，本节不宣布最终验收通过。本轮只做工件修订与OpenSpec strict／diff核查，未运行业务测试、模型或CI；本change严格校验、限定diff及任务／历史保留／归档链接核查通过，执行报告为`/home/joshua/.cache/scholoom-closeout-execution-20261030/linux-scope-edits.md`。
+
 ## 第19轮主线验收W2.1源码（2026-10-29）
 
 七文件增量冻结为2dd1468，已保全合入dev。显式executableRelativePath按值绑定，普通数据read、固定执行入口在已核同一文件句柄上额外execute；设置读取仍read，原ACL／身份／成员／双扫描／close保证不扩。独审 `/home/joshua/.cache/scholoom-round19-acceptance-XBzzNC/windows-review.md` 无确证P1/P2，确认第18轮误要求所有资源execute的根因在源码层面已修。主线接收W2.1及其W2.1a源码范围，目标行为仍归W2.2。
@@ -175,7 +181,7 @@ Windows的0ed2c97／专项40784928035原输入负正对照2/2、共同事务8/8�
 
 ## 首批范围确认、事务归属与派生SQL保护（2026-10-29）
 
-用户明确按既定首批范围完成，茉莉花、复杂映射及Reader写回另立变更，承接见[后续提议](../extend-zotero-ecosystem-compatibility/proposal.md)。原包兼容与共同文献权威要求不变；Windows原包、完整I6和原任务3.2／4.2／5.x仍须其真实结果，不由范围确认自动勾选。
+用户明确按既定首批范围完成，茉莉花、复杂映射及Reader写回另立变更，承接见[后续提议](../archive/2026-10-30-extend-zotero-ecosystem-compatibility/proposal.md)。原包兼容与共同文献权威要求不变；Windows原包、完整I6和原任务3.2／4.2／5.x仍须其真实结果，不由范围确认自动勾选。
 
 主线先补JournalCatalog的独立creator草稿／保存接口，未新增产品动作、授权、原包入口或CSL双写。5项独立真实library测试及原BBT两例先通过，独审仍复现旧异步回调混入新操作、提交等待期接受迟到保存、插件SQL污染共同投影三个问题。进一步复用AsyncLocalStorage为每个操作绑定独立身份，operation结束即关闭写入阶段并继续占有提交／读回／通知；插件SQL用SQLite authorizer保护共同表／视图及同名临时对象，禁止attach／detach和writable_schema，保留实际缓存／settings读写。提交／通知阶段拒绝追加当前通知批次，避免无界重新入队；已提交回执始终保留，未知效果和容量保护不变。
 

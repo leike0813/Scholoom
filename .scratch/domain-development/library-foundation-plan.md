@@ -1,6 +1,6 @@
 # 类 Zotero 文献管理工具实施计划
 
-状态：职责与分批方案已确认，实施按所属OpenSpec授权推进。共同资源A批、公共基础和库管理入口恢复已交付；B批既定字段及表单覆盖已验收，完整平台与交付余项沿原change保留。C1组织操作规划已接收，下一片先实施[complete-library-organization](../../openspec/changes/complete-library-organization/tasks.md)的契约、迁移及领域提供者；后续附件／阅读／共同资源方向见该change的design，具体规格另行起草。不因开始C1宣称完整C、B整项或平台已完成。
+状态：职责与分批方案已确认，实施按所属OpenSpec授权推进。共同资源A批、公共基础和库管理入口恢复已交付；B批既定字段及表单覆盖已验收，完整平台与交付余项沿原change保留。C1组织操作规划已接收，下一片先实施[complete-library-organization](../../openspec/changes/archive/2026-10-30-complete-library-organization/tasks.md)的契约、迁移及领域提供者；后续附件／阅读／共同资源方向见该change的design，具体规格另行起草。不因开始C1宣称完整C、B整项或平台已完成。
 
 ## 目标与完成标准
 

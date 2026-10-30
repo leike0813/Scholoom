@@ -16,7 +16,7 @@
 | 完整 HTML／PDF 排版 | `RenderPane.tsx` 基于保存稿件编译，`RenderedPdf` 只接收 URL；HTML iframe 无脚本权限 | 产物与稿件不是同一内容依据，不能把产物选区标为源码位置 |
 | 独立 PNG/JPEG/GIF/WebP | `resourceFormatForName` 返回 unsupported，`ResourceView` 没有图片分派 | 缺实际图片视图、字节能力与区域坐标基准，不可把固定 provider 测试称为真实框选 |
 
-相关源码根为 [workbench](../../../apps/desktop/src/renderer/src/workbench/)、[ResourceAccess](../../../packages/editor/src/resource-access.ts)、[资源契约](../../../packages/protocol/src/resources.ts)。共同资源链路已经存在：
+相关源码根为 [workbench](../../../../apps/desktop/src/renderer/src/workbench)、[ResourceAccess](../../../../packages/editor/src/resource-access.ts)、[资源契约](../../../../packages/protocol/src/resources.ts)。共同资源链路已经存在：
 
 ```mermaid
 flowchart LR
@@ -50,13 +50,13 @@ flowchart LR
 
 完整核对当前 workbench-resources、workbench-agent-context、literature-reading、literature-attachments、workspace-editor、manuscript-rendering，以及 domain-execution-handoffs、execution-work-domains；本次增量只补视图贡献和修改核查，不重做 driver、可靠指令、创建回执、条件保存或库记录。
 
-历史依据：[共同资源交付](../archive/2026-10-20-unify-workbench-resource-opening/delivery.md)、[写作交付](../archive/2026-10-20-add-research-writing-editor/delivery.md)、[EPUB／HTML 交付](../archive/2026-10-19-extend-shared-epub-html-reading/delivery.md)、[上下文交付](../archive/2026-10-24-establish-workbench-context-bridge/delivery.md)、[领域交接](../archive/2026-10-24-establish-domain-execution-handoffs/delivery.md)。记录中的历史“未启动七域”等段落按当时范围理解；当前起点与授权以本轮用户及七线计划为准。
+历史依据：[共同资源交付](../2026-10-20-unify-workbench-resource-opening/delivery.md)、[写作交付](../2026-10-20-add-research-writing-editor/delivery.md)、[EPUB／HTML 交付](../2026-10-19-extend-shared-epub-html-reading/delivery.md)、[上下文交付](../2026-10-24-establish-workbench-context-bridge/delivery.md)、[领域交接](../2026-10-24-establish-domain-execution-handoffs/delivery.md)。记录中的历史“未启动七域”等段落按当时范围理解；当前起点与授权以本轮用户及七线计划为准。
 
 ## 影响方案的未知项与实验
 
 ### CI 输入：写作 PDF 预览
 
-[七线基线](../../../.scratch/domain-development/parallel-development-plan.md#当前-ci-基线的处理)固定 [Checks 40100596838](https://github.com/leike0813/Scholoom/actions/runs/40100596838)，提交 `55d020c696407c3d80b984a9f1535054c311ae2c`。Linux UI 101 通过／9 失败／2 跳过；Windows kernel 374／15／12；macOS job 成功但受管执行明确不可用。
+[七线基线](../../../../.scratch/domain-development/parallel-development-plan.md#当前-ci-基线的处理)固定 [Checks 40100596838](https://github.com/leike0813/Scholoom/actions/runs/40100596838)，提交 `55d020c696407c3d80b984a9f1535054c311ae2c`。Linux UI 101 通过／9 失败／2 跳过；Windows kernel 374／15／12；macOS job 成功但受管执行明确不可用。
 
 已直接读取本机 `/tmp/scholoom-next-parallel-baseline-failures.log:4779`、`:4901`：双宿主 `writing-editor-pdf.spec.ts:43` 等待“完整排版预览／排版 PDF”60 秒后元素不存在。断言在 paper.qmd／main.tex 循环中，日志未标明失败轮次。`RenderPane` 必须取得 output 或 lastSuccess 并读取 URL 后才挂载该区域，因而没有证据将失败归因于 SDK、工具缺失或单纯等待不足。历史 kernel 工具测试通过不能证明该次 UI 编译成功。
 

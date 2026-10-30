@@ -1,5 +1,11 @@
 # 实际交付与交接
 
+## Linux阶段范围修订（2026-10-30）
+
+用户已明确采用Linux Browser＋真实Electron阶段收口，并授权按此计划修订工件。56/58不变，5.2／6.2继续未完成，保留Linux最终源码／构建与proposal六判据、既有人工／Agent程序、环境保护、实际输出、双宿主、取消／恢复及已接收独审的对应核对。完整停止、unknown容量、锁与已有环境保护不变；macOS保留人工／查询／已有成果并拒绝新受管运行，公网registry下载仍未实跑。
+
+Windows程序业务／平台整组、ACL／启动／EPERM及TeX／实际分发未交付，旧CI唯一因果沿同一[tasks后续责任](tasks.md#后续责任不计本阶段复选框)保留，不作为Linux阶段最终签收前置。display helper丢stderr已有红绿与新Xvfb／已有DISPLAY各1/1、负例2/2，不证明旧CI127原因；nativeTeX后续单次未复现也不证明旧unknown已定因。下文所有历史失败、未结算时点及跨平台待办保留，当前任务以本节及tasks为准。本轮仅文字与OpenSpec strict／diff核查，无新业务／平台／CI实跑；本change严格校验、限定diff及任务／历史保留／归档链接核查通过，执行报告为`/home/joshua/.cache/scholoom-closeout-execution-20261030/linux-scope-edits.md`。
+
 ## 55ad46a Windows专项接收（2026-10-29）
 
 run40792137138已结算failure：private-files job123179671655成功，execution job123179671913成功，zotero-original job123179672088失败；不是全部平台成功。execution逐组10、16、25、6、4、4、3、2、3，共73通过／3个既有平台不适用跳过，含父子取消／重启、显式摘录、附件Agent三代表以及Electron入口重复3/3，测试及生产期限未改。日志为`/home/joshua/.cache/scholoom-finish-active/windows-55ad46a-execution.log`。
@@ -36,7 +42,7 @@ kernel重新构建、tools类型、指定七文件Biome及架构通过。自有�
 
 ## Windows子文件元数据独立取证（2026-10-29）
 
-2b55465／run40770348500的独立private-files job123105541706已success，Node24.22.1／libuv1.52.1。原四项各三次12/12：三份元数据before=after=opened且正文保持，真实损坏三类ACL后修复也通过；随后未修改的组织恢复RPC1/1，38秒，原附件版本／可读／正文断言通过。artifact12852830922上传成功并一次解包至windows-ace-equality；原库／备份／副本材料43字节、同一ID及SHA256一致，结构化读回windows-ace-equality-reviewed.json。原始日志windows-ace-equality-private.log和job状态已保全。最终权限独审对Equals及原保护条件无新增发现。该结果关闭[组织恢复任务](../complete-library-organization/delivery.md)，但完整Checks与本workflow的execution job尚未结算，不据独立job关闭本change5.2／6.2。
+2b55465／run40770348500的独立private-files job123105541706已success，Node24.22.1／libuv1.52.1。原四项各三次12/12：三份元数据before=after=opened且正文保持，真实损坏三类ACL后修复也通过；随后未修改的组织恢复RPC1/1，38秒，原附件版本／可读／正文断言通过。artifact12852830922上传成功并一次解包至windows-ace-equality；原库／备份／副本材料43字节、同一ID及SHA256一致，结构化读回windows-ace-equality-reviewed.json。原始日志windows-ace-equality-private.log和job状态已保全。最终权限独审对Equals及原保护条件无新增发现。该结果关闭[组织恢复任务](../archive/2026-10-30-complete-library-organization/delivery.md)，但完整Checks与本workflow的execution job尚未结算，不据独立job关闭本change5.2／6.2。
 
 后续0c4a6fa／run40769249566的private-files job123101647156仍6通过／6失败，Int32 RHS不是足够修复；恢复仍未ready。原log windows-acl-0c4.log保留，上传结果另核。当前改为复用原setter唯一目标ACE，调用GenericAce.Equals比较原始ACE，删除手工枚举谓词；微软Framework源码确认其比较type／flags及完整二进制，静态来源cache/dotnet-framework-ace.cs。构建／Biome通过，新目标结果尚待；失败没有作为修正版通过计数。
 

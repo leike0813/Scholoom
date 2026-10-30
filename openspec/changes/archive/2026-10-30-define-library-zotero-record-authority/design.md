@@ -30,7 +30,7 @@ flowchart LR
 
 复用LiteratureCatalog、共同SQLite事务及历史、broker授权、LibrarySource身份／revision。新增职责集中在文献内部的提交权威；GUI与生态均消费同一结果，不在UI或兼容宿主再建持久权威。生态保留数字ID、SQL兼容映射和原包生命周期，其HostCatalog注入夹具不是生产实现。插件SQL必须翻译到被批准的领域操作，禁止提供任意库SQL执行口。
 
-精确DTO唯一事实源为`packages/protocol/src/library-records.ts`，端口已在dev的manual/broker注册，并由真实ZoteroOperations／JournalCatalog消费；BBT普通期刊已验。2026-10-29用户确认首批范围，茉莉花原包接入由[后续变更](../extend-zotero-ecosystem-compatibility/proposal.md)分别验收，不构成本change已实现声明。字段语义：
+精确DTO唯一事实源为`packages/protocol/src/library-records.ts`，端口已在dev的manual/broker注册，并由真实ZoteroOperations／JournalCatalog消费；BBT普通期刊已验。2026-10-29用户确认首批范围，茉莉花原包接入由[后续变更](../2026-10-30-extend-zotero-ecosystem-compatibility/proposal.md)分别验收，不构成本change已实现声明。字段语义：
 
 - `identity { instanceId, libraryLocator, objectKey }`：来源实例由登记分配，三元组唯一关联一个Scholoom sourceId。本机itemID只在生态映射；新的登记requestId分配新实例，不自动重绑定。
 - `OriginalRecord { identity, schemaVersion, itemType, fields, creators, relations }`：schemaVersion明确原schema，fields为原字段而非CSL别名；creators按原序保留完整姓名／角色／fieldMode／orderIndex及扩展对象，日期和Extra原样保存；relations是原关系，不推定共同材料引用。未知JSON值可核查，不执行字段名或数字ID。

@@ -1,5 +1,9 @@
 # 执行任务
 
+## 当前范围（2026-10-30）
+
+用户已批准Linux Browser＋真实Electron阶段收口并授权按计划修订。56/58不变，5.2／6.2仍待Linux最终源码／构建与既有结果、proposal六判据及已接收独审的对应签收。Windows程序业务／平台整组、TeX／实际分发及旧CI唯一因果转同一文件后续责任，未交付／未定因不记通过；macOS沿既定人工／受管不可用，公网registry下载未实跑。完整停止／unknown容量、锁、授权与既有环境保护不变；下列分阶段记录保留历史截点。
+
 用户已授权实现及必要依赖链接、隔离环境／双宿主测试，并选择逐次人工“移交后台”。本轮仅交本树增量与独立补丁，提交／同步由主线处理；不推送、PR、归档、安装新依赖、写真实用户库或启动开发服务器。双宿主复用已构建产物及隔离静态夹具。跨线输入与历史CI诊断按实际证据分别记录。
 
 ## 下一片：恢复归属统一计入准入
@@ -58,17 +62,17 @@ flowchart TD
 - [x] 4.2 先在 `docs/ui-design/README.md` 补项目运行tab、环境准备及失败状态分节，再沿既有TabGroups／session挂载真实ProgramRunsTab和controller，样式只用语义token。复用现有资源打开实际CSV；每页25、当前run日志分片、事件范围刷新和请求代际保护，配置草稿按项目隔离；关tab不取消后台。StatusBar贡献若使用则沿标准接口，不覆盖Agent执行状态。公共0519904同步后已在本树实际挂载并通过程序双宿主2项；任务私有提供者联合验收另见8.4，不能由此勾闭。
 - [x] 4.3 本线主Agent负责I4：双宿主 `tests/ui/program-runs.spec.ts` 从用户入口人工启动固定程序、查询日志／取消／打开CSV、切项目／重开保护草稿；与4.1真实Agent路径核对相同持久事实。使用隔离配置／项目／库／输出，计划UI5361／CDP9361，先检查占用，仅收尾本轮所属进程。内部broker／程序／仓储／文件／共同视图真实，外部模型可受控；不等待任务UI或交互报告，不声称科研质量验收。
 
-## 5. 明确等待的输入与CI前置
+## 5. 输入与Linux最终核对
 
 - [x] 5.1 已消费主线正式设计及源码输入；历史路径和符号冲突记录于design。共同1026796已合入全部七域源码，当前executionResources／taskPort／delegationOptions／programs、根工具、三域restore及task／programs标签均在本树；不再等待同步或使用旧累计补丁。真实联合操作另由8.4验收，不把代码合入当作实际整合完成。
-- [ ] 5.2 沿固定run／head和实际stage收敛平台缺口。0b5c5e3／专项40745283855完整74通过／3跳过，两份新释放锁竞争均三路running、ACL5项及isolated4／Agent3／HostConnection25／owner2／Electron3均通过，提前上传已成功。旧40739213209两红／取消／无artifact及606ae82原阶段保留，不补造旧因果；精确证据见delivery。完整Checks尚未结算，5.2／6.2仍开放；TeX／分发另核，不放宽停止／容量、锁或重试。
+- [ ] 5.2 沿固定run／head和实际stage核对Linux Browser＋真实Electron最终源码／构建及程序业务、环境保护、人工／Agent同源事实、输出／共同资源、取消／恢复证据，复用已有实跑及独审，只有相关差异、缺项或当前失败才安排最小补验。旧CI失败与显示helper红绿分别保留，不以新绿色推旧唯一因果；影响当前Linux目标的失败不能移走。Windows整组、ACL／启动／EPERM、TeX／分发与旧因果调查见后续责任，不要求完整Windows Checks作为Linux前置，不放宽停止／unknown容量、锁或重试。本项仍未完成。
 
 5.1的输入核对不意味着新增报告适配属于本change；只有共同符号冲突或相关必要回归才阻塞对应整合，其他任务不串行等待。
 
 ## 6. 审查与实际交付
 
 - [x] 6.1 对本次新变化运行最小必要生成一致性、architecture、typecheck、build及上述定向内核／双宿主；共同命令触及editor时回归editor.spec／editor-runtime及实际资源打开。Linux／Windows实际运行和macOS不可用分别记录；取得日志、身份授权、跨进程停止、升级／恢复和复杂整合的独立只读审查，处理发现后由主Agent最终接受。依赖缺失先说明并按授权准备，不隐式安装；未运行或失败不记通过，不追加全仓测试。
-- [ ] 6.2 实际执行后获取 `openspec instructions delivery --change add-project-program-runs --json`，填写同一delivery.md，逐项对应proposal完成判据、真实接线／替身、目标平台、相关CI未决、授权及下一步；核对任务和证据后再更新本项。没有实际执行结果时保持delivery未创建，不因CLI ready而补造交付。
+- [ ] 6.2 最终签收时获取 `openspec instructions delivery --change add-project-program-runs --json`，更新同一delivery.md，逐项对应本阶段Linux proposal六判据、最终源码／构建、真实接线／替身、已有实跑与已接收独审，保留授权、当前失败及下一步；明确Windows后续未交付、macOS人工／受管不可用和公网registry下载未实跑。待5.2及最终证据核对完成后再勾选，本轮工件修订不算最终交付，本项仍未完成。
 
 ## 7. 主线验收整改与公共对接（2026-10-26）
 
@@ -149,3 +153,13 @@ flowchart TD
 - [x] 18.1 消费固定40622631905／f4ab1e5日志及trace，核managed env／命令查找和程序模式输出；真实缺scratch故障注入与原负例确认流式stderr被空result覆盖，首次红例保留，不据127猜定缺包。新Xvfb及共享DISPLAY实际条件分别核查。
 - [x] 18.2 display helper只保留已有4096字符流式stderr尾，scope原负例新增mktemp语义断言并由红转绿；checks既有Linux准备后声明xauth／x11-utils、核包版本与四工具绝对路径。原业务、后代收尾、共享显示、预算、权限、停止及重试均未改。
 - [x] 18.3 缺scratch首次1红，修复后两个负例2/2、新Xvfb原完整场景1/1、已有DISPLAY原场景1/1分别通过；类型／格式／CI静态／架构／OpenSpec／diff通过。新Windows40630840362按本轮head一次查询并消费完成日志／安全JSON，真实配置1失败与三个校准通过分开，未循环等待。已取delivery instructions更新原记录，交增量及cache入口；历史127具体来源、新Linux CI及Windows根因／5.2／6.2保持开放即停。
+
+## 后续责任（不计本阶段复选框）
+
+原5.2／6.2的以下跨平台及旧CI工作保留原ID归属，未完成／未交付，不纳入本阶段Linux签收前置。恢复由主线安排真实目标环境、实际分发包及必要授权，核对应源码与原始结果后只补缺失或受影响目标；不新建活动change，不以一次正例或其他专项结算整组。
+
+- 原5.2 Windows程序业务／平台整组：保留人工无模型运行、环境准备／权限及已有环境保护、Agent同源事实与逐次后台移交、CSV／日志／输出打开、取消／重启与完整停止／unknown容量的实际Windows业务及双宿主结果缺口；专项isolated／ACL／HostConnection／Agent代表及Electron入口不替完整program-runs。0b5c5e3／专项40745283855完整74通过／3跳过及后续55ad46a专项73通过／3不适用等有效历史保留，不相加为当前完整结果。
+- 原5.2 Windows启动／ACL／EPERM与完整Checks：旧40739213209两红／取消／无artifact、606ae82两红及旧阶段缺证保留；0b5c5e3／Checks40745284164已结算failure，Linux内核835通过／44跳过、UI137通过／25失败／6跳过，Windows789通过／5失败／85跳过。较新40792137169原始结算缺件，BlobNotFound不计日志；Windows百条例endpoint rename EPERM仍失败，公共try/finally收尾已验不证明其唯一原因已修。恢复时核真实ACL／对象／启动与发布收尾同次事实及原件，不补造旧因果，不放宽生产期限、停止／容量、锁或重试。
+- 原5.2 Linux显示helper／历史CI：已证丢stderr缺陷及红绿、新Xvfb原场景1/1、已有DISPLAY原场景1/1、两个负例2/2保留；旧40622631905／f4ab1e5的127具体来源及旧全仓失败唯一因果仍缺证。恢复于取得原同次材料或相同失败再现时，沿现有有界诊断核实际阶段；新绿色不证明历史127已定因，当前Linux业务目标若仍失败继续归5.2。
+- 原5.2／6.2 TeX及分发：旧nativeTeX unknown的唯一因果未闭合，后续本机单次通过、五实例controller0／native0／stopped不能回填旧原因；目标实际分发、Windows包及必要TeX回归未交付，macOS人工包通过／签名跳过不等于受管能力或签名发行。恢复目标分发或相关故障复现时核原归属、停止收据与真实包，不为追旧因果机械重复绿色组。
+- 原6.2最终平台交付：待上述Windows业务／平台及目标包真实结果、授权和必要独审齐备后，由主线核proposal及公共平台契约签收该范围。本阶段Linux签收、静态核查和公网registry下载未实跑不能冒充其完成；不改变其他change或正式规格。

@@ -133,7 +133,7 @@ flowchart LR
 
 ### 当前事实与契约定位
 
-已接收的共同契约位于[`define-library-zotero-record-authority`的delta](../define-library-zotero-record-authority/specs/literature-catalog/spec.md#requirement-来源原值与题录投影分离)，明确“仅更正CSL SHALL 不覆盖未明确修改的原值”；该change尚未归档同步为`openspec/specs`中的新条文，不能因目录状态否定已接收契约，也不能擅自同步正式规格。当前[正式题录规格](../../specs/literature-catalog/spec.md#requirement-有界整理与授权更正)仍约束授权、修订拒绝和历史保留。
+已接收的共同契约位于[`define-library-zotero-record-authority`的delta](../archive/2026-10-30-define-library-zotero-record-authority/specs/literature-catalog/spec.md#requirement-来源原值与题录投影分离)，明确“仅更正CSL SHALL 不覆盖未明确修改的原值”；该change尚未归档同步为`openspec/specs`中的新条文，不能因目录状态否定已接收契约，也不能擅自同步正式规格。当前[正式题录规格](../../specs/literature-catalog/spec.md#requirement-有界整理与授权更正)仍约束授权、修订拒绝和历史保留。
 
 源码路径与实际行为：
 
