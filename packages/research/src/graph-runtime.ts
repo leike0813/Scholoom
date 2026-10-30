@@ -6,6 +6,7 @@ import type {
   HarnessModuleInputs,
   HarnessModuleOutputs,
   ResearchSessionPort,
+  Run,
 } from '@scholoom/protocol/harness';
 import {
   type ResearchGraphCall,
@@ -15,7 +16,11 @@ import {
   researchModuleOperations,
   researchOperations,
 } from '@scholoom/protocol/research';
-import type { ResourceInputs, ResourceOutputs } from '@scholoom/protocol/resources';
+import type {
+  ResourceInputs,
+  ResourceOutputs,
+  ResourceSaveResult,
+} from '@scholoom/protocol/resources';
 import { and, desc, eq, sql } from 'drizzle-orm';
 import { assessGraphDelivery, type GraphDeliveryChecks } from './graph-delivery.js';
 import type { ResearchGraphs } from './graphs.js';
@@ -34,6 +39,10 @@ export type ResearchGraphPorts = {
     input: ResourceInputs['resources.read'],
     context: CallContext,
   ): Promise<ResourceOutputs['resources.read']>;
+  verifySave?(
+    input: { projectId: string; sessionId: string; run: Run; result: ResourceSaveResult },
+    context: CallContext,
+  ): Promise<{ saved: 'confirmed' | 'unknown'; associated: boolean }>;
   request?: {
     authorize(input: ResearchGraphStart, context: CallContext): Promise<() => void>;
     start(
@@ -367,6 +376,30 @@ export class ResearchGraphRuntime {
             if (result) checks.reads.push(result);
           }
           for (const role of call.graph.delivery.roles) {
+            const roleResults = run.graphProgress?.evidence.roleResults;
+            if (roleResults !== undefined) {
+              const matches = roleResults.filter((item) => item.role === role);
+              const result = matches.length === 1 ? matches[0]?.result : undefined;
+              if (result) {
+                let save: { saved: 'confirmed' | 'unknown'; associated: boolean } = {
+                  saved: 'unknown',
+                  associated: false,
+                };
+                if (!call.restoredFromProjectId && this.ports.verifySave) {
+                  try {
+                    save = await this.ports.verifySave(
+                      { projectId: input.projectId, sessionId: input.sessionId, run, result },
+                      context,
+                    );
+                  } catch (error) {
+                    view.error ??= failure(error);
+                  }
+                }
+                const actual = await read(result.resource);
+                checks.artifacts.push({ role, result, save, ...(actual ? { read: actual } : {}) });
+              }
+              continue;
+            }
             const creation = run.graphProgress?.evidence.creations?.find(
               (item) => item.operationId === graphArtifactOperation(call.instructionId, role),
             );

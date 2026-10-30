@@ -45,6 +45,12 @@ export const description = {
   delivery: { roles: ['report'] },
 };
 
+export const updateDescription = {
+  ...description,
+  definition: { ...description.definition, graphId: 'scholoom.save-calibration' },
+  name: 'Existing resource save calibration',
+};
+
 export const graphs = new ExecutionGraphs([
   {
     definition: description.definition,
@@ -251,6 +257,57 @@ export const graphs = new ExecutionGraphs([
             };
           result = { done: true, graph: progress };
           return result;
+        },
+      };
+    },
+  },
+  {
+    definition: updateDescription.definition,
+    create(input, { peer, signal, checkpointer }) {
+      const state = Annotation.Root({ instructionIds: Annotation(), result: Annotation() });
+      const read = (resource) =>
+        callExecutionControl(peer, 'resources.read', { ...resource, encoding: 'utf8' });
+      const graph = new StateGraph(state)
+        .addNode('save', async () => {
+          const reads = [];
+          for (const resource of input.graph.materials) reads.push(await read(resource));
+          const target = await callExecutionControl(peer, 'resources.describe', {
+            locator: {
+              source: 'project',
+              projectId: input.graph.workDomain.projectId,
+              path: input.graph.config.outputPath,
+            },
+          });
+          await read({ ref: target.ref, basis: target.basis });
+          const result = await callExecutionControl(peer, 'resources.save', {
+            ref: target.ref,
+            basis: target.basis,
+            content: `# Updated report\n\n${reads.map((item) => item.data).join('\n\n')}`,
+          });
+          return { result };
+        })
+        .addEdge(START, 'save')
+        .addEdge('save', END)
+        .compile({ checkpointer });
+      return {
+        'execution.next': async () => {
+          const value = await graph.invoke(
+            { instructionIds: input.instructionIds ?? [] },
+            { configurable: { thread_id: input.attemptId }, durability: 'sync', signal },
+          );
+          return {
+            done: true,
+            graph: {
+              kind: 'graph.completed',
+              attemptId: input.attemptId,
+              evidence: {
+                inputs: input.graph.materials,
+                reads: input.graph.materials,
+                results: [],
+                roleResults: [{ role: 'report', result: value.result }],
+              },
+            },
+          };
         },
       };
     },

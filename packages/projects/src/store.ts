@@ -881,7 +881,15 @@ export class ProjectStore {
     this.touch();
   }
 
-  artifacts(sessionId: string): Artifact[] {
+  artifacts(sessionId: string, item?: { runId: string; fileId: string }): Artifact[] {
+    if (item) {
+      const row = this.db
+        .select()
+        .from(tables.artifacts)
+        .where(eq(tables.artifacts.key, `${item.runId}:${item.fileId}`))
+        .get();
+      return row?.sessionId === sessionId ? [row.value] : [];
+    }
     return this.db
       .select()
       .from(tables.artifacts)
