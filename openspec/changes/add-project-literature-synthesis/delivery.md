@@ -1,5 +1,19 @@
 # 实际交付与交接
 
+## 有界验收：报告已存，单请求上限停止（2026-10-31）
+
+用户“批准验收”明确授权`synthesis-structured-resume-20261031-6a21fb7b-29x16384-900s-v1`，授权记录在`E/synthesis-structured-resume-prepared/authorization.json`。本轮沿原task／session／run／checkpoint发送一次普通接续，实际证据为同目录`run-PJb56j/`。3次真实HTTP全部200完整，实际请求正文分别194,416／234,905／237,094字节，共666,415字节，回包model均标记MiniMax-M2.7；这不证明供应商后端版本。第4次因正文超过单次262,144字节被本地网关拒绝，未外发；`gateway-audit.json`明确stopped=request-too-large、rejected=1，不是新的JSON解析等待。runner的通用“Incomplete/waiting”断言和停止前state=running不能当作最终状态。
+
+已存真实report.md（4,923 UTF-16／8,031字节，fileId=`93b555e4-2e59-4886-9b19-294430abda6d`）及process.md（47,929 UTF-16／65,270字节，原fileId保持，8个历史版本）；父线从原读回和FileEdit分别核版本及所属project／session／run，收据为`partial-file-verification.json`。尚未完成首Graph最终检查或任务成果导航，没有添加Wilson2017或启动第二Graph。自有kernel exit0、profile stopped、cleanupErrors／evidenceErrors均空；只读原SQLite核run=interrupted、三个原实例均exited，记录`post-shutdown-run.json`。不将停止前残留的旧graph.wait／GraphProgress当成新完成或新问题，不重建任务、重放写入或手改报告。
+
+本轮暴露SDK结果回显的上下文成本：一次结构化结果在实际调用参数、完整ToolMessage及SDK自动终结AI正文中保存三份；第2、3个真实请求各含12,904字节自动终结回显。父线使用已装toolStrategy的toolMessageContent选项将**后续新结果**的终结AI改为简短确认；实际调用、完整回执和旧checkpoint保持，未增加手工压缩、历史重写或第二套结果读取。恢复仍按原精确末三消息读取。本修复降低后续增长，不保证旧上下文已低于本次256KiB上限，也没有在本次已停止授权下追加真实请求。
+
+在原生产综合测试增加一项合成标记的实际请求重复数核查，旧dist真实1/1失败（期望2份、实际3份），修正后定向5/5、1.1分钟通过，覆盖正常具名提交、纠正前新指令确认、完整参数截断拒绝及cached exact／unknown两类root保存切断。最初锚定grep未匹配而No tests found，另存为选例错误，不算业务红例。harness／kernel构建、tools noEmit、两文件Biome、architecture（14模块／281文件／0问题）及diff通过；一次Biome仅换行修正。命令和实际退出回执在`E/synthesis-result-echo-checks.json`，红／绿原输出目录为`synthesis-result-echo-red-selected/`与`synthesis-result-echo-green/`。此次只针对一项SDK配置变化复验，没有把此前28/28称为本次重新实跑。
+
+独立gpt-6.1-sol／high内容核对见`E/synthesis-structured-resume-prepared/CONTENT-REVIEW-PJb56j.md`：从真实HTTP工具返回逐段核两篇原文同basis、全文无缺口且字节对应，主要引述、部分比较及材料／证据局限成立；草稿仍有高风险推断越界，把开发实践“不保证高效无错”扩成“两文否认复现保证可达成”，并将有条件的同行复现可能性写成从“不可能”到“可行”的全称结论。另有两来源却题为三来源、跨栏接句和中间产物保存／版本控制范围混淆。父线抽查W原文29–33／327–331及S原文145–158确认核心区别。草稿尚未经图内review，本核对不代替该职责、不倒填系统内独立委派，也未改写任何科研产物。
+
+6.3／6.4仍未完成，本轮真实验收**未通过**。累计14次／1,873,534字节，原40次／4MiB总量余26次／2,320,770字节，只是历史预算核算，不是下一次授权。任何后续须针对当前interrupted状态重新准备并核对原checkpoint接续，不能重用假定waiting的旧runner或旧授权；单请求容量应依据实际上下文调整，同时保持明确总量、停止及归属限制。下一轮仍需完成图内依据自查和首Graph交付，再做第三来源的新会话实际影响，内容问题未改正前不能归档。交互报告的MathML／内存及生产隔离缺口保持其独立change，不由本次报告文件保存代替。
+
 ## 原执行接续、结构化提交与指令竞态修复（2026-10-31）
 
 用户“授权；接受。请继续进行收尾”授权原待审接续计划。首次启动`E/synthesis-resume-prepared/run-Lr5I26`在发送前因短调用指针与完整历史调用的比较错误停止，0 HTTP／0新指令；修正为原完整历史调用后，保留原消费声明及零效果证据，继续尚未提交的同一次动作。实际接续`run-SxbNJc`仍是原task／session／run／checkpoint：4次真实HTTP、请求正文717,475字节，均200完整；取得并保存了合法取材结果，综合职责返回普通说明后进入delivery-wait。按约停止，没有回答等待、加入第三来源或第二Graph；自有内核exit0、profile stopped、cleanupErrors为空。原7次加本次4次合计11次／1,207,119字节，报告尚不存在，6.3仍未通过。

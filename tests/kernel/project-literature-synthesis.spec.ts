@@ -167,6 +167,7 @@ test('production synthesis consumes bounded text and saves process before synthe
     expect(JSON.stringify(f.model.requests[0]?.messages)).toContain(f.input.text);
     expect(f.model.requests).toHaveLength(4);
     expect(f.model.requests[0]?.tool_choice).toEqual({ type: 'auto' });
+    expect(JSON.stringify(f.model.requests[2]?.messages).split('形成比较维度').length - 1).toBe(2);
   } finally {
     await app.close();
     await f.model.close();

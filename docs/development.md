@@ -449,6 +449,8 @@ pnpm kernel cancel --project PROJECT_ID --session SESSION_ID
 
 生产 `scholoom.project-literature-synthesis@1` 由 `apps/kernel/src/research-graphs/` 同源装配到宿主和 worker。配置为 `question`、可选 `constraints`、`reportTarget`／`processTarget`（`{kind:'create',path}` 或 `{kind:'update',resource:{ref,basis}}`）、可选 `prior`（最多10项当前项目 Evidence）及必填 `requireIndependentReview`。通过现有任务入口选定会话、来源及配置运行；准备、取材、综合、自查、保存和交付由实际图承载。来源失败的普通消息使用“重试来源 <问题中完整身份>：理由”或“忽略来源 <完整身份>：理由”；其他可续问题使用“继续核查：具体决定”，含糊继续保持等待。要求独立复核而尚未完成时保持不完整。
 
+节点经源码选择的严格schema及SDK结果工具提交判断；普通文本无效时，原业务图在同职责内只纠正一次，并经正常beforeModel和完整指令消费确认，再次无效则等待。结果工具不注册领域写操作，截断输出不保存候选；SDK终结AI只给简短确认，完整调用及结果回执保留。机械结构化提交不证明研究判断正确，图内自查也不等同独立内容审阅。
+
 新会话补材料需从原任务建立新调用，明确 prior 和 update Evidence。报告与过程沿原 FileEdit、所属 run 关联及任务 CAS 导航，原调用和历史依据保留。保存先落持久候选与原依据，再进入独立保存节点；回执丢失不能按当前内容认领成功或重写。诊断读取 `research.graphCalls`／当前 `GraphProgress`、所属文件历史及任务链接，分别核实际正文范围、角色保存、关联与当前版本。`tests/kernel/project-literature-synthesis.spec.ts` 覆盖实际图及恢复窗口，`tests/ui/project-literature-synthesis.spec.ts` 覆盖 Browser／Electron 任务入口、真实等待和新会话续做；外部受控 HTTP 的通过不表示真实科研质量已验收。
 
 `pnpm test:kernel` 使用外部 HTTP 模型夹具，内部图、工具、文件和数据库均为真实实现。真实模型验收需显式运行 `SCHOOLOOM_LIVE_MODEL_TEST=1 pnpm test:kernel tests/kernel/minimax-live.spec.ts`，只使用隔离合成样本；默认测试不会使用真实 Key。该验证检查接线及可判定结果，不代表完整科研质量验收。

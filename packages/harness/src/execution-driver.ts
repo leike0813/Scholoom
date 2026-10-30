@@ -249,7 +249,7 @@ export function startExecutionWorker(graphs = new ExecutionGraphs()): void {
                 type: 'object',
                 title: selection.responseFormat.name,
               },
-              { handleError: false },
+              { handleError: false, toolMessageContent: 'Structured result submitted.' },
             ),
           }
         : {}),
