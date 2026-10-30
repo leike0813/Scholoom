@@ -1,5 +1,17 @@
 # 实际交付与交接
 
+## 最终四项科研验收与阶段交付（2026-10-30）
+
+用户明确回复“授权你继续收尾”后，按已披露`delegation-live-f831229-20261030-24x16384-600s`执行一次真实验收。统一证据根`E=/home/joshua/.cache/scholoom-closeout-execution-20261030`；授权、输入／独立标准及预算见`E/LIVE-AUTHORIZATION-20261030.md`、`E/delegation-live-prepared/`。执行命令为`node E/delegation-live-prepared/runner.mjs --execute --approved-minimax --approved-plan=delegation-live-f831229-20261030-24x16384-600s`（E替换为上述绝对路径）。实际运行`run-MFrW6C`，父run=`371c9a71-0813-4a43-ace1-ef2679431998`，父子均MiniMax-M2.7；16次真实HTTP、累计请求正文1,198,982字节，均200且完整，未超24次／2MiB／单次128KiB／输出16384tokens／600秒。没有自动重试整项。
+
+子以正式evidence-reviewer@1读取实际抽取及合成问题，创建`review.md`并提交`report_delegation`；父按实际fileId／basis完整读回，重读任务后CAS保存result link，原source links保留。原稿未改，报告904 Unicode字符；原记录、任务、工具结果及磁盘产物彼此核对。内核退出0，`shutdown-after.json`为stopped，采证及收尾错误均为空。回执链详见`E/delegation-live-independent-evaluation.md`及运行目录，不把父自述当实际保存依据。
+
+独立gpt-6.1-sol／high评价者取得执行前原标准、原HTML、实际抽取、合成问题和本次真实产物，A1–A4依次判为支持、支持、反证、支持；出处、章节、短引文、署名和许可不确定性均核对。主线接受限定四项科研内容及真实成果闭环，完成6.2，阶段任务55/55；通用委派的权限、隔离、取消恢复和Linux双宿主依据仍沿下述已有机械／UI证据，本次真实样本不替代这些矩阵。
+
+原始终态为**completed／partial**，不改成available：`unfinished`写“无；仅核查A1–A4……”、`blockers`写“无实质障碍；仅首次……”，均为非空字符串，现有保守分类正确保留partial。四项实际齐备且creation／association已确认，但父仍在原指令要求available的前置条件未满足时读回并关联，完整指令遵循不通过。另有合法受理前同delegationId三次invalidRequest、创建前核查一次permissionDenied后同ID直接创建取得明确回执，以及A3段191字符超过180目标。上述偏差不隐藏、不重跑刷标签，也不作为缺失四项内容的证据；完整解释及逐事实定位在独立评价中。
+
+交付边界：本次只验四项原文主张核查，未评整体科研项目质量、规则实际实施效果或跨环境复现保证；Sandve许可具体版本未知，未宣称原HTML全文被子读取。Windows及旧CI唯一因果调查保留tasks后续责任，macOS受管不可用，全仓CI／分发包未重跑。下文“尚未授权／6.2未完”等均为对应历史截点，原失败和首次错误继续保留，不代表最终状态。
+
 ## Linux最终组合接收（2026-10-30）
 
 主线完成4.3，当前54/55，仅6.2真实科研未完成。对共享consumer、资源读取及共同会话变化作定向补验：`tests/kernel/agent-delegation.spec.ts --grep 'worker: two owned executions'` 为1/1（27.3秒），实际不同父子实例／PID、子保存及父按原依据读回；取消重启及controller失联组合2/2（37.3秒）。原能力边界、macOS真实历史不可用／人工保留及未变availability的对应核对见本轮`delegation-linux-final-scope.md`，没有补称当前macOS整组或Windows通过。
@@ -93,7 +105,7 @@
 
 0ed2c97／专项40784928035的execution job失败：前置10、ownership16／3不适用、HostConnection25、availability6、isolated4、ACL4、取消子Agent1、owner2及Electron重复3项通过；context与附件Agent两例在原5秒断言时queued。`windows-fd0-execution.log`及一次下载的artifact12859168740保全。context同一run记录为受理12ms、执行准备至2282ms、worker报到2864ms、initialize发送2868ms，失败4829ms、模型请求0、无初始化返回或worker stage。它缩小了阶段，不能据此在冷加载、IPC未达、初始化回调等待三者中断言唯一根因。
 
-复用原失败后15秒观察逻辑为`observeExecutionFailure`，接这两例catch，在测试原失败已确定后继续采样同一执行，随后仍抛原错误；5秒断言、用例总预算、生产期限及重试均不变。Linux两原例`windows-observation-local.log`为2/2、34.8秒，仅证明既有成功路径未受影响，Windows新失败后阶段待目标回执，不关闭4.2／4.3／17.2／18.2。真实MiniMax补跑仍待单独答复，未追加模型请求。最新Mac实际回执引用[公共平台记录](../archive/2026-10-30-add-project-program-runs/delivery.md#0ed2c97目标平台回执2026-10-29)。
+复用原失败后15秒观察逻辑为`observeExecutionFailure`，接这两例catch，在测试原失败已确定后继续采样同一执行，随后仍抛原错误；5秒断言、用例总预算、生产期限及重试均不变。Linux两原例`windows-observation-local.log`为2/2、34.8秒，仅证明既有成功路径未受影响，Windows新失败后阶段待目标回执，不关闭4.2／4.3／17.2／18.2。真实MiniMax补跑仍待单独答复，未追加模型请求。最新Mac实际回执引用[公共平台记录](../2026-10-30-add-project-program-runs/delivery.md#0ed2c97目标平台回执2026-10-29)。
 
 ## 一次真实科研验收失败与工具参数拒绝修复（2026-10-29）
 
@@ -125,7 +137,7 @@
 
 ## 完整Checks结算仍失败（2026-10-29）
 
-run40745284164已结算：Mac success，Windows内核789通过／5失败／85跳过，Linux内核835通过／44跳过且UI137通过／25失败／6跳过，详见[共同平台回执](../archive/2026-10-30-add-project-program-runs/delivery.md#0b5c5e3完整checks回执及下一次窄取证2026-10-29)。本change代表在专项的正例不扩大为完整平台；4.2／4.3、17.2／18.2及科研质量仍按实际任务保持开放。
+run40745284164已结算：Mac success，Windows内核789通过／5失败／85跳过，Linux内核835通过／44跳过且UI137通过／25失败／6跳过，详见[共同平台回执](../2026-10-30-add-project-program-runs/delivery.md#0b5c5e3完整checks回执及下一次窄取证2026-10-29)。本change代表在专项的正例不扩大为完整平台；4.2／4.3、17.2／18.2及科研质量仍按实际任务保持开放。
 
 ## 0b5c5e3 Windows专项完整通过（2026-10-29）
 
@@ -314,7 +326,7 @@ tools类型、architecture（14模块/0 findings/0 granted exceptions）、OpenS
 
 三文件已保全合入。Standards无确证问题，Spec一项P2是本记录扩大窗口工具消息观察能力；主线收窄为实际可证的HTTP计数、服务端工具快照和窗口用户指令／run摘要，明确renderer工具送达仍缺证，18.2不关闭。没有为修文案再扩公共观察器。复用同源构建后，主线委派打开／取消场景双宿主4/4，tools／架构／单文件Biome通过（原有1条warning）；正常结果与取消清理均通过，不代表旧CI根因已解。
 
-项目线已交两份首文件现场，实际受理后缺onStart前阶段，下一片统一由本线核执行推进与取证盲区，项目停止重复分析。只修确证因果，不把queued或空controls当作worker未启动，不为每个绿色场景加新诊断。原始审查／复验及范围见`/home/joshua/.cache/scholoom-round14-acceptance/`和[共同计划](../../../.scratch/domain-development/parallel-development-plan.md#第十四轮验收后的安排)。完整平台、旧17.2／18.2及科研角色质量仍开放。
+项目线已交两份首文件现场，实际受理后缺onStart前阶段，下一片统一由本线核执行推进与取证盲区，项目停止重复分析。只修确证因果，不把queued或空controls当作worker未启动，不为每个绿色场景加新诊断。原始审查／复验及范围见`/home/joshua/.cache/scholoom-round14-acceptance/`和[共同计划](../../../../.scratch/domain-development/parallel-development-plan.md#第十四轮验收后的安排)。完整平台、旧17.2／18.2及科研角色质量仍开放。
 
 ## f4ab1e5f后的Linux Electron委派入口取证
 
@@ -361,7 +373,7 @@ tools类型、architecture（14模块/0 findings/0 granted exceptions）、OpenS
 
 本场景被动观察与三份工件已保全合入。独立两轴审查对本线无确证缺陷；完整构建／类型／架构通过，主线后续会话普通场景双宿主均通过，原5秒期限保持。主线13项内核组合含四个model-kernel归属／失败／IPC回归全部通过。新正例不补旧152ms缺证，17.2继续开放。
 
-e3c815b的Windows专项40613967285已成功，取消／真实excerpt／附件三个原失败用例3/3，原始日志及artifact已保全于`/home/joshua/.cache/scholoom-round13-acceptance/`。完整Checks同源码Windows内核692通过／46失败／42跳过，不能由专项绿色关闭4.2／4.3；本线下一片按[共同计划](../../../.scratch/domain-development/parallel-development-plan.md#第十三轮验收后的安排)消费新Linux普通委派UI失败，不再修自然通过的旧后续run。所有新增工件及启动入口使用cache，不读现有/tmp内容；角色／科研质量与整项仍开放。
+e3c815b的Windows专项40613967285已成功，取消／真实excerpt／附件三个原失败用例3/3，原始日志及artifact已保全于`/home/joshua/.cache/scholoom-round13-acceptance/`。完整Checks同源码Windows内核692通过／46失败／42跳过，不能由专项绿色关闭4.2／4.3；本线下一片按[共同计划](../../../../.scratch/domain-development/parallel-development-plan.md#第十三轮验收后的安排)消费新Linux普通委派UI失败，不再修自然通过的旧后续run。所有新增工件及启动入口使用cache，不读现有/tmp内容；角色／科研质量与整项仍开放。
 
 ## ba29ee61后的后续会话完成取证
 
@@ -455,7 +467,7 @@ tools类型、单文件Biome、architecture（14模块/0 findings/0 granted exce
 
 冻结增量经两路gpt-6.1-sol／high独立只读审查，无确证规范／规格缺陷。主线完整构建后，在生命周期／来源／Agent组合11/11中复验取消、excerpt、完整附件路径及有／无诊断的初始化发送拒绝五项，全部通过；真实内部接线、受控外部模型，原期限及授权／停止保护不变。命令、JSON及诊断在`/tmp/scholoom-round11-acceptance-Jx5Oez/main-kernel*`，完整38/42及平台／科研整项继续开放。
 
-下一片按[共同计划](../../../.scratch/domain-development/parallel-development-plan.md#第十一轮验收后的安排)承担自有model-kernel的有界执行取证，窗口侧由项目线独立提供；不要求科研线重复读同一旧trace。938c33f完整CI已结束且未全绿，不能作为本增量目标通过证据。
+下一片按[共同计划](../../../../.scratch/domain-development/parallel-development-plan.md#第十一轮验收后的安排)承担自有model-kernel的有界执行取证，窗口侧由项目线独立提供；不要求科研线重复读同一旧trace。938c33f完整CI已结束且未全绿，不能作为本增量目标通过证据。
 
 ## 938c33f后的完整附件路径及初始化窄观察
 
@@ -743,7 +755,7 @@ Windows恢复组的下一窄诊断应放在**首次失败断言**处：复用`te
 
 已核对[design变更总览及受理顺序](design.md)：进程、资源提供者、持久化及UI路径与实施一致。实际新增创建身份映射、修改意图与同ref在途拒绝、延迟子资源绑定、结构化工具引用和诊断PID已同步到design。正式规格未同步，旧科研能力／Graph保持原语义。
 
-主要入口：`packages/harness/src/delegations.ts`及runtime接线；`protocol/src/delegation-contracts.ts`和模型schema为事实源；`models/src/config-store.ts`保存命名配置；内核使用共同v4→v5→v6迁移，本轮不改迁移链；`DelegationCall.tsx`沿既有ToolCall呈现。操作及诊断见[开发说明](../../../docs/development.md#有界-agent-委派)。
+主要入口：`packages/harness/src/delegations.ts`及runtime接线；`protocol/src/delegation-contracts.ts`和模型schema为事实源；`models/src/config-store.ts`保存命名配置；内核使用共同v4→v5→v6迁移，本轮不改迁移链；`DelegationCall.tsx`沿既有ToolCall呈现。操作及诊断见[开发说明](../../../../docs/development.md#有界-agent-委派)。
 
 ## 实际验证
 

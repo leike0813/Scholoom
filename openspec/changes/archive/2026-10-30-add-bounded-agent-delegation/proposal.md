@@ -14,7 +14,7 @@
 
 ## 完成判据
 
-2026-10-30用户确认采用Linux阶段收口并授权按计划修订工件：以下通用委派判据验收Linux Browser＋真实Electron，macOS沿既定人工能力／受管执行不可用；Windows目标未交付，Windows与旧CI唯一因果调查沿本change的[tasks后续责任](tasks.md#后续责任不计本阶段复选框)保留，未被证明已修。4.3的Linux最终核对及6.2真实科研四项核查仍未完成；6.2保留原失败、真实保存→父按ref/basis读回→按最新任务依据关联及独立质量评价，新真实模型执行仍须另获次数／预算／数据外发授权。权限交集、隔离、共享预算、截断零派发、unknown及完整停止保证不变。
+2026-10-30用户确认采用Linux阶段收口并授权按计划修订工件：以下通用委派判据验收Linux Browser＋真实Electron，macOS沿既定人工能力／受管执行不可用；Windows目标未交付，Windows与旧CI唯一因果调查沿本change的[tasks后续责任](tasks.md#后续责任不计本阶段复选框)保留，未被证明已修。4.3的Linux最终核对及随后明确授权的6.2真实科研四项核查均已完成；真实保存→父按ref/basis读回→按最新任务依据关联及独立质量评价通过，原失败、原始partial与父available前置条件的遵循偏差分别保留，具体边界见delivery。新真实模型执行仍须另获次数／预算／数据外发授权。权限交集、隔离、共享预算、截断零派发、unknown及完整停止保证不变。
 
 以下验收目标按实际结果逐项核对，当前状态见 [delivery](delivery.md)：
 
@@ -36,6 +36,6 @@
 
 ## 决策与授权依据
 
-- [Agent 协作职责 Q1–Q6](../../../.scratch/domain-development/issues/05-agent-collaboration-scope.md#answer)、[并行计划第 4 线及 I3](../../../.scratch/domain-development/parallel-development-plan.md)、[多 Agent 初设](../../../.scratch/scholoom-foundations/issues/46-multi-agent-interaction.md)、[模型政策](../../../.scratch/scholoom-foundations/issues/22-model-data-and-execution-policy.md#answer)。既有进程生命周期和领域权威不重定。
+- [Agent 协作职责 Q1–Q6](../../../../.scratch/domain-development/issues/05-agent-collaboration-scope.md#answer)、[并行计划第 4 线及 I3](../../../../.scratch/domain-development/parallel-development-plan.md)、[多 Agent 初设](../../../../.scratch/scholoom-foundations/issues/46-multi-agent-interaction.md)、[模型政策](../../../../.scratch/scholoom-foundations/issues/22-model-data-and-execution-policy.md#answer)。既有进程生命周期和领域权威不重定。
 - 初始指令授权在 `e3d58fc807827a78493dcd16e38de28c8d02766e` 基础上独立完成规划；随后用户明确要求“实现该change”，授权本线业务实施与必要隔离验证。仍未授权依赖安装、开发服务器、真实库、Git 提交／推送或 PR。实际执行后建立 delivery，不自动归档。
 - 模块设计采用只读复用的 `openspec-ff-change`、`codebase-design` 技能；未安装技能或依赖。未收到的跨线接口及本树缺少的交互线设计在 investigation 中明确列出，受影响整合任务保持等待。

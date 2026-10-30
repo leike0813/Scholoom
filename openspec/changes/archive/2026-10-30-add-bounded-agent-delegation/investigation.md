@@ -48,18 +48,18 @@ sequenceDiagram
 
 ### 已归档基础与上游复用边界
 
-- [scoped-execution-foundation 交付](../archive/2026-10-23-establish-scoped-execution-foundation/delivery.md)：固定工作域、可信父子实例、目标只读、scratch 和模型排队后的最终授权已有实际证据，不重做。
-- [domain-execution-handoffs 交付](../archive/2026-10-24-establish-domain-execution-handoffs/delivery.md)：最终24/24；资源真实创建、部分关联、静态图 driver、持久等待、受管命令和原生归属已交付。生产图集合仍为空；macOS明确不可用，Linux／Windows全组 CI 并未全绿。采用文件顶部最终范围，不把中间轮次的待办重新开工。
-- [workbench-context-bridge 交付](../archive/2026-10-24-establish-workbench-context-bridge/delivery.md)：可信来源、显式项、完整指令消费和大更新分帧已有实跑，不复制一套委派 composer 或来源协议。
+- [scoped-execution-foundation 交付](../2026-10-23-establish-scoped-execution-foundation/delivery.md)：固定工作域、可信父子实例、目标只读、scratch 和模型排队后的最终授权已有实际证据，不重做。
+- [domain-execution-handoffs 交付](../2026-10-24-establish-domain-execution-handoffs/delivery.md)：最终24/24；资源真实创建、部分关联、静态图 driver、持久等待、受管命令和原生归属已交付。生产图集合仍为空；macOS明确不可用，Linux／Windows全组 CI 并未全绿。采用文件顶部最终范围，不把中间轮次的待办重新开工。
+- [workbench-context-bridge 交付](../2026-10-24-establish-workbench-context-bridge/delivery.md)：可信来源、显式项、完整指令消费和大更新分帧已有实跑，不复制一套委派 composer 或来源协议。
 - `packages/harness/package.json` 固定 deepagents **1.15.0**、LangGraph **1.5.0**、langchain **1.5.16**；现有 AGPL 项目已经消费这些依赖。直接复用已封装的 RemoteAgent／startExecutionWorker，未读到或运行 SDK 内部的能力不作保证，不增加依赖。
-- [协作初设上游调查](../../../.scratch/scholoom-foundations/issues/46-multi-agent-interaction.md#调查依据)固定 deepagentsjs `9f3bfd5…`；异步 subagent 依赖远端 thread/run，不能当作本地受管停止与持久收件的现成实现。它是较早静态参考，不是已安装1.15.0的实跑证据。
+- [协作初设上游调查](../../../../.scratch/scholoom-foundations/issues/46-multi-agent-interaction.md#调查依据)固定 deepagentsjs `9f3bfd5…`；异步 subagent 依赖远端 thread/run，不能当作本地受管停止与持久收件的现成实现。它是较早静态参考，不是已安装1.15.0的实跑证据。
 - 当前正式 `agent-harness`、`model-access`、`execution-work-domains`、`domain-execution-handoffs`、`workbench-agent-context`、`workbench-resources` 已核对。初设 R-08 提供独立初审要求，科研质量仍由科研域判断；本 change 不迁入 R-09／R-10。
 
 ## 影响方案的未知项与实验
 
 ### 既有 CI 输入
 
-来源为[并行计划 CI 基线](../../../.scratch/domain-development/parallel-development-plan.md#当前-ci-基线的处理)及本机 `/tmp/scholoom-next-parallel-baseline-failures.log`，对应 `55d020c` [Checks 40100596838](https://github.com/leike0813/Scholoom/actions/runs/40100596838)。Linux UI 101通过／9失败／2跳过，Windows完整内核374通过／15失败／12跳过，macOS job成功。辅助调查核对相关源码从该头到当前起点无差异。本轮未下载 CI artifacts、重跑或修复。
+来源为[并行计划 CI 基线](../../../../.scratch/domain-development/parallel-development-plan.md#当前-ci-基线的处理)及本机 `/tmp/scholoom-next-parallel-baseline-failures.log`，对应 `55d020c` [Checks 40100596838](https://github.com/leike0813/Scholoom/actions/runs/40100596838)。Linux UI 101通过／9失败／2跳过，Windows完整内核374通过／15失败／12跳过，macOS job成功。辅助调查核对相关源码从该头到当前起点无差异。本轮未下载 CI artifacts、重跑或修复。
 
 | 失败证据 | 可确认事实 | 还缺什么／承接 |
 | --- | --- | --- |
