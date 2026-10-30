@@ -35,7 +35,12 @@ async function dropOneReceipt(page: Page, url: string) {
 }
 
 // No task/research/worker/storage replacement. Only explicit concurrency and receipt-loss gates.
-for (const scenario of ['complete', 'association-conflict', 'lost-receipt'] as const) {
+for (const scenario of [
+  'complete',
+  'association-conflict',
+  'lost-receipt',
+  'session-view',
+] as const) {
   test(`task graph user action uses the actual research broker, library and worker (${scenario})`, async ({
     page,
     uiHost,
@@ -84,7 +89,10 @@ for (const scenario of ['complete', 'association-conflict', 'lost-receipt'] as c
       let ui = page;
       if (uiHost === 'electron') {
         desktop = await _electron.launch({
-          args: [fileURLToPath(new URL('../../apps/desktop', import.meta.url))],
+          args: [
+            `--user-data-dir=${info.outputPath('electron-profile')}`,
+            fileURLToPath(new URL('../../apps/desktop', import.meta.url)),
+          ],
           env: {
             ...process.env,
             ELECTRON_RENDERER_URL: url,
@@ -94,6 +102,15 @@ for (const scenario of ['complete', 'association-conflict', 'lost-receipt'] as c
         });
         ui = await desktop.firstWindow();
         await ui.waitForURL(url);
+        const paths = await desktop.evaluate(({ app, session }) => ({
+          electronVersion: process.versions.electron,
+          userData: app.getPath('userData'),
+          sessionData: app.getPath('sessionData'),
+          storagePath: session.defaultSession.storagePath,
+        }));
+        for (const path of [paths.userData, paths.sessionData, paths.storagePath])
+          expect(path).toBe(info.outputPath('electron-profile'));
+        await writeFile(info.outputPath('electron-profile.json'), JSON.stringify(paths));
       } else await ui.goto(url);
       const requests: RunInput[] = [];
       ui.on('websocket', (socket) =>
@@ -225,7 +242,7 @@ for (const scenario of ['complete', 'association-conflict', 'lost-receipt'] as c
         await expect(form.getByRole('group').filter({ hasText: '原始调用请求' })).toContainText(
           request.invocationId,
         );
-      } else {
+      } else if (scenario !== 'session-view') {
         const result = form.getByRole('region', { name: '科研图调用结果' });
         await expect(result).toContainText(
           scenario === 'association-conflict' ? '关联失败' : '已关联',
@@ -270,11 +287,76 @@ for (const scenario of ['complete', 'association-conflict', 'lost-receipt'] as c
         ),
       ).toBe(scenario !== 'association-conflict');
       const composer = ui.getByRole('textbox', { name: '研究指令', exact: true });
+      if (scenario === 'session-view') {
+        const prompt = originalRun.graph?.wait?.prompt;
+        assert(prompt);
+        const dock = ui.getByRole('button', { name: '展开 Agent 会话', exact: true });
+        await expect(dock).toContainText(prompt);
+        await ui.screenshot({ path: info.outputPath('graph-dock.png') });
+        await composer.fill('待补充的研究指令');
+        await dock.click();
+        const graph = ui.getByRole('region', { name: '科研图状态', exact: true });
+        await expect(graph).toHaveCount(1);
+        await expect(graph).toContainText(prompt);
+        await expect(composer).toHaveValue('待补充的研究指令');
+        await ui.getByRole('button', { name: '切换主题', exact: true }).click();
+        await ui.screenshot({ path: info.outputPath('graph-wait-light.png') });
+        await ui.getByRole('button', { name: '切换主题', exact: true }).click();
+        await expect(graph).toContainText(prompt);
+        await ui.screenshot({ path: info.outputPath('graph-wait-dark.png') });
+        await graph.getByRole('button', { name: '打开当前成果 report.md', exact: true }).click();
+        await expect(ui.getByRole('dialog', { name: 'Agent 会话', exact: true })).toHaveCount(0);
+        await expect(
+          ui.getByRole('textbox', { name: '文件内容 report.md', exact: true }),
+        ).toContainText('Mechanism calibration');
+        await expect(composer).toHaveValue('待补充的研究指令');
+        await ui.reload();
+        await expect(ui.getByRole('status', { name: '连接状态' })).toContainText('已连接');
+        await expect(composer).toHaveValue('待补充的研究指令');
+        await dock.click();
+        await expect(graph).toHaveCount(1);
+        await expect(
+          graph.getByRole('button', { name: '打开当前成果 report.md', exact: true }),
+        ).toHaveCount(1);
+        await expect(graph).toContainText(prompt);
+        await expect(ui.getByRole('article', { name: 'Agent 回复', exact: true })).toHaveCount(0);
+        await ui.getByRole('button', { name: '收起会话', exact: true }).click();
+        await armRpcGate(ui, 'workbench.watch', '', true);
+        await app.call('session.rename', { ...scope, title: '科研图等待核对' });
+        await ui.waitForFunction(() => !!Reflect.get(globalThis, '__scholoomRpcGate').held);
+      }
       await composer.fill('{"confirm":true}');
       await ui.getByRole('button', { name: '发送指令', exact: true }).click();
+      if (scenario === 'session-view') {
+        const dock = ui.getByRole('button', { name: '展开 Agent 会话', exact: true });
+        await expect(dock).not.toContainText('等待输入');
+        await ui.evaluate((prompt) => {
+          const target = document.getElementById('dock-transcript');
+          Reflect.set(globalThis, '__staleGraphWait', false);
+          const observer = new MutationObserver(() => {
+            if (target?.textContent?.includes(prompt))
+              Reflect.set(globalThis, '__staleGraphWait', true);
+          });
+          if (target)
+            observer.observe(target, { childList: true, subtree: true, characterData: true });
+          Reflect.set(globalThis, '__graphWaitObserver', observer);
+        }, originalRun.graph?.wait?.prompt ?? '');
+        await releaseRpcGate(ui);
+      }
       await expect
         .poll(async () => (await app.snapshot(scope)).run?.state, { timeout: 20000 })
         .toBe('completed');
+      if (scenario === 'session-view') {
+        await expect(
+          ui.getByRole('button', { name: '展开 Agent 会话', exact: true }),
+        ).toContainText('执行结束');
+        expect(
+          await ui.evaluate(() => {
+            Reflect.get(globalThis, '__graphWaitObserver').disconnect();
+            return Reflect.get(globalThis, '__staleGraphWait');
+          }),
+        ).toBe(false);
+      }
       const completed = (
         await app.call('research.graphCalls', { ...scope, invocationId: request.invocationId })
       ).calls[0];
@@ -283,6 +365,13 @@ for (const scenario of ['complete', 'association-conflict', 'lost-receipt'] as c
         run: { id: originalRun.id, state: 'completed' },
         check: { delivery: 'usable', researchAssessment: 'notAssessed' },
       });
+      if (scenario === 'session-view') {
+        expect(await readFile(reportPath, 'utf8')).toBe(report);
+        expect(requests).toHaveLength(1);
+        expect(model.requests).toHaveLength(0);
+        await ui.screenshot({ path: info.outputPath('graph-completed.png') });
+        return;
+      }
       const associate = async (path: string, role: 'process' | 'result') => {
         await detail.getByRole('button', { name: '重读入口', exact: true }).click();
         await detail.getByRole('button', { name: '关联现有材料', exact: true }).click();

@@ -1,5 +1,60 @@
 import type { ThreadMessageLike } from '@assistant-ui/react';
-import type { Artifact, Message } from '@scholoom/protocol';
+import type {
+  Artifact,
+  Message,
+  ResourceCreationOutputs,
+  ResourceSaveResult,
+  Run,
+} from '@scholoom/protocol';
+import { sameResourceRef } from './resource-controller.js';
+
+export interface GraphResultView {
+  role?: string;
+  result?: ResourceSaveResult;
+  creation?: ResourceCreationOutputs['resources.create'];
+}
+
+/** 合并同依据的保存与创建回执，保留角色及未完成操作，不从资源存在推定交付。 */
+export function graphResults(run: Run): GraphResultView[] {
+  const evidence = run.graphProgress?.evidence;
+  const rows: GraphResultView[] = (evidence?.roleResults ?? []).map((item) => ({ ...item }));
+  const same = (left: ResourceSaveResult, right: ResourceSaveResult) =>
+    sameResourceRef(left.resource.ref, right.resource.ref) &&
+    left.resource.basis === right.resource.basis;
+  for (const result of evidence?.results ?? []) {
+    if (!rows.some((row) => row.result && same(row.result, result))) rows.push({ result });
+  }
+  for (const creation of evidence?.creations ?? []) {
+    const resource = 'resource' in creation ? creation.resource : undefined;
+    const existing = resource
+      ? rows.find((row) => row.result && same(row.result, { resource }))
+      : undefined;
+    if (existing && !existing.creation) existing.creation = creation;
+    else rows.push({ creation });
+  }
+  return rows;
+}
+
+export function graphStateLabel(run: Run): string {
+  return {
+    queued: '排队中',
+    running: '执行中',
+    waiting: '等待输入',
+    cancelling: '正在取消',
+    cancelled: '已取消',
+    completed: '执行结束',
+    failed: '执行失败',
+    interrupted: '执行中断',
+  }[run.state];
+}
+
+export function graphPrompt(run: Run): string | undefined {
+  if (run.state !== 'waiting') return undefined;
+  return (
+    run.graph?.wait?.prompt ??
+    (run.graphProgress?.kind === 'graph.waiting' ? run.graphProgress.wait.prompt : undefined)
+  );
+}
 
 /** 工具记录在界面中的呈现视图；形状由本模块投影，渲染组件只读这一层。 */
 export interface ToolCallView {
@@ -67,6 +122,7 @@ export function toolStateDot(state: Message['state']): string {
 export function toThreadMessages(
   messages: readonly Message[],
   artifacts: readonly Artifact[],
+  current?: { run: Run | undefined; sessionId: string },
 ): ThreadMessageLike[] {
   const replies = new Map<string, string>();
   const tools = new Map<string, string>();
@@ -82,7 +138,30 @@ export function toThreadMessages(
     list.push(artifact);
     attached.set(id, list);
   }
-  return messages.map((message) => toThreadMessage(message, attached.get(message.id)));
+  const projected = messages.map((message) => toThreadMessage(message, attached.get(message.id)));
+  const run = current?.run;
+  if (run?.graph && run.sessionId === current?.sessionId) {
+    const wait =
+      run.state === 'waiting'
+        ? (run.graph.wait ??
+          (run.graphProgress?.kind === 'graph.waiting' ? run.graphProgress.wait : undefined))
+        : undefined;
+    projected.push({
+      id: JSON.stringify([
+        'graph',
+        run.sessionId,
+        run.id,
+        run.attempt,
+        wait?.attemptId,
+        wait?.waitId,
+      ]),
+      role: 'assistant',
+      content: `科研图 · ${graphStateLabel(run)}`,
+      metadata: { custom: { graphRun: run } },
+      status: { type: 'complete', reason: 'stop' },
+    });
+  }
+  return projected;
 }
 
 export function toThreadMessage(

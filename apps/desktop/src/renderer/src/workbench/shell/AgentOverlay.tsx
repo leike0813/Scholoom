@@ -4,9 +4,15 @@ import {
   ThreadPrimitive,
   useAuiState,
 } from '@assistant-ui/react';
-import type { Message } from '@scholoom/protocol';
+import type { Message, Run } from '@scholoom/protocol';
 import { forwardRef } from 'react';
-import { MessageArtifacts, MessageContent, MessageFacts, MessageFiles } from '../MessageContent';
+import {
+  GraphRunContent,
+  MessageArtifacts,
+  MessageContent,
+  MessageFacts,
+  MessageFiles,
+} from '../MessageContent';
 import type { WorkbenchSession } from '../session';
 import {
   ExecutionContext,
@@ -57,18 +63,28 @@ function TurnSeparator() {
 }
 
 function AssistantMessage() {
+  const graph = useAuiState((state) => state.message.metadata.custom.graphRun) as Run | undefined;
   return (
     <>
       <MessagePrimitive.Root asChild>
-        <article className="thread-msg thread-msg--assistant" aria-label="Agent 回复">
-          <MessagePrimitive.Parts
-            components={{ Text: MessageContent, tools: { Fallback: ToolCall } }}
-          />
-          <MessageFacts />
-          <MessageArtifacts />
+        <article
+          className="thread-msg thread-msg--assistant"
+          aria-label={graph ? '科研图进展' : 'Agent 回复'}
+        >
+          {graph ? (
+            <GraphRunContent run={graph} />
+          ) : (
+            <>
+              <MessagePrimitive.Parts
+                components={{ Text: MessageContent, tools: { Fallback: ToolCall } }}
+              />
+              <MessageFacts />
+              <MessageArtifacts />
+            </>
+          )}
         </article>
       </MessagePrimitive.Root>
-      <TurnSeparator />
+      {graph ? null : <TurnSeparator />}
     </>
   );
 }
