@@ -401,7 +401,11 @@ export function TaskGraphAction({
                   }
                 />
                 {link.note || link.id} ·{' '}
-                {link.target.kind === 'project-file' ? '项目材料' : '文献库材料'}
+                {link.target.kind === 'project-file'
+                  ? '项目材料'
+                  : link.target.kind === 'library-source'
+                    ? '文献库题录'
+                    : '文献库材料'}
               </label>
             ))}
             {!sources.length ? (

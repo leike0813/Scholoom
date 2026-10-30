@@ -5,6 +5,7 @@ import type {
   Effort,
   ErrorInfo,
   FileLocation,
+  LibrarySource,
   ModelOption,
   ResourceDescriptor,
   TaskGraphInputs,
@@ -72,6 +73,11 @@ export interface WorkbenchNotice {
   content: ReactNode;
 }
 
+export type TaskCatalogCandidate = {
+  libraryId: string;
+  source: Pick<LibrarySource, 'id' | 'version' | 'revision'>;
+};
+
 export interface WorkbenchSession {
   delegations?: {
     revision: number;
@@ -116,6 +122,14 @@ export interface WorkbenchSession {
   projectId?: string;
   fileRevision?: number;
   taskPort?: TaskPort;
+  taskCatalog?: {
+    list: (input: { query: string; offset: number; limit: number }) => Promise<{
+      libraryId: string;
+      sources: LibrarySource[];
+      nextOffset?: number;
+    }>;
+    read: (input: { libraryId: string; sourceId: string }) => Promise<LibrarySource>;
+  };
   taskGraphs?: {
     readInput: (
       input: import('@scholoom/protocol').ResourceEvidence,
@@ -131,7 +145,7 @@ export interface WorkbenchSession {
   ) => Promise<import('@scholoom/protocol').ResourceCreationOutputs['resources.creation']>;
   associateTask?: (
     entry: TaskRead,
-    path: string,
+    path: string | TaskCatalogCandidate,
     role: TaskLink['role'],
     note: string,
   ) => Promise<TaskRead>;

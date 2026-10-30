@@ -1,6 +1,7 @@
 import type { FromSchema } from 'json-schema-to-ts';
 import { type CallContext, errorInfoSchema } from './core.js';
 import { graphDefinitionSchema } from './graph-contracts.js';
+import type { LibrarySource } from './library.js';
 import { resourceCreationResultSchema, resourceEvidenceSchema } from './resource-contracts.js';
 import { content, count, id, object, page, project } from './schema.js';
 import { taskRefSchema } from './task-contracts.js';
@@ -8,7 +9,23 @@ import { taskRefSchema } from './task-contracts.js';
 export const taskGraphInputOperation = (processOperationId: string): string =>
   `${processOperationId}_input`;
 
-export const taskGraphInputSnapshotSchema = object(
+const materialSource = object({ linkId: id, evidence: resourceEvidenceSchema }, [
+  'linkId',
+  'evidence',
+]);
+const catalogSource = object(
+  {
+    linkId: id,
+    catalog: object({ libraryId: id, sourceId: id, version: id, revision: count }, [
+      'libraryId',
+      'sourceId',
+      'version',
+      'revision',
+    ]),
+  },
+  ['linkId', 'catalog'],
+);
+const inputSnapshot = object(
   {
     kind: { const: 'research-task-graph-input' },
     formatVersion: { const: 1 },
@@ -21,7 +38,7 @@ export const taskGraphInputSnapshotSchema = object(
     sources: {
       type: 'array',
       maxItems: 100,
-      items: object({ linkId: id, evidence: resourceEvidenceSchema }, ['linkId', 'evidence']),
+      items: materialSource,
     },
     content,
   },
@@ -37,7 +54,31 @@ export const taskGraphInputSnapshotSchema = object(
     'content',
   ],
 );
+export const taskGraphInputSnapshotSchema = {
+  anyOf: [
+    inputSnapshot,
+    {
+      ...inputSnapshot,
+      properties: {
+        ...inputSnapshot.properties,
+        formatVersion: { const: 2 },
+        sources: {
+          ...inputSnapshot.properties.sources,
+          items: { anyOf: [materialSource, catalogSource] },
+        },
+      },
+    },
+  ],
+} as const;
 export type TaskGraphInputSnapshot = FromSchema<typeof taskGraphInputSnapshotSchema>;
+
+/** The library owner checks identity and current read/send access on every read. */
+export interface TaskCatalogPort {
+  read(
+    input: { libraryId: string; sourceId: string },
+    context: CallContext,
+  ): Promise<Pick<LibrarySource, 'id' | 'version' | 'revision'>>;
+}
 
 export const taskGraphOperations = {
   'tasks.graphs': {

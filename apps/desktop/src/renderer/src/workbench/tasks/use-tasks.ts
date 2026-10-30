@@ -1,7 +1,7 @@
 import type { KernelClient } from '@scholoom/client';
 import type { TaskPort } from '@scholoom/protocol';
-import { useMemo, useRef, useState } from 'react';
-import type { KernelPhase } from '../session';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import type { KernelPhase, WorkbenchSession } from '../session';
 import { useFileWatch } from '../useFileWatch';
 
 export function useTasks(
@@ -11,6 +11,14 @@ export function useTasks(
   fileRevision = 0,
 ) {
   const [revision, setRevision] = useState(0);
+  const [catalogRevision, setCatalogRevision] = useState(0);
+  useEffect(
+    () =>
+      client?.subscribeChanges((change) => {
+        if (change.libraryChanged) setCatalogRevision((value) => value + 1);
+      }),
+    [client],
+  );
   const [scope, setScope] = useState({ projectId: '', exists: false });
   const currentProject = useRef(projectId);
   currentProject.current = projectId;
@@ -32,6 +40,30 @@ export function useTasks(
       save: (input) => client.call('tasks.save', input),
     };
   }, [client, phase, projectId]);
+  const catalog = useMemo<WorkbenchSession['taskCatalog']>(() => {
+    void catalogRevision;
+    if (!client || !port) return undefined;
+    const check = async (libraryId: string) => {
+      const status = await client.call('library.status', {});
+      if (!status.read || status.id !== libraryId)
+        throw new Error('文献库身份或读取授权已变化，请重读。');
+    };
+    return {
+      list: async (input) => {
+        const status = await client.call('library.status', {});
+        const page = await client.call('library.list', input);
+        await check(status.id);
+        return { ...page, libraryId: status.id };
+      },
+      read: async (input) => {
+        await check(input.libraryId);
+        const source = await client.call('library.get', { sourceId: input.sourceId });
+        await check(input.libraryId);
+        if (source.id !== input.sourceId) throw new Error('题录回执不属于原引用。');
+        return source;
+      },
+    };
+  }, [client, port, catalogRevision]);
   const error = useFileWatch(
     client,
     projectId,
@@ -42,5 +74,5 @@ export function useTasks(
     },
     () => setRevision((value) => value + 1),
   );
-  return { port, revision: revision + fileRevision, error };
+  return { port, catalog, revision: revision + fileRevision, error };
 }

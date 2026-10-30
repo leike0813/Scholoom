@@ -9,6 +9,7 @@ import type {
   Effort,
   Message,
   ResourceDescriptor,
+  TaskLink,
   WorkbenchContextSnapshot,
   WorkbenchSnapshot,
 } from '@scholoom/protocol';
@@ -770,6 +771,7 @@ export function useBusinessSession(
     ...(taskState.port
       ? {
           taskPort: taskState.port,
+          ...(taskState.catalog ? { taskCatalog: taskState.catalog } : {}),
           ...(taskGraphs ? { taskGraphs } : {}),
           taskRevision: taskState.revision,
           taskWatchError: taskState.error,
@@ -790,10 +792,32 @@ export function useBusinessSession(
             await document.flush();
             if (document.hasDraft())
               throw new Error('入口有未保存修改，请先在编辑器中保存或核对草稿。');
-            const resource = await client.call('resources.describe', {
-              locator: { source: 'project', projectId: entry.task.projectId, path },
-            });
-            if (resource.ref.source !== 'project') throw new Error('请选择当前项目材料。');
+            let target: TaskLink['target'];
+            let basis: string | undefined;
+            if (typeof path === 'string') {
+              const resource = await client.call('resources.describe', {
+                locator: { source: 'project', projectId: entry.task.projectId, path },
+              });
+              if (resource.ref.source !== 'project') throw new Error('请选择当前项目材料。');
+              target = { kind: 'project-file', fileId: resource.ref.fileId };
+            } else {
+              const source = await taskState.catalog?.read({
+                libraryId: path.libraryId,
+                sourceId: path.source.id,
+              });
+              if (
+                !source ||
+                source.version !== path.source.version ||
+                source.revision !== path.source.revision
+              )
+                throw new Error('所选题录已变化，请重读候选后再关联。');
+              target = { kind: 'library-source', libraryId: path.libraryId, sourceId: source.id };
+              basis = source.version;
+              role = 'source';
+            }
+            await document.flush();
+            if (document.hasDraft())
+              throw new Error('入口有未保存修改，请先在编辑器中保存或核对草稿。');
             const metadata = {
               ...entry.metadata,
               links: [
@@ -801,7 +825,8 @@ export function useBusinessSession(
                 {
                   id: crypto.randomUUID(),
                   role,
-                  target: { kind: 'project-file' as const, fileId: resource.ref.fileId },
+                  target,
+                  ...(basis ? { basis } : {}),
                   ...(note ? { note } : {}),
                 },
               ],

@@ -203,6 +203,8 @@
       "consumes": [
         "tasks.read",
         "tasks.save",
+        "library.status",
+        "library.get",
         "resources.describe",
         "resources.create",
         "research.graphs",

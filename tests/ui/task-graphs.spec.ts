@@ -94,6 +94,106 @@ test('the real task graph empty directory preserves form drafts and refuses unsa
   }
 });
 
+test('task details select real catalog candidates, reject stale revisions and expose sources without fake attachments in both hosts', async ({
+  uiPage,
+}, info) => {
+  const f = await openTask(uiPage, info.outputPath('catalog'));
+  try {
+    await f.client.call('library.grant', {
+      read: true,
+      write: true,
+      send: true,
+      autoBackup: false,
+    });
+    const title = `仅题录-${randomUUID()}`;
+    const batch = await f.client.call('library.ingest', {
+      batchId: randomUUID(),
+      origin: 'task-ui-test',
+      version: 'catalog-v3',
+      json: JSON.stringify([{ title }]),
+    });
+    await expect
+      .poll(async () => (await f.client.call('library.batch', { batchId: batch.id })).batch.state)
+      .toBe('completed');
+    const sourceId = (await f.client.call('library.batch', { batchId: batch.id })).entries[0]
+      ?.sourceId;
+    assert(sourceId);
+    const source = await f.client.call('library.get', { sourceId });
+    const libraryId = (await f.client.call('library.status', {})).id;
+    await f.detail.getByRole('button', { name: '关联现有材料', exact: true }).click();
+    const form = uiPage.getByRole('form', { name: '关联任务材料' });
+    await form
+      .getByRole('combobox', { name: '关联对象', exact: true })
+      .selectOption('library-source');
+    await form.getByRole('textbox', { name: '查找题录', exact: true }).fill(title);
+    await form.getByRole('button', { name: '读取题录候选', exact: true }).click();
+    await expect(form.getByRole('option', { name: new RegExp(title) })).toBeAttached();
+    await form
+      .getByRole('combobox', { name: '来源题录', exact: true })
+      .selectOption({ label: `${title} · catalog-v3 · 修订 ${source.revision} · 附件未取得` });
+    await uiPage.screenshot({ path: info.outputPath('catalog-picker-light.png') });
+    const updated = await f.client.call('library.update', {
+      sourceId,
+      revision: source.revision,
+      metadata: { ...source.metadata, title: `${title}-修订` },
+      tags: source.tags,
+      collectionIds: source.collectionIds,
+      relatedIds: source.relatedIds,
+    });
+    await form.getByRole('button', { name: '保存关联', exact: true }).click();
+    await expect(form.getByRole('alert')).toContainText('变化');
+    expect(
+      (await f.client.call('tasks.read', { task: f.read.task })).metadata.links ?? [],
+    ).toHaveLength(0);
+    await form.getByRole('button', { name: '读取题录候选', exact: true }).click();
+    await expect(form.getByRole('option', { name: new RegExp(`${title}-修订`) })).toBeAttached();
+    await form.getByRole('combobox', { name: '来源题录', exact: true }).selectOption({
+      label: `${title}-修订 · catalog-v3 · 修订 ${updated.revision} · 附件未取得`,
+    });
+    await form.getByRole('button', { name: '保存关联', exact: true }).click();
+    await expect(form).toHaveCount(0);
+    const entry = await f.client.call('tasks.read', { task: f.read.task });
+    expect(entry.metadata.links).toEqual([
+      expect.objectContaining({
+        role: 'source',
+        basis: 'catalog-v3',
+        target: { kind: 'library-source', libraryId, sourceId },
+      }),
+    ]);
+    await f.detail.getByRole('button', { name: '打开来源题录', exact: true }).click();
+    const catalog = f.detail.getByRole('region', { name: '来源题录详情' });
+    await expect(catalog).toContainText(`${title}-修订`);
+    await expect(catalog).toContainText('附件未取得');
+    await uiPage.emulateMedia({ colorScheme: 'dark' });
+    await uiPage.screenshot({ path: info.outputPath('catalog-details-dark.png') });
+    await f.detail.getByRole('button', { name: '运行科研图', exact: true }).click();
+    const graph = f.detail.getByRole('form', { name: '运行科研图', exact: true });
+    await graph.getByRole('checkbox', { name: /文献库题录/ }).check();
+    await expect(graph.getByRole('checkbox', { name: /文献库题录/ })).toBeChecked();
+    await f.client.call('library.grant', {
+      read: false,
+      write: true,
+      send: true,
+      autoBackup: false,
+    });
+    await expect(catalog).toHaveCount(0);
+    await f.detail.getByRole('button', { name: '打开来源题录', exact: true }).click();
+    await expect(f.detail.getByRole('alert')).toBeVisible();
+    expect((await f.client.call('tasks.read', { task: f.read.task })).metadata.links).toEqual(
+      entry.metadata.links,
+    );
+    expect(f.requests.filter((request) => request.method === 'tasks.runGraph')).toHaveLength(0);
+  } finally {
+    await f.client.call('library.grant', {
+      read: true,
+      write: true,
+      send: false,
+      autoBackup: false,
+    });
+    f.client.dispose();
+  }
+});
+
 test('a static saved unknown request keeps its original identities across session switch and reload without replaying', async ({
   uiPage,
 }, info) => {

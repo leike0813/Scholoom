@@ -366,6 +366,7 @@ for (const sourceKind of ['project', 'managed', 'linked'] as const) {
           const link = read.metadata.links?.find((item) => item.role === 'source');
           assert(link?.basis);
           const target = link.target;
+          assert(target.kind !== 'library-source');
           return tool('read_context_resource', {
             ref:
               target.kind === 'project-file'
