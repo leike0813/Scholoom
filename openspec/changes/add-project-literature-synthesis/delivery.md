@@ -1,5 +1,15 @@
 # 实际交付与交接
 
+## 会话等待／成果与首批整合（2026-10-30）
+
+主线接收4b7f4db为8e8c323，完成4.2，当前5/12；2.1仍在原Agent树实施，3.2／5.1及最终科研路径未开始交付。当前run的实际Graph问题与角色成果沿原Dock／Overlay呈现，原composer及session.send回答同run；展示项不成为领域Message、Artifact或普通模型轮次。成果按原回执分别表达保存／关联未知，可打开当前资源，并明确未核与保存时basis一致，不补旧尝试历史。
+
+作者投影3/3、Browser＋真实Electron最终2/2及类型／格式／构建／架构通过，首四轮UI失败是测试控件／虚拟DOM／重载tab／完成时机假设，未放宽生产等待，原trace保留于`workers/research-interaction/session-view-PbN2Hn/RESULT.md`及其证据目录。主线审阅实际投影、迟到快照保护及双形态接线后，重新构建共享／desktop，tools及desktop类型、架构exit0；主线投影3/3通过，未用叶组件替身当产品路径。
+
+主线统一构建上运行真实Task题录选择与Graph session-view两条路径，两宿主4/4、2.0分钟通过，日志`integrated-ui.log`／`integrated-ui-results/`。内部实际库、broker、worker、SQLite、文件、普通composer及共同资源打开；仅外部模型边界配置受控HTTP，本校准图模型请求数0，不能算科研质量。Electron44.5.1的userData／sessionData／storagePath均在该例独立profile，主线查看实际Dock与深色Overlay截图；测试端口5727结束后无监听，复用既有DISPLAY :99未停止共享显示服务。
+
+这不是最终6.1：所用仍是已有机械校准图，生产综合图、多来源取材／过程和新会话补材料待实现。Task作者报告的部分既有深色公共按钮对比度观察保留；本次没有做整台视觉可访问性审计。系统IME／读屏、通用HTML／JS执行及报告服务不随会话投影通过。后续计数为各接收截点，当前以本节及tasks为准。
+
 ## 题录任务来源与受理窗口修复（2026-10-30）
 
 主线接收c1fb988为c7d97a8并完成3.1，当前4/12。TaskLink增加只带libraryId/sourceId的library-source，含题录的原输入快照使用v2并准确保存version/revision；纯材料仍v1。题录元数据不冒充正文或附件Evidence，真实后补附件仍归原source。宿主经原broker status/get读取，Task UI分页选择及详情有界，版本变化需重新明确选择；源码／作者首败／实际5项题录及4项双宿主结果在`workers/research-task-workspace/RESULT.md`。
