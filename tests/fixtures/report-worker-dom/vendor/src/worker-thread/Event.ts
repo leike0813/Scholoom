@@ -1,3 +1,4 @@
+// Modified by Scholoom on 2026-10-30 for this fixed probe; see vendor/MODIFICATIONS.md.
 /**
  * @fileoverview
  * WorkerDOM's `Event` class. `CustomEvent` is available natively in web worker.

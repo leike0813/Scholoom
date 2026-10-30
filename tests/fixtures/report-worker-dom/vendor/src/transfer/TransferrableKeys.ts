@@ -1,3 +1,4 @@
+// Modified by Scholoom on 2026-10-30 for this fixed probe; see vendor/MODIFICATIONS.md.
 export const enum TransferrableKeys {
   nodeType = 0,
   localOrNodeName = 1,

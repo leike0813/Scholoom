@@ -1,3 +1,4 @@
+// Modified by Scholoom on 2026-10-30 for this fixed probe; see vendor/MODIFICATIONS.md.
 import { HTMLElement } from './dom/HTMLElement.js';
 import { SVGElement } from './dom/SVGElement.js';
 import { HTMLAnchorElement } from './dom/HTMLAnchorElement.js';

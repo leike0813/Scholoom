@@ -1,3 +1,4 @@
+// Modified by Scholoom on 2026-10-30 for this fixed probe; see vendor/MODIFICATIONS.md.
 import { Node } from './dom/Node.js';
 import { phase } from './phase.js';
 import { Phase } from '../transfer/Phase.js';

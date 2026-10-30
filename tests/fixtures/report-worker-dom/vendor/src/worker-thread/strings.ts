@@ -1,3 +1,4 @@
+// Modified by Scholoom on 2026-10-30 for this fixed probe; see vendor/MODIFICATIONS.md.
 let count: number = 0;
 let transfer: Array<string> = [];
 const mapping: Map<string, number> = new Map();

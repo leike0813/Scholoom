@@ -1,3 +1,4 @@
+// Modified by Scholoom on 2026-10-30 for this fixed probe; see vendor/MODIFICATIONS.md.
 import { MessageType } from '../../transfer/Messages.js';
 import { TransferrableKeys } from '../../transfer/TransferrableKeys.js';
 import {

@@ -1,3 +1,4 @@
+// Modified by Scholoom on 2026-10-30 for this fixed probe; see vendor/MODIFICATIONS.md.
 import { consume as consumeNodes } from './nodes.js';
 import { consume as consumeStrings } from './strings.js';
 import { MessageType, MutationFromWorker } from '../transfer/Messages.js';

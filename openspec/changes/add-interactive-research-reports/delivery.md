@@ -1,5 +1,17 @@
 # 实际交付与交接
 
+## WorkerDOM双宿主决定性反例接收（2026-10-30）
+
+主线接收147ef729为04c2a22，只保留在tests/fixtures/report-worker-dom的实验，不接生产。固定52b619eb源码闭包113文件、Apache-2.0及parser MIT、十文件fork／可逆patch、两包metafile和原始source／host／oracle证据可核；没有npm安装、系统账户或服务。实际固定样本的Node非SERVER HYDRATE、共同Workbench tab普通输入及显式namespace MathML有往返证据，但这不是完整报告可用性。
+
+原两宿主同一原生按键反例为0 passed／2 failed，无skip、flaky或重试：源beforeinput确已对x调用preventDefault并保持A，真实source ACK被暂扣时宿主已产生input成为Ax，独立同源码native oracle仍为A；释放后源及宿主成为AX。两宿主pageerror为空，不能将其当测试基础设施故障或改成预期失败。主线读回原JSON并由独立gpt-6.1-sol／high核源码、真实IPC、native事件与原始证据，反例成立且无使结论无效的P1/P2。
+
+独审另发现Apache §4(b)的P2：八个修改文件没有文件内醒目修改声明。主线对十个修改文件统一补修改方／日期／声明，从已保全固定原字节离线重生成local.patch，反向检查exit0；只改许可声明，不重跑相同反例。根工具类型检查不能把旧上游混入项目新严格选项，现将该fixture作为独立TypeScript项目，由根typecheck同时运行普通tools与该项目，没有放宽产品源码选项。
+
+原child close／exit0及自有loopback停止有收据；最后一份消费信用未归还、诊断对象到teardown才回收，Electron和内核无独立raw退出回执的粒度限制保留。第二布局、MathML innerHTML、focus／selection请求、composition竞争、旧节点／关闭竞争、信用耗尽、clipboard／find／AX、系统IME／读屏、T1/T2和生产隔离均未验。原patch独立落盘晚于首跑的顺序偏差也保留，不以事后文件倒填首跑条件。
+
+原有界计划要求首个决定性反例后停止，主线已停止该轮并释放其worker。现已请用户选择是否明确不支持源脚本同步取消原生输入、触发时停止报告并保草稿后继续其余验证；尚未收到选择，不按默认选项推进。任务仍21/27，生产活动报告仍unavailable；科研综合独立继续。原结果及独审在本轮cache的workers/research-interaction/worker-dom/RESULT.md及worker-dom-independent-review.md。
+
 ## 固定WorkerDOM探针授权与开工（2026-10-30）
 
 用户已明确授权引入ampproject/worker-dom@52b619eb46416c4325306de851e5a9df99697fcb固定源码闭包并按既备plan做有界适配及双宿主验证，保留Apache-2.0与parser MIT许可；仅用已有工具，不安装npm依赖，不创建系统账户或部署服务。原计划位于`/home/joshua/.cache/scholoom-round22-acceptance-noQKV1/next/research-interaction/plan.md`，其中“待授权”已由本次回答解决，其余边界保持。

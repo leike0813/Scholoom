@@ -1,8 +1,13 @@
 diff --git a/src/main-thread/commands/event-subscription.ts b/src/main-thread/commands/event-subscription.ts
-index e7140e7..5f56335 100644
+index e7140e7..e9a3c88 100644
 --- a/src/main-thread/commands/event-subscription.ts
 +++ b/src/main-thread/commands/event-subscription.ts
-@@ -45,12 +45,7 @@ export const applyDefaultInputListener = (workerContext: WorkerContext, node: Re
+@@ -1,3 +1,4 @@
++// Modified by Scholoom on 2026-10-30 for this fixed probe; see vendor/MODIFICATIONS.md.
+ import { MessageType } from '../../transfer/Messages.js';
+ import { TransferrableKeys } from '../../transfer/TransferrableKeys.js';
+ import {
+@@ -45,12 +46,7 @@ export const applyDefaultInputListener = (workerContext: WorkerContext, node: Re
   * @param node node to listen to value changes on.
   */
  export const sendValueChangeOnAttributeMutation = (workerContext: WorkerContext, node: RenderableElement): void => {
@@ -16,7 +21,7 @@ index e7140e7..5f56335 100644
  };
  
  /**
-@@ -96,6 +91,8 @@ const createTransferrableTouchList = (touchList: TouchList): TransferrableTouchL
+@@ -96,6 +92,8 @@ const createTransferrableTouchList = (touchList: TouchList): TransferrableTouchL
  
  export const EventSubscriptionProcessor: CommandExecutorInterface = (strings, nodeContext, workerContext, objectContext, config) => {
    const knownListeners: Array<(event: Event) => any> = [];
@@ -25,7 +30,7 @@ index e7140e7..5f56335 100644
    const allowedExecution = config.executorsAllowed.includes(TransferrableMutationType.EVENT_SUBSCRIPTION);
    let cachedWindowSize: [number, number] = [window.innerWidth, window.innerHeight];
  
-@@ -107,7 +104,7 @@ export const EventSubscriptionProcessor: CommandExecutorInterface = (strings, no
+@@ -107,7 +105,7 @@ export const EventSubscriptionProcessor: CommandExecutorInterface = (strings, no
     */
    const eventHandler =
      (index: number, preventDefault: boolean) =>
@@ -34,7 +39,7 @@ index e7140e7..5f56335 100644
        if (preventDefault) {
          event.preventDefault();
        }
-@@ -138,6 +135,9 @@ export const EventSubscriptionProcessor: CommandExecutorInterface = (strings, no
+@@ -138,6 +136,9 @@ export const EventSubscriptionProcessor: CommandExecutorInterface = (strings, no
            [TransferrableKeys.target]: [(event.target as RenderableElement)._index_ || 0],
            [TransferrableKeys.timeStamp]: event.timeStamp,
            [TransferrableKeys.type]: event.type,
@@ -44,7 +49,7 @@ index e7140e7..5f56335 100644
            [TransferrableKeys.keyCode]: 'keyCode' in event ? event.keyCode : undefined,
            [TransferrableKeys.pageX]: 'pageX' in event ? event.pageX : undefined,
            [TransferrableKeys.pageY]: 'pageY' in event ? event.pageY : undefined,
-@@ -164,9 +164,10 @@ export const EventSubscriptionProcessor: CommandExecutorInterface = (strings, no
+@@ -164,9 +165,10 @@ export const EventSubscriptionProcessor: CommandExecutorInterface = (strings, no
      if (target === nodeContext.baseElement) {
        if (addEvent) {
          const preventDefault = Boolean(mutations[iterator + AddEventRegistrationIndex.WorkerDOMPreventDefault]);
@@ -57,7 +62,7 @@ index e7140e7..5f56335 100644
        }
        return;
      }
-@@ -180,6 +181,7 @@ export const EventSubscriptionProcessor: CommandExecutorInterface = (strings, no
+@@ -180,6 +182,7 @@ export const EventSubscriptionProcessor: CommandExecutorInterface = (strings, no
        }
        const preventDefault = Boolean(mutations[iterator + AddEventRegistrationIndex.WorkerDOMPreventDefault]);
        (target as HTMLElement).addEventListener(type, (knownListeners[eventIndex] = eventHandler(target._index_, preventDefault)));
@@ -65,7 +70,7 @@ index e7140e7..5f56335 100644
      } else {
        if (isChangeEvent) {
          inputEventSubscribed = false;
-@@ -211,9 +213,9 @@ export const EventSubscriptionProcessor: CommandExecutorInterface = (strings, no
+@@ -211,9 +214,9 @@ export const EventSubscriptionProcessor: CommandExecutorInterface = (strings, no
          if (target) {
            let iterator = startPosition + EventSubscriptionMutationIndex.Events;
            while (iterator < endPosition) {
@@ -78,7 +83,7 @@ index e7140e7..5f56335 100644
            }
          } else {
            console.error(`getNode(${targetIndex}) is null.`);
-@@ -239,7 +241,7 @@ export const EventSubscriptionProcessor: CommandExecutorInterface = (strings, no
+@@ -239,7 +242,7 @@ export const EventSubscriptionProcessor: CommandExecutorInterface = (strings, no
  
        let iterator = startPosition + EventSubscriptionMutationIndex.Events;
        while (iterator < endPosition) {
@@ -89,10 +94,15 @@ index e7140e7..5f56335 100644
            type: strings.get(mutations[iterator]),
 
 diff --git a/src/main-thread/nodes.ts b/src/main-thread/nodes.ts
-index 79ca0c7..d3e78cb 100644
+index 79ca0c7..8bfda0c 100644
 --- a/src/main-thread/nodes.ts
 +++ b/src/main-thread/nodes.ts
-@@ -43,6 +43,7 @@ export class NodeContext {
+@@ -1,3 +1,4 @@
++// Modified by Scholoom on 2026-10-30 for this fixed probe; see vendor/MODIFICATIONS.md.
+ import { NodeType, TransferrableNodeIndex } from '../transfer/TransferrableNodes.js';
+ import { StringContext } from './strings.js';
+ 
+@@ -43,6 +44,7 @@ export class NodeContext {
    }
  
    public createNodes = (buffer: ArrayBuffer, sanitizer?: Sanitizer): void => {
@@ -100,7 +110,7 @@ index 79ca0c7..d3e78cb 100644
      const nodeBuffer = new Uint16Array(buffer);
      const nodeBufferLength = nodeBuffer.length;
  
-@@ -117,7 +118,10 @@ export class NodeContext {
+@@ -117,7 +119,10 @@ export class NodeContext {
     * @param id
     */
    private storeNode(node: Node, id: number): void {
@@ -113,10 +123,15 @@ index 79ca0c7..d3e78cb 100644
  }
 
 diff --git a/src/main-thread/serialize.ts b/src/main-thread/serialize.ts
-index e9d7ec1..4b5aca2 100644
+index e9d7ec1..802561b 100644
 --- a/src/main-thread/serialize.ts
 +++ b/src/main-thread/serialize.ts
-@@ -27,7 +27,7 @@ function createHydrateableNode(
+@@ -1,3 +1,4 @@
++// Modified by Scholoom on 2026-10-30 for this fixed probe; see vendor/MODIFICATIONS.md.
+ import { HydrateableNode, NodeType } from '../transfer/TransferrableNodes.js';
+ import { TransferrableKeys } from '../transfer/TransferrableKeys.js';
+ import { NumericBoolean } from '../utils.js';
+@@ -27,7 +28,7 @@ function createHydrateableNode(
      [TransferrableKeys.childNodes]: filteredChildNodes.map((child: RenderableElement) =>
        createHydrateableNode(child, minimizeString, hydrateFilter, workerContext),
      ),
@@ -127,10 +142,15 @@ index e9d7ec1..4b5aca2 100644
        minimizeString(attribute.value),
 
 diff --git a/src/transfer/TransferrableEvent.ts b/src/transfer/TransferrableEvent.ts
-index 8507443..b150903 100644
+index 8507443..b0cd0d0 100644
 --- a/src/transfer/TransferrableEvent.ts
 +++ b/src/transfer/TransferrableEvent.ts
-@@ -19,6 +19,9 @@ export interface TransferrableTouchList {
+@@ -1,3 +1,4 @@
++// Modified by Scholoom on 2026-10-30 for this fixed probe; see vendor/MODIFICATIONS.md.
+ import { TransferredNode } from './TransferrableNodes.js';
+ import { TransferrableKeys } from './TransferrableKeys.js';
+ 
+@@ -19,6 +20,9 @@ export interface TransferrableTouchList {
  }
  
  export interface TransferrableEvent {
@@ -142,10 +162,15 @@ index 8507443..b150903 100644
    readonly [TransferrableKeys.cancelable]?: boolean;
 
 diff --git a/src/transfer/TransferrableKeys.ts b/src/transfer/TransferrableKeys.ts
-index 05b720e..6b5c3b3 100644
+index 05b720e..29589a6 100644
 --- a/src/transfer/TransferrableKeys.ts
 +++ b/src/transfer/TransferrableKeys.ts
-@@ -78,6 +78,8 @@ export const enum TransferrableKeys {
+@@ -1,3 +1,4 @@
++// Modified by Scholoom on 2026-10-30 for this fixed probe; see vendor/MODIFICATIONS.md.
+ export const enum TransferrableKeys {
+   nodeType = 0,
+   localOrNodeName = 1,
+@@ -78,6 +79,8 @@ export const enum TransferrableKeys {
    propertyEventHandlers = 76,
    functionIdentifier = 77,
    functionArguments = 78,
@@ -157,10 +182,15 @@ index 05b720e..6b5c3b3 100644
  }
 
 diff --git a/src/worker-thread/Event.ts b/src/worker-thread/Event.ts
-index 7e32a72..aea5e36 100644
+index 7e32a72..e00aa18 100644
 --- a/src/worker-thread/Event.ts
 +++ b/src/worker-thread/Event.ts
-@@ -174,6 +174,9 @@ export function propagate(global: WorkerDOMGlobalScope): void {
+@@ -1,3 +1,4 @@
++// Modified by Scholoom on 2026-10-30 for this fixed probe; see vendor/MODIFICATIONS.md.
+ /**
+  * @fileoverview
+  * WorkerDOM's `Event` class. `CustomEvent` is available natively in web worker.
+@@ -174,6 +175,9 @@ export function propagate(global: WorkerDOMGlobalScope): void {
              timeStamp: event[TransferrableKeys.timeStamp],
              scoped: event[TransferrableKeys.scoped],
              keyCode: event[TransferrableKeys.keyCode],
@@ -172,10 +202,15 @@ index 7e32a72..aea5e36 100644
              offsetX: event[TransferrableKeys.offsetX],
 
 diff --git a/src/worker-thread/index.ts b/src/worker-thread/index.ts
-index 482f9bf..1f34b5c 100644
+index 482f9bf..90f4e05 100644
 --- a/src/worker-thread/index.ts
 +++ b/src/worker-thread/index.ts
-@@ -44,6 +44,8 @@ import { Element } from './dom/Element.js';
+@@ -1,3 +1,4 @@
++// Modified by Scholoom on 2026-10-30 for this fixed probe; see vendor/MODIFICATIONS.md.
+ import { HTMLElement } from './dom/HTMLElement.js';
+ import { SVGElement } from './dom/SVGElement.js';
+ import { HTMLAnchorElement } from './dom/HTMLAnchorElement.js';
+@@ -44,6 +45,8 @@ import { Element } from './dom/Element.js';
  import { rafPolyfill, cafPolyfill } from './AnimationFrame.js';
  import { HydrateFunction } from './hydrate.js';
  
@@ -184,7 +219,7 @@ index 482f9bf..1f34b5c 100644
  const globalScope: GlobalScope = {
    innerWidth: 0,
    innerHeight: 0,
-@@ -88,15 +90,15 @@ const globalScope: GlobalScope = {
+@@ -88,15 +91,15 @@ const globalScope: GlobalScope = {
    Text,
    Event: WorkerDOMEvent,
    MutationObserver,
@@ -203,7 +238,7 @@ index 482f9bf..1f34b5c 100644
    const document = new Document(globalScope);
    // TODO(choumx): Avoid polluting Document's public API.
    document.postMessage = postMessage;
-@@ -106,13 +108,14 @@ export const workerDOM = (function (postMessage, addEventListener, removeEventLi
+@@ -106,13 +109,14 @@ export const workerDOM = (function (postMessage, addEventListener, removeEventLi
    // TODO(choumx): Remove once defaultView contains all native worker globals.
    // Canvas's use of native OffscreenCanvas checks the existence of the property
    // on the WorkerDOMGlobalScope.
@@ -223,10 +258,15 @@ index 482f9bf..1f34b5c 100644
  export const hydrate: HydrateFunction = initialize;
 
 diff --git a/src/worker-thread/MutationTransfer.ts b/src/worker-thread/MutationTransfer.ts
-index 9653342..ddcc0c0 100644
+index 9653342..0f1e8ff 100644
 --- a/src/worker-thread/MutationTransfer.ts
 +++ b/src/worker-thread/MutationTransfer.ts
-@@ -18,6 +18,7 @@ export function transfer(document: Document | DocumentStub, mutation: Array<numb
+@@ -1,3 +1,4 @@
++// Modified by Scholoom on 2026-10-30 for this fixed probe; see vendor/MODIFICATIONS.md.
+ import { consume as consumeNodes } from './nodes.js';
+ import { consume as consumeStrings } from './strings.js';
+ import { MessageType, MutationFromWorker } from '../transfer/Messages.js';
+@@ -18,6 +19,7 @@ export function transfer(document: Document | DocumentStub, mutation: Array<numb
    }
  
    if (phase > Phase.Initializing && document[TransferrableKeys.allowTransfer]) {
@@ -236,10 +276,15 @@ index 9653342..ddcc0c0 100644
  
 
 diff --git a/src/worker-thread/nodes.ts b/src/worker-thread/nodes.ts
-index 0049647..d1462ad 100644
+index 0049647..6b6902b 100644
 --- a/src/worker-thread/nodes.ts
 +++ b/src/worker-thread/nodes.ts
-@@ -42,6 +42,7 @@ export function store(node: Node): number {
+@@ -1,3 +1,4 @@
++// Modified by Scholoom on 2026-10-30 for this fixed probe; see vendor/MODIFICATIONS.md.
+ import { Node } from './dom/Node.js';
+ import { phase } from './phase.js';
+ import { Phase } from '../transfer/Phase.js';
+@@ -42,6 +43,7 @@ export function store(node: Node): number {
      return node[TransferrableKeys.index];
    }
  
@@ -249,10 +294,11 @@ index 0049647..d1462ad 100644
      // After Initialization, include all future dom node creation into the list for next transfer.
 
 diff --git a/src/worker-thread/strings.ts b/src/worker-thread/strings.ts
-index ba73a70..5440048 100644
+index ba73a70..6bffc52 100644
 --- a/src/worker-thread/strings.ts
 +++ b/src/worker-thread/strings.ts
-@@ -1,6 +1,7 @@
+@@ -1,6 +1,8 @@
++// Modified by Scholoom on 2026-10-30 for this fixed probe; see vendor/MODIFICATIONS.md.
  let count: number = 0;
  let transfer: Array<string> = [];
  const mapping: Map<string, number> = new Map();
@@ -260,7 +306,7 @@ index ba73a70..5440048 100644
  
  /**
   * Stores a string in mapping and returns the index of the location.
-@@ -18,6 +19,9 @@ export function store(value: string): number {
+@@ -18,6 +20,9 @@ export function store(value: string): number {
      return mapping.get(value) as number;
    }
  

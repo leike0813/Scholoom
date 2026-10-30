@@ -23,6 +23,10 @@ hashes and acquisition method. `vendor/LICENSE`, parser `LICENSE` and
 `local.patch` is reversible against the fixed source closure. No dependency was
 installed. TypeScript checks use upstream-style strict null/implicit-any checks
 while disabling newer project flags the upstream source does not use.
+The root typecheck runs this fixture as its own TypeScript project; the ordinary
+tools project excludes it so the pinned upstream is checked with its own flags.
+All ten modified upstream files carry Scholoom modification notices; these
+license-only additions do not change the recorded first-run behavior.
 Fixture-local Biome and Git attributes preserve the upstream style and patch
 context bytes; first-party fixture files retain the repository checks.
 

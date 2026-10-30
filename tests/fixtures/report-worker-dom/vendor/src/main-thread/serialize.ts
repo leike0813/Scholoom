@@ -1,3 +1,4 @@
+// Modified by Scholoom on 2026-10-30 for this fixed probe; see vendor/MODIFICATIONS.md.
 import { HydrateableNode, NodeType } from '../transfer/TransferrableNodes.js';
 import { TransferrableKeys } from '../transfer/TransferrableKeys.js';
 import { NumericBoolean } from '../utils.js';
