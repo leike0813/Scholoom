@@ -12,7 +12,7 @@
   "scripts": {
     "build": "pnpm -r build",
     "build:shared": "pnpm --filter @scholoom/kernel... build",
-    "typecheck": "pnpm build:shared && pnpm -r typecheck && tsc --noEmit -p tsconfig.tools.json && tsc --noEmit -p tests/fixtures/report-worker-dom/tsconfig.json",
+    "typecheck": "pnpm build:shared && pnpm -r typecheck && tsc --noEmit -p tsconfig.tools.json && tsc --noEmit -p tests/fixtures/report-worker-dom/tsconfig.json && tsc --noEmit -p tests/fixtures/report-async-dom/tsconfig.json",
     "lint": "biome check .",
     "check:architecture": "node scripts/check-architecture.ts",
     "generate:contracts": "node packages/protocol/scripts/contract-types.mjs --patch",

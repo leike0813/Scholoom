@@ -34,6 +34,8 @@
 
 ## 决策与授权依据
 
+- 2026-10-31用户明确接受跨进程同步取消默认输入不支持：依赖该能力的报告明确失败，其余继续通用HTML／JS及共同tab／原生控件。完整契约见spec“脚本依赖跨进程同步取消默认输入”，实施与原反例边界见design；本次选择不授权系统身份、策略或服务安装。
+
 - [交互报告决定](../../../.scratch/scholoom-foundations/issues/45-interactive-research-reports.md)、[阅读交互 Q4–Q6](../../../.scratch/domain-development/issues/07-research-interaction-scope.md#answer)、[七线安排](../../../.scratch/domain-development/parallel-development-plan.md)。
 - 2026-10-25 用户仅授权本轮调查与两个独立 OpenSpec 的实施前规划，保持指定 Codex／gpt-6.1-sol／high 配置。
 - 同日用户通过规划问题明确回复“采纳该有界方案”，确认上述项目报告、资源清单、页面隔离与关闭后接续；联网报告及库／全局报告的新建权威不在首批。

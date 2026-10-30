@@ -1,5 +1,17 @@
 # 实际交付与交接
 
+## 已接受异步边界与新适配验证（2026-10-31）
+
+用户“授权；接受。请继续进行收尾”明确选择保留通用HTML／JS、共同tab和原生控件，并接受不支持跨进程同步取消原生默认动作：触发即明确失败，保护已确认成果／草稿，不伪造取消。proposal／delta／design／tasks已据此更新；只调整这一项语义，其余隔离、输入／辅助、更新恢复及I5保持。旧WorkerDOM同步取消的0/2反例和停止点保留。系统账户／策略／服务安装仍未授权；本change仍21/27，不能归档。
+
+新的`tests/fixtures/report-async-dom/`只读复用固定WorkerDOM113文件和许可，运行真实源进程／mutation／原生事件／确认、共同Workbench tab及Browser／真实Electron，不接生产。首组14/14通过；随后对修正后的竞争代表8/8、嵌套同类合成事件6/6分别复验，原生click取消补验2/2通过，均为独立运行，不相加为一次全套。守卫识别源实际原生事件对象，覆盖可取消事件；报告catch后仍闩锁失败，不发成功ACK、呈现mutation或桥动作。源内部合成事件沿自身语义，不能按事件名一概拒绝。布局／显式namespace MathML、普通输入、原生焦点／选区保持、筛选／排序／展开、CDP组合事务、迟到输入／替换／关闭及发送信用耗尽有各自代表；CDP组合不是系统IME，普通DOM／控件可查询不是读屏验收。
+
+证据根`E=/home/joshua/.cache/scholoom-closeout-execution-20261030/report-async-dom`，原摘要`validation-summary.json`、原生click追加回执`followup-native-cancel.json`及各次原命令／首败／source退出回执保留。两组布局及竞争不重复旧同步取消反例。父线补README和根typecheck独立入口；私有构建、类型、格式和信用耗尽检查已有exit0。该片没有报告正式资源／授权、C/M或OS隔离；未据成功扩大能力。HTML字符串摄取另在有界验证中，上游strings／nodes／mutation及适配器复制在分配前的共同预算仍未证，不能把发送信用当总内存保证。
+
+真实HTML摄取已出现新的决定性源端失败：本地`html-ingestion.html`通过原body.innerHTML→Element.innerHTML→固定html-parser.parse后，math／mfrac／mi／mn全部为XHTML namespace，即使声明MathML xmlns也不改变；同片input则确为原HTMLInputElement且初值正确。原解析器只有SVG切换分支，普通xmlns属性在节点创建后设置，不能补正身份。`run-html-ingestion.mjs`实际exit1、自有source closed；证据`E/followup-html-ingestion.json`及`html-ingestion-1793381132378/`。私有构建／类型／provenance／Biome通过，未启动UI／kernel，不把显式createElementNS的既有成功算成HTML字符串支持，未删数学或改旧断言补绿。
+
+按有界计划在新语义反例处停止本适配片，保留可复现失败。下一步须解决真实HTML的namespace语义和扩容前预算，之后再按design沿K唯一provider／admission、C唯一records／资产writer、M固定OS动作接实际服务及正式呈现。当前T1校准包仍缺真实C绑定、C/M ACK和许可生产者，ADMIN-PLAN明确不是可执行安装包，不申请空白系统权限。完整T1／T2、生产ReportView、更新恢复和I5未完成；本轮没有安装依赖、修改系统或宣称两个宿主已可使用活动报告。下文“待选”是此前历史截点，以本节及当前规格为准。
+
 ## 收尾核验与待选输入边界（2026-10-31）
 
 本change保持21/27，六项完整运行／呈现／整合／最终交付任务仍未完成。只读辅助核查形成`/home/joshua/.cache/scholoom-closeout-execution-20261030/report-closeout-map.md`：现有ReportResources、冻结字节、原native provider、准确历史授权、draft／update／client及可信夹具均有实现，正式产品路径仍进入安全阅读，尚无跨身份通用活动ReportView。C单写入服务、M固定OS门、完整脚本运行策略、恢复ACK与T1/T2尚未贯通；模块通过不等于活动报告可用，亦非仅浏览器端缺口。

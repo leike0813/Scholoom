@@ -7,5 +7,5 @@
     "types": ["node"]
   },
   "include": ["playwright*.config.ts", "tests/**/*.ts", "scripts/**/*.ts"],
-  "exclude": ["tests/fixtures/report-worker-dom"]
+  "exclude": ["tests/fixtures/report-worker-dom", "tests/fixtures/report-async-dom"]
 }

@@ -1,0 +1,9 @@
+{
+  "extends": "../report-worker-dom/tsconfig.json",
+  "files": [
+    "../../../node_modules/vite/client.d.ts",
+    "../report-worker-dom/vendor/src/main-thread/main-thread.d.ts",
+    "../report-worker-dom/vendor/src/worker-thread/worker-thread.d.ts"
+  ],
+  "include": ["*.mts", "*.tsx", "*.ts", "*.mjs", "../../../apps/desktop/src/renderer/src/**/*.d.ts"]
+}
