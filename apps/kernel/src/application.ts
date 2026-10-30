@@ -42,6 +42,7 @@ import type {
 import { ResearchRecords, ResearchRuntime, researchDelegationRoles } from '@scholoom/research/node';
 import { executionGraphs } from './execution-graphs.js';
 import { type FileExecutionFacts, type FoundationMethod, ManualApplication } from './manual.js';
+import { researchGraphs } from './research-graphs/index.js';
 import type { IsolatedZotero, ZoteroRuntime } from './zotero.js';
 
 type RuntimeMethod = Exclude<
@@ -246,7 +247,7 @@ export class KernelApplication extends ManualApplication {
           },
         },
       },
-      options.researchGraphs,
+      options.researchGraphs ?? researchGraphs,
     );
     this.harness = new Harness(
       this.harnessStorage(),
