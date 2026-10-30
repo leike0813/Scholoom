@@ -1,0 +1,272 @@
+diff --git a/src/main-thread/commands/event-subscription.ts b/src/main-thread/commands/event-subscription.ts
+index e7140e7..5f56335 100644
+--- a/src/main-thread/commands/event-subscription.ts
++++ b/src/main-thread/commands/event-subscription.ts
+@@ -45,12 +45,7 @@ export const applyDefaultInputListener = (workerContext: WorkerContext, node: Re
+  * @param node node to listen to value changes on.
+  */
+ export const sendValueChangeOnAttributeMutation = (workerContext: WorkerContext, node: RenderableElement): void => {
+-  if (shouldTrackChanges(node as HTMLElement) && !monitoredNodes.get(node)) {
+-    new MutationObserver((mutations: Array<MutationRecord>) =>
+-      mutations.map((mutation) => fireValueChange(workerContext, mutation.target as RenderableElement)),
+-    ).observe(node, { attributes: true });
+-    monitoredNodes.set(node, true);
+-  }
++  // Scholoom probe: only explicit native events are observed; attribute observation is not needed by the fixed script.
+ };
+ 
+ /**
+@@ -96,6 +91,8 @@ const createTransferrableTouchList = (touchList: TouchList): TransferrableTouchL
+ 
+ export const EventSubscriptionProcessor: CommandExecutorInterface = (strings, nodeContext, workerContext, objectContext, config) => {
+   const knownListeners: Array<(event: Event) => any> = [];
++  const removers: Array<() => void> = [];
++  (workerContext as any).disposeEvents = () => { removers.splice(0).forEach((remove) => remove()); };
+   const allowedExecution = config.executorsAllowed.includes(TransferrableMutationType.EVENT_SUBSCRIPTION);
+   let cachedWindowSize: [number, number] = [window.innerWidth, window.innerHeight];
+ 
+@@ -107,7 +104,7 @@ export const EventSubscriptionProcessor: CommandExecutorInterface = (strings, no
+    */
+   const eventHandler =
+     (index: number, preventDefault: boolean) =>
+-    (event: Event | KeyboardEvent | MouseEvent | TouchEvent): void => {
++    (event: Event | KeyboardEvent | MouseEvent | TouchEvent | InputEvent): void => {
+       if (preventDefault) {
+         event.preventDefault();
+       }
+@@ -138,6 +135,9 @@ export const EventSubscriptionProcessor: CommandExecutorInterface = (strings, no
+           [TransferrableKeys.target]: [(event.target as RenderableElement)._index_ || 0],
+           [TransferrableKeys.timeStamp]: event.timeStamp,
+           [TransferrableKeys.type]: event.type,
++          [TransferrableKeys.data]: 'data' in event ? (event as InputEvent).data : null,
++          [TransferrableKeys.inputType]: 'inputType' in event ? (event as InputEvent).inputType : '',
++          [TransferrableKeys.isComposing]: 'isComposing' in event ? (event as InputEvent).isComposing : false,
+           [TransferrableKeys.keyCode]: 'keyCode' in event ? event.keyCode : undefined,
+           [TransferrableKeys.pageX]: 'pageX' in event ? event.pageX : undefined,
+           [TransferrableKeys.pageY]: 'pageY' in event ? event.pageY : undefined,
+@@ -164,9 +164,10 @@ export const EventSubscriptionProcessor: CommandExecutorInterface = (strings, no
+     if (target === nodeContext.baseElement) {
+       if (addEvent) {
+         const preventDefault = Boolean(mutations[iterator + AddEventRegistrationIndex.WorkerDOMPreventDefault]);
+-        addEventListener(type, (knownListeners[eventIndex] = eventHandler(BASE_ELEMENT_INDEX, preventDefault)));
++        target.addEventListener(type, (knownListeners[eventIndex] = eventHandler(BASE_ELEMENT_INDEX, preventDefault)));
++        removers.push(() => target.removeEventListener(type, knownListeners[eventIndex]));
+       } else {
+-        removeEventListener(type, knownListeners[eventIndex]);
++        target.removeEventListener(type, knownListeners[eventIndex]);
+       }
+       return;
+     }
+@@ -180,6 +181,7 @@ export const EventSubscriptionProcessor: CommandExecutorInterface = (strings, no
+       }
+       const preventDefault = Boolean(mutations[iterator + AddEventRegistrationIndex.WorkerDOMPreventDefault]);
+       (target as HTMLElement).addEventListener(type, (knownListeners[eventIndex] = eventHandler(target._index_, preventDefault)));
++      removers.push(() => target.removeEventListener(type, knownListeners[eventIndex]));
+     } else {
+       if (isChangeEvent) {
+         inputEventSubscribed = false;
+@@ -211,9 +213,9 @@ export const EventSubscriptionProcessor: CommandExecutorInterface = (strings, no
+         if (target) {
+           let iterator = startPosition + EventSubscriptionMutationIndex.Events;
+           while (iterator < endPosition) {
+-            const isRemoveEvent = iterator <= addEventListenersPosition;
+-            processListenerChange(target, isRemoveEvent, mutations, iterator);
+-            iterator += isRemoveEvent ? REMOVE_EVENT_SUBSCRIPTION_LENGTH : ADD_EVENT_SUBSCRIPTION_LENGTH;
++            const isAddEvent = iterator >= addEventListenersPosition;
++            processListenerChange(target, isAddEvent, mutations, iterator);
++            iterator += isAddEvent ? ADD_EVENT_SUBSCRIPTION_LENGTH : REMOVE_EVENT_SUBSCRIPTION_LENGTH;
+           }
+         } else {
+           console.error(`getNode(${targetIndex}) is null.`);
+@@ -239,7 +241,7 @@ export const EventSubscriptionProcessor: CommandExecutorInterface = (strings, no
+ 
+       let iterator = startPosition + EventSubscriptionMutationIndex.Events;
+       while (iterator < endPosition) {
+-        const isRemoveEvent = iterator <= addEventListenersPosition;
++        const isRemoveEvent = iterator < addEventListenersPosition;
+         const eventList = isRemoveEvent ? addedEventListeners : removedEventListeners;
+         eventList.push({
+           type: strings.get(mutations[iterator]),
+
+diff --git a/src/main-thread/nodes.ts b/src/main-thread/nodes.ts
+index 79ca0c7..d3e78cb 100644
+--- a/src/main-thread/nodes.ts
++++ b/src/main-thread/nodes.ts
+@@ -43,6 +43,7 @@ export class NodeContext {
+   }
+ 
+   public createNodes = (buffer: ArrayBuffer, sanitizer?: Sanitizer): void => {
++    const document = this.baseElement.ownerDocument;
+     const nodeBuffer = new Uint16Array(buffer);
+     const nodeBufferLength = nodeBuffer.length;
+ 
+@@ -117,7 +118,10 @@ export class NodeContext {
+    * @param id
+    */
+   private storeNode(node: Node, id: number): void {
++    if (this.nodes.size >= 512 || id > 2048 || this.nodes.has(id)) throw new Error('probeNodeBudgetOrDuplicate');
+     (node as Node)._index_ = id;
+     this.nodes.set(id, node as Node);
+   }
++
++  public dispose(): void { this.nodes.clear(); }
+ }
+
+diff --git a/src/main-thread/serialize.ts b/src/main-thread/serialize.ts
+index e9d7ec1..4b5aca2 100644
+--- a/src/main-thread/serialize.ts
++++ b/src/main-thread/serialize.ts
+@@ -27,7 +27,7 @@ function createHydrateableNode(
+     [TransferrableKeys.childNodes]: filteredChildNodes.map((child: RenderableElement) =>
+       createHydrateableNode(child, minimizeString, hydrateFilter, workerContext),
+     ),
+-    [TransferrableKeys.attributes]: [].map.call(element.attributes || [], (attribute: Attr) => [
++    [TransferrableKeys.attributes]: Array.from(element.attributes || [], (attribute: Attr): [number, number, number] => [
+       minimizeString(attribute.namespaceURI || 'null'),
+       minimizeString(attribute.name),
+       minimizeString(attribute.value),
+
+diff --git a/src/transfer/TransferrableEvent.ts b/src/transfer/TransferrableEvent.ts
+index 8507443..b150903 100644
+--- a/src/transfer/TransferrableEvent.ts
++++ b/src/transfer/TransferrableEvent.ts
+@@ -19,6 +19,9 @@ export interface TransferrableTouchList {
+ }
+ 
+ export interface TransferrableEvent {
++  readonly [TransferrableKeys.data]?: string | null;
++  readonly [TransferrableKeys.inputType]?: string;
++  readonly [TransferrableKeys.isComposing]?: boolean;
+   readonly [TransferrableKeys.index]: number;
+   readonly [TransferrableKeys.bubbles]?: boolean;
+   readonly [TransferrableKeys.cancelable]?: boolean;
+
+diff --git a/src/transfer/TransferrableKeys.ts b/src/transfer/TransferrableKeys.ts
+index 05b720e..6b5c3b3 100644
+--- a/src/transfer/TransferrableKeys.ts
++++ b/src/transfer/TransferrableKeys.ts
+@@ -78,6 +78,8 @@ export const enum TransferrableKeys {
+   propertyEventHandlers = 76,
+   functionIdentifier = 77,
+   functionArguments = 78,
++  inputType = 79,
++  isComposing = 80,
+   // This must always be the last numerically ordered Key, for testing purposes.
+-  END = 78,
++  END = 80,
+ }
+
+diff --git a/src/worker-thread/Event.ts b/src/worker-thread/Event.ts
+index 7e32a72..aea5e36 100644
+--- a/src/worker-thread/Event.ts
++++ b/src/worker-thread/Event.ts
+@@ -174,6 +174,9 @@ export function propagate(global: WorkerDOMGlobalScope): void {
+             timeStamp: event[TransferrableKeys.timeStamp],
+             scoped: event[TransferrableKeys.scoped],
+             keyCode: event[TransferrableKeys.keyCode],
++            data: (event as any)[TransferrableKeys.data],
++            inputType: (event as any)[TransferrableKeys.inputType],
++            isComposing: (event as any)[TransferrableKeys.isComposing],
+             pageX: event[TransferrableKeys.pageX],
+             pageY: event[TransferrableKeys.pageY],
+             offsetX: event[TransferrableKeys.offsetX],
+
+diff --git a/src/worker-thread/index.ts b/src/worker-thread/index.ts
+index 482f9bf..1f34b5c 100644
+--- a/src/worker-thread/index.ts
++++ b/src/worker-thread/index.ts
+@@ -44,6 +44,8 @@ import { Element } from './dom/Element.js';
+ import { rafPolyfill, cafPolyfill } from './AnimationFrame.js';
+ import { HydrateFunction } from './hydrate.js';
+ 
++// Scholoom probe: transport is supplied before constructing the source document.
++export function createWorkerDOM(postMessage: Document['postMessage'], addEventListener: Function, removeEventListener: Function) {
+ const globalScope: GlobalScope = {
+   innerWidth: 0,
+   innerHeight: 0,
+@@ -88,15 +90,15 @@ const globalScope: GlobalScope = {
+   Text,
+   Event: WorkerDOMEvent,
+   MutationObserver,
+-  requestAnimationFrame: self.requestAnimationFrame || rafPolyfill,
+-  cancelAnimationFrame: self.cancelAnimationFrame || cafPolyfill,
++  requestAnimationFrame: rafPolyfill,
++  cancelAnimationFrame: cafPolyfill,
+ };
+ 
+ const noop = () => void 0;
+ 
+ // WorkerDOM.Document.defaultView ends up being the window object.
+ // React requires the classes to exist off the window object for instanceof checks.
+-export const workerDOM = (function (postMessage, addEventListener, removeEventListener) {
++return (function (postMessage, addEventListener, removeEventListener) {
+   const document = new Document(globalScope);
+   // TODO(choumx): Avoid polluting Document's public API.
+   document.postMessage = postMessage;
+@@ -106,13 +108,14 @@ export const workerDOM = (function (postMessage, addEventListener, removeEventLi
+   // TODO(choumx): Remove once defaultView contains all native worker globals.
+   // Canvas's use of native OffscreenCanvas checks the existence of the property
+   // on the WorkerDOMGlobalScope.
+-  globalScope.OffscreenCanvas = (self as any)['OffscreenCanvas'];
+-  globalScope.ImageBitmap = (self as any)['ImageBitmap'];
++  globalScope.OffscreenCanvas = undefined;
++  globalScope.ImageBitmap = undefined;
+ 
+   document.isConnected = true;
+   document.appendChild((document.body = document.createElement('body')));
+ 
+   return document.defaultView;
+-})(postMessage.bind(self) || noop, addEventListener.bind(self) || noop, removeEventListener.bind(self) || noop);
++})(postMessage, addEventListener, removeEventListener);
++}
+ 
+ export const hydrate: HydrateFunction = initialize;
+
+diff --git a/src/worker-thread/MutationTransfer.ts b/src/worker-thread/MutationTransfer.ts
+index 9653342..ddcc0c0 100644
+--- a/src/worker-thread/MutationTransfer.ts
++++ b/src/worker-thread/MutationTransfer.ts
+@@ -18,6 +18,7 @@ export function transfer(document: Document | DocumentStub, mutation: Array<numb
+   }
+ 
+   if (phase > Phase.Initializing && document[TransferrableKeys.allowTransfer]) {
++    if (pendingMutations.length + mutation.length > 32768 || mutation.some((value) => !Number.isInteger(value) || value < 0 || value > 65535)) throw new Error('probeMutationBudgetOrU16');
+     pending = true;
+     pendingMutations = pendingMutations.concat(mutation);
+ 
+
+diff --git a/src/worker-thread/nodes.ts b/src/worker-thread/nodes.ts
+index 0049647..d1462ad 100644
+--- a/src/worker-thread/nodes.ts
++++ b/src/worker-thread/nodes.ts
+@@ -42,6 +42,7 @@ export function store(node: Node): number {
+     return node[TransferrableKeys.index];
+   }
+ 
++  if (count >= 512 || transfer.length >= 512) throw new Error('probeNodeBudget');
+   mapping.set((node[TransferrableKeys.index] = ++count), node);
+   if (phase > Phase.Initializing) {
+     // After Initialization, include all future dom node creation into the list for next transfer.
+
+diff --git a/src/worker-thread/strings.ts b/src/worker-thread/strings.ts
+index ba73a70..5440048 100644
+--- a/src/worker-thread/strings.ts
++++ b/src/worker-thread/strings.ts
+@@ -1,6 +1,7 @@
+ let count: number = 0;
+ let transfer: Array<string> = [];
+ const mapping: Map<string, number> = new Map();
++let totalBytes = 0;
+ 
+ /**
+  * Stores a string in mapping and returns the index of the location.
+@@ -18,6 +19,9 @@ export function store(value: string): number {
+     return mapping.get(value) as number;
+   }
+ 
++  const bytes = new TextEncoder().encode(value).byteLength;
++  if (count >= 1024 || totalBytes + bytes > 65536) throw new Error('probeStringBudget');
++  totalBytes += bytes;
+   mapping.set(value, count);
+   transfer.push(value);
+   return count++;

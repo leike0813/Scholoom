@@ -1,0 +1,31 @@
+{
+  "extends": "../../../apps/desktop/tsconfig.json",
+  "compilerOptions": {
+    "types": ["node"],
+    "typeRoots": ["../../../node_modules/@types"],
+    "allowJs": true,
+    "checkJs": false,
+    "skipLibCheck": true,
+    "useDefineForClassFields": false,
+    "noUncheckedIndexedAccess": false,
+    "exactOptionalPropertyTypes": false,
+    "verbatimModuleSyntax": false,
+    "strictPropertyInitialization": false,
+    "strictFunctionTypes": false,
+    "useUnknownInCatchVariables": false
+  },
+  "files": [
+    "../../../node_modules/vite/client.d.ts",
+    "vendor/src/main-thread/main-thread.d.ts",
+    "vendor/src/worker-thread/worker-thread.d.ts"
+  ],
+  "include": [
+    "entry.tsx",
+    "receiver.ts",
+    "source.ts",
+    "controller.ts",
+    "probe.spec.ts",
+    "sample.js",
+    "../../../apps/desktop/src/renderer/src/**/*.d.ts"
+  ]
+}
