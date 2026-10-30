@@ -11,6 +11,7 @@ import type {
   CallContext,
   ResourceDescriptor,
   ResourceLibraryPort,
+  ResourceProjectPort,
 } from '../../packages/protocol/dist/index.js';
 import { epubFixture, htmlFixture } from '../document-fixture.js';
 import { createModelServer } from '../model-server.js';
@@ -131,7 +132,9 @@ for (const revocation of ['library-send', 'target-instance'] as const) {
         trust: 'trusted',
       });
       const target = app.projects.get(targetProject.id);
-      const other = await target.save('other.md', 'target evidence');
+      const targetContent = `${'x'.repeat(262144)}目标😀尾段\n`;
+      await writeFile(join(target.project.path, 'other.md'), targetContent);
+      const other = await target.material('other.md');
       assert(saved.fileId && other.fileId);
       const session = await app.call('session.create', { projectId: project.project.id });
       await app.call('session.send', {
@@ -178,8 +181,13 @@ for (const revocation of ['library-send', 'target-instance'] as const) {
       });
       expect(foreign.basis).toBe(openedForeign.basis);
       expect(
-        await port.read({ ref: openedForeign.ref, basis: openedForeign.basis, encoding: 'utf8' }),
-      ).toMatchObject({ data: 'target evidence' });
+        await port.read({
+          ref: openedForeign.ref,
+          basis: openedForeign.basis,
+          encoding: 'utf8',
+          offset: 262144,
+        }),
+      ).toMatchObject({ data: '目标😀尾段\n', size: targetContent.length, truncated: false });
       expect(foreign.capabilities.write).toBe(false);
       await expect(
         port.create({
@@ -197,7 +205,8 @@ for (const revocation of ['library-send', 'target-instance'] as const) {
       ).rejects.toMatchObject({ code: 'permissionDenied' });
       await app.call('library.grant', { read: true, write: true, send: false, autoBackup: false });
       const path = join(root, 'material.md');
-      await writeFile(path, 'library evidence');
+      const libraryContent = `${'x'.repeat(262143)}😀中\n独立库尾段`;
+      await writeFile(path, libraryContent);
       const batch = await app.call('library.importFiles', {
         batchId: randomUUID(),
         paths: [path],
@@ -220,8 +229,12 @@ for (const revocation of ['library-send', 'target-instance'] as const) {
       await expect(port.describe(ref)).rejects.toMatchObject({ code: 'permissionDenied' });
       await app.call('library.grant', { read: true, write: true, send: true, autoBackup: false });
       const library = await port.describe(ref);
-      expect(await port.read({ ref, basis: library.basis, encoding: 'utf8' })).toMatchObject({
-        data: 'library evidence',
+      expect(
+        await port.read({ ref, basis: library.basis, encoding: 'utf8', offset: 262143 }),
+      ).toMatchObject({
+        data: '😀中\n独立库尾段',
+        size: libraryContent.length,
+        truncated: false,
       });
       await expect(
         port.describe({ ...ref, materialVersionId: randomUUID() }),
@@ -265,7 +278,7 @@ for (const revocation of ['library-send', 'target-instance'] as const) {
           join(root, revocation === 'target-instance' ? 'moved' : 'target', 'other.md'),
           'utf8',
         ),
-      ).toBe('target evidence');
+      ).toBe(targetContent);
     } finally {
       model.release();
       await app.close();
@@ -631,6 +644,223 @@ test('common resources preserve ownership, text offsets, conditional saves and l
     await app.close();
   }
 });
+
+for (const source of ['project', 'library'] as const) {
+  test(`${source} UTF8 ranges reach known long tails and reject invalid or oversized bytes`, async () => {
+    const root = await mkdtemp(join(tmpdir(), 'scholoom-resource-text-'));
+    const app = new ManualApplication(join(root, 'profile'));
+    await app.initialize();
+    try {
+      const project = await app.call('project.create', {
+        path: join(root, 'project'),
+        trust: 'restricted',
+      });
+      await app.call('library.grant', { read: true, write: true, send: false, autoBackup: false });
+      const describe = async (name: string, bytes: Buffer) => {
+        const path = join(project.path, name);
+        await writeFile(path, bytes);
+        if (source === 'project')
+          return app.call('resources.describe', {
+            locator: { source, projectId: project.id, path: name },
+          });
+        const batch = await app.call('library.importFiles', {
+          batchId: randomUUID(),
+          paths: [path],
+          storage: 'linked',
+          purpose: '正文',
+          version: 'unspecified',
+          origin: 'resource-text-test',
+        });
+        await expect
+          .poll(async () => (await app.call('library.batch', { batchId: batch.id })).batch.state)
+          .toBe('completed');
+        const entry = (await app.call('library.batch', { batchId: batch.id })).entries[0];
+        assert(entry?.attachmentId);
+        const attachment = await app.call('library.attachment', {
+          attachmentId: entry.attachmentId,
+        });
+        return app.call('resources.describe', {
+          locator: {
+            source,
+            attachmentId: attachment.id,
+            materialVersionId: attachment.materialVersionId,
+          },
+        });
+      };
+      const content = `${'a'.repeat(262143)}😀中\n${'b'.repeat(64)}独立尾段 Ω\n`;
+      const resource = await describe('long.md', Buffer.from(content));
+      const read = (offset: number, limit?: number) =>
+        app.call('resources.read', {
+          ref: resource.ref,
+          basis: resource.basis,
+          encoding: 'utf8',
+          offset,
+          ...(limit === undefined ? {} : { limit }),
+        });
+      const prefix = await read(0);
+      expect(prefix).toMatchObject({
+        size: content.length,
+        nextOffset: 262144,
+        truncated: false,
+        unit: 'utf16',
+      });
+      expect(prefix.data).toHaveLength(262144);
+      expect(await read(262143, 4)).toMatchObject({
+        data: '😀中\n',
+        nextOffset: 262147,
+        size: content.length,
+      });
+      const tail = await read(262211);
+      expect(tail).toMatchObject({
+        ref: resource.ref,
+        basis: resource.basis,
+        data: '独立尾段 Ω\n',
+        offset: 262211,
+        size: content.length,
+        truncated: false,
+      });
+      expect(tail.nextOffset).toBeUndefined();
+      expect(await read(content.length)).toMatchObject({ data: '', size: content.length });
+      await expect(read(content.length + 1)).rejects.toMatchObject({ code: 'invalidRequest' });
+      await writeFile(join(project.path, 'long.md'), `${content}changed`);
+      await expect(read(262211)).rejects.toMatchObject({ code: 'contentChanged' });
+      for (const [name, bytes] of [
+        ['invalid.md', Buffer.concat([Buffer.alloc(262144, 0x61), Buffer.from([0xff])])],
+        ['incomplete.md', Buffer.from([0x61, 0xe2, 0x82])],
+        ['nul.md', Buffer.from([0x61, 0, 0x62])],
+        ['oversized.md', Buffer.alloc(8 * 1024 * 1024 + 1, 0x61)],
+      ] as const) {
+        const invalid = await describe(name, bytes);
+        await expect(
+          app.call('resources.read', {
+            ref: invalid.ref,
+            basis: invalid.basis,
+            encoding: 'utf8',
+            limit: 1,
+          }),
+        ).rejects.toMatchObject({ code: name === 'oversized.md' ? 'tooLarge' : 'invalidRequest' });
+        const raw = await app.call('resources.read', {
+          ref: invalid.ref,
+          basis: invalid.basis,
+          encoding: 'base64',
+          offset: bytes.length - 1,
+          limit: 1,
+        });
+        expect(Buffer.from(raw.data, 'base64')).toEqual(bytes.subarray(-1));
+        expect(raw).toMatchObject({ size: bytes.length, unit: 'byte', truncated: false });
+        expect(raw.nextOffset).toBeUndefined();
+      }
+      if (source === 'project') {
+        const maximum = await describe('maximum.md', Buffer.alloc(8 * 1024 * 1024, 0x61));
+        const result = await app.call('resources.read', {
+          ref: maximum.ref,
+          basis: maximum.basis,
+          encoding: 'utf8',
+          offset: 8 * 1024 * 1024 - 4,
+        });
+        expect(result).toMatchObject({ data: 'aaaa', size: 8 * 1024 * 1024, truncated: false });
+        expect(result.nextOffset).toBeUndefined();
+      }
+    } finally {
+      await app.close();
+    }
+  });
+}
+
+for (const invalidation of ['change', 'revoke', 'cancel'] as const) {
+  test(`UTF8 snapshot rejects ${invalidation} between real library byte ranges`, async () => {
+    const root = await mkdtemp(join(tmpdir(), 'scholoom-resource-text-race-'));
+    const app = new ManualApplication(join(root, 'profile'));
+    await app.initialize();
+    let release!: () => void;
+    let entered!: () => void;
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const waiting = new Promise<void>((resolve) => {
+      entered = resolve;
+    });
+    const controller = new AbortController();
+    let reading: Promise<unknown> | undefined;
+    try {
+      await app.call('library.grant', { read: true, write: true, send: false, autoBackup: false });
+      const path = join(root, 'long.md');
+      await writeFile(path, `${'x'.repeat(262144)}独立尾段`);
+      const batch = await app.call('library.importFiles', {
+        batchId: randomUUID(),
+        paths: [path],
+        storage: 'linked',
+        purpose: '正文',
+        version: 'unspecified',
+        origin: 'resource-text-race',
+      });
+      await expect
+        .poll(async () => (await app.call('library.batch', { batchId: batch.id })).batch.state)
+        .toBe('completed');
+      const entry = (await app.call('library.batch', { batchId: batch.id })).entries[0];
+      assert(entry?.attachmentId);
+      const attachment = await app.call('library.attachment', { attachmentId: entry.attachmentId });
+      const resource = await app.call('resources.describe', {
+        locator: {
+          source: 'library',
+          attachmentId: attachment.id,
+          materialVersionId: attachment.materialVersionId,
+        },
+      });
+      // Only the byte delivery timing is controlled; library identity, bytes and grants are real.
+      const access = new ResourceAccess(
+        () => ({
+          project: {} as ResourceProjectPort,
+          library: {
+            'library.readAttachment': async (input) => {
+              const value = await app.call('library.readAttachment', input);
+              if (input.limit !== 1 && (input.offset ?? 0) === 0) {
+                entered();
+                await held;
+              }
+              return value;
+            },
+          } as ResourceLibraryPort,
+        }),
+        {
+          run: async () => {
+            throw new Error('unused parser');
+          },
+        },
+      );
+      reading = access.read(
+        { ref: resource.ref, basis: resource.basis, encoding: 'utf8', offset: 262144 },
+        {
+          moduleId: 'test',
+          role: 'product',
+          principal: { kind: 'human', id: 'reader' },
+          signal: controller.signal,
+        },
+      );
+      const rejected = expect(reading).rejects.toMatchObject(
+        invalidation === 'cancel'
+          ? { name: 'AbortError' }
+          : { code: invalidation === 'change' ? 'contentChanged' : 'permissionDenied' },
+      );
+      await waiting;
+      if (invalidation === 'change') await writeFile(path, 'changed');
+      else if (invalidation === 'revoke')
+        await app.call('library.grant', {
+          read: false,
+          write: false,
+          send: false,
+          autoBackup: false,
+        });
+      else controller.abort();
+      release();
+      await rejected;
+    } finally {
+      release();
+      await reading?.catch(() => {});
+      await app.close();
+    }
+  });
+}
 
 test('project and library PDF, EPUB and HTML share parsing payloads and bounded content', async () => {
   test.setTimeout(90000);
