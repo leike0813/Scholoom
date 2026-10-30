@@ -1,5 +1,6 @@
 import type { FromSchema } from 'json-schema-to-ts';
 import { compileContract } from './core.js';
+import { resourceEvidenceSchema } from './resource-contracts.js';
 import { array, count, flag, id, object, ok, page, text } from './schema.js';
 
 export const effortSchema = { enum: ['low', 'medium', 'high', 'xhigh', 'max'] } as const;
@@ -131,7 +132,10 @@ export const isModelDescriptor = (value: unknown): value is ModelDescriptor =>
 
 export const modelAdmissionOperations = {
   'model.acquire': {
-    params: object({}, []),
+    params: object(
+      { materials: { type: 'array', items: resourceEvidenceSchema, maxItems: 1000 } },
+      [],
+    ),
     result: object({ leaseId: id }, ['leaseId']),
     semantics: { effect: 'write', returns: 'reference', waitMs: 180000 },
   },

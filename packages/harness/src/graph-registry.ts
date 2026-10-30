@@ -12,6 +12,7 @@ import {
   type InstructionContext,
   registeredGraphSchema,
 } from '@scholoom/protocol/execution';
+import type { ResourceEvidence } from '@scholoom/protocol/resources';
 import type { InstructionSaver } from './checkpoint.js';
 
 const definitionContract = compileContract({ params: graphDefinitionSchema, result: true });
@@ -32,6 +33,8 @@ export type AgentState = {
 export type AgentNodeOptions = {
   tools: readonly string[];
   systemPrompt: string;
+  /** Trusted source scope for this node; previously consumed context is always reauthorized. */
+  materials?: readonly ResourceEvidence[];
   /** Runs before SDK result offloading; source factories may reject an oversized reply. */
   prepareToolResult?(name: string, args: Record<string, unknown>, result: string): string;
 };

@@ -15,7 +15,10 @@ export const agentGraphs = new ExecutionGraphs([
       requiresModel: true,
       configSchema: {
         type: 'object',
-        properties: { boundedTools: { type: 'boolean' } },
+        properties: {
+          boundedTools: { type: 'boolean' },
+          scopedMaterials: { type: 'boolean' },
+        },
         additionalProperties: false,
       },
     },
@@ -38,6 +41,7 @@ export const agentGraphs = new ExecutionGraphs([
           );
           return agent.invoke(value, config, {
             tools: input.graph.config.boundedTools ? ['read_context_resource'] : ['write_file'],
+            ...(input.graph.config.scopedMaterials ? { materials: [] } : {}),
             ...(input.graph.config.boundedTools
               ? {
                   prepareToolResult(_name, _args, result) {

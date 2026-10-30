@@ -19,7 +19,11 @@ const Database = createRequire(new URL('../../packages/harness/package.json', im
   'better-sqlite3',
 );
 
-async function agentFixture(respond: ModelServerOptions['respond'], boundedTools = false) {
+async function agentFixture(
+  respond: ModelServerOptions['respond'],
+  boundedTools = false,
+  scopedMaterials = false,
+) {
   const root = await mkdtemp(join(tmpdir(), 'registered-agent-protection-'));
   const model = await createModelServer({ ...(respond ? { respond } : {}) });
   // @ts-expect-error Trusted source registration shared with the actual worker.
@@ -49,7 +53,10 @@ async function agentFixture(respond: ModelServerOptions['respond'], boundedTools
           kind: 'registered',
           graphId: 'registered-agent',
           version: '1',
-          config: boundedTools ? { boundedTools: true } : {},
+          config: {
+            ...(boundedTools ? { boundedTools: true } : {}),
+            ...(scopedMaterials ? { scopedMaterials: true } : {}),
+          },
           materials,
           workDomain: { kind: 'project', ...scope },
         },
@@ -110,6 +117,67 @@ for (const oversized of [false, true]) {
         expect(received).toContain(content);
         expect(received).toContain(resource.basis);
       }
+    } finally {
+      await f.app.close();
+      await f.model.close();
+    }
+  });
+}
+
+for (const scenario of ['original', 'exclude-unread', 'retain-read-history'] as const) {
+  test(`registered Agent authorizes the effective model scope (${scenario})`, async () => {
+    const reads = scenario === 'retain-read-history';
+    let evidence: ResourceEvidence;
+    const f = await agentFixture(
+      async ({ calls }) =>
+        reads && !calls.includes('read_context_resource')
+          ? {
+              tool: {
+                name: 'read_context_resource',
+                input: { ...evidence, encoding: 'utf8', limit: 4096 },
+              },
+            }
+          : { text: 'Finished the authorized scope.' },
+      reads,
+      scenario !== 'original',
+    );
+    try {
+      const saved = await f.app.call('files.save', {
+        projectId: f.project.id,
+        path: 'scope.txt',
+        content: 'Original source that must not bypass history authorization.',
+      });
+      assert(saved.fileId);
+      const descriptor = await f.app.call('resources.describe', {
+        locator: { source: 'project', projectId: f.project.id, fileId: saved.fileId },
+      });
+      const sourceFileId = saved.fileId;
+      evidence = { ref: descriptor.ref, basis: descriptor.basis };
+      const execution = f.app.models.execution.bind(f.app.models);
+      let acquisitions = 0;
+      f.app.models.execution = async (...args) => {
+        const model = await execution(...args);
+        return {
+          ...model,
+          acquire: async () => {
+            if (++acquisitions === (reads ? 2 : 1)) {
+              const trashed = await f.app.call('files.trash', {
+                projectId: f.project.id,
+                path: 'scope.txt',
+                operationId: randomUUID(),
+                expectedFileId: sourceFileId,
+              });
+              expect(trashed.state).toBe('complete');
+            }
+            return model.acquire();
+          },
+        };
+      };
+      await f.start([evidence]);
+      await expect
+        .poll(async () => (await f.app.snapshot(f.scope)).run?.state, { timeout: 20000 })
+        .toBe(scenario === 'exclude-unread' ? 'completed' : 'failed');
+      expect(f.model.requests).toHaveLength(reads || scenario === 'exclude-unread' ? 1 : 0);
     } finally {
       await f.app.close();
       await f.model.close();

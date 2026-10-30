@@ -84,7 +84,12 @@ export function startExecutionWorker(graphs = new ExecutionGraphs()): void {
     inheritedSaver?: InstructionSaver,
   ) => {
     const model = createExecutionModel(input.model, signal.signal, {
-      acquire: async () => (await callExecutionControl(peer, 'model.acquire', {})).leaseId,
+      acquire: async () =>
+        (
+          await callExecutionControl(peer, 'model.acquire', {
+            ...(selection?.materials ? { materials: [...selection.materials] } : {}),
+          })
+        ).leaseId,
       release: (leaseId) => {
         void callExecutionControl(peer, 'model.release', { leaseId }).catch(() => signal.abort());
       },

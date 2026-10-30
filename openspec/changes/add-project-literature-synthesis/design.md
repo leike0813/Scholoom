@@ -48,6 +48,8 @@ flowchart LR
 
 共享Agent的源码本地`AgentNodeOptions.prepareToolResult(name,args,result):string`在原execution.custom结果返回后、SDK转存前执行，不进入公共wire或授权。图线用它拒绝超过32KiB的完整返回或超过4096 UTF16的正文，返回明确缩小范围的错误；有效结果保留原字节。contentReads从实际Agent ToolMessage及对应调用参数重建，包含原子任务恢复后的已持久结果，不能只依赖内存callback或模型自述；错误／offload路径不登记正文。后续图节点仍使用原consumer/config及完整instruction channels，首次同时seed原HumanMessage。
 
+源码节点还可提供`AgentNodeOptions.materials`作为当前模型所需范围；原model.acquire将该可选Evidence数组交所属registered宿主，以每次acquire的异步上下文贯穿原ModelAccess排队前后及同步授权检查。未提供保持原完整graph.materials，普通Agent不开放该接缝；范围不存为新授权或替代原调用。已实际取回的会话instructionEvidence始终保留全部授权检查，不能移除范围后继续外发旧正文。因此可以在真实选择后排除尚未读取的失败来源；已经读取的来源撤权／删除使历史上下文不再可外发时，当前会话仍须阻止模型，保留成果并诊断需要新的安全语境，不能伪称缩范围已消除旧内容。
+
 科研描述的delivery可显式声明`inputReadMode:'content-ranges'`；未声明的旧图继续完整文本核查。新模式核实际progress中原basis非空text／PDF页／规范化章节，并以原权限和base64单字节读取核当前仍可读；此查询不登记运行时消费。可信源码图的inputs表达有效研究范围，原调用保留原始清单，新增实际reads／contentReads的资源同样核查。正常题录条件及用户明确排除的材料保存在真实过程；来源异常只有经真实等待和明确选择才能移出有效范围。搜索／目录／字节或查询时重读不能替代正文，成果仍要求完整非空读回；机械usable不表示研究判断合格。
 
 ### 共用 Agent 与精确消费恢复

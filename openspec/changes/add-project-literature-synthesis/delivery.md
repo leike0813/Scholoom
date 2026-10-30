@@ -1,5 +1,15 @@
 # 实际交付与交接
 
+## 有效材料准入及任务导航接收（2026-10-30）
+
+任务线f86b152接为a16d0e3：实际报告／过程导航沿原TaskRef、工作项和CAS合并，只按role／workItem／fileId匹配并更新basis，保原graph-call、其他链接、开放正文与任务状态。CAS／unknown当次保持失败或未知；明确再调用只读取并补关系，不重生成或重保存研究文件。作者真实worker五项5/5及窄边界1/1分次通过；主线核源码／原日志后实跑首次链接、同file更新及旧调用代表1/1（29.4秒）通过。初次主线grep未匹配而No tests found已保留，不计产品失败或通过。准确helper已用apply_patch送图线，cmp相同，没有覆盖其既有写集。
+
+图线发现当前模型仍强制重核全部初始材料，导致明确排除未读失效来源也不能继续。主线增加源码节点materials可选范围，经原model.acquire、registered-only acquireModel和每次申请的AsyncLocalStorage贯穿原ModelAccess；未传仍查原材料，普通Agent不开放该范围。实际转交在prepared的类型及RemoteAgent装配均保留，排队前后及同步确认都核本次原范围；已读会话instructionEvidence、库read/send、目标项目和实例资格始终保留，不因缩范围清除旧正文授权。
+
+新真实代表3/3（33.1秒）核原模式拒绝已删除输入、空scope排除未读来源、空scope不能外发已读后删除的正文；原工具小／大返回及root-ack恢复3/3（43.4秒）。最初trash漏operationId的调用错误、之后有效旧实现红例、第一轮漏转交acquireModel及类型Pick的失败均保留，不把准备错误当回归依据。最终相关shared／harness／kernel构建exit0；普通tools与WorkerDOM独立项目类型、Biome（原runtime六项warning未清理）和架构均exit0，最终整合日志为model-scope-tools-integrated.log、worker-dom-types-integrated.log及model-scope-architecture-final.log。旧types-final中的实验vendor／导航声明错误由后续独立项目配置和实际kernel构建解决，不改写旧日志。
+
+独立gpt-6.1-sol／high对scope／真实ModelAccess队列绑定及导航复核，无确证P1/P2；独立9/9及真实ModelAccess空／非空并发排队、撤权、取消和名额回收断言通过。报告model-scope-navigation-review.md。此前prepareToolResult／content-ranges接缝独审14/14及普通Agent原读取已另通过。均只有受控外部HTTP，不是真实科研模型；题录和已读库撤权的全部组合、整worker取消及完整业务Graph用户选择不由这些局部验收覆盖。3.2与5.1需真实业务消费者后再判完成，当前仍6/12。
+
 ## 业务图接缝与第二波接口（2026-10-30）
 
 主线在原2.1基础上增加源码本地prepareToolResult接点：原execution.custom已返回的字符串在进入SDK前交可信factory处理；普通Agent未配置该接点时保持原返回。新实际受控HTTP代表2/2核小结果原正文／basis不变，以及98KiB响应在SDK80,000字符转存前变成明确tooLarge，模型没有取得正文或临时路径。连同原pending-writes恢复代表最终3/3（38.9秒）；最初harness构建有unknown参数类型错误，使用已校验call中的args修正，最终构建exit0。早先2/2使用TypeScript错误时已发出的产物，不当完整构建证据；最终日志为tool-result-final-tests.log及source-graph-export-build.log。

@@ -54,6 +54,9 @@ export function publishExecutionStage(
 type RemoteOptions = {
   diagnosticScope?: DiagnosticScope;
   model?: ModelExecution;
+  acquireModel?: (
+    materials: ExecutionControlInputs['model.acquire']['materials'],
+  ) => Promise<string>;
   backend: BackendProtocolV2;
   middleware?: AgentOptions['middleware'];
   systemPrompt?: string;
@@ -317,10 +320,14 @@ export class RemoteAgent {
           })),
         };
       },
-      'model.acquire': async () => {
+      'model.acquire': async ({ materials }) => {
         if (!options.model)
           throw new OperationError('credentialUnavailable', '本图没有模型执行资格。');
-        const lease = await options.model.acquire();
+        if (materials && !options.acquireModel)
+          throw new OperationError('permissionDenied', '执行未开放源码图模型范围。');
+        const lease = options.acquireModel
+          ? await options.acquireModel(materials)
+          : await options.model.acquire();
         try {
           options.signal.throwIfAborted();
           options.authorize?.();

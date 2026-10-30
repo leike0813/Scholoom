@@ -1626,6 +1626,7 @@ export class Harness {
         }
       };
       let progress: GraphProgress | undefined;
+      const modelScope = new AsyncLocalStorage<readonly ResourceEvidence[]>();
       const model = run.modelConfig
         ? await this.model.execution(
             async () => {
@@ -1639,7 +1640,7 @@ export class Harness {
               );
               if (!this.executionResources)
                 throw new OperationError('unavailable', '图资源提供者不可用。');
-              for (const evidence of graph.materials) {
+              for (const evidence of modelScope.getStore() ?? graph.materials) {
                 const descriptor = await this.executionResources(context).describe(evidence.ref);
                 if (descriptor.basis !== evidence.basis)
                   throw new OperationError('contentChanged', '图材料已变化。');
@@ -1677,7 +1678,10 @@ export class Harness {
                 .where(eq(tables.meta.key, `library-context:${run.sessionId}`))
                 .get();
               resources.check(
-                [...graph.materials, ...this.instructionEvidence(project, run.sessionId)],
+                [
+                  ...(modelScope.getStore() ?? graph.materials),
+                  ...this.instructionEvidence(project, run.sessionId),
+                ],
                 libraryUsed,
               );
               const targets = JSON.parse(
@@ -1698,7 +1702,13 @@ export class Harness {
       const executionResources = this.executionResources;
       const remoteOptions = {
         diagnosticScope: { projectId: project.id, sessionId: run.sessionId, runId: run.id },
-        ...(model ? { model } : {}),
+        ...(model
+          ? {
+              model,
+              acquireModel: (materials: readonly ResourceEvidence[] | undefined) =>
+                modelScope.run(materials ?? graph.materials, () => model.acquire()),
+            }
+          : {}),
         backend: new ProjectBackend(
           this.projectFiles(context),
           project.id,
@@ -1863,7 +1873,7 @@ export class Harness {
       model: Awaited<ReturnType<ModelAccess['execution']>>;
       remote: Pick<
         ConstructorParameters<typeof RemoteAgent>[0],
-        'registered' | 'confirm' | 'onGraph' | 'resources'
+        'registered' | 'confirm' | 'onGraph' | 'resources' | 'acquireModel'
       >;
     },
   ): Promise<void> {
@@ -2823,6 +2833,9 @@ export class Harness {
                 confirm: prepared.remote.confirm,
                 onGraph: prepared.remote.onGraph,
                 resources: prepared.remote.resources,
+                ...(prepared.remote.acquireModel
+                  ? { acquireModel: prepared.remote.acquireModel }
+                  : {}),
               }
             : {}),
           middleware: [instructionMiddleware, createToolMiddleware(run.id, inFlightTools)],
