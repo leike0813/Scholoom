@@ -1,8 +1,8 @@
 // Explicit synthetic catalog: no production or user library connection.
-const { app } = require('electron');
+const { app, BrowserWindow } = require('electron');
 const { join } = require('node:path');
 const { pathToFileURL } = require('node:url');
-const { mkdirSync } = require('node:fs');
+const { mkdirSync, writeFileSync } = require('node:fs');
 const { createCatalog } = require('./catalog.cjs');
 const root = join(__dirname, '../../..');
 const { ZoteroHost } = require(join(root, 'apps/zotero-host/out/main/host.cjs'));
@@ -31,6 +31,18 @@ app.on('window-all-closed', () => {});
     rendererDirectory: join(root, 'apps/zotero-host/out/renderer'),
     preload: join(root, 'apps/zotero-host/out/preload/index.cjs'),
   });
+  if (mode === 'startup-interrupt')
+    catalog.zotero.DB.queryAsync = async () => {
+      // Pause the synthetic DB boundary after the original package has entered startup.
+      writeFileSync(
+        join(directory, 'interruption.json'),
+        JSON.stringify({
+          status: host.status(),
+          metrics: app.getAppMetrics().map(({ pid, type }) => ({ pid, type })),
+        }),
+      );
+      await new Promise(() => {});
+    };
   const session = await connectHost(JSON.parse(input), {
     scope: 'injected-adapter',
     async initialize() {
@@ -41,7 +53,28 @@ app.on('window-all-closed', () => {});
       if (method === 'status')
         return { ...host.status(), caller: await callback('sample.authority', {}) };
       if (method === 'fillKeys') return host.fillKeys(input.sources);
-      if (method === 'export') return host.export(input.sources, input.format);
+      if (method === 'export') {
+        if (mode === 'worker-loss') {
+          const contents = BrowserWindow.getAllWindows()[0]?.webContents;
+          if (!contents) throw new Error('Worker window is unavailable');
+          contents.debugger.attach();
+          await contents.debugger.sendCommand('Debugger.enable');
+          await contents.debugger.sendCommand('Debugger.pause');
+          const exporting = host.export(input.sources, input.format);
+          void exporting.catch(() => {});
+          await Promise.resolve();
+          writeFileSync(
+            join(directory, 'interruption.json'),
+            JSON.stringify({
+              status: host.status(),
+              metrics: app.getAppMetrics().map(({ pid, type }) => ({ pid, type })),
+            }),
+          );
+          contents.forcefullyCrashRenderer();
+          return exporting;
+        }
+        return host.export(input.sources, input.format);
+      }
       throw new Error('outside sample operations');
     },
     async shutdown() {

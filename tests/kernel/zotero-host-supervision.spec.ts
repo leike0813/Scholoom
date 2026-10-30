@@ -1,10 +1,10 @@
-import { mkdtemp, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { expect, test } from '@playwright/test';
 import { ManagedCommands } from '../../apps/kernel/dist/commands.js';
 import { HostConnection } from '../../apps/kernel/dist/host-connection.js';
-import { ProcessAdmission } from '../../packages/platform/dist/node.js';
+import { ProcessAdmission, processMayBeAlive } from '../../packages/platform/dist/node.js';
 import { electronTestCommand } from '../fixtures/zotero-host/display.js';
 
 test.skip(process.platform !== 'linux', 'This isolated display fixture validates Linux only');
@@ -27,7 +27,7 @@ const context = {
   role: 'product',
   principal: { kind: 'human', id: 'sample-user' },
 } as const;
-for (const mode of ['normal', 'shutdown-error']) {
+for (const mode of ['normal', 'shutdown-error', 'startup-interrupt', 'worker-loss']) {
   test(`actual managed BBT ${mode} separates plugin shutdown from native scope`, async () => {
     const directory = await mkdtemp(join(tmpdir(), 'scholoom-supervised-bbt-'));
     const packageDirectory = join(directory, 'package');
@@ -42,7 +42,7 @@ for (const mode of ['normal', 'shutdown-error']) {
       },
       () => {},
     );
-    host = new HostConnection({
+    const options: ConstructorParameters<typeof HostConnection>[0] = {
       directory,
       kernelInstanceId: 'sample-kernel',
       scope: 'injected-adapter',
@@ -80,8 +80,48 @@ for (const mode of ['normal', 'shutdown-error']) {
           return caller.principal.id;
         },
       },
-    });
+    };
+    host = new HostConnection(options);
     try {
+      if (mode === 'startup-interrupt' || mode === 'worker-loss') {
+        if (mode === 'worker-loss') expect((await host.start()).state).toBe('ready');
+        const rejected = expect(
+          mode === 'startup-interrupt'
+            ? host.start()
+            : host.call('export', { sources: ['sample-preserved'], format: 'bibtex' }, context),
+        ).rejects.toThrow();
+        const path = join(directory, 'interruption.json');
+        await expect.poll(() => readFile(path, 'utf8').then(Boolean, () => false)).toBe(true);
+        const interruption = JSON.parse(await readFile(path, 'utf8')) as {
+          status: { state: string; stage: string };
+          metrics: { pid: number; type: string }[];
+        };
+        expect(interruption.status).toMatchObject(
+          mode === 'startup-interrupt'
+            ? { state: 'starting', stage: 'startup' }
+            : { state: 'ready', stage: 'export' },
+        );
+        expect(interruption.metrics.map(({ type }) => type)).toEqual(
+          expect.arrayContaining(['Browser', 'Tab']),
+        );
+        if (mode === 'startup-interrupt') host.cancel();
+        await rejected;
+        expect(await host.close()).toMatchObject({
+          state: 'unknown',
+          scopeStopped: true,
+          pluginClosed: false,
+        });
+        expect(interruption.metrics.every(({ pid }) => !processMayBeAlive(pid))).toBe(true);
+        expect(admission.status.active).toBe(0);
+        await expect(new HostConnection(options).start()).rejects.toMatchObject({
+          code: 'outcomeUnknown',
+        });
+        await writeFile(
+          test.info().outputPath('interruption.json'),
+          JSON.stringify(interruption, null, 2),
+        );
+        return;
+      }
       expect((await host.start()).state).toBe('ready');
       const sampleStatus = (await host.call('status', {}, context)) as {
         caller: string;
