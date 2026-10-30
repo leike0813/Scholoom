@@ -1766,6 +1766,26 @@ export class ManualApplication {
           throw new OperationError('unavailable', '科研图启动提供者尚未接入。');
         },
       },
+      {
+        read: async (input) => {
+          const check = async () => {
+            context.signal?.throwIfAborted();
+            const status = await port.call('library.status', {});
+            context.signal?.throwIfAborted();
+            if (status.id !== input.libraryId)
+              throw new OperationError('instanceMismatch', '文献库身份已变化。');
+            if (!status.read || !status.send)
+              throw new OperationError(
+                'permissionDenied',
+                '题录来源需要文献库读取与模型外发授权。',
+              );
+          };
+          await check();
+          const source = await port.call('library.get', { sourceId: input.sourceId });
+          await check();
+          return source;
+        },
+      },
     );
   }
   subscribe(listener: (change: WorkbenchChange) => void): () => void {

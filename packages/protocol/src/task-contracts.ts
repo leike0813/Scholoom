@@ -30,6 +30,11 @@ export const taskLinkSchema = object(
           'attachmentId',
           'materialVersionId',
         ]),
+        object({ kind: { const: 'library-source' }, libraryId: id, sourceId: id }, [
+          'kind',
+          'libraryId',
+          'sourceId',
+        ]),
       ],
     },
     workItemId: id,

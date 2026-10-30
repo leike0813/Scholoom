@@ -3,11 +3,13 @@ import type { TaskLink, TaskPort, TaskRead, TaskRef } from '@scholoom/protocol/p
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useContextContribution } from '../context-contributions';
 import type { ResourceTarget } from '../resource-controller';
+import type { WorkbenchSession } from '../session';
 import { TaskStatusBadge, taskErrorMessage } from './TaskList';
 import './tasks.css';
 
 export interface TaskDetailProps {
   port: TaskPort;
+  catalog?: WorkbenchSession['taskCatalog'];
   task: TaskRef;
   onOpenResource: (target: ResourceTarget) => void;
   onAppendContext?: (item: ContextItem) => void;
@@ -31,6 +33,7 @@ export function TaskDetail(props: TaskDetailProps) {
 
 function ProjectTaskDetail({
   port,
+  catalog,
   task,
   onOpenResource,
   onAppendContext,
@@ -46,9 +49,20 @@ function ProjectTaskDetail({
   const [actionError, setActionError] = useState('');
   const [notice, setNotice] = useState('');
   const [linkErrors, setLinkErrors] = useState<Record<string, string>>({});
+  const [catalogs, setCatalogs] = useState<
+    Record<string, Awaited<ReturnType<NonNullable<typeof catalog>['read']>>>
+  >({});
   const [workItemId, setWorkItemId] = useState<string>();
   const generation = useRef(0);
+  const catalogGeneration = useRef(0);
   const { contributeSelection } = useContextContribution();
+  useEffect(() => {
+    void catalog;
+    setCatalogs({});
+    return () => {
+      catalogGeneration.current++;
+    };
+  }, [catalog]);
 
   const load = useCallback(async () => {
     const current = ++generation.current;
@@ -56,6 +70,8 @@ function ProjectTaskDetail({
     setRead(undefined);
     setError('');
     setNotice('');
+    setCatalogs({});
+    setLinkErrors({});
     try {
       const result = await port.read({ task: { projectId, taskId, fileId } });
       if (current === generation.current) setRead(result);
@@ -118,6 +134,28 @@ function ProjectTaskDetail({
   };
   const openLink = (link: TaskLink) => {
     const target = link.target;
+    if (target.kind === 'library-source') {
+      const current = generation.current;
+      const catalogCurrent = ++catalogGeneration.current;
+      setLinkErrors((previous) => ({ ...previous, [link.id]: '' }));
+      setCatalogs((previous) => {
+        const next = { ...previous };
+        delete next[link.id];
+        return next;
+      });
+      void (async () => {
+        if (!catalog) throw new Error('题录读取提供者未接入。');
+        const source = await catalog.read(target);
+        if (link.basis !== undefined && link.basis !== source.version)
+          throw new Error('题录版本已变化，请核查原引用。');
+        if (current === generation.current && catalogCurrent === catalogGeneration.current)
+          setCatalogs((previous) => ({ ...previous, [link.id]: source }));
+      })().catch((reason: unknown) => {
+        if (current === generation.current && catalogCurrent === catalogGeneration.current)
+          setLinkErrors((previous) => ({ ...previous, [link.id]: taskErrorMessage(reason) }));
+      });
+      return;
+    }
     void open(
       {
         locator:
@@ -261,12 +299,31 @@ function ProjectTaskDetail({
                     <div className="task-toolbar">
                       <span className="task-muted">{roles[link.role]}</span>
                       <button type="button" className="btn" onClick={() => openLink(link)}>
-                        打开{roles[link.role]}材料
+                        打开{roles[link.role]}
+                        {link.target.kind === 'library-source' ? '题录' : '材料'}
                       </button>
                     </div>
                     <p className="task-muted task-reference">
-                      {link.target.kind === 'project-file' ? '项目材料' : '文献库材料'}
+                      {link.target.kind === 'project-file'
+                        ? '项目材料'
+                        : link.target.kind === 'library-source'
+                          ? '文献库题录'
+                          : '文献库材料'}
                     </p>
+                    {catalogs[link.id] ? (
+                      <section aria-label="来源题录详情">
+                        <p>{catalogs[link.id]?.metadata.title}</p>
+                        <p className="task-muted task-reference">
+                          {catalogs[link.id]?.id} · {catalogs[link.id]?.version} · 修订{' '}
+                          {catalogs[link.id]?.revision}
+                        </p>
+                        <p>
+                          {catalogs[link.id]?.attachmentState === 'unavailable'
+                            ? '附件未取得'
+                            : '已有附件登记'}
+                        </p>
+                      </section>
+                    ) : null}
                     {link.note ? <p className="task-reference">{link.note}</p> : null}
                     {linkErrors[link.id] ? (
                       <p className="task-error" role="alert">

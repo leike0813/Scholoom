@@ -17,8 +17,10 @@ import type {
   ResourcePort,
 } from '../../packages/protocol/dist/resources.js';
 import {
+  type TaskCatalogPort,
   type TaskGraphInputs,
   type TaskResearchPort,
+  taskGraphInputSnapshotSchema,
   taskGraphOperations,
 } from '../../packages/protocol/dist/task-graph-contracts.js';
 
@@ -101,6 +103,14 @@ async function fixture() {
       describe: (locator) => app.call('resources.describe', { locator }),
       create: (input) => app.call('resources.create', input),
     };
+    const catalog: TaskCatalogPort = {
+      read: async (input) => {
+        app.library.checkSelection(input);
+        const source = await app.call('library.get', { sourceId: input.sourceId });
+        app.library.checkSelection(input);
+        return source;
+      },
+    };
     const starts: { input: Parameters<TaskResearchPort['start']>[0]; context: CallContext }[] = [];
     const pages: { input: Parameters<TaskResearchPort['graphs']>[0]; context: CallContext }[] = [];
     const controls: {
@@ -160,12 +170,13 @@ async function fixture() {
       context,
       tasks,
       resources,
+      catalog,
       research,
       starts,
       pages,
       controls,
       input,
-      graphs: new TaskGraphs(tasks, resources, research),
+      graphs: new TaskGraphs(tasks, resources, research, catalog),
       close: async () => {
         await app.close();
         await rm(root, { recursive: true });
@@ -210,7 +221,12 @@ test('the product broker mounts the injected research seam with real task and pr
     );
     expect(
       JSON.parse(await readFile(join(f.project.path, result.inputSnapshot.resource.path), 'utf8')),
-    ).toMatchObject({ task: f.input.task, entry: f.read.entry, content: f.read.content });
+    ).toMatchObject({
+      formatVersion: 1,
+      task: f.input.task,
+      entry: f.read.entry,
+      content: f.read.content,
+    });
     expect(
       (await f.app.call('tasks.read', { task: f.input.task })).metadata.links?.some(
         (link) => link.id === f.input.processOperationId,
@@ -221,6 +237,258 @@ test('the product broker mounts the injected research seam with real task and pr
     await f.close();
   }
 });
+
+async function catalogCandidate(f: Awaited<ReturnType<typeof fixture>>) {
+  await f.app.call('library.grant', { read: true, write: true, send: true, autoBackup: false });
+  const batch = await f.app.call('library.ingest', {
+    batchId: randomUUID(),
+    origin: 'task-catalog-test',
+    version: 'preprint-v2',
+    json: JSON.stringify([{ title: '只有题录的候选' }]),
+  });
+  await expect
+    .poll(async () => (await f.app.call('library.batch', { batchId: batch.id })).batch.state)
+    .toBe('completed');
+  const sourceId = (await f.app.call('library.batch', { batchId: batch.id })).entries[0]?.sourceId;
+  assert(sourceId);
+  const source = await f.app.call('library.get', { sourceId });
+  const libraryId = (await f.app.call('library.status', {})).id;
+  const read = await f.tasks.save({
+    task: f.input.task,
+    basis: f.read.entry.basis,
+    content: note({
+      ...f.read.metadata,
+      links: [
+        ...(f.read.metadata.links ?? []),
+        {
+          id: 'catalog',
+          role: 'source',
+          basis: source.version,
+          target: { kind: 'library-source', libraryId, sourceId },
+        },
+      ],
+    }),
+  });
+  return {
+    source,
+    libraryId,
+    read,
+    input: { ...f.input, basis: read.entry.basis, sourceLinkIds: ['catalog'] },
+  };
+}
+
+test('catalog candidates keep real identity and immutable v2 input when full text arrives later', async () => {
+  const f = await fixture();
+  try {
+    const c = await catalogCandidate(f);
+    expect(c.source.attachmentState).toBe('unavailable');
+    const first = await f.app.call('tasks.runGraph', c.input);
+    assert(first.inputSnapshot?.resource.path);
+    const path = join(f.project.path, first.inputSnapshot.resource.path);
+    const original = await readFile(path, 'utf8');
+    const captured = JSON.parse(original);
+    expect(captured).toMatchObject({ formatVersion: 2, task: c.input.task, entry: c.read.entry });
+    expect(captured.sources).toEqual([
+      {
+        linkId: 'catalog',
+        catalog: {
+          libraryId: c.libraryId,
+          sourceId: c.source.id,
+          version: 'preprint-v2',
+          revision: c.source.revision,
+        },
+      },
+    ]);
+    const contract = compileContract({
+      params: taskGraphInputSnapshotSchema,
+      result: taskGraphInputSnapshotSchema,
+    });
+    expect(contract.result(captured)).toBe(true);
+    expect(contract.result({ ...captured, formatVersion: 1 })).toBe(false);
+    expect(f.starts[0]?.input.materials).toEqual([
+      {
+        ref: first.inputSnapshot.resource.ref,
+        basis: first.inputSnapshot.resource.basis,
+        role: 'task-input',
+      },
+    ]);
+    expect(f.starts[0]?.input.text).not.toContain(c.source.metadata.title);
+
+    const fullText = join(f.root, 'candidate.txt');
+    await writeFile(fullText, '后补真实正文。');
+    const batch = await f.app.call('library.importFiles', {
+      batchId: randomUUID(),
+      sourceId: c.source.id,
+      paths: [fullText],
+      purpose: '正文',
+      storage: 'managed',
+      version: 'preprint-v2',
+      origin: 'task-catalog-test',
+    });
+    await expect
+      .poll(async () => (await f.app.call('library.batch', { batchId: batch.id })).batch.state)
+      .toBe('completed');
+    const current = await f.app.call('library.get', { sourceId: c.source.id });
+    expect(current).toMatchObject({
+      id: c.source.id,
+      version: 'preprint-v2',
+      attachmentState: 'recorded',
+    });
+    expect(
+      (await f.app.call('library.attachments', { sourceId: c.source.id })).attachments[0]?.state,
+    ).toBe('available');
+    const read = await f.tasks.read({ task: f.input.task });
+    f.controls.onStart = async () => {
+      const entry = await f.tasks.read({ task: f.input.task });
+      await f.tasks.save({
+        task: entry.task,
+        basis: entry.entry.basis,
+        content: `${entry.content}\n人工补充。`,
+      });
+    };
+    const next = {
+      ...c.input,
+      basis: read.entry.basis,
+      sessionId: 'next-selected-idle-session',
+      invocationId: randomUUID(),
+      instructionId: randomUUID(),
+      processOperationId: randomUUID(),
+      sourceLinkIds: ['catalog', 'source'],
+    };
+    const second = await f.app.call('tasks.runGraph', next);
+    assert(second.inputSnapshot?.resource.path);
+    const later = JSON.parse(
+      await readFile(join(f.project.path, second.inputSnapshot.resource.path), 'utf8'),
+    );
+    expect(later.sources).toEqual([
+      {
+        linkId: 'catalog',
+        catalog: {
+          libraryId: c.libraryId,
+          sourceId: current.id,
+          version: current.version,
+          revision: current.revision,
+        },
+      },
+      { linkId: 'source', evidence: { ref: f.source.ref, basis: f.source.basis, role: 'source' } },
+    ]);
+    expect(contract.result(later)).toBe(true);
+    expect(f.starts[1]?.input.materials).toHaveLength(2);
+    expect(second.taskAssociation).toMatchObject({
+      state: 'failed',
+      error: { code: 'contentChanged' },
+    });
+    expect(second.process.state).toBe('complete');
+    expect(await readFile(path, 'utf8')).toBe(original);
+    expect((await f.tasks.read({ task: f.input.task })).content).toContain('人工补充');
+  } finally {
+    await f.close();
+  }
+});
+
+test('catalog task admission refuses revoked access, foreign libraries and wrong versions without rebinding by title', async () => {
+  const f = await fixture();
+  try {
+    const c = await catalogCandidate(f);
+    for (const grants of [
+      { read: false, send: true },
+      { read: true, send: false },
+    ]) {
+      await f.app.call('library.grant', { ...grants, write: true, autoBackup: false });
+      await expect(f.app.call('tasks.runGraph', c.input)).rejects.toMatchObject({
+        code: 'permissionDenied',
+      });
+    }
+    await f.app.call('library.grant', { read: true, write: true, send: true, autoBackup: false });
+    let read = c.read;
+    for (const [target, basis, code] of [
+      [
+        { kind: 'library-source', libraryId: 'foreign-library', sourceId: c.source.id },
+        c.source.version,
+        'instanceMismatch',
+      ],
+      [
+        { kind: 'library-source', libraryId: c.libraryId, sourceId: 'missing-original-source' },
+        c.source.version,
+        'notFound',
+      ],
+      [
+        { kind: 'library-source', libraryId: c.libraryId, sourceId: c.source.id },
+        'other-version',
+        'contentChanged',
+      ],
+    ] as const) {
+      read = await f.tasks.save({
+        task: read.task,
+        basis: read.entry.basis,
+        content: note({
+          ...read.metadata,
+          links: [{ id: 'catalog', role: 'source', target, basis }],
+        }),
+      });
+      await expect(
+        f.app.call('tasks.runGraph', { ...c.input, basis: read.entry.basis }),
+      ).rejects.toMatchObject({ code });
+    }
+    expect(f.starts).toHaveLength(0);
+  } finally {
+    await f.close();
+  }
+});
+
+for (const change of ['revision', 'permission'] as const) {
+  test(`catalog ${change} changes after input publication preserve history and refuse research admission`, async () => {
+    const f = await fixture();
+    try {
+      const c = await catalogCandidate(f);
+      const graphs = new TaskGraphs(
+        f.tasks,
+        {
+          ...f.resources,
+          create: async (input) => {
+            const result = await f.resources.create(input);
+            if (change === 'permission')
+              await f.app.call('library.grant', {
+                read: true,
+                send: false,
+                write: true,
+                autoBackup: false,
+              });
+            else
+              await f.app.call('library.update', {
+                sourceId: c.source.id,
+                revision: c.source.revision,
+                metadata: { ...c.source.metadata, title: '人工更正题名' },
+                tags: c.source.tags,
+                collectionIds: c.source.collectionIds,
+                relatedIds: c.source.relatedIds,
+              });
+            return result;
+          },
+        },
+        f.research,
+        f.catalog,
+      );
+      await expect(graphs.run(c.input, f.context)).rejects.toMatchObject({
+        code: change === 'permission' ? 'permissionDenied' : 'contentChanged',
+      });
+      expect(f.starts).toHaveLength(0);
+      const captured = JSON.parse(
+        await readFile(
+          join(f.project.path, `tasks/${c.input.processOperationId}.graph-input.md`),
+          'utf8',
+        ),
+      );
+      expect(captured.sources[0]?.catalog).toMatchObject({
+        sourceId: c.source.id,
+        revision: c.source.revision,
+      });
+      expect((await f.tasks.read({ task: c.input.task })).content).toBe(c.read.content);
+    } finally {
+      await f.close();
+    }
+  });
+}
 
 test('a product without the actual research adapter has an unavailable empty catalog', async () => {
   const root = await mkdtemp(join(tmpdir(), 'scholoom-task-no-research-'));

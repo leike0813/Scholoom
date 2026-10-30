@@ -1,6 +1,7 @@
 import { failure } from '@scholoom/platform/node';
 import { type CallContext, compileContract, OperationError } from '@scholoom/protocol/core';
 import {
+  type TaskCatalogPort,
   type TaskGraphInputSnapshot,
   type TaskGraphInputs,
   type TaskGraphOutputs,
@@ -29,6 +30,7 @@ export class TaskGraphs {
     private readonly resources: Pick<ResourcePort, 'describe'> &
       Pick<ExecutionResourcePort, 'create'>,
     private readonly research: TaskResearchPort,
+    private readonly catalog?: TaskCatalogPort,
   ) {}
 
   private check(projectId: string, context: CallContext): void {
@@ -75,7 +77,7 @@ export class TaskGraphs {
       throw new OperationError('targetAmbiguous', '过程材料身份已被任务引用占用。');
     if (links.length >= 100) throw new OperationError('tooLarge', '任务材料引用已达到上限。');
 
-    const sources: TaskGraphInputSnapshot['sources'] = [];
+    const sources: Extract<TaskGraphInputSnapshot, { formatVersion: 2 }>['sources'] = [];
     for (const linkId of input.sourceLinkIds) {
       const link = links.find((candidate) => candidate.id === linkId);
       if (!link) throw new OperationError('notFound', '所选任务来源不存在。');
@@ -89,6 +91,20 @@ export class TaskGraphs {
           'invalidRequest',
           '任务入口已由调用输入快照承载，不能重复选择为实时来源。',
         );
+      if (link.target.kind === 'library-source') {
+        if (!this.catalog) throw new OperationError('unavailable', '任务题录读取提供者尚未接入。');
+        const { libraryId, sourceId } = link.target;
+        const source = await this.catalog.read({ libraryId, sourceId }, context);
+        if (source.id !== sourceId)
+          throw new OperationError('instanceMismatch', '题录回执不属于原来源。');
+        if (link.basis !== undefined && link.basis !== source.version)
+          throw new OperationError('contentChanged', '任务题录版本已变化，请核查原引用。');
+        sources.push({
+          linkId,
+          catalog: { libraryId, sourceId, version: source.version, revision: source.revision },
+        });
+        continue;
+      }
       const locator =
         link.target.kind === 'project-file'
           ? { source: 'project' as const, projectId: task.projectId, fileId: link.target.fileId }
@@ -117,14 +133,18 @@ export class TaskGraphs {
     const inputOperationId = taskGraphInputOperation(processOperationId);
     const captured: TaskGraphInputSnapshot = {
       kind: 'research-task-graph-input',
-      formatVersion: 1,
       task,
       entry: read.entry,
       content: read.content,
       sessionId: input.sessionId,
       invocationId: input.invocationId,
       instructionId: input.instructionId,
-      sources,
+      ...(sources.some((source) => 'catalog' in source)
+        ? { formatVersion: 2 as const, sources }
+        : {
+            formatVersion: 1 as const,
+            sources: sources.filter((source) => 'evidence' in source),
+          }),
       ...(workItemId === undefined ? {} : { workItemId }),
     };
     const inputSnapshot = await this.resources.create({
@@ -155,6 +175,16 @@ export class TaskGraphs {
     };
     let started: Awaited<ReturnType<TaskResearchPort['start']>>;
     try {
+      for (const source of sources) {
+        if (!('catalog' in source)) continue;
+        const current = await this.catalog?.read(source.catalog, context);
+        if (
+          current?.id !== source.catalog.sourceId ||
+          current.version !== source.catalog.version ||
+          current.revision !== source.catalog.revision
+        )
+          throw new OperationError('contentChanged', '输入快照保存期间题录已变化，请核查原来源。');
+      }
       started = await this.research.start(
         {
           projectId: task.projectId,
@@ -164,7 +194,10 @@ export class TaskGraphs {
           graphId: input.graphId,
           version: input.version,
           config: input.config,
-          materials: [snapshotEvidence, ...sources.map((source) => source.evidence)],
+          materials: [
+            snapshotEvidence,
+            ...sources.flatMap((source) => ('evidence' in source ? [source.evidence] : [])),
+          ],
           text: read.content,
         },
         context,
