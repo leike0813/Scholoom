@@ -1,6 +1,15 @@
 import type { ThreadMessageLike } from '@assistant-ui/react';
 import { ComposerPrimitive } from '@assistant-ui/react';
-import { type ToolCallView, toolCallView, toolStateDot, toolStateLabel } from '../projection';
+import type { Run } from '@scholoom/protocol';
+import {
+  graphPrompt,
+  graphResults,
+  graphStateLabel,
+  type ToolCallView,
+  toolCallView,
+  toolStateDot,
+  toolStateLabel,
+} from '../projection';
 import type { WorkbenchSession } from '../session';
 import {
   ExecutionContext,
@@ -12,6 +21,7 @@ import {
 interface DockPreview {
   tool: ToolCallView | undefined;
   agentText: string | undefined;
+  graph: Run | undefined;
 }
 
 /** 从消息流尾部提取 dock 投影：最新一条 tool 消息与最新一条 agent 消息。 */
@@ -26,6 +36,13 @@ function readDockPreview(messages: readonly ThreadMessageLike[]): DockPreview {
   ) {
     const message = messages[i];
     if (message === undefined) continue;
+    if (message.metadata?.custom?.graphRun) {
+      return {
+        tool: undefined,
+        agentText: undefined,
+        graph: message.metadata.custom.graphRun as Run,
+      };
+    }
     const parts =
       typeof message.content === 'string'
         ? ([{ type: 'text', text: message.content }] as const)
@@ -43,7 +60,7 @@ function readDockPreview(messages: readonly ThreadMessageLike[]): DockPreview {
       agentText = text.length > 0 ? text : undefined;
     }
   }
-  return { tool, agentText };
+  return { tool, agentText, graph: undefined };
 }
 
 export interface AgentDockProps {
@@ -58,6 +75,7 @@ export interface AgentDockProps {
 export function AgentDock({ messages, context, reset, onExpand, cancel }: AgentDockProps) {
   const preview = readDockPreview(messages);
   const tool = preview.tool;
+  const graph = preview.graph;
 
   return (
     <div className="agent-dock">
@@ -68,28 +86,42 @@ export function AgentDock({ messages, context, reset, onExpand, cancel }: AgentD
         onClick={onExpand}
         title="点击展开会话"
         aria-label="展开 Agent 会话"
+        aria-describedby={graph ? 'dock-graph-summary' : undefined}
       >
-        {tool !== undefined ? (
-          <span className="tool-line">
-            <span
-              className={toolStateDot(tool.state)}
-              role="img"
-              aria-label={toolStateLabel(tool.state)}
-            />
-            <span className="tool-line__state">{toolStateLabel(tool.state)}</span>
-            <code>
-              Ran {tool.name}({tool.input})
-            </code>
-          </span>
-        ) : null}
-        {preview.agentText !== undefined ? (
-          <span className="dock-agent-msg">
-            <span className="dock-agent-msg__tail">{preview.agentText}</span>
-          </span>
-        ) : null}
-        {tool === undefined && preview.agentText === undefined ? (
-          <span className="empty-hint">暂无会话进展，点击展开完整会话</span>
-        ) : null}
+        {graph ? (
+          <>
+            <span className="tool-line">
+              科研图 · {graphStateLabel(graph)} · 已记录成果及操作 {graphResults(graph).length} 项
+            </span>
+            <span className="dock-agent-msg__tail message-user-text" id="dock-graph-summary">
+              {(graphPrompt(graph) ?? graph.error ?? '展开查看当前科研图及成果。').slice(0, 160)}
+            </span>
+          </>
+        ) : (
+          <>
+            {tool !== undefined ? (
+              <span className="tool-line">
+                <span
+                  className={toolStateDot(tool.state)}
+                  role="img"
+                  aria-label={toolStateLabel(tool.state)}
+                />
+                <span className="tool-line__state">{toolStateLabel(tool.state)}</span>
+                <code>
+                  Ran {tool.name}({tool.input})
+                </code>
+              </span>
+            ) : null}
+            {preview.agentText !== undefined ? (
+              <span className="dock-agent-msg">
+                <span className="dock-agent-msg__tail">{preview.agentText}</span>
+              </span>
+            ) : null}
+            {tool === undefined && preview.agentText === undefined ? (
+              <span className="empty-hint">暂无会话进展，点击展开完整会话</span>
+            ) : null}
+          </>
+        )}
       </button>
       <ComposerPrimitive.Root className="dock-composer">
         <InstructionContextItems />

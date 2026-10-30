@@ -63,6 +63,7 @@ export function useBusinessSession(
   }>();
   const [selection, setSelection] = useState({ projectId: 'application', sessionId: '' });
   const snapshot = received?.selection === selection ? received.value : undefined;
+  const refreshRequest = useRef(0);
   const taskState = useTasks(client, phase, selection.projectId, snapshot?.fileRevision ?? 0);
   const taskGraphs = useMemo<WorkbenchSession['taskGraphs']>(() => {
     if (!client || phase !== 'connected') return undefined;
@@ -209,6 +210,7 @@ export function useBusinessSession(
   const refresh = useCallback(async () => {
     if (!client || phase !== 'connected') return;
     const selected = selectedRef.current;
+    const request = ++refreshRequest.current;
     let result: WorkbenchSnapshot;
     try {
       result = await client.call('workbench.watch', {
@@ -220,7 +222,7 @@ export function useBusinessSession(
         ...(selected.sessionId ? { sessionId: selected.sessionId } : {}),
       });
     } catch (reason) {
-      if (selected !== selectedRef.current) return;
+      if (selected !== selectedRef.current || request !== refreshRequest.current) return;
       if (reason instanceof Error && 'code' in reason && reason.code === 'notFound') {
         const projectId = selected.sessionId ? selected.projectId : 'application';
         writeDraft(draftKey(directoryRef.current, 'project'), projectId);
@@ -230,7 +232,7 @@ export function useBusinessSession(
       }
       throw reason;
     }
-    if (selected !== selectedRef.current) return;
+    if (selected !== selectedRef.current || request !== refreshRequest.current) return;
     setReceived({ selection: selected, value: result });
   }, [client, phase, navigationKey, draftKey]);
 
@@ -498,6 +500,7 @@ export function useBusinessSession(
       ).values(),
     ],
     snapshot?.artifacts ?? [],
+    { run: snapshot?.run, sessionId: selection.sessionId },
   );
   const sendDisabled =
     submittingKeys.has(contextKey) ||
