@@ -92,7 +92,7 @@ test('production synthesis consumes bounded text and saves process before synthe
   let app: KernelApplication;
   let projectPath = '';
   let observedProcessBeforeReport = false;
-  const respond = synthesisModelResponse(() => [material]);
+  const respond = synthesisModelResponse(() => [material], true);
   const f = await fixture(async (input) => {
     if (input.calls.includes('read_context_resource'))
       observedProcessBeforeReport ||= (
@@ -166,8 +166,106 @@ test('production synthesis consumes bounded text and saves process before synthe
     ).toEqual(['process', 'report']);
     expect(JSON.stringify(f.model.requests[0]?.messages)).toContain(f.input.text);
     expect(f.model.requests).toHaveLength(4);
+    expect(f.model.requests[0]?.tool_choice).toEqual({ type: 'auto' });
   } finally {
     await app.close();
+    await f.model.close();
+  }
+});
+
+test('a plain summary is corrected once with newly confirmed user instructions before any role is saved', async () => {
+  let material: ResourceEvidence;
+  let corrected = false;
+  let checkedCorrection = false;
+  let consumed = false;
+  const supplementId = randomUUID();
+  const marker = 'Additional independent condition 6328 must precede the correction request.';
+  const respond = synthesisModelResponse(() => [material], true);
+  const f = await fixture(async (input) => {
+    if (!corrected && input.calls.includes('read_context_resource')) {
+      corrected = true;
+      await f.app.call('session.send', {
+        ...f.scope,
+        instructionId: supplementId,
+        text: marker,
+        materials: [],
+      });
+      return { text: '普通说明，尚未提交节点结果。' };
+    }
+    if (corrected && !checkedCorrection) {
+      expect(input.user).toContain(marker);
+      expect(consumed).toBe(true);
+      checkedCorrection = true;
+    }
+    return respond(input);
+  });
+  const confirm = HarnessRecords.prototype.confirmConsumption;
+  HarnessRecords.prototype.confirmConsumption = function (...args) {
+    const result = confirm.apply(this, args);
+    if (args[2].checkpointNamespace && args[2].instructionIds.includes(supplementId))
+      consumed = true;
+    return result;
+  };
+  try {
+    await f.app.call('files.save', {
+      projectId: f.project.id,
+      path: 'source.txt',
+      content: 'Synthetic A=42 B=17.',
+    });
+    const source = await f.app.call('resources.describe', {
+      locator: { source: 'project', projectId: f.project.id, path: 'source.txt' },
+    });
+    material = { ref: source.ref, basis: source.basis };
+    f.input.materials = [material];
+    await f.start();
+    await f.wait('completed');
+    expect(checkedCorrection).toBe(true);
+    expect(f.model.requests).toHaveLength(5);
+    expect(await readFile(join(f.project.path, 'report.md'), 'utf8')).toContain('相差25');
+    expect(await readFile(join(f.project.path, 'process.md'), 'utf8')).not.toContain(
+      '普通说明，尚未提交节点结果',
+    );
+  } finally {
+    HarnessRecords.prototype.confirmConsumption = confirm;
+    await f.app.close();
+    await f.model.close();
+  }
+});
+
+test('a truncated structured submission cannot save a role even when its arguments are complete', async () => {
+  let material: ResourceEvidence;
+  const respond = synthesisModelResponse(() => [material], true);
+  const f = await fixture(async (input) => {
+    const answer = await respond(input);
+    return answer && 'tool' in answer && answer.tool.name === 'submit_literature_synthesis'
+      ? { ...answer, stopReason: 'max_tokens' }
+      : answer;
+  });
+  try {
+    await f.app.call('files.save', {
+      projectId: f.project.id,
+      path: 'source.txt',
+      content: 'Synthetic A=42 B=17.',
+    });
+    const source = await f.app.call('resources.describe', {
+      locator: { source: 'project', projectId: f.project.id, path: 'source.txt' },
+    });
+    material = { ref: source.ref, basis: source.basis };
+    f.input.materials = [material];
+    await f.start();
+    await f.wait('failed');
+    const run = (await f.app.snapshot(f.scope)).run;
+    assert(run?.graphProgress?.kind === 'graph.failed');
+    expect(run.graphProgress.error.code).toBe('modelFailed');
+    expect(await readFile(join(f.project.path, 'process.md'), 'utf8')).not.toContain(
+      '形成比较维度',
+    );
+    await expect(readFile(join(f.project.path, 'report.md'), 'utf8')).rejects.toMatchObject({
+      code: 'ENOENT',
+    });
+    expect(f.model.requests).toHaveLength(2);
+  } finally {
+    await f.app.close();
     await f.model.close();
   }
 });
@@ -257,12 +355,11 @@ for (const [kind, output] of [
       const progress = (await f.app.snapshot(f.scope)).run?.graphProgress;
       assert(progress?.kind === 'graph.waiting');
       expect(progress.wait.nodeKey).toBe('delivery-wait');
-      expect(progress.wait.prompt).toContain('JSON');
       expect(await readFile(join(f.project.path, 'process.md'), 'utf8')).not.toContain('candidate');
       await expect(readFile(join(f.project.path, 'report.md'), 'utf8')).rejects.toMatchObject({
         code: 'ENOENT',
       });
-      expect(f.model.requests).toHaveLength(1);
+      expect(f.model.requests).toHaveLength(2);
     } finally {
       await f.app.close();
       await f.model.close();
@@ -277,7 +374,7 @@ test('ordinary continuation cleans an output misclassified as a source in an old
   const f = await fixture((input) => {
     if (reject) {
       reject = false;
-      return { text: '{"process":' };
+      return { text: JSON.stringify({ process: '保留原过程，等待明确接续。', next: 'wait' }) };
     }
     return respond(input);
   });
@@ -1376,7 +1473,7 @@ for (const loseReceipt of [false, true]) {
   test(`a saved role survives a root persistence cut with ${loseReceipt ? 'unknown' : 'cached exact'} receipt`, async () => {
     test.setTimeout(90000);
     let material: ResourceEvidence;
-    const f = await fixture(synthesisModelResponse(() => [material]));
+    const f = await fixture(synthesisModelResponse(() => [material], true));
     let app = f.app;
     let checkpointPath = '';
     let armed = true;

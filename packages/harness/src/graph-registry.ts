@@ -28,11 +28,14 @@ export type AgentState = {
   instructionIds: string[];
   instructionRunId: string;
   instructions: InstructionContext[];
+  structuredResponse?: unknown;
 };
 /** Selected by trusted factory source; graph configuration never grants tools. */
 export type AgentNodeOptions = {
   tools: readonly string[];
   systemPrompt: string;
+  /** Source-selected SDK output schema; this does not register a domain tool. */
+  responseFormat?: { name: string; schema: Record<string, unknown> };
   /** Trusted source scope for this node; previously consumed context is always reauthorized. */
   materials?: readonly ResourceEvidence[];
   /** Runs before SDK result offloading; source factories may reject an oversized reply. */

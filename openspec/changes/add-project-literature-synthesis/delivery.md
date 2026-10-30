@@ -1,5 +1,15 @@
 # 实际交付与交接
 
+## 原执行接续、结构化提交与指令竞态修复（2026-10-31）
+
+用户“授权；接受。请继续进行收尾”授权原待审接续计划。首次启动`E/synthesis-resume-prepared/run-Lr5I26`在发送前因短调用指针与完整历史调用的比较错误停止，0 HTTP／0新指令；修正为原完整历史调用后，保留原消费声明及零效果证据，继续尚未提交的同一次动作。实际接续`run-SxbNJc`仍是原task／session／run／checkpoint：4次真实HTTP、请求正文717,475字节，均200完整；取得并保存了合法取材结果，综合职责返回普通说明后进入delivery-wait。按约停止，没有回答等待、加入第三来源或第二Graph；自有内核exit0、profile stopped、cleanupErrors为空。原7次加本次4次合计11次／1,207,119字节，报告尚不存在，6.3仍未通过。
+
+本轮用已安装SDK的toolStrategy和同源nodeOutput schema提供结果工具，显式auto，严格校验和原JSON checkpoint读取保持。结果工具不注册领域操作，完整参数但max_tokens仍modelFailed、不保存候选。SDK包装的本地OperationError仅经确切MiddlewareError链解包。一次格式纠正最初使用afterModel快捷跳转，独立审查确证P2：绕过beforeModel，遗漏首响应期间受理的新用户指令。已删除该中间件；改由原业务图持久保存完整通道及outputCorrection后，路由同职责的新consumer，经正常指令确认／授权／共享预算执行一次纠正；再次无效进入原等待。具体行为和恢复边界见design，不重放已保存职责或未知文件操作。
+
+最终`tests/kernel/project-literature-synthesis.spec.ts`一次**28/28通过，5.0分钟**。真实kernel／worker／broker／SQLite／文件，只有模型HTTP是合成边界；新增代表在错误响应期间经session.send受理新指令，实际纠正HTTP前核child消费确认已提交且请求含新约束，未存无效正文。另核截断提交、共享32次预算、原来源／Task CAS／消费丢回执及两类保存切断。原含快捷中间件的全套27/28首败保留于`synthesis-structured-full-regression/`，不能计作最终通过；修正后命令及最后实际工具回执为`E/synthesis-graph-correction-result.json`，测试输出为`synthesis-graph-correction-regression/`。harness／kernel构建、tools noEmit、受影响七文件Biome、architecture（14模块／281文件／0问题）及diff通过。独立gpt-6.1-sol／high窄审及修复后复核完成，原P2关闭，无未解决的高确信P1/P2，记录在`E/synthesis-structured-independent-review.md`；复核核当前源码和最终完成收据，没有重复实跑或外推科研质量。
+
+原实际接续已按约停止，不能自动再调用模型。下一次原run普通消息接续和完成后新增Wilson2017／新会话第二Graph的离线入口为`E/synthesis-structured-resume-prepared/runner.mjs`，默认NEW-AUTHORIZATION-REQUIRED；具体计划在同目录plan.json。保留原总量下的剩余29次／2,987,185字节、每次256KiB／16384输出tokens和新900秒窗口，等待／错误／超限即停、不整项重试；只有新明确授权后才执行。请求模型名仍MiniMax-M2.7，供应商可能路由别名，实际回包另存；不保证后端版本。独立内容标准及三篇原输入不变，不把结构化机械测试当科研质量。6.3／6.4保持未完成，未归档。
+
 ## 真实综合首次等待及输出边界修复（2026-10-31）
 
 用户“授权你继续收尾”覆盖此前明确披露的`synthesis-live-20261030-d0f2265-dirty-40x16384-900s-v1`：两个Graph统一MiniMax-M2.7，共40次HTTP、累计4MiB、单次256KiB／输出16384tokens、首请求900秒，等待或失败即停，不自动回答或重试整项。证据根仍为`E=/home/joshua/.cache/scholoom-closeout-execution-20261030`。首次`run-GpyRS5`仅准备失败：resources.create所需sources父目录不存在，模型请求／run／instruction均0。cache runner改为先经正式files.mkdir创建目录，schema及离线guard自检通过后继续原有界验收；未重放已受理工作，原失败证据保留。

@@ -1,6 +1,6 @@
 import { posix } from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
-import { HumanMessage, isAIMessage } from '@langchain/core/messages';
+import { HumanMessage } from '@langchain/core/messages';
 import {
   Annotation,
   Command,
@@ -12,7 +12,7 @@ import {
   task,
 } from '@langchain/langgraph';
 import type { AgentState, GraphFactory } from '@scholoom/harness/node';
-import { callExecutionControl } from '@scholoom/harness/worker';
+import { callExecutionControl, readStructuredResult } from '@scholoom/harness/worker';
 import { failure } from '@scholoom/platform/node';
 import { compileContract, type ErrorInfo, OperationError } from '@scholoom/protocol/core';
 import type {
@@ -85,6 +85,7 @@ const nodeOutput = z
     prompt: z.string().max(4096).optional(),
   })
   .strict();
+const nodeOutputName = 'submit_literature_synthesis';
 type Phase = keyof typeof nodeGuidance;
 type PendingSave = {
   role: 'report' | 'process';
@@ -181,6 +182,7 @@ export const projectLiteratureSynthesisFactory: GraphFactory = {
       route: Annotation<string>(),
       turns: Annotation<number>(),
       reviewed: Annotation<boolean>(),
+      outputCorrection: Annotation<boolean>(),
       error: Annotation<ErrorInfo | undefined>(),
       prompt: Annotation<string>(),
       waitKind: Annotation<string>(),
@@ -786,6 +788,10 @@ export const projectLiteratureSynthesisFactory: GraphFactory = {
         consumerPending = true;
         const actual = await agent.invoke(value, nodeConfig, {
           tools: synthesisTools,
+          responseFormat: {
+            name: nodeOutputName,
+            schema: z.toJSONSchema(nodeOutput, { target: 'draft-7' }),
+          },
           materials: [
             ...value.sources,
             ...input.graph.materials.filter((item) => item.role === 'task-input'),
@@ -829,31 +835,32 @@ export const projectLiteratureSynthesisFactory: GraphFactory = {
         if (current.failures.length) {
           return await pauseSource(current);
         }
-        const last = [...actual.messages].reverse().find(isAIMessage);
-        const text =
-          typeof last?.content === 'string'
-            ? last.content
-            : (last?.content
-                .filter((block) => block.type === 'text')
-                .map((block) => block.text)
-                .join('') ?? '');
-        // Accept one complete JSON fence; never guess among candidates or repair partial JSON.
-        const fences = [
-          ...text.matchAll(/^```(?:json)?[^\S\r\n]*\r?\n([\s\S]*?)^```[^\S\r\n]*$/gm),
-        ];
-        let decoded: unknown;
+        let output: unknown;
         try {
-          const fenced =
-            fences.length === 1 && [...text.matchAll(/^ {0,3}(?:`{3,}|~{3,}).*$/gm)].length === 2;
-          decoded = JSON.parse(
-            text.trimStart().startsWith('{') ? text : fenced ? (fences[0]?.[1] ?? text) : text,
-          );
+          output = readStructuredResult(actual, nodeOutputName);
         } catch {
-          throw new OperationError('invalidRequest', '节点输出需要唯一完整的JSON对象。');
+          // An incomplete response is corrected through a new consumer with normal instruction ACKs.
         }
-        const parsed = nodeOutput.safeParse(decoded);
-        if (!parsed.success)
-          throw new OperationError('invalidRequest', '节点没有返回可保存的研究过程和明确下一步。');
+        const parsed = nodeOutput.safeParse(output);
+        if (!parsed.success) {
+          if (value.outputCorrection)
+            throw new OperationError(
+              'invalidRequest',
+              '节点没有返回可保存的研究过程和明确下一步。',
+            );
+          return {
+            ...current,
+            outputCorrection: true,
+            route: phase,
+            messages: [
+              ...actual.messages,
+              new HumanMessage({
+                name: 'ScholoomStructuredOutput',
+                content: `系统格式校验：本职责尚未交付符合schema的结果。这是执行器的格式反馈，不是新的用户指令或决定。请调用${nodeOutputName}提交完整结构化结果；不得以普通总结代替，不重放已经完成的领域操作。`,
+              }),
+            ],
+          };
+        }
         const content = processContent(
           current,
           `## ${phase}\n\n${parsed.data.process}\n\n实际读取范围：${JSON.stringify(contentReads)}${current.failures.length ? `\n来源错误：${JSON.stringify(current.failures)}` : ''}`,
@@ -863,6 +870,7 @@ export const projectLiteratureSynthesisFactory: GraphFactory = {
         if (phase === 'synthesize' && route === 'deliver') route = 'review';
         return {
           ...current,
+          outputCorrection: false,
           ...queueSaves(
             current,
             [

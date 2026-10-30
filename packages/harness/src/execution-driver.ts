@@ -1,6 +1,6 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { randomUUID } from 'node:crypto';
-import { isBaseMessage, ToolMessage } from '@langchain/core/messages';
+import { isAIMessage, isBaseMessage, ToolMessage } from '@langchain/core/messages';
 import type { StreamEvent } from '@langchain/core/tracers/log_stream';
 import { Command, isCommand } from '@langchain/langgraph';
 import { RpcPeer } from '@scholoom/broker/rpc';
@@ -18,7 +18,7 @@ import {
 } from '@scholoom/protocol/execution';
 import Database from 'better-sqlite3';
 import { createDeepAgent, registerHarnessProfile } from 'deepagents';
-import { createMiddleware, tool as defineTool } from 'langchain';
+import { createMiddleware, tool as defineTool, MiddlewareError, toolStrategy } from 'langchain';
 import { z } from 'zod';
 import { InstructionSaver } from './checkpoint.js';
 import { callExecutionControl } from './control.js';
@@ -42,6 +42,7 @@ export {
   type GraphDriver,
   type GraphFactory,
 } from './graph-registry.js';
+export { readStructuredResult } from './structured-output.js';
 
 type AgentInitialization = Exclude<
   ExecutionControlInputs['execution.initialize'],
@@ -202,9 +203,15 @@ export function startExecutionWorker(graphs = new ExecutionGraphs()): void {
         name: 'ScholoomModelCompletion',
         wrapModelCall: async (request, handler) => {
           const response = await handler(request);
+          const update = response as unknown as { messages?: unknown };
+          const completion = isBaseMessage(response)
+            ? response
+            : Array.isArray(update.messages)
+              ? update.messages.find(isAIMessage)
+              : undefined;
           if (
-            response.response_metadata.finish_reason === 'length' ||
-            response.additional_kwargs.stop_reason === 'max_tokens'
+            completion?.response_metadata.finish_reason === 'length' ||
+            completion?.additional_kwargs.stop_reason === 'max_tokens'
           )
             throw new OperationError('modelFailed', '模型输出达到上限，未执行本次工具请求。');
           return response;
@@ -218,6 +225,7 @@ export function startExecutionWorker(graphs = new ExecutionGraphs()): void {
           wrapModelCall: (request, handler) =>
             handler({
               ...request,
+              ...(selection.responseFormat ? { toolChoice: 'auto' as const } : {}),
               tools: request.tools.filter(
                 (tool) => typeof tool.name === 'string' && selection.tools.includes(tool.name),
               ),
@@ -233,6 +241,18 @@ export function startExecutionWorker(graphs = new ExecutionGraphs()): void {
       model,
       backend,
       middleware,
+      ...(selection?.responseFormat
+        ? {
+            responseFormat: toolStrategy(
+              {
+                ...selection.responseFormat.schema,
+                type: 'object',
+                title: selection.responseFormat.name,
+              },
+              { handleError: false },
+            ),
+          }
+        : {}),
       ...((selection?.systemPrompt ?? input.systemPrompt)
         ? { systemPrompt: selection?.systemPrompt ?? input.systemPrompt }
         : {}),
@@ -385,6 +405,17 @@ export function startExecutionWorker(graphs = new ExecutionGraphs()): void {
               );
               // The child borrows the parent's saver and exact SDK task config.
               return (await agent.graph.invoke(child ? null : state, config)) as AgentState;
+            } catch (error) {
+              const seen = new Set<unknown>();
+              for (
+                let cause = error;
+                MiddlewareError.isInstance(cause) && !seen.has(cause);
+                cause = cause.cause
+              ) {
+                seen.add(cause);
+                if (cause.cause instanceof OperationError) throw cause.cause;
+              }
+              throw error;
             } finally {
               activeConsumer = false;
             }

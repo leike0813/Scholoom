@@ -4,6 +4,7 @@ import type { ModelServerOptions } from '../model-server.js';
 /** External model boundary for synthetic 42/17 samples; no research-quality oracle. */
 export function synthesisModelResponse(
   materials: () => readonly ResourceEvidence[],
+  structured = false,
 ): NonNullable<ModelServerOptions['respond']> {
   let answers = 0;
   return ({ calls }) => {
@@ -23,25 +24,25 @@ export function synthesisModelResponse(
         },
       };
     answers++;
-    return {
-      text: JSON.stringify(
-        answers === 1
+    const output =
+      answers === 1
+        ? {
+            process: '形成比较维度：42与17来自各1个合成样本，不能推广。下一步比较。',
+            next: 'synthesize',
+          }
+        : answers === 2
           ? {
-              process: '形成比较维度：42与17来自各1个合成样本，不能推广。下一步比较。',
-              next: 'synthesize',
+              process: '比较：42比17大25，仅描述当前合成样本。',
+              report:
+                '# 合成比较\n42与17相差25，均为单样本，不能推广。研究局限、材料覆盖和证据不足分别保留。',
+              next: 'review',
             }
-          : answers === 2
-            ? {
-                process: '比较：42比17大25，仅描述当前合成样本。',
-                report:
-                  '# 合成比较\n42与17相差25，均为单样本，不能推广。研究局限、材料覆盖和证据不足分别保留。',
-                next: 'review',
-              }
-            : {
-                process: '自查已核来源和25差值，保留单样本限制。尚无独立复核。',
-                next: 'deliver',
-              },
-      ),
-    };
+          : {
+              process: '自查已核来源和25差值，保留单样本限制。尚无独立复核。',
+              next: 'deliver',
+            };
+    return structured
+      ? { tool: { name: 'submit_literature_synthesis', input: output } }
+      : { text: JSON.stringify(output) };
   };
 }
