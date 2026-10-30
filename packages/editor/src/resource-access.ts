@@ -23,6 +23,7 @@ export interface ResourceParser {
   ): Promise<ResourceDocumentOutputs[DocumentMethod]>;
 }
 const changed = () => new OperationError('contentChanged', '资源内容已变化，请重新打开并核对。');
+const textByteLimit = 8 * 1024 * 1024;
 /** Resource orchestration owns no project, attachment, permission or draft records. */
 export class ResourceAccess {
   private readonly pending = new Map<string, { controller: AbortController; owner: string }>();
@@ -241,44 +242,33 @@ export class ResourceAccess {
         ...(value.nextOffset === undefined ? {} : { nextOffset: value.nextOffset }),
       };
     }
-    let content: string;
-    let truncated = false;
-    if (ref.source === 'project' && !ports.target) {
-      const location = await this.projectLocation(ports, ref);
-      const source = await ports.project['files.read']({
-        projectId: ref.projectId,
-        path: location.path,
-      });
-      if (source.fileId !== ref.fileId) throw changed();
-      content = source.content;
-      truncated = source.truncated;
-    } else {
-      const value =
-        ref.source === 'project'
-          ? await this.projectBytes(ports, {
-              projectId: ref.projectId,
-              fileId: ref.fileId,
-              basis,
-              limit: 262144,
-            })
-          : await ports.library['library.readAttachment']({
-              attachmentId: ref.attachmentId,
-              limit: 262144,
-            });
-      truncated = value.nextOffset !== undefined;
-      try {
-        content = new TextDecoder('utf8', { fatal: true }).decode(
-          Buffer.from('base64' in value ? value.base64 : value.data, 'base64'),
-          { stream: truncated },
-        );
-      } catch {
-        throw new OperationError('invalidRequest', '资源不是有效的 UTF-8 文本。');
-      }
-      if (content.includes('\0'))
-        throw new OperationError('invalidRequest', '资源不是 UTF-8 文本。');
+    const parts: Buffer[] = [];
+    let byteOffset = 0;
+    for (;;) {
+      context.signal?.throwIfAborted();
+      const value = await this.read(
+        { ref, basis, encoding: 'base64', offset: byteOffset, limit: 262144 },
+        context,
+      );
+      context.signal?.throwIfAborted();
+      if (value.size > textByteLimit)
+        throw new OperationError('tooLarge', '资源超过 UTF-8 文本读取上限。');
+      parts.push(Buffer.from(value.data, 'base64'));
+      if (value.nextOffset === undefined) break;
+      if (value.nextOffset <= byteOffset)
+        throw new OperationError('unavailable', '资源读取未推进。');
+      byteOffset = value.nextOffset;
     }
+    let content: string;
+    try {
+      content = new TextDecoder('utf8', { fatal: true }).decode(Buffer.concat(parts));
+    } catch {
+      throw new OperationError('invalidRequest', '资源不是有效的 UTF-8 文本。');
+    }
+    if (content.includes('\0')) throw new OperationError('invalidRequest', '资源不是 UTF-8 文本。');
     if (offset > content.length) throw new OperationError('invalidRequest', '文本位置超出范围。');
     await this.verify(ports, ref, basis);
+    context.signal?.throwIfAborted();
     const end = Math.min(content.length, offset + limit);
     return {
       ref,
@@ -287,7 +277,7 @@ export class ResourceAccess {
       offset,
       size: content.length,
       unit: 'utf16',
-      truncated,
+      truncated: false,
       ...(end < content.length ? { nextOffset: end } : {}),
     };
   }
