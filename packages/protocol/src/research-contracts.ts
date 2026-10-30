@@ -106,7 +106,10 @@ export const researchGraphSchema = object(
       ]),
     },
     delivery: object(
-      { roles: { type: 'array', items: id, minItems: 1, maxItems: 10, uniqueItems: true } },
+      {
+        roles: { type: 'array', items: id, minItems: 1, maxItems: 10, uniqueItems: true },
+        inputReadMode: { const: 'content-ranges' },
+      },
       ['roles'],
     ),
   },

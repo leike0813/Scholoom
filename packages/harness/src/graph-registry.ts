@@ -29,7 +29,12 @@ export type AgentState = {
   instructions: InstructionContext[];
 };
 /** Selected by trusted factory source; graph configuration never grants tools. */
-export type AgentNodeOptions = { tools: readonly string[]; systemPrompt: string };
+export type AgentNodeOptions = {
+  tools: readonly string[];
+  systemPrompt: string;
+  /** Runs before SDK result offloading; source factories may reject an oversized reply. */
+  prepareToolResult?(name: string, args: Record<string, unknown>, result: string): string;
+};
 export type AgentConsumer = {
   /** Invoke once per SDK node/task with its original config; return these channels to the outer graph. */
   invoke(state: AgentState, config: RunnableConfig, options: AgentNodeOptions): Promise<AgentState>;

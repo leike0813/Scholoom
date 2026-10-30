@@ -22,7 +22,11 @@ import type {
   ResourceSaveResult,
 } from '@scholoom/protocol/resources';
 import { and, desc, eq, sql } from 'drizzle-orm';
-import { assessGraphDelivery, type GraphDeliveryChecks } from './graph-delivery.js';
+import {
+  assessGraphDelivery,
+  type GraphDeliveryChecks,
+  graphInputResources,
+} from './graph-delivery.js';
 import type { ResearchGraphs } from './graphs.js';
 import type { ResearchRecords } from './records.js';
 import { attempts } from './schema.js';
@@ -350,10 +354,13 @@ export class ResearchGraphRuntime {
           };
         for (const run of history.runs) {
           const checks: GraphDeliveryChecks = { reads: [], artifacts: [] };
-          const read = async (resource: {
-            ref: ResourceInputs['resources.read']['ref'];
-            basis: string;
-          }) => {
+          const read = async (
+            resource: {
+              ref: ResourceInputs['resources.read']['ref'];
+              basis: string;
+            },
+            availabilityOnly = false,
+          ) => {
             if (call.restoredFromProjectId) {
               view.error ??= {
                 code: 'unavailable',
@@ -363,7 +370,12 @@ export class ResearchGraphRuntime {
             }
             try {
               return await this.ports?.read(
-                { ref: resource.ref, basis: resource.basis, encoding: 'utf8' },
+                {
+                  ref: resource.ref,
+                  basis: resource.basis,
+                  encoding: availabilityOnly ? 'base64' : 'utf8',
+                  ...(availabilityOnly ? { limit: 1 } : {}),
+                },
                 context,
               );
             } catch (error) {
@@ -371,8 +383,15 @@ export class ResearchGraphRuntime {
               return undefined;
             }
           };
-          for (const material of call.materials) {
-            const result = await read(material);
+          for (const material of graphInputResources(
+            call.graph,
+            call.materials,
+            run.graphProgress,
+          )) {
+            const result = await read(
+              material,
+              call.graph.delivery.inputReadMode === 'content-ranges',
+            );
             if (result) checks.reads.push(result);
           }
           for (const role of call.graph.delivery.roles) {

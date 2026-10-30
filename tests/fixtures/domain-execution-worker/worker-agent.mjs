@@ -13,7 +13,11 @@ export const agentGraphs = new ExecutionGraphs([
       version: '1',
       stateFormatVersion: '1',
       requiresModel: true,
-      configSchema: { type: 'object', additionalProperties: false },
+      configSchema: {
+        type: 'object',
+        properties: { boundedTools: { type: 'boolean' } },
+        additionalProperties: false,
+      },
     },
     create(input, { signal, checkpointer, agent }) {
       const state = Annotation.Root({
@@ -33,7 +37,16 @@ export const agentGraphs = new ExecutionGraphs([
             })}\n`,
           );
           return agent.invoke(value, config, {
-            tools: ['write_file'],
+            tools: input.graph.config.boundedTools ? ['read_context_resource'] : ['write_file'],
+            ...(input.graph.config.boundedTools
+              ? {
+                  prepareToolResult(_name, _args, result) {
+                    return Buffer.byteLength(result) > 32768
+                      ? JSON.stringify({ error: { code: 'tooLarge', retryWithSmallerRange: true } })
+                      : result;
+                  },
+                }
+              : {}),
             systemPrompt:
               'Use the specified synthetic file once and preserve the full instructions.',
           });

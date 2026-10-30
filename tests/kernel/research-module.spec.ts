@@ -146,6 +146,66 @@ test('graph delivery needs actual complete reads, current saved results and conf
       { reads: [read], artifacts: [artifact] },
     ).delivery,
   ).toBe('incomplete');
+
+  const rangedGraph: ResearchGraph = {
+    ...graph,
+    delivery: { ...graph.delivery, inputReadMode: 'content-ranges' },
+  };
+  const contentRead = {
+    resource: input,
+    content: { kind: 'pdf-page' as const, pageIndex: 0, offset: 20, length: 3, hasText: true },
+  };
+  const rangedProgress = {
+    ...progress,
+    evidence: { ...progress.evidence, contentReads: [contentRead] },
+  };
+  const availability = {
+    ...read,
+    unit: 'byte' as const,
+    data: 'AA==',
+    truncated: true,
+    nextOffset: 1,
+  };
+  const rangedChecks = { reads: [availability], artifacts: [artifact] };
+  expect(assessGraphDelivery(rangedGraph, [input], rangedProgress, rangedChecks).delivery).toBe(
+    'usable',
+  );
+  expect(assessGraphDelivery(graph, [input], rangedProgress, rangedChecks).delivery).toBe(
+    'incomplete',
+  );
+  for (const contentReads of [
+    [],
+    [{ ...contentRead, resource: { ...input, basis: 'wrong' } }],
+    [{ ...contentRead, content: { ...contentRead.content, hasText: false } }],
+    [{ ...contentRead, content: { ...contentRead.content, length: 0 } }],
+    [{ resource: input, content: { kind: 'search' as const } }],
+  ])
+    expect(
+      assessGraphDelivery(
+        rangedGraph,
+        [input],
+        { ...progress, evidence: { ...progress.evidence, contentReads } },
+        rangedChecks,
+      ).issues,
+    ).toContainEqual(expect.objectContaining({ code: 'inputNotRead' }));
+  const added = { ...input, ref: { ...input.ref, fileId: 'adopted-later' } };
+  const adoptedProgress = {
+    ...progress,
+    evidence: {
+      ...progress.evidence,
+      reads: [input, added],
+      contentReads: [contentRead, { ...contentRead, resource: added }],
+    },
+  };
+  expect(
+    assessGraphDelivery(rangedGraph, [input], adoptedProgress, rangedChecks).issues,
+  ).toContainEqual(expect.objectContaining({ code: 'inputNotRead', resource: added }));
+  expect(
+    assessGraphDelivery(rangedGraph, [input], adoptedProgress, {
+      ...rangedChecks,
+      reads: [availability, { ...availability, ...added }],
+    }).delivery,
+  ).toBe('usable');
 });
 
 test('research persists attempts with only its own table and replaceable ports', async () => {

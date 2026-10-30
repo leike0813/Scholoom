@@ -11,6 +11,7 @@ import {
   InstructionSaver,
   openCheckpoint,
 } from '../../packages/harness/dist/node.js';
+import type { ResourceEvidence } from '../../packages/protocol/dist/resources.js';
 import type { ModelServerOptions } from '../model-server.js';
 import { createModelServer } from '../model-server.js';
 
@@ -18,7 +19,7 @@ const Database = createRequire(new URL('../../packages/harness/package.json', im
   'better-sqlite3',
 );
 
-async function agentFixture(respond: ModelServerOptions['respond']) {
+async function agentFixture(respond: ModelServerOptions['respond'], boundedTools = false) {
   const root = await mkdtemp(join(tmpdir(), 'registered-agent-protection-'));
   const model = await createModelServer({ ...(respond ? { respond } : {}) });
   // @ts-expect-error Trusted source registration shared with the actual worker.
@@ -39,7 +40,7 @@ async function agentFixture(respond: ModelServerOptions['respond']) {
     });
     const session = await app.call('session.create', { projectId: project.id });
     const scope = { projectId: project.id, sessionId: session.id };
-    const start = () =>
+    const start = (materials: ResourceEvidence[] = []) =>
       app.startGraph({
         ...scope,
         instructionId: randomUUID(),
@@ -48,8 +49,8 @@ async function agentFixture(respond: ModelServerOptions['respond']) {
           kind: 'registered',
           graphId: 'registered-agent',
           version: '1',
-          config: {},
-          materials: [],
+          config: boundedTools ? { boundedTools: true } : {},
+          materials,
           workDomain: { kind: 'project', ...scope },
         },
       });
@@ -59,6 +60,61 @@ async function agentFixture(respond: ModelServerOptions['respond']) {
     await model.close();
     throw error;
   }
+}
+
+for (const oversized of [false, true]) {
+  test(`registered Agent bounds the actual tool reply before SDK offloading (${oversized})`, async () => {
+    let evidence: ResourceEvidence;
+    const content = oversized ? 'bounded-source-'.repeat(7000) : 'Bounded source content.';
+    const f = await agentFixture(
+      async ({ calls }) =>
+        calls.includes('read_context_resource')
+          ? { text: 'Checked the actual tool reply.' }
+          : {
+              tool: {
+                name: 'read_context_resource',
+                input: { ...evidence, encoding: 'utf8', limit: 100000 },
+              },
+            },
+      true,
+    );
+    try {
+      const saved = await f.app.call('files.save', {
+        projectId: f.project.id,
+        path: 'source.txt',
+        content,
+      });
+      assert(saved.fileId);
+      const resource = await f.app.call('resources.describe', {
+        locator: { source: 'project', projectId: f.project.id, fileId: saved.fileId },
+      });
+      evidence = { ref: resource.ref, basis: resource.basis };
+      await f.start([evidence]);
+      await expect
+        .poll(async () => (await f.app.snapshot(f.scope)).run?.state, { timeout: 20000 })
+        .toBe('completed');
+      expect(f.model.requests).toHaveLength(2);
+      const messages = f.model.requests[1]?.messages as {
+        content?: { type?: string; content?: unknown }[];
+      }[];
+      const reply = messages
+        .flatMap((message) => message.content ?? [])
+        .find((block) => block.type === 'tool_result');
+      assert(reply);
+      const received = JSON.stringify(reply.content);
+      if (oversized) {
+        expect(received).toContain('tooLarge');
+        expect(received).not.toContain('bounded-source-');
+        expect(received).not.toContain('/large_tool_results/');
+      } else {
+        expect(received).toContain(content);
+        expect(received).toContain(resource.basis);
+      }
+    } finally {
+      await f.app.close();
+      await f.model.close();
+    }
+  });
 }
 
 for (const boundary of ['ack', 'pending-writes', 'lost-receipt', 'root-ack'] as const) {

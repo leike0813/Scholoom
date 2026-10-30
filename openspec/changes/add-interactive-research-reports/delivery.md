@@ -1,5 +1,11 @@
 # 实际交付与交接
 
+## 固定WorkerDOM探针授权与开工（2026-10-30）
+
+用户已明确授权引入ampproject/worker-dom@52b619eb46416c4325306de851e5a9df99697fcb固定源码闭包并按既备plan做有界适配及双宿主验证，保留Apache-2.0与parser MIT许可；仅用已有工具，不安装npm依赖，不创建系统账户或部署服务。原计划位于`/home/joshua/.cache/scholoom-round22-acceptance-noQKV1/next/research-interaction/plan.md`，其中“待授权”已由本次回答解决，其余边界保持。
+
+主线保全接受提交原历史且核合并文件树不变，research-interaction已快进到3511e26并完成本树build:shared（exit0），随后派发唯一探针ctx_1de861c7f56e，模型Codex／gpt-6.1-sol／high。首次启动回执turn_start_unobserved，后续实际terminal read已见其按计划工作、worker-show fleet为live；未重复派发。新证据在`/home/joshua/.cache/scholoom-closeout-execution-20261030/workers/research-interaction/worker-dom/`。本节仅记录许可与开工，结果待接收，六项完整任务仍未通过，不计生产隔离、输入等价、T1/T2或通用报告可用。
+
 ## 第27轮：部分封存P2修复接收
 
 项目原`cbc38a4324eaeb2015618005eafdca17c02d6f2d`以`376a28a`合入，祖先桥`737cca5`保留来源。原sealed逐项保存已取得的program／gate指纹，未知字段为空字符串；未新增字段／账本或放宽v1验证，完整seal和目录sync仍先于controller构造。作者旧dist真实gate既存红例1失败后才改源码及构建，修复后必要组合6/6、真实Linux默认冻结到完整停止另1/1；原失败、两次运行和收尾分开保留在本轮根`next/project-execution/RESULT.md`。

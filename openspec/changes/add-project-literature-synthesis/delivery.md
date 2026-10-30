@@ -1,5 +1,13 @@
 # 实际交付与交接
 
+## 业务图接缝与第二波接口（2026-10-30）
+
+主线在原2.1基础上增加源码本地prepareToolResult接点：原execution.custom已返回的字符串在进入SDK前交可信factory处理；普通Agent未配置该接点时保持原返回。新实际受控HTTP代表2/2核小结果原正文／basis不变，以及98KiB响应在SDK80,000字符转存前变成明确tooLarge，模型没有取得正文或临时路径。连同原pending-writes恢复代表最终3/3（38.9秒）；最初harness构建有unknown参数类型错误，使用已校验call中的args修正，最终构建exit0。早先2/2使用TypeScript错误时已发出的产物，不当完整构建证据；最终日志为tool-result-final-tests.log及source-graph-export-build.log。
+
+科研描述新增可选delivery.inputReadMode:'content-ranges'，只供明确声明的新源码图。其实际非空正文范围与当前原basis可读性分开核，新增实际采用的来源也核原ref／basis；原图仍要求完整UTF8，报告／过程仍完整非空读回。有效范围由可信源码Graph维护，原始输入清单保存在原调用；正常题录条件、明确排除及其依据由真实过程承接，异常未获明确选择不能暗中排除。此时尚无生产图使用该模式，不以接缝存在勾5.1。
+
+既有delivery单测扩展核片段、无正文／错版本、搜索不算正文及新增来源未核不可用，1/1通过；原真实角色保存2项和原项目／库读取、等待、普通消息、交付代表1项合计3/3（58.8秒）。共享构建、tools类型、Biome、架构exit0；原首败和最终日志在本轮cache的tool-result-*／content-range-*，均无真实科研模型调用。精确配置、任务导航函数与共享所有权已冻结在design新增实施接口节，独立审查和后续实际图验收另行接收，当前仍6/12。
+
 ## 共用Agent及精确恢复最终接收（2026-10-30）
 
 主线接收813d87f为ce6bdda并完成2.1，当前6/12。ordinary与registered共用原宿主／worker DeepAgent、ModelAccess／预算、middleware、工具receipt与资源端口；可信source factory可选择原工具子集及节点指导，单活consumer沿原SDK task config恢复。新增namespace与累计cover仍是原consumption事务，旧根子集ACK不降级；未确认adopted先补严格ACK，成功pending-writes由SDK保留原task而不重跑保存。实际接口与作者各轮51个不同代表的最近结果、首败及exit130中止均见`workers/agent-delegation/RESULT.md`，不写成一次51项全绿。

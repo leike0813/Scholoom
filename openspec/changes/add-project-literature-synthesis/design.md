@@ -40,6 +40,16 @@ flowchart LR
 
 新会话由用户在任务详情明确选择该图和目标会话，再以普通消息提出补材料后的要求；改变会话／目标／材料建立新调用。首片不增加普通 Agent 自主发起科研图的工具，也不伪造 human 身份。等待中的普通消息沿原 wait schema／完整上下文映射，含糊的输入继续等待。
 
+### 业务图与任务接续的实施接口
+
+生产源码登记放在`apps/kernel/src/research-graphs/`，由宿主与worker共用；research领域不新增harness／LangGraph依赖。配置固定为`question`、可选`constraints`、`reportTarget`、`processTarget`、可选`prior`和`requireIndependentReview`；两个target分别为`{kind:'create',path}`或`{kind:'update',resource:ResourceEvidence}`，prior为最多10项明确旧成果Evidence。路径必须属于当前项目，update必须先按原basis读取；不根据路径、题名或最近时间选择旧成果。question为非空字符串，constraints为字符串；配置不接受提示、工具、模型或代码。Task输入不复制进config，从materials中唯一`role:'task-input'`的原ref／basis读取并校验现有v1/v2快照，核当前项目／会话、originInstructionId及来源，不把人工可写文件中的字段当新授权。
+
+任务线独占`apps/kernel/src/research-graphs/task-navigation.ts`，提供`linkTaskResearchArtifacts(peer, snapshot, artifacts)`：snapshot为原TaskGraphInputSnapshot，artifacts为真实`{role:'report'|'process',result:ResourceSaveResult}[]`，返回`{state:'confirmed'}`或`{state:'failed'|'unknown',error:ErrorInfo}`。图线消费此函数，但不改其文件。实现经原execution.custom的read_research_task／save_research_task读取及CAS更新；报告沿result链接、真实过程沿process链接，保原graph-call指针。只对同角色／工作项／fileId的已有链接更新basis，否则追加新链接，不能按同路径重绑。新调用沿原任务入口保旧链接／快照，明确prior及update目标后读取旧研究内容。CAS冲突与unknown返回未完成关系，后续显式继续仅补原链接，不能重生成或查询时保存。没有任务快照的显式科研请求不伪造TaskRef。
+
+共享Agent的源码本地`AgentNodeOptions.prepareToolResult(name,args,result):string`在原execution.custom结果返回后、SDK转存前执行，不进入公共wire或授权。图线用它拒绝超过32KiB的完整返回或超过4096 UTF16的正文，返回明确缩小范围的错误；有效结果保留原字节。contentReads从实际Agent ToolMessage及对应调用参数重建，包含原子任务恢复后的已持久结果，不能只依赖内存callback或模型自述；错误／offload路径不登记正文。后续图节点仍使用原consumer/config及完整instruction channels，首次同时seed原HumanMessage。
+
+科研描述的delivery可显式声明`inputReadMode:'content-ranges'`；未声明的旧图继续完整文本核查。新模式核实际progress中原basis非空text／PDF页／规范化章节，并以原权限和base64单字节读取核当前仍可读；此查询不登记运行时消费。可信源码图的inputs表达有效研究范围，原调用保留原始清单，新增实际reads／contentReads的资源同样核查。正常题录条件及用户明确排除的材料保存在真实过程；来源异常只有经真实等待和明确选择才能移出有效范围。搜索／目录／字节或查询时重读不能替代正文，成果仍要求完整非空读回；机械usable不表示研究判断合格。
+
 ### 共用 Agent 与精确消费恢复
 
 复用 `execution-driver.ts` 原普通 Agent 的模型、backend、middleware、工具 token／回执、输出截断保护及同步 InstructionSaver，提取一个由普通 Agent 和 registered 节点立即消费的 worker 本地装配。宿主也共用原 Agent 工具／middleware 装配，registered 输入只增加由可信宿主提供的工具描述与 middleware 元数据；模型仍来自所属执行。不得复制第二 Agent loop、默认模型、执行池或进程额度。
@@ -117,7 +127,7 @@ TaskLink.target 增 `library-source`，字段为 `libraryId`／`sourceId`；原�
 | 任务线：`protocol/src/task-contracts.ts`、`task-graph-contracts.ts`、`projects/src/task-graphs.ts`、必要task解析／导航调用方、`kernel/src/manual.ts`中TaskGraphs装配及`application.ts`中科研启动适配、原Task详情和任务测试 | 题录target、v1/v2快照、实际元数据与任务导航；不改harness运行装配或科研交付port |
 | 项目线：`research/src/graph-runtime.ts`、`graph-delivery.ts`、`projects`原artifact读取及`kernel/src/application.ts`科研port局部 | 沿本次roleResults验证精确保存、单项run关联、当前读回；不改Graph业务或通用权限 |
 | 交互线：原business-session、session／消息组件和会话UI测试；必要`docs/ui-design`相关文档 | 同一dock／overlay呈现真实等待及成果入口；不改Task表单／TaskLink或harness事实 |
-| 图线：`research/src/builtin/project-literature-synthesis/`、共享源码登记、`kernel/src/execution-graphs.ts`及受影响入口／fixtures | 共用Agent consumer接入后实现职责节点、工具小片与进度、wait映射、真实项目成果和接续 |
+| 图线：`apps/kernel/src/research-graphs/`（除任务线task-navigation.ts）、共享源码登记、`kernel/src/execution-graphs.ts`及受影响入口／fixtures | 共用Agent consumer接入后实现职责节点、工具小片与进度、wait映射、真实项目成果和接续；application.ts仅生产researchGraphs默认装配局部 |
 | 主线：`docs/development.md`、必要架构声明及本change tasks／delivery | 修正原“无生产图”描述，记录新诊断／限制／实际验收；delivery只记执行事实，归属冲突由主线收回整合 |
 
 上表是所有权，不允许两树并写同一装配区。Task与科研port需同时改application.ts时由两线提供独立局部patch，主线顺序整合；shared protocol文件由列明所有者独占。业务图、真实取材小片 collector和最终跨模块接线由主线在接口合入后统筹，不能让节点凭空实现尚不存在的helper。

@@ -32,6 +32,8 @@ import {
   type GraphDriver,
 } from './graph-registry.js';
 
+export { callExecutionControl } from './control.js';
+
 export {
   type AgentConsumer,
   type AgentNodeOptions,
@@ -231,7 +233,7 @@ export function startExecutionWorker(graphs = new ExecutionGraphs()): void {
         : {}),
       ...(saver ? { checkpointer: saver } : {}),
       tools: input.tools.map((tool) =>
-        defineTool((args) => {
+        defineTool(async (args) => {
           const token = context.getStore();
           const call = [
             'execution.custom',
@@ -239,7 +241,8 @@ export function startExecutionWorker(graphs = new ExecutionGraphs()): void {
           ] as const;
           if (!isExecutionControlCall(call))
             throw new OperationError('invalidRequest', '工具参数不符合契约。');
-          return callExecutionControl(peer, ...call);
+          const result = await callExecutionControl(peer, ...call);
+          return selection?.prepareToolResult?.(tool.name, call[1].args, result) ?? result;
         }, tool),
       ),
     });

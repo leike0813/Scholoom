@@ -27,6 +27,23 @@ export const completeTextRead = (read: Read) =>
   read.data.length === read.size &&
   read.size > 0;
 
+/** Effective scope is declared by trusted source graphs; the call retains its original input. */
+export function graphInputResources(
+  graph: ResearchGraph,
+  materials: readonly ResourceEvidence[],
+  progress: GraphProgress | undefined,
+): ResourceEvidence[] {
+  if (graph.delivery.inputReadMode !== 'content-ranges' || !progress) return [...materials];
+  const resources: ResourceEvidence[] = [];
+  for (const item of [
+    ...(progress.evidence.inputs.length ? progress.evidence.inputs : materials),
+    ...progress.evidence.reads,
+    ...(progress.evidence.contentReads?.map((read) => read.resource) ?? []),
+  ])
+    if (!resources.some((prior) => same(prior, item))) resources.push(item);
+  return resources;
+}
+
 export function assessGraphDelivery(
   graph: ResearchGraph,
   materials: readonly ResourceEvidence[],
@@ -34,10 +51,20 @@ export function assessGraphDelivery(
   checks: GraphDeliveryChecks,
 ): ResearchGraphDelivery {
   const issues: ResearchGraphDelivery['issues'] = [];
-  for (const material of materials)
+  for (const material of graphInputResources(graph, materials, progress))
     if (
       !progress?.evidence.reads.some((item) => same(item, material)) ||
-      !checks.reads.some((read) => same(read, material) && completeTextRead(read))
+      (graph.delivery.inputReadMode === 'content-ranges'
+        ? !checks.reads.some((read) => same(read, material)) ||
+          !progress.evidence.contentReads?.some(
+            ({ resource, content }) =>
+              same(resource, material) &&
+              (content.kind === 'text' ||
+                content.kind === 'document-section' ||
+                (content.kind === 'pdf-page' && content.hasText)) &&
+              content.length > 0,
+          )
+        : !checks.reads.some((read) => same(read, material) && completeTextRead(read)))
     )
       issues.push({ code: 'inputNotRead', resource: material });
   for (const role of graph.delivery.roles) {
