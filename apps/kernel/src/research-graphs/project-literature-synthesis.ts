@@ -1,4 +1,5 @@
 import { posix } from 'node:path';
+import { isDeepStrictEqual } from 'node:util';
 import { HumanMessage, isAIMessage } from '@langchain/core/messages';
 import {
   Annotation,
@@ -79,7 +80,7 @@ export const projectLiteratureSynthesis: ResearchGraph = {
 const nodeOutput = z
   .object({
     process: z.string().trim().min(1).max(196608),
-    report: z.string().trim().min(1).max(196608).optional(),
+    report: z.string().trim().min(1).max(196608).nullish(),
     next: z.enum(['acquire', 'synthesize', 'review', 'deliver', 'wait']),
     prompt: z.string().max(4096).optional(),
   })
@@ -424,19 +425,23 @@ export const projectLiteratureSynthesisFactory: GraphFactory = {
         input.graph.materials.some(
           (item) => item.role === 'task-input' && sameEvidence(item, resource),
         ) ||
-        value.roleResults.some(
-          (item) => JSON.stringify(item.result.resource.ref) === JSON.stringify(resource.ref),
+        value.roleResults.some((item) =>
+          isDeepStrictEqual(item.result.resource.ref, resource.ref),
         ) ||
         targets.some(
           (target) =>
-            target.kind === 'update' &&
-            JSON.stringify(target.resource.ref) === JSON.stringify(resource.ref),
+            target.kind === 'update' && isDeepStrictEqual(target.resource.ref, resource.ref),
         )
       );
     };
 
     const graph = new StateGraph(state)
       .addNode('prepare', async (value): Promise<Partial<Value>> => {
+        value = {
+          ...value,
+          sources: value.sources.filter((source) => !excludedOutput(value, source)),
+        };
+        observed.sources = value.sources;
         try {
           const snapshots = input.graph.materials.filter((item) => item.role === 'task-input');
           if (snapshots.length > 1)
@@ -515,6 +520,7 @@ export const projectLiteratureSynthesisFactory: GraphFactory = {
           );
           return {
             ...queueSaves(prepared, [{ role: 'process', content }], 'acquire'),
+            sources: value.sources,
             ...(snapshot ? { snapshot } : {}),
             catalog,
             error: undefined,
@@ -768,6 +774,10 @@ export const projectLiteratureSynthesisFactory: GraphFactory = {
           route: 'done',
           error: { code: 'resourceLimit', message: '已到12次业务节点迭代上限，保留部分成果。' },
         };
+      value = {
+        ...value,
+        sources: value.sources.filter((source) => !excludedOutput(value, source)),
+      };
       let current = value;
       let consumerPending = false;
       try {
@@ -827,9 +837,21 @@ export const projectLiteratureSynthesisFactory: GraphFactory = {
                 .filter((block) => block.type === 'text')
                 .map((block) => block.text)
                 .join('') ?? '');
-        const parsed = nodeOutput.safeParse(
-          JSON.parse(text.replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '')),
-        );
+        // Accept one complete JSON fence; never guess among candidates or repair partial JSON.
+        const fences = [
+          ...text.matchAll(/^```(?:json)?[^\S\r\n]*\r?\n([\s\S]*?)^```[^\S\r\n]*$/gm),
+        ];
+        let decoded: unknown;
+        try {
+          const fenced =
+            fences.length === 1 && [...text.matchAll(/^ {0,3}(?:`{3,}|~{3,}).*$/gm)].length === 2;
+          decoded = JSON.parse(
+            text.trimStart().startsWith('{') ? text : fenced ? (fences[0]?.[1] ?? text) : text,
+          );
+        } catch {
+          throw new OperationError('invalidRequest', '节点输出需要唯一完整的JSON对象。');
+        }
+        const parsed = nodeOutput.safeParse(decoded);
         if (!parsed.success)
           throw new OperationError('invalidRequest', '节点没有返回可保存的研究过程和明确下一步。');
         const content = processContent(

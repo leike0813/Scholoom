@@ -1,5 +1,13 @@
 # 实际交付与交接
 
+## 收尾核验与待选输入边界（2026-10-31）
+
+本change保持21/27，六项完整运行／呈现／整合／最终交付任务仍未完成。只读辅助核查形成`/home/joshua/.cache/scholoom-closeout-execution-20261030/report-closeout-map.md`：现有ReportResources、冻结字节、原native provider、准确历史授权、draft／update／client及可信夹具均有实现，正式产品路径仍进入安全阅读，尚无跨身份通用活动ReportView。C单写入服务、M固定OS门、完整脚本运行策略、恢复ACK与T1/T2尚未贯通；模块通过不等于活动报告可用，亦非仅浏览器端缺口。
+
+固定WorkerDOM的同步beforeinput取消反例继续保持Browser／真实Electron **0/2**，不重测同一反例或改成预期失败。依原授权探针plan第117–121行，决定性反例后停止该候选。源与宿主异步通信使源preventDefault晚于宿主默认动作；安装系统服务本身不解决这条输入语义，不能因此先做系统安装。原样本和普通UID子进程也未证明恶意代码OS隔离、系统IME或真实读屏。
+
+可审阅的两种产品范围选择记录在`/home/joshua/.cache/scholoom-closeout-execution-20261030/report-input-scope-decision.md`：明确不支持跨进程同步取消默认输入、依赖者显式失败后，另定通用HTML／JS适配契约；或维持完整同步输入继续寻找成熟承载。前者缩减行为、后者没有已通过候选，均不能把当前任务直接勾完。已询问用户，未将“继续收尾”解释为选择前者；正式规格、输入／辅助要求和系统安装授权保持原边界。没有用固定React页面、图片、外部窗口或仅不可用说明代替目标后归档。
+
 ## WorkerDOM双宿主决定性反例接收（2026-10-30）
 
 主线接收147ef729为04c2a22，只保留在tests/fixtures/report-worker-dom的实验，不接生产。固定52b619eb源码闭包113文件、Apache-2.0及parser MIT、十文件fork／可逆patch、两包metafile和原始source／host／oracle证据可核；没有npm安装、系统账户或服务。实际固定样本的Node非SERVER HYDRATE、共同Workbench tab普通输入及显式namespace MathML有往返证据，但这不是完整报告可用性。

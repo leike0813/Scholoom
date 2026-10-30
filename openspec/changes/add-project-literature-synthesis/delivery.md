@@ -1,5 +1,19 @@
 # 实际交付与交接
 
+## 真实综合首次等待及输出边界修复（2026-10-31）
+
+用户“授权你继续收尾”覆盖此前明确披露的`synthesis-live-20261030-d0f2265-dirty-40x16384-900s-v1`：两个Graph统一MiniMax-M2.7，共40次HTTP、累计4MiB、单次256KiB／输出16384tokens、首请求900秒，等待或失败即停，不自动回答或重试整项。证据根仍为`E=/home/joshua/.cache/scholoom-closeout-execution-20261030`。首次`run-GpyRS5`仅准备失败：resources.create所需sources父目录不存在，模型请求／run／instruction均0。cache runner改为先经正式files.mkdir创建目录，schema及离线guard自检通过后继续原有界验收；未重放已受理工作，原失败证据保留。
+
+实际首次Graph在`E/synthesis-live-prepared/run-CRo9Yw`：project=`af8a4856-3ec7-4bc1-9307-63dc28ac7b8a`，session=`add458f8-7186-442a-a594-d26493b9345b`，原run=`6a21fb7b-ae5d-4f2e-9eff-1c42912cce04`。7次真实HTTP、请求正文489,644字节后delivery-wait，runner按约停止；没有回答等待、添加第三来源、启动第二Graph或自动重跑。报告尚不存在，过程、任务、原输入快照、完整transport及原checkpoint保留；内核已正常停止，不能据模型正文有研究判断宣布6.3通过。
+
+第7份响应`transport/07-response.bin`包含解释前缀、唯一完整JSON围栏及`report:null`。原解析只剥首尾围栏，先遇前缀而抛SyntaxError，被折叠为unavailable；即使移除前缀，原schema也拒绝null。现接受整体原始JSON或唯一完整反引号JSON围栏，仍以strict schema核process／next／其余字段；null仅代表本阶段无报告，空字符串、残缺或多候选仍拒绝，并以invalidRequest进入原等待，保存队列前不猜测修复。节点指导明确只返回JSON、无报告可省略或null。
+
+另核实ref字段顺序导致`JSON.stringify`身份比较失败，将本图过程文件误纳入sources。现用标准深比较排除相同输出ref的所有版本，不放宽真正来源的basis校验；prepare与业务节点两处清理持久旧sources，prepare在原依据核查前完成并写回。只修原图状态，不换原任务／root或指令身份、不自动排除真正来源、不重放未知保存。具体节点约束见design的输出校验节。
+
+首组回归成功路径1/1；两个拒绝用例先因fixture缺必需来源在Graph受理前失败，补实际合成来源后2/2通过。独立gpt-6.1-sol／high窄审又发现缩进／波浪线围栏漏计、prepare早于业务过滤的两项P2，修复后新歧义两例及真实checkpoint旧sources→重启→普通继续同run完成三例3/3通过。原审查与复核见`E/synthesis-output-independent-review.md`，首败及最新独立输出目录保留。最终整份`tests/kernel/project-literature-synthesis.spec.ts`一次**26/26通过，4.8分钟**；命令`node node_modules/@playwright/test/cli.js test --config playwright.kernel.config.ts tests/kernel/project-literature-synthesis.spec.ts --output=E/synthesis-output-full-regression`（E替换为绝对路径）。包含旧真实长文／PDF／章节、来源等待、补充材料、预算、Task CAS、消费回执丢失、保存屏障和未知效果保护，不靠改期限或跳过原场景。kernel构建、tools noEmit、三文件Biome、architecture（14模块／280文件，0问题）及diff检查通过；首次测试metadata未收窄导致的tools类型错误与后续纯格式错误均已修正，未修改契约。内部kernel／broker／worker／SQLite／文件真实，模型HTTP合成，不是新科研验收。
+
+6.3及6.4仍未完成。本次40请求／900秒授权的实际窗口已经结束，后续应按另行明确批准的接续计划使用原profile／task／run／checkpoint；不重提第一次tasks.runGraph、不覆盖原材料或手填报告。离线待授权入口为`E/synthesis-resume-prepared/runner.mjs`，其README披露剩余33次HTTP、累计3,704,660字节、单次256KiB／输出16384tokens、首新请求900秒，两阶段共用；新时间窗口须获同意后才执行。最终科研还须独立核新增Wilson2017是否真正改变或有据保留原判断，单凭完成终态不验收。
+
 ## 生产综合图与恢复接收（2026-10-30）
 
 当前10/12，完成3.2、5.1、6.1及6.2；6.3真实科研及6.4最终交付仍开放。生产图6f821b9接为a67ccc2，任务导航f86b152接为a16d0e3；任务UI验收51b1a1f通过正常合并d0f2265保全来源。宿主／默认worker实际共用`scholoom.project-literature-synthesis@1`源码，复用共用consumer、真实有界工具、原保存／FileEdit与Task CAS；配置及实际独立保存节点见design，开发说明已删除生产目录为空的漂移。

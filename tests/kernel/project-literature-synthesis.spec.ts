@@ -172,6 +172,179 @@ test('production synthesis consumes bounded text and saves process before synthe
   }
 });
 
+test('synthesis accepts one fenced result and excludes output reads regardless of reference key order', async () => {
+  let material: ResourceEvidence;
+  const respond = synthesisModelResponse(() => [material]);
+  const f = await fixture(async (input) => {
+    if (input.calls.filter((name) => name === 'read_context_resource').length === 1) {
+      const descriptor = await f.app.call('resources.describe', {
+        locator: { source: 'project', projectId: f.project.id, path: 'process.md' },
+      });
+      return {
+        tool: {
+          name: 'read_context_resource',
+          input: {
+            ref: Object.fromEntries(Object.entries(descriptor.ref).reverse()),
+            basis: descriptor.basis,
+            encoding: 'utf8',
+            offset: 0,
+            limit: 4096,
+          },
+        },
+      };
+    }
+    const answer = await respond(input);
+    if (answer && 'text' in answer) {
+      const output = JSON.parse(answer.text);
+      output.report ??= null;
+      return { text: `已完成本阶段核查。\n\n\`\`\`json\n${JSON.stringify(output)}\n\`\`\`` };
+    }
+    return answer;
+  });
+  try {
+    await f.app.call('files.save', {
+      projectId: f.project.id,
+      path: 'source.txt',
+      content: '合成来源：样本A=42；样本B=17。两组各n=1。',
+    });
+    const descriptor = await f.app.call('resources.describe', {
+      locator: { source: 'project', projectId: f.project.id, path: 'source.txt' },
+    });
+    material = { ref: descriptor.ref, basis: descriptor.basis };
+    f.input.materials = [material];
+    await f.start();
+    await f.wait('completed');
+    const progress = (await f.app.snapshot(f.scope)).run?.graphProgress;
+    expect(progress?.evidence.inputs).toEqual([material]);
+    expect(progress?.evidence.contentReads?.map((read) => read.resource)).toEqual([material]);
+    expect(await readFile(join(f.project.path, 'report.md'), 'utf8')).toContain('相差25');
+    expect(f.model.requests).toHaveLength(5);
+  } finally {
+    await f.app.close();
+    await f.model.close();
+  }
+});
+
+for (const [kind, output] of [
+  ['truncated', '{"process":"candidate","next":"deliver"'],
+  [
+    'ambiguous',
+    '```json\n{"process":"one","next":"deliver"}\n```\n```json\n{"process":"two","next":"deliver"}\n```',
+  ],
+  [
+    'indented second fence',
+    '```json\n{"process":"one","next":"deliver"}\n```\n   ```json\n   {"process":"two","next":"deliver"}\n   ```',
+  ],
+  [
+    'tilde second fence',
+    '```json\n{"process":"one","next":"deliver"}\n```\n~~~json\n{"process":"two","next":"deliver"}\n~~~',
+  ],
+] as const) {
+  test(`synthesis pauses on ${kind} node output without saving a candidate`, async () => {
+    const f = await fixture(() => ({ text: output }));
+    try {
+      await f.app.call('files.save', {
+        projectId: f.project.id,
+        path: 'source.txt',
+        content: '合成来源：仅用于节点输出拒绝场景。',
+      });
+      const source = await f.app.call('resources.describe', {
+        locator: { source: 'project', projectId: f.project.id, path: 'source.txt' },
+      });
+      f.input.materials = [{ ref: source.ref, basis: source.basis }];
+      await f.start();
+      await f.wait('waiting');
+      const progress = (await f.app.snapshot(f.scope)).run?.graphProgress;
+      assert(progress?.kind === 'graph.waiting');
+      expect(progress.wait.nodeKey).toBe('delivery-wait');
+      expect(progress.wait.prompt).toContain('JSON');
+      expect(await readFile(join(f.project.path, 'process.md'), 'utf8')).not.toContain('candidate');
+      await expect(readFile(join(f.project.path, 'report.md'), 'utf8')).rejects.toMatchObject({
+        code: 'ENOENT',
+      });
+      expect(f.model.requests).toHaveLength(1);
+    } finally {
+      await f.app.close();
+      await f.model.close();
+    }
+  });
+}
+
+test('ordinary continuation cleans an output misclassified as a source in an older checkpoint', async () => {
+  let material: ResourceEvidence;
+  let reject = true;
+  const respond = synthesisModelResponse(() => [material]);
+  const f = await fixture((input) => {
+    if (reject) {
+      reject = false;
+      return { text: '{"process":' };
+    }
+    return respond(input);
+  });
+  let app = f.app;
+  try {
+    await app.call('files.save', {
+      projectId: f.project.id,
+      path: 'source.txt',
+      content: 'Synthetic A=42 B=17.',
+    });
+    const source = await app.call('resources.describe', {
+      locator: { source: 'project', projectId: f.project.id, path: 'source.txt' },
+    });
+    material = { ref: source.ref, basis: source.basis };
+    f.input.materials = [material];
+    await f.start();
+    await f.wait('waiting');
+    const before = (await app.snapshot(f.scope)).run;
+    assert(before);
+    const internal = app.projects.get(f.project.id).internal;
+    await app.close();
+    const opened = await openCheckpoint(internal, before.id);
+    try {
+      const saver = new InstructionSaver(opened.database, async () => {});
+      const tuple = await saver.getTuple({ configurable: { thread_id: before.id } });
+      assert(tuple);
+      assert(tuple.metadata);
+      const values = tuple.checkpoint.channel_values;
+      const roles = values.roleResults as { role: string; result: ResourceSaveResult }[];
+      const process = roles.find((item) => item.role === 'process');
+      assert(process);
+      // Emulate the old field-order bug without replaying the original model request or save.
+      await saver.put(
+        tuple.config,
+        {
+          ...tuple.checkpoint,
+          channel_values: { ...values, sources: [material, process.result.resource] },
+        },
+        tuple.metadata,
+      );
+    } finally {
+      opened.database.close();
+    }
+    app = new KernelApplication(join(f.root, 'profile'), {
+      environment: { MINIMAX_CN_API_KEY: 'synthetic' },
+      modelEndpoint: f.model.url,
+    });
+    await app.initialize();
+    await app.call('session.send', {
+      ...f.scope,
+      instructionId: randomUUID(),
+      text: '继续核查：已修复输出身份比较，按原保存依据接续。',
+      materials: [],
+    });
+    await expect
+      .poll(async () => (await app.snapshot(f.scope)).run?.state, { timeout: 30000 })
+      .toBe('completed');
+    const after = (await app.snapshot(f.scope)).run;
+    expect(after?.id).toBe(before.id);
+    expect(after?.graphProgress?.evidence.inputs).toEqual([material]);
+    expect(await readFile(join(f.project.path, 'report.md'), 'utf8')).toContain('相差25');
+  } finally {
+    await app.close();
+    await f.model.close();
+  }
+});
+
 for (const format of ['long-text', 'pdf-page', 'html-section'] as const) {
   test(`production synthesis records the actual ${format} range and updates an explicit existing report`, async () => {
     let material: ResourceEvidence;

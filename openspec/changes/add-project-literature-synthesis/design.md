@@ -1,5 +1,11 @@
 # 实现设计
 
+## 节点输出校验与旧状态接续
+
+业务节点只消费完整结构化判断：process必填，next为已定义职责，report为非空完整候选、null或省略；null不触发报告保存。节点指导要求只返回JSON，入口也容纳解释文字包围的唯一完整反引号JSON围栏，但不在残缺对象间补字或挑选多个候选。唯一性计数识别0–3空格缩进的反引号／波浪线围栏，其他完整候选存在即拒绝；原始JSON整体优先，报告字符串中的Markdown不误作额外响应。解析或schema失败以invalidRequest进入原等待，原实际消息和读取事实保留，候选不进入保存队列。
+
+本图输出按ResourceRef深比较排除，与JSON字段顺序和输出版本无关；真正来源仍按完整ref／basis核对。prepare核来源前及业务消费前清理旧checkpoint误收的输出，prepare持久保存清理后的sources，避免明确继续时过程文件先更新导致旧输出basis反复报来源变化。恢复仍沿原run、consumer namespace、指令确认与保存屏障，不重新受理第一次任务、不从当前同文补造回执。
+
 ## 变更总览
 
 本方案由主线在用户授权代选必要决策的范围内选定；D04 Q7没有采纳，下面的节点与接线是本次设计。依据见 [investigation](investigation.md)，范围及可观察契约见 proposal 与三份 delta。

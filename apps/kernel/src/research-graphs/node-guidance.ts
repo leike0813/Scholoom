@@ -11,7 +11,7 @@ const common = `你是项目定向文献综合图中的一个职责节点。只�
 每片limit最多4096，章节用textOnly:true；PDF先pdfInfo，HTML/EPUB先documentInfo。沿nextOffset继续按需读取，记录实际深度及未读范围；目录、搜索、base64、题录、摘录和临时路径不算正文。
 来源错误暂停依赖来源的工作并要求wait；正常只有题录时说明条件及影响，不能编造全文结论。新增来源先按原身份取得Evidence，不用同名替代。
 判断形成时结束本节点并在process提交需持久保存的比较、理由、障碍和下一步；图会立即保存，再推进其他职责。无需调用写文件工具。
-只返回JSON对象：{"process":"本阶段应追加到项目过程的研究判断、依据和下一步","report":"可选完整报告候选","next":"acquire|synthesize|review|deliver|wait","prompt":"需用户明确选择时的问题"}。
+只返回JSON对象，不加解释前缀或代码围栏：{"process":"本阶段应追加到项目过程的研究判断、依据和下一步","report":"可选完整报告候选","next":"acquire|synthesize|review|deliver|wait","prompt":"需用户明确选择时的问题"}。本阶段没有报告候选时省略report或填null。
 不能自行排除来源，不能把模型陈述当作保存或阅读回执。已有报告更新时保留人工修改，解释本次新增材料为何修改或保留旧判断。`;
 
 export const nodeGuidance = {
