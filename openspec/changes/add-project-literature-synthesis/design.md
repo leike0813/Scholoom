@@ -52,6 +52,8 @@ flowchart LR
 
 即使累计确认只有A，也须在继续 SDK **实际选中的原子任务**之前读取该原 config 下的子 tuple，核全部 adopted 上下文（含保存后尚未确认的B），严格补确认。失败阻止下一模型／工具；成功才 `invoke(null, 原config)`，无原子状态才给首次输入。保留原根、pending writes和工具回执；不重建 task、不把子状态当替代根，也不将子节点结束作为确认边界。探针A／B只证明该接缝可行，真实宿主验证仍是必做任务。
 
+若新根已持久保存完整累计上下文而其消费ACK尚未提交，宿主可从同run准确根、完整原消息及全部confirmed覆盖构造恢复上下文，再由worker的原根confirmLatest严格补ACK。当前根只含子集时仍核原覆盖tuple；后续每次child确认的当前父根约束不变，恢复上下文不等于提交消费。源码factory首次初始化须同时seed原instruction channels及对应`HumanMessage({id: instructionId, content: text})`；后续节点继承实际messages，恢复交null及原config，不能只存instructions却遗漏模型输入。原宿主middleware继续按持久原消息补材料／context内容。
+
 ```mermaid
 sequenceDiagram
   participant UI as 现有任务及普通消息

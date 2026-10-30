@@ -61,7 +61,7 @@ async function agentFixture(respond: ModelServerOptions['respond']) {
   }
 }
 
-for (const boundary of ['ack', 'pending-writes', 'lost-receipt'] as const) {
+for (const boundary of ['ack', 'pending-writes', 'lost-receipt', 'root-ack'] as const) {
   test(`registered Agent preserves its adopted child across ${boundary}`, async () => {
     const secondId = randomUUID();
     let sendSecond: (() => Promise<unknown>) | undefined;
@@ -128,6 +128,8 @@ for (const boundary of ['ack', 'pending-writes', 'lost-receipt'] as const) {
         const child = !!args[2].checkpointNamespace;
         if (fail && boundary === 'ack' && child && hasSecond)
           throw new Error('Synthetic child consumption transaction rejected');
+        if (fail && boundary === 'root-ack' && !child && hasSecond)
+          throw new Error('Synthetic root consumption transaction rejected after root save');
         const db = app.projects.get(projectId).database;
         const readCover = () =>
           (
@@ -167,7 +169,11 @@ for (const boundary of ['ack', 'pending-writes', 'lost-receipt'] as const) {
       await expect
         .poll(async () => (await app.snapshot(scope)).run?.state, { timeout: 20000 })
         .toBe(boundary === 'pending-writes' ? 'failed' : 'interrupted');
-      expect(model.requests).toHaveLength(boundary === 'pending-writes' ? 2 : 1);
+      const beforeRequests = boundary === 'pending-writes' || boundary === 'root-ack' ? 2 : 1;
+      expect(model.requests).toHaveLength(beforeRequests);
+      expect(JSON.stringify(model.requests[0]?.messages)).toContain(
+        'Perform the synthetic Agent work under the original authorization.',
+      );
       const advertised = model.requests[0]?.tools as Array<{ name: string }>;
       expect(advertised.some((tool) => tool.name === 'write_file')).toBe(true);
       expect(advertised.every((tool) => tool.name === 'write_file')).toBe(true);
@@ -217,6 +223,19 @@ for (const boundary of ['ack', 'pending-writes', 'lost-receipt'] as const) {
             instructionIds: [first.instructionId, secondId],
           });
         }
+        if (boundary === 'root-ack') {
+          const root = await saver.getTuple({ configurable: { thread_id: runId } });
+          expect(root?.checkpoint.channel_values.instructionIds).toContain(secondId);
+          expect(child.metadata?.parents?.['']).not.toBe(root?.checkpoint.id);
+          const meta = app.projects
+            .get(projectId)
+            .database.prepare('SELECT value FROM harness_meta WHERE key = ?')
+            .get(`consumption:${runId}`) as { value: string };
+          expect(JSON.parse(meta.value)).toMatchObject({
+            checkpointNamespace: childNamespace,
+            instructionIds: [first.instructionId, secondId],
+          });
+        }
       } finally {
         opened.database.close();
       }
@@ -234,7 +253,7 @@ for (const boundary of ['ack', 'pending-writes', 'lost-receipt'] as const) {
         await expect
           .poll(async () => (await app.snapshot(scope)).run?.state, { timeout: 20000 })
           .toBe('interrupted');
-        expect(model.requests).toHaveLength(1);
+        expect(model.requests).toHaveLength(beforeRequests);
         const reopened = await openCheckpoint(app.projects.get(project.id).internal, runId);
         try {
           const child = await new InstructionSaver(reopened.database, async () => {}).getTuple({
@@ -275,9 +294,9 @@ for (const boundary of ['ack', 'pending-writes', 'lost-receipt'] as const) {
           .split('\n')
           .map((line) => JSON.parse(line));
         expect(new Set(entries.map((entry) => entry.taskId)).size).toBe(1);
-        if (boundary === 'pending-writes') {
+        if (boundary === 'pending-writes' || boundary === 'root-ack') {
           expect(entries).toHaveLength(1);
-          expect(rootSubsetPreserved).toBe(true);
+          if (boundary === 'pending-writes') expect(rootSubsetPreserved).toBe(true);
         }
         const final = await new InstructionSaver(openedFinal.database, async () => {}).getTuple({
           configurable: { thread_id: runId },

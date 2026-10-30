@@ -24,7 +24,7 @@ flowchart LR
 
 ## 2. 同一执行中的真实Agent节点
 
-- [ ] 2.1 Agent线实现宿主／worker共用装配、串行consumer与原config恢复门，普通Agent及registered同时消费；精确namespace和完整原上下文核对、累计覆盖引用事务、未确认adopted补ACK与成功task skip均经真实KernelApplication／worker／SQLite核查。原工具回执、ModelAccess／预算、取消／撤权、graphResume及未知效果保护不降低；复用registered-context及普通Agent必要代表，独立审查由6.2承接。提交实际消费者接口及测试，不发布无人消费的helper，不实现业务图或修改科研交付port。
+- [x] 2.1 Agent线实现宿主／worker共用装配、串行consumer与原config恢复门，普通Agent及registered同时消费；精确namespace和完整原上下文核对、累计覆盖引用事务、未确认adopted补ACK与成功task skip均经真实KernelApplication／worker／SQLite核查。原工具回执、ModelAccess／预算、取消／撤权、graphResume及未知效果保护不降低。主线接收813d87f→ce6bdda，并修复两项独审P2：新根落盘但ACK未提交的恢复、首条实际HumanMessage；四个真实窗口4/4及普通接续／压缩／累计／terminal四项4/4通过，双路复核关闭。本项不等于生产业务图或最终科研验收。
 
 ## 3. 文件任务与来源承接
 

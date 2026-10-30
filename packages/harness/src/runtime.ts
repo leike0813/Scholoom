@@ -1534,8 +1534,18 @@ export class Harness {
           restoredById.set(item.instructionId, item);
         }
       if (confirmed.instructionIds.length) {
-        const { saved } = await exactTuple(confirmed);
-        const contexts = durableContexts(saved, !!confirmed.checkpointNamespace);
+        // A new root may be durable while its ACK is not; use its verified full cover.
+        const currentRoot =
+          latest &&
+          latest.config.configurable?.thread_id === run.id &&
+          (latest.config.configurable?.checkpoint_ns ?? '') === '' &&
+          latest.checkpoint.channel_values.instructionRunId === run.id &&
+          Array.isArray(latest.checkpoint.channel_values.instructions) &&
+          confirmed.instructionIds.every((id) => restoredById.has(id))
+            ? latest
+            : undefined;
+        const saved = currentRoot ?? (await exactTuple(confirmed)).saved;
+        const contexts = durableContexts(saved, !!currentRoot || !!confirmed.checkpointNamespace);
         if (
           confirmed.instructionIds.some((id) => !contexts.some((item) => item.instructionId === id))
         )

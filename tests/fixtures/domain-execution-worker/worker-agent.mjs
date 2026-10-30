@@ -4,6 +4,7 @@ import { ExecutionGraphs, startExecutionWorker } from '../../../packages/harness
 
 const require = createRequire(new URL('../../../packages/harness/package.json', import.meta.url));
 const { Annotation, MessagesAnnotation, END, START, StateGraph } = require('@langchain/langgraph');
+const { HumanMessage } = require('@langchain/core/messages');
 
 export const agentGraphs = new ExecutionGraphs([
   {
@@ -53,7 +54,9 @@ export const agentGraphs = new ExecutionGraphs([
             before.createdAt
               ? null
               : {
-                  messages: [],
+                  messages: input.instructions.map(
+                    (item) => new HumanMessage({ id: item.instructionId, content: item.text }),
+                  ),
                   instructionIds: input.instructionIds,
                   instructionRunId: input.attemptId,
                   instructions: input.instructions,

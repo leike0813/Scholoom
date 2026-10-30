@@ -1,5 +1,17 @@
 # 实际交付与交接
 
+## 共用Agent及精确恢复最终接收（2026-10-30）
+
+主线接收813d87f为ce6bdda并完成2.1，当前6/12。ordinary与registered共用原宿主／worker DeepAgent、ModelAccess／预算、middleware、工具receipt与资源端口；可信source factory可选择原工具子集及节点指导，单活consumer沿原SDK task config恢复。新增namespace与累计cover仍是原consumption事务，旧根子集ACK不降级；未确认adopted先补严格ACK，成功pending-writes由SDK保留原task而不重跑保存。实际接口与作者各轮51个不同代表的最近结果、首败及exit130中止均见`workers/agent-delegation/RESULT.md`，不写成一次51项全绿。
+
+两名gpt-6.1-sol/high分别独审持久消费和共用装配，发现两个P2，主线均先实跑红例再修复：新根已保存而ACK事务失败，旧child cover父根落后导致宿主永久拒绝恢复；测试factory初始化messages为空，首条已标consumed却未进入实际模型HTTP。前者仅允许核准完整当前根覆盖后恢复上下文，再由worker根confirmLatest补ACK，所有child当前父根检查保持；后者仅修实际factory seed原id/text的HumanMessage，原材料／context扩展沿既有middleware，没有更改普通Agent消费时机。
+
+原首消息红例的HTTP messages确为空；新root-ack红例在重启后得到failed而非可补ACK的interrupted，原日志／trace保留。修复后四个真实窗口ack／pending-writes／lost-receipt／root-ack为4/4（1.3分钟），每份首HTTP核实际原要求，最终model2／宿主save1；另普通新尝试接续、实际框架压缩、累计超过100项及terminal无剩余节点确认4/4（1.2分钟）。主线受影响harness／kernel构建、tools类型、Biome及架构exit0；两名原审查员分别复核修复，无新增确证P1/P2。核查是内部真实KernelApplication／worker／SQLite，外部仅受控HTTP，未调用真实模型。
+
+证据根为`/home/joshua/.cache/scholoom-closeout-execution-20261030/`：`agent-initial-red.log`、`agent-root-ack-red.log`、`agent-fixes-{build,green,regression,tools-types,biome,architecture}.log`及各自结果。先前主线原三个窗口3/3只是修复前接收输入，不覆盖新root-ack或初始正文。多consumer并行、嵌套压缩／offload恢复及断电未由本项声明支持；旧方法／普通Agent、3.2／5.1和真实多来源科研仍按后续任务推进。
+
+真实科研样本已按design准备三篇不同DOI的PLOS正式作品：Sandve2013与Wilson2014用于首次，Wilson2017用于新会话补充；各有PDF／HTML、原文／许可及八项独立内容依据，见`research-inputs/SOURCE-MANIFEST.json`与RESULT。本次6次HTTP取得2,754,185字节，无重试；缺XML及旧Sandve HTML下载元数据明确保留，不把副本算新来源。未运行任何科研模型或评价系统报告，6.3保持开放。
+
 ## 会话等待／成果与首批整合（2026-10-30）
 
 主线接收4b7f4db为8e8c323，完成4.2，当前5/12；2.1仍在原Agent树实施，3.2／5.1及最终科研路径未开始交付。当前run的实际Graph问题与角色成果沿原Dock／Overlay呈现，原composer及session.send回答同run；展示项不成为领域Message、Artifact或普通模型轮次。成果按原回执分别表达保存／关联未知，可打开当前资源，并明确未核与保存时basis一致，不补旧尝试历史。
