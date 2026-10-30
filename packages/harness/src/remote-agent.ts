@@ -494,6 +494,17 @@ export class RemoteAgent {
           : undefined);
       if (!initialization) throw new OperationError('credentialUnavailable', '缺少模型配置。');
       if ('graph' in initialization) {
+        initialization = {
+          ...initialization,
+          tools,
+          middleware: middleware.map((item) => ({
+            name: item.name,
+            before: !!item.beforeModel,
+            tool: !!item.wrapToolCall,
+            model: !!item.wrapModelCall,
+          })),
+          ...(options.systemPrompt ? { systemPrompt: options.systemPrompt } : {}),
+        };
         const {
           instructions = [],
           checkpointInstructions = [],

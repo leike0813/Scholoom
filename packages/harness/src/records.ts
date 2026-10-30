@@ -19,8 +19,25 @@ export class HarnessRecords {
     this.database.close();
   }
 
-  confirmConsumption(sessionId: string, runId: string, value: Consumption): boolean {
+  confirmConsumption(
+    sessionId: string,
+    runId: string,
+    value: Consumption,
+    coveringIds: readonly string[] = value.instructionIds,
+  ): boolean {
     return this.db.transaction((tx) => {
+      const previous = tx
+        .select()
+        .from(schema.meta)
+        .where(eq(schema.meta.key, `consumption:${runId}`))
+        .get();
+      const prior = previous ? (JSON.parse(previous.value) as Consumption) : undefined;
+      const instructionIds = [
+        ...new Set([...(prior?.instructionIds ?? []), ...value.instructionIds]),
+      ];
+      const covers = instructionIds.every((id) => coveringIds.includes(id));
+      if (!covers && value.instructionIds.some((id) => !prior?.instructionIds.includes(id)))
+        throw new OperationError('invalidRequest', '消费引用未覆盖累计确认的指令。');
       let changed = false;
       for (const id of value.instructionIds) {
         const instruction = tx
@@ -43,21 +60,10 @@ export class HarnessRecords {
           .run();
         changed = true;
       }
-      if (changed) {
-        const previous = tx
-          .select()
-          .from(schema.meta)
-          .where(eq(schema.meta.key, `consumption:${runId}`))
-          .get();
+      if (covers && (changed || previous)) {
         const confirmed = {
           ...value,
-          instructionIds: [
-            ...new Set([
-              ...((previous ? JSON.parse(previous.value) : { instructionIds: [] }) as Consumption)
-                .instructionIds,
-              ...value.instructionIds,
-            ]),
-          ],
+          instructionIds,
         };
         tx.insert(schema.meta)
           .values({ key: `consumption:${runId}`, value: JSON.stringify(confirmed) })

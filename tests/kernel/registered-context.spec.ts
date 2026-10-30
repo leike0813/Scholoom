@@ -243,6 +243,7 @@ test('registered large instruction batches reach the worker and resume from comp
       .poll(async () => (await app.snapshot(f.scope)).run?.state, { timeout: 20000 })
       .toBe('completed');
     expect((await checkpoint(app, f.project.id, receipt.runId))?.instructions).toMatchObject([
+      ...f.initialInstructions,
       {
         instructionId: f.input.instructionId,
         text: f.input.text,
@@ -277,6 +278,7 @@ test('registered worker receives trusted source, explicit project/library items 
     const expected: InstructionContext = { ...payload, source: message.source };
     expect(message.state).toBe('consumed');
     expect((await checkpoint(app, f.scope.projectId, receipt.runId))?.instructions).toEqual([
+      ...f.initialInstructions,
       expected,
     ]);
     const output = JSON.parse(await readFile(join(f.project.path, 'result.md.context.md'), 'utf8'));
@@ -371,7 +373,7 @@ for (const failure of ['cancel', 'association', 'worker-lost'] as const) {
       ]);
       expect(message.state).toBe('consumed');
       const saved = await checkpoint(app, f.project.id, receipt.runId);
-      expect(saved?.instructions).toEqual(output.instructions);
+      expect(saved?.instructions).toEqual([...f.initialInstructions, ...output.instructions]);
       const original = await stat(join(f.project.path, path), { bigint: true });
       const instances = () =>
         (
@@ -594,8 +596,9 @@ test('terminal checkpoint confirmation is retried before a graph with no remaini
   }
 });
 
-for (const boundary of ['save', 'ack', 'receipt', 'source-conflict'] as const) {
+for (const boundary of ['save', 'ack', 'receipt', 'source-conflict', 'run-conflict'] as const) {
   test(`registered context survives ${boundary} failure without confirming unsaved input or replaying results`, async () => {
+    const corrupt = boundary === 'source-conflict' || boundary === 'run-conflict';
     const f = await fixture();
     let app = f.app;
     const product = app.connectProduct();
@@ -608,7 +611,7 @@ for (const boundary of ['save', 'ack', 'receipt', 'source-conflict'] as const) {
           "CREATE TRIGGER fail_context_save BEFORE INSERT ON checkpoints BEGIN SELECT RAISE(ABORT, 'synthetic checkpoint failure'); END",
         );
         opened.database.close();
-      } else if (boundary === 'ack' || boundary === 'source-conflict')
+      } else if (boundary === 'ack' || corrupt)
         app.projects
           .get(f.project.id)
           .database.exec(
@@ -633,8 +636,8 @@ for (const boundary of ['save', 'ack', 'receipt', 'source-conflict'] as const) {
       original = { ...payload, source: message.source };
       expect(message.state).toBe(boundary === 'receipt' ? 'consumed' : 'accepted');
       const saved = (await checkpoint(app, f.project.id, receipt.runId))?.instructions;
-      if (boundary === 'save') expect(saved).not.toEqual([original]);
-      else expect(saved).toEqual([original]);
+      if (boundary === 'save') expect(saved).toEqual(f.initialInstructions);
+      else expect(saved).toEqual([...f.initialInstructions, original]);
       await expect(stat(join(f.project.path, 'result.md.context.md'))).rejects.toMatchObject({
         code: 'ENOENT',
       });
@@ -647,9 +650,9 @@ for (const boundary of ['save', 'ack', 'receipt', 'source-conflict'] as const) {
         const opened = await openCheckpoint(app.projects.get(f.project.id).internal, receipt.runId);
         opened.database.exec('DROP TRIGGER fail_context_save');
         opened.database.close();
-      } else if (boundary === 'ack' || boundary === 'source-conflict')
+      } else if (boundary === 'ack' || corrupt)
         app.projects.get(f.project.id).database.exec('DROP TRIGGER fail_context_ack');
-      if (boundary === 'source-conflict') {
+      if (corrupt) {
         const opened = await openCheckpoint(app.projects.get(f.project.id).internal, receipt.runId);
         try {
           const saver = new InstructionSaver(opened.database, async () => {});
@@ -658,8 +661,9 @@ for (const boundary of ['save', 'ack', 'receipt', 'source-conflict'] as const) {
           const contexts = structuredClone(
             saved.checkpoint.channel_values.instructions,
           ) as InstructionContext[];
-          assert(contexts[0]?.source);
-          contexts[0].source.connectionId = 'forged-window';
+          const adopted = contexts.find((item) => item.instructionId === f.input.instructionId);
+          assert(adopted?.source);
+          if (boundary === 'source-conflict') adopted.source.connectionId = 'forged-window';
           await saver.put(
             saved.config,
             {
@@ -667,6 +671,7 @@ for (const boundary of ['save', 'ack', 'receipt', 'source-conflict'] as const) {
               channel_values: {
                 ...saved.checkpoint.channel_values,
                 instructions: contexts,
+                ...(boundary === 'run-conflict' ? { instructionRunId: 'another-run' } : {}),
               },
             },
             saved.metadata,
@@ -683,8 +688,8 @@ for (const boundary of ['save', 'ack', 'receipt', 'source-conflict'] as const) {
       });
       await expect
         .poll(async () => (await app.snapshot(f.scope)).run?.state, { timeout: 20000 })
-        .toBe(boundary === 'source-conflict' ? 'failed' : 'completed');
-      if (boundary === 'source-conflict') {
+        .toBe(corrupt ? 'failed' : 'completed');
+      if (corrupt) {
         expect(
           (await app.snapshot(f.scope)).messages.find((item) => item.id === f.input.instructionId)
             ?.state,
@@ -695,6 +700,7 @@ for (const boundary of ['save', 'ack', 'receipt', 'source-conflict'] as const) {
         return;
       }
       expect((await checkpoint(app, f.project.id, receipt.runId))?.instructions).toEqual([
+        ...f.initialInstructions,
         original,
       ]);
       expect(
@@ -743,6 +749,10 @@ for (const boundary of ['target-queue', 'library-queue', 'library-final'] as con
     };
     const execution = app.models.execution.bind(app.models);
     let entered = false;
+    let admissionRequested = () => {};
+    const admission = new Promise<void>((resolve) => {
+      admissionRequested = resolve;
+    });
     let checks = 0;
     app.models.execution = async (authorize, signal, config, confirm) => {
       const access = await execution(
@@ -758,13 +768,15 @@ for (const boundary of ['target-queue', 'library-queue', 'library-final'] as con
         ...access,
         acquire: () => {
           entered = true;
+          admissionRequested();
           return access.acquire();
         },
       };
     };
     try {
       const receipt = await app.call('session.send', f.input);
-      await expect.poll(() => entered).toBe(true);
+      await admission;
+      expect(entered).toBe(true);
       if (boundary.endsWith('queue')) {
         await revoke(false);
         release();

@@ -8,11 +8,12 @@ import type Database from 'better-sqlite3';
 
 export type Consumption = Pick<
   ContractParams<(typeof executionOperations)['execution.consume']>,
-  'checkpointId' | 'instructionIds'
+  'checkpointId' | 'checkpointNamespace' | 'instructionIds'
 >;
 
 /** Confirmation is part of synchronous durability: a failed acknowledgement stops the graph. */
 export class InstructionSaver extends SqliteSaver {
+  private readonly known = new Map<string, InstructionContext>();
   constructor(
     db: Database.Database,
     private readonly confirm: (value: Consumption) => Promise<void>,
@@ -22,6 +23,11 @@ export class InstructionSaver extends SqliteSaver {
     },
   ) {
     super(db);
+    this.remember(instructions?.instructions ?? []);
+  }
+  /** Only complete host updates or a continuation gated by host confirmation enter this registry. */
+  remember(instructions: readonly InstructionContext[]): void {
+    for (const item of instructions) this.known.set(item.instructionId, item);
   }
   private instructionIds(checkpoint: Checkpoint): string[] {
     const ids: unknown = checkpoint.channel_values.instructionIds;
@@ -30,11 +36,14 @@ export class InstructionSaver extends SqliteSaver {
       throw new Error('Invalid checkpoint instruction identities');
     return [...new Set(ids)];
   }
-  private async acknowledge(checkpoint: Checkpoint): Promise<void> {
+  private async acknowledge(config: RunnableConfig, checkpoint: Checkpoint): Promise<void> {
     const ids = this.instructionIds(checkpoint);
     for (let offset = 0; offset < ids.length; offset += 100)
       await this.confirm({
         checkpointId: checkpoint.id,
+        ...(config.configurable?.checkpoint_ns
+          ? { checkpointNamespace: config.configurable.checkpoint_ns }
+          : {}),
         instructionIds: ids.slice(offset, offset + 100),
       });
   }
@@ -49,18 +58,22 @@ export class InstructionSaver extends SqliteSaver {
       const known = new Map(
         [
           ...((previous?.checkpoint.channel_values.instructions ?? []) as InstructionContext[]),
-          ...this.instructions.instructions,
+          ...this.known.values(),
         ].map((item) => [item.instructionId, item]),
       );
-      const ids = checkpoint.channel_values.instructionIds as string[] | undefined;
+      const ids = [
+        ...new Set([
+          ...((previous?.checkpoint.channel_values.instructionIds ?? []) as string[]),
+          ...((checkpoint.channel_values.instructionIds ?? []) as string[]),
+        ]),
+      ];
       checkpoint = {
         ...checkpoint,
         channel_values: {
           ...checkpoint.channel_values,
+          instructionIds: ids,
           instructionRunId: this.instructions.instructionRunId,
-          instructions: (
-            ids ?? this.instructions.instructions.map((item) => item.instructionId)
-          ).map((id) => {
+          instructions: ids.map((id) => {
             const item = known.get(id);
             if (!item) throw new Error('Graph checkpoint has no complete instruction context');
             return item;
@@ -69,14 +82,14 @@ export class InstructionSaver extends SqliteSaver {
       };
     }
     const saved = await super.put(config, checkpoint, metadata);
-    await this.acknowledge(checkpoint);
+    await this.acknowledge(saved, checkpoint);
     return saved;
   }
   async confirmLatest(config: RunnableConfig): Promise<void> {
     const saved = await this.getTuple(config);
     if (saved && this.instructions && saved.metadata)
       await this.put(saved.config, saved.checkpoint, saved.metadata);
-    else if (saved) await this.acknowledge(saved.checkpoint);
+    else if (saved) await this.acknowledge(saved.config, saved.checkpoint);
   }
   /** Keep pending interrupt tasks intact when durably binding host control input. */
   async bindGraph(

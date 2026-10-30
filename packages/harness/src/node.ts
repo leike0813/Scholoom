@@ -7,7 +7,14 @@ export {
 } from './checkpoint-files.js';
 export { callExecutionControl } from './control.js';
 export { startExecutionWorker } from './execution-driver.js';
-export { ExecutionGraphs, type GraphDriver, type GraphFactory } from './graph-registry.js';
+export {
+  type AgentConsumer,
+  type AgentNodeOptions,
+  type AgentState,
+  ExecutionGraphs,
+  type GraphDriver,
+  type GraphFactory,
+} from './graph-registry.js';
 export type { ContextBridge } from './instruction-context.js';
 export { ProjectBackend } from './project-backend.js';
 export { HarnessRecords } from './records.js';

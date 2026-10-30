@@ -1472,95 +1472,144 @@ export class Harness {
           .where(eq(tables.meta.key, `consumption:${run.id}`))
           .get()?.value ?? '{"instructionIds":[]}',
       ) as Consumption;
-      if (Array.isArray(checkpointIds))
-        for (const id of checkpointIds) {
+      const rootConfig = { configurable: { thread_id: run.id } };
+      const exactTuple = async ({ checkpointId, checkpointNamespace = '' }: Consumption) => {
+        const saved = await saver.getTuple({
+          configurable: {
+            thread_id: run.id,
+            checkpoint_ns: checkpointNamespace,
+            checkpoint_id: checkpointId,
+          },
+        });
+        if (
+          !saved ||
+          saved.checkpoint.id !== checkpointId ||
+          saved.config.configurable?.thread_id !== run.id ||
+          (saved.config.configurable?.checkpoint_ns ?? '') !== checkpointNamespace
+        )
+          throw new OperationError('invalidRequest', '图消费引用没有对应的精确 checkpoint。');
+        const root = checkpointNamespace ? await saver.getTuple(rootConfig) : saved;
+        if (checkpointNamespace && (!root || saved.metadata?.parents?.[''] !== root.checkpoint.id))
+          throw new OperationError('invalidRequest', '子 checkpoint 不属于当前根控制位置。');
+        return { saved, root };
+      };
+      const durableContexts = (saved: NonNullable<typeof latest>, complete = true) => {
+        const values = saved.checkpoint.channel_values;
+        const recorded = values.instructionIds;
+        const contexts = values.instructions;
+        if (
+          !Array.isArray(recorded) ||
+          new Set(recorded).size !== recorded.length ||
+          recorded.some((id) => typeof id !== 'string') ||
+          (values.instructionRunId !== undefined && values.instructionRunId !== run.id) ||
+          (complete && (values.instructionRunId !== run.id || !Array.isArray(contexts)))
+        )
+          throw new OperationError('invalidRequest', '图 checkpoint 缺少完整的指令身份。');
+        const originals = recorded.map((id) => instruction(id));
+        if (
+          (complete || (Array.isArray(contexts) && contexts.length)) &&
+          (!Array.isArray(contexts) ||
+            contexts.length !== recorded.length ||
+            originals.some(
+              (item) =>
+                !isDeepStrictEqual(
+                  contexts.find((context) => context?.instructionId === item.instructionId),
+                  item,
+                ),
+            ))
+        )
+          throw new OperationError('invalidRequest', '图 checkpoint 指令与持久消息不符。');
+        return originals;
+      };
+      const restoredById = new Map<string, InstructionContext>();
+      if (latest && Array.isArray(checkpointIds))
+        for (const item of durableContexts(latest, false)) {
           const owned = this.records(project)
             .select()
             .from(tables.instructions)
-            .where(eq(tables.instructions.id, id))
+            .where(eq(tables.instructions.id, item.instructionId))
             .get();
-          if (
-            owned?.sessionId !== run.sessionId ||
-            (owned.consumed && !confirmed.instructionIds.includes(id))
-          )
+          if (owned?.consumed && !confirmed.instructionIds.includes(item.instructionId))
             throw new OperationError('invalidRequest', '图 checkpoint 指令归属无效。');
-          if (owned.consumed) allowed.add(id);
+          restoredById.set(item.instructionId, item);
         }
+      if (confirmed.instructionIds.length) {
+        const { saved } = await exactTuple(confirmed);
+        const contexts = durableContexts(saved, !!confirmed.checkpointNamespace);
+        if (
+          confirmed.instructionIds.some((id) => !contexts.some((item) => item.instructionId === id))
+        )
+          throw new OperationError('invalidRequest', '消费覆盖引用未保留全部已确认上下文。');
+        for (const item of contexts) restoredById.set(item.instructionId, item);
+      }
+      const restored = [...restoredById.values()];
       if (previousResume) for (const id of previousResume.instructionIds) allowed.add(id);
-      const storedContexts = latest?.checkpoint.channel_values.instructions as
-        | InstructionContext[]
-        | undefined;
-      const restored = [
-        ...new Set([
-          ...(Array.isArray(checkpointIds) ? (checkpointIds as string[]) : []),
-          ...(storedContexts ?? []).map((item) => item.instructionId),
-        ]),
-      ].map(instruction);
       const submitted =
         input?.instructionIds ?? (resume ? restored.map((item) => item.instructionId) : ids);
       const instructions = submitted.map(instruction);
-      for (const item of instructions)
+      for (const item of [...restored, ...instructions]) {
         await authorizeContextItems(this.contextBridge, admissionContext, item.contextItems ?? []);
-      for (const item of storedContexts ?? []) {
-        const original = instruction(item.instructionId);
-        if (!isDeepStrictEqual(item, original))
-          throw new OperationError('invalidRequest', '图 checkpoint 指令与持久消息不符。');
+        allowed.add(item.instructionId);
       }
-      for (const item of restored) allowed.add(item.instructionId);
-      for (const id of submitted) allowed.add(id);
       this.instructionEvidence(
         project,
         run.sessionId,
-        [...(restored ?? []), ...instructions].flatMap((item) => item.contextItems ?? []),
+        [...restored, ...instructions].flatMap((item) => item.contextItems ?? []),
       );
-      const confirm = async ({ checkpointId, instructionIds }: Consumption) => {
+      const confirm = async (value: Consumption) => {
         signal.throwIfAborted();
         this.checkExecutionContext(context);
-        const saved = await saver.getTuple({
-          configurable: { thread_id: run.id, checkpoint_id: checkpointId },
-        });
-        const recorded = saved?.checkpoint.channel_values.instructionIds;
-        if (
-          !Array.isArray(recorded) ||
-          instructionIds.some((id) => !allowed.has(id) || !recorded.includes(id))
-        )
+        const { saved, root } = await exactTuple(value);
+        const contexts = durableContexts(saved);
+        const recorded = contexts.map((item) => item.instructionId);
+        if (value.instructionIds.some((id) => !recorded.includes(id)))
           throw new OperationError('invalidRequest', '图输入缺少已保存的 checkpoint 依据。');
-        const durable = saved?.checkpoint.channel_values.instructions;
-        if (
-          !Array.isArray(durable) ||
-          saved?.checkpoint.channel_values.instructionRunId !== run.id ||
-          instructionIds.some(
-            (id) =>
-              !isDeepStrictEqual(
-                durable.find((item) => item?.instructionId === id),
-                instruction(id),
-              ),
-          )
-        )
-          throw new OperationError('invalidRequest', '完整图指令上下文尚未保存到 checkpoint。');
+        for (const item of contexts) {
+          const owned = this.records(project)
+            .select()
+            .from(tables.instructions)
+            .where(eq(tables.instructions.id, item.instructionId))
+            .get();
+          if (!allowed.has(item.instructionId) && owned?.consumed)
+            throw new OperationError('invalidRequest', '指令未由当前执行采用。');
+          await authorizeContextItems(this.contextBridge, context, item.contextItems ?? []);
+        }
+        this.instructionEvidence(
+          project,
+          run.sessionId,
+          contexts.flatMap((item) => item.contextItems ?? []),
+        );
         await authorizeContextItems(
           this.contextBridge,
           context,
           this.instructionEvidence(project, run.sessionId),
         );
-        const resumed = saved?.checkpoint.channel_values.graphResume as
-          | GraphResumeInput
-          | undefined;
+        const resumed = root?.checkpoint.channel_values.graphResume as GraphResumeInput | undefined;
         if (
           input &&
-          instructionIds.some((id) => input.instructionIds.includes(id)) &&
+          value.instructionIds.some((id) => input.instructionIds.includes(id)) &&
           (!resumed || !isDeepStrictEqual(resumed, input))
         )
           throw new OperationError('invalidRequest', '等待输入尚未保存到 checkpoint。');
+        // Recheck instance and synchronous resource authority after asynchronous authorization.
+        this.checkExecutionContext(context);
+        const resources = this.contextBridge?.resources?.(context);
+        const evidence = this.instructionEvidence(project, run.sessionId);
+        if (!resources && evidence.length)
+          throw new OperationError('unavailable', '执行资源同步授权不可用。');
+        resources?.check(evidence);
         let changed: boolean;
         try {
-          changed = this.repository(project).confirmConsumption(run.sessionId, run.id, {
-            checkpointId,
-            instructionIds,
-          });
+          changed = this.repository(project).confirmConsumption(
+            run.sessionId,
+            run.id,
+            value,
+            recorded,
+          );
         } catch {
           throw new OperationError('outcomeUnknown', '图 checkpoint 已保存，但消费确认尚待核查。');
         }
+        for (const item of contexts) allowed.add(item.instructionId);
         if (changed) {
           this.projects.touch(project.id);
           this.notify(project.id, run.sessionId);
@@ -1637,7 +1686,7 @@ export class Harness {
           )
         : undefined;
       const executionResources = this.executionResources;
-      const remote = new RemoteAgent({
+      const remoteOptions = {
         diagnosticScope: { projectId: project.id, sessionId: run.sessionId, runId: run.id },
         ...(model ? { model } : {}),
         backend: new ProjectBackend(
@@ -1737,9 +1786,19 @@ export class Harness {
             throw new OperationError('outcomeUnknown', '图返回结果前尚未确认指令消费。');
           progress = result;
         },
-      });
-      for await (const _event of remote.streamEvents(null, {})) {
-        /* Registered graphs project their own result. */
+      } satisfies ConstructorParameters<typeof RemoteAgent>[0];
+      if (model)
+        await this.execute(project, run, signal, resume, reservation, {
+          instanceId,
+          opened,
+          model,
+          remote: remoteOptions,
+        });
+      else {
+        const remote = new RemoteAgent(remoteOptions);
+        for await (const _event of remote.streamEvents(null, {})) {
+          /* Model-free graphs retain the same host supervision. */
+        }
       }
       signal.throwIfAborted();
       if (!progress) throw new OperationError('outcomeUnknown', '图未返回可核查结果。');
@@ -1788,12 +1847,21 @@ export class Harness {
     signal: AbortSignal,
     resume: boolean,
     reservation: ProcessReservation,
+    prepared?: {
+      instanceId: string;
+      opened: Awaited<ReturnType<typeof openCheckpoint>>;
+      model: Awaited<ReturnType<ModelAccess['execution']>>;
+      remote: Pick<
+        ConstructorParameters<typeof RemoteAgent>[0],
+        'registered' | 'confirm' | 'onGraph' | 'resources'
+      >;
+    },
   ): Promise<void> {
     let run = initial;
     const continuingUnfinished = resume;
     let checkpointDb: Database.Database | undefined;
     const checkpointClaims: Array<() => void> = [];
-    const instanceId = randomUUID();
+    const instanceId = prepared?.instanceId ?? randomUUID();
     const diagnosticScope = { projectId: project.id, sessionId: run.sessionId, runId: run.id };
     const buffers = new Map<string, string>();
     const persistedAt = new Map<string, number>();
@@ -1869,30 +1937,33 @@ export class Harness {
           await library.call('library.check', { access: 'send' });
         }
       };
-      const model = await this.model.execution(authorizeModel, signal, run.modelConfig, () => {
-        this.checkExecutionContext(executionContext);
-        this.catalogContext(project, run.sessionId, executionContext);
-        const currentTargets: string[] = JSON.parse(
-          this.records(project)
+      const model =
+        prepared?.model ??
+        (await this.model.execution(authorizeModel, signal, run.modelConfig, () => {
+          this.checkExecutionContext(executionContext);
+          this.catalogContext(project, run.sessionId, executionContext);
+          const currentTargets: string[] = JSON.parse(
+            this.records(project)
+              .select()
+              .from(tables.meta)
+              .where(eq(tables.meta.key, targetContextKey))
+              .get()?.value ?? '[]',
+          );
+          for (const targetId of currentTargets) targetChecks.add(targetId);
+          const libraryUsed = !!this.records(project)
             .select()
             .from(tables.meta)
-            .where(eq(tables.meta.key, targetContextKey))
-            .get()?.value ?? '[]',
-        );
-        for (const targetId of currentTargets) targetChecks.add(targetId);
-        const libraryUsed = !!this.records(project)
-          .select()
-          .from(tables.meta)
-          .where(eq(tables.meta.key, libraryContextKey))
-          .get();
-        const resources = this.contextBridge?.resources?.(executionContext);
-        const evidence = contextEvidence();
-        if (resources) resources.check(evidence, libraryUsed);
-        else if (evidence.length || libraryUsed)
-          throw new OperationError('unavailable', '执行资源授权适配尚未接线。');
-        if (targets) targets.check(targetChecks);
-        else if (targetChecks.size) throw new OperationError('unavailable', '目标只读端口不可用。');
-      });
+            .where(eq(tables.meta.key, libraryContextKey))
+            .get();
+          const resources = this.contextBridge?.resources?.(executionContext);
+          const evidence = contextEvidence();
+          if (resources) resources.check(evidence, libraryUsed);
+          else if (evidence.length || libraryUsed)
+            throw new OperationError('unavailable', '执行资源授权适配尚未接线。');
+          if (targets) targets.check(targetChecks);
+          else if (targetChecks.size)
+            throw new OperationError('unavailable', '目标只读端口不可用。');
+        }));
       const scratch = sessionScratch(project.internal, run.sessionId);
       const used = new Map<string, string>();
       const toolContext = new AsyncLocalStorage<{ error?: ErrorInfo }>();
@@ -2004,25 +2075,25 @@ export class Harness {
         .sort((a, b) => b.attempt - a.attempt)[0];
       if (this.unconfirmedInstance(project, run.sessionId))
         throw new OperationError('unavailable', '旧执行写者尚未排除，停止相关接续。');
-      checkpointClaims.push(
-        await claimCheckpoints(project.internal, [
-          run.id,
-          ...(predecessor ? [predecessor.id] : []),
-        ]),
-      );
+      if (!prepared)
+        checkpointClaims.push(
+          await claimCheckpoints(project.internal, [
+            run.id,
+            ...(predecessor ? [predecessor.id] : []),
+          ]),
+        );
       let opened: Awaited<ReturnType<typeof openCheckpoint>>;
       try {
-        opened = await openCheckpoint(
-          project.internal,
-          run.id,
-          resume ? undefined : predecessor?.id,
-        );
+        opened =
+          prepared?.opened ??
+          (await openCheckpoint(project.internal, run.id, resume ? undefined : predecessor?.id));
         checkpointDb = opened.database;
         const compatible = await new InstructionSaver(checkpointDb, async () => {}).getTuple({
           configurable: { thread_id: run.id },
         });
         if (resume && !compatible) throw new Error('原尝试缺少有效checkpoint。');
       } catch (error) {
+        if (prepared) throw error;
         checkpointDb?.close();
         checkpointDb = undefined;
         if (error instanceof OperationError && error.code !== 'unavailable') throw error;
@@ -2109,16 +2180,27 @@ export class Harness {
         const recorded: unknown = saved?.checkpoint.channel_values.instructionIds;
         if (!Array.isArray(recorded) || instructionIds.some((id) => !recorded.includes(id)))
           throw new OperationError('invalidRequest', '消费确认缺少已保存的checkpoint依据。');
-        const changed = this.repository(project).confirmConsumption(run.sessionId, run.id, {
-          checkpointId,
-          instructionIds,
-        });
+        const changed = this.repository(project).confirmConsumption(
+          run.sessionId,
+          run.id,
+          {
+            checkpointId,
+            instructionIds,
+          },
+          recorded as string[],
+        );
         if (changed) {
           this.projects.touch(project.id);
           this.notify(project.id, run.sessionId);
         }
       };
       const saver = new InstructionSaver(checkpointDb, confirmInstructions);
+      if (prepared?.remote.registered)
+        for (const item of [
+          ...(prepared.remote.registered.checkpointInstructions ?? []),
+          ...(prepared.remote.registered.instructions ?? []),
+        ])
+          effectiveInstructions.set(item.instructionId, item);
       const instructionMiddleware = createMiddleware({
         name: 'ScholoomInstructions',
         stateSchema: z.object({ instructionIds: z.array(z.string()).max(100).default([]) }),
@@ -2182,6 +2264,9 @@ export class Harness {
             rememberContext(message.contextItems ?? []);
             effectiveInstructions.set(item.id, {
               instructionId: item.id,
+              text: message.text,
+              materials: message.materials,
+              ...(message.materialFileIds ? { materialFileIds: message.materialFileIds } : {}),
               ...(message.source ? { source: message.source } : {}),
               ...(message.contextItems ? { contextItems: message.contextItems } : {}),
             });
@@ -2195,9 +2280,7 @@ export class Harness {
           }
           return {
             ...(incoming.length ? { messages: incoming } : {}),
-            instructionIds: pending
-              .filter((item) => effectiveInstructions.has(item.id))
-              .map((item) => item.id),
+            instructionIds: [...effectiveInstructions.keys()],
             instructionRunId: run.id,
             instructions: [...effectiveInstructions.values()],
           };
@@ -2724,6 +2807,14 @@ export class Harness {
           instanceId,
           reservation,
           ...instanceLifecycle(instanceId),
+          ...(prepared
+            ? {
+                registered: prepared.remote.registered,
+                confirm: prepared.remote.confirm,
+                onGraph: prepared.remote.onGraph,
+                resources: prepared.remote.resources,
+              }
+            : {}),
           middleware: [instructionMiddleware, createToolMiddleware(run.id, inFlightTools)],
           systemPrompt:
             '你是 Scholoom 科研助手。使用中文与用户工作。项目正文以实际文件为准，附加材料只是引用，先读取。形成可承接的分析、理由、成果及下一步时保存为普通 Markdown 文件；在没有项目文件权限时只对话。仅使用授权工具。修改已有文件先读取，遇到冲突重读再修改。write_file 仅用于新建，edit_file 修改已有内容。不得声称未保存成果已交付。不要依赖旧 transcript 才能续做，可发现并读取项目已有成果。用户取消后不继续。',
@@ -3222,6 +3313,18 @@ export class Harness {
           ),
         });
       const agent = buildAgent();
+      if (prepared) {
+        rootRequested = true;
+        this.setRun(project, { ...run, state: 'running' });
+        for await (const _event of agent.streamEvents(null, {})) {
+          /* Registered graphs project their own result. */
+        }
+        await settleTools(inFlightTools);
+        await this.delegationManager(project).stopParent(instanceId);
+        if (childrenUnsettled())
+          throw new OperationError('outcomeUnknown', '图内子执行尚未确认停止。');
+        return;
+      }
       const config = {
         configurable: { thread_id: run.id },
         signal,
@@ -3252,6 +3355,9 @@ export class Harness {
               if (message)
                 effectiveInstructions.set(item.instructionId, {
                   instructionId: item.instructionId,
+                  text: message.text,
+                  materials: message.materials,
+                  ...(message.materialFileIds ? { materialFileIds: message.materialFileIds } : {}),
                   ...(message.source ? { source: message.source } : {}),
                   ...(message.contextItems ? { contextItems: message.contextItems } : {}),
                 });
@@ -3490,6 +3596,7 @@ export class Harness {
       await settleTools(inFlightTools);
       if (rootRequested && error instanceof OperationError && error.code === 'outcomeUnknown')
         rememberUnconfirmed(instanceId);
+      if (prepared) throw error;
       for (const [id, text] of buffers) {
         const prior = this.records(project)
           .select()
@@ -3534,7 +3641,7 @@ export class Harness {
         this.interruptTools(project, run);
       } finally {
         try {
-          checkpointDb?.close();
+          if (!prepared) checkpointDb?.close();
         } finally {
           for (const release of checkpointClaims.reverse()) release();
         }

@@ -1,3 +1,5 @@
+import type { BaseMessage } from '@langchain/core/messages';
+import type { RunnableConfig } from '@langchain/core/runnables';
 import type { RpcPeer } from '@scholoom/broker/rpc';
 import { compileContract, OperationError } from '@scholoom/protocol/core';
 import {
@@ -20,6 +22,18 @@ export type RegisteredGraphInput = Extract<
   { graph: unknown }
 >;
 export type GraphDriver = Pick<ExecutionControlProviders, 'execution.next'> & { close?(): void };
+export type AgentState = {
+  messages: BaseMessage[];
+  instructionIds: string[];
+  instructionRunId: string;
+  instructions: InstructionContext[];
+};
+/** Selected by trusted factory source; graph configuration never grants tools. */
+export type AgentNodeOptions = { tools: readonly string[]; systemPrompt: string };
+export type AgentConsumer = {
+  /** Invoke once per SDK node/task with its original config; return these channels to the outer graph. */
+  invoke(state: AgentState, config: RunnableConfig, options: AgentNodeOptions): Promise<AgentState>;
+};
 export type GraphFactory = {
   definition: GraphDefinition;
   resume?(
@@ -28,7 +42,12 @@ export type GraphFactory = {
   ): { value: unknown; instructionIds: string[] } | undefined;
   create(
     input: RegisteredGraphInput,
-    context: { peer: RpcPeer; signal: AbortSignal; checkpointer?: InstructionSaver },
+    context: {
+      peer: RpcPeer;
+      signal: AbortSignal;
+      checkpointer?: InstructionSaver;
+      agent: AgentConsumer;
+    },
   ): GraphDriver | Promise<GraphDriver>;
 };
 

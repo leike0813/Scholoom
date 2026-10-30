@@ -7,6 +7,7 @@ import { RpcPeer } from '@scholoom/broker/rpc';
 import { createExecutionModel, modelFailure } from '@scholoom/models/execution';
 import { OperationError } from '@scholoom/protocol/core';
 import {
+  type ExecutionControlInputs,
   type ExecutionControlProviders,
   type FrameworkMessage,
   type FrameworkToolResult,
@@ -23,9 +24,27 @@ import { InstructionSaver } from './checkpoint.js';
 import { callExecutionControl } from './control.js';
 import { executionFiles } from './files.js';
 import { decodeFrameworkMessage, encodeFrameworkMessage } from './framework-messages.js';
-import { ExecutionGraphs, type GraphDriver } from './graph-registry.js';
+import {
+  type AgentConsumer,
+  type AgentNodeOptions,
+  type AgentState,
+  ExecutionGraphs,
+  type GraphDriver,
+} from './graph-registry.js';
 
-export { ExecutionGraphs } from './graph-registry.js';
+export {
+  type AgentConsumer,
+  type AgentNodeOptions,
+  type AgentState,
+  ExecutionGraphs,
+  type GraphDriver,
+  type GraphFactory,
+} from './graph-registry.js';
+
+type AgentInitialization = Exclude<
+  ExecutionControlInputs['execution.initialize'],
+  { graph: unknown }
+>;
 
 /** Starts host IPC for the current worker process. Entry modules call it; importing it has no effect. */
 export function startExecutionWorker(graphs = new ExecutionGraphs()): void {
@@ -54,6 +73,176 @@ export function startExecutionWorker(graphs = new ExecutionGraphs()): void {
       signal.abort();
       return { ok: true };
     },
+  };
+
+  const buildAgent = (
+    input: AgentInitialization,
+    saver?: InstructionSaver,
+    selection?: AgentNodeOptions,
+    inheritedSaver?: InstructionSaver,
+  ) => {
+    const model = createExecutionModel(input.model, signal.signal, {
+      acquire: async () => (await callExecutionControl(peer, 'model.acquire', {})).leaseId,
+      release: (leaseId) => {
+        void callExecutionControl(peer, 'model.release', { leaseId }).catch(() => signal.abort());
+      },
+    });
+    const backend = executionFiles(peer, () => context.getStore());
+    const instructionState = z.object({
+      instructionIds: z.array(z.string()).max(100).default([]),
+      instructionRunId: z.string().default(''),
+      instructions: z.array(z.custom<InstructionContext>()).max(100).default([]),
+    });
+    const middleware = input.middleware.map((item) =>
+      createMiddleware<typeof instructionState>({
+        name: item.name,
+        stateSchema: instructionState,
+        ...(item.before
+          ? {
+              beforeModel: async (state) => {
+                const pending = {
+                  token: randomUUID(),
+                  messages: [] as FrameworkMessage[],
+                  instructions: [] as InstructionContext[],
+                };
+                pendingModelUpdate = pending;
+                try {
+                  const update = await callExecutionControl(peer, 'execution.beforeModel', {
+                    name: item.name,
+                    token: pending.token,
+                    messages: state.messages.map((message) => ({
+                      type: message.getType() === 'human' ? 'human' : 'ai',
+                      data: { ...(message.id ? { id: message.id } : {}), content: '' },
+                    })),
+                  });
+                  if (update?.instructions)
+                    (saver ?? inheritedSaver)?.remember([
+                      ...pending.instructions,
+                      ...update.instructions,
+                    ]);
+                  return update
+                    ? {
+                        ...(update.instructions
+                          ? { instructions: [...pending.instructions, ...update.instructions] }
+                          : {}),
+                        ...(update.instructionRunId
+                          ? { instructionRunId: update.instructionRunId }
+                          : {}),
+                        ...(update.instructionIds ? { instructionIds: update.instructionIds } : {}),
+                        ...(update.messages
+                          ? {
+                              messages: [...pending.messages, ...update.messages].map(
+                                decodeFrameworkMessage,
+                              ),
+                            }
+                          : {}),
+                      }
+                    : undefined;
+                } finally {
+                  pendingModelUpdate = undefined;
+                }
+              },
+            }
+          : {}),
+        ...(item.model
+          ? {
+              wrapModelCall: async (request, handler) => {
+                await callExecutionControl(peer, 'execution.wrapModel', { name: item.name });
+                return handler(request);
+              },
+            }
+          : {}),
+        ...(item.tool
+          ? {
+              wrapToolCall: async (request, handler) => {
+                const token = randomUUID();
+                handlers.set(token, async () => {
+                  const result = await handler(request);
+                  if (result instanceof ToolMessage)
+                    return { kind: 'message', value: encodeFrameworkMessage(result) };
+                  const encoded = isCommand(result)
+                    ? { kind: 'command', update: result.update }
+                    : result;
+                  if (!isExecutionControlResult('execution.tool', encoded))
+                    throw new OperationError('outcomeUnknown', '工具执行后结果不符合契约。');
+                  return encoded;
+                });
+                try {
+                  const result = await callExecutionControl(peer, 'execution.wrapTool', {
+                    name: item.name,
+                    token,
+                    toolCall: request.toolCall,
+                  });
+                  if (result.kind === 'message') {
+                    const message = decodeFrameworkMessage(result.value);
+                    if (!(message instanceof ToolMessage))
+                      throw new OperationError('outcomeUnknown', '工具执行后未返回工具消息。');
+                    return message;
+                  }
+                  return new Command({ update: result.update }) as unknown as Awaited<
+                    ReturnType<typeof handler>
+                  >;
+                } finally {
+                  handlers.delete(token);
+                }
+              },
+            }
+          : {}),
+      }),
+    );
+    middleware.unshift(
+      createMiddleware<typeof instructionState>({
+        name: 'ScholoomModelCompletion',
+        wrapModelCall: async (request, handler) => {
+          const response = await handler(request);
+          if (
+            response.response_metadata.finish_reason === 'length' ||
+            response.additional_kwargs.stop_reason === 'max_tokens'
+          )
+            throw new OperationError('modelFailed', '模型输出达到上限，未执行本次工具请求。');
+          return response;
+        },
+      }),
+    );
+    if (selection)
+      middleware.unshift(
+        createMiddleware<typeof instructionState>({
+          name: 'ScholoomAgentTools',
+          wrapModelCall: (request, handler) =>
+            handler({
+              ...request,
+              tools: request.tools.filter(
+                (tool) => typeof tool.name === 'string' && selection.tools.includes(tool.name),
+              ),
+            }),
+          wrapToolCall: (request, handler) => {
+            if (!selection.tools.includes(request.toolCall.name))
+              throw new OperationError('permissionDenied', '节点工具不在可信源码选择范围。');
+            return handler(request);
+          },
+        }),
+      );
+    return createDeepAgent({
+      model,
+      backend,
+      middleware,
+      ...((selection?.systemPrompt ?? input.systemPrompt)
+        ? { systemPrompt: selection?.systemPrompt ?? input.systemPrompt }
+        : {}),
+      ...(saver ? { checkpointer: saver } : {}),
+      tools: input.tools.map((tool) =>
+        defineTool((args) => {
+          const token = context.getStore();
+          const call = [
+            'execution.custom',
+            { name: tool.name, args, ...(token ? { token } : {}) },
+          ] as const;
+          if (!isExecutionControlCall(call))
+            throw new OperationError('invalidRequest', '工具参数不符合契约。');
+          return callExecutionControl(peer, ...call);
+        }, tool),
+      ),
+    });
   };
 
   const graphProviders: Pick<
@@ -140,9 +329,63 @@ export function startExecutionWorker(graphs = new ExecutionGraphs()): void {
           );
           await checkpointer.confirmLatest({ configurable: { thread_id: input.attemptId } });
         }
+        const registered = input;
+        let activeConsumer = false;
+        const consumer: AgentConsumer = {
+          invoke: async (state, config, selection) => {
+            if (activeConsumer)
+              throw new OperationError('unavailable', '同一执行只允许一个活动 Agent consumer。');
+            if (!registered.model || !registered.tools || !registered.middleware || !checkpointer)
+              throw new OperationError(
+                'unavailable',
+                '图内 Agent 的可信装配或 checkpoint 不完整。',
+              );
+            if (
+              config.configurable?.thread_id !== registered.attemptId ||
+              !config.configurable?.checkpoint_ns
+            )
+              throw new OperationError('invalidRequest', 'Agent 必须使用所属图的原子任务 config。');
+            activeConsumer = true;
+            try {
+              const child = await checkpointer.getTuple(config);
+              if (child) {
+                const root = config.configurable.checkpoint_map?.[''];
+                if (
+                  !root ||
+                  child.metadata?.parents?.[''] !== root ||
+                  child.checkpoint.channel_values.instructionRunId !== registered.attemptId ||
+                  !Array.isArray(child.checkpoint.channel_values.instructions)
+                )
+                  throw new OperationError('invalidRequest', '子 checkpoint 不属于当前原子任务。');
+                checkpointer.remember(
+                  child.checkpoint.channel_values.instructions as InstructionContext[],
+                );
+                await checkpointer.confirmLatest(config);
+              }
+              const agent = buildAgent(
+                {
+                  model: registered.model,
+                  tools: registered.tools,
+                  middleware: registered.middleware,
+                  ...(registered.systemPrompt ? { systemPrompt: registered.systemPrompt } : {}),
+                  input: null,
+                  config: { recursionLimit: 1000, durability: 'sync' },
+                },
+                undefined,
+                selection,
+                checkpointer,
+              );
+              // The child borrows the parent's saver and exact SDK task config.
+              return (await agent.graph.invoke(child ? null : state, config)) as AgentState;
+            } finally {
+              activeConsumer = false;
+            }
+          },
+        };
         graphDriver = await factory.create(input, {
           peer,
           signal: signal.signal,
+          agent: consumer,
           ...(checkpointer ? { checkpointer } : {}),
         });
         stagedInstructions.clear();
@@ -150,126 +393,6 @@ export function startExecutionWorker(graphs = new ExecutionGraphs()): void {
         return { ok: true };
       }
       initialized = true;
-      const model = createExecutionModel(input.model, signal.signal, {
-        acquire: async () => (await callExecutionControl(peer, 'model.acquire', {})).leaseId,
-        release: (leaseId) => {
-          void callExecutionControl(peer, 'model.release', { leaseId }).catch(() => signal.abort());
-        },
-      });
-      const backend = executionFiles(peer, () => context.getStore());
-      const instructionState = z.object({
-        instructionIds: z.array(z.string()).max(100).default([]),
-        instructionRunId: z.string().default(''),
-        instructions: z.array(z.custom<InstructionContext>()).max(100).default([]),
-      });
-      const middleware = input.middleware.map((item) =>
-        createMiddleware<typeof instructionState>({
-          name: item.name,
-          stateSchema: instructionState,
-          ...(item.before
-            ? {
-                beforeModel: async (state) => {
-                  const pending = {
-                    token: randomUUID(),
-                    messages: [] as FrameworkMessage[],
-                    instructions: [] as InstructionContext[],
-                  };
-                  pendingModelUpdate = pending;
-                  try {
-                    const update = await callExecutionControl(peer, 'execution.beforeModel', {
-                      name: item.name,
-                      token: pending.token,
-                      messages: state.messages.map((message) => ({
-                        type: message.getType() === 'human' ? 'human' : 'ai',
-                        data: { ...(message.id ? { id: message.id } : {}), content: '' },
-                      })),
-                    });
-                    return update
-                      ? {
-                          ...(update.instructions
-                            ? { instructions: [...pending.instructions, ...update.instructions] }
-                            : {}),
-                          ...(update.instructionRunId
-                            ? { instructionRunId: update.instructionRunId }
-                            : {}),
-                          ...(update.instructionIds
-                            ? { instructionIds: update.instructionIds }
-                            : {}),
-                          ...(update.messages
-                            ? {
-                                messages: [...pending.messages, ...update.messages].map(
-                                  decodeFrameworkMessage,
-                                ),
-                              }
-                            : {}),
-                        }
-                      : undefined;
-                  } finally {
-                    pendingModelUpdate = undefined;
-                  }
-                },
-              }
-            : {}),
-          ...(item.model
-            ? {
-                wrapModelCall: async (request, handler) => {
-                  await callExecutionControl(peer, 'execution.wrapModel', { name: item.name });
-                  return handler(request);
-                },
-              }
-            : {}),
-          ...(item.tool
-            ? {
-                wrapToolCall: async (request, handler) => {
-                  const token = randomUUID();
-                  handlers.set(token, async () => {
-                    const result = await handler(request);
-                    if (result instanceof ToolMessage)
-                      return { kind: 'message', value: encodeFrameworkMessage(result) };
-                    const encoded = isCommand(result)
-                      ? { kind: 'command', update: result.update }
-                      : result;
-                    if (!isExecutionControlResult('execution.tool', encoded))
-                      throw new OperationError('outcomeUnknown', '工具执行后结果不符合契约。');
-                    return encoded;
-                  });
-                  try {
-                    const result = await callExecutionControl(peer, 'execution.wrapTool', {
-                      name: item.name,
-                      token,
-                      toolCall: request.toolCall,
-                    });
-                    if (result.kind === 'message') {
-                      const message = decodeFrameworkMessage(result.value);
-                      if (!(message instanceof ToolMessage))
-                        throw new OperationError('outcomeUnknown', '工具执行后未返回工具消息。');
-                      return message;
-                    }
-                    return new Command({ update: result.update }) as unknown as Awaited<
-                      ReturnType<typeof handler>
-                    >;
-                  } finally {
-                    handlers.delete(token);
-                  }
-                },
-              }
-            : {}),
-        }),
-      );
-      middleware.unshift(
-        createMiddleware<typeof instructionState>({
-          name: 'ScholoomModelCompletion',
-          wrapModelCall: async (request, handler) => {
-            const response = await handler(request);
-            if (
-              response.response_metadata.finish_reason === 'length' ||
-              response.additional_kwargs.stop_reason === 'max_tokens'
-            )
-              throw new OperationError('modelFailed', '模型输出达到上限，未执行本次工具请求。');
-            return response;
-          },
-        }),
-      );
       let saver: InstructionSaver | undefined;
       if (input.checkpointPath) {
         database = new Database(input.checkpointPath, { fileMustExist: true });
@@ -278,25 +401,7 @@ export function startExecutionWorker(graphs = new ExecutionGraphs()): void {
         });
         await saver.confirmLatest(input.config);
       }
-      const agent = createDeepAgent({
-        model,
-        backend,
-        middleware,
-        ...(input.systemPrompt ? { systemPrompt: input.systemPrompt } : {}),
-        ...(saver ? { checkpointer: saver } : {}),
-        tools: input.tools.map((tool) =>
-          defineTool((args) => {
-            const token = context.getStore();
-            const call = [
-              'execution.custom',
-              { name: tool.name, args, ...(token ? { token } : {}) },
-            ] as const;
-            if (!isExecutionControlCall(call))
-              throw new OperationError('invalidRequest', '工具参数不符合契约。');
-            return callExecutionControl(peer, ...call);
-          }, tool),
-        ),
-      });
+      const agent = buildAgent(input, saver);
       iterator = agent
         .streamEvents(
           input.input ? { messages: input.input.messages.map(decodeFrameworkMessage) } : null,
