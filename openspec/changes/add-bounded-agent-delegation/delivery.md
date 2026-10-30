@@ -81,7 +81,7 @@
 
 0ed2c97／专项40784928035的execution job失败：前置10、ownership16／3不适用、HostConnection25、availability6、isolated4、ACL4、取消子Agent1、owner2及Electron重复3项通过；context与附件Agent两例在原5秒断言时queued。`windows-fd0-execution.log`及一次下载的artifact12859168740保全。context同一run记录为受理12ms、执行准备至2282ms、worker报到2864ms、initialize发送2868ms，失败4829ms、模型请求0、无初始化返回或worker stage。它缩小了阶段，不能据此在冷加载、IPC未达、初始化回调等待三者中断言唯一根因。
 
-复用原失败后15秒观察逻辑为`observeExecutionFailure`，接这两例catch，在测试原失败已确定后继续采样同一执行，随后仍抛原错误；5秒断言、用例总预算、生产期限及重试均不变。Linux两原例`windows-observation-local.log`为2/2、34.8秒，仅证明既有成功路径未受影响，Windows新失败后阶段待目标回执，不关闭4.2／4.3／17.2／18.2。真实MiniMax补跑仍待单独答复，未追加模型请求。最新Mac实际回执引用[公共平台记录](../add-project-program-runs/delivery.md#0ed2c97目标平台回执2026-10-29)。
+复用原失败后15秒观察逻辑为`observeExecutionFailure`，接这两例catch，在测试原失败已确定后继续采样同一执行，随后仍抛原错误；5秒断言、用例总预算、生产期限及重试均不变。Linux两原例`windows-observation-local.log`为2/2、34.8秒，仅证明既有成功路径未受影响，Windows新失败后阶段待目标回执，不关闭4.2／4.3／17.2／18.2。真实MiniMax补跑仍待单独答复，未追加模型请求。最新Mac实际回执引用[公共平台记录](../archive/2026-10-30-add-project-program-runs/delivery.md#0ed2c97目标平台回执2026-10-29)。
 
 ## 一次真实科研验收失败与工具参数拒绝修复（2026-10-29）
 
@@ -113,7 +113,7 @@
 
 ## 完整Checks结算仍失败（2026-10-29）
 
-run40745284164已结算：Mac success，Windows内核789通过／5失败／85跳过，Linux内核835通过／44跳过且UI137通过／25失败／6跳过，详见[共同平台回执](../add-project-program-runs/delivery.md#0b5c5e3完整checks回执及下一次窄取证2026-10-29)。本change代表在专项的正例不扩大为完整平台；4.2／4.3、17.2／18.2及科研质量仍按实际任务保持开放。
+run40745284164已结算：Mac success，Windows内核789通过／5失败／85跳过，Linux内核835通过／44跳过且UI137通过／25失败／6跳过，详见[共同平台回执](../archive/2026-10-30-add-project-program-runs/delivery.md#0b5c5e3完整checks回执及下一次窄取证2026-10-29)。本change代表在专项的正例不扩大为完整平台；4.2／4.3、17.2／18.2及科研质量仍按实际任务保持开放。
 
 ## 0b5c5e3 Windows专项完整通过（2026-10-29）
 

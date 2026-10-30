@@ -20,7 +20,7 @@ flowchart LR
 ## 1. 最小共同契约与真实文本范围
 
 - [x] 1.1 主线在protocol的原GraphProgress增加可选有界contentReads／roleResults、精确消费namespace及registered Agent元数据，核旧记录仍通过原schema，真实页／章／文本片段不混作全文。构建及原契约／登记代表检查通过后提交并同步，才能派发消费者；本任务不表示生产恢复或科研交付已经完成。
-- [ ] 1.2 文献线独占resources.read的UTF8根因修复及必要窄底层，按design在8MiB字节范围内核原身份／basis、严格解码与真实offset／size／nextOffset，保留base64路径。沿resource-access扩独立已知长尾、多字节、非法／超限及续读变化代表；不修改Graph合同、保存、解析引擎或同源TaskLink。
+- [x] 1.2 文献线独占resources.read的UTF8根因修复及必要窄底层，按design在8MiB字节范围内核原身份／basis、严格解码与真实offset／size／nextOffset，保留base64路径。沿resource-access扩独立已知长尾、多字节、非法／超限及续读变化代表；不修改Graph合同、保存、解析引擎或同源TaskLink。主线接收858c529→16857db，真实红2/2、绿15/15，独审无确证P1/P2；每次范围重读完整快照的IO限度见delivery。
 
 ## 2. 同一执行中的真实Agent节点
 

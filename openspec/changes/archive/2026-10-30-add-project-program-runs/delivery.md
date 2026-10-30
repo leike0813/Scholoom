@@ -1,5 +1,15 @@
 # 实际交付与交接
 
+## Linux阶段最终签收（2026-10-30）
+
+本change按用户确认的Linux Browser＋真实Electron范围完成58/58，关闭5.2／6.2。主线接收项目线对proposal六判据的逐项核对：人工无模型与Agent共用运行事实、Node／Python及授权内离线环境准备、无日志／输出上限、取消／恢复／独立副本、真实CSV经共同资源打开、内核及I4双宿主均有已接收实跑与独审。程序核心、环境、命令机制、协议及程序UI与已验86e4ee9无新增业务差异，实际接线和各原结果仍见下方交付记录，不相加历史计数为新矩阵。
+
+唯一相关公共后续变化是ProcessAdmission恢复代次结算；项目线只补受影响的现有4项：`program-runs.spec.ts process-admission.spec.ts --grep 'host loss retains unknown|recovered slots survive full capacity'`，真实Node宿主丢失、SQLite、独立备份及empty／full／already-retained恢复均通过，4/4、35.3秒、exit0。主线读取原日志及实际退出记录，未重跑无差异程序／UI整组。当前整合共享构建exit0，源码及原六判据／已接收独审对应见`/home/joshua/.cache/scholoom-closeout-execution-20261030/workers/project-execution/RESULT.md`与`task4.1-20261030/program-linux-signoff/`。
+
+既有Standards独审及其修复已接收；本轮没有程序生产整改，新增科研保存查询另以4da53e→cfb37a7独立审查，不冒充程序功能变化。原Linux显示127、nativeTeX unknown及旧Windows／CI失败保留，不以当前绿色补造唯一因果。外部模型仅历史受控HTTP边界，内部领域／运行／持久化真实；离线wheel为合成隔离输入，公网registry下载仍未实跑。
+
+Windows业务／平台整组、ACL／启动／EPERM及实际分发，TeX与旧CI因果责任继续沿tasks后续责任；macOS仍人工／查询／已有成果并拒绝受管运行。完整停止、unknown容量、授权、锁与用户既有环境保护未放宽，本阶段通过不表示科研内容合格或三平台发布。新证据保存在持久cache，无/tmp接续依赖；下方未完成计数保留历史截点。
+
 ## Linux阶段范围修订（2026-10-30）
 
 用户已明确采用Linux Browser＋真实Electron阶段收口，并授权按此计划修订工件。56/58不变，5.2／6.2继续未完成，保留Linux最终源码／构建与proposal六判据、既有人工／Agent程序、环境保护、实际输出、双宿主、取消／恢复及已接收独审的对应核对。完整停止、unknown容量、锁与已有环境保护不变；macOS保留人工／查询／已有成果并拒绝新受管运行，公网registry下载仍未实跑。
@@ -10,21 +20,21 @@ Windows程序业务／平台整组、ACL／启动／EPERM及TeX／实际分发�
 
 run40792137138已结算failure：private-files job123179671655成功，execution job123179671913成功，zotero-original job123179672088失败；不是全部平台成功。execution逐组10、16、25、6、4、4、3、2、3，共73通过／3个既有平台不适用跳过，含父子取消／重启、显式摘录、附件Agent三代表以及Electron入口重复3/3，测试及生产期限未改。日志为`/home/joshua/.cache/scholoom-finish-active/windows-55ad46a-execution.log`。
 
-原包组百条例在发布stopping endpoint时rename EPERM，具体成功范围、安全ACL观测及未定因见[原包交付记录](../connect-zotero-host-bbt/delivery.md#55ad46a-windows原包及停机前acl2026-10-29)。同job发现文件并发替换／故障后仍收尾两例2/2，不能据此宣称原EPERM已修。完整Checks40792137169查询时macOS job123179672144已success，Linux／Windows仍在kernel阶段；活动job日志API返回404，本轮未重试或将空文件当实际结果。5.2／6.2保持未完成，仍待完整目标结果及对应缺口修复，不从专项正例补旧故障唯一因果。
+原包组百条例在发布stopping endpoint时rename EPERM，具体成功范围、安全ACL观测及未定因见[原包交付记录](../2026-10-30-connect-zotero-host-bbt/delivery.md#55ad46a-windows原包及停机前acl2026-10-29)。同job发现文件并发替换／故障后仍收尾两例2/2，不能据此宣称原EPERM已修。完整Checks40792137169查询时macOS job123179672144已success，Linux／Windows仍在kernel阶段；活动job日志API返回404，本轮未重试或将空文件当实际结果。5.2／6.2保持未完成，仍待完整目标结果及对应缺口修复，不从专项正例补旧故障唯一因果。
 
 ## 81e2c35的Windows故障收尾已通过（2026-10-29）
 
-专项40790713243／job123174946195的两项发现／停机回归2/2、28.6秒：并发读取期间原子发现，以及真实发布失败后已受理程序stop=confirmed均通过。生产异常没有被吞下，停止失败仍报错；这里只关闭该公共修复的Windows目标缺证，不将生态百条例仍有的原EPERM或整个change5.2自动关闭。最新只读观测与安全工件范围见[生态记录](../connect-zotero-host-bbt/delivery.md#81e2c35的windows实跑2026-10-29)。
+专项40790713243／job123174946195的两项发现／停机回归2/2、28.6秒：并发读取期间原子发现，以及真实发布失败后已受理程序stop=confirmed均通过。生产异常没有被吞下，停止失败仍报错；这里只关闭该公共修复的Windows目标缺证，不将生态百条例仍有的原EPERM或整个change5.2自动关闭。最新只读观测与安全工件范围见[生态记录](../2026-10-30-connect-zotero-host-bbt/delivery.md#81e2c35的windows实跑2026-10-29)。
 
 ## 新故障诊断的启动前置（2026-10-29）
 
-c29a93a／专项40789279376的并发发现替换在Windows通过；新增发布失败仍须收尾例尚未进入故障注入，5秒默认准备断言结束时application模块导入才完成（loading→initializing约4998ms）。现该新例明确沿既有limits.lifecycleMs等待启动，不改被测停机语义或原Agent完成预算；Linux原故障例最小复验1/1、11.5秒，目标待回执。生态百条例原EPERM仍失败，事实及新只读元数据观测见[生态记录](../connect-zotero-host-bbt/delivery.md#c29a93a的windows回执与夹具前置整改2026-10-29)。
+c29a93a／专项40789279376的并发发现替换在Windows通过；新增发布失败仍须收尾例尚未进入故障注入，5秒默认准备断言结束时application模块导入才完成（loading→initializing约4998ms）。现该新例明确沿既有limits.lifecycleMs等待启动，不改被测停机语义或原Agent完成预算；Linux原故障例最小复验1/1、11.5秒，目标待回执。生态百条例原EPERM仍失败，事实及新只读元数据观测见[生态记录](../2026-10-30-connect-zotero-host-bbt/delivery.md#c29a93a的windows回执与夹具前置整改2026-10-29)。
 
 ## 0ed2c97目标平台回执（2026-10-29）
 
 完整Checks40784927993的macOS job123155605913已success，原日志`/home/joshua/.cache/scholoom-finish-active/macos-0ed2c97.log`：平台不可用及人工能力4/4、实际应用入口4/4、双宿主人工工作台14/14，目录打包通过。没有运行macOS受管执行，签名按配置跳过；该结果不是macOS全功能或签名发行验收。Linux／Windows完整job尚未结算，不关闭5.2／6.2。
 
-同期Windows专项40784928035的private-files成功，execution因context／附件Agent在原5秒窗口queued而失败；原生归属、HostConnection、生命周期／ACL、取消、owner和Electron代表均通过。精确同run阶段与失败后观察见[Agent交付记录](../add-bounded-agent-delegation/delivery.md#windows同次初始化缺证的继续观察2026-10-29)。BBT原包专项已越过stdin，新增的endpoint替换EPERM及公共停机清理回归另见[生态交付记录](../connect-zotero-host-bbt/delivery.md#正式键偏好触发与通知缓存修复2026-10-29)；这些新失败不被旧专项成功覆盖。
+同期Windows专项40784928035的private-files成功，execution因context／附件Agent在原5秒窗口queued而失败；原生归属、HostConnection、生命周期／ACL、取消、owner和Electron代表均通过。精确同run阶段与失败后观察见[Agent交付记录](../../add-bounded-agent-delegation/delivery.md#windows同次初始化缺证的继续观察2026-10-29)。BBT原包专项已越过stdin，新增的endpoint替换EPERM及公共停机清理回归另见[生态交付记录](../2026-10-30-connect-zotero-host-bbt/delivery.md#正式键偏好触发与通知缓存修复2026-10-29)；这些新失败不被旧专项成功覆盖。
 
 ### 停止状态发布失败仍须收尾
 
@@ -42,7 +52,7 @@ kernel重新构建、tools类型、指定七文件Biome及架构通过。自有�
 
 ## Windows子文件元数据独立取证（2026-10-29）
 
-2b55465／run40770348500的独立private-files job123105541706已success，Node24.22.1／libuv1.52.1。原四项各三次12/12：三份元数据before=after=opened且正文保持，真实损坏三类ACL后修复也通过；随后未修改的组织恢复RPC1/1，38秒，原附件版本／可读／正文断言通过。artifact12852830922上传成功并一次解包至windows-ace-equality；原库／备份／副本材料43字节、同一ID及SHA256一致，结构化读回windows-ace-equality-reviewed.json。原始日志windows-ace-equality-private.log和job状态已保全。最终权限独审对Equals及原保护条件无新增发现。该结果关闭[组织恢复任务](../archive/2026-10-30-complete-library-organization/delivery.md)，但完整Checks与本workflow的execution job尚未结算，不据独立job关闭本change5.2／6.2。
+2b55465／run40770348500的独立private-files job123105541706已success，Node24.22.1／libuv1.52.1。原四项各三次12/12：三份元数据before=after=opened且正文保持，真实损坏三类ACL后修复也通过；随后未修改的组织恢复RPC1/1，38秒，原附件版本／可读／正文断言通过。artifact12852830922上传成功并一次解包至windows-ace-equality；原库／备份／副本材料43字节、同一ID及SHA256一致，结构化读回windows-ace-equality-reviewed.json。原始日志windows-ace-equality-private.log和job状态已保全。最终权限独审对Equals及原保护条件无新增发现。该结果关闭[组织恢复任务](../2026-10-30-complete-library-organization/delivery.md)，但完整Checks与本workflow的execution job尚未结算，不据独立job关闭本change5.2／6.2。
 
 后续0c4a6fa／run40769249566的private-files job123101647156仍6通过／6失败，Int32 RHS不是足够修复；恢复仍未ready。原log windows-acl-0c4.log保留，上传结果另核。当前改为复用原setter唯一目标ACE，调用GenericAce.Equals比较原始ACE，删除手工枚举谓词；微软Framework源码确认其比较type／flags及完整二进制，静态来源cache/dotnet-framework-ace.cs。构建／Biome通过，新目标结果尚待；失败没有作为修正版通过计数。
 
@@ -66,7 +76,7 @@ Windows workflow新增独立private-files job：固定Node24.22.1与旧失败环
 
 ## 0b5c5e3 Windows新专项接收（2026-10-29）
 
-run40745283855／job123017308323完整success，逐组74通过／3个既有不适用跳过／0失败。新两份锁释放竞争均三路running、同一赢家实例；四份ACL对照正常退出且权限断言通过，八次setter约200–215ms。isolated4、HostConnection25、Agent代表3、owner2、ownership16及Electron重复3分别有实际成功记录，早期及最终诊断上传已实跑。精确阶段、样本与缺证以[Agent主线接收](../add-bounded-agent-delegation/delivery.md#0b5c5e3-windows专项完整通过2026-10-29)及本轮cache的`windows-startup-success-review.md`为准。
+run40745283855／job123017308323完整success，逐组74通过／3个既有不适用跳过／0失败。新两份锁释放竞争均三路running、同一赢家实例；四份ACL对照正常退出且权限断言通过，八次setter约200–215ms。isolated4、HostConnection25、Agent代表3、owner2、ownership16及Electron重复3分别有实际成功记录，早期及最终诊断上传已实跑。精确阶段、样本与缺证以[Agent主线接收](../../add-bounded-agent-delegation/delivery.md#0b5c5e3-windows专项完整通过2026-10-29)及本轮cache的`windows-startup-success-review.md`为准。
 
 不回填旧40739213209的probeDeadline或并发入口失败阶段，不据新正例推旧故障唯一机制。完整Checks40745284164查询仍in_progress，macOS成功，Windows／Linux尚未结算；本专项没有完整program-runs业务／TeX／目录包验收，5.2／6.2保持开放。此前失败、取消与缺附件原样保留，生产锁、停止／容量及期限未变。
 
@@ -155,13 +165,13 @@ ProgramRuns测试复用原真实Node程序／独立宿主SIGKILL／SQLite记录�
 
 Windows专项触发范围及完整四场景步骤已保全合入，两轴审查无本线确证问题；安全JSON沿既有artifact，未引入平行白名单或改原失败条件。主线复用同源产物再次运行四场景4/4，tools／架构检查通过。新workflow步骤尚未取得Windows目标回执，不以Linux结果或旧专项成功关闭5.2／6.2。
 
-下一片处理新Linux完整CI唯一的显示预检127，独占测试display helper／scope及必要CI准备；先查实际依赖／环境和stderr，再修最小根因，不放宽业务断言、停止或准入。原失败job／trace已保全在`/home/joshua/.cache/scholoom-round14-acceptance/`，普通DISPLAY正例不替新Xvfb验证。不等待或循环轮询Windows，阶段与所有权见[共同计划](../../../.scratch/domain-development/parallel-development-plan.md#第十四轮验收后的安排)。
+下一片处理新Linux完整CI唯一的显示预检127，独占测试display helper／scope及必要CI准备；先查实际依赖／环境和stderr，再修最小根因，不放宽业务断言、停止或准入。原失败job／trace已保全在`/home/joshua/.cache/scholoom-round14-acceptance/`，普通DISPLAY正例不替新Xvfb验证。不等待或循环轮询Windows，阶段与所有权见[共同计划](../../../../.scratch/domain-development/parallel-development-plan.md#第十四轮验收后的安排)。
 
 ## 第十三轮主线验收
 
 安全stderr／唯一生命周期解析及新反例已保全合入，两轴独立审查无本线确证缺陷。完整构建／类型／架构／生成检查通过；主线内核13/13包括四个isolated-kernel实际进程／解析场景、四个model-kernel回归和真实BBT代表例。失败首因、清理前exit／close和父kill后的最终收据分列，旧实例与停止unknown保护不变。仅测试改动，不声称修复Windows生产启动根因。
 
-同源码e3c815b的Windows专项40613967285已成功，而完整Checks的Windows内核692通过／46失败／42跳过；两组条件及范围分别保留。新isolated-kernel诊断尚未在该旧源码运行，下一片接入既有Windows专项及触发范围，保留安全附件，不放宽期限／停止／容量。入口、原始日志和下一片见[共同计划](../../../.scratch/domain-development/parallel-development-plan.md#第十三轮验收后的安排)。cache保全的构建／UI脚本及原包替代旧/tmp前置，5.2／6.2继续开放。
+同源码e3c815b的Windows专项40613967285已成功，而完整Checks的Windows内核692通过／46失败／42跳过；两组条件及范围分别保留。新isolated-kernel诊断尚未在该旧源码运行，下一片接入既有Windows专项及触发范围，保留安全附件，不放宽期限／停止／容量。入口、原始日志和下一片见[共同计划](../../../../.scratch/domain-development/parallel-development-plan.md#第十三轮验收后的安排)。cache保全的构建／UI脚本及原包替代旧/tmp前置，5.2／6.2继续开放。
 ## 第十二轮主线接收与公共fixture实施边界
 
 四份证据工件已保全合入，独立两轴审查无确证夸大。新完整29cd728／Checks40591705520已结束，Windows723通过／11失败／42跳过；其中isolated-kernel仍失败，不能从较少失败数推根因或关稳定性。diagnosis40591705558的实际提供者正例及来源校准窄项继续接收，旧失败的缺字段不倒填。

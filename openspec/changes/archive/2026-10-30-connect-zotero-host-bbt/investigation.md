@@ -133,7 +133,7 @@ flowchart LR
 
 ### 当前事实与契约定位
 
-已接收的共同契约位于[`define-library-zotero-record-authority`的delta](../archive/2026-10-30-define-library-zotero-record-authority/specs/literature-catalog/spec.md#requirement-来源原值与题录投影分离)，明确“仅更正CSL SHALL 不覆盖未明确修改的原值”；该change尚未归档同步为`openspec/specs`中的新条文，不能因目录状态否定已接收契约，也不能擅自同步正式规格。当前[正式题录规格](../../specs/literature-catalog/spec.md#requirement-有界整理与授权更正)仍约束授权、修订拒绝和历史保留。
+已接收的共同契约位于[`define-library-zotero-record-authority`的delta](../2026-10-30-define-library-zotero-record-authority/specs/literature-catalog/spec.md#requirement-来源原值与题录投影分离)，明确“仅更正CSL SHALL 不覆盖未明确修改的原值”；该change尚未归档同步为`openspec/specs`中的新条文，不能因目录状态否定已接收契约，也不能擅自同步正式规格。当前[正式题录规格](../../../specs/literature-catalog/spec.md#requirement-有界整理与授权更正)仍约束授权、修订拒绝和历史保留。
 
 源码路径与实际行为：
 
@@ -201,7 +201,7 @@ flowchart LR
 | CSL 转换实现 | 固定 utilities 子模块 [`1dd38e27edf81e9d9c4161c957b7efb7f5681ac3/utilities_item.js`](https://github.com/zotero/utilities/blob/1dd38e27edf81e9d9c4161c957b7efb7f5681ac3/utilities_item.js#L43-L285) | 类型、多值、Extra、日期及姓名转换有信息损失；只照映射表无法完整往返 |
 | BBT 9.0.68 | [发布包](https://github.com/retorquere/zotero-better-bibtex/releases/tag/v9.0.68)；本轮重新读取固定 [`71cec8067843bc5cdcbac7e1e794a3803638a5e1/content/key-manager.ts`](https://github.com/retorquere/zotero-better-bibtex/blob/71cec8067843bc5cdcbac7e1e794a3803638a5e1/content/key-manager.ts) | 静态保存、SQL、缓存及重生成事实；源码快照与发布包成员对应仍需未来装载时逐项记录 |
 | 茉莉花 1.1.39 | [发布包](https://github.com/l0o0/jasminum/releases/tag/v1.1.39)；本轮重新读取 [`b63a6a1e0ac4ce25fcd0c9200ec647b063ce02c0/src/modules/services/index.ts`](https://github.com/l0o0/jasminum/blob/b63a6a1e0ac4ce25fcd0c9200ec647b063ce02c0/src/modules/services/index.ts#L320-L425) | 重绑父项、保存、删除旧 parent、Extra／date 最终保存疑点；不能把分开的 saveTx 当成整任务事务 |
-| 2026-10-04 原型 | [独立宿主结果](../../../.scratch/scholoom-foundations/research/zotero-host-minimal-results.md)、[缓存变更结果](../../../.scratch/scholoom-foundations/research/zotero-host-mutation-results.md)、[元数据结果](../../../.scratch/scholoom-foundations/research/zotero-host-metadata-results.md)、[参考宿主结果](../../../.scratch/scholoom-foundations/research/zotero-host-prototype-results.md)及各自证据链接 | 历史实跑，未在本轮重跑。完整 Gecko 与独立 Node＋Chromium 必须分别记录 |
+| 2026-10-04 原型 | [独立宿主结果](../../../../.scratch/scholoom-foundations/research/zotero-host-minimal-results.md)、[缓存变更结果](../../../../.scratch/scholoom-foundations/research/zotero-host-mutation-results.md)、[元数据结果](../../../../.scratch/scholoom-foundations/research/zotero-host-metadata-results.md)、[参考宿主结果](../../../../.scratch/scholoom-foundations/research/zotero-host-prototype-results.md)及各自证据链接 | 历史实跑，未在本轮重跑。完整 Gecko 与独立 Node＋Chromium 必须分别记录 |
 
 历史原包路径 `/tmp/scholoom-host-prototype-assets-1bmhDr` 本轮检查已不存在；本树没有完整 XPI 快照，旧入口默认临时路径不可直接复用。未来需要按固定发布来源取得资产及另行授权任何必要准备；本轮没有下载／安装原包。直接读取父仓 `resource/schema/global/schema.json` 曾返回404，原因由 `.gitmodules` 和 contents 子模块指针核实，改为读取固定子仓；不是字段不存在。shell 网络受限后通过获准的只读 `gh api` 解析版本，未更改仓库。
 
@@ -248,15 +248,15 @@ BBT 本轮固定源码复核：
 - 可写条目以原生 `citationKey` 为准；只读原生键优先，缺键则生成 shadow key 并写 `read-only.json`，不写条目。旧 citationkey DB 只是迁移来源。当前源码没有足够证据把独立 pin 布尔字段当作其现成契约；固定状态由文献线定义并适配。
 - `keyScope` 与 `citekeyCaseInsensitive` 决定候选冲突比较。该插件缓存中的唯一性不能替代并发下共同文献写入端的正式冲突约束。
 
-历史通知实跑：正常 Item 保存通知触发原 BBT 的监听器及缓存更新；屏蔽通知时 DB 已改而实际 BibTeX 仍旧，说明投影不是简单重读即可。见[变更结果](../../../.scratch/scholoom-foundations/research/zotero-host-mutation-results.md)。
+历史通知实跑：正常 Item 保存通知触发原 BBT 的监听器及缓存更新；屏蔽通知时 DB 已改而实际 BibTeX 仍旧，说明投影不是简单重读即可。见[变更结果](../../../../.scratch/scholoom-foundations/research/zotero-host-mutation-results.md)。
 
-原型缺口可直接从本树核验：[literature-store.mjs](../../../.scratch/scholoom-foundations/prototypes/bbt-minimal-host-prototype/literature-store.mjs) 的 `saveTx()` 直调 `save()`，单条写后立即 `notifier.trigger`；另有 transaction 包装但没有提交通知队列、回滚后缓存协调。`notifier.mjs` 监听异常也可能使已写入的保存返回异常。它不能作为共同事务或未提交无效果的 oracle。
+原型缺口可直接从本树核验：[literature-store.mjs](../../../../.scratch/scholoom-foundations/prototypes/bbt-minimal-host-prototype/literature-store.mjs) 的 `saveTx()` 直调 `save()`，单条写后立即 `notifier.trigger`；另有 transaction 包装但没有提交通知队列、回滚后缓存协调。`notifier.mjs` 监听异常也可能使已写入的保存返回异常。它不能作为共同事务或未提交无效果的 oracle。
 
-茉莉花本轮固定源码复核：`globalItemFix()` 保存新项后才改 Extra／date；附件任务再另次 saveTx，snapshot 分支可能保存重绑、erase 旧 parent、保存新集合。新项 Extra／date 最终是否全部持久化仍需 helper 与具体任务路径证据。其源文件匹配还会根据配置保留／备份／删除来源文件，[原静态依据](../../../.scratch/scholoom-foundations/research/zotero-storage-and-plugin-authority.md#茉莉花条目extra附件和本地状态)不能被理解为已获 Scholoom 原文件删除许可。首个 BBT change 不执行这些路径。
+茉莉花本轮固定源码复核：`globalItemFix()` 保存新项后才改 Extra／date；附件任务再另次 saveTx，snapshot 分支可能保存重绑、erase 旧 parent、保存新集合。新项 Extra／date 最终是否全部持久化仍需 helper 与具体任务路径证据。其源文件匹配还会根据配置保留／备份／删除来源文件，[原静态依据](../../../../.scratch/scholoom-foundations/research/zotero-storage-and-plugin-authority.md#茉莉花条目extra附件和本地状态)不能被理解为已获 Scholoom 原文件删除许可。首个 BBT change 不执行这些路径。
 
 ### 材料阅读写回交接
 
-- 完整 Gecko 的历史[书签实验](../../../.scratch/scholoom-foundations/research/zotero-host-reader-results.md)写 `jasminum-bookmarks.json` sidecar，PDF 字节不变；原函数仍依赖 Reader 内部 DOM。sidecar 修改与PDF材料新版本必须分开。
+- 完整 Gecko 的历史[书签实验](../../../../.scratch/scholoom-foundations/research/zotero-host-reader-results.md)写 `jasminum-bookmarks.json` sidecar，PDF 字节不变；原函数仍依赖 Reader 内部 DOM。sidecar 修改与PDF材料新版本必须分开。
 - 独立 Node＋Chromium 尚未证明相同 Reader 写回。不能从完整参考环境的重开结果推断独立宿主已支持，也不能把书签节点树自动等同共同 bookmark 记录。
 - 当前 `readingRecord` 保存 attachmentId/materialVersionId、稳定 recordId、revision、可信 createdBy/updatedBy；PDF 是 pageIndex／rects，EPUB/HTML 是 normalizationVersion／sectionId／UTF-16区间。原 PDF 不写回，库资源正文只读。
 - 阅读线的 `add-material-annotation-interactions` 消费上述调查，需先明确 sidecar 对象、共同记录、材料字节修订的归属与转换，实际保存检查旧 materialVersionId。`add-interactive-research-reports` 的页面运行／更新不依赖插件宿主，本 change 不拥有报告协议或 composer。
@@ -338,7 +338,7 @@ E3仍有两个需提供者／主线确认的选项：**A，文献另交有界多
 | `apps/kernel/src/manual.ts` 的 connectProduct() | 现产品连接绑定 local human/product | 不能直接给插件复用而取得完整人工权限；新增 host 角色接入是生态所需的公共增量 |
 | `packages/platform/src/processes.ts/admission.ts`、kernel lifecycle | 受管 Node、归属退出确认、容量与本机生命周期 | 尚不证明独立 Electron 主进程及 Chromium后代受同样监督；macOS managedExecution 明确不可用 |
 
-依据已归档[运行架构交付](../archive/2026-10-19-migrate-runtime-architecture/delivery.md)、[共同执行交接交付](../archive/2026-10-24-establish-domain-execution-handoffs/delivery.md)、[库入口交付](../archive/2026-10-24-restore-library-management-entrypoints/delivery.md)，共同资源、Graph driver、上下文和库管理已交付，不重做。旧 delivery 含当时中途记录，以顶部最终范围和当前源码为准。
+依据已归档[运行架构交付](../2026-10-19-migrate-runtime-architecture/delivery.md)、[共同执行交接交付](../2026-10-24-establish-domain-execution-handoffs/delivery.md)、[库入口交付](../2026-10-24-restore-library-management-entrypoints/delivery.md)，共同资源、Graph driver、上下文和库管理已交付，不重做。旧 delivery 含当时中途记录，以顶部最终范围和当前源码为准。
 
 ```mermaid
 flowchart LR

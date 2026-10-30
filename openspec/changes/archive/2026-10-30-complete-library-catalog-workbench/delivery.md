@@ -1,5 +1,13 @@
 # 实际交付与交接
 
+## Linux阶段最终签收（2026-10-30）
+
+本change按用户已确认的Linux Browser＋真实Electron范围完成，32/32。主线接受文献线逐判据核对并复核原结果：`catalog-final-ui.json`为双宿主业务2/2，`catalog-context-final.json`为真实库授权／恢复3/3，均无失败、跳过或重试；旧Checks40745284164中的library、attachments、resource-opening及resource-lifecycle共20个目标通过，历史全组25个UI失败保留，不宣称全仓通过。实际入口、内部真实接线／外部模型及等待门替身、原始argv与局限仍沿下方交付表，不重新计作本轮实跑。
+
+核对基线46bb5b4与原独审及业务来源，题录生产核心无后续差异，后续C1聚合及测试增补已有相应接收。当前资源读取新增的长UTF8修复16857db另有真实红2/2、绿15/15及独审无确证P1/P2，未改变题录选择和编辑权威。主线直接读取两份原结果统计及文献线`catalog-acceptance-evidence.json`，确认原选择、read/send、身份、修订冲突、迟到草稿和重启依据；原独审`catalog-independent-review.md`已接收，无需重复未变代码的整组验证。
+
+本次证据根为`/home/joshua/.cache/scholoom-closeout-execution-20261030/workers/literature-workbench/`，RESULT及catalog-acceptance-evidence保存源码对应与原件索引，不依赖/tmp。1.4／6.1／6.2关闭；Windows B业务／资源双宿主22个目标及完整Checks缺件继续沿tasks后续责任，未交付。macOS保持人工能力／受管不可用；本次不代表跨平台分发或科研质量验收。下方历史未完成计数仅表示各记录形成时状态。
+
 ## Linux阶段范围修订（2026-10-30）
 
 用户已明确采用Linux Browser＋真实Electron阶段收口，并授权按此计划修订工件。29/32不变，1.4／6.1／6.2仍未完成，现签收边界为Linux最终源码／构建与已有完整业务、授权／恢复及附件／资源双宿主证据；既有独审已接收，不泛称缺独审。17项选择发布不等于17项完整工具回执，原覆盖限度保留；macOS沿既定人工结果／受管不可用。
@@ -63,15 +71,15 @@ F的两份结果JSON均保留`config.argv`。UI原命令为`node node_modules/@p
 
 ## 历史：0ed2c97目标回执（2026-10-29）
 
-0ed2c97／Checks40784927993的macOS目标已success：不可用／人工能力4项、入口4项、双宿主人工工作台14项及目录打包通过；精确入口及签名边界见[公共平台记录](../add-project-program-runs/delivery.md#0ed2c97目标平台回执2026-10-29)。当时Linux／Windows完整结果待结算，Windows专项出现两项Agent初始化queued及生态停机发布EPERM，不将其他通过项覆盖失败；后续平台截点见本记录首节。1.4／6.1／6.2保持开放。
+0ed2c97／Checks40784927993的macOS目标已success：不可用／人工能力4项、入口4项、双宿主人工工作台14项及目录打包通过；精确入口及签名边界见[公共平台记录](../2026-10-30-add-project-program-runs/delivery.md#0ed2c97目标平台回执2026-10-29)。当时Linux／Windows完整结果待结算，Windows专项出现两项Agent初始化queued及生态停机发布EPERM，不将其他通过项覆盖失败；后续平台截点见本记录首节。1.4／6.1／6.2保持开放。
 
 ## 历史：0b5c5e3完整Checks结算（2026-10-29）
 
-run40745284164现为failure，Mac success；Windows内核5失败、后续UI未运行，Linux内核835通过／44跳过、UI137通过／25失败／6跳过。精确回执及原始证据入口见[共同平台记录](../add-project-program-runs/delivery.md#0b5c5e3完整checks回执及下一次窄取证2026-10-29)。不继续沿用下节in_progress时间点作当前结论；1.4／6.1／6.2保持开放。
+run40745284164现为failure，Mac success；Windows内核5失败、后续UI未运行，Linux内核835通过／44跳过、UI137通过／25失败／6跳过。精确回执及原始证据入口见[共同平台记录](../2026-10-30-add-project-program-runs/delivery.md#0b5c5e3完整checks回执及下一次窄取证2026-10-29)。不继续沿用下节in_progress时间点作当前结论；1.4／6.1／6.2保持开放。
 
 ## 历史：0b5c5e3平台查询截点（2026-10-29，后被结算替代）
 
-0b5c5e3的Windows专项40745283855已完整成功，74通过／3个既有不适用跳过，含Agent三代表及Electron初始加载重复3/3；精确证据及缺证见[主线接收](../add-bounded-agent-delegation/delivery.md#0b5c5e3-windows专项完整通过2026-10-29)。该组不含catalog双宿主工作台及目录包，不替代1.4的完整目标验证。当次查询完整Checks40745284164仍in_progress、Mac job已success；随后整run已结算failure，以上节及当前证据表为准。本机业务及独审证据继续沿下节，不机械重跑或提前关闭1.4／6.1／6.2。
+0b5c5e3的Windows专项40745283855已完整成功，74通过／3个既有不适用跳过，含Agent三代表及Electron初始加载重复3/3；精确证据及缺证见[主线接收](../../add-bounded-agent-delegation/delivery.md#0b5c5e3-windows专项完整通过2026-10-29)。该组不含catalog双宿主工作台及目录包，不替代1.4的完整目标验证。当次查询完整Checks40745284164仍in_progress、Mac job已success；随后整run已结算failure，以上节及当前证据表为准。本机业务及独审证据继续沿下节，不机械重跑或提前关闭1.4／6.1／6.2。
 
 ## 历史：主线整合与独立审查（2026-10-29）
 
@@ -89,13 +97,13 @@ run40745284164现为failure，Mac success；Windows内核5失败、后续UI未�
 
 ## 58eda140：C首片规划接续
 
-按第十四轮授权在[complete-library-organization](../archive/2026-10-30-complete-library-organization/proposal.md)规划既有题录集合成员／标签的有界原子整理及可逆记录；调查、适用规格、设计和任务另归该change，不在B复制。没有新增B业务实现或重跑已绿字段／滚动／5.4a／6.1b，本记录只补接续入口并修正tasks末尾被主线新Mac目标证据取代的等待表述。B的4.1／4.2仍关闭，1.4、完整6.1／6.2仍开放；不据C规划归档或宣称全平台／科研质量完成。
+按第十四轮授权在[complete-library-organization](../2026-10-30-complete-library-organization/proposal.md)规划既有题录集合成员／标签的有界原子整理及可逆记录；调查、适用规格、设计和任务另归该change，不在B复制。没有新增B业务实现或重跑已绿字段／滚动／5.4a／6.1b，本记录只补接续入口并修正tasks末尾被主线新Mac目标证据取代的等待表述。B的4.1／4.2仍关闭，1.4、完整6.1／6.2仍开放；不据C规划归档或宣称全平台／科研质量完成。
 
 ## 第十四轮主线验收
 
 本轮两工件已保全合入，独立规范／规格审查均接受4.1／4.2限定父项关闭依据：固定oracle与现有子项覆盖足够，没有把未知CSL表达或更宽编辑能力冒充原Zotero映射。原8项内核／4项表单双宿主证据已核，不重复绿色整合。余项仍为1.4、完整6.1／6.2。
 
-新f4ab1e5／Checks40622631905的Mac job成功，人工双宿主14项包含新滚动源码，降级4、入口4及目录打包亦通过；目标子项接收，不等于全功能Mac或发布。Linux758通过／1显示预检失败／26跳过，后续UI未运行；Windows按后续真实回执。下一片按原批次规划C组织与附件，不等待所有平台整项，也不跳过C／D去实施E删除恢复。事实及后续边界见[共同计划](../../../.scratch/domain-development/parallel-development-plan.md#第十四轮验收后的安排)，本机原始证据在`/home/joshua/.cache/scholoom-round14-acceptance/`。
+新f4ab1e5／Checks40622631905的Mac job成功，人工双宿主14项包含新滚动源码，降级4、入口4及目录打包亦通过；目标子项接收，不等于全功能Mac或发布。Linux758通过／1显示预检失败／26跳过，后续UI未运行；Windows按后续真实回执。下一片按原批次规划C组织与附件，不等待所有平台整项，也不跳过C／D去实施E删除恢复。事实及后续边界见[共同计划](../../../../.scratch/domain-development/parallel-development-plan.md#第十四轮验收后的安排)，本机原始证据在`/home/joshua/.cache/scholoom-round14-acceptance/`。
 
 ## f4ab1e5f：4.1／4.2既定字段与表单父项验收收尾
 
@@ -147,7 +155,7 @@ UI配置由主线cache生成器在本cwd生成，薄包装仅指定cache输出�
 
 本轮六文件已保全合入。Standards两项P2及Spec一项P2对应两个实际缺陷：诊断finally异常覆盖原失败，以及每事件枚举全部localStorage。主线删除全存储读取，save只记录原参数的有界副本；缺失观察按空数组处理，诊断错误独立annotation，client仍finally释放。独立内存故障注入核EDQUOT、页面关闭、未安装观察及1000无关存储项，原错误均保留、无全存储读取；只读复核关闭两项。原滚动200断言及期限未变。
 
-完整构建／类型／架构／生成映射通过，主线三场景双宿主6/6；诊断修正后题录原场景另2/2。本机产品窗口修复接收，Mac内部原次时序及新源码目标未验。固定映射、日期oracle共11文件已保全到`/home/joshua/.cache/scholoom-round13-acceptance/preserved-oracles/`，两组probe在新位置通过；下一片覆盖收尾使用该独立预期，不读原/tmp。主线证据、review-fix-verification及下一片见[共同计划](../../../.scratch/domain-development/parallel-development-plan.md#第十三轮验收后的安排)；完整6.1／6.2和平台不因定向绿关闭。
+完整构建／类型／架构／生成映射通过，主线三场景双宿主6/6；诊断修正后题录原场景另2/2。本机产品窗口修复接收，Mac内部原次时序及新源码目标未验。固定映射、日期oracle共11文件已保全到`/home/joshua/.cache/scholoom-round13-acceptance/preserved-oracles/`，两组probe在新位置通过；下一片覆盖收尾使用该独立预期，不读原/tmp。主线证据、review-fix-verification及下一片见[共同计划](../../../../.scratch/domain-development/parallel-development-plan.md#第十三轮验收后的安排)；完整6.1／6.2和平台不因定向绿关闭。
 
 ## ba29ee61：分页滚动本机竞态修复，Mac目标待验
 
@@ -241,7 +249,7 @@ UI配置由主线cache生成器在本cwd生成，薄包装仅指定cache输出�
 
 静态产品双宿主首组为1通过／1失败：Browser真实原包及四次内核进程路径通过；Electron在33行解压原包时写入EDQUOT，未进入业务。完整首次日志／JSON及截断trace保存在`/tmp/scholoom-round11-acceptance-Jx5Oez/main-ui*`，不删除或将损坏ZIP当有效证据。不改源码或期限，将输出、profile和TMPDIR迁到本机磁盘独立目录`/home/joshua/.cache/scholoom-round11-ui-euNa9W/`，只补跑`--project=ui-electron`，1/1通过（1.6分钟）。每个宿主各有真实通过依据，不称一次2/2，也不将环境准备失败写成业务缺陷已修复。
 
-实际入口仍为现有XPI、静态构建产品、xvfb／Electron及私有IPC／serveKernel；传输门只控制送达及丢失成功回执，没有代写库结果。A测试侧注入、标准CLI持久配置B、目标平台分别表达，25/30及完整4.1／4.2／I6／E6继续按原不足保留。下一片沿[共同计划](../../../.scratch/domain-development/parallel-development-plan.md#第十一轮验收后的安排)做现有字段范围内的Linux真实业务整合，不重复5.4a或并写本轮公共诊断夹具。
+实际入口仍为现有XPI、静态构建产品、xvfb／Electron及私有IPC／serveKernel；传输门只控制送达及丢失成功回执，没有代写库结果。A测试侧注入、标准CLI持久配置B、目标平台分别表达，25/30及完整4.1／4.2／I6／E6继续按原不足保留。下一片沿[共同计划](../../../../.scratch/domain-development/parallel-development-plan.md#第十一轮验收后的安排)做现有字段范围内的Linux真实业务整合，不重复5.4a或并写本轮公共诊断夹具。
 
 ## 2026-10-28：938c33f的5.4a真实进程重启验收
 
@@ -513,7 +521,7 @@ Windows最新文献三项状态观察仍待现场时间线，document-integratio
 - `LiteratureCatalog.selection`按请求身份仅读sourceId／revision，最多100次精确索引读取，不展开metadata／附件、不全库扫描；库身份及read/send在读取前后核对。观察修订保留，当前修订单列，变化为changed；任何缺项／撤权整体失败。
 - `ManualApplication`注册library.selection／checkSelection；`KernelApplication`将可信上下文绑定到窄broker读取及同步核查。保留现有资源权限、连接source及receiver。harness在返回工具结果前持久记录实际库身份及已用库标记，原会话不能悄悄切到新库；普通、registered Graph及共用模型的capability在排队前后、最终同步和恢复／重新准入沿同一授权复查。没有只在工具入口检查一次。
 - `ContextContributionProvider`独立发布catalog，LibraryTab从同一UUID选择及当前已加载范围贡献；切页／加载／清空及卸载沿原生命周期。Workbench仅新增活动library视图条件，库浏览不改变会话接收者。共享来源／历史、project公共v5→v6迁移、projectId与双窗口fixture、阅读位置／区域／草稿对象及资源叶schema均保留。
-- 原值／正式键／事务首片由独立change真实实施，见[其delivery](../archive/2026-10-30-define-library-zotero-record-authority/delivery.md)；不混成B批表单任务或声称生态真实接入。
+- 原值／正式键／事务首片由独立change真实实施，见[其delivery](../2026-10-30-define-library-zotero-record-authority/delivery.md)；不混成B批表单任务或声称生态真实接入。
 
 ### 本轮实际验证
 

@@ -15,7 +15,7 @@
 
 ## 完成判据
 
-2026-10-30用户确认采用Linux阶段收口并授权按计划修订工件：以下判据按Linux Browser＋真实Electron最终核对；Windows程序业务／平台整组及实际分发未交付，TeX／分发和旧CI唯一因果责任沿本change的[tasks后续责任](tasks.md#后续责任不计本阶段复选框)保留。macOS沿既定人工能力／受管执行不可用，公网registry下载仍未实跑。5.2／6.2保持未完成；环境授权与保护、身份、产物、取消／恢复、完整停止及unknown容量保证不变，不以Linux新正例补造旧失败因果。
+2026-10-30用户确认采用Linux阶段收口并授权按计划修订工件：以下判据按Linux Browser＋真实Electron最终核对；Windows程序业务／平台整组及实际分发未交付，TeX／分发和旧CI唯一因果责任沿本change的[tasks后续责任](tasks.md#后续责任不计本阶段复选框)保留。macOS沿既定人工能力／受管执行不可用，公网registry下载仍未实跑。5.2／6.2已按delivery完成最终签收；环境授权与保护、身份、产物、取消／恢复、完整停止及unknown容量保证不变，不以Linux新正例补造旧失败因果。
 
 1. 人工入口无会话／模型即可运行固定程序；Agent 能查询相同 programRunId、实际命令依据、日志和项目文件。
 2. 已有环境复用、授权内准备、授权不足、工具／依赖不可用分别可诊断；准备不修改项目锁文件和用户现有环境。
@@ -34,8 +34,8 @@
 
 ## 决策与授权依据
 
-- [计算职责 #06](../../../.scratch/domain-development/issues/06-managed-computation-scope.md#answer)、[环境与执行 #40](../../../.scratch/scholoom-foundations/issues/40-research-execution-environment.md#answer)、[进程 #03](../../../.scratch/runtime-architecture/issues/03-session-execution-processes.md#answer)。
-- [七线计划](../../../.scratch/domain-development/parallel-development-plan.md)：本线负责运行环境、记录和 I4；项目提供文件权威，阅读交互提供共同视图，editor 保持专用状态。
+- [计算职责 #06](../../../../.scratch/domain-development/issues/06-managed-computation-scope.md#answer)、[环境与执行 #40](../../../../.scratch/scholoom-foundations/issues/40-research-execution-environment.md#answer)、[进程 #03](../../../../.scratch/runtime-architecture/issues/03-session-execution-processes.md#answer)。
+- [七线计划](../../../../.scratch/domain-development/parallel-development-plan.md)：本线负责运行环境、记录和 I4；项目提供文件权威，阅读交互提供共同视图，editor 保持专用状态。
 - 2026-10-25 本轮用户授权：从 `e3d58fc807827a78493dcd16e38de28c8d02766e` 只读调查并完成 `scholoom-dev` 实施前工件，无需主 Agent 再次确认规划；仅可修改本线规划及必要调查依据。配置为 Codex／gpt-6.1-sol／high。
 - 用户随后明确要求“实现该change”，并批准按锁定版本安装／链接依赖、隔离 uv 环境准备与双宿主测试所需临时 Vite／内核；人工逐次“移交后台”作为 Agent 程序的后台授权入口。实现和验证沿此授权，继续保持 Codex／gpt-6.1-sol／high。
 - 未获真实用户库、其他工作树操作、提交推送、归档或 PR 授权。

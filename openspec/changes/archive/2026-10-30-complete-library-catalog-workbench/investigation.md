@@ -262,9 +262,9 @@ X1按A给出审查稿，见design“X1精确公共delta”，本轮不将候选�
 
 | 依据 | 已有事实与本次使用方式 |
 | --- | --- |
-| [库管理恢复 delivery](../archive/2026-10-24-restore-library-management-entrypoints/delivery.md) | 手动建项、JSON／文件摄取、授权、集合基础、修订更正、批次接续、备份恢复及草稿已接真实入口；记录的 Linux 双宿主定向 16/16 是历史证据，不是本轮实跑。 |
-| [上下文桥 delivery](../archive/2026-10-24-establish-workbench-context-bridge/delivery.md)及[正式规格](../../specs/workbench-agent-context/spec.md) | 连接所属快照、可信指令来源、实时工具、共同 composer、显式项及 Graph 接续已交付。复用这些机制，只补题录提供者和必要公共契约。 |
-| [领域交接 delivery 当前状态](../archive/2026-10-24-establish-domain-execution-handoffs/delivery.md#当前状态与成果)、[工作域 delivery](../archive/2026-10-23-establish-scoped-execution-foundation/delivery.md) | 资源、授权、broker、执行、恢复已有基础。Linux／Windows 受管，macOS 执行显式不可用，人工题录仍可用；不复制 driver 或引入替代执行。历史阶段的“不能启动七域”不覆盖最新收尾及本轮授权。 |
+| [库管理恢复 delivery](../2026-10-24-restore-library-management-entrypoints/delivery.md) | 手动建项、JSON／文件摄取、授权、集合基础、修订更正、批次接续、备份恢复及草稿已接真实入口；记录的 Linux 双宿主定向 16/16 是历史证据，不是本轮实跑。 |
+| [上下文桥 delivery](../2026-10-24-establish-workbench-context-bridge/delivery.md)及[正式规格](../../../specs/workbench-agent-context/spec.md) | 连接所属快照、可信指令来源、实时工具、共同 composer、显式项及 Graph 接续已交付。复用这些机制，只补题录提供者和必要公共契约。 |
+| [领域交接 delivery 当前状态](../2026-10-24-establish-domain-execution-handoffs/delivery.md#当前状态与成果)、[工作域 delivery](../2026-10-23-establish-scoped-execution-foundation/delivery.md) | 资源、授权、broker、执行、恢复已有基础。Linux／Windows 受管，macOS 执行显式不可用，人工题录仍可用；不复制 driver 或引入替代执行。历史阶段的“不能启动七域”不覆盖最新收尾及本轮授权。 |
 
 ### 源码事实与 B 批差距
 
@@ -293,7 +293,7 @@ X1按A给出审查稿，见design“X1精确公共delta”，本轮不将候选�
 | `collectionIds/tags/relatedIds` | 现有组织关系，与 metadata 同一修订提交。 | Zotero 父子附件／笔记、关系 URI、deleted／恢复不是本批新增关系。 |
 | 正式引用键及固定状态 | 领域决定归文献，当前 `LibrarySource` 无专有契约。 | 不把 metadata 附加字段或 BBT 缓存认作最终存储，E1 评估是否影响本批字段保留；实际生成／迁入在后续 change。 |
 
-固定版本依据是[兼容决议](../../../.scratch/scholoom-foundations/issues/05-zotero-compatibility-policy.md)及[架构 §7](../../../docs/architecture.md#7-外部系统与复用边界)的 Zotero **10.0.5**；[功能基线](../../../.scratch/domain-development/research/zotero-desktop-baseline.md)只给官方功能入口，明确未逐项验证全字段。已有[最小宿主原型](../../../.scratch/scholoom-foundations/prototypes/bbt-minimal-host-prototype/README.md)用 BBT 9.0.68／茉莉花1.1.39 作过合成样本实验；本轮仅阅读其代码和记录。
+固定版本依据是[兼容决议](../../../../.scratch/scholoom-foundations/issues/05-zotero-compatibility-policy.md)及[架构 §7](../../../../docs/architecture.md#7-外部系统与复用边界)的 Zotero **10.0.5**；[功能基线](../../../../.scratch/domain-development/research/zotero-desktop-baseline.md)只给官方功能入口，明确未逐项验证全字段。已有[最小宿主原型](../../../../.scratch/scholoom-foundations/prototypes/bbt-minimal-host-prototype/README.md)用 BBT 9.0.68／茉莉花1.1.39 作过合成样本实验；本轮仅阅读其代码和记录。
 
 原型 `literature-store.mjs:13` 仅列 journalArticle／attachment／note／annotation，`:75` 的 saveTx 只是 save 别名，通知和 SQL 覆盖局部样本。它不能证明完整 Zotero 类型／创建者映射、事务失败语义或固定键保护；不复用其样本 SQL 为生产契约，也不代替生态线调查。
 

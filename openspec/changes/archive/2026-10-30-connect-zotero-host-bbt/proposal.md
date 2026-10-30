@@ -31,6 +31,6 @@
 ## 决策与授权依据
 
 - 用户指定起点 `e3d58fc807827a78493dcd16e38de28c8d02766e`、Codex／`gpt-6.1-sol`／high，首次仅授权调查规划；随后明确“实现该change”，授权按本方案实施。用户另行允许按锁文件安装依赖并准备Electron；没有升级依赖版本。
-- [并行计划](../../../.scratch/domain-development/parallel-development-plan.md)的生态小节、公共文件归属及 I6；[生态职责 #08](../../../.scratch/domain-development/issues/08-zotero-ecosystem-constraints.md#answer)、[原包兼容 #05](../../../.scratch/scholoom-foundations/issues/05-zotero-compatibility-policy.md#answer)、[宿主选择 #16](../../../.scratch/scholoom-foundations/issues/16-zotero-host-prototype.md#answer)。Node＋Chromium 路线及原包不修改已定，不重新选 Gecko。
-- 沿 [scholoom-dev 阶段约定](../../schemas/scholoom-dev/README.md)执行apply，实际成果与未完成前置进入同一delivery。2026-10-26用户明确恢复已同步本树，并授权本轮独立认证监督、私有启动供应及原包shutdown修复，允许本地可审查补丁；不扩大到真实用户库、推送／PR、归档、依赖安装、开发服务器或他树操作。
+- [并行计划](../../../../.scratch/domain-development/parallel-development-plan.md)的生态小节、公共文件归属及 I6；[生态职责 #08](../../../../.scratch/domain-development/issues/08-zotero-ecosystem-constraints.md#answer)、[原包兼容 #05](../../../../.scratch/scholoom-foundations/issues/05-zotero-compatibility-policy.md#answer)、[宿主选择 #16](../../../../.scratch/scholoom-foundations/issues/16-zotero-host-prototype.md#answer)。Node＋Chromium 路线及原包不修改已定，不重新选 Gecko。
+- 沿 [scholoom-dev 阶段约定](../../../schemas/scholoom-dev/README.md)执行apply，实际成果与未完成前置进入同一delivery。2026-10-26用户明确恢复已同步本树，并授权本轮独立认证监督、私有启动供应及原包shutdown修复，允许本地可审查补丁；不扩大到真实用户库、推送／PR、归档、依赖安装、开发服务器或他树操作。
 - 阅读线两份design已由主线正式交接并分别核对，不替对方创建工件；来源副本、正式键冲突及有界多对象原子提交政策已定，实际文献提供者仍是前置。

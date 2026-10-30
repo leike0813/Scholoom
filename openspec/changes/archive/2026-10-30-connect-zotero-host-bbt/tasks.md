@@ -2,7 +2,7 @@
 
 ## 当前范围
 
-2026-10-29用户明确“按既定首批范围完成，后置功能另立变更”。本change按proposal收尾固定BBT普通期刊补键、显式原值题名更正及两格式、真实共同保存和生命周期；复杂类型／多原值／更广保存、茉莉花及Reader／PDF写回记于[已批准暂缓的提议](../archive/2026-10-30-extend-zotero-ecosystem-compatibility/proposal.md)，保持未交付。2026-10-30用户确认Linux阶段收口并授权按此计划修订：Linux Browser＋真实Electron、普通启动及首批I6／完整生命周期仍须最终核对；Windows未交付目标转本文件后续责任，macOS沿既定人工／受管不可用。安全／身份／授权及真实库禁用要求不变。49/57改为49/53，仅移出四个Windows复选框，2.3／4.2／5.1／5.2均未完成。
+2026-10-29用户明确“按既定首批范围完成，后置功能另立变更”。本change按proposal收尾固定BBT普通期刊补键、显式原值题名更正及两格式、真实共同保存和生命周期；复杂类型／多原值／更广保存、茉莉花及Reader／PDF写回记于[已批准暂缓的提议](../2026-10-30-extend-zotero-ecosystem-compatibility/proposal.md)，保持未交付。2026-10-30用户确认Linux阶段收口并授权按此计划修订：Linux Browser＋真实Electron、普通启动及首批I6／完整生命周期仍须最终核对；Windows未交付目标转本文件后续责任，macOS沿既定人工／受管不可用。安全／身份／授权及真实库禁用要求不变。当前53/53，2.3／4.2／5.1／5.2已按delivery最终签收；四个Windows复选框仅移入后续责任，未计通过。
 
 ## 历史源码接收：2.3 Windows普通布局（8d8f339）
 
@@ -162,7 +162,7 @@ flowchart LR
 
 - [x] 2.1 接收普通期刊的来源命名空间、原类型／字段与Extra保留、正式键／固定状态和冲突schema及真实端口，核对来源副本／重复登记及不支持形态的明确拒绝。完成依据：共同接口与首批映射联合核查，生态不另存正式键，项目继续用共同指针；对象删除／重入／恢复及Reader写回由后续变更承接，本片真实库仍禁用，不以备份副本恢复声称对象恢复。实际依据为authority-audit、真实共同7/7及BBT百条／冲突／缺映射拒绝，见delivery首批收尾节。
 - [x] 2.2 消费文献所属schema／provider，核对首批补键的`save/saveTx/executeTransaction`原子范围、revision、授权、稳定结果及通知。原包多条fill汇集为一次共同原子提交，不缩成逐条成功；共同失败／未知提交必须实跑，不编共同事务假Adapter或假回执。超出补键／独立题名更正的通用保存及复杂事务由后续变更承接，不从方法存在宣称支持。真实共同事务／SQL保护及原包百条、提交后观察失败按原身份查询通过，独审反例已修复复核，原失败保留。
-- [ ] 2.3 【Linux阶段最终核对，仍未完成】核R3.1–R3.4独立认证／stdin／实例／双向RPC／ready／正常shutdown／恢复及原包吞错保护，逐项对应N2.1–5固定Linux普通CLI／bootstrap冷启动、无测试配置注入重启和真实原包证据；复用已有结果，缺失或受影响目标才补验。Windows普通布局／endpoint EPERM／分发移后续责任，macOS受管执行不可用。不用普通spawn或PID消失替代原生保证，不把scopeStopped当pluginClosed。
+- [x] 2.3 【Linux阶段最终核对，已签收】核R3.1–R3.4独立认证／stdin／实例／双向RPC／ready／正常shutdown／恢复及原包吞错保护，逐项对应N2.1–5固定Linux普通CLI／bootstrap冷启动、无测试配置注入重启和真实原包证据；复用已有结果，缺失或受影响目标才补验。Windows普通布局／endpoint EPERM／分发移后续责任，macOS受管执行不可用。不用普通spawn或PID消失替代原生保证，不把scopeStopped当pluginClosed。
 - [x] 2.4 【E6保持生产阻塞】核对并在能力状态中准确表达题录／附件删除、操作者及恢复／重新入库提供者的实际可用性。完成依据：缺少保护时真实用户库仍不可启用，不把备份副本恢复替代对象恢复，不以未发现引用宣称可安全撤回。此任务验收的是限制确实生效，无需本change实现删除恢复；待E6实际能力齐备后，生产启用由后续变更承接。1组及隔离I6可继续，本change不实施迁入。
 
 ## 3. 共同权威接线与保存一致性
@@ -175,12 +175,12 @@ flowchart LR
 ## 4. 最小真实独立验收
 
 - [x] 4.1 在隔离真实kernel／library／broker／WS／宿主组合完成人工CLI和实际harness工具的I6：补缺键、同库已有键冲突、更正后缓存刷新、原包BibTeX／BibLaTeX、停止重启读回及未知提交核查。完成依据：持久共同结果与实际导出文件证据对应，内部提供者均真实，模型只在外部边界受控；明确H1替身结果不能算本项。真实普通CLI／产品静态入口N2.5、百条及冲突、原包两格式与持久回执、末次未知提交及harness两例2/2构成限定Linux I6，Windows生命周期单列4.2，不据此宣称全平台或科研质量。
-- [ ] 4.2 完成Linux真实Electron与Worker的正常关闭、初始化中断、忙执行及失联归属最终核对，按实例核对后代退出／unknown并保护隔离目录；核齐Browser＋真实Electron消费者，当前macOS明确拒绝。复用现宿主smoke及受影响原生／lifecycle结果，缺失或受影响目标才定向补验；对影响本阶段验收的CI失败核对发送、受理、执行、领域提交与刷新，不通过加timeout或删除保证获得通过。Windows同组及分发移后续责任；本Linux项保持未完成。
+- [x] 4.2 完成Linux真实Electron与Worker的正常关闭、初始化中断、忙执行及失联归属最终核对，按实例核对后代退出／unknown并保护隔离目录；核齐Browser＋真实Electron消费者，当前macOS明确拒绝。复用现宿主smoke及受影响原生／lifecycle结果，缺失或受影响目标才定向补验；对影响本阶段验收的CI失败核对发送、受理、执行、领域提交与刷新，不通过加timeout或删除保证获得通过。Windows同组及分发移后续责任；本Linux项已按delivery最终签收。
 
 ## 5. 整合与交付
 
-- [ ] 5.1 主Agent核对本阶段Linux proposal完成判据及spec场景、最终源码与原证据，复用已接收关键接口、权限、并发、缓存／事务与数据保护独审并处理发现；仅实际新差异安排窄审及受影响typecheck、架构、构建和定向验证。核对开发说明实际入口及正式规格链接是否一致，需改外部文件交主线；不把自动导出、外部JSON-RPC／pull export、Reader、迁入或三平台分发写成已支持。无关全仓失败另记范围，本项仍未完成。
-- [ ] 5.2 仅实际执行后获取 `openspec instructions delivery --change connect-zotero-host-bbt --json`，按实测成果／替身／失败及未完成前置更新同一delivery.md；核对Linux真实I6、双宿主／普通入口与完整生命周期最终成果，明确Windows后续未交付及macOS既定边界，只有相应完成依据满足才勾选。本轮工件修订不算最终交付，本项仍未完成。
+- [x] 5.1 主Agent核对本阶段Linux proposal完成判据及spec场景、最终源码与原证据，复用已接收关键接口、权限、并发、缓存／事务与数据保护独审并处理发现；仅实际新差异安排窄审及受影响typecheck、架构、构建和定向验证。核对开发说明实际入口及正式规格链接是否一致，需改外部文件交主线；不把自动导出、外部JSON-RPC／pull export、Reader、迁入或三平台分发写成已支持。无关全仓失败另记范围，本项已按delivery最终签收。
+- [x] 5.2 仅实际执行后获取 `openspec instructions delivery --change connect-zotero-host-bbt --json`，按实测成果／替身／失败及未完成前置更新同一delivery.md；核对Linux真实I6、双宿主／普通入口与完整生命周期最终成果，明确Windows后续未交付及macOS既定边界，只有相应完成依据满足才勾选。本次实际结果及主线签收已更新delivery，本项已按delivery最终签收。
 
 ## 续做入口
 

@@ -338,7 +338,7 @@ M2共同接点：当前文件来源hook是同步形态，真实`harness.executio
 
 ## 第十一轮验收后的安排
 
-六树增量已冻结、建立本地检查点并合入dev，33个单线文件逐字节保留；生态按约无增量。两路独立审查未发现本片确证缺陷，完整构建、包及tools类型、架构、生成映射、OpenSpec检查通过。主线生命周期／来源／Agent组合11/11及可信进程夹具1/1通过。文献真实进程重启首组Browser通过，Electron在原包解压时遇到EDQUOT；保留失败后迁到本机磁盘上的独立临时目录，仅补验Electron1/1通过，两个宿主各有通过依据，不写成一次2/2。具体结果见[文献交付](../../openspec/changes/complete-library-catalog-workbench/delivery.md)。日志及冻结输入在`/tmp/scholoom-round11-acceptance-Jx5Oez/`，Electron补验在`/home/joshua/.cache/scholoom-round11-ui-euNa9W/`。
+六树增量已冻结、建立本地检查点并合入dev，33个单线文件逐字节保留；生态按约无增量。两路独立审查未发现本片确证缺陷，完整构建、包及tools类型、架构、生成映射、OpenSpec检查通过。主线生命周期／来源／Agent组合11/11及可信进程夹具1/1通过。文献真实进程重启首组Browser通过，Electron在原包解压时遇到EDQUOT；保留失败后迁到本机磁盘上的独立临时目录，仅补验Electron1/1通过，两个宿主各有通过依据，不写成一次2/2。具体结果见[文献交付](../../openspec/changes/archive/2026-10-30-complete-library-catalog-workbench/delivery.md)。日志及冻结输入在`/tmp/scholoom-round11-acceptance-Jx5Oez/`，Electron补验在`/home/joshua/.cache/scholoom-round11-ui-euNa9W/`。
 
 最新完成[Checks40540362614](https://github.com/leike0813/Scholoom/actions/runs/40540362614)，源码938c33f：Linux内核748通过／26跳过，UI125通过／33失败／6跳过；Windows内核677通过／55失败／42跳过；macOS job成功。这是本轮增量之前的基线；不按不同运行失败数推新增缺陷或共同根因。Windows来源校准窄项已接收，启动稳定性和新阶段目标回执继续开放。文献测试侧A不代表标准CLI持久配置B；活动报告仍不可用，不关闭完整changes、I3／I5／I6或科研质量。
 

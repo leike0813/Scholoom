@@ -19,11 +19,11 @@
 
 共享包与内核构建为 ESM；Electron main/preload 构建为 CJS。根 `pnpm build` 按工作区依赖顺序构建。`pnpm typecheck` 先生成共享包声明，确保刚安装的工作区也能解析共享接口。
 
-Electron 工作台和 CLI 共用独立 Node 内核，浏览器开发入口经同一客户端连接。关闭或退出工作台只关闭界面；兼容宿主已提供可独立装配的认证监督Module及固定原包样本验证，共同文献仍未接线。产品默认入口仍只加载外壳，见下文独立验收。
+Electron 工作台和 CLI 共用独立 Node 内核，浏览器开发入口经同一客户端连接。关闭或退出工作台只关闭界面；兼容宿主已有认证监督及固定原包的共同文献接线，Linux隔离库中的普通冷启动、重启和双宿主消费者已验。兼容宿主默认禁用，启用使用下文固定资源及叶设置；真实用户库仍受保护，不因隔离验收而开放。
 
 协议 schema 是 DTO 的事实源，类型从 schema 推导；客户端和内核使用 Ajv 校验消息、认证、状态及引导结果。连接状态不代表研究指令已经可执行。
 
-客户端与内核 WebSocket 入口共用双向 RPC peer，业务请求经 KernelApplication 的类型化提供者映射与 broker。协议版本为 4；操作载荷、等待策略及副作用由分域 schema 提供。Agent 和 PDF 已接受管 Node 子进程及 IPC，兼容宿主仍为骨架。按角色发现、普通模块迁包和完整实例资格的实际覆盖见[运行架构迁移交付](../openspec/changes/archive/2026-10-19-migrate-runtime-architecture/delivery.md)。
+客户端与内核 WebSocket 入口共用双向 RPC peer，业务请求经 KernelApplication 的类型化提供者映射与 broker。协议版本为 4；操作载荷、等待策略及副作用由分域 schema 提供。Agent 和 PDF 已接受管 Node 子进程及 IPC；兼容宿主经受管Electron及回环WebSocket运行固定原包，共享准入及恢复屏障。按角色发现、普通模块迁包和完整实例资格的实际覆盖见[运行架构迁移交付](../openspec/changes/archive/2026-10-19-migrate-runtime-architecture/delivery.md)。
 
 `pnpm check:architecture` 使用唯一 `architecture.json` 检查包依赖、循环、私有路径及普通模块系统访问，并在 CI 运行。精确迁移例外注明退出任务；当前检查通过不代表这些旧调用已迁完。`pnpm generate:contracts` 用 Node 24 装载 protocol 声明源，输出业务、执行及项目内部操作的类型映射更新 patch，映射继续引用原 schema；映射过期导致完整编译失败时仍可生成。`pnpm typecheck` 检查实际装配和编译期反例。
 
@@ -246,7 +246,7 @@ KernelApplication为harness仅装配同源 `ProgramToolsPort`，不传人工登�
 
 受管退出诊断复用IPC failure detail及现有错误消息，末行JSON保留instanceId（最多256字符）、controller code／signal、stoppedReceived、native最后状态及退出结果、固定reason。原生状态P／R／E／invalid分别表示已报告PID、已确认准入、明确失败、无效状态；unobserved表示没有取得状态。controller被杀时只保留此前观察，不推断native已退出。诊断不包含env／argv／entry／RPC正文或私有bootstrap，不改变停止证明、unknown、占用或时限。定向入口为platform-processes及managed-commands的故障用例；历史nativeTeX首次unknown仍无根因结论。
 
-诊断先区分发送、受理、环境检查、准入／启动、执行、停止与结果刷新；读取 run 的phase/error/stop/exit、环境计划及实际输出依据。内核定向入口：`program-runs.spec.ts`、`program-runtime.spec.ts`、`program-environments.spec.ts`、`managed-commands.spec.ts`；双宿主入口 `tests/ui/program-runs.spec.ts`。实际覆盖与跨线未决见[本变更交付](../openspec/changes/add-project-program-runs/delivery.md)。
+诊断先区分发送、受理、环境检查、准入／启动、执行、停止与结果刷新；读取 run 的phase/error/stop/exit、环境计划及实际输出依据。内核定向入口：`program-runs.spec.ts`、`program-runtime.spec.ts`、`program-environments.spec.ts`、`managed-commands.spec.ts`；双宿主入口 `tests/ui/program-runs.spec.ts`。实际覆盖与跨线未决见[本变更交付](../openspec/changes/archive/2026-10-30-add-project-program-runs/delivery.md)。
 
 ## 内核配置与生命周期
 

@@ -2,7 +2,7 @@
 
 ## 当前范围（2026-10-30）
 
-用户已批准Linux Browser＋真实Electron阶段收口并授权按计划修订。29/32不变，1.4／6.1／6.2仍未完成，现为Linux最终源码／构建、已有业务与保护证据及已接收独审的最终签收；Windows B业务／资源双宿主和完整Checks缺件沿后续责任保留，未交付，不作为本阶段Linux前置。macOS沿既定人工／受管不可用，原失败、历史checked及安全／身份／授权保证不变；下节及分阶段计数保留原截点。
+用户已批准Linux Browser＋真实Electron阶段收口并授权按计划修订。32/32，1.4／6.1／6.2已按delivery完成Linux最终源码／构建、已有业务与保护证据及已接收独审的最终签收；Windows B业务／资源双宿主和完整Checks缺件沿后续责任保留，未交付，不作为本阶段Linux前置。macOS沿既定人工／受管不可用，原失败、历史checked及安全／身份／授权保证不变；下节及分阶段计数保留原截点。
 
 ## 当前验收状态（2026-10-29，8d8f339）
 
@@ -92,7 +92,7 @@ flowchart LR
 - [x] 1.2a 逐份消费阅读材料／报告design、ContextItem同源增量及项目AuxiliaryPane实际源码，核对R1边界与右栏符号、taskNavigator／活动task及多窗口fixture合并点，精确路径见investigation；不再等待同一设计重复转交。
 - [x] 1.2b 已闭合独立题录贡献的精确100项DTO、范围／主选、16项材料独立预算、修订／授权及三类模型准入复查、提供者清单和独立增量顺序；真实实现与验证由5.1记录，历史候选补丁不再代表当前接线状态。
 - [x] 1.3 P1按原B／F分批边界核对：本批列显示／顺序／宽度，查询排序留F；不实施未经确认的新排序，保留服务端默认顺序，依据见design及本轮主线协调计划。
-- [ ] 1.4 核清Linux阶段平台事实及最终源码／构建与原始回执对应：已结算0b5c5e3／Checks40745284164的Linux内核835通过／44跳过、UI137通过／25失败／6跳过，其中B业务链及library双宿主目标通过；只将影响本change当前Linux目标且无有效后续证据的失败列为补验，不要求旧全仓CI全绿。macOS复用0ed2c97降级4、入口4、人工工作台14及目录包结果并保留受管不可用。Windows和较新完整Checks缺件转后续责任，不从专项推B通过，不把BlobNotFound或静态核对当实跑；本项仍未完成。
+- [x] 1.4 核清Linux阶段平台事实及最终源码／构建与原始回执对应：已结算0b5c5e3／Checks40745284164的Linux内核835通过／44跳过、UI137通过／25失败／6跳过，其中B业务链及library双宿主目标通过；只将影响本change当前Linux目标且无有效后续证据的失败列为补验，不要求旧全仓CI全绿。macOS复用0ed2c97降级4、入口4、人工工作台14及目录包结果并保留受管不可用。Windows和较新完整Checks缺件转后续责任，不从专项推B通过，不把BlobNotFound或静态核对当实跑；本项已按delivery最终签收。
 
 ## 2. 稳定选择与对象草稿：首批独立成果
 
@@ -126,13 +126,13 @@ flowchart LR
 
 ## 6. 独立验收与交付
 
-- [ ] 6.1 文献线主Agent最终签收Linux Browser＋真实Electron真实内部接线：收录 → 类型化更正 → 集合／列与多选 → 原会话工具读取实际选择 → 重启读回；复用独立配置／库／项目／端口的library／context-bridge及必要attachments／resource-opening／resource-lifecycle证据。当前Linux业务2/2、真实库授权／恢复3/3及既有资源目标已具备，逐项核最终源码／构建和受影响类型、架构、lint、生成映射原结果，只有相关差异或缺项才补验。保留未知CSL／创建者顺序、CAS／迟到草稿、有界身份选择、read／send分别授权及真实重启；17项发布不等于17项工具回执。macOS沿人工／受管不可用，Windows最小组合移后续责任；不机械重跑已绿Linux或把人工路径绑到harness，本项仍未完成。
+- [x] 6.1 文献线主Agent最终签收Linux Browser＋真实Electron真实内部接线：收录 → 类型化更正 → 集合／列与多选 → 原会话工具读取实际选择 → 重启读回；复用独立配置／库／项目／端口的library／context-bridge及必要attachments／resource-opening／resource-lifecycle证据。当前Linux业务2/2、真实库授权／恢复3/3及既有资源目标已具备，逐项核最终源码／构建和受影响类型、架构、lint、生成映射原结果，只有相关差异或缺项才补验。保留未知CSL／创建者顺序、CAS／迟到草稿、有界身份选择、read／send分别授权及真实重启；17项发布不等于17项工具回执。macOS沿人工／受管不可用，Windows最小组合移后续责任；不机械重跑已绿Linux或把人工路径绑到harness，本项已按delivery最终签收。
 - [x] 6.1a 本轮5.3本机子验收：构建后在隔离Linux配置中运行library／context-bridge／resource-opening／attachments双宿主，核对右栏唯一详情、主选／多选、折叠／展开、项目／会话及库tab生命周期、原冲突／迟到草稿、共同附件入口和当前主选有界读取；相关类型／架构／lint及生成映射只读检查通过。首次重复实例RED、视觉问题和最终复验详见delivery；不据此关闭完整映射或Windows／整体I6。
-- [ ] 6.2 主Agent对本阶段Linux proposal判据、1.4／6.1最终源码／原结果及已接收独审作最终核对，实际签收后再取delivery instructions更新同一`delivery.md`，明确Windows未交付及macOS既定边界。现有`catalog-independent-review.md`为P0–P3零确证发现的已接收输入，不泛称缺独审；关键接口、读写／外发权限、修订冲突、迟到回执和数据保留要求不变。如有真实新差异，仅窄审其整改和必要回归。最终签收尚未完成，本项继续未勾选，不以本轮工件修订或CLI ready代替。
+- [x] 6.2 主Agent对本阶段Linux proposal判据、1.4／6.1最终源码／原结果及已接收独审作最终核对，实际签收后再取delivery instructions更新同一`delivery.md`，明确Windows未交付及macOS既定边界。现有`catalog-independent-review.md`为P0–P3零确证发现的已接收输入，不泛称缺独审；关键接口、读写／外发权限、修订冲突、迟到回执和数据保留要求不变。如有真实新差异，仅窄审其整改和必要回归。最终签收已完成，本项已按delivery最终签收，不以本轮工件修订或CLI ready代替。
 
 ## 续做入口
 
-从dev@a460832及delivery的Linux阶段范围继续，1.4／6.1／6.2仅剩本阶段最终证据核对和主线签收。4.1／4.2的明确JSON保留边界不再充作泛泛“完整复杂映射未完成”；不扩Zotero逆映射、原值同步或CLI持久配置。C1另见[已接收交付](../archive/2026-10-30-complete-library-organization/delivery.md)，不重做、不重放旧WIP。Windows最小组合、缺件及恢复时机见下节；本轮在工件修订／校验结束停止，不机械重跑5.4a／6.1b／滚动。接续必需材料在Git／cache，不依赖当前/tmp；分发、真实科研质量及完整平台不由本阶段宣称完成。
+从dev@a460832及delivery的Linux阶段范围继续，1.4／6.1／6.2仅剩本阶段最终证据核对和主线签收。4.1／4.2的明确JSON保留边界不再充作泛泛“完整复杂映射未完成”；不扩Zotero逆映射、原值同步或CLI持久配置。C1另见[已接收交付](../2026-10-30-complete-library-organization/delivery.md)，不重做、不重放旧WIP。Windows最小组合、缺件及恢复时机见下节；本轮在工件修订／校验结束停止，不机械重跑5.4a／6.1b／滚动。接续必需材料在Git／cache，不依赖当前/tmp；分发、真实科研质量及完整平台不由本阶段宣称完成。
 
 ## 后续责任（不计本阶段复选框）
 

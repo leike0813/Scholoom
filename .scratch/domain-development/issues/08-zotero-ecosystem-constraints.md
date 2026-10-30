@@ -58,7 +58,7 @@ Connector 配对与共存、真实在线识别、各类导出服务及目标平�
 
 2026-10-27，用户确认：普通 CSL 保存不自动覆盖 Zotero 原值。CSL 与原值不一致或无法比较时，导出前须明确选择采用原值；Agent 可依用户明确指令作此选择，无法确定时询问用户，不要求每次由用户人工点击。更正原值采用独立“更正所选原值”动作。
 
-下一实施切片限于已有唯一 schema 44 期刊原值的题名更正；日期、作者、多来源、CSL 表达导出和自动同步不由该选择授权。具体 DTO、修订核对、事务和验证沿 [connect-zotero-host-bbt](../../../openspec/changes/connect-zotero-host-bbt/design.md)。
+下一实施切片限于已有唯一 schema 44 期刊原值的题名更正；日期、作者、多来源、CSL 表达导出和自动同步不由该选择授权。具体 DTO、修订核对、事务和验证沿 [connect-zotero-host-bbt](../../../openspec/changes/archive/2026-10-30-connect-zotero-host-bbt/design.md)。
 
 ### Q3：迁入撤回采用保留原则
 

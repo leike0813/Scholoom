@@ -141,7 +141,7 @@ Application.initialize真实等待入口为ManualApplication内library.initializ
 
 ### 旧CI记录（历史）
 
-来源为[七线计划](../../../.scratch/domain-development/parallel-development-plan.md#当前-ci-基线的处理)固定 `55d020c` 的 [40100596838](https://github.com/leike0813/Scholoom/actions/runs/40100596838)，原始日志本轮可读于 `/tmp/scholoom-next-parallel-baseline-failures.log`。Linux UI 101通过／9失败／2跳过，Windows kernel 374通过／15失败／12跳过；macOS成功为降级验证，非全功能。
+来源为[七线计划](../../../../.scratch/domain-development/parallel-development-plan.md#当前-ci-基线的处理)固定 `55d020c` 的 [40100596838](https://github.com/leike0813/Scholoom/actions/runs/40100596838)，原始日志本轮可读于 `/tmp/scholoom-next-parallel-baseline-failures.log`。Linux UI 101通过／9失败／2跳过，Windows kernel 374通过／15失败／12跳过；macOS成功为降级验证，非全功能。
 
 | 证据位置 | 已知 | 尚不能认定／实施时承接 |
 | --- | --- | --- |
@@ -154,10 +154,10 @@ Application.initialize真实等待入口为ManualApplication内library.initializ
 
 ### 已归档公共基础的证据边界
 
-- [领域交接delivery](../archive/2026-10-24-establish-domain-execution-handoffs/delivery.md)最终“macOS显式不可用与人工降级收尾”：Linux原生／命令／降级19/19；macOS真实内核2/2、双宿主4/4，证明不可用分支。早期进行中记录已由最终记录覆盖，不能重开已归档基础。
-- [写作delivery](../archive/2026-10-20-add-research-writing-editor/delivery.md)：Linux真实Quarto／Pandoc／TeX产物和分批双宿主PDF2项通过。这是历史实跑，不是当前CI失败的修复证据。
-- [跨平台delivery](../archive/2026-10-24-fix-cross-platform-file-and-writing-behavior/delivery.md)：Windows CI40081004866原两路径10/10、原生命令16通过1跳过；先有约6.4s完成证据再调整那两条整合等待，不能推广至当前13项未诊断失败。
-- [工作域delivery](../archive/2026-10-23-establish-scoped-execution-foundation/delivery.md)：真实授权、只读、scratch、仓储及broker已交付；不重新实现工作域或以只读目标授权启动程序。
+- [领域交接delivery](../2026-10-24-establish-domain-execution-handoffs/delivery.md)最终“macOS显式不可用与人工降级收尾”：Linux原生／命令／降级19/19；macOS真实内核2/2、双宿主4/4，证明不可用分支。早期进行中记录已由最终记录覆盖，不能重开已归档基础。
+- [写作delivery](../2026-10-20-add-research-writing-editor/delivery.md)：Linux真实Quarto／Pandoc／TeX产物和分批双宿主PDF2项通过。这是历史实跑，不是当前CI失败的修复证据。
+- [跨平台delivery](../2026-10-24-fix-cross-platform-file-and-writing-behavior/delivery.md)：Windows CI40081004866原两路径10/10、原生命令16通过1跳过；先有约6.4s完成证据再调整那两条整合等待，不能推广至当前13项未诊断失败。
+- [工作域delivery](../2026-10-23-establish-scoped-execution-foundation/delivery.md)：真实授权、只读、scratch、仓储及broker已交付；不重新实现工作域或以只读目标授权启动程序。
 
 ### 待输入与未承诺部分
 

@@ -2,7 +2,7 @@
 
 ## 当前范围（2026-10-30）
 
-用户已批准Linux Browser＋真实Electron阶段收口并授权按计划修订。56/58不变，5.2／6.2仍待Linux最终源码／构建与既有结果、proposal六判据及已接收独审的对应签收。Windows程序业务／平台整组、TeX／实际分发及旧CI唯一因果转同一文件后续责任，未交付／未定因不记通过；macOS沿既定人工／受管不可用，公网registry下载未实跑。完整停止／unknown容量、锁、授权与既有环境保护不变；下列分阶段记录保留历史截点。
+用户已批准Linux Browser＋真实Electron阶段收口并授权按计划修订。58/58，5.2／6.2已完成Linux最终源码／构建与既有结果、proposal六判据及已接收独审的对应签收。Windows程序业务／平台整组、TeX／实际分发及旧CI唯一因果转同一文件后续责任，未交付／未定因不记通过；macOS沿既定人工／受管不可用，公网registry下载未实跑。完整停止／unknown容量、锁、授权与既有环境保护不变；下列分阶段记录保留历史截点。
 
 用户已授权实现及必要依赖链接、隔离环境／双宿主测试，并选择逐次人工“移交后台”。本轮仅交本树增量与独立补丁，提交／同步由主线处理；不推送、PR、归档、安装新依赖、写真实用户库或启动开发服务器。双宿主复用已构建产物及隔离静态夹具。跨线输入与历史CI诊断按实际证据分别记录。
 
@@ -65,14 +65,14 @@ flowchart TD
 ## 5. 输入与Linux最终核对
 
 - [x] 5.1 已消费主线正式设计及源码输入；历史路径和符号冲突记录于design。共同1026796已合入全部七域源码，当前executionResources／taskPort／delegationOptions／programs、根工具、三域restore及task／programs标签均在本树；不再等待同步或使用旧累计补丁。真实联合操作另由8.4验收，不把代码合入当作实际整合完成。
-- [ ] 5.2 沿固定run／head和实际stage核对Linux Browser＋真实Electron最终源码／构建及程序业务、环境保护、人工／Agent同源事实、输出／共同资源、取消／恢复证据，复用已有实跑及独审，只有相关差异、缺项或当前失败才安排最小补验。旧CI失败与显示helper红绿分别保留，不以新绿色推旧唯一因果；影响当前Linux目标的失败不能移走。Windows整组、ACL／启动／EPERM、TeX／分发与旧因果调查见后续责任，不要求完整Windows Checks作为Linux前置，不放宽停止／unknown容量、锁或重试。本项仍未完成。
+- [x] 5.2 沿固定run／head和实际stage核对Linux Browser＋真实Electron最终源码／构建及程序业务、环境保护、人工／Agent同源事实、输出／共同资源、取消／恢复证据，复用已有实跑及独审，只有相关差异、缺项或当前失败才安排最小补验。旧CI失败与显示helper红绿分别保留，不以新绿色推旧唯一因果；影响当前Linux目标的失败不能移走。Windows整组、ACL／启动／EPERM、TeX／分发与旧因果调查见后续责任，不要求完整Windows Checks作为Linux前置，不放宽停止／unknown容量、锁或重试。本项已按delivery最终签收。
 
 5.1的输入核对不意味着新增报告适配属于本change；只有共同符号冲突或相关必要回归才阻塞对应整合，其他任务不串行等待。
 
 ## 6. 审查与实际交付
 
 - [x] 6.1 对本次新变化运行最小必要生成一致性、architecture、typecheck、build及上述定向内核／双宿主；共同命令触及editor时回归editor.spec／editor-runtime及实际资源打开。Linux／Windows实际运行和macOS不可用分别记录；取得日志、身份授权、跨进程停止、升级／恢复和复杂整合的独立只读审查，处理发现后由主Agent最终接受。依赖缺失先说明并按授权准备，不隐式安装；未运行或失败不记通过，不追加全仓测试。
-- [ ] 6.2 最终签收时获取 `openspec instructions delivery --change add-project-program-runs --json`，更新同一delivery.md，逐项对应本阶段Linux proposal六判据、最终源码／构建、真实接线／替身、已有实跑与已接收独审，保留授权、当前失败及下一步；明确Windows后续未交付、macOS人工／受管不可用和公网registry下载未实跑。待5.2及最终证据核对完成后再勾选，本轮工件修订不算最终交付，本项仍未完成。
+- [x] 6.2 最终签收时获取 `openspec instructions delivery --change add-project-program-runs --json`，更新同一delivery.md，逐项对应本阶段Linux proposal六判据、最终源码／构建、真实接线／替身、已有实跑与已接收独审，保留授权、当前失败及下一步；明确Windows后续未交付、macOS人工／受管不可用和公网registry下载未实跑。待5.2及最终证据核对完成后再勾选，本轮实际核对及主线签收已落delivery，本项已按delivery最终签收。
 
 ## 7. 主线验收整改与公共对接（2026-10-26）
 

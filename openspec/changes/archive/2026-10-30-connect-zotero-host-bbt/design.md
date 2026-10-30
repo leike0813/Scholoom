@@ -2,7 +2,7 @@
 
 ## 本阶段验收范围（2026-10-30）
 
-按用户已批准的Linux阶段收口，本阶段核对Linux Browser＋真实Electron、普通CLI／bootstrap冷启动、无测试配置注入的重启及真实原包首批I6；2.3／4.2／5.1／5.2仍未完成。复用已有实跑及独审，先核最终源码／构建与目标证据的对应，缺项才安排必要补验；静态核查不计实跑。Windows普通布局尚未启用，W2／W2.2／W3／W4及Windows生命周期／分发转[tasks后续责任](tasks.md#后续责任不计本阶段复选框)，下文Windows设计保留为恢复依据，不承诺本阶段交付。macOS保留人工能力并明确受管执行不可用。Linux安全、共同身份／授权、正式键、事务／CAS、unknown不重放及pluginClosed与scopeStopped分开核查均不变；真实用户库仍禁用。
+按用户已批准的Linux阶段收口，本阶段核对Linux Browser＋真实Electron、普通CLI／bootstrap冷启动、无测试配置注入的重启及真实原包首批I6；2.3／4.2／5.1／5.2已按delivery完成最终签收。复用已有实跑及独审，先核最终源码／构建与目标证据的对应，缺项才安排必要补验；静态核查不计实跑。Windows普通布局尚未启用，W2／W2.2／W3／W4及Windows生命周期／分发转[tasks后续责任](tasks.md#后续责任不计本阶段复选框)，下文Windows设计保留为恢复依据，不承诺本阶段交付。macOS保留人工能力并明确受管执行不可用。Linux安全、共同身份／授权、正式键、事务／CAS、unknown不重放及pluginClosed与scopeStopped分开核查均不变；真实用户库仍禁用。
 
 ## 第18轮验收决定：区分数据读取与固定入口执行
 
@@ -120,7 +120,7 @@ W2／W3落地后，Windows独立测试入口沿已装Playwright，无CI依赖：
 
 ## Windows原包验收接线
 
-Windows GUI的process.stdin由固定Electron原生初始化替换为EOF模拟流，详见[一手源码报告](../../../.scratch/scholoom-foundations/research/electron-windows-private-stdin.md)。宿主统一通过公开fs有界读取继承fd 0：不新增第二传输，原launchInput、同一Job、实例／token认证及期限保持。输入按字节限额收齐后一次UTF8解析，非法JSON不回显载荷；控制台变量不作为修复。Windows同源合成负／正对照与真实共同库原包须分别通过，不能以Node fixed-host或普通smoke代替。
+Windows GUI的process.stdin由固定Electron原生初始化替换为EOF模拟流，详见[一手源码报告](../../../../.scratch/scholoom-foundations/research/electron-windows-private-stdin.md)。宿主统一通过公开fs有界读取继承fd 0：不新增第二传输，原launchInput、同一Job、实例／token认证及期限保持。输入按字节限额收齐后一次UTF8解析，非法JSON不回显载荷；控制台变量不作为修复。Windows同源合成负／正对照与真实共同库原包须分别通过，不能以Node fixed-host或普通smoke代替。
 
 现有Linux原包结果不替代Windows。复用同一JournalCatalog、真实library／broker／受管Electron用例与既有宿主smoke；测试display helper在Windows直接返回Electron可执行文件，不经Xvfb、不加Linux参数。两个测试消费者通过同一archive helper使用系统.NET读取固定可信原XPI，字节对照仍读取原成员，不改包内容；Linux继续原unzip路径。普通持久布局的cold用例仍限已登记的Linux布局，不冒充Windows产品装配。
 
@@ -128,7 +128,7 @@ windows-execution增加独立zotero-original job，沿原锁文件、Node24和El
 
 ## 共同原值creator写入的独立模块切片
 
-茉莉花固定1.1.39原菜单的姓名拆分消费getCreators／setCreators／saveTx，事实及许可见[一手来源调查](../../../.scratch/scholoom-foundations/research/jasminum-common-authority.md)。这片先补已有JournalCatalog，不把单独模块测试当原包接入；普通期刊范围、原值与CSL分离、正式键和来源身份不变。后续仍须实际原包入口／未await行为／完整关闭及共同权威任务2.3验收。
+茉莉花固定1.1.39原菜单的姓名拆分消费getCreators／setCreators／saveTx，事实及许可见[一手来源调查](../../../../.scratch/scholoom-foundations/research/jasminum-common-authority.md)。这片先补已有JournalCatalog，不把单独模块测试当原包接入；普通期刊范围、原值与CSL分离、正式键和来源身份不变。后续仍须实际原包入口／未await行为／完整关闭及共同权威任务2.3验收。
 
 Module的Interface增加editCreators(operation, commit, read)，与原fill共用一个私有提交实现。操作中setCreators只保存经共同snapshot schema、期刊映射及原值字节限额核查的草稿；setField仍只在补键意图内可用，creator动作不能写键／Extra／CSL。saveTx仅登记原操作事务的保存意图，最终成功以唯一共同commitRecords及稳定receipt为准；独立SQL只是已提交投影，不新增持久权威。creators列与Item.getCreators共用同一SQLite投影，保存保留完整数组顺序及原角色／字段形态；不复制Zotero姓名拆分算法。
 
@@ -416,7 +416,7 @@ N1不需要这些图形／原包输入；N2若用才显式设置保全XPI，不�
 
 ## 历史调查：CSL更正与原值导出差异方案（4b13183）
 
-**D1–D3已由用户确认。** 采用A＋B1：差异或无法比较时，导出前明确选择采用原值；Agent可依用户明确指令选择，不确定时询问。原值通过独立动作更正，首片仅已有唯一期刊原值的题名。决策事实源见[领域决定](../../../.scratch/domain-development/issues/08-zotero-ecosystem-constraints.md#csl-更正与原值导出的明确选择)。本节待决／未实施措辞记录4b13183调查时点的备选与依赖；当前实现以顶部具体DTO及delivery为准，不将推荐解释为每次必须人工点击。
+**D1–D3已由用户确认。** 采用A＋B1：差异或无法比较时，导出前明确选择采用原值；Agent可依用户明确指令选择，不确定时询问。原值通过独立动作更正，首片仅已有唯一期刊原值的题名。决策事实源见[领域决定](../../../../.scratch/domain-development/issues/08-zotero-ecosystem-constraints.md#csl-更正与原值导出的明确选择)。本节待决／未实施措辞记录4b13183调查时点的备选与依赖；当前实现以顶部具体DTO及delivery为准，不将推荐解释为每次必须人工点击。
 
 本轮交回的是调查与规划，尚无上述新行为的生产实现。当前基线`4b13183`已接收真实普通期刊切片及持续外发授权P1。当前差异、四阶段实跑和固定资源依据集中在[investigation当前节](investigation.md#当前调查csl更正与原值导出的差异4b13183)和[隔离证据](evidence/csl-original-4b13183/README.md)。本轮调查未修改library、zotero协议／host、harness或表单，也未重做监督方案。
 

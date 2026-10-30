@@ -1,5 +1,17 @@
 # 实际交付与交接
 
+## Linux阶段最终签收（2026-10-30）
+
+本change按用户确认的Linux Browser＋真实Electron范围完成53/53，关闭2.3／4.2／5.1／5.2。主线接收生态测试提交4c95087为5ad449d并逐项审阅；生产代码未变。开发说明已修正两处“共同文献未接线／宿主骨架”的旧状态，明确普通叶设置、固定原包、共享恢复屏障、默认禁用及真实用户库保护。
+
+本轮证据根`/home/joshua/.cache/scholoom-closeout-execution-20261030/workers/zotero-ecosystem/`的RESULT、commands.jsonl及evidence-audit-final逐项对应原包／源码／结果：普通CLI冷启动、desktop共用bootstrap无注入重启、持久补键和BibTeX／BibLaTeX、撤权目标实际通过；Browser＋真实Electron原值消费者2/2。真实原包正常关闭和关闭异常、初始化中断及Worker失联均有实际结果，新增两例最终2/2；忙Worker复用原scope-final的真实1/1及未变原生监督源码。异常scopeStopped仍不等于pluginClosed，unknown及重启拒绝保护保持。
+
+内部kernel、broker、library／SQLite、宿主监督、WS、原生scope、Electron／Worker及BBT translator真实；期刊输入、初始化DB暂停及renderer crash是明确合成／故障边界，无外部模型。首轮4例为3通过／1测试恢复调用错误，改用新HostConnection核原unknown后定向通过；原失败及trace保留，不将数轮相加当完整新矩阵。最终tools类型、Biome、fixture语法及准确diff检查exit0，构建沿已验且未变产物；自有配置／服务均已停止，unknown样本留存，不依赖/tmp。
+
+主线复核所交两文件，新增控制只在隔离夹具中作用于原包真实启动／导出，不伪造ready、scope退出或领域提交；复用已接收资源、N2原包、事务／SQL及reset-key保护独审，当前27个相关源码自c29a93a至本轮基线无差异，公共后续报告改动未改变生态接线。具体原件与独审索引沿RESULT及下方历史记录。
+
+Windows W2–W4、原生目标／ACL／EPERM、普通布局及分发继续未交付，沿tasks后续责任；macOS仍人工能力／受管不可用。真实用户库、茉莉花／复杂映射、Reader写回、外部pull export和三平台发布均未因此开放。下方计数及开放项是各历史截点，当前完成状态以本节为准。
+
 ## Linux阶段范围修订（2026-10-30）
 
 用户已明确采用Linux Browser＋真实Electron阶段收口，并授权按此计划修订工件。原49/57任务中W2／W2.2／W3／W4转入同一[tasks后续责任](tasks.md#后续责任不计本阶段复选框)，现49/53；2.3／4.2仅保Linux必要验收，5.1／5.2继续未完成。Windows普通布局未启用，原生C／ACL目标未验，百条例endpoint rename EPERM仍是原失败，Windows普通启动／完整生命周期及分发未交付；macOS保留人工能力／受管不可用。
@@ -165,7 +177,7 @@ Windows的0ed2c97／专项40784928035原输入负正对照2/2、共同事务8/8�
 
 ## Windows私有stdin的固定源码机制与fd 0修正
 
-固定Electron44.5.1官方源码表明Windows GUI初始化无条件将process.stdin替换为立即EOF的模拟流；控制台环境变量与日志开关不会取消替换，精确commit／Node／Chromium来源见[调查报告](../../../.scratch/scholoom-foundations/research/electron-windows-private-stdin.md)。第二次目标run40783183335／job123149728204的合成对照实际读到默认及ELECTRON_NO_ATTACH_CONSOLE两组均0字节，期望26字节；两个共同库原包例仍以空封套失败。其日志`windows-electron-stdin-red-job.log`保留，未把变量当修复。
+固定Electron44.5.1官方源码表明Windows GUI初始化无条件将process.stdin替换为立即EOF的模拟流；控制台环境变量与日志开关不会取消替换，精确commit／Node／Chromium来源见[调查报告](../../../../.scratch/scholoom-foundations/research/electron-windows-private-stdin.md)。第二次目标run40783183335／job123149728204的合成对照实际读到默认及ELECTRON_NO_ATTACH_CONSOLE两组均0字节，期望26字节；两个共同库原包例仍以空封套失败。其日志`windows-electron-stdin-red-job.log`保留，未把变量当修复。
 
 主线保留原command-worker／一时私有launchInput／继承管道／原生Job和认证，将managed入口改为公开fs.createReadStream读取fd 0。highWaterMark=8193，实际输入累计超过8192即拒绝；按原字节保留Buffer后一次UTF8解析，不因分片拆坏字符。JSON.parse错误改为固定无载荷诊断，防止语法异常带回启动token；connectHost原schema、实例、token认证与启动期限不变，没有新增argv／环境凭据、临时token文件或自动fallback。Windows最小对照现用模拟process.stdin的0字节作负对照，真实fd 0须取得26字节，均沿同一program／launchInput／Job，源码及原失败保留。
 
@@ -181,7 +193,7 @@ Windows的0ed2c97／专项40784928035原输入负正对照2/2、共同事务8/8�
 
 ## 首批范围确认、事务归属与派生SQL保护（2026-10-29）
 
-用户明确按既定首批范围完成，茉莉花、复杂映射及Reader写回另立变更，承接见[后续提议](../archive/2026-10-30-extend-zotero-ecosystem-compatibility/proposal.md)。原包兼容与共同文献权威要求不变；Windows原包、完整I6和原任务3.2／4.2／5.x仍须其真实结果，不由范围确认自动勾选。
+用户明确按既定首批范围完成，茉莉花、复杂映射及Reader写回另立变更，承接见[后续提议](../2026-10-30-extend-zotero-ecosystem-compatibility/proposal.md)。原包兼容与共同文献权威要求不变；Windows原包、完整I6和原任务3.2／4.2／5.x仍须其真实结果，不由范围确认自动勾选。
 
 主线先补JournalCatalog的独立creator草稿／保存接口，未新增产品动作、授权、原包入口或CSL双写。5项独立真实library测试及原BBT两例先通过，独审仍复现旧异步回调混入新操作、提交等待期接受迟到保存、插件SQL污染共同投影三个问题。进一步复用AsyncLocalStorage为每个操作绑定独立身份，operation结束即关闭写入阶段并继续占有提交／读回／通知；插件SQL用SQLite authorizer保护共同表／视图及同名临时对象，禁止attach／detach和writable_schema，保留实际缓存／settings读写。提交／通知阶段拒绝追加当前通知批次，避免无界重新入队；已提交回执始终保留，未知效果和容量保护不变。
 
@@ -371,7 +383,7 @@ gpt-6.1-sol/high只读辅助（无历史fork）核对权限／执行端口及改
 
 本轮四工件保全合入，两轴审查无本线确证问题。用户委托主线选择后，D14-1／2／3均选A：下一片先实施已有授权下普通CLI的只读result；未来native绑定只归kernel宿主设置，首个原生片用可信操作者离线固定资源。选择及理由由design维护，N1窄例外已进delta，N1.2仍未实现；不扩大其他四操作、真实用户库或默认库权限。N2具体装配契约继续后置，不提前建通用配置框架。
 
-本轮没有生态生产／原包新实跑。新f4ab1e5 Linux内核唯一失败在scope测试无DISPLAY的新Xvfb预检返回127，未进入后代收尾业务；原日志／trace在`/home/joshua/.cache/scholoom-round14-acceptance/`，不能据127猜定缺少哪个程序。该有限环境问题下一片交计算线独占helper／CI处理，生态只实现N1，不并改显示夹具。完整E4／I6仍开放，见[共同计划](../../../.scratch/domain-development/parallel-development-plan.md#第十四轮验收后的安排)。
+本轮没有生态生产／原包新实跑。新f4ab1e5 Linux内核唯一失败在scope测试无DISPLAY的新Xvfb预检返回127，未进入后代收尾业务；原日志／trace在`/home/joshua/.cache/scholoom-round14-acceptance/`，不能据127猜定缺少哪个程序。该有限环境问题下一片交计算线独占helper／CI处理，生态只实现N1，不并改显示夹具。完整E4／I6仍开放，见[共同计划](../../../../.scratch/domain-development/parallel-development-plan.md#第十四轮验收后的安排)。
 
 ## 当前交回：普通CLI接续／原包装配调查规划（R14）
 
@@ -414,7 +426,7 @@ gpt-6.1-sol/high只读辅助（无历史fork）核对权限／执行端口及改
 
 显示前置helper及四消费者已保全合入，独立两轴审查无本线确证问题。完整构建／类型／架构通过；主线内核组合13/13包含两个真实BBT原包代表例、Electron renderer／Worker完整收尾及两个显示拒绝反例，原值动作双宿主2/2。已有DISPLAY经预检复用，未停止共享显示，也未把Node监督替代原包通过。旧unknown现场仍保留，新Xvfb成功路径未验。
 
-原BBT9.0.68 XPI已保全到`/home/joshua/.cache/scholoom-round13-acceptance/preserved-tmp/zotero-better-bibtex-9.0.68.xpi`，与旧原件逐字节一致；本次测试实际使用新路径。新静态UI入口也在同根，解包目录可由原XPI重新创建。下一片仅调查生产装配／普通CLI持久配置的最小差距，见[共同计划](../../../.scratch/domain-development/parallel-development-plan.md#第十三轮验收后的安排)；真实用户库、完整E4／I6、复杂映射及平台仍开放。
+原BBT9.0.68 XPI已保全到`/home/joshua/.cache/scholoom-round13-acceptance/preserved-tmp/zotero-better-bibtex-9.0.68.xpi`，与旧原件逐字节一致；本次测试实际使用新路径。新静态UI入口也在同根，解包目录可由原XPI重新创建。下一片仅调查生产装配／普通CLI持久配置的最小差距，见[共同计划](../../../../.scratch/domain-development/parallel-development-plan.md#第十三轮验收后的安排)；真实用户库、完整E4／I6、复杂映射及平台仍开放。
 ## 已接收：真实原包测试显示前置（R13）
 
 2026-10-28，起始clean，HEAD `ba29ee61ac6f8700cfe6a9fbaa529a8a7a75aad1`。本轮按主线第十二轮安排只修测试显示前置，复用已构建且同源的共享／kernel／desktop／zotero-host产物；没有生产源码或协议变化、重建或依赖变更。R13三项完成后累计28/37；完整E4／I6、CLI持久配置、跨平台原包及真实用户库继续开放。

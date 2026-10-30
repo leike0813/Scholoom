@@ -15,7 +15,7 @@
 
 ## 完成判据
 
-2026-10-30用户确认采用Linux阶段收口并授权按计划修订工件：以下判据按Linux Browser＋真实Electron最终签收，Windows B业务／资源双宿主目标未交付，责任沿本change的[tasks后续责任](tasks.md#后续责任不计本阶段复选框)保留；macOS保留既定人工能力及受管执行不可用边界。1.4／6.1／6.2仍待最终源码、已有结果与已接收独审对应核对，保持未完成；数据保留、身份、读写／外发授权和草稿保护要求不变。
+2026-10-30用户确认采用Linux阶段收口并授权按计划修订工件：以下判据按Linux Browser＋真实Electron最终签收，Windows B业务／资源双宿主目标未交付，责任沿本change的[tasks后续责任](tasks.md#后续责任不计本阶段复选框)保留；macOS保留既定人工能力及受管执行不可用边界。1.4／6.1／6.2已完成最终源码、已有结果与已接收独审对应核对，见delivery的Linux阶段最终签收；数据保留、身份、读写／外发授权和草稿保护要求不变。
 
 1. 隔离真实库中经双宿主入口收录、类型化更正并重启读回；未知 CSL 数据、创建者顺序、来源和历史保留，冲突不覆盖。
 2. 集合导航、配置列、稳定主选／多选在分页、筛选、重排和切 tab 后没有身份串位；选择和编辑草稿独立于 Agent 会话。
@@ -31,7 +31,7 @@
 
 ## 决策与授权依据
 
-- [文献职责](../../../.scratch/domain-development/issues/02-literature-knowledge-scope.md#answer)、[B 批](../../../.scratch/domain-development/library-foundation-plan.md#四实施批次文件与验收)、[七线分工](../../../.scratch/domain-development/parallel-development-plan.md)是范围依据；字段及身份前置沿[生态职责 Q2](../../../.scratch/domain-development/issues/08-zotero-ecosystem-constraints.md#q2提前调查的范围与优先级)。
+- [文献职责](../../../../.scratch/domain-development/issues/02-literature-knowledge-scope.md#answer)、[B 批](../../../../.scratch/domain-development/library-foundation-plan.md#四实施批次文件与验收)、[七线分工](../../../../.scratch/domain-development/parallel-development-plan.md)是范围依据；字段及身份前置沿[生态职责 Q2](../../../../.scratch/domain-development/issues/08-zotero-ecosystem-constraints.md#q2提前调查的范围与优先级)。
 - 2026-10-25 用户本轮指令授权在当前树调查和完成可审查 OpenSpec 规划，不再等待主 Agent 确认；共同源码起点为 `e3d58fc807827a78493dcd16e38de28c8d02766e`。仅本 change 的规划文件可写，使用 `scholoom-dev`。
 - 2026-10-25 用户随后要求“实现该change”，并明确“暂无跨线结果，先完成独立任务”，授权锁定依赖安装及必要验证。本轮实施独立任务，实际执行后填写delivery；真实用户库、Git提交／推送、PR和归档未授权。
 - 2026-10-27用户在第八轮验收／同步后授权先收敛macOS滚动观察，再接单条原值题名／导出GUI；沿本树0b78815及真实隔离库／原包，不新增协议／生产配置入口。E1、X1、R1及前片已实际消费，不沿用起始规划的等待说明；完整4.1／4.2、I6及E6仍开放。

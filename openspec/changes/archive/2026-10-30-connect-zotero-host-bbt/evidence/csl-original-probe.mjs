@@ -9,14 +9,15 @@ import { join } from 'node:path';
 import { setTimeout } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
 import { isDeepStrictEqual } from 'node:util';
-import { KernelApplication } from '../../../../apps/kernel/dist/application.js';
+import { KernelApplication } from '../../../../../apps/kernel/dist/application.js';
 
-const root = fileURLToPath(new URL('../../../../', import.meta.url));
+const root = fileURLToPath(new URL('../../../../../', import.meta.url));
 const directory = await mkdtemp(join(process.argv[2] ?? tmpdir(), 'scholoom-csl-original-'));
 console.log(`Isolated evidence: ${directory}`);
 const save = (name, value) => writeFile(join(directory, name),
   typeof value === 'string' ? value : `${JSON.stringify(value, null, 2)}\n`, { flag: 'wx' });
-const xpi = process.env.SCHOOLOOM_BBT_XPI ?? '/tmp/scholoom-zotero-bbt-assets/zotero-better-bibtex-9.0.68.xpi';
+const xpi = process.env.SCHOOLOOM_BBT_XPI;
+assert.ok(xpi, 'Set SCHOOLOOM_BBT_XPI to the retained original package');
 const release = JSON.parse(execFileSync('unzip', ['-p', xpi, 'manifest.json'], { encoding: 'utf8' }));
 assert.equal(release.version, '9.0.68');
 assert.equal(release.applications.zotero.id, 'better-bibtex@iris-advies.com');

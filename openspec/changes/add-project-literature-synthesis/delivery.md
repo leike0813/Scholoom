@@ -1,5 +1,13 @@
 # 实际交付与交接
 
+## 长UTF8范围交付（2026-10-30）
+
+主线接收858c529为16857db，完成任务1.2；共同字段1.1与本项合计2/12，其他实施仍进行中。`ResourceAccess.read`沿原base64领域端口取得最多8MiB原始字节的同依据快照，严格UTF8解码后按原UTF16位置切片，返回真实size与nextOffset；不再把256KiB前缀当全文。非法／未闭合编码、NUL和超限明确拒绝，base64原字节语义保持，分片前后和返回前复核取消、身份、basis及read/send。
+
+原10项基线通过；旧实现真实长尾2项失败，修复后原resource-access文件15/15通过；受影响editor构建／类型、tools类型、格式及架构exit0。gpt-6.1-sol/high独立只读审查精确提交及直接调用，核原红／绿日志，无确证P1/P2；主线整合editor构建exit0，原长尾定向2/2通过（19.2秒），日志为本轮根`editor-main-build.log`及`resource-main-tests.log`。证据为`/home/joshua/.cache/scholoom-closeout-execution-20261030/workers/literature-workbench/RESULT.md`及同目录原命令回执，未调用真实模型。
+
+8MiB是源快照容量，不是总RSS或物理IO上限；分片、concat及解码字符串会同时占内存，每次范围请求重新核完整快照，没有正文缓存。原completeTextRead仍须没有nextOffset，不以本项宣称Graph已读完整长文。下面“只有共同字段”的描述保留此前截点，当前实际实施以本节及后续接收记录为准。
+
 ## 当前状态与成果
 
 本change处于实施中。proposal／investigation／三份delta／design／tasks已齐备，`openspec instructions apply`为ready；不是业务或科研验收完成。实施按[设计图](design.md#变更总览)及[任务依赖](tasks.md)推进。
