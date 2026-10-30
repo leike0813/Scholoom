@@ -28,12 +28,12 @@ flowchart LR
 
 ## 3. 文件任务与来源承接
 
-- [ ] 3.1 任务线增加library-source TaskLink及真实题录读取端口，含此类来源的输入使用v2快照，原v1继续可读；沿TaskGraphs／解析／原任务详情导航更新所有受影响调用方，核原source身份／version／revision与权限、不伪造附件Evidence。机械代表覆盖仅题录、后补真实附件及旧v1；不改会话projection或Agent装配。application.ts仅拥有Task端口局部，主线与4.1顺序整合。
+- [x] 3.1 任务线增加library-source TaskLink及真实题录读取端口，含此类来源的输入使用v2快照，原v1继续可读；沿TaskGraphs／解析／原任务详情导航更新所有受影响调用方，核原source身份／version／revision与权限、不伪造附件Evidence。机械代表覆盖仅题录、后补真实附件及旧v1；不改会话projection或Agent装配。主线接收c1fb988→c7d97a8，并修复独审发现的真实受理窗口P1：题录guard延续到原harness事务前同步检查，三类真实竞态红绿及原准入保护通过，复核无确证P1/P2；具体结果见delivery。
 - [ ] 3.2 在3.1及业务图输入接口明确后，沿TaskRef、现有工具及CAS建立真实报告／过程导航与新调用续做，区分graph-call指针与研究过程；入口冲突保留文件与缺关系，补关系不重生成。沿原task-graph-continuation核旧成果可发现、改材料／会话新调用及新旧依据保留；与5.1共同接入，跨模块最终验收归6.1。
 
 ## 4. 可核查成果与现有会话呈现
 
-- [ ] 4.1 项目线消费1.1的roleResults，沿原FileEdit精确核after Evidence及project／session／run／instance，增加projects原artifact键单项查询的窄端口，科研交付分别核保存、run关联和当前读回。保留旧creation校准行为；以同fileId更新、人工后改、关联unknown／错run代表证明不按路径／同文／旧creation补绿。不得查询时save／reconcile；缺证据仍unknown。application.ts仅拥有科研port局部，主线顺序整合。
+- [x] 4.1 项目线消费1.1的roleResults，沿原FileEdit精确核after Evidence及project／session／run／instance，增加projects原artifact键单项查询的窄端口，科研交付分别核保存、run关联和当前读回。保留旧creation校准行为；以同fileId更新、人工后改、关联unknown／错run代表证明不按路径／同文／旧creation补绿。不得查询时save／reconcile；缺证据仍unknown。主线接收4da53e→cfb37a7，独审无确证P1/P2，整合构建及两项真实角色保存代表2/2通过；具体模拟边界见delivery。
 - [ ] 4.2 交互线沿原business-session／projection将当前真实Graph等待问题及成果入口呈现在同一Dock／Overlay，派生展示不伪造Message／Artifact／耗时或历史；普通composer继续原send，迟到旧run不盖新状态。先对齐并按需更新UI设计；复用task-graph-launch双宿主核问题可见、草稿保持、同run回复、成果打开及刷新不重复。仅当前快照视图，不扩内部节点流或Task表单；已有schema足以先独立完成等待呈现。
 
 ## 5. 内建项目文献综合业务

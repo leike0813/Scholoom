@@ -175,6 +175,7 @@ export interface TaskResearchPort {
       text: string;
     },
     context: CallContext,
+    catalog?: readonly FromSchema<typeof catalogSource>['catalog'][],
   ): Promise<
     Pick<TaskGraphOutputs['tasks.runGraph']['call'], 'invocationId' | 'instructionId' | 'runId'>
   >;

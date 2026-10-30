@@ -1,5 +1,23 @@
 # 实际交付与交接
 
+## 题录任务来源与受理窗口修复（2026-10-30）
+
+主线接收c1fb988为c7d97a8并完成3.1，当前4/12。TaskLink增加只带libraryId/sourceId的library-source，含题录的原输入快照使用v2并准确保存version/revision；纯材料仍v1。题录元数据不冒充正文或附件Evidence，真实后补附件仍归原source。宿主经原broker status/get读取，Task UI分页选择及详情有界，版本变化需重新明确选择；源码／作者首败／实际5项题录及4项双宿主结果在`workers/research-task-workspace/RESULT.md`。
+
+独立审查发现P1：快照后的题录复核与真实科研最终受理间仍有异步窗口。主线新增真实KernelApplication／broker／TaskGraphs／research／harness回归，在原executions查询回执处仅控制时机：撤read和send时旧实现均实际受理；revision首轮误用测试字段expectedRevision而invalidRequest，修为原revision后亦实际受理，原首败分别保留`task-admission-red.log`与`task-admission-red-revision.log`。没有把测试调用错误计为业务红例。
+
+修复沿design的私有题录指针与原graphAdmissions组合guard，在harness.send指令事务前同步重验原库身份、read/send及准确source版本／修订；不改公共wire，不伪造Evidence或提升身份。主线重建protocol／projects／kernel后，三类竞态及原Task准入保护4/4通过（24.6秒）；测试gate改用项目现有ES目标支持的Promise构造后，最终三类竞态3/3通过（16.6秒）。初次tools类型不支持Promise.withResolvers的失败保留，最终工具类型、Biome及架构均exit0。另在修复前主线原题录5/5通过，不能将它当P1已覆盖。
+
+gpt-6.1-sol/high独立复核新四文件及最终事务调用链，无确证P1/P2，实际重验由主线执行；该复核没有重跑测试，历史幂等仅返回原受理结果，不新增请求。新输入和TMPDIR在`/home/joshua/.cache/scholoom-closeout-execution-20261030/`，无/tmp接续依赖；相关构建和测试日志均以task-admission命名。正式综合图、过程导航及科研内容验收保持未完成，不把v2数据结构存在当业务图已消费。
+
+## 精确角色保存接收（2026-10-30）
+
+主线接收4da53e为cfb37a7，完成4.1，当前3/12。原project.artifacts增加可选精确item选择器，直接查原run/file主键并核session，仍返回0/1个原Artifact；无选择器的原列表及其100项上限保持。真实科研查询保原身份，人工走research，execution复用现有harness语义适配；原活动实例、read/send、targetRead和报告历史联合来源授权不变。
+
+roleResults交付分别核FileEdit的准确after Evidence及可信execution来源、原run/file持久关联、原basis完整非空读回；缺edit、wrong run、人工来源、旧before或关联未确认均不补绿，人工后改不抹掉已核历史保存，也不改读新版本。原creation路径保持。gpt-6.1-sol/high独立审查九文件及直接提供者无确证P1/P2，历史裁剪等部分组合仅静态核查的限度保留于作者RESULT末节。
+
+作者真实新代表2项分次通过，旧creation／ordinary报告回归3/3、契约2/2，受影响构建／类型／格式／架构通过；主线共享整合构建exit0并实跑两项角色保存2/2（40.0秒）。主线日志为本轮根`merge-shared-build.log`及`role-save-main-tests.log`，作者原首败／命令／内部真实及替身边界在`workers/project-execution/RESULT.md`及其`task4.1-20261030/`。没有新科研模型请求，程序Linux签收已归其独立归档change，不混作综合图完成。下方计数及“只有共同字段”是此前接收截点，当前以本节及后续记录为准。
+
 ## 长UTF8范围交付（2026-10-30）
 
 主线接收858c529为16857db，完成任务1.2；共同字段1.1与本项合计2/12，其他实施仍进行中。`ResourceAccess.read`沿原base64领域端口取得最多8MiB原始字节的同依据快照，严格UTF8解码后按原UTF16位置切片，返回真实size与nextOffset；不再把256KiB前缀当全文。非法／未闭合编码、NUL和超限明确拒绝，base64原字节语义保持，分片前后和返回前复核取消、身份、basis及read/send。

@@ -201,6 +201,7 @@ export class TaskGraphs {
           text: read.content,
         },
         context,
+        sources.flatMap((source) => ('catalog' in source ? [source.catalog] : [])),
       );
     } catch (error) {
       throw new OperationError(

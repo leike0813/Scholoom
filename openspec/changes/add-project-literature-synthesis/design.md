@@ -93,6 +93,8 @@ TaskLink.target 增 `library-source`，字段为 `libraryId`／`sourceId`；原�
 
 原v1输入快照保持可读。新增v2快照供含题录来源的输入，`sources`每项为 `{linkId,evidence}` 或 `{linkId,catalog:{libraryId,sourceId,version,revision}}`，不保存第二份题录正文；材料条件由图按原题录及当前附件实际核查。纯旧材料输入继续v1。TaskGraphs只把真实资源Evidence和快照交给原科研请求。
 
+题录核查须持续到真实科研受理的同步事务边界，不能只在调用research.start前异步复核。TaskResearchPort.start的私有TypeScript接缝另接原v2 schema派生的题录指针数组；它不进入公共wire或materials。可信宿主为本次调用创建独立signal，把按原libraryId／sourceId核read/send及准确version／revision的同步guard绑定到原graphAdmissions，request.authorize捕获并与资源检查组合，最终沿既有harness.send事务前guard执行。各层finally仅清理自己的signal键，取消继续传播；没有第二份题录、权限缓存或可恢复许可。人工仍保原product／human身份，原库权威负责同步检查。
+
 图读取快照及当前入口，使用现有Agent任务read／save工具和CAS关联报告／真实过程。调用指针继续保留其原职责；不能充当研究过程。入口冲突不回滚文件、不自动完成任务，明确留待补关系；新会话先读导航、原文件和当前来源，不能依赖旧聊天／临时区。元数据任务来源的人工增加及导航接入原任务详情，不另设科研布局。
 
 ### 精确保存、关联与会话呈现

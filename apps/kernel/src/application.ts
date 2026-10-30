@@ -184,6 +184,7 @@ export class KernelApplication extends ManualApplication {
           },
           request: {
             authorize: async (input, context) => {
+              const taskCheck = context.signal && this.graphAdmissions.get(context.signal);
               const resources = this.instructionResources({
                 moduleId: 'harness',
                 role: 'host',
@@ -206,7 +207,10 @@ export class KernelApplication extends ManualApplication {
                     current.unavailableReason ?? '科研材料当前不可读。',
                   );
               }
-              return () => resources.check(input.materials);
+              return () => {
+                resources.check(input.materials);
+                taskCheck?.();
+              };
             },
             start: async (input, context, check) => {
               const signal = AbortSignal.any(context.signal ? [context.signal] : []);
@@ -391,8 +395,29 @@ export class KernelApplication extends ManualApplication {
             ...(result.nextOffset === undefined ? {} : { nextOffset: result.nextOffset }),
           };
         },
-        start: (input, context) =>
-          this.modulePort(context, 'projects').call('research.requestGraph', input),
+        start: async (input, context, catalog = []) => {
+          const signal = AbortSignal.any(context.signal ? [context.signal] : []);
+          const sources = structuredClone(catalog);
+          const check = () => {
+            signal.throwIfAborted();
+            for (const item of sources) {
+              this.library.checkSelection(item);
+              const current = this.library.get(item.sourceId);
+              if (current.version !== item.version || current.revision !== item.revision)
+                throw new OperationError('contentChanged', '任务题录在科研受理期间已变化。');
+            }
+          };
+          check();
+          this.graphAdmissions.set(signal, check);
+          try {
+            return await this.modulePort({ ...context, signal }, 'projects').call(
+              'research.requestGraph',
+              input,
+            );
+          } finally {
+            this.graphAdmissions.delete(signal);
+          }
+        },
       }
     );
   }

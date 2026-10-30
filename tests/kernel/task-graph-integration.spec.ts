@@ -18,6 +18,99 @@ test('the default task research port discovers the actual registered graph', asy
   }
 });
 
+for (const change of ['read', 'send', 'revision'] as const) {
+  test(`catalog ${change} changes during real research admission refuse the original task start`, async () => {
+    const f = await taskGraphIntegration(test.info().outputPath('catalog-admission'));
+    let reach = () => {};
+    let resume = () => {};
+    const reached = new Promise<void>((resolve) => {
+      reach = resolve;
+    });
+    const released = new Promise<void>((resolve) => {
+      resume = resolve;
+    });
+    const executions = f.app.harness.executions.bind(f.app.harness);
+    let held = false;
+    let pending: Promise<unknown> | undefined;
+    try {
+      const batch = await f.app.call('library.ingest', {
+        batchId: randomUUID(),
+        origin: 'catalog-admission',
+        version: 'published',
+        json: JSON.stringify([{ title: 'Catalog-only admission source' }]),
+      });
+      await expect
+        .poll(async () => (await f.app.call('library.batch', { batchId: batch.id })).batch.state)
+        .toBe('completed');
+      const sourceId = (await f.app.call('library.batch', { batchId: batch.id })).entries[0]
+        ?.sourceId;
+      assert(sourceId);
+      const source = await f.app.call('library.get', { sourceId });
+      const libraryId = (await f.app.call('library.status', {})).id;
+      const saved = await f.app.call('tasks.save', {
+        task: f.input.task,
+        basis: f.read.entry.basis,
+        content: `---\n${JSON.stringify({ ...f.metadata, links: [{ id: 'catalog', role: 'source', workItemId: 'comparison', target: { kind: 'library-source', libraryId, sourceId }, basis: source.version }] })}\n---\n\nCompare the selected catalog source.\n`,
+      });
+      const input = { ...f.input, basis: saved.entry.basis, sourceLinkIds: ['catalog'] };
+      f.app.harness.executions = async (query) => {
+        const result = await executions(query);
+        if (!held && query.instructionId === input.instructionId) {
+          held = true;
+          reach();
+          await released;
+        }
+        return result;
+      };
+      pending = f.app.call('tasks.runGraph', input);
+      void pending.catch(() => {});
+      await reached;
+      if (change === 'revision') {
+        await f.app.call('library.update', {
+          sourceId,
+          revision: source.revision,
+          metadata: { ...source.metadata, title: 'Changed during admission' },
+          tags: source.tags,
+          collectionIds: source.collectionIds,
+          relatedIds: source.relatedIds,
+        });
+      } else {
+        await f.app.call('library.grant', {
+          read: change !== 'read',
+          send: change !== 'send',
+          write: true,
+          autoBackup: false,
+        });
+      }
+      resume();
+      await expect(pending).rejects.toMatchObject({
+        code: change === 'revision' ? 'contentChanged' : 'permissionDenied',
+      });
+      expect(
+        (
+          await executions({
+            projectId: f.project.id,
+            sessionId: input.sessionId,
+            instructionId: input.instructionId,
+            limit: 1,
+          })
+        ).runs,
+      ).toEqual([]);
+      expect(
+        await f.app.call('resources.creation', {
+          projectId: f.project.id,
+          operationId: `${input.processOperationId}_input`,
+        }),
+      ).toMatchObject({ state: 'complete' });
+    } finally {
+      resume();
+      await pending?.catch(() => {});
+      f.app.harness.executions = executions;
+      await f.app.close();
+    }
+  });
+}
+
 test('default task admission preserves the research subject, trust, send and capacity guards', async () => {
   const info = test.info();
   const f = await taskGraphIntegration(info.outputPath('i1'));
