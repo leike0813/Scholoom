@@ -131,6 +131,57 @@ export class KernelApplication extends ManualApplication {
             context.role === 'execution'
               ? this.executionResources(context).read(input)
               : this.modulePort(context, 'research').call('resources.read', input),
+          verifySave: async ({ projectId, sessionId, run, result }, context) => {
+            const unknown = { saved: 'unknown' as const, associated: false };
+            const { ref, basis } = result.resource;
+            if (
+              ref.source !== 'project' ||
+              ref.projectId !== projectId ||
+              run.sessionId !== sessionId
+            )
+              return unknown;
+            this.checkFileHistoryContext(context);
+            const port = this.modulePort(
+              context,
+              context.role === 'execution' ? 'harness' : 'research',
+            );
+            await port.call('project.check', { projectId, access: 'read' });
+            const linked = await port.call('project.artifacts', {
+              projectId,
+              sessionId,
+              item: { runId: run.id, fileId: ref.fileId },
+            });
+            const associated = linked.some(
+              (item) =>
+                item.runId === run.id && item.fileId === ref.fileId && item.state === 'linked',
+            );
+            if (!result.editId) return { ...unknown, associated };
+            let edit: BusinessOutputs['files.edit'];
+            try {
+              edit = await port.call('files.edit', {
+                projectId,
+                fileId: ref.fileId,
+                editId: result.editId,
+              });
+            } catch (error) {
+              if (error instanceof OperationError && error.code === 'notFound')
+                return { ...unknown, associated };
+              throw error;
+            }
+            const origin = edit.origin;
+            const saved =
+              edit.id === result.editId &&
+              edit.fileId === ref.fileId &&
+              edit.afterEvidence?.basis === basis &&
+              isDeepStrictEqual(edit.afterEvidence.ref, ref) &&
+              origin?.kind === 'execution' &&
+              origin.projectId === projectId &&
+              origin.sessionId === sessionId &&
+              origin.principal.id === sessionId &&
+              origin.runId === run.id &&
+              Boolean(origin.instanceId);
+            return { saved: saved ? 'confirmed' : 'unknown', associated };
+          },
           request: {
             authorize: async (input, context) => {
               const resources = this.instructionResources({

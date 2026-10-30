@@ -9,14 +9,16 @@ import { InstructionSaver, openCheckpoint } from '../../packages/harness/dist/no
 import type { ResearchGraphStart } from '../../packages/protocol/dist/research.js';
 import { graphArtifactOperation } from '../../packages/research/dist/node.js';
 
-async function fixture(withLibrary = false) {
-  // @ts-expect-error Source-only calibration fixture, shared by catalog and worker.
-  const { description, graphs } = await import('../fixtures/research-graph-worker/graphs.mjs');
+async function fixture(withLibrary = false, withUpdates = false) {
+  const { description, updateDescription, graphs } = await import(
+    // @ts-expect-error Source-only calibration fixture, shared by catalog and worker.
+    '../fixtures/research-graph-worker/graphs.mjs'
+  );
   const root = await mkdtemp(join(tmpdir(), 'scholoom-research-graphs-'));
   const profile = join(root, 'profile');
   const options = {
     environment: {},
-    researchGraphs: [description],
+    researchGraphs: withUpdates ? [updateDescription] : [description],
     executionGraphs: graphs,
     workerEntry: new URL('../fixtures/research-graph-worker/worker.mjs', import.meta.url),
   };
@@ -79,7 +81,7 @@ async function fixture(withLibrary = false) {
       materials,
       text: 'Run the source-defined calibration and wait for confirmation.',
     };
-    return { app, profile, options, project, description, scope, input };
+    return { app, profile, options, project, description, updateDescription, scope, input };
   } catch (error) {
     await app.close();
     throw error;
@@ -120,6 +122,231 @@ async function waitFor(app: KernelApplication, input: ResearchGraphStart, state:
     )
     .toBe(state);
 }
+
+test('role save verifies the exact update beyond the artifact list and retains history after a human edit', async () => {
+  const f = await fixture(false, true);
+  let app = f.app;
+  try {
+    await app.call('files.save', {
+      projectId: f.project.id,
+      path: 'report.md',
+      content: 'Original report',
+    });
+    const before = await app.call('resources.describe', {
+      locator: { source: 'project', projectId: f.project.id, path: 'report.md' },
+    });
+    const store = app.projects.get(f.project.id);
+    for (let i = 0; i < 101; i++)
+      store.linkArtifact(f.scope.sessionId, {
+        runId: `old-${i}`,
+        fileId: `old-${i}`,
+        path: `old-${i}.md`,
+        state: 'linked',
+      });
+    f.input.graphId = f.updateDescription.definition.graphId;
+    const receipt = await requestGraph(app, f.input);
+    await waitFor(app, f.input, 'completed');
+    const original = await graphCall(app, f.input);
+    expect(original.executions[0]?.check).toEqual({
+      delivery: 'usable',
+      researchAssessment: 'notAssessed',
+      issues: [],
+    });
+    const result = original.executions[0]?.run.graphProgress?.evidence.roleResults?.[0]?.result;
+    assert(result?.editId && result.resource.ref.source === 'project');
+    expect(result.resource.ref).toEqual(before.ref);
+    expect(result.resource.basis).not.toBe(before.basis);
+    const edit = await app.call('files.edit', {
+      projectId: f.project.id,
+      fileId: result.resource.ref.fileId,
+      editId: result.editId,
+    });
+    expect(edit).toMatchObject({
+      beforeEvidence: { ref: before.ref, basis: before.basis },
+      afterEvidence: { ref: result.resource.ref, basis: result.resource.basis },
+      origin: { kind: 'execution', ...f.scope, runId: receipt.runId },
+    });
+    assert(edit.origin?.kind === 'execution' && edit.origin.instanceId);
+    expect(store.artifacts(f.scope.sessionId)).toHaveLength(100);
+    expect(store.artifacts(f.scope.sessionId).some((item) => item.runId === receipt.runId)).toBe(
+      false,
+    );
+    const port = app.harnessProject({
+      moduleId: 'harness',
+      role: 'product',
+      principal: { kind: 'human', id: 'test' },
+    });
+    const item = { runId: receipt.runId, fileId: result.resource.ref.fileId };
+    expect(await port['project.artifacts']({ ...f.scope, item })).toMatchObject([
+      { ...item, state: 'linked' },
+    ]);
+    const other = await app.call('session.create', { projectId: f.project.id });
+    expect(await port['project.artifacts']({ ...f.scope, sessionId: other.id, item })).toEqual([]);
+    await expect(
+      port['project.artifacts']({ ...f.scope, item: { runId: receipt.runId } } as never),
+    ).rejects.toMatchObject({ code: 'invalidRequest' });
+    await app.close();
+    app = new KernelApplication(f.profile, f.options);
+    await app.initialize();
+    expect((await graphCall(app, f.input)).executions[0]?.check.delivery).toBe('usable');
+    await app.call('resources.save', {
+      ref: result.resource.ref,
+      basis: result.resource.basis,
+      content: 'Later human revision',
+    });
+    const later = await graphCall(app, f.input);
+    expect(later.executions[0]?.check).toMatchObject({
+      delivery: 'incomplete',
+      issues: [{ code: 'artifactUnavailable', role: 'report' }],
+    });
+    expect(later.executions[0]?.run.graphProgress?.evidence.roleResults?.[0]?.result).toEqual(
+      result,
+    );
+    expect(await readFile(join(f.project.path, 'report.md'), 'utf8')).toBe('Later human revision');
+    expect(app.projects.get(f.project.id).history('report.md')).toHaveLength(3);
+  } finally {
+    await app.close();
+  }
+});
+
+test('role save keeps unknown association and rejects missing, before-side and other-run save evidence', async () => {
+  const f = await fixture(false, true);
+  try {
+    await f.app.call('files.save', {
+      projectId: f.project.id,
+      path: 'report.md',
+      content: 'Original report',
+    });
+    const before = await f.app.call('resources.describe', {
+      locator: { source: 'project', projectId: f.project.id, path: 'report.md' },
+    });
+    f.input.graphId = f.updateDescription.definition.graphId;
+    const store = f.app.projects.get(f.project.id);
+    store.database.exec(
+      "CREATE TRIGGER reject_role_association BEFORE INSERT ON artifacts BEGIN SELECT RAISE(ABORT, 'synthetic association failure'); END",
+    );
+    await requestGraph(f.app, f.input);
+    await waitFor(f.app, f.input, 'completed');
+    const first = await graphCall(f.app, f.input);
+    const old = first.executions[0]?.run.graphProgress?.evidence.roleResults?.[0]?.result;
+    assert(old?.editId);
+    expect(first.executions[0]?.check.issues).toEqual([
+      { code: 'associationIncomplete', role: 'report' },
+    ]);
+    store.database.exec('DROP TRIGGER reject_role_association');
+    expect((await graphCall(f.app, f.input)).executions[0]?.check.issues).toEqual(
+      first.executions[0]?.check.issues,
+    );
+    const next = { ...f.input, invocationId: randomUUID(), instructionId: randomUUID() };
+    const receipt = await requestGraph(f.app, next);
+    await waitFor(f.app, next, 'completed');
+    const second = (await graphCall(f.app, next)).executions[0];
+    assert(second?.run.graphProgress);
+    const result = second.run.graphProgress.evidence.roleResults?.[0]?.result;
+    assert(result?.editId);
+    assert(result.resource.ref.source === 'project');
+    const editScope = { projectId: f.project.id, fileId: result.resource.ref.fileId };
+    const currentEdit = await f.app.call('files.edit', { ...editScope, editId: result.editId });
+    const oldEdit = await f.app.call('files.edit', { ...editScope, editId: old.editId });
+    expect(currentEdit.after).toBe(oldEdit.after);
+    expect(second.check.delivery).toBe('usable');
+    expect((await graphCall(f.app, f.input)).executions[0]?.check.issues).toEqual([
+      { code: 'associationIncomplete', role: 'report' },
+      { code: 'artifactUnavailable', role: 'report' },
+    ]);
+    const human = await f.app.call('files.save', {
+      projectId: f.project.id,
+      path: 'report.md',
+      basis: (await f.app.call('files.read', { projectId: f.project.id, path: 'report.md' })).basis,
+      content: 'Later human revision',
+    });
+    const humanResource = await f.app.call('resources.describe', {
+      locator: { source: 'project', projectId: f.project.id, path: 'report.md' },
+    });
+    const { editId: _editId, ...missingId } = result;
+    for (const candidate of [
+      missingId,
+      { ...result, editId: 'missing-history' },
+      { ...result, resource: before },
+      old,
+      { resource: humanResource, editId: human.id },
+    ]) {
+      const run = structuredClone(second.run);
+      assert(run.graphProgress);
+      run.graphProgress.evidence.roleResults = [{ role: 'report', result: candidate }];
+      store.database
+        .prepare('UPDATE runs SET value = ? WHERE id = ?')
+        .run(JSON.stringify(run), receipt.runId);
+      const view = await graphCall(f.app, next);
+      expect(view.executions[0]?.check.delivery).toBe('incomplete');
+      expect(view.executions[0]?.check.issues).toContainEqual({
+        code: 'artifactMissing',
+        role: 'report',
+      });
+    }
+    store.database
+      .prepare('UPDATE runs SET value = ? WHERE id = ?')
+      .run(JSON.stringify(second.run), receipt.runId);
+    const resources = f.app.executionResources.bind(f.app);
+    let authorizationChecked = false;
+    f.app.executionResources = (context) => {
+      const port = resources(context);
+      return {
+        ...port,
+        save: async (input) => {
+          const query = (scope = context) =>
+            f.app
+              .researchTools(scope)
+              ['research.graphCalls']({ ...f.scope, invocationId: next.invocationId });
+          const authorized = await query();
+          expect(authorized.calls[0]?.executions[0]?.check.issues).not.toContainEqual({
+            code: 'artifactMissing',
+            role: 'report',
+          });
+          for (const [scope, code] of [
+            [{ ...context, instanceId: 'wrong-instance' }, 'instanceMismatch'],
+            [{ ...context, runId: 'wrong-run' }, 'instanceMismatch'],
+            [
+              {
+                ...context,
+                targetRead: { targetProjectId: 'other-project', access: 'read' as const },
+              },
+              'permissionDenied',
+            ],
+          ] as const) {
+            const denied = await query(scope);
+            expect(denied.calls[0]?.error?.code).toBe(code);
+            expect(denied.calls[0]?.executions[0]?.check.issues).toContainEqual({
+              code: 'artifactMissing',
+              role: 'report',
+            });
+          }
+          await f.app.call('project.grant', {
+            projectId: f.project.id,
+            trust: 'restricted',
+            autoBackup: false,
+          });
+          const denied = await query();
+          expect(denied.calls[0]?.error?.code).toBe('permissionDenied');
+          expect(denied.calls[0]?.executions[0]?.check.issues).toContainEqual({
+            code: 'artifactMissing',
+            role: 'report',
+          });
+          authorizationChecked = true;
+          return port.save(input);
+        },
+      };
+    };
+    const blocked = { ...next, invocationId: randomUUID(), instructionId: randomUUID() };
+    await requestGraph(f.app, blocked);
+    await waitFor(f.app, blocked, 'failed');
+    expect(authorizationChecked).toBe(true);
+    expect(await readFile(join(f.project.path, 'report.md'), 'utf8')).toBe('Later human revision');
+    expect(store.history('report.md')).toHaveLength(4);
+  } finally {
+    await f.app.close();
+  }
+});
 
 test('research graph reads project and managed library text, waits and delivers after a normal message', async () => {
   const f = await fixture(true);

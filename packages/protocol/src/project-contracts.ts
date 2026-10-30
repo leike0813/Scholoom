@@ -318,7 +318,10 @@ export const projectHarnessOperations = {
     semantics: { effect: 'read', returns: 'result', waitMs: 5000 },
   },
   'project.artifacts': {
-    params: object(session, ['projectId', 'sessionId']),
+    params: object({ ...session, item: object({ runId: id, fileId: id }, ['runId', 'fileId']) }, [
+      'projectId',
+      'sessionId',
+    ]),
     result: array(artifactSchema),
     semantics: { effect: 'read', returns: 'result', waitMs: 5000 },
   },

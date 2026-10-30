@@ -407,9 +407,9 @@ export class ManualApplication {
         return this.projects.get(projectId).files.revision;
       },
       'projects.list': () => this.projects.list(),
-      'project.artifacts': ({ projectId, sessionId }, context) => {
+      'project.artifacts': ({ projectId, sessionId, item }, context) => {
         this.checkProjectScope(projectId, context);
-        return this.projects.get(projectId).artifacts(sessionId);
+        return this.projects.get(projectId).artifacts(sessionId, item);
       },
       'project.linkArtifact': ({ projectId, sessionId, artifact }, context) => {
         this.checkProjectScope(projectId, context);

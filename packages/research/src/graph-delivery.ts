@@ -10,7 +10,12 @@ import type {
 type Read = ResourceOutputs['resources.read'];
 export type GraphDeliveryChecks = {
   reads: Read[];
-  artifacts: { role: string; result: ResourceSaveResult; read?: Read }[];
+  artifacts: {
+    role: string;
+    result: ResourceSaveResult;
+    read?: Read;
+    save?: { saved: 'confirmed' | 'unknown'; associated: boolean };
+  }[];
 };
 const same = (a: ResourceEvidence, b: ResourceEvidence) =>
   a.basis === b.basis && isDeepStrictEqual(a.ref, b.ref);
@@ -37,17 +42,25 @@ export function assessGraphDelivery(
       issues.push({ code: 'inputNotRead', resource: material });
   for (const role of graph.delivery.roles) {
     const artifact = checks.artifacts.find((item) => item.role === role);
+    const roleResults = progress?.evidence.roleResults;
     const saved =
-      artifact &&
-      progress?.evidence.results.find((result) => same(result.resource, artifact.result.resource));
+      roleResults !== undefined
+        ? artifact?.save?.saved === 'confirmed'
+        : artifact &&
+          progress?.evidence.results.find((result) =>
+            same(result.resource, artifact.result.resource),
+          );
     if (!artifact || !saved) {
       issues.push({ code: 'artifactMissing', role });
-      continue;
+      if (!artifact || roleResults === undefined) continue;
     }
     if (
-      artifact.result.association?.state !== 'confirmed' ||
-      saved.association?.state !== 'confirmed' ||
-      artifact.result.association.operationId !== saved.association.operationId
+      roleResults !== undefined
+        ? !artifact.save?.associated
+        : artifact.result.association?.state !== 'confirmed' ||
+          typeof saved !== 'object' ||
+          saved.association?.state !== 'confirmed' ||
+          artifact.result.association.operationId !== saved.association.operationId
     )
       issues.push({ code: 'associationIncomplete', role });
     if (

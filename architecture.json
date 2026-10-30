@@ -373,6 +373,8 @@
         "harness.startGraph",
         "harness.executions",
         "research.startGraph",
+        "files.edit",
+        "project.artifacts",
         "resources.read"
       ]
     },
