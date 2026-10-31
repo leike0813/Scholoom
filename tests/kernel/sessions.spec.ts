@@ -489,9 +489,10 @@ test('session overrides pin each run while provider defaults only affect later r
       (body?.output_config as { effort?: string } | undefined)?.effort;
 
     const initial = await snap();
-    expect(initial.provider.model).toBe('MiniMax-M3.1-Flash-Preview');
+    expect(initial.provider.model).toBe('MiniMax-M3.1-Flash');
     expect(initial.provider.defaultEffort).toBe('medium');
     expect(initial.provider.models).toEqual([
+      { id: 'MiniMax-M3.1-Flash', supportsEffort: true },
       { id: 'MiniMax-M3.1-Flash-Preview', supportsEffort: true },
       { id: 'MiniMax-M3', supportsEffort: false },
       { id: 'MiniMax-M2.7', supportsEffort: false },

@@ -1,5 +1,13 @@
 # 实际交付与交接
 
+## 模型指定与验收门槛更正（2026-10-31）
+
+用户明确要求使用正式版 `MiniMax-M3.1-Flash`。旧验收的 M2.7 由父线沿用旧脚本硬编码，未落实该要求；历史请求、回包及预算记录原样保留，不能作为指定模型的验收证据。产品目录新增正式 ID 并将其设为出厂默认，沿既有 adaptive thinking／effort 路径发送；已保存的用户选择和原执行身份不被静默覆盖，工作台未读到配置时也不再展示硬编码 Preview。
+
+调查确认生产模型路径未设256KiB整包出站上限，该值仅属于旧验收网关；后续验收取消该值及累计正文4MiB门槛，按实际供应商 HTTP 限额、模型 token 预算及明确的请求／时间／输出范围准备。旧 runner 已停止且不再复用，不事后改写成合格计划。本轮没有新增真实模型请求；6.3／6.4保持未完成。MiniMax token profile 缺失导致约170k tokens默认摘要，完整大窗口适配仍待处理。源码依据与闭源未知范围见[调查](../../../.scratch/scholoom-foundations/research/harness-request-size-and-context-budgets.md)，当前后续约束见design首节；下方旧模型／字节预算仅为历史记录。
+
+验证：models／kernel及desktop构建、models／desktop／tools类型检查、六份源码与测试Biome、architecture（14模块／281文件／0问题）、OpenSpec strict与diff检查通过。`model-access.spec.ts`17/17通过，正式ID／adaptive／effort请求及原配置保全均沿实际适配器接合成HTTP；会话钉入代表在原默认5秒等待下两次超时，临时配置仅将expect等待改30秒后1/1通过（28.2秒），不改产品或测试源码，也不称原命令通过。composer模型代表在浏览器与真实Electron2/2通过（43.0／54.8秒），使用本轮desktop产物、既有静态bootstrap及合成模型，不启动开发服务器。模型模块最终日志、延长等待的原trace和双宿主结果在`/home/joshua/.cache/scholoom-harness-budget-audit-20261031/`；接续不依赖/tmp。未重跑其余UI场景、完整科研验收或大context实测。
+
 ## 有界验收：报告已存，单请求上限停止（2026-10-31）
 
 用户“批准验收”明确授权`synthesis-structured-resume-20261031-6a21fb7b-29x16384-900s-v1`，授权记录在`E/synthesis-structured-resume-prepared/authorization.json`。本轮沿原task／session／run／checkpoint发送一次普通接续，实际证据为同目录`run-PJb56j/`。3次真实HTTP全部200完整，实际请求正文分别194,416／234,905／237,094字节，共666,415字节，回包model均标记MiniMax-M2.7；这不证明供应商后端版本。第4次因正文超过单次262,144字节被本地网关拒绝，未外发；`gateway-audit.json`明确stopped=request-too-large、rejected=1，不是新的JSON解析等待。runner的通用“Incomplete/waiting”断言和停止前state=running不能当作最终状态。

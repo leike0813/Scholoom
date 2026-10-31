@@ -1,5 +1,11 @@
 # 实现设计
 
+## 当前验收模型与上下文边界
+
+用户于2026-10-31明确指定正式版 `MiniMax-M3.1-Flash`，后续真实验收必须使用该精确 ID；父线旧 runner 的 M2.7 硬编码不满足该要求。旧执行的模型与 checkpoint 保持原始事实，不能改写配置后将同一执行称为 Flash 验收。下一次验收需另行准备符合当前模型选择及原成果保全要求的入口。
+
+取消后续验收通用的单请求256KiB及累计正文4MiB门槛；它们来自旧验收网关，不是产品或模型要求。保留明确约定的请求次数、时间、输出预算及停止条件，另遵守供应商真实 HTTP 限额和模型 token 窗口；不将文件／工具／诊断上限混作整包请求上限。当前 MiniMax token profile 尚未接入，默认约170k tokens摘要的限制另行处理，不宣称已经利用800k以上context。证据与比较见[调查](../../../.scratch/scholoom-foundations/research/harness-request-size-and-context-budgets.md)。本节不授权新的付费运行，旧已消耗授权不复用。
+
 ## 节点输出校验与旧状态接续
 
 2026-10-31原run继续后的综合职责又返回普通说明而非节点结果，保存过程后安全等待。仅靠提示和文本解析不足以要求交付；本轮沿已装LangChain／deepagents的toolStrategy提供可信源码选择的responseFormat，schema由同一nodeOutput生成，最终仍由业务图严格核对。selection不进入公共Graph配置、不扩大领域工具，虚拟结果工具由SDK消费，不派发execution.custom；无格式时普通Agent保持原路径。SDK解析错误关闭其自动重试；完整consumer返回后，业务图对无效文本结果只纠正一次：原消息／指令通道与outputCorrection先在父图持久保存，再路由同一职责的新consumer，经正常beforeModel和完整子checkpoint消费确认后才请求模型。纠正不重放已保存职责，不绕过新指令；再次无效沿原delivery-wait等待。有效结果清除此标记，纠正消耗既有12次职责迭代及共享模型预算，取消和授权路径保持。

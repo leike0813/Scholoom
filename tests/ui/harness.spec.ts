@@ -257,7 +257,7 @@ test('user configures, edits safely and receives a real persisted Agent result',
         .getByRole('article', { name: 'Agent 回复' })
         .filter({ hasText: '分析已保存到 result.md' }),
     ).toBeVisible();
-    await expect(uiPage.getByLabel('执行上下文')).toContainText('MiniMax-M3.1-Flash-Preview');
+    await expect(uiPage.getByLabel('执行上下文')).toContainText('MiniMax-M3.1-Flash');
     await expect(uiPage.getByLabel('执行上下文')).toContainText('已信任项目');
     const readTool = uiPage.locator('details.tool-call').filter({ hasText: 'read_file' });
     await readTool.locator('summary').click();

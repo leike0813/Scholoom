@@ -375,7 +375,7 @@ export function ProjectControls({
   const model = (
     <details>
       <summary>模型设置</summary>
-      <p>MiniMax M Plan 中国区 · {provider?.model ?? 'MiniMax-M3.1-Flash-Preview'}</p>
+      <p>MiniMax M Plan 中国区 · {provider?.model ?? '正在读取模型配置'}</p>
       <p role="status">
         {provider?.configured
           ? `已配置 · ${provider.source === 'saved' ? '本机凭据' : '环境变量'}`

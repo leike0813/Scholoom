@@ -382,7 +382,9 @@ Agent 的 `read_workbench_context` 工具按本次推进已注入的指令查询
 
 内核代码不会热替换。独立驻留实例在实现更新后需重启；调试内核需结束全部调试宿主，下一轮调试才加载新构建。工作台重连接回原实例。
 
-在“模型设置”填写 MiniMax M Plan 中国区订阅 Key 即可；连接固定使用 `https://api.minimax.cn/anthropic`，不回退到其他接收方。当前模型目录由内核下发：`MiniMax-M3.1-Flash-Preview`、`MiniMax-M3`、`MiniMax-M2.7`、`MiniMax-M2.7-highspeed`；出厂默认仍为 `MiniMax-M3.1-Flash-Preview` 与 `medium` 推理强度。设置页保存应用默认，composer 保存会话覆盖或“跟随默认”；只有 `MiniMax-M3.1-Flash-Preview` 发送 `output_config.effort`，可选 `low/medium/high/xhigh/max`。目录外选择直接拒绝，不静默回退；每次新执行钉入并记录实际模型配置。也可在启动独立内核前注入 `MINIMAX_CN_API_KEY`；保存的凭据优先。环境变化需要重启内核才会继承，当前请求保留原凭据。不要将 Key 写入项目或命令参数。
+在“模型设置”填写 MiniMax M Plan 中国区订阅 Key 即可；连接固定使用 `https://api.minimax.cn/anthropic`，不回退到其他接收方。当前模型目录由内核下发：`MiniMax-M3.1-Flash`、`MiniMax-M3.1-Flash-Preview`、`MiniMax-M3`、`MiniMax-M2.7`、`MiniMax-M2.7-highspeed`；出厂默认是正式版 `MiniMax-M3.1-Flash` 与 `medium` 推理强度。设置页保存应用默认，composer 保存会话覆盖或“跟随默认”；正式版与 Preview 的 Flash 发送 `output_config.effort`，可选 `low/medium/high/xhigh/max`。已保存的默认值、会话覆盖和原执行配置保持显式选择，不随出厂默认变化自动迁移；保留旧 ID 不保证供应商仍提供服务。目录外选择直接拒绝，不静默回退；每次新执行钉入并记录实际模型配置。也可在启动独立内核前注入 `MINIMAX_CN_API_KEY`；保存的凭据优先。环境变化需要重启内核才会继承，当前请求保留原凭据。不要将 Key 写入项目或命令参数。
+
+模型出站请求没有统一的正文小字节上限；供应商 HTTP 限额、模型 token 窗口与输出预留分别适用。当前 MiniMax 尚未注入模型 token profile，deepagents 沿用约 170,000 tokens 的默认摘要触发值，不能据模型标称 1M 窗口承诺已利用 800k 以上上下文。核查版本、上游依据及验收网关历史限制见[请求大小调查](../.scratch/scholoom-foundations/research/harness-request-size-and-context-budgets.md)。
 
 本机 `credentials/` 保存 AES-256-GCM 密文、独立主密钥与模型默认配置，POSIX 目录／文件权限为 0700／0600，Windows 使用当前用户 ACL。系统不回读 Key，不通过静态服务、项目工具或普通诊断暴露它。主密钥同机自动解锁，不能抵御同权限进程；凭据或默认配置损坏时保留现场，不自动覆盖。
 

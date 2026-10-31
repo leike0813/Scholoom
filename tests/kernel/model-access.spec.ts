@@ -325,9 +325,10 @@ test('status exposes the model catalog, effort levels and factory defaults', asy
   const { access: model, cleanup } = await access(server.url);
   try {
     const status = await model.status();
-    expect(status.model).toBe('MiniMax-M3.1-Flash-Preview');
+    expect(status.model).toBe('MiniMax-M3.1-Flash');
     expect(status.defaultEffort).toBe('medium');
     expect(status.models).toEqual([
+      { id: 'MiniMax-M3.1-Flash', supportsEffort: true },
       { id: 'MiniMax-M3.1-Flash-Preview', supportsEffort: true },
       { id: 'MiniMax-M3', supportsEffort: false },
       { id: 'MiniMax-M2.7', supportsEffort: false },
@@ -348,12 +349,12 @@ test('capable models send the selected effort with adaptive thinking', async () 
   try {
     await (
       await model.create(undefined, undefined, {
-        model: 'MiniMax-M3.1-Flash-Preview',
+        model: 'MiniMax-M3.1-Flash',
         effort: 'high',
       })
     ).invoke('合成请求');
     const body = server.bodies.at(-1);
-    expect(body?.model).toBe('MiniMax-M3.1-Flash-Preview');
+    expect(body?.model).toBe('MiniMax-M3.1-Flash');
     expect((body?.output_config as { effort?: string } | undefined)?.effort).toBe('high');
     expect(body?.thinking).toMatchObject({ type: 'adaptive' });
   } finally {

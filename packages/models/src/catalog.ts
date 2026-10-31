@@ -12,13 +12,18 @@ export type {
 export const minimaxEndpoint = 'https://api.minimax.cn/anthropic';
 export const minimaxEfforts = effortSchema.enum;
 export const minimaxModels: readonly ModelOption[] = [
+  { id: 'MiniMax-M3.1-Flash', supportsEffort: true },
   { id: 'MiniMax-M3.1-Flash-Preview', supportsEffort: true },
   { id: 'MiniMax-M3', supportsEffort: false },
   { id: 'MiniMax-M2.7', supportsEffort: false },
   { id: 'MiniMax-M2.7-highspeed', supportsEffort: false },
 ];
 export const factoryDefaults: ModelDefaults = {
-  model: 'MiniMax-M3.1-Flash-Preview',
+  model: 'MiniMax-M3.1-Flash',
   effort: 'medium',
 };
-export const adaptiveThinking = new Set(['MiniMax-M3.1-Flash-Preview', 'MiniMax-M3']);
+export const adaptiveThinking = new Set([
+  'MiniMax-M3.1-Flash',
+  'MiniMax-M3.1-Flash-Preview',
+  'MiniMax-M3',
+]);

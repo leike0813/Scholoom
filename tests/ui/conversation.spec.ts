@@ -326,7 +326,7 @@ test('composer model and effort overrides follow defaults, persist and reach rea
     await input.fill('MODEL_CHAT 默认配置');
     await uiPage.getByRole('button', { name: '发送指令', exact: true }).click();
     await expect.poll(() => model.requests.length).toBe(1);
-    expect(body().model).toBe('MiniMax-M3.1-Flash-Preview');
+    expect(body().model).toBe('MiniMax-M3.1-Flash');
     expect(effortOf()).toBe('low');
 
     // 会话覆盖推理强度，dock 与 overlay 一致显示；overlay 入口直接显示当前值。
@@ -334,14 +334,12 @@ test('composer model and effort overrides follow defaults, persist and reach rea
     await option('推理强度', 'high').click();
     await expect(option('推理强度', 'high')).toBeChecked();
     await uiPage.getByRole('button', { name: '展开 Agent 会话' }).click();
-    await expect(uiPage.getByLabel(/^模型与推理强度：/)).toContainText(
-      'MiniMax-M3.1-Flash-Preview · high',
-    );
+    await expect(uiPage.getByLabel(/^模型与推理强度：/)).toContainText('MiniMax-M3.1-Flash · high');
     await uiPage.getByRole('button', { name: '收起会话', exact: true }).click();
     await input.fill('MODEL_CHAT 会话覆盖');
     await uiPage.getByRole('button', { name: '发送指令', exact: true }).click();
     await expect.poll(() => model.requests.length).toBe(2);
-    expect(body().model).toBe('MiniMax-M3.1-Flash-Preview');
+    expect(body().model).toBe('MiniMax-M3.1-Flash');
     expect(effortOf()).toBe('high');
 
     // 重载后覆盖保留。
@@ -382,7 +380,7 @@ test('composer model and effort overrides follow defaults, persist and reach rea
     await input.fill('MODEL_CHAT 回到默认');
     await uiPage.getByRole('button', { name: '发送指令', exact: true }).click();
     await expect.poll(() => model.requests.length).toBe(4);
-    expect(body().model).toBe('MiniMax-M3.1-Flash-Preview');
+    expect(body().model).toBe('MiniMax-M3.1-Flash');
     expect(effortOf()).toBe('low');
   } finally {
     await stop();
