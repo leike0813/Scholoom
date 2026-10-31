@@ -1,6 +1,12 @@
 import { ChatAnthropic } from '@langchain/anthropic';
 import type { ModelDescriptor } from '@scholoom/protocol/models';
-import { adaptiveThinking } from './catalog.js';
+import { adaptiveThinking, minimaxTokenLimits } from './catalog.js';
+
+class MiniMaxChatAnthropic extends ChatAnthropic {
+  override get profile() {
+    return { ...minimaxTokenLimits[this.model], ...super.profile };
+  }
+}
 
 export interface ModelBudget {
   readonly consume: () => void;
@@ -21,7 +27,7 @@ export function createExecutionModel(
   signal: AbortSignal,
   admission: ModelAdmission,
 ): ChatAnthropic {
-  return new ChatAnthropic({
+  return new MiniMaxChatAnthropic({
     model: descriptor.model,
     apiKey: descriptor.apiKey,
     anthropicApiUrl: descriptor.endpoint,

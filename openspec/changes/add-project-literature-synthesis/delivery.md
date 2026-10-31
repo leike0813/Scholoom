@@ -1,5 +1,23 @@
 # 实际交付与交接
 
+## MiniMax元数据适配与正式版重验（2026-10-31）
+
+用户“补齐MiniMax的元数据适配，然后重新验收”授权本轮实施与真实验收。models的原catalog集中维护正式Flash／M3的1,000,000输入窗口及524,288最大输出；原ChatAnthropic工厂用薄子类补缺profile，SDK已有字段优先。未猜测旧ID窗口，未改公共DTO、工具能力、实际16384输出、授权、重试或共享准入。deepagents沿原85%摘要触发／10%保留及溢出处理，不再对正式Flash使用170k fallback；这是SDK近似计量，不是MiniMax精确tokenizer。具体选择见design首节与investigation补充。
+
+Linux／Node24.12.0，证据根`E=/home/joshua/.cache/scholoom-minimax-profile-20261031`。models／kernel构建、models及tools类型、三文件Biome、architecture（14模块／281文件／0问题）及diff通过。`model-access.spec.ts`19/19，新增真实SDK摘要中间件代表分别为810,007／900,007估算tokens：前者完整出站，后者摘要后发出，均沿正式ID与16384输出。最初使用完整DeepAgent的巨大HumanMessage先被filesystem转存，不能检验摘要阈值，保留为夹具选用失败，不算有效红例；最终测试隔离该转存影响，不加生产旗标。真实worker压缩／共享准入／重启历史代表1/1（16秒）通过，原4000-token夹具仍有效；未放宽测试。最后只改稀疏映射Partial类型后models重建／typecheck及Biome通过。独立gpt-6.1-sol/high窄审无确证P1/P2，另离线核继承身份、工具绑定、SDK优先与输出预留，见`PROFILE-REVIEW.md`；审查不冒称重跑测试。
+
+真实验收入口为`E/live/runner.mjs`，公开原文与许可沿原三篇清单，独立评价不进入项目或提示。父线核新runner／gateway及schema自检；辅助准备的8项离线检查包含5,243,007字节合成正文完整转发，无真实模型。两轮共用40次HTTP／首请求900秒／每次输出16384，不设单请求或累计出站正文bytes门槛；响应1MiB与结构化证据文件4MiB限度分别保留。
+
+首次`live/run-t59tzD`在9次HTTP后进入来源等待：Agent将项目UUID的`484603fd`误录为`484604fd`一次，随后正确读取两篇全文，但原错误仍受保护。父线核明只是本轮隔离样本工具参数错误，经`live/resume-runner.mjs`向原会话发送明确普通消息，只排除误录引用，不排除或替换两篇真实材料；原请求、失败、过程及同run均保留。`resume-7pESP3/resume-instruction.json`／`resume-receipt.json`保存该测试操作员介入，不宣称全自动。接续网关继承原9次及原900秒起点，没有重跑整项或重置预算。
+
+最终合计**38次真实HTTP全部200完整、正文累计4,699,565字节、最大单次317,206字节**；请求及原响应model均为`MiniMax-M3.1-Flash`，effort均medium。`LIVE-SUMMARY.json`保留实际字节与usage，不把回包名当作内部权重证明，也不把小样本真实请求当作800k真实MiniMax窗口实测。gatewayStop=null，停止原因不是字节、次数或时间门槛。
+
+首Graph=`19e03d08-1ad6-423a-8365-6f45809fa879`实际completed／usable，保存report.md 14,430字节与process.md 55,840字节，原FileEdit／关联／任务导航已核。独立内容审查从实际HTTP去重24个正文回执，逐字对照原文确认两篇全文无缺口；科研内容仍**不通过**：报告将未讨论某议题的范围差别夸为主张冲突、把不同成本讨论称作相反，并混淆研究问题局限与本轮选材／证据局限。父线抽查报告§3.2／§四／§六及两篇范围说明确认核心问题，未手改科研内容。完整判据、引文及误差限度见`CONTENT-REVIEW.md`。
+
+第二Graph=`9e324277-b9a9-435e-bd0f-2f90ac5ad898`已在新会话加入Wilson2017，最终source-wait，未完成更新报告。原过程55,840字节的prior basis在prepare被本图自己的真实FileEdit更新成57,503字节；模型随后按原prior读取报contentChanged，另有一次项目UUID误录。过程最终68,678字节仍完整保留首轮正文前缀及新阶段记录；原报告保留，不能冒充第二轮新交付。根因是prepare先更新输出文件，再把过期的settings.prior交给取材；不是模型窗口问题。尚未修改该接续机制，也未盲目重试旧basis或忽略真实prior保护。
+
+两次自有kernel退出0、inspect为stopped，cleanupErrors均空；首次未生成报告的读回失败如实保留，不混作有效报告。停机后只读SQLite核首run completed、次run waiting、三个实例均exited，见`post-shutdown-runs.json`／`post-shutdown-instances.json`。新输入、运行与证据均在持久cache，不依赖/tmp。6.3／6.4仍未完成，change不归档。下一步先修复prior在本图写入前的保全与实际消费、仅随本次真实保存推进的指针，再改进通用节点的概念／引文／范围核查；不能靠人工改稿、只改验收预期或继续增加请求次数关闭问题。本轮两个入口均已停止，后续先按实际状态重新准备，不直接重用会自动新建任务的runner。
+
 ## 模型指定与验收门槛更正（2026-10-31）
 
 用户明确要求使用正式版 `MiniMax-M3.1-Flash`。旧验收的 M2.7 由父线沿用旧脚本硬编码，未落实该要求；历史请求、回包及预算记录原样保留，不能作为指定模型的验收证据。产品目录新增正式 ID 并将其设为出厂默认，沿既有 adaptive thinking／effort 路径发送；已保存的用户选择和原执行身份不被静默覆盖，工作台未读到配置时也不再展示硬编码 Preview。

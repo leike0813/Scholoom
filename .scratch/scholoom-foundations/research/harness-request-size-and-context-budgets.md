@@ -75,6 +75,8 @@
 
 ## 已安装 LangChain／deepagents 与本项目的实际边界
 
+以下表格记录调查时基线`ca3b272`。随后用户要求补齐MiniMax元数据，当前生产适配及验证以[本变更交付记录](../../../openspec/changes/add-project-literature-synthesis/delivery.md)和[开发说明](../../../docs/development.md#基本单-agent-harness)为准；不把基线缺口误读为修复后仍固定170k。
+
 | 机制 | 已安装版本的源码事实 | 对当前 Scholoom 的含义 |
 | --- | --- | --- |
 | deepagents 1.15.0 默认摘要 | `computeSummarizationDefaults`：有数字型 `model.profile.maxInputTokens` 时 trigger 85%、keep 10%；否则 **170,000 tokens** trigger、keep **6 messages** | 85% 是有条件的默认设置，不能因模型宣传 1M 窗口就认定本项目约 850k 才压缩 |
@@ -100,7 +102,7 @@
 
 后续最小范围是将通用正文验收门槛与诊断／替身资源保护分开；如需保留替身 cap，应明确其适用场景并容纳目标载荷。供应商实际 HTTP cap、模型 token 窗口、输出／推理预留、工具／文件限制和授权边界仍须各自遵守，超限不可静默丢弃科研材料。
 
-MiniMax token profile 缺失另列为已知限制：若后续要承诺利用 800k+ context，须独立核实模型窗口、profile／摘要策略与输出预留并验证；**本次研究不扩大为 context 机制改造，也不声称移除 256 KiB 即完成大窗口支持。**
+调查时MiniMax token profile缺失另列为限制；随后实施已由用户明确要求，沿同一变更交付记录接续。移除256KiB本身不证明大窗口支持，须分别核profile／摘要策略、输出预留及实际验证。
 
 父线另核本次已停止的旧验收网关：单请求262,144字节、累计4MiB均为验收脚本预算，非产品限制。后续验收取消这两项通用正文门槛，保持约定的请求次数、时间、输出及停止范围；不改写旧执行或其原始证据。
 

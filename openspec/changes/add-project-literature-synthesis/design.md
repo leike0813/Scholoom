@@ -4,7 +4,11 @@
 
 用户于2026-10-31明确指定正式版 `MiniMax-M3.1-Flash`，后续真实验收必须使用该精确 ID；父线旧 runner 的 M2.7 硬编码不满足该要求。旧执行的模型与 checkpoint 保持原始事实，不能改写配置后将同一执行称为 Flash 验收。下一次验收需另行准备符合当前模型选择及原成果保全要求的入口。
 
-取消后续验收通用的单请求256KiB及累计正文4MiB门槛；它们来自旧验收网关，不是产品或模型要求。保留明确约定的请求次数、时间、输出预算及停止条件，另遵守供应商真实 HTTP 限额和模型 token 窗口；不将文件／工具／诊断上限混作整包请求上限。当前 MiniMax token profile 尚未接入，默认约170k tokens摘要的限制另行处理，不宣称已经利用800k以上context。证据与比较见[调查](../../../.scratch/scholoom-foundations/research/harness-request-size-and-context-budgets.md)。本节不授权新的付费运行，旧已消耗授权不复用。
+取消后续验收通用的单请求256KiB及累计正文4MiB门槛；它们来自旧验收网关，不是产品或模型要求。保留明确约定的请求次数、时间、输出预算及停止条件，另遵守供应商真实 HTTP 限额和模型 token 窗口；不将文件／工具／诊断上限混作整包请求上限。证据与比较见[调查](../../../.scratch/scholoom-foundations/research/harness-request-size-and-context-budgets.md)。用户随后明确要求“补齐MiniMax的元数据适配，然后重新验收”，构成本次新验收授权，旧已消耗授权不复用。
+
+元数据由models原catalog维护，只补当前官方确认的正式Flash／M3输入1,000,000及最大输出524,288 tokens；execution-model用ChatAnthropic薄适配补SDK缺失profile，SDK已提供的信息优先。不扩公共DTO、默认输出或权限。普通Agent、registered consumer、子执行及摘要共用原模型装配，deepagents按默认85%阈值、10%保留及原overflow机制治理上下文，实际输出仍16384，为当前请求保留足够窗口。沿model-access增加高于800k估算tokens完整出站及超过850k触发摘要代表，另复用真实worker压缩／重启及预算回归；SDK长消息转存与总上下文摘要分别验证，不以字符换算宣称供应商精确token计数。旧ID不猜测窗口。
+
+真实验收新建隔离profile／项目／任务及两个新会话，不覆盖旧M2.7执行。两轮共用40次实际HTTP（含生产重试）、每次输出16384、首请求后900秒；正文仅计量不设本地字节门槛。沿原三篇公开文本及独立内容判据，首轮综合两篇、加入第三篇后新会话更新同任务的原报告／过程；等待或失败停止、不自动代答或整项重试。模型身份、真实正文消费、保存、原新版本与任务关系分别核查。
 
 ## 节点输出校验与旧状态接续
 

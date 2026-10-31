@@ -8,6 +8,12 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { expect, test } from '@playwright/test';
 import {
+  type BackendRuntime,
+  createSummarizationMiddleware,
+  StateBackend,
+} from '../../apps/kernel/node_modules/deepagents/dist/index.js';
+import { createAgent } from '../../apps/kernel/node_modules/langchain/dist/index.js';
+import {
   createExecutionModel,
   createModelBudget,
   ModelAccess,
@@ -362,6 +368,45 @@ test('capable models send the selected effort with adaptive thinking', async () 
     await cleanup();
   }
 });
+
+for (const [characters, compressed] of [
+  [3_240_000, false],
+  [3_600_000, true],
+] as const) {
+  test(`MiniMax 1M window handles ${characters} characters with compression=${compressed}`, async () => {
+    const server = await boundary([200]);
+    const { access: models, cleanup } = await access(server.url);
+    try {
+      const model = await models.create();
+      const input = `context_start_${'x'.repeat(characters)}_context_end`;
+      const agent = createAgent({
+        model,
+        middleware: [
+          createSummarizationMiddleware({
+            backend: (runtime: BackendRuntime) => new StateBackend(runtime),
+          }),
+        ],
+      });
+      const result = await agent.invoke({ messages: [{ role: 'user', content: input }] });
+      expect(result.messages.at(-1)?.text).toBe(ANSWER);
+      expect(server.bodies).toHaveLength(compressed ? 2 : 1);
+      expect(JSON.stringify(server.bodies[0]?.messages).includes(input)).toBe(true);
+      if (compressed)
+        expect(JSON.stringify(server.bodies.at(-1)?.messages).includes(input)).toBe(false);
+      expect(model.profile).toMatchObject({
+        maxInputTokens: 1_000_000,
+        maxOutputTokens: 524_288,
+      });
+      for (const body of server.bodies) {
+        expect(body.model).toBe('MiniMax-M3.1-Flash');
+        expect(body.max_tokens).toBe(16_384);
+      }
+    } finally {
+      await server.close();
+      await cleanup();
+    }
+  });
+}
 
 test('models without the effort capability never send an effort field', async () => {
   const server = await boundary([200]);

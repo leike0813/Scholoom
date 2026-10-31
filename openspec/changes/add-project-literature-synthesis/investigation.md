@@ -1,5 +1,15 @@
 # 调查依据
 
+## 2026-10-31：MiniMax上下文元数据接入
+
+用户要求补齐元数据后重新验收。当前官方[模型调用指南](https://platform.minimax.io/docs/guides/text-generation.md)确认正式Flash与M3均为1,000,000-token窗口；[Messages OpenAPI](https://platform.minimax.io/docs/api-reference/text/api/openapi-chat-anthropic.json)对二者列最大输出524,288，且整体请求体上限64MB。已匿名读取官方正文与JSON，不调用计数或模型接口探测能力。旧ID及Preview当前窗口未核实，不按供应商别名路由猜测。
+
+已装ChatAnthropic 1.5.12的profile只有只读getter，按内置PROFILES查询；二者不在表中，原返回空对象。deepagents 1.15.0默认摘要中间件从实际request.model.profile.maxInputTokens读取窗口，有元数据则85%触发、10%保留；否则170k tokens触发。沿models既有工厂使用薄子类补缺即可，不需要新增依赖、公共DTO、第二套压缩器或按字节限制LLM正文。SDK已有profile字段优先，原测试夹具的小窗口仍可独立验证压缩与历史恢复。近似计数覆盖消息、system及tools，输出16384相对于默认阈值仍有预留；不据此声称供应商精确token计数。
+
+### 正式版重验发现的既有成果版本缺口
+
+本轮第二Graph的prepare先按update目标读回旧过程，再将新阶段开始信息追加保存；原settings.prior仍带保存前basis交给Agent。实际FileEdit证明55,840字节旧过程先变为57,503字节，随后read_context_resource按旧basis返回contentChanged，图进入source-wait。先前只修排除输出文件作为文献来源，未解决“同文件兼作本轮输出和历史prior”的版本时序。需要在写入前保全并实际交付所需prior版本，后续读取指针只随本次已确认保存推进；不得查询当前同文补证、静默重绑定或把程序预检冒充模型已消费。真实证据与尚未通过的内容评价沿delivery首节，修复及回归仍待实施。
+
 ## 当前事实与复用选择
 
 本次服务 [proposal](proposal.md) 已选定的 D01 路径，只调查／规划，不实现图或公共接口。源码基线为 `c3d5684b5b62dcc51c294b4ae58bfa19a616defe`，开工 HEAD 一致且工作区干净，无 `.codegraph`。已读当前 AGENTS、开发说明、完整 `research-capabilities`／`research-tasks` 正式规格及 D01／D04 相关决定；旧材料分析 method/invoke 保持原行为。D04 Q7 的五段候选、节点顺序与回路未采纳，本工件不据其定图。

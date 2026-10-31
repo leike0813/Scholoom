@@ -11,6 +11,13 @@ export type {
 
 export const minimaxEndpoint = 'https://api.minimax.cn/anthropic';
 export const minimaxEfforts = effortSchema.enum;
+// MiniMax's published limits are not yet in LangChain's bundled model profiles.
+export const minimaxTokenLimits: Readonly<
+  Partial<Record<string, { maxInputTokens: number; maxOutputTokens: number }>>
+> = {
+  'MiniMax-M3.1-Flash': { maxInputTokens: 1_000_000, maxOutputTokens: 524_288 },
+  'MiniMax-M3': { maxInputTokens: 1_000_000, maxOutputTokens: 524_288 },
+};
 export const minimaxModels: readonly ModelOption[] = [
   { id: 'MiniMax-M3.1-Flash', supportsEffort: true },
   { id: 'MiniMax-M3.1-Flash-Preview', supportsEffort: true },
