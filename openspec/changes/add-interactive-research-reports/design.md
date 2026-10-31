@@ -1,5 +1,15 @@
 # 实现设计
 
+## HTML摄取修复与接续（2026-10-31）
+
+用户在文献综合归档后要求推送并继续实施活动change。原异步适配已在MathML字符串摄取反例处停止；本片针对该已知根因修复，不将原失败记录改为通过。修改现有固定fork的`third_party/html-parser/html-parser.ts`，从实际父节点及HTML／SVG／MathML整合点决定新节点namespace，保持兄弟／嵌套恢复及原生HTMLInputElement；全部innerHTML调用复用同一实现，不在接收端修补错误节点身份。旧同步取消反例及断言保留，源码版本、MIT许可及新增修改声明／可逆patch同步维护，不引入依赖。
+
+验证复用`report-async-dom/html-ingestion.mts`与原runner，扩展HTML／MathML／SVG嵌套及整合点代表，以独立浏览器原生解析结果核对；通过后在已有双宿主baseline增加HTML字符串构造方式，核真实mutation、数学布局与普通输入。相关文件为parser、fork修改说明／local.patch、html-ingestion检查、sample／entry／probe及README。源／宿主的扩容前预算由同一实际节点／字符串／mutation链核查后补齐，发送信用不当作完整内存证明。全部结果沿原tasks／delivery更新，不新增任务计数，不因这片通过关闭完整2.1b或I5。
+
+字符串入表继续沿现有1024项／65536字节、去重及跨consume累计契约；仅将TextEncoder整份编码替换为无分配UTF-16扫描，普通多字节、有效代理对及孤代理分别按真实UTF-8字节核算。实际store自检接入本夹具现有build/run，不新增通用预算配置或私有重置API。该片不把局部字符串表检查扩大为总堆内存或其他DOM增长已受保护。
+
+K/C/M只读装配核查与本片并行；系统账户、策略、服务安装仍待具体可审阅代码和授权。生产ReportView及完整隔离没有因此启用。
+
 ## 已确认的异步输入边界与实施顺序（2026-10-31）
 
 用户对上一轮明确展示的两项选择回复“授权；接受。请继续进行收尾”，选定`report-input-scope-decision.md`的A：保留通用HTML／JS、共同tab及原生控件；跨进程同步取消宿主默认输入明确不支持，依赖该能力时失败并保护已确认成果／草稿。只缩减这一项同步语义，不豁免其余输入、IME／辅助、资源／OS隔离和最终I5。旧WorkerDOM探针的0/2反例及原停止点保留，不修改旧断言或给原试验补绿。

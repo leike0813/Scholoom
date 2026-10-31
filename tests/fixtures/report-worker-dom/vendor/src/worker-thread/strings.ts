@@ -1,4 +1,5 @@
 // Modified by Scholoom on 2026-10-30 for this fixed probe; see vendor/MODIFICATIONS.md.
+// Scholoom 2026-10-31: count UTF8 bytes without allocating an encoded copy before admission.
 let count: number = 0;
 let transfer: Array<string> = [];
 const mapping: Map<string, number> = new Map();
@@ -20,8 +21,24 @@ export function store(value: string): number {
     return mapping.get(value) as number;
   }
 
-  const bytes = new TextEncoder().encode(value).byteLength;
-  if (count >= 1024 || totalBytes + bytes > 65536) throw new Error('probeStringBudget');
+  if (count >= 1024) throw new Error('probeStringBudget');
+  let bytes = 0;
+  for (let i = 0; i < value.length; i++) {
+    const code = value.charCodeAt(i);
+    if (code < 0x80) bytes++;
+    else if (code < 0x800) bytes += 2;
+    else {
+      bytes += 3;
+      if (code >= 0xd800 && code <= 0xdbff) {
+        const next = value.charCodeAt(i + 1);
+        if (next >= 0xdc00 && next <= 0xdfff) {
+          bytes++;
+          i++;
+        }
+      }
+    }
+    if (totalBytes + bytes > 65536) throw new Error('probeStringBudget');
+  }
   totalBytes += bytes;
   mapping.set(value, count);
   transfer.push(value);

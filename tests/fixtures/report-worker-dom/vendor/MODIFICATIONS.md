@@ -28,9 +28,21 @@ Scholoom's 2026-10-30 local modifications, recorded in `../local.patch`:
 - `main-thread/serialize.ts`: express the existing attribute mapping as a
   typed Array.from compatible with the installed TypeScript.
 
-No MathML innerHTML parser extension, selection/focus request protocol,
-composition transaction protection or general DOM compatibility was added:
-the first native beforeinput cancellation counterexample stopped the probe.
+Scholoom's 2026-10-31 continuation modifies `third_party/html-parser/html-parser.ts`
+to select HTML, SVG and MathML namespaces from each fragment parent and its
+foreign-content integration points. The synthetic parser wrapper preserves the
+original fragment context. HTML and MathML attribute names are normalized during
+parsing, including the MathML definitionURL adjustment, so uppercase ENCODING
+attributes select the same integration point. Original parser MIT license and source attribution
+remain in place; the updated diff is recorded in `../local.patch`.
+
+`worker-thread/strings.ts` counts UTF-8 bytes from UTF-16 code units without
+allocating an encoded copy before its existing admission checks. The cumulative
+1024-entry/65536-byte limits, deduplication and consume behavior remain unchanged.
+
+The original native beforeinput cancellation counterexample remains unchanged.
+The separate asynchronous fixture supplies selection/focus and composition
+handling; this parser change does not establish general DOM compatibility.
 The inherited canvas/storage processors are rejected by the fixture's selected
 mutation decoder before execution. Their presence in the source closure does
 not make them supported.

@@ -21,6 +21,7 @@ function View() {
             reverse: new URLSearchParams(location.search).has('reverse'),
             cancel: new URLSearchParams(location.search).has('cancel'),
             cancelClick: new URLSearchParams(location.search).has('cancelClick'),
+            html: new URLSearchParams(location.search).has('html'),
           }),
         )
       }

@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { TransferrableKeys as K } from '../report-worker-dom/vendor/src/transfer/TransferrableKeys.js';
+import type { Element } from '../report-worker-dom/vendor/src/worker-thread/dom/Element.js';
+import type { Node } from '../report-worker-dom/vendor/src/worker-thread/dom/Node.js';
 import { createWorkerDOM, hydrate } from '../report-worker-dom/vendor/src/worker-thread/index.js';
 
 const [inputPath, output] = process.argv.slice(2);
@@ -99,6 +101,71 @@ try {
     observed,
     scope: 'source property/event only; no native host input',
   };
+  evidence.fragments = [
+    {
+      name: 'math-text-and-html-siblings',
+      namespace: expected.htmlNamespace,
+      tag: 'section',
+      html: '<math><mtext><span>text</span><mglyph></mglyph><malignmark></malignmark></mtext><mi>x</mi></math><input value="next">',
+    },
+    {
+      name: 'annotation-html-and-svg',
+      namespace: expected.htmlNamespace,
+      tag: 'section',
+      html: '<math><semantics><annotation-xml encoding="TEXT/HTML"><div><math><mn>1</mn></math></div></annotation-xml><annotation-xml><svg><circle></circle></svg></annotation-xml></semantics></math><p>after</p>',
+    },
+    {
+      name: 'annotation-attribute-name-case',
+      namespace: expected.htmlNamespace,
+      tag: 'section',
+      html: '<math><annotation-xml ENCODING="text/html"><input VALUE="seed"></annotation-xml></math>',
+    },
+    {
+      name: 'svg-integration-and-return',
+      namespace: expected.htmlNamespace,
+      tag: 'section',
+      html: '<svg><foreignObject><input value="svg"><math><mi>x</mi></math></foreignObject><desc><span>description</span></desc><circle></circle></svg><p>after</p>',
+    },
+    {
+      name: 'math-fragment',
+      namespace: expected.mathNamespace,
+      tag: 'math',
+      html: '<mfrac><mi>n</mi><mn>2</mn></mfrac>',
+    },
+    {
+      name: 'math-text-fragment',
+      namespace: expected.mathNamespace,
+      tag: 'mtext',
+      html: '<span>text</span><mglyph></mglyph><math><mn>3</mn></math>',
+    },
+    {
+      name: 'annotation-fragment',
+      namespace: expected.mathNamespace,
+      tag: 'annotation-xml',
+      encoding: 'application/xhtml+xml',
+      html: '<input value="annotation"><math><mi>x</mi></math>',
+    },
+  ].map((fixture) => {
+    const container = source.document.createElementNS(fixture.namespace, fixture.tag);
+    if (fixture.encoding) container.setAttribute('encoding', fixture.encoding);
+    container.innerHTML = fixture.html;
+    const nodes: Element[] = [];
+    const visit = (node: Node) => {
+      if (node.nodeType === 1) nodes.push(node as Element);
+      for (const child of node.childNodes) visit(child);
+    };
+    for (const child of container.childNodes) visit(child);
+    return {
+      ...fixture,
+      nodes: nodes.map((node) => ({
+        name: node.localName,
+        namespace: node.namespaceURI,
+        text: node.textContent,
+        value: node instanceof source.HTMLInputElement ? node.value : null,
+      })),
+    };
+  });
+  await Promise.resolve();
 } catch (error) {
   failure = error;
   evidence.failure = { name: (error as Error).name, message: (error as Error).message };

@@ -21,6 +21,7 @@ for (const [path, name] of [
 }
 for (const [entry, name, platform] of [
   ['source.mts', 'source.mjs', 'node'],
+  ['string-budget.mts', 'string-budget.mjs', 'node'],
   ['entry.tsx', 'surface.js', 'browser'],
 ]) {
   const result = await build({

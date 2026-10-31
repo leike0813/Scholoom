@@ -1,5 +1,27 @@
 # 实际交付与交接
 
+## HTML摄取与字符串预检接续（2026-10-31）
+
+用户要求“推送，然后继续实现活动change”及“提交并推送”。已将文献综合修复、验收、规格同步及归档提交为`3f7a3ec`并正常推送`origin/dev`，随后继续本change。当前仍21/27：本片修复实际HTML／MathML摄取和一项源端扩容前检查，不以夹具通过关闭2.1b／2.2／3.1／3.2／I5。没有安装依赖、账户、策略或服务，生产仍沿原不可用状态。
+
+固定fork的parser改为由实际父节点及HTML／SVG／MathML整合点选择新节点namespace；片段上下文透过原合成q包装保持，兄弟节点不沿用上一个外来内容的namespace。MathML文本整合点保留mglyph／malignmark例外，annotation-xml按encoding选择HTML或SVG内容。独立审查发现大写ENCODING／VALUE仍失败的P2，主线真实红跑后在属性写入处规范HTML／MathML属性名及definitionURL，不加getAttribute fallback；原审查员复核关闭。未修改原同步取消反例、许可或固定上游版本；源码113项可核、11份local diff反向检查通过，MIT parser保留原许可证及本次修改声明。
+
+证据根`E=/home/joshua/.cache/scholoom-closeout-execution-20261030/report-async-dom`，Linux／Node24.12.0／既有Chromium及Electron44.5.1，实际命令与各次原始结果如下：
+
+| 验证 | 实际结果及边界 |
+| --- | --- |
+| `node tests/fixtures/report-async-dom/run-html-ingestion.mjs` | 原实现`html-ingestion-1793429545610`exit1、普通MathML节点为XHTML；首修`1793429654152`原样本exit0。独审P2红`1793430259852`与最终绿`1793430333561`保留，后者七组源子树与独立原生Chromium的namespace／text／input值完全一致，source退出0、oracle已关闭；没有工作台或kernel |
+| `node tests/fixtures/report-async-dom/run.mjs 'baseline'` | `run-1793429870048`双宿主6/6，1.8分钟：原两种布局及新增HTML字符串路径，真实mutation／原生输入／滤选展开与同源码原生oracle一致 |
+| `node tests/fixtures/report-async-dom/run.mjs 'unsupported\|native click cancellation\|race'` | `run-1793430023520`双宿主12/12，2.8分钟：真实原生取消闩锁、普通输入ACK／CDP组合事务及版本／关闭迟到保护；不是系统IME或读屏验收 |
+| `node tests/fixtures/report-async-dom/run.mjs 'HTML ingestion'` | 最终`run-1793430372722`双宿主2/2，54.7秒：同时核真实分数上下布局、非零字形宽度和MathMLFraction辅助角色。该私有source bundle已含最新字符串扫描修复；原6例及后续12例分次保留，不相加为一次完整队列 |
+| `node tests/fixtures/report-async-dom/build.mjs E/final-20261031/built`，再`node E/final-20261031/built/string-budget.mjs` | 实际store八组通过，E须替换为绝对路径。UTF-8计量不编码完整副本，覆盖ASCII／多字节／代理对／孤代理、拒绝后原表／额度保持、1024项及65536字节边界、跨consume累计及去重。辅助旧实现红、局部绿及命令见`string-budget-TKkjo4`，主线在正式可复建入口复验8/8；独立审查无确证P1/P2 |
+
+原生对照首次扩展有一项TS可空检查失败，另一次detached节点的上游querySelectorAll返回空而非子树；改用实际childNodes遍历采证，未改原生期望或掩盖差异。这两次失败不算namespace产品红例。最终fixture独立类型、相关Biome、architecture（14模块／281文件／0问题）、OpenSpec strict及diff通过；Biome保留原有any／非空断言警告，没有放宽规则。第一轮UI格式首败修正后通过。未修改产品组件或共享dist，不跑无变化整仓检查。
+
+本次字符串修复只替换入表前的TextEncoder整份编码为无分配UTF-16扫描，原1024项／64KiB与consume／去重契约保持；该容量属于页面字符串表，不是模型出站payload上限。它不证明总堆内存或共同扩容预算：动态innerHTML、部分DOM属性／样式、初始化节点、mutation临时数组及传输副本仍须在实际增长点核验，OS资源约束也不可由普通Node进程代替。最终端口6309已无监听；各UI原source／关闭证据沿测试输出保留，不扩大为系统T1／T2或完整进程停止证明。
+
+下一步仍沿原六项：先闭合源／宿主共同扩容预算及通用脚本承载，再接K/C/M实际身份、持久回执、原库存与唯一准入，完成正式ReportView、更新恢复和双宿主I5。只读核查确认provider仍直接拥有records/assets，现有controller还是user-scope，没有可直接安装的真实C/M服务或生产消费者；不以再提取一层启动状态模块冒充跨身份装配，也不申请尚无可审阅实现的空白系统权限。所有新输入／证据在持久cache，不依赖/tmp。
+
 ## 已接受异步边界与新适配验证（2026-10-31）
 
 用户“授权；接受。请继续进行收尾”明确选择保留通用HTML／JS、共同tab和原生控件，并接受不支持跨进程同步取消原生默认动作：触发即明确失败，保护已确认成果／草稿，不伪造取消。proposal／delta／design／tasks已据此更新；只调整这一项语义，其余隔离、输入／辅助、更新恢复及I5保持。旧WorkerDOM同步取消的0/2反例和停止点保留。系统账户／策略／服务安装仍未授权；本change仍21/27，不能归档。

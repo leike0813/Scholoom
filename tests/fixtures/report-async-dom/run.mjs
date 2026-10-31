@@ -63,6 +63,7 @@ try {
         'tests/fixtures/report-async-dom/tsconfig.json',
       ],
     ],
+    ['string-budget', process.execPath, [join(env.SCHOOLOOM_ASYNC_DOM_BUILD, 'string-budget.mjs')]],
     [
       'credits',
       process.execPath,

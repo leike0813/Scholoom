@@ -1,38 +1,47 @@
 // Fixed benign report. The native oracle and Node source execute the same script.
 export function mountSample(
   window,
-  { reverse = false, cancel = false, cancelClick = false } = {},
+  { reverse = false, cancel = false, cancelClick = false, html = false } = {},
   bridge = () => {},
 ) {
   const d = window.document;
   const root = d.createElement('section');
   const article = d.createElement('article');
-  const input = d.createElement('input');
-  input.id = 'ordinary-input';
-  input.setAttribute('aria-label', 'Ordinary input');
-  input.setAttribute('type', 'text');
-  const result = d.createElement('p');
-  result.id = 'result';
-  const filter = d.createElement('button');
-  filter.textContent = 'Filter';
-  const expand = d.createElement('button');
-  expand.textContent = 'Expand';
-  const detail = d.createElement('p');
-  detail.id = 'detail';
-  detail.setAttribute('hidden', '');
-  detail.textContent = 'Expanded content';
-  const math = d.createElementNS('http://www.w3.org/1998/Math/MathML', 'math');
-  const fraction = d.createElementNS(math.namespaceURI, 'mfrac');
-  for (const [tag, text] of [
-    ['mi', 'n'],
-    ['mn', '2'],
-  ]) {
-    const node = d.createElementNS(math.namespaceURI, tag);
-    node.textContent = text;
-    fraction.appendChild(node);
+  let elements;
+  if (html) {
+    article.innerHTML =
+      '<input id="ordinary-input" aria-label="Ordinary input" type="text"><p id="result"></p><button>Filter</button><button>Expand</button><p id="detail" hidden="hidden">Expanded content</p><math><mfrac><mi>n</mi><mn>2</mn></mfrac></math>';
+    elements = Array.from(article.children);
+  } else {
+    const input = d.createElement('input');
+    input.id = 'ordinary-input';
+    input.setAttribute('aria-label', 'Ordinary input');
+    input.setAttribute('type', 'text');
+    const result = d.createElement('p');
+    result.id = 'result';
+    const filter = d.createElement('button');
+    filter.textContent = 'Filter';
+    const expand = d.createElement('button');
+    expand.textContent = 'Expand';
+    const detail = d.createElement('p');
+    detail.id = 'detail';
+    detail.setAttribute('hidden', '');
+    detail.textContent = 'Expanded content';
+    const math = d.createElementNS('http://www.w3.org/1998/Math/MathML', 'math');
+    const fraction = d.createElementNS(math.namespaceURI, 'mfrac');
+    for (const [tag, text] of [
+      ['mi', 'n'],
+      ['mn', '2'],
+    ]) {
+      const node = d.createElementNS(math.namespaceURI, tag);
+      node.textContent = text;
+      fraction.appendChild(node);
+    }
+    math.appendChild(fraction);
+    elements = [input, result, filter, expand, detail, math];
   }
-  math.appendChild(fraction);
-  const elements = [input, result, filter, expand, detail, math];
+  const [input, result, filter, expand, detail, math] = elements;
+  const fraction = math.firstChild;
   for (const node of reverse ? elements.reverse() : elements) article.appendChild(node);
   root.appendChild(article);
   d.body.appendChild(root);

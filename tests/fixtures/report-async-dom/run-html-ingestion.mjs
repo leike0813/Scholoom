@@ -3,6 +3,7 @@ import { spawnSync } from 'node:child_process';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { chromium } from '@playwright/test';
 import { build, stop } from '../../../node_modules/.pnpm/node_modules/esbuild/lib/main.js';
 
 const root = resolve(
@@ -73,6 +74,58 @@ try {
   );
   const source = await run('source', [join(root, 'source.mjs'), join(root, 'input.html'), root]);
   await writeFile(
+    join(root, 'source-closed.json'),
+    JSON.stringify(
+      {
+        pid: source.pid,
+        code: source.status,
+        signal: source.signal,
+        closed: source.status !== null || source.signal !== null,
+      },
+      null,
+      2,
+    ),
+  );
+  let oracleStarted = false;
+  if (source.status === 0) {
+    const browser = await chromium.launch({ headless: true });
+    oracleStarted = true;
+    try {
+      const page = await browser.newPage();
+      const evidence = JSON.parse(await readFile(join(root, 'source-evidence.json'), 'utf8'));
+      const native = await page.evaluate(
+        (fixtures) =>
+          fixtures.map((fixture) => {
+            const container = document.createElementNS(fixture.namespace, fixture.tag);
+            if (fixture.encoding) container.setAttribute('encoding', fixture.encoding);
+            container.innerHTML = fixture.html;
+            return {
+              name: fixture.name,
+              nodes: [...container.querySelectorAll('*')].map((node) => ({
+                name: node.localName,
+                namespace: node.namespaceURI,
+                text: node.textContent,
+                value: node instanceof HTMLInputElement ? node.value : null,
+              })),
+            };
+          }),
+        evidence.fragments,
+      );
+      await writeFile(join(root, 'native-oracle.json'), JSON.stringify(native, null, 2));
+      assert.deepEqual(
+        evidence.fragments.map(({ name, nodes }) => ({ name, nodes })),
+        native,
+      );
+      console.log(`native fragment comparisons: ${native.length} passed`);
+    } finally {
+      await browser.close();
+      await writeFile(
+        join(root, 'native-closed.json'),
+        JSON.stringify({ connected: browser.isConnected() }),
+      );
+    }
+  }
+  await writeFile(
     join(root, 'closed.json'),
     JSON.stringify(
       {
@@ -83,6 +136,7 @@ try {
           closed: source.status !== null || source.signal !== null,
         },
         uiStarted: false,
+        browserOracleStarted: oracleStarted,
         kernelStarted: false,
         listeningPorts: [],
       },

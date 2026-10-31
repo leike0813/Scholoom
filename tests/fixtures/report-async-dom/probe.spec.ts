@@ -153,12 +153,16 @@ const idle = (page: Page) =>
     })
     .toBe(true);
 
-for (const reverse of [false, true])
-  test(`baseline native input layout ${reverse ? 'reverse' : 'forward'}`, async ({
+for (const { reverse, html } of [
+  { reverse: false, html: false },
+  { reverse: true, html: false },
+  { reverse: false, html: true },
+])
+  test(`baseline native input ${html ? 'HTML ingestion' : `layout ${reverse ? 'reverse' : 'forward'}`}`, async ({
     uiPage: page,
     uiHost,
   }, info) => {
-    const f = await setup(page, uiHost, info, reverse ? '?reverse' : '');
+    const f = await setup(page, uiHost, info, html ? '?html' : reverse ? '?reverse' : '');
     let failure: unknown, oracle: Page | undefined;
     try {
       oracle = await openWorkbenchWindow(page);
@@ -167,7 +171,7 @@ for (const reverse of [false, true])
           contentType: 'text/html',
           body:
             '<!doctype html><html><meta charset="utf-8"><body><script type="module">import {mountSample} from "/sample.js"; window.nativeSample=mountSample(window,' +
-            JSON.stringify({ reverse }) +
+            JSON.stringify({ reverse, html }) +
             ');</script></body></html>',
         }),
       );
@@ -198,6 +202,29 @@ for (const reverse of [false, true])
         denominator: m.querySelector('mn')?.textContent,
       }));
       expect(shape).toEqual(original.math);
+      if (html) {
+        await f.frame.locator('math').scrollIntoViewIfNeeded();
+        const bounds = await f.frame.locator('math').evaluate((math) =>
+          [...math.querySelectorAll('mi, mn')].map((node) => {
+            const rect = node.getBoundingClientRect();
+            return { top: rect.top, bottom: rect.bottom, width: rect.width };
+          }),
+        );
+        expect(bounds).toHaveLength(2);
+        expect(bounds[0]!.width).toBeGreaterThan(0);
+        expect(bounds[0]!.bottom).toBeLessThanOrEqual(bounds[1]!.top);
+        const cdp = await page.context().newCDPSession(page);
+        try {
+          const tree = await cdp.send('Page.getFrameTree');
+          const child = tree.frameTree.childFrames?.find((f) => f.frame.url === 'about:srcdoc');
+          assert(child);
+          const ax = await cdp.send('Accessibility.getFullAXTree', { frameId: child.frame.id });
+          expect(ax.nodes.some((node) => node.role?.value === 'MathMLFraction')).toBe(true);
+          f.evidence.htmlMath = { bounds, nativeFractionRole: true };
+        } finally {
+          await cdp.detach();
+        }
+      }
       for (const target of [f.frame, oracle]) {
         await target.getByRole('button', { name: 'Filter', exact: true }).click();
         await target.getByRole('button', { name: 'Expand', exact: true }).click();
