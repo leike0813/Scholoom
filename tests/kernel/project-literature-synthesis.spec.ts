@@ -233,15 +233,21 @@ test('a plain summary is corrected once with newly confirmed user instructions b
   }
 });
 
-test('a truncated structured submission cannot save a role even when its arguments are complete', async () => {
+test('a truncated structured submission cannot save a role and resumes only after an explicit message', async () => {
+  test.setTimeout(90000);
   let material: ResourceEvidence;
+  let truncate = true;
   const respond = synthesisModelResponse(() => [material], true);
   const f = await fixture(async (input) => {
     const answer = await respond(input);
-    return answer && 'tool' in answer && answer.tool.name === 'submit_literature_synthesis'
+    return truncate &&
+      answer &&
+      'tool' in answer &&
+      answer.tool.name === 'submit_literature_synthesis'
       ? { ...answer, stopReason: 'max_tokens' }
       : answer;
   });
+  let app = f.app;
   try {
     await f.app.call('files.save', {
       projectId: f.project.id,
@@ -265,8 +271,27 @@ test('a truncated structured submission cannot save a role even when its argumen
       code: 'ENOENT',
     });
     expect(f.model.requests).toHaveLength(2);
+    await app.close();
+    app = new KernelApplication(join(f.root, 'profile'), {
+      environment: { MINIMAX_CN_API_KEY: 'synthetic' },
+      modelEndpoint: f.model.url,
+    });
+    await app.initialize();
+    expect(f.model.requests).toHaveLength(2);
+    truncate = false;
+    const instructionId = randomUUID();
+    const marker = '精炼报告与本阶段增量，保留全部必要依据。';
+    await app.call('session.send', { ...f.scope, instructionId, text: marker, materials: [] });
+    await expect
+      .poll(async () => (await app.snapshot(f.scope)).run?.state, { timeout: 30000 })
+      .toBe('completed');
+    const after = await app.snapshot(f.scope);
+    expect(after.run?.id).toBe(run.id);
+    expect(after.messages.find((message) => message.id === instructionId)?.state).toBe('consumed');
+    expect(JSON.stringify(f.model.requests.at(-1))).toContain(marker);
+    expect(await readFile(join(f.project.path, 'report.md'), 'utf8')).toContain('相差25');
   } finally {
-    await f.app.close();
+    await app.close();
     await f.model.close();
   }
 });
@@ -439,6 +464,87 @@ test('ordinary continuation cleans an output misclassified as a source in an old
     expect(await readFile(join(f.project.path, 'report.md'), 'utf8')).toContain('相差25');
   } finally {
     await app.close();
+    await f.model.close();
+  }
+});
+
+test('a large prior process survives multiple phases with cumulative source reads', async () => {
+  test.setTimeout(90000);
+  let material: ResourceEvidence;
+  let answers = 0;
+  let corrected = false;
+  const source = 'x'.repeat(25 * 4096);
+  const prior = 'Preserved prior research.\n'.padEnd(239000, '.');
+  const f = await fixture(({ calls }) => {
+    const reads = calls.filter((name) => name === 'read_context_resource').length;
+    if (reads < 25)
+      return {
+        tool: {
+          name: 'read_context_resource',
+          input: { ...material, encoding: 'utf8', offset: reads * 4096, limit: 4096 },
+        },
+      };
+    if (!corrected) {
+      corrected = true;
+      return { text: 'The source has been read; a structured result is still required.' };
+    }
+    answers++;
+    return {
+      text: JSON.stringify({
+        process: `Research phase ${answers}; retain the prior analysis and source evidence.`,
+        ...(answers === 2 ? { report: '# Synthetic report\nSource has been read.' } : {}),
+        next: answers === 1 ? 'synthesize' : answers === 2 ? 'review' : 'deliver',
+      }),
+    };
+  });
+  try {
+    for (const [path, content] of [
+      ['source.txt', source],
+      ['process.md', prior],
+    ] as const)
+      await f.app.call('files.save', { projectId: f.project.id, path, content });
+    const describe = (path: string) =>
+      f.app.call('resources.describe', {
+        locator: { source: 'project', projectId: f.project.id, path },
+      });
+    const input = await describe('source.txt');
+    material = { ref: input.ref, basis: input.basis };
+    const process = await describe('process.md');
+    f.input.materials = [material];
+    f.input.config.processTarget = {
+      kind: 'update',
+      resource: { ref: process.ref, basis: process.basis },
+    };
+    await f.start();
+    await f.wait('completed');
+    const after = await readFile(join(f.project.path, 'process.md'), 'utf8');
+    expect(after.startsWith(prior)).toBe(true);
+    expect(after).toContain('Research phase 3');
+    assert(material.ref.source === 'project');
+    expect(after).toContain(material.ref.fileId);
+    const recorded = [...after.matchAll(/\[[^\]]*\]/g)].flatMap(([value]) => {
+      try {
+        const entries = JSON.parse(value);
+        return Array.isArray(entries)
+          ? entries.filter((entry) => entry.content?.kind === 'text')
+          : [];
+      } catch {
+        return [];
+      }
+    });
+    expect(recorded.map((entry) => entry.content.offset)).toEqual(
+      Array.from({ length: 25 }, (_, index) => index * 4096),
+    );
+    const calls = await f.app.call('research.graphCalls', {
+      ...f.scope,
+      invocationId: f.input.invocationId,
+    });
+    expect(calls.calls[0]?.executions[0]?.check.delivery).toBe('usable');
+    expect(calls.calls[0]?.executions[0]?.run.graphProgress?.evidence.contentReads).toHaveLength(
+      25,
+    );
+  } finally {
+    await f.app.close();
     await f.model.close();
   }
 });
@@ -707,6 +813,52 @@ test('missing reports and an explicit independent review remain incomplete with 
   }
 });
 
+for (const document of [false, true])
+  test(`a malformed read is corrected without declaring a broken source, document=${document}`, async () => {
+    let material: ResourceEvidence;
+    const respond = synthesisModelResponse(() => [material]);
+    const f = await fixture((input) => {
+      if (!input.calls.length)
+        return {
+          tool: document
+            ? {
+                name: 'read_context_document',
+                input: {
+                  ...material,
+                  request: { method: 'documentInfo', input: { offset: '0', limit: '100' } },
+                },
+              }
+            : {
+                name: 'read_context_resource',
+                input: { ...material, encoding: 'utf8', offset: '0', limit: 4096 },
+              },
+        };
+      return respond({ ...input, calls: input.calls.slice(1) });
+    });
+    try {
+      await f.app.call('files.save', {
+        projectId: f.project.id,
+        path: 'source.txt',
+        content: 'Synthetic source A=42 and B=17.',
+      });
+      const descriptor = await f.app.call('resources.describe', {
+        locator: { source: 'project', projectId: f.project.id, path: 'source.txt' },
+      });
+      material = { ref: descriptor.ref, basis: descriptor.basis };
+      f.input.materials = [material];
+      await f.start();
+      await f.wait('completed');
+      const progress = (await f.app.snapshot(f.scope)).run?.graphProgress;
+      expect(progress?.evidence.inputs).toEqual([material]);
+      expect(progress?.evidence.contentReads).toHaveLength(1);
+      expect(progress?.evidence.reads).toEqual([material]);
+      expect(JSON.stringify(f.model.requests)).toContain('invalidRequest');
+    } finally {
+      await f.app.close();
+      await f.model.close();
+    }
+  });
+
 test('oversized actual tool text is rejected before consumption and a narrower range is retained', async () => {
   let material: ResourceEvidence;
   let answers = 0;
@@ -767,78 +919,137 @@ test('oversized actual tool text is rejected before consumption and a narrower r
   }
 });
 
-test('a source tool error is persisted, waits for its explicit ordinary decision and keeps the original identity', async () => {
-  let material: ResourceEvidence;
-  let chosen = false;
-  let answers = 0;
-  const f = await fixture(({ calls }) => {
-    const reads = calls.filter((name) => name === 'read_context_resource').length;
-    if (!reads || (chosen && reads < 2))
-      return {
-        tool: {
-          name: 'read_context_resource',
-          input: {
-            ref: material.ref,
-            basis: reads ? material.basis : 'synthetic-wrong-basis',
-            encoding: 'utf8',
-            limit: 4096,
+for (const loseProjection of [false, true]) {
+  test(`a source tool error resumes its explicit ordinary decision with ${loseProjection ? 'a lost wait projection after restart' : 'the published wait'}`, async () => {
+    test.setTimeout(90000);
+    let material: ResourceEvidence;
+    let chosen = false;
+    let answers = 0;
+    const f = await fixture(({ calls }) => {
+      const reads = calls.filter((name) => name === 'read_context_resource').length;
+      if (!reads || (chosen && reads < 2))
+        return {
+          tool: {
+            name: 'read_context_resource',
+            input: {
+              ref: material.ref,
+              basis: reads ? material.basis : 'synthetic-wrong-basis',
+              encoding: 'utf8',
+              limit: 4096,
+            },
           },
-        },
+        };
+      if (!chosen)
+        return { text: JSON.stringify({ process: '来源失败，必须等待。', next: 'wait' }) };
+      answers++;
+      return {
+        text: JSON.stringify({
+          process: '按明确普通消息重新使用原身份核查并保留失败历史。',
+          ...(answers === 2 ? { report: '# 核查后报告\n原来源42，保留样本局限。' } : {}),
+          next: answers === 1 ? 'synthesize' : answers === 2 ? 'review' : 'deliver',
+        }),
       };
-    if (!chosen) return { text: JSON.stringify({ process: '来源失败，必须等待。', next: 'wait' }) };
-    answers++;
-    return {
-      text: JSON.stringify({
-        process: '按明确普通消息重新使用原身份核查并保留失败历史。',
-        ...(answers === 2 ? { report: '# 核查后报告\n原来源42，保留样本局限。' } : {}),
-        next: answers === 1 ? 'synthesize' : answers === 2 ? 'review' : 'deliver',
-      }),
-    };
+    });
+    let app = f.app;
+    try {
+      await f.app.call('files.save', {
+        projectId: f.project.id,
+        path: 'source.txt',
+        content: 'Original source42.',
+      });
+      const d = await f.app.call('resources.describe', {
+        locator: { source: 'project', projectId: f.project.id, path: 'source.txt' },
+      });
+      material = { ref: d.ref, basis: d.basis };
+      f.input.materials = [material];
+      await f.start();
+      await f.wait('waiting');
+      const before = (await app.snapshot(f.scope)).run;
+      assert(before);
+      if (loseProjection) {
+        const opened = await openCheckpoint(app.projects.get(f.project.id).internal, before.id);
+        try {
+          const tuple = await new InstructionSaver(opened.database, async () => {}).getTuple({
+            configurable: { thread_id: before.id },
+          });
+          expect(tuple?.checkpoint.channel_values.graphWait).toMatchObject({
+            attemptId: before.id,
+            nodeKey: 'source-wait',
+          });
+          expect(tuple?.pendingWrites?.some(([, channel]) => channel === '__interrupt__')).toBe(
+            true,
+          );
+        } finally {
+          opened.database.close();
+        }
+        const databasePath = app.projects.get(f.project.id).database.name;
+        await app.close();
+        assert(before.graph);
+        const { wait: _wait, ...binding } = before.graph;
+        const { graphProgress: _progress, ...record } = before;
+        const db = new Database(databasePath, { fileMustExist: true });
+        try {
+          // Simulate shutdown before publishing the wait; retain the real checkpoint unchanged.
+          db.prepare('UPDATE runs SET value = ? WHERE id = ?').run(
+            JSON.stringify({ ...record, state: 'interrupted', graph: binding }),
+            before.id,
+          );
+        } finally {
+          db.close();
+        }
+        app = new KernelApplication(join(f.root, 'profile'), {
+          environment: { MINIMAX_CN_API_KEY: 'synthetic' },
+          modelEndpoint: f.model.url,
+        });
+        await app.initialize();
+      } else {
+        expect(before.graphProgress).toMatchObject({
+          kind: 'graph.waiting',
+          wait: { nodeKey: 'source-wait' },
+        });
+      }
+      expect(await readFile(join(f.project.path, 'process.md'), 'utf8')).toContain(
+        'contentChanged',
+      );
+      const requests = f.model.requests.length;
+      if (!loseProjection) {
+        await app.call('session.send', {
+          ...f.scope,
+          instructionId: randomUUID(),
+          text: '继续',
+          materials: [],
+        });
+        await f.wait('waiting');
+        expect(f.model.requests).toHaveLength(requests);
+      }
+      chosen = true;
+      assert(material.ref.source === 'project');
+      const instructionId = randomUUID();
+      await app.call('session.send', {
+        ...f.scope,
+        instructionId,
+        text: `重试来源 project:${material.ref.projectId}:${material.ref.fileId}：使用已确认的原始依据，保留失败记录`,
+        materials: [],
+      });
+      await expect
+        .poll(async () => (await app.snapshot(f.scope)).run?.state, { timeout: 30000 })
+        .toBe('completed');
+      expect((await app.snapshot(f.scope)).run?.id).toBe(before.id);
+      expect(
+        app.projects
+          .get(f.project.id)
+          .database.prepare('SELECT consumed FROM instructions WHERE id = ?')
+          .get(instructionId),
+      ).toEqual({ consumed: 1 });
+      const process = await readFile(join(f.project.path, 'process.md'), 'utf8');
+      expect(process).toContain('contentChanged');
+      expect(process).toContain('使用已确认的原始依据');
+    } finally {
+      await app.close();
+      await f.model.close();
+    }
   });
-  try {
-    await f.app.call('files.save', {
-      projectId: f.project.id,
-      path: 'source.txt',
-      content: 'Original source42.',
-    });
-    const d = await f.app.call('resources.describe', {
-      locator: { source: 'project', projectId: f.project.id, path: 'source.txt' },
-    });
-    material = { ref: d.ref, basis: d.basis };
-    f.input.materials = [material];
-    await f.start();
-    await f.wait('waiting');
-    expect((await f.app.snapshot(f.scope)).run?.graphProgress).toMatchObject({
-      kind: 'graph.waiting',
-      wait: { nodeKey: 'source-wait' },
-    });
-    expect(await readFile(join(f.project.path, 'process.md'), 'utf8')).toContain('contentChanged');
-    const requests = f.model.requests.length;
-    await f.app.call('session.send', {
-      ...f.scope,
-      instructionId: randomUUID(),
-      text: '继续',
-      materials: [],
-    });
-    await f.wait('waiting');
-    expect(f.model.requests).toHaveLength(requests);
-    chosen = true;
-    assert(material.ref.source === 'project');
-    await f.app.call('session.send', {
-      ...f.scope,
-      instructionId: randomUUID(),
-      text: `重试来源 project:${material.ref.projectId}:${material.ref.fileId}：使用已确认的原始依据，保留失败记录`,
-      materials: [],
-    });
-    await f.wait('completed');
-    const process = await readFile(join(f.project.path, 'process.md'), 'utf8');
-    expect(process).toContain('contentChanged');
-    expect(process).toContain('使用已确认的原始依据');
-  } finally {
-    await f.app.close();
-    await f.model.close();
-  }
-});
+}
 
 test('the actual shared model budget ends an unfinished graph while retaining saved process and consumed ranges', async () => {
   let material: ResourceEvidence;
@@ -1233,6 +1444,188 @@ test('an unknown creation is checked by its original operation before any resear
   }
 });
 
+for (const mode of ['current', 'human-change', 'stale-read'])
+  test(`prior output reads follow this graph's save receipts: ${mode}`, async () => {
+    const humanChange = mode === 'human-change';
+    let f: Awaited<ReturnType<typeof fixture>>;
+    let prior: ResourceEvidence;
+    let material: ResourceEvidence;
+    const readBases = new Set<string>();
+    let sourceRead = false;
+    let answers = 0;
+    let staleAttempted = false;
+    f = await fixture(async () => {
+      const system = f.model.requests.at(-1)?.system as { text?: string }[];
+      const settingsText = system.map((block) => block.text ?? '').join('\n');
+      const line = /本次目标及明确旧成果：([^\n]+)/.exec(settingsText);
+      assert(line?.[1]);
+      const settings = JSON.parse(line[1]) as SynthesisConfig;
+      const current = settings.prior?.[0];
+      assert(current);
+      if (mode === 'stale-read' && current.basis !== prior.basis && !staleAttempted) {
+        staleAttempted = true;
+        return {
+          tool: {
+            name: 'read_context_resource',
+            input: { ...prior, encoding: 'utf8', limit: 4096 },
+          },
+        };
+      }
+      if (!readBases.has(current.basis)) {
+        readBases.add(current.basis);
+        if (humanChange)
+          await f.app.call('resources.save', {
+            ref: current.ref,
+            basis: (await f.app.call('resources.describe', { locator: current.ref })).basis,
+            content: 'Prior research must survive. Human changed this output.',
+          });
+        return {
+          tool: {
+            name: 'read_context_resource',
+            input: { ...current, encoding: 'utf8', limit: 4096 },
+          },
+        };
+      }
+      if (!sourceRead) {
+        sourceRead = true;
+        return {
+          tool: {
+            name: 'read_context_resource',
+            input: { ...material, encoding: 'utf8', limit: 4096 },
+          },
+        };
+      }
+      answers++;
+      return {
+        tool: {
+          name: 'submit_literature_synthesis',
+          input: {
+            process: '实际读取旧过程并保留研究范围，合成样本42不能推广。',
+            ...(answers === 2 ? { report: '# 合成报告\n样本42，不能推广。' } : {}),
+            next: answers === 1 ? 'synthesize' : answers === 2 ? 'review' : 'deliver',
+          },
+        },
+      };
+    });
+    try {
+      for (const [path, content] of [
+        ['source.txt', 'Synthetic sample42.'],
+        ['prior-process.md', 'Prior research must survive.'],
+      ] as const)
+        await f.app.call('files.save', { projectId: f.project.id, path, content });
+      const describe = (path: string) =>
+        f.app.call('resources.describe', {
+          locator: { source: 'project', projectId: f.project.id, path },
+        });
+      const p = await describe('prior-process.md');
+      const s = await describe('source.txt');
+      prior = { ref: p.ref, basis: p.basis };
+      material = { ref: s.ref, basis: s.basis };
+      f.input.materials = [material];
+      f.input.config.prior = [prior];
+      f.input.config.processTarget = { kind: 'update', resource: prior };
+      await f.start();
+      await f.wait(humanChange ? 'waiting' : 'completed');
+      const text = await readFile(join(f.project.path, 'prior-process.md'), 'utf8');
+      expect(text).toContain('Prior research must survive.');
+      if (humanChange) {
+        expect(text).toBe('Prior research must survive. Human changed this output.');
+        expect((await f.app.snapshot(f.scope)).run?.graphProgress?.kind).toBe('graph.waiting');
+      } else {
+        expect(readBases.has(prior.basis)).toBe(true);
+        expect(readBases.size).toBe(3);
+        const run = (await f.app.snapshot(f.scope)).run;
+        expect(run?.graphProgress?.evidence.inputs).toEqual([material]);
+        expect(
+          run?.graphProgress?.evidence.contentReads?.every(
+            (item) => item.resource.basis === material.basis,
+          ),
+        ).toBe(true);
+      }
+    } finally {
+      await f.app.close();
+      await f.model.close();
+    }
+  });
+
+test('continuing after a prior preparation conflict preserves the unread process state', async () => {
+  const f = await fixture(() => undefined);
+  try {
+    for (const [path, content] of [
+      ['source.txt', 'Original source42.'],
+      ['process.md', 'Prior research must survive.'],
+      ['other-prior.md', 'Original prior17.'],
+    ] as const)
+      await f.app.call('files.save', { projectId: f.project.id, path, content });
+    const describe = (path: string) =>
+      f.app.call('resources.describe', {
+        locator: { source: 'project', projectId: f.project.id, path },
+      });
+    const source = await describe('source.txt');
+    const process = await describe('process.md');
+    const other = await describe('other-prior.md');
+    f.input.materials = [{ ref: source.ref, basis: source.basis }];
+    f.input.config.prior = [process, other].map(({ ref, basis }) => ({ ref, basis }));
+    f.input.config.processTarget = {
+      kind: 'update',
+      resource: { ref: process.ref, basis: process.basis },
+    };
+    const resources = f.app.executionResources.bind(f.app);
+    let changed = false;
+    f.app.executionResources = (context) => {
+      const port = resources(context);
+      return {
+        ...port,
+        describe: async (locator) => {
+          if (
+            !changed &&
+            locator.source === 'project' &&
+            other.ref.source === 'project' &&
+            locator.fileId === other.ref.fileId
+          ) {
+            changed = true;
+            for (const resource of [source, other])
+              await f.app.call('resources.save', {
+                ref: resource.ref,
+                basis: resource.basis,
+                content: 'Human changed this input.',
+              });
+          }
+          return port.describe(locator);
+        },
+      };
+    };
+    await f.start();
+    await f.wait('waiting');
+    const originalWait = (await f.app.snapshot(f.scope)).run?.graphProgress;
+    assert(originalWait?.kind === 'graph.waiting');
+    await f.app.call('session.send', {
+      ...f.scope,
+      instructionId: randomUUID(),
+      materials: [],
+      text: '继续核查：保留旧过程，核查另一份旧成果冲突。',
+    });
+    await expect
+      .poll(
+        async () => {
+          const progress = (await f.app.snapshot(f.scope)).run?.graphProgress;
+          return (
+            progress?.kind === 'graph.waiting' && progress.wait.waitId !== originalWait.wait.waitId
+          );
+        },
+        { timeout: 30000 },
+      )
+      .toBe(true);
+    expect(await readFile(join(f.project.path, 'process.md'), 'utf8')).toContain(
+      'Prior research must survive.',
+    );
+    expect(f.model.requests).toHaveLength(0);
+  } finally {
+    await f.app.close();
+    await f.model.close();
+  }
+});
+
 test('a preparation source race accepts explicit exclusion and rechecks targets without losing prior process', async () => {
   let first: ResourceEvidence;
   const f = await fixture(synthesisModelResponse(() => [first]));
@@ -1252,6 +1645,7 @@ test('a preparation source race accepts explicit exclusion and rechecks targets 
     assert(b.ref.source === 'project');
     const failedFileId = b.ref.fileId;
     const prior = await describe('prior-process.md');
+    f.input.config.prior = [{ ref: prior.ref, basis: prior.basis }];
     first = { ref: a.ref, basis: a.basis };
     f.input.materials = [first, { ref: b.ref, basis: b.basis }];
     f.input.config.processTarget = {

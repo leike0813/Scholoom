@@ -33,13 +33,14 @@
 
 ### Modified Capabilities
 
+- `model-access`：将共同单请求期限统一为600秒，覆盖响应正文并保留取消、准入和原重试保护，以支持已实测超过旧180秒期限的科研调用。
 - `research-capabilities`：补充项目定向文献综合的内建业务图、真实取材与研究内容交付、材料异常等待及补充材料续做的可观察行为，复用已有可信请求、调用／尝试、停止与部分结果契约；不迁移旧材料分析入口。
 - `research-tasks`：补充综合任务的来源／过程／成果保存及新会话补材料续做场景，保持原 TaskRef、入口文件、历史输入快照、强依据保存及关联权威。是否需要扩展共享字段由主线汇合调查后决定，本提议不预定 DTO。
 - `workbench-resources`：补充长 UTF-8 材料在原身份／内容依据及明确容量内的有界范围读取，支持旧前缀之外的真实内容；不将文本改成其他格式冒充原文，不改变编辑或保存权威。
 
 ## 决策与授权依据
 
-- [D01 首条路径](../../../.scratch/domain-development/issues/01-literature-synthesis-path.md#answer)确定已有库材料、项目研究任务、实际综合报告／过程及补材料后的新会话续做；已有文档视图足以承接报告。
-- [D04 Graph 决定](../../../.scratch/domain-development/issues/04-research-methods-scope.md#graph-承载科研业务流程)、[Q3／Q4](../../../.scratch/domain-development/issues/04-research-methods-scope.md#综合内容与复核要求)确定图与节点职责、综合内容及按需复核。[Q7](../../../.scratch/domain-development/issues/04-research-methods-scope.md#q7首条综合-graph-的工作段与自主范围后置)未采纳，不作为本变更节点／回路的定案。
-- [正式科研能力规格](../../specs/research-capabilities/spec.md)、[正式研究任务规格](../../specs/research-tasks/spec.md)及[开发说明](../../../docs/development.md#文件研究任务)继续约束身份、授权、真实保存、普通消息和接续；[既有源码取舍](../../../.scratch/scholoom-foundations/issues/19-existing-source-and-rust-reuse.md#python-与第三方内容)保留来源／许可边界。
+- [D01 首条路径](../../../../.scratch/domain-development/issues/01-literature-synthesis-path.md#answer)确定已有库材料、项目研究任务、实际综合报告／过程及补材料后的新会话续做；已有文档视图足以承接报告。
+- [D04 Graph 决定](../../../../.scratch/domain-development/issues/04-research-methods-scope.md#graph-承载科研业务流程)、[Q3／Q4](../../../../.scratch/domain-development/issues/04-research-methods-scope.md#综合内容与复核要求)确定图与节点职责、综合内容及按需复核。[Q7](../../../../.scratch/domain-development/issues/04-research-methods-scope.md#q7首条综合-graph-的工作段与自主范围后置)未采纳，不作为本变更节点／回路的定案。
+- [正式科研能力规格](../../../specs/research-capabilities/spec.md)、[正式研究任务规格](../../../specs/research-tasks/spec.md)及[开发说明](../../../../docs/development.md#文件研究任务)继续约束身份、授权、真实保存、普通消息和接续；[既有源码取舍](../../../../.scratch/scholoom-foundations/issues/19-existing-source-and-rust-reuse.md#python-与第三方内容)保留来源／许可边界。
 - 2026-10-30 主线按用户持续推进及代为选择必要决策的授权，选择上一调查的候选 B；前两工件委派仅包含本 change 元数据、proposal／investigation及局部提交，没有授予该 worker 生产实现、模型请求或真实用户库访问。本次规划基线为 `c3d5684b5b62dcc51c294b4ae58bfa19a616defe`；三份并行来源调查已接收，Agent 子图确认和既有报告更新的决定性接缝继续由主线核对，见 [investigation](investigation.md)。产品范围、跨模块架构、公共 DTO、规格／设计定案及最终验收归主线；本提议不构成实现准备就绪或新增付费模型授权。

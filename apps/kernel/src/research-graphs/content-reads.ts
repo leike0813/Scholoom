@@ -7,7 +7,6 @@ import {
   type ResourceEvidence,
   type ResourceOutputs,
   resourceDocumentContracts,
-  resourceEvidenceSchema,
   resourceOperations,
 } from '@scholoom/protocol/resources';
 
@@ -20,8 +19,8 @@ export const sourceKey = ({ ref }: ResourceEvidence): string =>
       ? `project:${ref.projectId}:${ref.fileId}`
       : `render:${ref.projectId}:${ref.outputId}`;
 
-const evidenceContract = compileContract({ params: resourceEvidenceSchema, result: true });
 const textContract = compileContract(resourceOperations['resources.read']);
+const documentContract = compileContract(resourceOperations['resources.document']);
 const pageContract = compileContract(resourceDocumentContracts.readPdfPage);
 const sectionContract = compileContract(resourceDocumentContracts.readDocumentSection);
 
@@ -77,9 +76,9 @@ export function collectContentReads(messages: readonly BaseMessage[]): {
     if (!isToolMessage(message)) continue;
     const call = calls.get(message.tool_call_id);
     if (!call || !['read_context_resource', 'read_context_document'].includes(call.name)) continue;
-    const resource = { ref: call.args.ref, basis: call.args.basis };
-    if (!evidenceContract.params(resource)) continue;
-    const evidence = resource as ResourceEvidence;
+    const contract = call.name === 'read_context_resource' ? textContract : documentContract;
+    if (!contract.params(call.args)) continue;
+    const evidence = { ref: call.args.ref, basis: call.args.basis } as ResourceEvidence;
     let value: unknown;
     const raw =
       typeof message.content === 'string'

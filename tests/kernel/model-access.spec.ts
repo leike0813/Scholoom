@@ -6,6 +6,7 @@ import { createServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { mock } from 'node:test';
 import { expect, test } from '@playwright/test';
 import {
   type BackendRuntime,
@@ -34,7 +35,7 @@ interface Boundary {
 }
 
 // Scripted statuses: the last entry repeats, [503, 200] answers 503 once then 200.
-async function boundary(statuses: number[]): Promise<Boundary> {
+async function boundary(statuses: number[], holdAfterHeaders = false): Promise<Boundary> {
   const requests: string[] = [];
   const bodies: Array<Record<string, unknown>> = [];
   const waiting = new Set<() => void>();
@@ -52,6 +53,10 @@ async function boundary(statuses: number[]): Promise<Boundary> {
       bodies.push(JSON.parse(Buffer.concat(chunks).toString('utf8')) as Record<string, unknown>);
     } catch {
       /* Non-JSON probe requests carry no contract. */
+    }
+    if (hold && holdAfterHeaders) {
+      res.writeHead(200, { 'content-type': 'application/json' });
+      res.flushHeaders();
     }
     if (hold)
       await new Promise<void>((resolve) => {
@@ -81,10 +86,11 @@ async function boundary(statuses: number[]): Promise<Boundary> {
       stop_sequence: null,
       usage: { input_tokens: 1, output_tokens: 1 },
     });
-    res.writeHead(200, {
-      'content-type': 'application/json',
-      'content-length': Buffer.byteLength(body),
-    });
+    if (!res.headersSent)
+      res.writeHead(200, {
+        'content-type': 'application/json',
+        'content-length': Buffer.byteLength(body),
+      });
     res.end(body);
   });
   await new Promise<void>((resolve, reject) => {
@@ -325,6 +331,83 @@ test('cancelling a held call releases the single shared slot', async () => {
     await cleanup();
   }
 });
+
+for (const route of ['execution', 'call'] as const)
+  for (const [expires, holdAfterHeaders] of [
+    [false, false],
+    [true, false],
+    [true, true],
+  ] as const)
+    test(`slow ${route} survives three minutes, expiration=${expires}, body=${holdAfterHeaders}`, async () => {
+      const server = await boundary([200], holdAfterHeaders);
+      const { access: model, cleanup } = await access(server.url);
+      const controller = new AbortController();
+      const timeout = AbortSignal.timeout;
+      const nativeFetch = globalThis.fetch;
+      let receivedHeaders = false;
+      globalThis.fetch = async (input, init) => {
+        const response = await nativeFetch(input, init);
+        receivedHeaders = true;
+        return response;
+      };
+      mock.timers.enable({ apis: ['setTimeout'] });
+      AbortSignal.timeout = (milliseconds) => {
+        const timer = new AbortController();
+        setTimeout(() => timer.abort(new DOMException('Timed out', 'TimeoutError')), milliseconds);
+        return timer.signal;
+      };
+      try {
+        server.hold = true;
+        const request = async () => {
+          if (route === 'execution')
+            return (await (await model.create(undefined, controller.signal)).invoke('合成慢请求'))
+              .text;
+          const response = await model.call(
+            controller.signal,
+            () => {},
+            (signal) => fetch(server.url, { signal }),
+          );
+          return response.text();
+        };
+        let settled = false;
+        const held = request().then(
+          (answer) => {
+            settled = true;
+            return { answer, error: undefined };
+          },
+          (error: unknown) => {
+            settled = true;
+            return { answer: undefined, error };
+          },
+        );
+        while (!server.requests.length) await new Promise<void>((resolve) => setImmediate(resolve));
+        if (holdAfterHeaders)
+          while (!receivedHeaders) await new Promise<void>((resolve) => setImmediate(resolve));
+        mock.timers.tick(180001);
+        await new Promise<void>((resolve) => setImmediate(resolve));
+        expect(settled).toBe(false);
+        if (expires) {
+          mock.timers.tick(419998);
+          await new Promise<void>((resolve) => setImmediate(resolve));
+          expect(settled).toBe(false);
+          mock.timers.tick(1);
+        } else server.release();
+        const result = await held;
+        if (expires) expect(result.error).toBeInstanceOf(Error);
+        else expect(result.answer).toContain(ANSWER);
+        expect(server.requests).toHaveLength(1);
+        server.release();
+        expect(await request()).toContain(ANSWER);
+        expect(server.requests).toHaveLength(2);
+      } finally {
+        controller.abort();
+        globalThis.fetch = nativeFetch;
+        AbortSignal.timeout = timeout;
+        mock.timers.reset();
+        await server.close();
+        await cleanup();
+      }
+    });
 
 test('status exposes the model catalog, effort levels and factory defaults', async () => {
   const server = await boundary([200]);

@@ -25,7 +25,13 @@ import {
 } from '@scholoom/platform/node';
 import type { CallContext, ErrorInfo } from '@scholoom/protocol/core';
 import { compileContract, OperationError } from '@scholoom/protocol/core';
-import type { GraphExecution, GraphProgress, GraphResumeInput } from '@scholoom/protocol/execution';
+import type {
+  GraphExecution,
+  GraphProgress,
+  GraphResumeInput,
+  GraphWait,
+} from '@scholoom/protocol/execution';
+import { graphWaitSchema } from '@scholoom/protocol/execution';
 import type {
   CapabilityExecution,
   DelegationInputs,
@@ -134,6 +140,7 @@ const activeKey = (project: HarnessProject, sessionId: string) => `${project.id}
 const now = () => new Date().toISOString();
 const historyPrefix = '/conversation_history/';
 const executionsContract = compileContract(harnessModuleOperations['harness.executions']);
+const waitContract = compileContract({ params: graphWaitSchema, result: true });
 const settleTools = async (pending: Set<Promise<unknown>>) => {
   while (pending.size) await Promise.allSettled([...pending]);
 };
@@ -1341,7 +1348,7 @@ export class Harness {
     try {
       signal.throwIfAborted();
       await this.port(project)['project.check']({ projectId: project.id, access: 'send' });
-      const binding = run.graph;
+      let binding = run.graph;
       if (!binding || !context.workDomain)
         throw new OperationError('invalidRequest', '缺少持久图绑定或工作域。');
       const graph = {
@@ -1417,6 +1424,43 @@ export class Harness {
       const latest = await saver.getTuple({ configurable: { thread_id: run.id } });
       if (resume && !latest)
         throw new OperationError('unavailable', '原图 checkpoint 缺失；保留原尝试并停止接续。');
+      const persistedWait = (saved: typeof latest, expected?: GraphWait): GraphWait => {
+        const candidate = saved?.checkpoint.channel_values.graphWait;
+        if (!waitContract.params(candidate))
+          throw new OperationError('invalidRequest', '持久图等待不符合共同契约。');
+        const wait = candidate as GraphWait;
+        if (
+          wait.attemptId !== run.id ||
+          wait.checkpointRef !== binding?.checkpointRef ||
+          saved?.config.configurable?.thread_id !== run.id ||
+          (saved.config.configurable?.checkpoint_ns ?? '') !== '' ||
+          !factory.definition.waitSchemas?.[wait.inputSchemaRef]
+        )
+          throw new OperationError('invalidRequest', '图等待不属于当前持久绑定。');
+        if (expected && !isDeepStrictEqual(wait, expected))
+          throw new OperationError('outcomeUnknown', '等待尚未保存到 checkpoint。');
+        if (
+          !saved.pendingWrites?.some(
+            ([, channel, values]) =>
+              channel === '__interrupt__' &&
+              (Array.isArray(values) ? values : [values]).some(
+                (value) =>
+                  value && typeof value === 'object' && 'id' in value && value.id === wait.waitId,
+              ),
+          )
+        )
+          throw new OperationError('outcomeUnknown', '等待缺少真实 interrupt 依据。');
+        return wait;
+      };
+      if (
+        resume &&
+        !binding.wait &&
+        latest?.pendingWrites?.some(([, channel]) => channel === '__interrupt__')
+      ) {
+        // The checkpoint can survive shutdown before the host publishes its wait projection.
+        binding = { ...binding, wait: persistedWait(latest) };
+        run = { ...run, graph: binding };
+      }
       const previousResume = latest?.checkpoint.channel_values.graphResume as
         | GraphResumeInput
         | undefined;
@@ -1768,29 +1812,8 @@ export class Harness {
         onGraph: async (result) => {
           this.checkExecutionContext(context);
           if (result.kind === 'graph.waiting') {
-            if (
-              result.wait.attemptId !== run.id ||
-              result.wait.checkpointRef !== binding.checkpointRef ||
-              !factory.definition.waitSchemas?.[result.wait.inputSchemaRef]
-            )
-              throw new OperationError('invalidRequest', '图等待不属于当前持久绑定。');
             const saved = await saver.getTuple({ configurable: { thread_id: run.id } });
-            const durableWait = saved?.checkpoint.channel_values.graphWait;
-            if (!isDeepStrictEqual(durableWait, result.wait))
-              throw new OperationError('outcomeUnknown', '等待尚未保存到 checkpoint。');
-            const interrupted = saved?.pendingWrites?.some(
-              ([, channel, values]) =>
-                channel === '__interrupt__' &&
-                (Array.isArray(values) ? values : [values]).some(
-                  (value) =>
-                    value &&
-                    typeof value === 'object' &&
-                    'id' in value &&
-                    value.id === result.wait.waitId,
-                ),
-            );
-            if (!interrupted)
-              throw new OperationError('outcomeUnknown', '等待缺少真实 interrupt 依据。');
+            persistedWait(saved, result.wait);
           }
           if (
             result.kind !== 'graph.failed' &&

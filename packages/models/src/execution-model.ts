@@ -2,6 +2,9 @@ import { ChatAnthropic } from '@langchain/anthropic';
 import type { ModelDescriptor } from '@scholoom/protocol/models';
 import { adaptiveThinking, minimaxTokenLimits } from './catalog.js';
 
+// Match the Anthropic SDK's default while covering the response body as well.
+export const modelRequestTimeoutMs = 10 * 60 * 1000;
+
 class MiniMaxChatAnthropic extends ChatAnthropic {
   override get profile() {
     return { ...minimaxTokenLimits[this.model], ...super.profile };
@@ -36,13 +39,13 @@ export function createExecutionModel(
     ...(descriptor.effort ? { outputConfig: { effort: descriptor.effort } } : {}),
     maxRetries: 0,
     clientOptions: {
-      timeout: 180000,
+      timeout: modelRequestTimeoutMs,
       fetch: async (input, init) => {
         for (let attempt = 0; ; attempt++) {
           const leaseId = await admission.acquire();
           const requestSignal = AbortSignal.any([
             signal,
-            AbortSignal.timeout(180000),
+            AbortSignal.timeout(modelRequestTimeoutMs),
             ...(init?.signal ? [init.signal] : []),
           ]);
           try {

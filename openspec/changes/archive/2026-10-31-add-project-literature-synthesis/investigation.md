@@ -1,5 +1,15 @@
 # 调查依据
 
+## 2026-10-31：请求期限与错参分类
+
+真实第二run第39次请求约180秒无HTTP响应后被本地取消；原execution-model的SDK timeout、正文AbortSignal及ModelAccess.call三处固定180000ms。已安装`@anthropic-ai/sdk@0.122.0/src/client.ts`的`DEFAULT_TIMEOUT=600000`，显式配置使用该值；SDK fetch计时在响应头返回后清除，不能替代完整正文期限。采用models内部单一600秒常量，保留两层各自职责及原准入／重试，无需新依赖或公共DTO。SDK排队信号与准入分工为既有边界，不将此次取值统一视为整项科研期限。
+
+只在副本解码原checkpoint，发现停机前已持久保存source-wait及过程保存回执；早先run的interrupted投影不能代替checkpoint状态。对应错误调用的ref／basis正确，但documentInfo的offset／limit是字符串，真实工具schema在进入领域端口前拒绝；旧collector仅验Evidence却将其升格为材料失败。沿同源完整工具输入schema核对调用即可区分，合法参数下的非法UTF8、版本变化、权限或领域错误继续保留。原当前任务及材料均按强basis核对，不用同文／路径兜底。
+
+首次接续实际0新HTTP：明确retry已受理却未消费，旧run投影缺失wait时executeRegistered不映射pending；worker只读出checkpoint原等待再发布。真实综合图隔离回归复现重启后首次有效retry仍waiting；仅补回同根真实interrupt支持的等待后，同一指令在原run消费并完成。send同instructionId只返回原回执是既有幂等语义，不据此增加重复调度。真实原run此后通过一条新的普通继续消息调度已受理retry，两条指令均已沿原消费事务确认；没有改写原DB或checkpoint。证据与最终状态沿delivery记录。
+
+后续真实修订还暴露过程容量问题：每个职责将累计全部contentReads再次追加到原过程，而源集已在前面保存，反复复制使过程接近编辑容量后下一候选被明确拒绝。239000字节旧过程＋25段真实读取的隔离回归在原实现waiting；仅追加新Evidence／范围后可完成并保留25段完整GraphProgress。编辑容量、旧原文及待保存候选保持，机械红绿与真实续做见delivery；该修复不代表科研论断自动正确。
+
 ## 2026-10-31：MiniMax上下文元数据接入
 
 用户要求补齐元数据后重新验收。当前官方[模型调用指南](https://platform.minimax.io/docs/guides/text-generation.md)确认正式Flash与M3均为1,000,000-token窗口；[Messages OpenAPI](https://platform.minimax.io/docs/api-reference/text/api/openapi-chat-anthropic.json)对二者列最大输出524,288，且整体请求体上限64MB。已匿名读取官方正文与JSON，不调用计数或模型接口探测能力。旧ID及Preview当前窗口未核实，不按供应商别名路由猜测。
@@ -8,7 +18,7 @@
 
 ### 正式版重验发现的既有成果版本缺口
 
-本轮第二Graph的prepare先按update目标读回旧过程，再将新阶段开始信息追加保存；原settings.prior仍带保存前basis交给Agent。实际FileEdit证明55,840字节旧过程先变为57,503字节，随后read_context_resource按旧basis返回contentChanged，图进入source-wait。先前只修排除输出文件作为文献来源，未解决“同文件兼作本轮输出和历史prior”的版本时序。需要在写入前保全并实际交付所需prior版本，后续读取指针只随本次已确认保存推进；不得查询当前同文补证、静默重绑定或把程序预检冒充模型已消费。真实证据与尚未通过的内容评价沿delivery首节，修复及回归仍待实施。
+本轮第二Graph的prepare先按update目标读回旧过程，再将新阶段开始信息追加保存；原settings.prior仍带保存前basis交给Agent。实际FileEdit证明55,840字节旧过程先变为57,503字节，随后read_context_resource按旧basis返回contentChanged，图进入source-wait。先前只修排除输出文件作为文献来源，未解决“同文件兼作本轮输出和历史prior”的版本时序。在写入前保全并实际交付所需prior版本，后续读取指针只随本次已确认保存推进；不得查询当前同文补证、静默重绑定或把程序预检冒充模型已消费。该缺口已修，原32项回归及后续原basis真实消费证据见delivery；科研内容验收保持独立判断。
 
 ## 当前事实与复用选择
 
@@ -56,7 +66,7 @@ flowchart LR
 
 - 复用本项目现有材料读取、来源区分、保存保护及交付检查职责，维护自己的综合节点指导。`packages/research/src/builtin/material-analysis/SOURCE.md:3–5` 记录旧 zotero-agents 提交 `f47a04849a26aec63a2ff08bcbce5ef7bf63caba` 和 AGPL3；其节点素材可核，但本次不改变该旧方法，也不继承旧 Python／SQLite 阶段机。
 - 上一固定索引曾核本地 zotero-agents `e4f712479633ef02fbc2085d9cb750dcd489ff36` 的文献分析 playbook:3–53，用于辨认材料证据层级、作者陈述／解释、矛盾及逐项交付的职责。这是静态参考，不是本轮迁入或实跑 oracle；不把宿主队列、Zotero 写回或许可不明的新内容直接引入。
-- 上一索引曾核 ResearchSpec `62e442d07acb078c91fabe7e8f96da8e13033e8e` 的 `analysis-evidence-synthesis/manifest.yaml:11–19,28–43`、`SKILL.md:49–100` 和 `research-main.yaml:72–112`。它们可帮助核对输入／综合职责差异，不能成为已批准的本图结构；manifest 的 ars-derived／CC BY-NC 素材沿[既有源码取舍](../../../.scratch/scholoom-foundations/issues/19-existing-source-and-rust-reuse.md#python-与第三方内容)不作默认内置依赖。本轮不重新读取旧仓库或下载内容，不以旧静态调查和 operational 声明当科研质量结果。
+- 上一索引曾核 ResearchSpec `62e442d07acb078c91fabe7e8f96da8e13033e8e` 的 `analysis-evidence-synthesis/manifest.yaml:11–19,28–43`、`SKILL.md:49–100` 和 `research-main.yaml:72–112`。它们可帮助核对输入／综合职责差异，不能成为已批准的本图结构；manifest 的 ars-derived／CC BY-NC 素材沿[既有源码取舍](../../../../.scratch/scholoom-foundations/issues/19-existing-source-and-rust-reuse.md#python-与第三方内容)不作默认内置依赖。本轮不重新读取旧仓库或下载内容，不以旧静态调查和 operational 声明当科研质量结果。
 
 ## 影响方案的未知项与实验
 

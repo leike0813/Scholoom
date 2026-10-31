@@ -13,6 +13,7 @@ for (const boundary of [
   'ack',
   'upgrade',
   'lost-wait',
+  'lost-wait-ack',
   'missing-checkpoint',
   'materials',
   'explicit-items',
@@ -232,7 +233,7 @@ for (const boundary of [
         expect(app.projects.get(project.id).history('result.md')).toHaveLength(1);
         return;
       }
-      if (boundary === 'lost-wait') {
+      if (boundary === 'lost-wait' || boundary === 'lost-wait-ack') {
         assert(waiting?.graph);
         const { wait: _wait, ...binding } = waiting.graph;
         app.projects
@@ -247,14 +248,6 @@ for (const boundary of [
             }),
             accepted.runId,
           );
-        await app.harness.send({
-          ...first,
-          instructionId: randomUUID(),
-          text: 'Recover the saved wait.',
-        });
-        await expect
-          .poll(async () => (await app.snapshot(scope)).run?.state, { timeout: 20000 })
-          .toBe('waiting');
       }
       if (boundary === 'materials') {
         const next = await app.projects.get(project.id).save('next.md', 'different evidence');
@@ -291,14 +284,16 @@ for (const boundary of [
         expect(JSON.parse(old.value).graph.materials).toEqual(selection.materials);
         return;
       }
-      const ambiguous = { ...first, instructionId: randomUUID(), text: 'Maybe later.' };
-      await app.harness.send(ambiguous);
-      await expect.poll(async () => (await app.snapshot(scope)).run?.state).toBe('waiting');
-      expect(
-        (await app.snapshot(scope)).messages.find(
-          (message) => message.id === ambiguous.instructionId,
-        )?.state,
-      ).toBe('accepted');
+      if (boundary !== 'lost-wait' && boundary !== 'lost-wait-ack') {
+        const ambiguous = { ...first, instructionId: randomUUID(), text: 'Maybe later.' };
+        await app.harness.send(ambiguous);
+        await expect.poll(async () => (await app.snapshot(scope)).run?.state).toBe('waiting');
+        expect(
+          (await app.snapshot(scope)).messages.find(
+            (message) => message.id === ambiguous.instructionId,
+          )?.state,
+        ).toBe('accepted');
+      }
       if (boundary === 'upgrade') {
         await app.close();
         // @ts-expect-error Static source-only upgrade fixture.
@@ -366,14 +361,14 @@ for (const boundary of [
             }
           : {}),
       };
-      if (boundary === 'ack')
+      if (boundary === 'ack' || boundary === 'lost-wait-ack')
         app.projects
           .get(project.id)
           .database.exec(
             `CREATE TRIGGER lose_graph_ack BEFORE UPDATE ON instructions WHEN NEW.id = '${resume.instructionId}' BEGIN SELECT RAISE(ABORT, 'synthetic acknowledgement failure'); END`,
           );
       expect((await app.harness.send(resume)).runId).toBe(accepted.runId);
-      if (boundary === 'ack') {
+      if (boundary === 'ack' || boundary === 'lost-wait-ack') {
         await expect
           .poll(async () => (await app.snapshot(scope)).run?.state, { timeout: 20000 })
           .toBe('interrupted');
@@ -386,6 +381,18 @@ for (const boundary of [
         app = new KernelApplication(profile, options);
         await app.initialize();
         app.projects.get(project.id).database.exec('DROP TRIGGER lose_graph_ack');
+        if (boundary === 'lost-wait-ack') {
+          const interrupted = (await app.snapshot(scope)).run;
+          assert(interrupted?.graph);
+          const { wait: _wait, ...binding } = interrupted.graph;
+          app.projects
+            .get(project.id)
+            .database.prepare('UPDATE runs SET value = ? WHERE id = ?')
+            .run(
+              JSON.stringify({ ...interrupted, graph: binding, graphProgress: undefined }),
+              accepted.runId,
+            );
+        }
         await app.harness.send({
           ...first,
           instructionId: randomUUID(),

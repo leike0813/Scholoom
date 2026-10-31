@@ -2,7 +2,12 @@ import { OperationError } from '@scholoom/protocol/core';
 import type { ModelDefaults, ProviderStatus } from '@scholoom/protocol/models';
 import type { RunModelConfig } from './catalog.js';
 import { factoryDefaults, minimaxEfforts, minimaxEndpoint, minimaxModels } from './catalog.js';
-import { createExecutionModel, type ModelBudget, type ModelExecution } from './execution-model.js';
+import {
+  createExecutionModel,
+  type ModelBudget,
+  type ModelExecution,
+  modelRequestTimeoutMs,
+} from './execution-model.js';
 
 export function createModelBudget(): ModelBudget {
   let requests = 0;
@@ -145,7 +150,7 @@ export class ModelAccess {
       let deferred = false;
       try {
         budget.consume();
-        const requestSignal = AbortSignal.any([signal, AbortSignal.timeout(180000)]);
+        const requestSignal = AbortSignal.any([signal, AbortSignal.timeout(modelRequestTimeoutMs)]);
         const result = await handler(requestSignal);
         if (result instanceof Response && result.body) {
           const reader = result.body.getReader();

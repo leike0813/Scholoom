@@ -75,7 +75,7 @@
 
 ## 已安装 LangChain／deepagents 与本项目的实际边界
 
-以下表格记录调查时基线`ca3b272`。随后用户要求补齐MiniMax元数据，当前生产适配及验证以[本变更交付记录](../../../openspec/changes/add-project-literature-synthesis/delivery.md)和[开发说明](../../../docs/development.md#基本单-agent-harness)为准；不把基线缺口误读为修复后仍固定170k。
+以下表格记录调查时基线`ca3b272`。随后用户要求补齐MiniMax元数据，当前生产适配及验证以[本变更交付记录](../../../openspec/changes/archive/2026-10-31-add-project-literature-synthesis/delivery.md)和[开发说明](../../../docs/development.md#基本单-agent-harness)为准；不把基线缺口误读为修复后仍固定170k。
 
 | 机制 | 已安装版本的源码事实 | 对当前 Scholoom 的含义 |
 | --- | --- | --- |

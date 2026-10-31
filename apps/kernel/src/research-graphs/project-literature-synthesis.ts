@@ -169,6 +169,7 @@ export const projectLiteratureSynthesisFactory: GraphFactory = {
       snapshot: Annotation<TaskGraphInputSnapshot | undefined>(),
       sources: Annotation<ResourceEvidence[]>(),
       contentReads: Annotation<GraphContentRead[]>(),
+      processReads: Annotation<GraphContentRead[]>(),
       roleResults: Annotation<GraphRoleResult[]>(),
       creations: Annotation<ResourceCreationOutputs['resources.create'][]>(),
       processText: Annotation<string>(),
@@ -382,6 +383,15 @@ export const projectLiteratureSynthesisFactory: GraphFactory = {
         route: 'save',
       };
     };
+    const unrecordedReads = (value: Value, reads: GraphContentRead[]) =>
+      reads.filter(
+        (item) =>
+          !(value.processReads ?? []).some(
+            (previous) =>
+              sameEvidence(previous.resource, item.resource) &&
+              isDeepStrictEqual(previous.content, item.content),
+          ),
+      );
     const processContent = (value: Value, addition: string) => {
       const content = [value.processText, addition].filter(Boolean).join('\n\n');
       if (content.length > 262144)
@@ -394,12 +404,14 @@ export const projectLiteratureSynthesisFactory: GraphFactory = {
     ): Promise<Partial<Value>> => {
       const failed = value.failures[0];
       if (!failed) throw new OperationError('invalidRequest', '缺少实际来源错误。');
+      const newReads = unrecordedReads(value, value.contentReads);
       const content = processContent(
         value,
-        `## 来源读取受阻\n\n${JSON.stringify(value.failures)}\n暂停依赖来源的工作，等待用户明确处理；已读范围：${JSON.stringify(value.contentReads)}。`,
+        `## 来源读取受阻\n\n${JSON.stringify(value.failures)}\n暂停依赖来源的工作，等待用户明确处理；新增已读范围：${JSON.stringify(newReads)}。`,
       );
       return {
         ...value,
+        processReads: [...(value.processReads ?? []), ...newReads],
         ...queueSaves(value, [{ role: 'process', content }], 'wait'),
         waitKind: 'source-wait',
         sourceResume,
@@ -420,13 +432,9 @@ export const projectLiteratureSynthesisFactory: GraphFactory = {
         prompt: `当前工作未完成：${info.message}。保留已保存文件；请核查原操作后发送“继续核查：具体处理说明”。`,
       };
     };
-    const excludedOutput = (value: Value, resource: ResourceEvidence) => {
-      if (resource.role === 'task-input') return true;
+    const isOutput = (value: Value, resource: ResourceEvidence) => {
       const targets = [settings.reportTarget, settings.processTarget];
       return (
-        input.graph.materials.some(
-          (item) => item.role === 'task-input' && sameEvidence(item, resource),
-        ) ||
         value.roleResults.some((item) =>
           isDeepStrictEqual(item.result.resource.ref, resource.ref),
         ) ||
@@ -435,6 +443,18 @@ export const projectLiteratureSynthesisFactory: GraphFactory = {
             target.kind === 'update' && isDeepStrictEqual(target.resource.ref, resource.ref),
         )
       );
+    };
+    const excludedOutput = (value: Value, resource: ResourceEvidence) =>
+      resource.role === 'task-input' ||
+      input.graph.materials.some(
+        (item) => item.role === 'task-input' && sameEvidence(item, resource),
+      ) ||
+      isOutput(value, resource);
+    const currentResource = (value: Value, resource: ResourceEvidence): ResourceEvidence => {
+      const saved = value.roleResults.find((item) =>
+        isDeepStrictEqual(item.result.resource.ref, resource.ref),
+      )?.result.resource;
+      return saved ? { ...resource, basis: saved.basis } : resource;
     };
 
     const graph = new StateGraph(state)
@@ -476,16 +496,21 @@ export const projectLiteratureSynthesisFactory: GraphFactory = {
           let processText = value.processText;
           for (const target of [settings.processTarget, settings.reportTarget])
             if (target.kind === 'update') {
-              const role = target === settings.processTarget ? 'process' : 'report';
-              const before = await read(
-                value.roleResults.find((item) => item.role === role)?.result.resource ??
-                  target.resource,
-              );
+              const before = await read(currentResource(value, target.resource));
               if (!completeTextRead(before))
                 throw new OperationError('tooLarge', '更新目标需要完整读取。');
               if (target === settings.processTarget) processText = before.data;
             }
           const catalog = await readCatalog(snapshot);
+          for (const prior of settings.prior ?? []) {
+            if (prior.ref.source !== 'project' || prior.ref.projectId !== projectId)
+              throw new OperationError('permissionDenied', '既有成果必须属于当前项目。');
+            const descriptor = await callExecutionControl(peer, 'resources.describe', {
+              locator: prior.ref,
+            });
+            if (!sameEvidence(descriptor, currentResource(value, prior)))
+              throw new OperationError('contentChanged', '指定既有成果已变化。');
+          }
           for (const source of value.sources) {
             try {
               const descriptor = await callExecutionControl(peer, 'resources.describe', {
@@ -506,22 +531,21 @@ export const projectLiteratureSynthesisFactory: GraphFactory = {
               );
             }
           }
-          for (const prior of settings.prior ?? []) {
-            if (prior.ref.source !== 'project' || prior.ref.projectId !== projectId)
-              throw new OperationError('permissionDenied', '既有成果必须属于当前项目。');
-            const descriptor = await callExecutionControl(peer, 'resources.describe', {
-              locator: prior.ref,
-            });
-            if (!sameEvidence(descriptor, prior))
-              throw new OperationError('contentChanged', '指定既有成果已变化。');
-          }
           const prepared = { ...value, processText, ...(snapshot ? { snapshot } : {}), catalog };
           const content = processContent(
             prepared,
             `# 本次文献综合\n\n研究问题：${settings.question}\n约束：${settings.constraints ?? '无附加约束'}\n原指令：${origin}\n来源范围：${JSON.stringify(value.sources)}\n题录条件：${JSON.stringify(catalog)}\n下一步：按原身份实际取材、比较，独立复核要求：${settings.requireIndependentReview}。`,
           );
+          const processTarget = settings.processTarget;
+          // Let the first consumer read the exact prior before appending to that file.
+          const preservePrior =
+            processTarget.kind === 'update' &&
+            settings.prior?.some((prior) => sameEvidence(prior, processTarget.resource)) &&
+            !value.roleResults.some((item) => item.role === 'process');
           return {
-            ...queueSaves(prepared, [{ role: 'process', content }], 'acquire'),
+            ...(preservePrior
+              ? { processText: content, route: 'acquire' }
+              : queueSaves(prepared, [{ role: 'process', content }], 'acquire')),
             sources: value.sources,
             ...(snapshot ? { snapshot } : {}),
             catalog,
@@ -691,6 +715,17 @@ export const projectLiteratureSynthesisFactory: GraphFactory = {
           return { route: 'wait' };
         const decision = `用户普通消息决定：${JSON.stringify(choice)}\n适用原错误：${JSON.stringify(pending ?? value.error)}\n研究影响：${choice.action === 'exclude' ? '明确缩小本次依据范围，该来源不再支撑当前结论，需重新核查比较和覆盖局限。' : '核查原身份后继续，不替换来源或盲重放保存。'}`;
         try {
+          const processResource =
+            value.roleResults.find((item) => item.role === 'process')?.result.resource ??
+            (settings.processTarget.kind === 'update'
+              ? settings.processTarget.resource
+              : undefined);
+          if (processResource) {
+            const actual = await read(processResource);
+            if (!completeTextRead(actual))
+              throw new OperationError('tooLarge', '继续前需要完整读取原过程。');
+            value = { ...value, processText: actual.data };
+          }
           const excluded =
             choice.action === 'exclude' && choice.source
               ? [...value.excluded, choice.source]
@@ -784,6 +819,16 @@ export const projectLiteratureSynthesisFactory: GraphFactory = {
       let consumerPending = false;
       try {
         const catalog = await readCatalog(value.snapshot);
+        const target = (target: typeof settings.processTarget) =>
+          target.kind === 'update'
+            ? { ...target, resource: currentResource(value, target.resource) }
+            : target;
+        const currentSettings = {
+          ...settings,
+          reportTarget: target(settings.reportTarget),
+          processTarget: target(settings.processTarget),
+          prior: settings.prior?.map((prior) => currentResource(value, prior)),
+        };
         let calls = collectContentReads(value.messages).toolCalls;
         consumerPending = true;
         const actual = await agent.invoke(value, nodeConfig, {
@@ -796,7 +841,7 @@ export const projectLiteratureSynthesisFactory: GraphFactory = {
             ...value.sources,
             ...input.graph.materials.filter((item) => item.role === 'task-input'),
           ],
-          systemPrompt: `${nodeGuidance[phase]}\n本次目标及明确旧成果：${JSON.stringify(settings)}\n当前有效来源：${JSON.stringify(value.sources)}\n题录及附件条件：${JSON.stringify(catalog)}\n已保存角色：${JSON.stringify(value.roleResults)}\n明确用户决定：${JSON.stringify(value.decisions)}\n当前职责：${phase}`,
+          systemPrompt: `${nodeGuidance[phase]}\n本次目标及明确旧成果：${JSON.stringify(currentSettings)}\n成果引用仅随本图实际保存回执推进；按此处当前ref与basis读取，不重用历史消息中的旧basis。\n当前有效来源：${JSON.stringify(value.sources)}\n题录及附件条件：${JSON.stringify(catalog)}\n已保存角色：${JSON.stringify(value.roleResults)}\n明确用户决定：${JSON.stringify(value.decisions)}\n当前职责：${phase}`,
           prepareToolResult(name, args, result) {
             if (++calls > 96)
               throw new OperationError(
@@ -827,6 +872,7 @@ export const projectLiteratureSynthesisFactory: GraphFactory = {
           reviewed: phase === 'review',
           failures: collected.failures.filter(
             (item) =>
+              !isOutput(value, item.resource) &&
               !value.excluded.includes(sourceKey(item.resource)) &&
               (!item.toolCallId || !value.handledFailures.includes(item.toolCallId)),
           ),
@@ -861,15 +907,17 @@ export const projectLiteratureSynthesisFactory: GraphFactory = {
             ],
           };
         }
+        const newReads = unrecordedReads(value, contentReads);
         const content = processContent(
           current,
-          `## ${phase}\n\n${parsed.data.process}\n\n实际读取范围：${JSON.stringify(contentReads)}${current.failures.length ? `\n来源错误：${JSON.stringify(current.failures)}` : ''}`,
+          `## ${phase}\n\n${parsed.data.process}${newReads.length ? `\n\n新增读取范围：${JSON.stringify(newReads)}` : ''}${current.failures.length ? `\n来源错误：${JSON.stringify(current.failures)}` : ''}`,
         );
         let route: string = parsed.data.next;
         if (phase === 'acquire' && ['review', 'deliver'].includes(route)) route = 'synthesize';
         if (phase === 'synthesize' && route === 'deliver') route = 'review';
         return {
           ...current,
+          processReads: [...(value.processReads ?? []), ...newReads],
           outputCorrection: false,
           ...queueSaves(
             current,
@@ -919,6 +967,7 @@ export const projectLiteratureSynthesisFactory: GraphFactory = {
               sources,
               failures: collected.failures.filter(
                 (item) =>
+                  !isOutput(value, item.resource) &&
                   !value.excluded.includes(sourceKey(item.resource)) &&
                   (!item.toolCallId || !value.handledFailures.includes(item.toolCallId)),
               ),
@@ -1001,6 +1050,7 @@ export const projectLiteratureSynthesisFactory: GraphFactory = {
                     instructions: input.instructions ?? [],
                     sources: input.graph.materials.filter((item) => item.role !== 'task-input'),
                     contentReads: [],
+                    processReads: [],
                     roleResults: [],
                     creations: [],
                     processText: '',

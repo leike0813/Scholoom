@@ -696,7 +696,7 @@ Codex／gpt-6.1-sol／high保持。所有树先停止并保全原提交祖先，
 
 该批四任务及补充的保存核查、Agent子图初次探针已全部接收并结清retained；前两工件来源12de30a已合入且保全祖先。新`add-project-literature-synthesis`已有proposal、汇合investigation和三份delta共10项要求，尚缺最终design／tasks，不称apply-ready。实际来源、初次探针的不兼容反例、两份独立审查与未验边界均由该change的investigation维护；本批初设链接漂移已修正，未将文档或合成框架验证当真实科研结果。
 
-原任务config下的子接续恢复门有限探针已接收：两个有效场景各exit0，未确认adopted补ACK继续失败不推进，成功task skip仍保留覆盖且工具不重做。真实框架／原saver／SQLite与宿主镜像的证据边界由新change investigation维护，不当真实IPC通过。主线已据此结束探针规划，制定 [实施设计](../../openspec/changes/add-project-literature-synthesis/design.md)及 [任务](../../openspec/changes/add-project-literature-synthesis/tasks.md)。
+原任务config下的子接续恢复门有限探针已接收：两个有效场景各exit0，未确认adopted补ACK继续失败不推进，成功task skip仍保留覆盖且工具不重做。真实框架／原saver／SQLite与宿主镜像的证据边界由新change investigation维护，不当真实IPC通过。主线已据此结束探针规划，制定 [实施设计](../../openspec/changes/archive/2026-10-31-add-project-literature-synthesis/design.md)及 [任务](../../openspec/changes/archive/2026-10-31-add-project-literature-synthesis/tasks.md)。
 
 下一波按任务1.1先落实最小共同契约并验证，再同步已结清树至同一准确基线及所需产物；随后派发文献1.2（长文本）、Agent2.1（共用装配及恢复）、任务3.1（题录来源／快照）、项目4.1（精确角色成果核查）、交互4.2（当前会话等待／成果）。共享文件写集见design；Task／科研port在application.ts的局部由主线顺序整合，其他树不并写相同区。图线5.1等这些实际接口合入后实施，不从候选草案猜helper；生态线保留，没有独立任务时不填充。Prompt与同步／启动证据保存本轮cache，不另造任务账本。
 

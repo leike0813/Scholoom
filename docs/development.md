@@ -33,6 +33,8 @@ Electron 工作台和 CLI 共用独立 Node 内核，浏览器开发入口经同
 
 宿主经内部 broker `harness.startGraph` 选择 registered 图，后续沿普通 `session.send` 发送新指令。尝试保存图身份、版本、配置、材料依据、状态格式及 checkpoint 绑定；公共 `workbench.watch/snapshot` 返回 `graphProgress` 和 waiting／waitId。工厂的 `resume` 将新消息映射为已声明等待 schema 的输入与指令身份；不匹配时保留等待和未消费消息，不转为默认 Agent。图使用宿主提供的 `InstructionSaver`，先保存 `instructionIds`／`graphResume` 再确认消费；等待须对应实际 checkpoint 的 interrupt。重启只读取记录，不自动推进；旧版本不可用或 checkpoint 缺失时保留原尝试与成果，显式新版本另建尝试。registered 执行共用当前实例授权、进程准入、模型额度、取消和真实资源端口，无模型图不要求模型凭据。
 
+等待已落 checkpoint 而运行投影未发布时，显式接续从当前根的同身份、合法等待及匹配 interrupt 恢复投影，再处理待消费指令；残留等待通道不能代替真实 interrupt。已持久采用的决定仍优先按原 `graphResume` 和消费凭证恢复，不重放已确认操作。定向回归覆盖首次有效答复及等待投影与消费确认同时丢失的组合。
+
 内部宿主通过 `harness.executions` 按所属 projectId/sessionId 及 runId、instructionId、originInstructionId 之一查询历史，默认25、最多100项，响应最多512KiB；按指令命中时还返回原Message用于核对输入，消息缺失明确unavailable。源码图来源由宿主从显式启动指令生成，并传入registered初始化；普通接续继承，同配置显式新启动另起来源。查询不执行或补造旧历史，不扩大材料授权。定向验证入口为 `tests/kernel/execution-history.spec.ts`。
 
 registered 图的消息接续复用 `InstructionContext`，保留文字、原项目材料路径／身份、显式项和服务端持久来源。工厂 `resume` 收到完整上下文及原 `id/text`，已匹配指令经原 IPC 交给 worker 的 `create(input, context)`；源码启动材料继续使用独立的 `execution.materials`。worker 的 `InstructionSaver` 将完整上下文及 run 归属写入 checkpoint，宿主按服务端原消息核对后才确认消费；只保存身份不能确认。实际取材仍使用共同资源端口，受理、恢复、消费确认及模型排队前后／最终同步准入均复查授权。
@@ -433,7 +435,7 @@ pnpm kernel session --project PROJECT_ID --session SESSION_ID
 pnpm kernel cancel --project PROJECT_ID --session SESSION_ID
 ```
 
-请求受理立即返回指令／执行引用；回执丢失时保留原 `--instruction-id` 查询或补交。工作台刷新后会核对持久的待确认输入，未能确认时提供“按原身份补交”，保留当前草稿。缺失用量为未知；请求默认 180 秒、模型并发 1，安全临时失败最多额外两次重试，不重放已输出的流或未知副作用。取消只确认本地调度与工具停止，不代表远端已停止计费。当前执行默认最多 32 次模型请求，触限保留成果并等待继续。
+请求受理立即返回指令／执行引用；回执丢失时保留原 `--instruction-id` 查询或补交。工作台刷新后会核对持久的待确认输入，未能确认时提供“按原身份补交”，保留当前草稿。缺失用量为未知；单次模型请求期限为600秒，与Anthropic SDK默认一致，由models同一常量约束SDK和完整响应正文；模型并发1，安全临时失败最多额外两次重试，不重放已输出的流或未知副作用。超时不自动重试，保留原成果和checkpoint供显式继续；SDK自身等待与取得准入后的正文期限不构成整项科研总期限。取消只确认本地调度与工具停止，不代表远端已停止计费。当前执行默认最多32次模型请求，触限保留成果并等待继续。
 
 内置科研方法通过 `discover_research_methods` 发现摘要、`load_research_method` 按身份与版本读取正文。普通方法可直接使用；明确能力工具 `invoke_research_capability` 自动核对输入和项目 `trusted` 状态，复用同一模型额度与安全文件工具。首项 `scholoom.material-analysis`（`1.0.0`）接受 `materialPaths`（1–10 个项目文本）、`outputPath` 和 `goal`，例如要求“按材料分析方法读取 input.md，分析结果依据与限制并保存 analysis.md”。无需先创建研究任务。
 

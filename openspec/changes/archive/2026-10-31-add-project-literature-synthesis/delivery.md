@@ -1,5 +1,102 @@
 # 实际交付与交接
 
+## 交付结论（2026-10-31）
+
+本change按已批准的Linux浏览器与真实Electron范围完成，tasks为12/12。源码内建文献综合图、真实取材、持续过程保存、来源等待、报告／过程版本核查、任务导航及补材料后的新会话续做均已交付；最终科研内容经独立评价达到C1–C5。结果是经过人工审阅反馈及产品内普通Agent事实校订后的阶段可用路径，不是无人干预首轮成功，也不追认旧失败稿通过。下方按时间保存的未完成描述均为历史截点。最终证据根`N=/home/joshua/.cache/scholoom-synthesis-closeout-20261031`。
+
+最终科学稿仍为run `d7032a9f-9ee8-4794-be53-35d59ccc34ae`的9950字节报告，保存／关联核查usable。校订run `91a2b1f8-61f0-40ca-8586-749b1bb90f32`经新普通会话`40366727-aeef-498f-8439-5ed1fb523382`的session.send完成，仅在原后续过程开头插入事实更正；完整54494字节旧正文作为suffix保留。新过程57091字节，basis `53:121568924:57091:1793427679048173055:1793427679058173334`，FileEdit `94d85d89-6372-405d-9319-c6354da2e4e3`真实归属该普通执行，不回填原Graph角色回执。任务只更新comparison中既有process链接basis；正文、状态及其余链接保持，报告及245292字节旧过程的身份、basis和正文均未变。
+
+主线从`N/resume-correction-m9qceG`的exact资源读回、files.changes／files.edit、任务前后正文及metadata核实以上事实；snapshot为completed、无Graph绑定、精确模型`MiniMax-M3.1-Flash`／medium。独立校订窗口最多12次HTTP／首请求600秒／每次16384输出，实际7次均200完整；出站正文无字节门槛，1MiB只是本地响应采证边界。旧窗口37次单列历史，没有重置或混算；owner退出0、inspect stopped、cleanupErrors空。科研模型未收到评分表或论文标准答案，过程数值更正明确来自人工事实反馈，不能作为模型自行核查的证明。
+
+独立gpt-6.1-sol/high在`N/CONTENT-REVIEW-FINAL.md`及`content-review-final-d703/REVIEW.md`确认C4更正准确、其余已通过判据保持，C1–C5整体达到本次标准；上版评价保留于同根`content-review-c4-91a2`。真实三篇正文消费、Wilson2014尾段补读与来源身份的逐字核查沿原`content-review-final-d703/CONSUMPTION.md`，未将新校订run称为重新读过论文。科研产物由产品模型实际生成、保存和关联，开发Agent只独立采证、审查及维护交付记录。
+
+| proposal完成判据 | 实际依据与结论 |
+| --- | --- |
+| 1 真实项目／任务入口及所属执行 | 6.1双宿主产品路径与真实模型的tasks.runGraph／session.send、调用及run身份；通过 |
+| 2 研究内容与过程 | 最终报告、过程及人工反馈后的更正，独立C1–C5；通过本阶段科研标准 |
+| 3 来源、版本、保存及明确等待 | 真实正文消费、精确FileEdit／basis／任务关系，以及来源、投影丢失、消费ACK与取消／撤权代表；通过约定范围 |
+| 4 文档打开／编辑与部分成果保护 | Browser／真实Electron共用文档、人工FileEdit及任务CAS竞争后补关系；通过，历史日志见下文6.1记录 |
+| 5 新会话新增材料的研究影响 | 新会话真实采用Wilson2017，修订读者／受益者、备份／公开及最低测试判断，保留旧报告和输入；独立评价确认，不只打开旧文件 |
+| 6 真实科研评价及旧路径 | 正式Flash真实样本与独立内容审查已完成；机械边界继续由真实内部接线／受控外部HTTP核查，不混作科研质量 |
+
+最终代码验证为综合图整份36/36（6.4分钟）、模型整份25/25与精确期限6/6、恢复及消费故障定向代表；构建、tools noEmit、相关Biome、architecture零问题及OpenSpec strict通过。双宿主整合沿此前6.1实际结果；最后数值校订无产品代码变化，未重跑UI或整套无关测试。开发入口和600秒共同期限已写入`docs/development.md`，架构仍沿原模块职责和共享harness，没有新增依赖、服务或公开接口。
+
+Windows真实分发／未完成能力和macOS受管执行不纳入已确认的Linux阶段目标，不能外推跨平台通过；macOS保持显式不可用。真实科研仍可能需要用户反馈，不保证所有论文任务的正确性。`add-interactive-research-reports`仍21/27，其通用HTML／JS与隔离交付不由本change代替；CI及发布包验证保持另行范围。本轮未提交或推送Git，没有删除旧稿、失败候选或校订时产生的两个辅助旁文件；它们仅留在隔离验收项目，不成为生产或接续依赖。所有工件均在持久cache，不依赖/tmp。
+
+正式规格已同步：research-capabilities新增6项、research-tasks新增3项、workbench-resources新增1项、model-access修改2项；逐块比对确认delta一致，原Purpose、标题及其余要求完整保留。`openspec validate --specs`为24/24、受影响四份spec分别strict通过，本change strict通过，apply为12/12／all_done。额外全库strict在未修改的agent-harness及ui-workbench-shell遇到既有长正文警告而退出1；不将其写成全库strict通过，也未为清警告重写无关契约。一次validate误传四个位置参数被CLI拒绝，随后改为四条独立命令均通过。最终归档与引用检查只涉及文档，未重跑无变化代码矩阵。
+
+已归档至`openspec/changes/archive/2026-10-31-add-project-literature-synthesis/`，元数据及全部工件保留。归档后49条本地相对链接均实际存在，包含两处外部索引及移动后新增的一层父目录；tasks仍12/12，`openspec list --json`仅剩交互报告活动change。最终`git diff --check`通过，代码保持未提交。
+
+## 最终科学稿与首次事实校订（2026-10-31，历史截点）
+
+当前仍10/12，6.3／6.4未勾选。真实科研调用`436429a9-2473-496e-b33b-48046f7950ba`、session `44c5a605-fa8b-46e5-b44e-3065fefd8c23`、run `d7032a9f-9ee8-4794-be53-35d59ccc34ae`已完成；`N/resume-revision-MLQLQJ`保存最终报告9950字节／5725 UTF16、后续过程54494字节／37684 UTF16、准确FileEdit归属、任务链接及usable检查，owner正常退出0、stopped、cleanupErrors空。`N`沿下节持久cache根。独立评价`N/CONTENT-REVIEW-FINAL.md`已确认C1–C3／C5达到，三篇本run全文真实消费及Wilson2014尾部9792单元补读均逐字核实。唯一C4阻塞为过程将旧prior的非连续尾段概括为连续区间；不要求补读旧过程，也不重写科学报告。
+
+旧过程版本实际已读为`[0,4096)`、`[189894,193990)`、`[197990,202086)`、`[206086,210182)`、`[214182,218278)`，合计20480 UTF16；未读合计197798。原报告归因、受益者、备份／公开及最低测试边界的修订已经通过，不能再将这些列为当前失败。更正须保留旧记录、区分旧Graph与新校订执行的实际阅读及保存归属，并澄清误录fileId与真实Sandve身份；原Graph历史回执不能回填。
+
+普通Agent校订`N/resume-correction-MuPh6V`、run `763ef0b2-72ab-4f1b-9670-d164f1c75853`实际失败：两次edit_file目标不存在或不唯一，随后生成两个旁文件，describe_program_material又将文件名当fileId，返回notFound。没有执行程序工具或获得目标过程保存／任务更新成功回执，不将模型计划当已完成。该动作继承27次后新增10次HTTP，原窗口合计37，之后明确停止；原始消息、工具回执及审计全部保留，owner退出0／stopped、cleanupErrors空。接续改用唯一首标题之前插入显式更正，保留原文件完整正文；不在重复尾段继续猜目标。后续单独有界计量，不能重置或混算旧窗口，最终状态待实际保存及独立C4复核。
+
+过程增量修复的最终完整综合图36/36通过（6.4分钟，`N/checks/synthesis-final-coverage.log`），覆盖239KB旧过程、25段真实读取及格式纠正后范围保全；独立`PROCESS-GROWTH-REVIEW.md`已关闭遗漏范围P2。此前“正在重跑”的记录为历史截点。代码未再变化，不重复运行已通过矩阵。
+
+## 慢响应、错参分类及持久等待接续（2026-10-31，验收进行中）
+
+用户在上节未完成事项说明后要求“继续吧”，沿既有授权推进6.3／6.4。证据根`N=/home/joshua/.cache/scholoom-synthesis-closeout-20261031`，原任务、来源、旧稿和39次请求证据保持；不依赖/tmp，不改原模型配置。当前仍10/12：真实新稿已交付，但独立内容审查仍未通过，正在准备同任务下一次明确修订，不能归档。
+
+models两份原实现共用内部600秒期限，SDK和完整响应正文均受限；与已安装Anthropic SDK默认一致，不新增配置、依赖或请求体门槛。原授权、并发1、每次推进32次、取消和安全HTTP重试保持。`model-access.spec.ts`整份25/25及最终精确期限6/6通过，涵盖180秒后成功、599999ms仍pending／600000ms取消、响应头后正文挂起及名额释放；使用真实本地HTTP和虚拟时钟，未用十分钟墙钟冒充供应商慢响应。原worker压缩／共享准入／重启代表1/1通过。日志见`checks/models.log`、`timeout-boundary.log`和`recovery.log`。
+
+content-reads沿read／document完整同源params schema分类，工具错参不登记来源失败或正文，原工具消息保留；合法参数的真实领域错误仍受保护。旧实现两例红，改后错参／oversized／实际来源失败4/4、最终collector3/3及整份34/34通过，见`checks/read-input-red.log`、`read-input-green.log`、`read-final.log`和`synthesis-full.log`。独立gpt-6.1-sol/high复核无确证P1/P2，未把修正错参当作修正科研判断。
+
+`resume-8oEwqc`第一次接续0新HTTP：指令`f507f547-9080-49e4-8fa6-3a362586b4a5`已受理但未消费，原因是checkpoint的真实等待尚未发布到run投影，宿主不映射新决定。该失败及干净退出证据保留。harness共同入口现按schema、原身份、精确根及真实interrupt补回缺失等待，与onGraph复用核对；残留graphWait不构成接续依据，原graphResume、ACK与unknown保护不变。综合图真实回归旧实现waiting未完成，修复后正常／丢失投影2/2绿；registered正常／ACK／lost-wait／组合／取消／撤权6/6绿，组合再加ACK失败后第二次丢投影1/1绿。日志见`checks/wait-red.log`、`wait-green.log`、`wait-registered.log`和`wait-ack-combination.log`。故障在隔离测试只移除run投影，真实checkpoint未改；未把模拟投影损失说成实机断电。
+
+真实接续`resume-v65e4H`仅经一次新普通继续消息`bf71c154-a980-4388-b6dd-e2d521fbce11`调度既有pending retry；没有重复发送原决定或改变send幂等。原run=`9333239e-5f25-4d27-a414-b90de11cc6a0`、原模型`MiniMax-M3.1-Flash`／medium保持，两条指令均实际consumed。新窗口48次HTTP／每次16384输出／首新请求2700秒，出站正文只计量。独立判据和论文答案不进入科研模型，最终报告与过程由实际业务图保存、关联后另行评价；后续结果继续更新本节。
+
+该次实际新增5请求均200完整，第5次`max_tokens`：输出16384，只有将提交的声明、没有结构化候选或report角色保存。图正确返回modelFailed，旧报告保持，当前过程的retry追加保存为已确认FileEdit；没有未知保存或执行截断工具。自有kernel退出0、inspect stopped、evidenceErrors／cleanupErrors空。副本确认根acquire及所属consumer任务仍可恢复，不以run.failed推断checkpoint已terminal。扩现有截断回归证明重启不自动请求，单条新普通消息后同run消费及交付1/1，见`checks/truncation-resume.log`；没有改输出预算或重放第5请求。
+
+完整综合图在等待恢复增量后35/35通过，见`checks/synthesis-final.log`；其后只扩上述截断恢复测试并单独通过，无后续生产代码变化。harness构建、tools noEmit、Biome（6条既有非空断言警告）、architecture零问题、OpenSpec strict及diff检查通过。`WAIT-RECOVERY-REVIEW.md`独立窄审无确证P1/P2，并核最后ACK与二次投影丢失组合绿日志；损坏checkpoint负例及完整harness矩阵未重跑。
+
+在v65e4H截点，独立评价只核未交付边界：从旧26–38及新01–05实际请求配对63个唯一正文回执并逐字核原输入，三篇论文全文累计进入模型；原prior过程仅24576／76282单元，后续四次原basis补读contentChanged，当前新版本片段不能填补旧版本缺口。该截点新报告不存在，不能把旧诊断读回当成果。主线随后选择在同一48次／2700秒窗口内，另发一次明确普通精炼指令，要求报告约2000字、process只交约800字增量，保留必要依据并如实表达对象／版本及未读范围；篇幅是表达目标，不是产品门禁。该入口继承5次计数和`1793420885835`起点，不重置额度或时间，不包含论文答案；最终稿评价见后文。
+
+精炼接续`resume-w0Cjw7`新增8次完整200响应，同一窗口合计13次；原第二run实际completed／graph.completed，原调用交付检查usable／issues空。最终报告8071字节、过程185756字节，沿原fileId更新；报告edit=`7f1f8776-dc3f-4650-8c2e-a1b8343a0ba9`，过程edit=`51823e73-d627-47d4-9e3c-b25757cbaf9e`，均实际confirmed。runner在稿件保存后请求完整process历史，序列化结果2628448字节超过2MiB RPC帧，连接断开，复用该失效连接的后续采证及shutdown失败；内核没有崩溃，不把runner退出改写为无科研稿。
+
+主线`capture-completed.mjs`重连核原PID／instance，精确读回两个角色的ref／basis、单项files.edit的afterEvidence及project/session/run执行归属，并核task结果／过程导航；`capture-eJrgHH/result.json`为error null／0模型调用，随后相同owner正常shutdown、inspect stopped。原六个instances只读核均exited。未增加模型请求、重跑任务、改DB或调高帧限制。`files.history`无分页的完整内容历史在本样本超限，是既有批量读取限制；单项核查入口可用。本轮不将RPC成功写入回执发送失败改报为普通拒绝，保留未知效果语义。
+
+最终独立评价以`resume-w0Cjw7/report.json`的read.data及精确过程角色版本为准，见已更新`CONTENT-REVIEW-FINAL.md`：互斥主张和W无重建链两项核心误判已实质改正，G对保留中间产物／版本控制及读者条件有实际比较影响，三篇全文消费声明成立。但仍有“未提供保证”升级为“三篇一致否定”、G读者／受益者及备份／公开混淆，过程增量跨实际未读缺口合并区间；主线抽查同意，不判内容通过。后续用原稿待核句子和一般归因／范围核查要求作人工审阅反馈，不给原文标准答案或独立评分表；原run已完成，须经任务产品入口建立新调用及当前目标依据，保留旧调用和稿件，不用过期config盲续。窗口继续继承13次及原起点。
+
+新修订调用`a153ac90-2100-44d7-b0fc-dcf0ca79570e`、run=`13806be9-e490-4960-9dc6-99b76c6c03dd`在`resume-revision-kOZbJW`真实受理，继承窗口13次后新增16次，三来源均实际重读。模型对TXT尝试合法参数的documentInfo／pdfInfo，领域明确返回不支持解析；保留真实领域失败，主线在`dkIprD`／`T83gr8`／`dq5KrS`依S、W、G原身份分别明确retry，均没有排除或换源，每次新增2HTTP。原窗口合计35次，均200完整；没有达到48次，但已明确停止，后续不重置其计数或起点。
+
+`dq5KrS`最终delivery-wait：旧过程218278 UTF16／245292字节仍可读，下一候选超过编辑容量被拒绝，保留pendingSave及最后confirmed结果。不是无响应、模型输出截断或来源原文失效。各次自有kernel正常退出0／inspect stopped，cleanupErrors空；没有新的report角色保存，不能把29／31／33／35的结构化候选当作最终稿。候选保留并不授权修改原checkpoint、config或用另一个basis重试旧写入。
+
+主线沿原process追加逻辑消除每阶段累计range JSON重复，只追加同Evidence／内容未出现的新范围，完整GraphProgress不变。新增239KB旧过程／25真实读取的整合回归在旧dist waiting，修复后连同真实来源等待、丢投影恢复及补读新增来源4/4通过；日志`checks/process-growth-red.log`／`process-growth-green.log`。kernel构建、相关Biome及tools noEmit通过，完整36项回归及独立窄审正在进行。旧过程未截断、编辑上限未抬高。
+
+下一次为明确的定向修订及新后续过程，另设独立48HTTP／首请求2700秒窗口，旧35次另列历史，不自动整项重试。`revision-targeted-action.json`保留原稿审阅反馈，只补材料UTF8格式、按需取材及不继承其他run阅读声明；更新原报告、新建唯一后续过程，旧245292字节过程作为精确prior并保留候选。首次`WVh3f4`在模型调用前被tasks.runGraph拒绝，0HTTP／无新run，owner干净停止：原会话仍waiting，产品正确要求选择无未完成推进的会话。修正入口使用真正新会话、新调用身份和当前任务basis，不绕过会话保护；初次受理前生成的输入工件保留。新窗口尚未发出请求，后续结果继续更新本节。
+
+过程去重的独审补出P2：格式纠正先更新contentReads、尚未保存过程时，按该读集作差会漏记。最初只断言fileId被prepare来源清单误补绿，不作有效P2验证；追加纠正并按过程内结构化content.offset核25段范围后实际红为记录空数组，见`checks/process-correction-red.log`。采用私有processReads随受保护过程候选推进，格式纠正不提前更新；source-wait候选同源记录新增范围。保存未确认时原队列仍阻止后续模型，旧checkpoint缺字段保守重新记一次；不减少完整GraphProgress、丢弃旧正文或抬高容量。最新6项（格式纠正、239KB旧过程及范围完整性、正常／丢投影来源等待、拒绝保存重试／人工竞争）6/6绿，见`checks/process-coverage-green.log`。独立`PROCESS-GROWTH-REVIEW.md`复核关闭P2，无新增确证P1/P2；最新整份36项正在重跑，前一版36/36仅作中间证据。
+
+修正后的最终定向调用已在`resume-revision-fNviQN`真正创建新会话`44c5a605-fa8b-46e5-b44e-3065fefd8c23`，`allocated-session.json`及`effective-request.json`保存实际身份／载荷，旧会话及0HTTP失败不改写。模型仍正式Flash／medium，独立新窗口从首个HTTP起计，最终报告／后续过程尚待交付和独立内容评价；本节开头10/12状态保持。
+
+## 旧成果版本修复与本轮重验（2026-10-31）
+
+用户“尝试修复问题并重新验收吧”授权本轮修复及实际模型调用。当前仍为10/12，6.3／6.4未完成，不归档。证据根`E=/home/joshua/.cache/scholoom-synthesis-prior-fix-20261031`，全部输入、临时目录及运行工件在持久cache，不依赖/tmp。
+
+综合图修复三处同一路径问题：明确prior的过程更新先保留原版本供首个Agent读取，后续prepare和节点提示仅沿同ref的本次真实保存回执推进basis；显式等待接续在追加决定前按受保护依据完整读回过程，避免prepare失败后用未初始化的processText覆盖旧正文；自身报告／过程读取错误保留工具消息，但不再归为文献来源失败。真正来源、非输出prior及任务快照的错误路径保持，原CAS、保存意图、unknown、consumer确认和最终完整读回没有放宽。通用节点指导补实际读prior、冲突成立条件及引文／推断自查，不含论文答案，也不把指导改进当作内容质量保证。具体设计见design首节。
+
+独立gpt-6.1-sol/high窄审发现一项P1：先读旧过程、另一prior校验失败、普通继续时旧正文可能被决定覆盖。真实回归先复现文件只剩决定，再修复；原审查员复核关闭，含输出错误分类增量未见其他确证P1/P2，详见`PRIOR-REVIEW.md`。窄审不冒称独立重跑测试。
+
+Linux／Node24.12.0，kernel构建、tools noEmit、三份源码／测试Biome、architecture（14模块／281文件／0问题）、diff及OpenSpec strict通过。`tests/kernel/project-literature-synthesis.spec.ts`最终一次**32/32通过，5.7分钟**，命令为`TMPDIR=E node node_modules/@playwright/test/cli.js test --config playwright.kernel.config.ts tests/kernel/project-literature-synthesis.spec.ts --output E/checks/final-full-results`（E替换为绝对路径）；覆盖正常原prior及保存后读取、误用旧输出后纠正、人工竞争、prior校验失败后保全、来源等待／继续、原消费恢复和保存未知效果。原版本回归红2项及人工保护绿1项见`checks/red.log`，P1红例见`conflict-red.log`，输出误分类红例见`stale-red.log`；第一次绿跑还发现Descriptor额外字段混入测试工具输入，收敛为Evidence投影后通过，失败保留于`green.log`。最终绿日志为`final-full.log`，不把受控HTTP当科研验收，也未重跑UI或跨平台。
+
+真实入口`E/live/runner.mjs`创建隔离任务及两会话，公开三篇和独立判据沿原manifest；两轮共用64次HTTP、每次输出16384、首请求后1200秒，出站正文只计量不限bytes。所有实际请求模型精确为`MiniMax-M3.1-Flash`，effort为产品默认medium；开发／审查Agent仍用gpt-6.1-sol/high。独立评价和预期没有注册成模型材料。
+
+首次`live/run-getbeV`在16次请求后进入source-wait：review误用本图过程文件第一次create的旧basis，工具正确拒绝，Agent之后已读当前版本，但图仍把旧输出错误升级为文献来源失败。父线据此增加上文输出分类修复及红绿；首次运行未含后补的等待读回／分类修复，接续前已重新构建最终源码。`live/resume-runner.mjs`使用原profile／task／run，普通消息明确重试该过程引用，不排除两篇论文、不提供科研答案。`live/resume-getbeV-T4RLDa/operator-intervention.json`及`resume-receipt.json`保留测试操作员介入；不能宣称全自动首轮。网关继承原16次、原bytes及原起点，未重置额度或整项重跑。
+
+首run=`c4983140-6693-4eec-a98a-49fea0d99043`最终completed／usable，真实报告11,291字节、过程95,426字节，原FileEdit、关联及任务导航由runner核对。独立内容审查的精确对象是接续目录`phase-1-report.json`／`phase-1-process.json`的read.data，合并首轮请求1–25；23次成功论文正文均逐字匹配输入，但Wilson2014漏读`[36864,40960)`，报告却称全文已读。中心比较还把讨论范围差别写成互斥冲突，并否认Wilson已读原文中的重建链条。父线抽查报告§2.1／§2.2和原文同意核心问题，**首轮内容不通过**；完整依据与限度见`CONTENT-REVIEW.md`，没有手改科研稿或以验收期望反向注入模型。
+
+第二run=`9333239e-5f25-4d27-a414-b90de11cc6a0`已在新会话补第三篇并受理原report／process的明确prior更新；第39次请求约180秒无HTTP响应后客户端取消，网关记AbortError，停止本轮。原生产模型客户端的180000ms单请求期限仍在；不是64次／20分钟总预算或payload字节门槛触发。此前38次均HTTP200完整；总出站8,813,046字节，最大单次518,636字节。`LIVE-SUMMARY.json`保留模型、字节、原响应与停止原因；无法由无响应确定供应商远端是否完成。第二轮没有新的交付报告，不把首轮旧稿当作补材料后的成果。
+
+独立审查追加第二轮有限核查于`CONTENT-REVIEW.md`末节：请求26–38的55个成功正文回执逐字核对，原报告全文和原过程24,576／76,282个UTF16单元均沿config.prior精确原ref／basis取得，未再现prior版本失效。Sandve及新增Wilson2017全文已取，Wilson2014确认到49,152／58,944单元（第39次未获HTTP回执，不追认其后续输入为已确认消费）。首轮漏读的关键结论段第二轮已真正取得，不能据此推断未交付报告已修正原判断；完整过程承接及第二轮研究影响仍未验收。实际ToolMessages与未完成图登记的inputNotRead分开解释。
+
+采证时第二run仍running，收尾后只读原project.sqlite核实为interrupted；首run仍completed，三个实例均exited。两次自有kernel退出0、inspect为stopped，evidenceErrors／cleanupErrors均空，见`post-shutdown-state.json`及各运行目录shutdown-after／kernel-exit。保留原checkpoint和工具消息，不盲重放第39次或创建重复任务。
+
+下一步仍属6.3：先厘清慢模型请求的超时／接续策略，再从本次原任务和checkpoint有界推进；科研质量需解决范围／互斥判断、引文归因与阅读范围诚实性。模型行为问题没有被包装为已修代码缺陷，通用指导及机械交付也不能关闭内容验收；完成后再逐项核6.4及归档。现有runner均已停止，未来执行须重新准备符合原运行状态和新窗口的接续入口。
+
 ## MiniMax元数据适配与正式版重验（2026-10-31）
 
 用户“补齐MiniMax的元数据适配，然后重新验收”授权本轮实施与真实验收。models的原catalog集中维护正式Flash／M3的1,000,000输入窗口及524,288最大输出；原ChatAnthropic工厂用薄子类补缺profile，SDK已有字段优先。未猜测旧ID窗口，未改公共DTO、工具能力、实际16384输出、授权、重试或共享准入。deepagents沿原85%摘要触发／10%保留及溢出处理，不再对正式Flash使用170k fallback；这是SDK近似计量，不是MiniMax精确tokenizer。具体选择见design首节与investigation补充。
@@ -22,7 +119,7 @@ Linux／Node24.12.0，证据根`E=/home/joshua/.cache/scholoom-minimax-profile-2
 
 用户明确要求使用正式版 `MiniMax-M3.1-Flash`。旧验收的 M2.7 由父线沿用旧脚本硬编码，未落实该要求；历史请求、回包及预算记录原样保留，不能作为指定模型的验收证据。产品目录新增正式 ID 并将其设为出厂默认，沿既有 adaptive thinking／effort 路径发送；已保存的用户选择和原执行身份不被静默覆盖，工作台未读到配置时也不再展示硬编码 Preview。
 
-调查确认生产模型路径未设256KiB整包出站上限，该值仅属于旧验收网关；后续验收取消该值及累计正文4MiB门槛，按实际供应商 HTTP 限额、模型 token 预算及明确的请求／时间／输出范围准备。旧 runner 已停止且不再复用，不事后改写成合格计划。本轮没有新增真实模型请求；6.3／6.4保持未完成。MiniMax token profile 缺失导致约170k tokens默认摘要，完整大窗口适配仍待处理。源码依据与闭源未知范围见[调查](../../../.scratch/scholoom-foundations/research/harness-request-size-and-context-budgets.md)，当前后续约束见design首节；下方旧模型／字节预算仅为历史记录。
+调查确认生产模型路径未设256KiB整包出站上限，该值仅属于旧验收网关；后续验收取消该值及累计正文4MiB门槛，按实际供应商 HTTP 限额、模型 token 预算及明确的请求／时间／输出范围准备。旧 runner 已停止且不再复用，不事后改写成合格计划。本轮没有新增真实模型请求；6.3／6.4保持未完成。MiniMax token profile 缺失导致约170k tokens默认摘要，完整大窗口适配仍待处理。源码依据与闭源未知范围见[调查](../../../../.scratch/scholoom-foundations/research/harness-request-size-and-context-budgets.md)，当前后续约束见design首节；下方旧模型／字节预算仅为历史记录。
 
 验证：models／kernel及desktop构建、models／desktop／tools类型检查、六份源码与测试Biome、architecture（14模块／281文件／0问题）、OpenSpec strict与diff检查通过。`model-access.spec.ts`17/17通过，正式ID／adaptive／effort请求及原配置保全均沿实际适配器接合成HTTP；会话钉入代表在原默认5秒等待下两次超时，临时配置仅将expect等待改30秒后1/1通过（28.2秒），不改产品或测试源码，也不称原命令通过。composer模型代表在浏览器与真实Electron2/2通过（43.0／54.8秒），使用本轮desktop产物、既有静态bootstrap及合成模型，不启动开发服务器。模型模块最终日志、延长等待的原trace和双宿主结果在`/home/joshua/.cache/scholoom-harness-budget-audit-20261031/`；接续不依赖/tmp。未重跑其余UI场景、完整科研验收或大context实测。
 
