@@ -21,7 +21,7 @@
     "./visual.css": "./dist/quarto.css"
   },
   "scripts": {
-    "build": "node build-visual.mjs && tsc -p tsconfig.json",
+    "build": "node build-visual.mjs && node build-reports.mjs && tsc -p tsconfig.json",
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
@@ -30,6 +30,7 @@
     "editor": "workspace:@scholoom/quarto-editor@*",
     "bibliojson": "4.1.0",
     "clipboard": "2.0.11",
+    "css-tree": "3.2.1",
     "diff-match-patch": "1.0.5",
     "fuse.js": "7.5.0",
     "js-yaml": "5.4.2",
@@ -70,6 +71,7 @@
     "zenscroll": "4.0.2"
   },
   "devDependencies": {
+    "@types/css-tree": "3.2.0",
     "esbuild": "0.28.2"
   }
 }

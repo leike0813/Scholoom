@@ -22,19 +22,16 @@ export type ExecutionFileProviders = Pick<
   ExecutionControlProviders,
   keyof typeof executionFileOperations
 >;
-const validators = new Map(
-  Object.entries(executionControlOperations).map(([method, contract]) => [
-    method,
-    compileContract(contract),
-  ]),
-);
 export const isExecutionControlMethod = (method: string): method is ExecutionControlMethod =>
-  validators.has(method);
+  Object.hasOwn(executionControlOperations, method);
 export const isExecutionControlCall = (
   args: readonly [string, unknown],
 ): args is CallArguments<ExecutionControlInputs> =>
-  isExecutionControlMethod(args[0]) && validators.get(args[0])?.params(args[1]) === true;
+  isExecutionControlMethod(args[0]) &&
+  compileContract(executionControlOperations[args[0]]).params(args[1]) === true;
 export const isExecutionControlResult = <M extends ExecutionControlMethod>(
   method: M,
   value: unknown,
-): value is ExecutionControlOutputs[M] => validators.get(method)?.result(value) === true;
+): value is ExecutionControlOutputs[M] =>
+  isExecutionControlMethod(method) &&
+  compileContract(executionControlOperations[method]).result(value) === true;

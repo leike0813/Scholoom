@@ -17,19 +17,15 @@ export type BusinessParams<M extends BusinessMethod> = Complete<Inputs>[M];
 export type BusinessResult<M extends BusinessMethod> = Complete<Outputs>[M];
 export type BusinessInputs = Complete<Inputs>;
 export type BusinessOutputs = Complete<Outputs>;
-const validators = new Map(
-  Object.entries(businessSchemas).map(([name, schemas]) => [
-    name,
-    { params: ajv.compile(schemas.params), result: ajv.compile(schemas.result) },
-  ]),
-);
 export const isBusinessMethod = (method: string): method is BusinessMethod =>
-  validators.has(method);
+  Object.hasOwn(businessSchemas, method);
 export const validateBusiness = (
   method: BusinessMethod,
   kind: 'params' | 'result',
   value: unknown,
-): boolean => validators.get(method)?.[kind](value) === true;
+): boolean =>
+  // Ajv caches by schema identity; compile only contracts actually used by this process.
+  isBusinessMethod(method) && ajv.compile(businessSchemas[method][kind])(value) === true;
 export const isBusinessCall = (
   args: readonly [string, unknown],
 ): args is CallArguments<BusinessInputs> =>

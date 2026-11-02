@@ -10,6 +10,7 @@ import {
 } from '@playwright/test';
 import { createDevelopmentKernel } from '../../apps/kernel/dist/bootstrap.js';
 import { closeDesktop } from '../desktop-fixture.js';
+import { kernelLifecycleDiagnostics, kernelResultSummary } from '../kernel-fixture.js';
 import { rendererUrl } from './renderer-url.js';
 import { observeUiRpc, type UiRpcObserver } from './ui-rpc-observer.js';
 
@@ -32,7 +33,17 @@ export const test = base.extend<UiFixtures>({
     if (!directory) throw new Error('Missing isolated UI configuration');
     const owner = createDevelopmentKernel({ dataDirectory: directory });
     const ready = await owner.bootstrap('ensure');
-    if (ready.state !== 'running') throw new Error('Development UI kernel unavailable');
+    if (ready.state !== 'running') {
+      const diagnostic = {
+        kernel: kernelResultSummary(ready),
+        lifecycle: await kernelLifecycleDiagnostics(directory),
+      };
+      await writeFile(info.outputPath('ui-bootstrap.json'), JSON.stringify(diagnostic), {
+        mode: 0o600,
+      });
+      await owner.dispose();
+      throw new Error(`Development UI kernel unavailable: ${JSON.stringify(diagnostic.kernel)}`);
+    }
     try {
       if (uiHost === 'browser') {
         await use(page);

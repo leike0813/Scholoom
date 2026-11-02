@@ -17,18 +17,22 @@ only the child and a separate native oracle window execute the sample.
 The UI/kernel/resource identities are synthetic and do not grant report rights.
 
 Upstream is pinned to `ampproject/worker-dom@52b619eb46416c4325306de851e5a9df99697fcb`.
-`upstream-manifest.json` lists the 113 exact acquired inputs, their Git blobs,
-hashes and acquisition method. `vendor/LICENSE`, parser `LICENSE` and
-`vendor/MODIFICATIONS.md` preserve licensing and describe the ten modified files;
-`local.patch` is reversible against the fixed source closure. No dependency was
+The shared source root is `packages/editor/vendor/worker-dom`, used through
+controlled adapters. Its `upstream-manifest.json` lists the 113 exact acquired
+inputs, their Git blobs, hashes and acquisition method. Its `LICENSE`, parser
+`src/third_party/html-parser/LICENSE` and `MODIFICATIONS.md` preserve licensing
+and describe the ten modified files; its `local.patch` is reversible against
+the fixed source closure. `acquire.mjs` and `provenance.mjs` use this same root
+and authoritative manifest. No dependency was
 installed. TypeScript checks use upstream-style strict null/implicit-any checks
 while disabling newer project flags the upstream source does not use.
 The root typecheck runs this fixture as its own TypeScript project; the ordinary
 tools project excludes it so the pinned upstream is checked with its own flags.
 All ten modified upstream files carry Scholoom modification notices; these
 license-only additions do not change the recorded first-run behavior.
-Fixture-local Biome and Git attributes preserve the upstream style and patch
-context bytes; first-party fixture files retain the repository checks.
+The root Biome exclusion for `packages/editor/vendor` and Git attributes in
+the shared source root preserve upstream style and patch context bytes;
+first-party fixture files retain the repository checks.
 
 With the existing Node 24, esbuild, TypeScript, Playwright, Electron, compiled
 shared packages and desktop outputs available, reuse DISPLAY :99 and run:

@@ -49,6 +49,51 @@ function deferred<T>() {
   return { promise, resolve, reject };
 }
 
+test('an existing composer draft protects replacements without hiding the first verified report', async () => {
+  const updates = createReportUpdates({
+    entry: evidence(),
+    protection: { ...clear, composerDraft: true },
+    load: async (input) => snapshot(input.basis),
+  });
+  await updates.offer();
+  expect(updates.read()).toMatchObject({ current: snapshot(), pending: null, canDisplay: true });
+  await updates.offer(evidence('v2'));
+  expect(updates.read()).toMatchObject({
+    current: snapshot(),
+    pending: snapshot('v2'),
+    canDisplay: true,
+  });
+  updates.dispose();
+});
+
+test('a freshly approved original snapshot retains its dirty state while a complete newer candidate loads', async () => {
+  const original = snapshot();
+  const updates = createReportUpdates({
+    entry: evidence(),
+    initialSnapshot: original,
+    protection: { ...clear, pageDirty: true },
+    load: async (input) => snapshot(input.basis),
+  });
+  original.manifest.objects.length = 0;
+  expect(updates.read().current?.manifest.objects).toHaveLength(1);
+  await updates.offer(evidence('v2'));
+  expect(updates.read()).toMatchObject({
+    current: snapshot(),
+    pending: snapshot('v2'),
+    canDisplay: true,
+  });
+  expect(updates.viewPending()).toBe(true);
+  expect(updates.read()).toMatchObject({ current: snapshot('v2'), pending: null });
+  updates.dispose();
+  expect(() =>
+    createReportUpdates({
+      entry: evidence('v2'),
+      initialSnapshot: snapshot(),
+      load: async () => snapshot(),
+    }),
+  ).toThrow();
+});
+
 for (const oldResult of ['success', 'failure'] as const) {
   test(`latest offers and resync coalesce behind the actual in-flight load, ignoring late ${oldResult}`, async () => {
     const old = deferred<ReportSnapshot>();

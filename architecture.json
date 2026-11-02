@@ -38,9 +38,18 @@
       "allows": ["@scholoom/protocol"],
       "systemAdapters": [
         { "path": "src/private-resource-tree.ts", "apis": ["child_process"] },
-        { "path": "src/isolated-report-controller.ts", "apis": ["child_process", "fs/promises"] },
+        {
+          "path": "src/isolated-report-controller.ts",
+          "apis": ["child_process", "fs", "fs/promises"]
+        },
         { "path": "src/isolated-report-records.ts", "apis": ["fs", "fs/promises"] },
-        { "path": "src/isolated-report-assets.ts", "apis": ["fs", "fs/promises"] },
+        { "path": "src/isolated-report-assets.ts", "apis": ["child_process", "fs", "fs/promises"] },
+        { "path": "src/isolated-report-runtime.ts", "apis": ["fs", "fs/promises"] },
+        { "path": "src/isolated-report-data.ts", "apis": ["fs", "fs/promises"] },
+        { "path": "src/report-channel.ts", "apis": ["child_process"] },
+        { "path": "src/system-report-stop.ts", "apis": ["child_process"] },
+        { "path": "src/system-report-controller.ts", "apis": ["fs", "fs/promises"] },
+        { "path": "src/system-report-os.ts", "apis": ["child_process", "fs", "fs/promises"] },
         {
           "path": "src/command.ts",
           "apis": ["process.env"]
@@ -94,6 +103,11 @@
         "resources.describe",
         "resources.report",
         "resources.reportVersion",
+        "resources.reportOpen",
+        "resources.reportGet",
+        "resources.reportExchange",
+        "resources.reportRead",
+        "resources.reportStop",
         "resources.read",
         "resources.save",
         "resources.document",
@@ -400,6 +414,7 @@
         "@scholoom/protocol"
       ],
       "systemAdapters": [
+        { "path": "src/report-installation.ts", "apis": ["fs", "fs/promises"] },
         {
           "path": "src/application.ts",
           "apis": ["fs/promises", "process.env"]

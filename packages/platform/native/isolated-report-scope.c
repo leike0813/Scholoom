@@ -24,6 +24,7 @@
 #include <time.h>
 #include <unistd.h>
 #include <stddef.h>
+#include "report-node-policy.h"
 #if !defined(__x86_64__)
 #error Only the calibrated Linux x86_64 policy is supported
 #endif
@@ -34,6 +35,18 @@ static pid_t payload_pid = -1;
 static int exec_seen;
 static int command_sent;
 static int payload_ended;
+
+/* The PID1 entry supplies already-open C-owned objects; the user entry opens its own directory. */
+struct report_system_source {
+  uid_t owner;
+  int inputs[35];
+  unsigned count;
+  int out, err;
+  int node;
+  int runtime[8], data[2];
+  const char *runtime_paths[8], *runtime_stamps[8];
+};
+static struct report_system_source *system_source;
 
 static void stop_signal(int n) {
   (void)n;
@@ -69,6 +82,12 @@ static void text(const char *path, char *out, size_t size) {
 }
 
 static void limits(const char *unit, const char **wanted) {
+  if (system_source) {
+    /* The protected M observer checks the actual retained parent before either gate command. */
+    printf("{\"event\":\"armed\",\"pid\":%ld}\n", (long)getpid());
+    fflush(stdout);
+    return;
+  }
   char group[4096], path[8192], value[128];
   text("/proc/self/cgroup", group, sizeof(group));
   if (strncmp(group, "0::", 3) || strlen(group) <= strlen(unit) ||
@@ -91,12 +110,30 @@ static void limits(const char *unit, const char **wanted) {
   fflush(stdout);
 }
 
+static int snapshot_fd(int source, const char *stamp, uid_t owner);
 static int snapshot(int directory, const char *name, const char *stamp) {
-  int source = openat(directory, name, O_RDONLY | O_CLOEXEC | O_NOFOLLOW);
+  int source;
+  if (system_source) {
+    unsigned index;
+    if (!strcmp(name, "program.bin")) index = 0;
+    else if (!strcmp(name, "gate.bin")) index = 1;
+    else {
+      char extra;
+      if (sscanf(name, "asset-%u.bin%c", &index, &extra) != 1 || index >= system_source->count)
+        fail("input-name");
+      index += 2;
+    }
+    source = system_source->inputs[index];
+  } else source = openat(directory, name, O_RDONLY | O_CLOEXEC | O_NOFOLLOW);
+  return snapshot_fd(source, stamp, system_source ? system_source->owner : getuid());
+}
+
+static int snapshot_fd(int source, const char *stamp, uid_t owner) {
   struct stat before, after;
   unsigned long long dev, ino, size, mtime, ctime;
   if (source < 0 || fstat(source, &before) < 0 || !S_ISREG(before.st_mode) ||
-      before.st_nlink != 1 || before.st_uid != getuid() ||
+      before.st_nlink != 1 || before.st_uid != owner || (before.st_mode & 0022) ||
+      (fcntl(source, F_GETFL) & O_ACCMODE) != O_RDONLY ||
       sscanf(stamp, "%llu:%llu:%llu:%llu:%llu", &dev, &ino, &size, &mtime, &ctime) != 5 ||
       dev != (unsigned long long)before.st_dev ||
       ino != (unsigned long long)before.st_ino ||
@@ -391,17 +428,41 @@ int main(int argc, char **argv) {
         fail("stop-observe");
     }
   }
-  if (argc == 3 && !strcmp(argv[1], "--lock")) {
-    int fd = open(argv[2], O_RDWR | O_CREAT | O_NOFOLLOW | O_CLOEXEC, 0600);
+  if ((argc == 2 || argc == 3) && !strcmp(argv[1], "--fifo")) {
+    const char *name = argc == 3 ? argv[2] : "permit";
+    if (strcmp(name, "permit") && strcmp(name, "data-in") && strcmp(name, "data-out"))
+      fail("permit-name");
+    struct stat directory;
+    if (geteuid() == 0 || getuid() != geteuid() || fstat(3, &directory) ||
+        !S_ISDIR(directory.st_mode) || directory.st_uid != geteuid() ||
+        (directory.st_mode & 0077) || mkfifoat(3, name, 0600) || fsync(3))
+      fail("permit-create");
+    return 0;
+  }
+  if (argc == 2 && !strcmp(argv[1], "--lock")) {
     struct stat info;
-    if (fd < 0 || fstat(fd, &info) < 0 || !S_ISREG(info.st_mode) ||
-        info.st_nlink != 1 || info.st_uid != getuid() ||
-        flock(fd, LOCK_EX | LOCK_NB) < 0)
+    if (getuid() != geteuid() || fstat(3, &info) < 0 || !S_ISREG(info.st_mode) ||
+        info.st_nlink != 1 || info.st_uid != getuid() || (info.st_mode & 0077) ||
+        flock(3, LOCK_EX | LOCK_NB) < 0)
       fail("lock");
     puts("locked");
-    fflush(stdout);
-    char byte;
-    while (read(0, &byte, 1) < 0 && errno == EINTR) {}
+    return 0;
+  }
+  if (argc == 4 && !strcmp(argv[1], "--publish")) {
+    for (int i = 2; i <= 3; i++) {
+      if (!*argv[i] || !strcmp(argv[i], ".") || !strcmp(argv[i], "..")) fail("publish-name");
+      for (const char *p = argv[i]; *p; p++)
+        if (!((*p >= 'a' && *p <= 'z') || (*p >= 'A' && *p <= 'Z') ||
+              (*p >= '0' && *p <= '9') || strchr("._@-", *p))) fail("publish-name");
+    }
+    struct stat directory, source;
+    int fd = openat(3, argv[2], O_RDONLY | O_NOFOLLOW | O_NONBLOCK | O_CLOEXEC);
+    if (getuid() != geteuid() || fstat(3, &directory) || !S_ISDIR(directory.st_mode) ||
+        directory.st_uid != getuid() || (directory.st_mode & 0022) || fd < 0 ||
+        fstat(fd, &source) || !S_ISREG(source.st_mode) || source.st_uid != getuid() ||
+        source.st_nlink != 1 || (source.st_mode & 0777) != 0600 || fsync(fd) ||
+        syscall(__NR_renameat2, 3, argv[2], 3, argv[3], 1 /* RENAME_NOREPLACE */) || fsync(3))
+      fail("publish");
     close(fd);
     return 0;
   }
@@ -420,10 +481,10 @@ int main(int argc, char **argv) {
   wanted[2] = argv[7];
   wanted[3] = argv[8];
   struct stat dir;
-  int directory = open(argv[1], O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC);
-  if (directory < 0 || fstat(directory, &dir) < 0 || dir.st_uid != getuid() ||
+  int directory = system_source ? -1 : open(argv[1], O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC);
+  if (!system_source && (directory < 0 || fstat(directory, &dir) < 0 || dir.st_uid != getuid() ||
       (unsigned long long)dir.st_dev != number(argv[2]) ||
-      (unsigned long long)dir.st_ino != number(argv[3]))
+      (unsigned long long)dir.st_ino != number(argv[3])))
     fail("directory");
   if (prctl(PR_SET_CHILD_SUBREAPER, 1L) < 0)
     fail("subreaper");
@@ -436,7 +497,7 @@ int main(int argc, char **argv) {
       sigaction(SIGCHLD, &notify, NULL) < 0 ||
       prctl(PR_SET_PDEATHSIG, SIGTERM) < 0)
     fail("watch");
-  if (parent <= 1 || getppid() != parent)
+  if ((!system_source && parent <= 1) || getppid() != parent)
     fail("parent");
   sigset_t block, previous;
   sigemptyset(&block);
@@ -451,7 +512,9 @@ int main(int argc, char **argv) {
   if (ppoll(&input, 1, &timeout, &previous) <= 0 ||
       read(0, &command, 1) != 1 || command != 'P' || stopping)
     return 0;
-  int images[35];
+  int node = system_source && system_source->node;
+  unsigned image_count = assets + 2 + (node ? 8 : 0);
+  int images[43];
   images[0] = snapshot(directory, "program.bin", argv[14]);
   images[1] = snapshot(directory, "gate.bin", argv[15]);
   for (unsigned i = 0; i < assets; i++) {
@@ -461,12 +524,34 @@ int main(int argc, char **argv) {
       return 64;
     images[2 + i] = snapshot(directory, name, argv[17 + i * 2]);
   }
-  int filter = policy(), control[2], statuspipe[2];
+  if (node) {
+    unsigned long long runtime_bytes = 0;
+    for (unsigned i = 0; i < 8; i++) {
+      struct stat info;
+      if (fstat(system_source->runtime[i], &info) || info.st_size <= 0 ||
+          info.st_size > 268435456LL || (runtime_bytes += (unsigned long long)info.st_size) > 536870912ULL)
+        fail("runtime-size");
+      images[assets + 2 + i] = snapshot_fd(system_source->runtime[i], system_source->runtime_stamps[i], 0);
+    }
+    /* FD3/4 are the only extra descriptors delivered to the Node gate. */
+    for (unsigned i = 0; i < image_count; i++) {
+      int moved = fcntl(images[i], F_DUPFD_CLOEXEC, 10);
+      if (moved < 0) fail("runtime-fd");
+      close(images[i]); images[i] = moved;
+    }
+  }
+  int filter = node ? report_node_policy() : policy(), control[2], statuspipe[2];
+  if (filter < 0) fail("policy");
+  if (node && filter < 10) {
+    int moved = fcntl(filter, F_DUPFD_CLOEXEC, 10);
+    if (moved < 0) fail("runtime-filter");
+    close(filter); filter = moved;
+  }
   if (pipe2(control, O_CLOEXEC) < 0 || pipe2(statuspipe, O_CLOEXEC) < 0)
     fail("pipes");
-  int out = openat(directory, "stdout",
+  int out = system_source ? system_source->out : openat(directory, "stdout",
                    O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW | O_CLOEXEC, 0600),
-      err = openat(directory, "stderr",
+      err = system_source ? system_source->err : openat(directory, "stderr",
                    O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW | O_CLOEXEC, 0600);
   if (out < 0 || err < 0)
     fail("output");
@@ -480,11 +565,15 @@ int main(int argc, char **argv) {
     if (dup2(control[0], 0) < 0 || dup2(out, 1) < 0 || dup2(err, 2) < 0 ||
         dup3(statuspipe[1], 100, 0) < 0)
       _exit(120);
-    struct rlimit output = {number(argv[9]), number(argv[9])};
+    if (node && (dup2(system_source->data[0], 3) < 0 || dup2(system_source->data[1], 4) < 0))
+      _exit(120);
+    unsigned long long stage_output = number(argv[9]);
+    if (node && stage_output < 268435456ULL) stage_output = 268435456ULL;
+    struct rlimit output = {stage_output, stage_output};
     if (setrlimit(RLIMIT_FSIZE, &output) < 0)
       _exit(120);
     char *args[18000];
-    char numbers[36][24], destinations[33][540], parents[33][540];
+    char numbers[44][24], destinations[33][540], parents[33][540];
     int n = 0;
 #define ADD(x) do { if(n>=17999)_exit(120);args[n++]=(char*)(x); } while(0)
     ADD("/usr/bin/bwrap");
@@ -496,9 +585,14 @@ int main(int argc, char **argv) {
     ADD("--unshare-cgroup");
     ADD("--die-with-parent");
     ADD("--new-session");
+    if (node) {
+      ADD("--cap-drop"); ADD("ALL");
+      const char *directories[] = {"/runtime", "/lib", "/lib64", "/lib/x86_64-linux-gnu"};
+      for (unsigned i = 0; i < 4; i++) { ADD("--dir"); ADD(directories[i]); }
+    }
     ADD("--dir");
     ADD("/resources");
-    for (unsigned i = 0; i < assets + 2; i++) {
+    for (unsigned i = 0; i < image_count; i++) {
       if (fcntl(images[i], F_SETFD, 0) < 0)
         _exit(120);
       snprintf(numbers[i], sizeof(numbers[i]), "%d", images[i]);
@@ -508,7 +602,7 @@ int main(int argc, char **argv) {
         ADD("--file");
         ADD(numbers[i]);
         ADD(i == 0 ? "/program" : "/gate");
-      } else {
+      } else if (i < assets + 2) {
         unsigned k = i - 2;
         snprintf(destinations[k], sizeof(destinations[k]),
                  "/resources/%s", argv[16 + k * 2]);
@@ -523,20 +617,26 @@ int main(int argc, char **argv) {
         ADD("--file");
         ADD(numbers[i]);
         ADD(destinations[k]);
+      } else {
+        ADD("--perms"); ADD("0555"); ADD("--file"); ADD(numbers[i]);
+        ADD(system_source->runtime_paths[i - assets - 2]);
       }
     }
     if (fcntl(filter, F_SETFD, 0) < 0)
       _exit(120);
-    snprintf(numbers[35], sizeof(numbers[35]), "%d", filter);
+    snprintf(numbers[43], sizeof(numbers[43]), "%d", filter);
     ADD("--remount-ro");
     ADD("/");
     ADD("--seccomp");
-    ADD(numbers[35]);
+    ADD(numbers[43]);
     ADD("--clearenv");
     ADD("--chdir");
     ADD("/");
     ADD("--");
     ADD("/gate");
+    if (node) {
+      ADD("--node"); ADD(argv[9]); ADD("/runtime/node"); ADD("--max-old-space-size=64");
+    }
     ADD("/program");
     char entry[540];
     snprintf(entry, sizeof(entry), "/resources/%s", argv[13]);
@@ -546,8 +646,8 @@ int main(int argc, char **argv) {
     args[n] = NULL;
     /* Only sealed input/policy, gate pipes and fixed output sinks survive exec of trusted bwrap. */
     for (int fd = 3; fd < 100; fd++) {
-      int keep = fd == filter;
-      for (unsigned i = 0; i < assets + 2; i++)
+      int keep = fd == filter || (node && (fd == 3 || fd == 4));
+      for (unsigned i = 0; i < image_count; i++)
         if (fd == images[i])
           keep = 1;
       if (!keep)
@@ -563,12 +663,13 @@ int main(int argc, char **argv) {
   close(statuspipe[1]);
   close(out);
   close(err);
-  close(directory);
+  if (directory >= 0) close(directory);
   close(filter);
-  for (unsigned i = 0; i < assets + 2; i++)
+  for (unsigned i = 0; i < image_count; i++)
     close(images[i]);
+  if (node) { close(system_source->data[0]); close(system_source->data[1]); }
   int announced = 0, failed = 0, finished = 0,
-      payload = -1;
+      payload = -1, control_input = 0;
   long stop_elapsed = 0;
   struct timespec before;
   clock_gettime(CLOCK_MONOTONIC, &before);
@@ -588,7 +689,7 @@ int main(int argc, char **argv) {
     } else
       clock_gettime(CLOCK_MONOTONIC, &before);
     struct pollfd watches[3] = {
-      {0, POLLIN | POLLHUP, 0},
+      {control_input, POLLIN | POLLHUP, 0},
       {statuspipe[0], POLLIN | POLLHUP, 0},
       {payload, POLLIN, 0}
     };
@@ -604,7 +705,10 @@ int main(int argc, char **argv) {
     }
     if (watches[0].revents) {
       ssize_t got = read(0, &command, 1);
-      if (got != 1 || command == 'S')
+      if (system_source && got == 0 && command_sent) {
+        close(0);
+        control_input = -1;
+      } else if (got != 1 || command == 'S')
         stopping = 1;
       else if (command == 'G' && announced && !command_sent && !stopping) {
         if (write(control[1], "G", 1) != 1)

@@ -17,6 +17,78 @@ import { delegationModel } from '../fixtures/delegation-model.js';
 import { reportFixture } from '../fixtures/report.js';
 import { createModelServer } from '../model-server.js';
 
+test('public save and undo authorize the original report before replacing it', async () => {
+  const root = test.info().outputPath('report-save-undo');
+  await mkdir(root, { recursive: true });
+  const app = new ManualApplication(join(root, 'profile'));
+  try {
+    await app.initialize();
+    const { project, html } = await reportFixture(app, root);
+    const input = { projectId: project.id, path: 'report.html' };
+    const original = await app.call('files.read', input);
+    const saved = await app.call('files.save', {
+      ...input,
+      basis: original.basis,
+      content: '<p>Ordinary replacement</p>',
+    });
+    expect(await readFile(join(project.path, input.path), 'utf8')).toBe(saved.after);
+    await app.call('files.undo', { projectId: project.id, editId: saved.id });
+    expect(await readFile(join(project.path, input.path), 'utf8')).toBe(html);
+  } finally {
+    await app.close();
+  }
+});
+
+for (const operation of ['save', 'undo'] as const) {
+  test(`${operation} withholds report bodies if sources are revoked after the mutation`, async () => {
+    const root = test.info().outputPath('report-post-write-revocation');
+    await mkdir(root, { recursive: true });
+    const app = new ManualApplication(join(root, 'profile'));
+    try {
+      await app.initialize();
+      const { project, html } = await reportFixture(app, root);
+      const input = { projectId: project.id, path: 'report.html' };
+      const store = app.projects.get(project.id);
+      const revoke = () =>
+        app.call('library.grant', { read: false, write: false, send: false, autoBackup: false });
+      let action: () => Promise<unknown>;
+      let expected: string;
+      if (operation === 'save') {
+        const original = await app.call('files.read', input);
+        const save = store.save.bind(store);
+        store.save = async (...args) => {
+          const result = await save(...args);
+          await revoke();
+          return result;
+        };
+        expected = '<p>Replacement</p>';
+        action = () =>
+          app.call('files.save', { ...input, basis: original.basis, content: expected });
+      } else {
+        const original = await app.call('files.read', input);
+        const saved = await app.call('files.save', {
+          ...input,
+          basis: original.basis,
+          content: '<p>Replacement</p>',
+        });
+        const undo = store.undo.bind(store);
+        store.undo = async (...args) => {
+          const result = await undo(...args);
+          await revoke();
+          return result;
+        };
+        expected = html;
+        action = () => app.call('files.undo', { projectId: project.id, editId: saved.id });
+      }
+      await expect(action()).rejects.toMatchObject({ code: 'outcomeUnknown' });
+      expect(await readFile(join(project.path, input.path), 'utf8')).toBe(expected);
+      expect(store.history(input.path)[0]?.after).toBe(expected);
+    } finally {
+      await app.close();
+    }
+  });
+}
+
 test('Manual report operations use real files, conditional HTML save and library read authority', async () => {
   const root = test.info().outputPath('manual-report');
   await mkdir(root, { recursive: true });
@@ -441,7 +513,7 @@ test('report undo does not disclose historical bodies or apply an unreportable c
     assert(editId);
     await app.call('library.grant', { read: false, write: false, send: false, autoBackup: false });
     await expect(app.call('files.undo', { projectId: project.id, editId })).rejects.toMatchObject({
-      code: 'unavailable',
+      code: 'permissionDenied',
     });
     expect(await readFile(join(project.path, 'report.html'), 'utf8')).toBe('<p>Replacement</p>');
   } finally {
@@ -465,7 +537,7 @@ test('a public file save cannot return the old report body after source revocati
         basis: read.basis,
         content: '<p>Replacement</p>',
       }),
-    ).rejects.toMatchObject({ code: 'unavailable' });
+    ).rejects.toMatchObject({ code: 'permissionDenied' });
     expect(await readFile(join(project.path, 'report.html'), 'utf8')).toBe(html);
   } finally {
     await app.close();
@@ -493,7 +565,7 @@ test('undo checks the actual current report path after a Markdown creation is re
     await app.call('library.grant', { read: false, write: false, send: false, autoBackup: false });
     await expect(
       app.call('files.undo', { projectId: project.id, editId: edit.id }),
-    ).rejects.toMatchObject({ code: 'unavailable' });
+    ).rejects.toMatchObject({ code: 'permissionDenied' });
     expect(await readFile(join(project.path, 'renamed.html'), 'utf8')).toBe(html);
   } finally {
     await app.close();

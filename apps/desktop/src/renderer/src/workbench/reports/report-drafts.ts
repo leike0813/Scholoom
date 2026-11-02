@@ -12,6 +12,53 @@ export type ReportDraftIdentity = Readonly<{
   ref: Readonly<Extract<ResourceRef, { source: 'project' }>>;
   basis: string;
 }>;
+type EntryIdentity = Omit<ReportDraftIdentity, 'basis'>;
+const savedVersions = 32;
+const versionsKey = (identity: EntryIdentity) =>
+  draftKey(
+    'report-versions',
+    JSON.stringify([
+      identity.configurationId,
+      identity.windowId,
+      identity.ref.projectId,
+      identity.ref.fileId,
+    ]),
+  );
+
+/** Reads only this entry's bounded index; it neither qualifies nor exposes saved page state. */
+export function reportSavedVersions(identity: EntryIdentity): string[] {
+  const text = readDraft(versionsKey(identity));
+  if (!text) return [];
+  if (
+    text.length > reportLimits.bridgeBytes ||
+    new TextEncoder().encode(text).byteLength > reportLimits.bridgeBytes
+  )
+    throw new TypeError('保存的报告版本索引超过容量。');
+  const value: unknown = JSON.parse(text);
+  if (
+    !Array.isArray(value) ||
+    value.length > savedVersions ||
+    value.some((basis) => typeof basis !== 'string' || !basis || basis.length > 1024) ||
+    new Set(value).size !== value.length
+  )
+    throw new TypeError('保存的报告版本索引无效。');
+  return value;
+}
+
+export function hasReportDraft(identity: EntryIdentity): boolean {
+  try {
+    return reportSavedVersions(identity).some((basis) => {
+      const store = createReportDrafts({ ...identity, basis });
+      const text = readDraft(store.key);
+      if (!text) return false;
+      if (text.length > reportLimits.bridgeBytes) return true;
+      const value: unknown = JSON.parse(text);
+      return !value || typeof value !== 'object' || !('dirty' in value) || value.dirty !== false;
+    });
+  } catch {
+    return true;
+  }
+}
 type StateMessage = Extract<ReportBridgeMessage, { type: 'state' | 'restore' }>;
 export type ReportDraftState = Pick<StateMessage, 'browse' | 'draft' | 'dirty'>;
 export type ReportDraftApproval = {
@@ -31,6 +78,7 @@ export type ReportDraftRestore =
 export function createReportDrafts(identity: ReportDraftIdentity) {
   const { configurationId, windowId, basis } = identity;
   const { source, projectId, fileId } = identity.ref;
+  const captured = { configurationId, windowId, ref: { source, projectId, fileId } };
   if (
     source !== 'project' ||
     [configurationId, windowId, projectId, fileId, basis].some(
@@ -72,7 +120,20 @@ export function createReportDrafts(identity: ReportDraftIdentity) {
       } catch {
         return { status: 'rejected' };
       }
-      return { status: 'stored', localStorageWritten: writeDraft(key, text) };
+      let versions: string[];
+      try {
+        versions = reportSavedVersions(captured).filter((value) => value !== basis);
+      } catch {
+        return { status: 'rejected' };
+      }
+      if (versions.length >= savedVersions) return { status: 'rejected' };
+      versions.push(basis);
+      const index = JSON.stringify(versions);
+      if (new TextEncoder().encode(index).byteLength > reportLimits.bridgeBytes)
+        return { status: 'rejected' };
+      const stateWritten = writeDraft(key, text);
+      const indexWritten = writeDraft(versionsKey(captured), index);
+      return { status: 'stored', localStorageWritten: stateWritten && indexWritten };
     },
     restore(approval?: ReportDraftApproval): ReportDraftRestore {
       if (!approval) return { status: 'unverified' };

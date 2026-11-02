@@ -206,7 +206,8 @@ export function FileEditor({
     const before = await port.describe(currentLocator());
     boundRef.current = before.ref;
     if (!before.capabilities.read) throw new Error('此资源当前不可读取。');
-    if (before.format !== 'text') throw new Error('当前格式不支持源码查看。');
+    if (before.format !== 'text' && before.format !== 'html')
+      throw new Error('当前格式不支持源码查看。');
     const result = await port.read({ ref: before.ref, basis: before.basis, encoding: 'utf8' });
     const after = await port.describe(before.ref);
     if (

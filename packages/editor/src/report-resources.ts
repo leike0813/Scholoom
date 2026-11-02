@@ -92,11 +92,25 @@ export class ReportResources {
   }
 
   async historical(resource: ResourceDescriptor, content: string, access: 'read' | 'send') {
+    return this.history(resource, content).snapshot(
+      { ref: resource.ref, basis: resource.basis },
+      access,
+    );
+  }
+
+  async freezeHistorical(resource: ResourceDescriptor, content: string, access: 'read' | 'send') {
+    return this.history(resource, content).freeze(
+      { ref: resource.ref, basis: resource.basis },
+      access,
+    );
+  }
+
+  private history(resource: ResourceDescriptor, content: string): ReportResources {
     const bytes = Buffer.from(content);
     if (bytes.length > reportLimits.entryBytes)
       throw new OperationError('tooLarge', '报告入口超过容量。');
     const matches = (locator: unknown) => isDeepStrictEqual(locator, resource.ref);
-    const history = new ReportResources({
+    return new ReportResources({
       authorize: (evidence, mode) => this.ports.authorize(evidence, mode),
       describe: async (locator) => {
         const current = await this.ports.describe(locator);
@@ -121,7 +135,6 @@ export class ReportResources {
         };
       },
     });
-    return history.snapshot({ ref: resource.ref, basis: resource.basis }, access);
   }
 
   /** Original descriptor/content must come from the trusted file history authority.
@@ -266,6 +279,6 @@ export class ReportResources {
     const current = await this.verify(entry);
     if (current.path !== resource.path) throw changed();
     await this.ports.authorize(evidence, access);
-    return { snapshot: { resource: current, manifest }, files };
+    return { snapshot: { resource: { ...current, report: true as const }, manifest }, files };
   }
 }

@@ -7,9 +7,9 @@ import { fileURLToPath } from 'node:url';
 
 const output = resolve(process.argv[2]);
 assert(output.startsWith('/home/joshua/.cache/'));
-const vendor = fileURLToPath(new URL('./vendor/', import.meta.url));
+const vendor = fileURLToPath(new URL('../../../packages/editor/vendor/worker-dom/', import.meta.url));
 const manifest = JSON.parse(
-  await readFile(new URL('./upstream-manifest.json', import.meta.url), 'utf8'),
+  await readFile(new URL('../../../packages/editor/vendor/worker-dom/upstream-manifest.json', import.meta.url), 'utf8'),
 );
 const changed = [];
 await mkdir(output, { recursive: true });

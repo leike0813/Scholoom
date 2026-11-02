@@ -70,12 +70,14 @@ if (process.platform === 'linux' && process.arch === 'x64') {
   const cache = process.env.TMPDIR ?? tmpdir();
   mkdirSync(cache, { recursive: true });
   const scriptModified = statSync(fileURLToPath(import.meta.url)).mtimeMs;
-  for (const name of ['isolated-report-scope', 'isolated-report-gate']) {
+  for (const name of ['isolated-report-scope', 'isolated-report-gate', 'report-channel']) {
     const nativeSource = join(root, 'native', `${name}.c`);
     const nativeOutput = join(root, 'dist', name);
+    const nodePolicyModified = statSync(join(root, 'native', 'report-node-policy.h')).mtimeMs;
     if (
       existsSync(nativeOutput) &&
-      statSync(nativeOutput).mtimeMs >= Math.max(statSync(nativeSource).mtimeMs, scriptModified)
+      statSync(nativeOutput).mtimeMs >=
+        Math.max(statSync(nativeSource).mtimeMs, scriptModified, nodePolicyModified)
     )
       continue;
     const flags = ['-std=c11', '-O2', '-Wall', '-Wextra', '-Werror'];

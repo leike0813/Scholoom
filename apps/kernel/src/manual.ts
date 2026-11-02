@@ -114,6 +114,7 @@ import {
 import type { ZoteroInputs, ZoteroPort } from '@scholoom/protocol/zotero';
 import { type CommandWorkspace, ManagedCommands } from './commands.js';
 import { executionResources } from './execution-resources.js';
+import { type ReportViewInstallation, ReportViews } from './report-views.js';
 import { initializeProjectContainer } from './storage/project-container.js';
 import { WorkbenchContextStore } from './workbench-context.js';
 import { type IsolatedZotero, ZoteroOperations, type ZoteroRuntime } from './zotero.js';
@@ -223,6 +224,7 @@ export class ManualApplication {
   private readonly directories: DirectoryBrowser;
   protected readonly processes = new ProcessAdmission();
   private readonly resourceReading = new MaterialReading(undefined, this.processes);
+  private readonly reportViews: ReportViews;
   protected revision = 0;
   private listeners = new Set<(change: WorkbenchChange) => void>();
   protected readonly broker: Broker<
@@ -241,7 +243,20 @@ export class ManualApplication {
     private readonly taskResearch?: TaskResearchPort,
     isolatedZotero?: IsolatedZotero,
     private readonly zoteroRuntime?: ZoteroRuntime,
+    reportInstallation?: ReportViewInstallation,
   ) {
+    this.reportViews = new ReportViews({
+      admission: this.processes,
+      ...(reportInstallation ? { installation: reportInstallation } : {}),
+      authorization: (evidence, context) => this.reportAuthorization(context, evidence, 'read'),
+      freeze: async (entry, context) => {
+        const ports = this.reportResourcePorts(context);
+        const current = await ports.describe(entry.ref);
+        if (current.basis === entry.basis) return new ReportResources(ports).freeze(entry);
+        const { original, content } = await this.reportOriginal(entry, context);
+        return new ReportResources(ports).freezeHistorical(original, content, 'read');
+      },
+    });
     this.broker.register('workbench-context', {
       'workbench.context.publish': ({ snapshot }, context) => {
         this.workbenchContexts.publish(context.workbenchSource, snapshot);
@@ -749,6 +764,8 @@ export class ManualApplication {
     });
   }
   async initialize(report: (phase: string) => void = () => {}): Promise<void> {
+    report('recovering-report-executions');
+    await this.reportViews.initialize();
     report('checking-zotero-supervision');
     const zoteroRecovery = await this.zotero.recover();
     report(
@@ -1426,10 +1443,10 @@ export class ManualApplication {
     );
   }
 
-  private async reportVersion(
+  private async reportOriginal(
     entry: ResourceEvidence,
     context: CallContext,
-  ): Promise<BusinessOutputs['resources.reportVersion']> {
+  ): Promise<{ ports: ReportResourcePorts; original: ResourceDescriptor; content: string }> {
     if (entry.ref.source !== 'project')
       throw new OperationError('invalidRequest', '报告版本入口必须是项目文件。');
     this.checkFileHistoryContext(context);
@@ -1490,6 +1507,14 @@ export class ManualApplication {
       };
       content = version.content;
     }
+    return { ports, original, content };
+  }
+
+  private async reportVersion(
+    entry: ResourceEvidence,
+    context: CallContext,
+  ): Promise<BusinessOutputs['resources.reportVersion']> {
+    const { ports, original, content } = await this.reportOriginal(entry, context);
     const access =
       context.role === 'execution' || this.isInstructionAdmission(context) ? 'send' : 'read';
     const review = await new ReportResources(ports).reviewHistorical(original, content, access);
@@ -1497,16 +1522,6 @@ export class ManualApplication {
     if (review.state === 'unavailable') return { state: 'unavailable', reason: review.reason };
     if (access === 'send') this.reportUsed(context, review.evidence);
     return { state: 'available', snapshot: review.snapshot };
-  }
-
-  private checkReportHistory(edit: { path: string; before: string; after: string }): void {
-    if (
-      resourceFormatForName(edit.path) === 'html' &&
-      [edit.before, edit.after].some((content) =>
-        content.replace(/^\ufeff/, '').startsWith(reportHeaderStart),
-      )
-    )
-      throw new OperationError('unavailable', '旧报告正文的声明来源授权尚未接通。');
   }
 
   private async reportHistoryAuthorization(
@@ -1571,6 +1586,7 @@ export class ManualApplication {
     if (await this.reportResources(context).isReport(resource)) {
       const snapshot = await this.reportSnapshot(resource, context);
       observed?.(this.reportEvidence(snapshot));
+      return snapshot.resource;
     }
     return resource;
   }
@@ -1967,6 +1983,11 @@ export class ManualApplication {
       this.resourceOperation(context, input.ref, false, () => this.reportSnapshot(input, context)),
     'resources.reportVersion': (input, context) =>
       this.resourceOperation(context, input.ref, false, () => this.reportVersion(input, context)),
+    'resources.reportOpen': (input, context) => this.reportViews.open(input, context),
+    'resources.reportGet': (input, context) => this.reportViews.get(input, context),
+    'resources.reportExchange': (input, context) => this.reportViews.exchange(input, context),
+    'resources.reportRead': (input, context) => this.reportViews.read(input, context),
+    'resources.reportStop': (input, context) => this.reportViews.stopView(input, context),
     'resources.save': async (input, context) => {
       const result = await this.resourceOperation<BusinessOutputs['resources.save']>(
         context,
@@ -2291,6 +2312,37 @@ export class ManualApplication {
     'files.save': async (input, context) => {
       const p = input;
       this.checkProjectScope(p.projectId, context);
+      let checkReceipt: ((edit: FileEdit) => void) | undefined;
+      if (p.basis !== undefined && resourceFormatForName(p.path) === 'html') {
+        const original = await this.projects.get(p.projectId).read(p.path);
+        if (!original.fileId) throw new OperationError('unavailable', '原文件身份不可核查。');
+        const resource = await this.resources.describe(
+          { source: 'project', projectId: p.projectId, path: p.path },
+          context,
+        );
+        const beforeEvidence = { ref: resource.ref, basis: resource.basis };
+        const confirm = await this.reportHistoryAuthorization(
+          p.projectId,
+          [
+            {
+              path: p.path,
+              fileId: original.fileId,
+              before: original.content,
+              beforeEvidence,
+              after: '',
+            },
+          ],
+          context,
+        );
+        checkReceipt = (edit) => {
+          if (
+            edit.before !== original.content ||
+            !isDeepStrictEqual(edit.beforeEvidence, beforeEvidence)
+          )
+            throw new OperationError('contentChanged', '保存前原报告版本已变化。');
+          confirm();
+        };
+      }
       const edit = await this.projects.get(p.projectId).save(
         p.path,
         p.content,
@@ -2303,9 +2355,17 @@ export class ManualApplication {
           origin: await this.fileOrigin(p.projectId, context),
         },
         undefined,
-        (edit) => this.checkReportHistory({ ...edit, after: '' }),
+        checkReceipt,
       );
       this.changed(p.projectId);
+      try {
+        checkReceipt?.(edit);
+      } catch {
+        throw new OperationError(
+          'outcomeUnknown',
+          '文件已保存，但原报告正文无权交付；请核查修改记录。',
+        );
+      }
       return edit;
     },
     'files.history': async (input, context) => {
@@ -2341,12 +2401,22 @@ export class ManualApplication {
     'files.undo': async (input, context) => {
       const p = input;
       this.checkProjectScope(p.projectId, context);
+      let confirm = () => {};
       const result = await this.projects
         .get(p.projectId)
-        .undo(p.editId, await this.fileOrigin(p.projectId, context), (edit) =>
-          this.checkReportHistory(edit),
-        );
+        .undo(p.editId, await this.fileOrigin(p.projectId, context), async (edits) => {
+          confirm = await this.reportHistoryAuthorization(p.projectId, edits, context);
+          return confirm;
+        });
       this.changed(p.projectId);
+      try {
+        confirm();
+      } catch {
+        throw new OperationError(
+          'outcomeUnknown',
+          '文件已撤销，但原报告正文无权交付；请核查修改记录。',
+        );
+      }
       return result;
     },
     'project.backup': async (input) => {
@@ -2361,6 +2431,7 @@ export class ManualApplication {
   }
   connectProduct() {
     const source = this.workbenchContexts.connect();
+    this.reportViews.connect(source.connectionId);
     let connected = true;
     const port = this.broker.consumer(
       {
@@ -2381,6 +2452,7 @@ export class ManualApplication {
       close: () => {
         connected = false;
         this.workbenchContexts.disconnect(source);
+        this.reportViews.disconnect(source.connectionId);
       },
     };
   }
@@ -2388,14 +2460,25 @@ export class ManualApplication {
     return this.broker.available(Object.keys(businessSchemas) as BusinessMethod[]);
   }
   async close(): Promise<void> {
-    await this.zotero.close();
-    await this.commandRunner.close();
-    await this.programs.close();
-    await this.resourceReading.close();
-    await this.editor.close();
-    this.fileWatches.close();
-    await this.transfers.close();
-    await this.library.close();
-    await this.projects.close();
+    const errors: unknown[] = [];
+    for (const close of [
+      () => this.reportViews.close(),
+      () => this.zotero.close(),
+      () => this.commandRunner.close(),
+      () => this.programs.close(),
+      () => this.resourceReading.close(),
+      () => this.editor.close(),
+      () => this.fileWatches.close(),
+      () => this.transfers.close(),
+      () => this.library.close(),
+      () => this.projects.close(),
+    ]) {
+      try {
+        await close();
+      } catch (error) {
+        errors.push(error);
+      }
+    }
+    if (errors.length) throw new AggregateError(errors, '内核部分执行的停止结果仍未确认。');
   }
 }

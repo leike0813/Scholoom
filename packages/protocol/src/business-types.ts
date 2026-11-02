@@ -164,6 +164,13 @@ export type Inputs = {
   'resources.document': FromSchema<(typeof businessSchemas)['resources.document']['params']>;
   'resources.read': FromSchema<(typeof businessSchemas)['resources.read']['params']>;
   'resources.report': FromSchema<(typeof businessSchemas)['resources.report']['params']>;
+  'resources.reportExchange': FromSchema<
+    (typeof businessSchemas)['resources.reportExchange']['params']
+  >;
+  'resources.reportGet': FromSchema<(typeof businessSchemas)['resources.reportGet']['params']>;
+  'resources.reportOpen': FromSchema<(typeof businessSchemas)['resources.reportOpen']['params']>;
+  'resources.reportRead': FromSchema<(typeof businessSchemas)['resources.reportRead']['params']>;
+  'resources.reportStop': FromSchema<(typeof businessSchemas)['resources.reportStop']['params']>;
   'resources.reportVersion': FromSchema<
     (typeof businessSchemas)['resources.reportVersion']['params']
   >;
@@ -355,6 +362,13 @@ export type Outputs = {
   'resources.document': FromSchema<(typeof businessSchemas)['resources.document']['result']>;
   'resources.read': FromSchema<(typeof businessSchemas)['resources.read']['result']>;
   'resources.report': FromSchema<(typeof businessSchemas)['resources.report']['result']>;
+  'resources.reportExchange': FromSchema<
+    (typeof businessSchemas)['resources.reportExchange']['result']
+  >;
+  'resources.reportGet': FromSchema<(typeof businessSchemas)['resources.reportGet']['result']>;
+  'resources.reportOpen': FromSchema<(typeof businessSchemas)['resources.reportOpen']['result']>;
+  'resources.reportRead': FromSchema<(typeof businessSchemas)['resources.reportRead']['result']>;
+  'resources.reportStop': FromSchema<(typeof businessSchemas)['resources.reportStop']['result']>;
   'resources.reportVersion': FromSchema<
     (typeof businessSchemas)['resources.reportVersion']['result']
   >;

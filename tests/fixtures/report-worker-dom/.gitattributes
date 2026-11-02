@@ -1,3 +1,0 @@
-# Preserve fixed upstream whitespace and unified-diff context bytes.
-vendor/** -whitespace
-local.patch -whitespace

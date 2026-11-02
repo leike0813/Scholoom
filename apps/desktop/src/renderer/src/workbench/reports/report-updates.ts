@@ -14,6 +14,7 @@ export interface ReportUpdateState {
   pending: ReportSnapshot | null;
   loading: boolean;
   error: ErrorInfo | null;
+  candidateError?: ErrorInfo;
   canDisplay: boolean;
   canReplace: boolean;
   closed: boolean;
@@ -38,21 +39,30 @@ function errorInfo(reason: unknown): ErrorInfo {
 export function createReportUpdates({
   entry,
   load,
+  initialSnapshot,
   protection = { pageDirty: false, explicitItems: false, composerDraft: false },
 }: {
   entry: ResourceEvidence;
   load(evidence: ResourceEvidence, signal: AbortSignal): Promise<ReportSnapshot>;
+  /** Freshly authorized original version supplied by the trusted restore adapter. */
+  initialSnapshot?: ReportSnapshot;
   protection?: ReportUpdateProtection;
 }) {
   if (entry.ref.source !== 'project')
     throw new OperationError('invalidRequest', '报告入口必须属于项目。');
   const identity = structuredClone(entry.ref);
+  if (
+    initialSnapshot &&
+    (!sameResourceRef(initialSnapshot.resource.ref, identity) ||
+      initialSnapshot.resource.basis !== entry.basis)
+  )
+    throw new OperationError('invalidRequest', '原报告快照与入口版本不符。');
   let latest = structuredClone(entry);
   let facts = { ...protection };
-  let current: ReportSnapshot | null = null;
+  let current: ReportSnapshot | null = initialSnapshot ? structuredClone(initialSnapshot) : null;
   let pending: ReportSnapshot | null = null;
   let error: ErrorInfo | null = null;
-  let allowed = false;
+  let allowed = !!initialSnapshot;
   let blocked = false;
   let closed = false;
   let revision = 0;
@@ -112,7 +122,7 @@ export function createReportUpdates({
               )
                 throw new OperationError('contentChanged', '报告候选与请求版本不一致。');
               pending = structuredClone(snapshot);
-              if (!protectedWork()) adopt();
+              if (!current || !protectedWork()) adopt();
             } catch (reason) {
               if (!closed && candidate.revision === revision) {
                 error = errorInfo(reason);

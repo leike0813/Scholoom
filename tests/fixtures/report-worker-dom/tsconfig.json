@@ -16,8 +16,8 @@
   },
   "files": [
     "../../../node_modules/vite/client.d.ts",
-    "vendor/src/main-thread/main-thread.d.ts",
-    "vendor/src/worker-thread/worker-thread.d.ts"
+    "../../../packages/editor/vendor/worker-dom/src/main-thread/main-thread.d.ts",
+    "../../../packages/editor/vendor/worker-dom/src/worker-thread/worker-thread.d.ts"
   ],
   "include": [
     "entry.tsx",

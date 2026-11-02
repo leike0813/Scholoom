@@ -65,6 +65,11 @@ try {
     ],
     ['string-budget', process.execPath, [join(env.SCHOOLOOM_ASYNC_DOM_BUILD, 'string-budget.mjs')]],
     [
+      'frame-budget',
+      process.execPath,
+      [join(env.SCHOOLOOM_ASYNC_DOM_BUILD, 'frame-budget-check.mjs')],
+    ],
+    [
       'credits',
       process.execPath,
       [

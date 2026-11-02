@@ -1,14 +1,15 @@
 import assert from 'node:assert/strict';
-import { TransferrableKeys as K } from '../report-worker-dom/vendor/src/transfer/TransferrableKeys.js';
-import { Node } from '../report-worker-dom/vendor/src/worker-thread/dom/Node.js';
-import { Event } from '../report-worker-dom/vendor/src/worker-thread/Event.js';
-import { createWorkerDOM, hydrate } from '../report-worker-dom/vendor/src/worker-thread/index.js';
-import { get } from '../report-worker-dom/vendor/src/worker-thread/nodes.js';
+import { TransferrableKeys as K } from '../../../packages/editor/vendor/worker-dom/src/transfer/TransferrableKeys.js';
+import { Node } from '../../../packages/editor/vendor/worker-dom/src/worker-thread/dom/Node.js';
+import { Event } from '../../../packages/editor/vendor/worker-dom/src/worker-thread/Event.js';
+import { createWorkerDOM, hydrate } from '../../../packages/editor/vendor/worker-dom/src/worker-thread/index.js';
+import { get } from '../../../packages/editor/vendor/worker-dom/src/worker-thread/nodes.js';
+import { copyFrame, frameLimits } from './frame-budget.mjs';
 import { mountSample } from './sample.mjs';
 
 const listeners = new Set<Function>();
 let sequence = 0,
-  credit = 4,
+  credit = frameLimits.frames as number,
   failure = '',
   suppressed = 0,
   bridgeAccepted = 0;
@@ -42,30 +43,20 @@ const source = createWorkerDOM(
       failure = 'mutationCreditExhausted';
       return;
     }
-    const nodes = Array.from(new Uint16Array(message[K.nodes]));
-    const mutations = Array.from(new Uint16Array(message[K.mutations]));
-    const strings = message[K.strings];
-    const bytes =
-      nodes.length * 2 + mutations.length * 2 + Buffer.byteLength(JSON.stringify(strings));
-    if (bytes > 65536) {
-      failure = 'mutationFrameBudget';
-      return;
+    try {
+      const packet = copyFrame({
+        sequence: sequence + 1,
+        phase: message[K.phase],
+        nodes: new Uint16Array(message[K.nodes]),
+        strings: message[K.strings],
+        mutations: new Uint16Array(message[K.mutations]),
+      });
+      credit--;
+      outstanding.add(++sequence);
+      packets.push(packet);
+    } catch (error) {
+      failure = error instanceof Error ? error.message : String(error);
     }
-    const packet = {
-      sequence: sequence + 1,
-      phase: message[K.phase],
-      nodes,
-      strings,
-      mutations,
-      bytes,
-    };
-    if (Buffer.byteLength(JSON.stringify(packet)) > 65536) {
-      failure = 'mutationFrameBudget';
-      return;
-    }
-    credit--;
-    outstanding.add(++sequence);
-    packets.push(packet);
   },
   (_type: string, listener: Function) => listeners.add(listener),
   (_type: string, listener: Function) => listeners.delete(listener),

@@ -7,20 +7,21 @@ import {
   type IsolationStageInput,
   type IsolationStatus,
   isolationOperations,
+  isolationRecordLimits,
+  type ReportManagerStop,
+  reportManagerOperations,
+  type SystemReportInputs,
+  systemReportInputsSchema,
   validateIsolationStage,
 } from '@scholoom/protocol/isolation';
 
-export type IsolationScope = {
-  bootId: string;
-  invocationId: string;
+export type IsolationScope = ReportManagerStop['scope'] & {
   cgroup: string;
-  dev: string;
-  ino: string;
   controllerPid: number;
   controllerBirth: string;
 };
-export type IsolationReceipt = {
-  version: 1;
+export type IsolationRoute = 'linux-user-scope-v1' | 'linux-system-service-v1';
+type ReceiptBody = {
   configId: string;
   storageId: string;
   stage: IsolationStageInput;
@@ -35,6 +36,20 @@ export type IsolationReceipt = {
   scopeIntent: boolean;
   scope?: IsolationScope;
 };
+export type IsolationReceipt = ReceiptBody &
+  (
+    | { version: 1; route?: never; system?: never }
+    | {
+        version: 2;
+        route: 'linux-system-service-v1';
+        systemInputs?: SystemReportInputs;
+        system?: {
+          runtimeUid: number;
+          runtimeGid: number;
+          permit: { dev: string; ino: string };
+        };
+      }
+  );
 const uuid = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/;
 const recordBytes = 1024 * 1024;
 function encoded(value: unknown): string {
@@ -44,6 +59,11 @@ function encoded(value: unknown): string {
   return text;
 }
 const validStatus = compileContract(isolationOperations['platform.reportIsolation.get']).result;
+const validSystemScope = compileContract(reportManagerOperations['reportManager.stop']).params;
+const validSystemInputs = compileContract({
+  params: systemReportInputsSchema,
+  result: systemReportInputsSchema,
+}).params;
 const unavailable = () =>
   new OperationError('unavailable', '隔离执行记录身份或持久化状态不可核查。');
 // Node opens descriptors with close-on-exec; the native adapter independently closes its allowlist.
@@ -51,7 +71,7 @@ const flags = constants.O_RDONLY | constants.O_NOFOLLOW;
 
 /** Directory handles pin all private writes; on-disk identities are never rebound on recovery. */
 export class IsolationRecords {
-  static readonly maxInstances = 4096;
+  static readonly maxInstances = isolationRecordLimits.instances;
   private root!: FileHandle;
   private rootIdentity = '';
   private configId = '';
@@ -59,7 +79,11 @@ export class IsolationRecords {
   private readonly directories = new Map<string, FileHandle>();
   private writes: Promise<void> = Promise.resolve();
   readonly path: string;
-  constructor(path: string) {
+  constructor(
+    path: string,
+    readonly route: IsolationRoute = 'linux-user-scope-v1',
+  ) {
+    if (route !== 'linux-user-scope-v1' && route !== 'linux-system-service-v1') throw unavailable();
     this.path = resolve(path);
   }
 
@@ -122,9 +146,21 @@ export class IsolationRecords {
       configId: string;
       identity: string;
     };
-    if (value.version !== 1 || !uuid.test(value.configId) || value.identity !== this.rootIdentity)
+    if (
+      !this.matchesRoute(value) ||
+      !uuid.test(value.configId) ||
+      value.identity !== this.rootIdentity
+    )
       throw unavailable();
     return value.configId;
+  }
+  private matchesRoute(value: { version?: unknown; route?: unknown; system?: unknown }): boolean {
+    return (
+      !!value &&
+      (this.route === 'linux-system-service-v1'
+        ? value.version === 2 && value.route === this.route
+        : value.version === 1 && value.route === undefined && value.system === undefined)
+    );
   }
   private async provision(): Promise<void> {
     // An identity loss is not a new config. Never erase its recovery inventory.
@@ -134,7 +170,8 @@ export class IsolationRecords {
     if (!lock.isFile() || lock.nlink !== 1 || lock.uid !== process.getuid?.()) throw unavailable();
     this.configId = randomUUID();
     await this.atomic(this.root, 'config.json', {
-      version: 1,
+      version: this.route === 'linux-system-service-v1' ? 2 : 1,
+      ...(this.route === 'linux-system-service-v1' ? { route: this.route } : {}),
       configId: this.configId,
       identity: this.rootIdentity,
     });
@@ -188,7 +225,7 @@ export class IsolationRecords {
         'receipt.json',
       )) as IsolationReceipt;
       if (
-        value.version !== 1 ||
+        !this.matchesRoute(value) ||
         value.configId !== this.configId ||
         value.storageId !== entry.storageId ||
         !validateIsolationStage(value.stage) ||
@@ -213,19 +250,64 @@ export class IsolationRecords {
             value.stamps.some((s) => !s))) ||
         typeof value.scopeIntent !== 'boolean' ||
         typeof value.launchIntent !== 'boolean' ||
-        !/^scholoom-report-[a-f0-9-]{36}\.scope$/.test(value.unit) ||
+        (value.version === 1
+          ? !/^scholoom-report-[a-f0-9-]{36}\.scope$/.test(value.unit)
+          : value.unit !== `scholoom-report-${this.configId}-v1@${entry.storageId}.service`) ||
         typeof value.policyVersion !== 'string' ||
         typeof value.programVersion !== 'string'
       )
         throw unavailable();
+      if (value.version === 2) {
+        const system = value.system;
+        if (
+          (value.systemInputs && !validSystemInputs(value.systemInputs)) ||
+          (value.scopeIntent && !value.systemInputs) ||
+          (value.scope && value.scope.bootId !== value.systemInputs?.bootId) ||
+          !!value.scope !== !!system ||
+          (value.scope && !value.scopeIntent) ||
+          (value.launchIntent && !value.scope) ||
+          (value.status.gateReleased && !value.launchIntent) ||
+          (system &&
+            (!Number.isSafeInteger(system.runtimeUid) ||
+              system.runtimeUid <= 0 ||
+              system.runtimeUid >= 0xffffffff ||
+              system.runtimeUid === process.getuid?.() ||
+              !Number.isSafeInteger(system.runtimeGid) ||
+              system.runtimeGid <= 0 ||
+              system.runtimeGid >= 0xffffffff ||
+              system.runtimeGid === process.getgid?.() ||
+              !system.permit ||
+              !/^\d+$/.test(system.permit.dev) ||
+              !/^\d+$/.test(system.permit.ino) ||
+              system.permit.dev !== value.systemInputs?.permit.dev ||
+              system.permit.ino !== value.systemInputs?.permit.ino))
+        )
+          throw unavailable();
+        if (
+          value.scope &&
+          !validSystemScope({
+            configId: value.configId,
+            storageId: value.storageId,
+            scope: {
+              bootId: value.scope.bootId,
+              invocationId: value.scope.invocationId,
+              dev: value.scope.dev,
+              ino: value.scope.ino,
+            },
+          })
+        )
+          throw unavailable();
+      }
       if (value.scope) {
         const s = value.scope;
         if (
           !uuid.test(s.bootId) ||
           !/^[a-f0-9]{32}$/.test(s.invocationId) ||
-          !s.cgroup.startsWith('/user.slice/') ||
+          (value.version === 1
+            ? !s.cgroup.startsWith('/user.slice/') || !s.cgroup.endsWith(`/${value.unit}`)
+            : s.cgroup !==
+              `/system.slice/system-scholoomreport${value.configId.replaceAll('-', '')}${value.storageId.replaceAll('-', '')}.slice`) ||
           s.cgroup.includes('..') ||
-          !s.cgroup.endsWith(`/${value.unit}`) ||
           !/^\d+$/.test(s.dev) ||
           !/^\d+$/.test(s.ino) ||
           !Number.isSafeInteger(s.controllerPid) ||
@@ -336,8 +418,7 @@ export class IsolationRecords {
       encoded(next);
       await mkdir(join(this.base, storageId), { mode: 0o700 });
       await this.root.sync();
-      const receipt: IsolationReceipt = {
-        version: 1,
+      const body: ReceiptBody = {
         configId: this.configId,
         storageId,
         stage: structuredClone(stage),
@@ -349,12 +430,19 @@ export class IsolationRecords {
         },
         offsets: stage.assets.map(() => 0),
         stamps: stage.assets.map(() => ''),
-        unit: `scholoom-report-${randomUUID()}.scope`,
+        unit:
+          this.route === 'linux-system-service-v1'
+            ? `scholoom-report-${this.configId}-v1@${storageId}.service`
+            : `scholoom-report-${randomUUID()}.scope`,
         programVersion,
         policyVersion,
         scopeIntent: false,
         launchIntent: false,
       };
+      const receipt: IsolationReceipt =
+        this.route === 'linux-system-service-v1'
+          ? { ...body, version: 2, route: this.route }
+          : { ...body, version: 1 };
       await this.atomic(await this.directory(storageId), 'receipt.json', receipt);
       await this.atomic(this.root, 'index.json', next);
       this.index = next;
@@ -363,9 +451,19 @@ export class IsolationRecords {
   }
   save(receipt: IsolationReceipt): Promise<void> {
     const snapshot = structuredClone(receipt);
-    return this.serialize(async () =>
-      this.atomic(await this.directory(snapshot.storageId), 'receipt.json', snapshot),
-    );
+    return this.serialize(async () => {
+      if (
+        !this.matchesRoute(snapshot) ||
+        snapshot.configId !== this.configId ||
+        !this.index.some(
+          (entry) =>
+            entry.storageId === snapshot.storageId &&
+            entry.instanceId === snapshot.stage?.instanceId,
+        )
+      )
+        throw unavailable();
+      await this.atomic(await this.directory(snapshot.storageId), 'receipt.json', snapshot);
+    });
   }
   async files(receipt: IsolationReceipt): Promise<string> {
     await this.check();

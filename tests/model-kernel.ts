@@ -2,13 +2,16 @@ import { type ChildProcess, fork } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { mkdir, open, realpath, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
-import { setTimeout as delay } from 'node:timers/promises';
 import { type TestInfo, test } from '@playwright/test';
 import { inspectKernel } from '../apps/kernel/dist/lifecycle.js';
 import { createKernelClient, type KernelClient } from '../packages/client/dist/index.js';
 import { type KernelEndpoint, limits } from '../packages/protocol/dist/index.js';
 import { observationErrorCode } from './execution-observer.js';
-import { developmentKernelConnectionTimeout } from './kernel-fixture.js';
+import {
+  developmentKernelConnectionTimeout,
+  kernelResultSummary,
+  waitForKernelStop,
+} from './kernel-fixture.js';
 
 /** Uses serveKernel and preserves the legacy callable asynchronous stop. */
 export async function startModelKernel(
@@ -38,6 +41,16 @@ export async function startModelKernel(
   let phase = 'inspect-initial';
   let saved = false;
   let errorCode: string | undefined;
+  let previousStop:
+    | {
+        instanceId: string;
+        processId: number;
+        requestedAt: number;
+        acceptedAt?: number;
+        deadline?: number;
+        lastObservation?: { at: number; result: ReturnType<typeof kernelResultSummary> };
+      }
+    | undefined;
   const persist = async () => {
     if (saved) return;
     saved = true;
@@ -69,6 +82,7 @@ export async function startModelKernel(
           execution,
           observationUnavailable: execution === undefined,
           errorCode,
+          previousStop,
         }),
         { mode: 0o600 },
       );
@@ -102,28 +116,30 @@ export async function startModelKernel(
   try {
     const initial = await inspectKernel(canonical);
     if (initial.state === 'running') {
+      previousStop = {
+        instanceId: initial.endpoint.instanceId,
+        processId: initial.endpoint.processId,
+        requestedAt: Date.now(),
+      };
       // Existing isolated UI callers deliberately replace their fixture kernel.
       phase = 'shutdown-previous-instance';
       const previous = createKernelClient(initial.endpoint);
       try {
         await previous.connect();
         await previous.shutdown();
+        previousStop.acceptedAt = Date.now();
       } finally {
         previous.dispose();
       }
       phase = 'previous-stop-check';
-      const deadline = Date.now() + limits.lifecycleMs;
-      for (;;) {
-        const current = await inspectKernel(canonical);
-        if (current.state === 'stopped') break;
-        if (
-          (current.state === 'running' &&
-            current.endpoint.instanceId !== initial.endpoint.instanceId) ||
-          Date.now() >= deadline
-        )
-          throw new Error('Previous isolated kernel stop is unknown');
-        await delay(50);
-      }
+      const observedStop = previousStop;
+      await waitForKernelStop(canonical, initial.endpoint.instanceId, (current, deadline) => {
+        observedStop.deadline = deadline;
+        observedStop.lastObservation = {
+          at: Date.now(),
+          result: kernelResultSummary(current),
+        };
+      });
     } else if (initial.state !== 'stopped') throw new Error('Isolated configuration is occupied');
     phase = 'ready-ipc';
     const owned = fork(new URL('./fixtures/model-kernel-process.mjs', import.meta.url), [], {

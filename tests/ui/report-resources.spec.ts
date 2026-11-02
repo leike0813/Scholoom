@@ -7,7 +7,9 @@ import { runningKernel } from '../kernel-fixture.js';
 import { addProject, createSession, expect, test } from './fixture.js';
 import { rendererUrl } from './renderer-url.js';
 
-test('saved project report opens as an inert common HTML resource', async ({ uiPage }, info) => {
+test('a verified report uses its product view and stays unavailable without an installed runtime', async ({
+  uiPage,
+}, info) => {
   const result = info.outputPath('project-report');
   await mkdir(result, { recursive: true });
   const root = join(result, 'project');
@@ -59,10 +61,13 @@ test('saved project report opens as an inert common HTML resource', async ({ uiP
     await addProject(uiPage, root);
     await createSession(uiPage, { projectId: project.id });
     await uiPage.getByRole('treeitem', { name: '打开文件 report.html', exact: true }).dblclick();
-    const article = uiPage
-      .getByRole('region', { name: '文档阅读 report.html', exact: true })
-      .getByRole('article', { name: '文档正文', exact: true });
-    await expect(article).toContainText('Revised comparison dose 10 and 20.');
+    const report = uiPage.getByRole('region', { name: '交互报告 report.html', exact: true });
+    await expect(report.getByRole('alert')).toContainText(/不可用|未确认/);
+    await expect(report.getByRole('button', { name: '重新检查', exact: true })).toBeEnabled();
+    await expect(uiPage.locator('iframe[title="交互报告"]')).toHaveCount(0);
+    await uiPage.getByRole('button', { name: '查看源码', exact: true }).click();
+    await expect(uiPage.getByRole('button', { name: '返回报告', exact: true })).toBeVisible();
+    await expect(uiPage.locator('.cm-content')).toContainText('Revised comparison dose 10 and 20.');
     expect(await uiPage.evaluate(() => Reflect.get(window, '__reportExecuted'))).toBeUndefined();
     expect(
       (await client.call('resources.report', { ref: saved.ref, basis: saved.basis })).manifest,

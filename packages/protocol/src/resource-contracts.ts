@@ -45,6 +45,7 @@ export const resourceDescriptorSchema = object(
     unavailableReason: text,
     render: object({ jobId: id, input: renderInputSchema }, ['jobId', 'input']),
     format: { enum: ['text', 'pdf', 'epub', 'html', 'image', 'unsupported'] },
+    report: { const: true },
     capabilities: object({ read: flag, write: flag, readingRecords: flag, render: flag }, [
       'read',
       'write',

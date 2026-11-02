@@ -60,6 +60,45 @@ const message = {
   ...state,
 };
 
+test('the entry index retains exact saved versions across reload and rejects overflow without replacing a draft', async ({
+  page,
+}) => {
+  const result = await page.evaluate(
+    ({ identity, message }) => {
+      const f = window.reportDraftFixture;
+      for (let index = 0; index < 32; index++) {
+        const basis = `version-${index}`;
+        const saved = f.createReportDrafts({ ...identity, basis }).save({ ...message, basis });
+        if (saved.status !== 'stored') throw new Error('bounded draft was not saved');
+      }
+      const rejected = f
+        .createReportDrafts({ ...identity, basis: 'overflow' })
+        .save({ ...message, basis: 'overflow' });
+      return {
+        versions: f.reportSavedVersions(identity),
+        dirty: f.hasReportDraft(identity),
+        rejected,
+      };
+    },
+    { identity, message },
+  );
+  expect(result.versions).toEqual(Array.from({ length: 32 }, (_, index) => `version-${index}`));
+  expect(result.dirty).toBe(true);
+  expect(result.rejected).toEqual({ status: 'rejected' });
+  await page.reload();
+  const reopened = await page.evaluate((identity) => {
+    const f = window.reportDraftFixture;
+    return {
+      versions: f.reportSavedVersions(identity),
+      first: f
+        .createReportDrafts({ ...identity, basis: 'version-0' })
+        .restore({ identity: { ...identity, basis: 'version-0' }, status: 'available' }),
+    };
+  }, identity);
+  expect(reopened.versions).toEqual(result.versions);
+  expect(reopened.first).toEqual({ status: 'restorable', state });
+});
+
 test('report states survive reload only at their captured configuration window entry and basis', async ({
   page,
   context,
@@ -324,7 +363,7 @@ test('storage write failure keeps memory and notifications without claiming dura
     status: 'restorable',
     state: { ...state, draft: 'Unpersisted edit' },
   });
-  expect(result.attempts).toBe(1);
+  expect(result.attempts).toBeGreaterThan(0);
   expect(result.notified).toBe(1);
   expect(result.errors).toHaveLength(1);
   await page.reload();

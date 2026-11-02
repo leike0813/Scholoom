@@ -334,6 +334,36 @@ test('subscriber failure does not reject a committed context batch or hide other
   ).toEqual({ result: true, reported: true, notified: true, stored: 1 });
 });
 
+test('one receiver keeps its contribution callback when the shared draft updates', async ({
+  page,
+}) => {
+  await mountBusinessContext(page);
+  await page.evaluate(() => {
+    const f = Reflect.get(window, 'contextFixture');
+    Reflect.set(window, 'sameReceiverAppend', f.session.appendContextItems);
+    f.session.appendContextItems([
+      {
+        kind: 'resource',
+        itemId: 'first',
+        ref: { source: 'project', projectId: 'project', fileId: 'file' },
+        basis: 'v1',
+      },
+    ]);
+  });
+  await expect
+    .poll(async () => JSON.parse(await page.getByLabel('上下文状态').innerText()).items.length)
+    .toBe(1);
+  expect(
+    await page.evaluate(() => {
+      const f = Reflect.get(window, 'contextFixture');
+      return (
+        f.session.appendContextItems === Reflect.get(window, 'sameReceiverAppend') &&
+        f.context.appendContextItems === f.session.appendContextItems
+      );
+    }),
+  ).toBe(true);
+});
+
 test('stale append callbacks preserve both drafts after session, project and configuration switches', async ({
   page,
 }) => {

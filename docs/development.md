@@ -220,9 +220,11 @@ macOS 完整能力恢复另立变更：Darwin 不支持 kqueue 自动后代跟�
 
 ### 独立 Linux 受限原生提供者
 
-`@scholoom/platform/node` 的 `IsolatedReportProvider` 是宿主专用深模块，行为见[Linux 隔离规格](../openspec/specs/linux-isolated-report-provider/spec.md)，接口从 `@scholoom/protocol/isolation` 派生；仅独立私有 broker 装配六个 `platform.reportIsolation.*` 操作，尚未注册到产品、harness 或报告页面。宿主注入同一 `ProcessAdmission`、私有目录、固定静态 ELF 程序／策略及当前授权闭包，按 `initialize → stage → put → start/get/stop → close` 使用；重启先恢复原记录及占用，不自动重放。
+系统服务路线的采证／停止校准入口见[固定系统范围夹具](../tests/fixtures/report-system-manager/README.md)。每个报告独占保持active的父slice，确认其原范围populated0后才能结清；service的cgroup提前回收及读取错误不作停止凭证。真实root固定native校准已通过跨UID采证、实际配额、原调用停止及准确清理；通用报告的C/M启动／许可、持久停止至K容量释放及产品接线另有系统和双宿主证据，原失败现场及各层边界见[报告交付](../openspec/changes/archive/2026-11-02-add-interactive-research-reports/delivery.md)。
 
-当前唯一策略为 Linux x86_64 固定原生程序，使用已有普通用户 systemd scope、bwrap、seccomp、pidfd 与可信 controller exec 观察。`check`检查登记及工具前置；每次启动仍在 G 前核真实 CPU／memory／swap／pids 与完整门策略，缺任何条件不放行。预算必须显式登记，测试的20%／64MiB／swap0／16tasks不成为产品默认。字节仅存私有准备视图，原 `ReportResources`／`ResourceAccess` 仍负责 ref／basis／read/send。`prepare`已在同一真实 `ProcessAdmission` 租约内接入 `ReportResources.freeze`，固定静态native的真实Linux准备／启动／停止已验；具体范围见[报告交付](../openspec/changes/add-interactive-research-reports/delivery.md)。跨身份系统服务、完整浏览器及产品页面尚未接通。
+`@scholoom/platform/node` 的 `IsolatedReportProvider` 是宿主专用深模块，行为见[Linux 隔离规格](../openspec/specs/linux-isolated-report-provider/spec.md)，接口从 `@scholoom/protocol/isolation` 派生；六个 `platform.reportIsolation.*` 操作保持私有。产品ReportViews经ReportControlClient接入，不向harness或报告页面开放程序、策略或原生路径。宿主注入同一 `ProcessAdmission`、私有目录、固定登记程序／策略及当前授权闭包，按 `initialize → stage → put → start/get/stop → close` 使用；重启先恢复原记录及占用，不自动重放。
+
+普通用户systemd scope路线以Linux x86_64固定原生程序校准；跨身份system service路线已接固定Node/data及通用报告bootstrap。二者均使用bwrap、seccomp、pidfd与可信controller exec观察。`check`检查登记及工具前置；每次启动仍在G前核真实CPU／memory／swap／pids与完整门策略，缺任何条件不放行。预算必须显式登记，native测试的20%／64MiB／swap0／16tasks不成为产品默认。字节仅存私有准备视图，原`ReportResources`／`ResourceAccess`仍负责ref／basis／read/send。`prepare`在同一真实`ProcessAdmission`租约内接入`ReportResources.freeze`；固定原生、Node/data、通用bootstrap及Linux Browser／真实Electron产品主路径各自的实际结果见报告交付，固定校准与完整产品证据分别记录。
 
 原生适配随 `packages/platform/build-process-scope.mjs` 构建，保留普通命令及其他平台原分支。先通过 `SCHOOLOOM_ISOLATION_TEST_CACHE` 与 `TMPDIR` 指定自己的 cache，再用 `node tests/fixtures/isolated-report-native/rebuild.mjs` 编译独立固定输入，然后运行 `isolated-report-provider.spec.ts`、`isolated-report-records.spec.ts`、`isolation-contracts.spec.ts` 与 `process-admission.spec.ts`。真实OS组需要明确提供该cache及已有systemd／bwrap／委托条件；没有设置时默认内核组合只跑其不可用保护，跳过OS组不代表隔离验收通过。实际命令、首次失败及范围见[提供者交付](../openspec/changes/archive/2026-10-30-add-linux-isolated-report-provider/delivery.md)。浏览器进程图、报告 UI、文本／可访问性、分发及 Windows／macOS 均不由该原生模块声明通过。
 
@@ -367,7 +369,7 @@ Agent 的 `read_workbench_context` 工具按本次推进已注入的指令查询
 | 科研方法 | 节点材料及结果资源，Graph 等待仍由源码工厂声明 | `resume` 接收完整 InstructionContext；取材、创建及结果核查复用共同资源端口 |
 | Agent | 委派输入只携带明确资源及原来源事实，不自报窗口身份 | 子执行沿所属身份和领域端口，当前快照不提供额外授权 |
 | 科研计算 | 已生成日志／成果作为资源项；环境选择由所属模块提供 | 资源读取与受管程序准入各自核查，不从选区推导可执行程序 |
-| 阅读交互 | 文字摘录保留 saved/draft 及原 basis；区域／对象使用规范化位置或明确 provider 语义 | 保存阅读记录走原领域，重新读取核对版本；精细命中和报告脚本另行接入 |
+| 阅读交互 | 文字摘录保留 saved/draft 及原 basis；区域／对象使用规范化位置或明确 provider 语义 | 保存阅读记录走原领域，重新读取核对版本；精细命中依赖明确 provider，报告脚本沿受限报告承载 |
 | Zotero 生态 | 只贡献已确认身份的题录、附件或导出结果，不猜 SQL／旧宿主对象映射 | 沿共同 broker 和所属授权；原包生产接线与生态身份映射另验 |
 
 例如模型取得 `ambiguous` 后可查询 `read_workbench_context({ instructionId })`，其中身份必须来自本推进返回的引用；取得合法 `ref/basis` 后才调用 `read_context_resource({ ref, basis, encoding: 'utf8' })`。显式项保留用户原载荷，实际读取记录与它分开。完整组合入口为 `tests/kernel/workbench-integration.spec.ts` 和双宿主 `tests/ui/context-bridge.spec.ts`：前者使用真实认证连接、全局取材和固定图创建／结果查询，后者经现有 composer 附加库资源、发送后更换选择并刷新核对持久消息。生产 Graph 注册集合仍为空，样例及受控 HTTP 不代表科研业务已交付。
@@ -497,9 +499,33 @@ UI 测试期间保持源码和共享包构建产物稳定；改动或重新构�
 
 模型UI夹具`tests/model-kernel.ts::startModelKernel`保留可调用的异步stop，真实子进程经私有IPC启动serveKernel；停止绑定原实例并等自有child close。失败或停止时保存`model-kernel-execution`安全附件，按所属project／session／run／instance关联初始化、指令消费、模型准入和首输出；HTTP请求数没有观察者时为null，准入事件不等于已发送HTTP。`tests/ui/fixture.ts`的按需`uiRpc`观察真实uiPage的发送、回执和快照，场景在关闭内核前调用save，保存错误由fixture收尾报告。两端都明确数量／时间上限、丢弃及缺证，不能用早期queued快照推断永久阻塞或将内核PID当worker PID。
 
-报告文件的`resources.report`及普通资源读取核对入口、依赖和声明来源；`ReportResources.freeze`保留同次核准的入口及依赖字节，不复制来源正文。`files.edit/history`核可信历史原Evidence／正文／位置，整组返回前重查全部来源；旧摘录按所指版本受理，不先依赖当前报告清单。跨项目报告只读且所有依赖／来源必须在原目标，沿既有登记身份核查，不扩大目标范围；声明库或第三项目来源仍不可用。诊断入口为`report-production.spec.ts`、`report-resources.spec.ts`及`target-reader/target-races/delegated-reports.spec.ts`，同步保存／undo回执的旧报告保护仍保留。
+报告文件的`resources.report`及普通资源读取核对入口、依赖和声明来源；`ReportResources.freeze`保留同次核准的入口及依赖字节，不复制来源正文。`files.edit/history`核可信历史原Evidence／正文／位置，整组返回前重查全部来源；旧摘录按所指版本受理，不先依赖当前报告清单。公开`files.save`／`files.undo`核查旧报告声明来源，沿原保存临界区核对正文、路径与Evidence，并在发布前及实际写入后、结果返回前复核授权；写入后、返回前撤权时返回`outcomeUnknown`，不交付历史正文，保留已完成修改供核查，不重放或回滚。跨项目报告只读且所有依赖／来源必须在原目标，沿既有登记身份核查，不扩大目标范围；声明库或第三项目来源仍不可用。诊断入口为`report-production.spec.ts`、`report-resources.spec.ts`及`target-reader/target-races/delegated-reports.spec.ts`。
 
-`tests/ui/report-isolation.spec.ts`是未采纳隔离候选的调查入口，仅在`SCHOOLOOM_REPORT_ISOLATION_PROBE=1`时运行。它记录实际HTTP／UDP、宿主访问、桥及CPU样本，包含已知STUN外发反例；用例通过表示调查可重复，不表示产品已隔离。生产活动报告保持不可用，正式承载仍按报告change设计。
+`tests/ui/report-isolation.spec.ts`是未采纳隔离候选的调查入口，仅在`SCHOOLOOM_REPORT_ISOLATION_PROBE=1`时运行。它记录实际HTTP／UDP、宿主访问、桥及CPU样本，包含已知STUN外发反例；用例通过表示调查可重复。正式活动报告使用下述受保护安装及独立执行链，隔离证据沿报告交付核对。
+
+editor的`createReportDOM`接收同源有限帧，`createReportPresentation`在同一可信文档内处理原生输入、实际源确认和消费信用；普通Node的报告源入口由`packages/editor/build-reports.mjs`构建。这些Module的[双宿主结构／输入夹具](../tests/fixtures/report-dom/README.md)与[源程序／事件对照](../tests/fixtures/report-program/README.md)可独立运行，身份和权限替身、合成composition与真实系统部署分开记录。正式ReportView已接入共同ResourceView、源码编辑器、composer和原更新／草稿模块；通用Node跨账户系统链及双宿主产品主路径已有实际证据，局部夹具仍只证明各自范围。
+
+内核的`ReportViews`通过`resources.reportOpen/Get/Exchange/Read/Stop`承接真实工作台连接，以同一ProcessAdmission及ReportControlClient执行；公共请求不能选程序、策略或系统路径。完整核查后的descriptor带`report:true`，内容标识与执行可用性分开；未配置服务时界面明确`unavailable`并保留源码入口及草稿。Read返回同次freeze的字节，原版本由实际文件历史核查，重复open每次重验授权。连接关闭请求原停止，C失联仍等待已受理读取再关闭领域仓储，未知容量不提前释放。入口为`tests/kernel/report-views.spec.ts`、`report-runtime.spec.ts`和双宿主`tests/ui/report-resources.spec.ts`；各自替身及未验证范围见报告delivery。
+
+正常boot从已有私有`host-settings.json`读取可选`reports: { installationFile: "/受保护安装目录/installed.json" }`；沿原version／kernelDirectory／zotero字段，不覆盖已有配置。K只接受root保护的`scholoom-interactive-report@1`及`linux-x64-node-v1`登记和本机K账户绑定，控制socket由安装布局派生。配置有效安装后，Linux Browser与真实Electron可在共同资源tab使用活动HTML／JS报告；普通HTML阅读不执行脚本。报告选择经共同composer由用户确认发送，文件保存、来源授权和执行仍归原领域及harness管理。原fixed-native-t1和fixed-node-t1均是校准程序，不能填作通用报告运行端。实际安装及修复范围见报告delivery；系统部署授权有效，本机sudo认证由用户完成。
+
+通用报告支持有界HTML／JS，不承诺完整Web平台兼容；依赖跨进程同步取消原生默认输入的脚本明确`unavailable`，保留已确认成果与未提交草稿。当前活动报告交付范围为Linux双宿主；macOS受管执行明确不可用，Windows后置。
+
+报告start受理不代表数据通道已running；可信runtime沿原视图查询确认后才交换数据。提供者恢复时，未确认停止对象沿原屏障处理，已持久停止对象的OS后清理在有界串行队列推进，关闭仍等待清理完成后释放记录与写锁。内核冷启动的业务／执行及broker校验沿原schema按需编译并复用Ajv缓存，每次调用仍核参数和结果。
+
+ReportView无页面草稿换版时只将当前有界browse交新版作为恢复候选，准确新版自身状态优先；连续换版不要求页面回发state。旧批注draft和共同显式项继续属于原版本，撤权或关闭清空本视图候选。真实系统IME及Orca／AT-SPI至production presentation的Linux双宿主限定验证见报告delivery；读屏采用原生HTML对照及真实语音模块，null音频、辅助功能开启方式和原轮失败分别记录。帧／ACK替身不算完整P或产品验收。
+
+`node tests/fixtures/report-system-service/prepare.mjs --report`准备独立通用报告包，复用正式editor bootstrap与相同Node闭包，随包保留许可／来源；同包`install.mjs <bundle.json>`默认输出准确登记和系统动作计划，管理员追加`--apply`才安装并执行一次有界bootstrap验收。通用P最长8小时，固定校准仍20秒；安装验收30秒内主动停止并核持久回执和容量，成功写`bootstrap-passed.json`。具体策略、离线检查及边界见[安装夹具](../tests/fixtures/report-system-service/README.md)；启动验收不代替正式ReportView与完整I5。
+
+正式产品验收入口为`node tests/fixtures/report-product/run.mjs <受保护通用安装的installed.json>`；使用正常boot、真实静态产品及C/M/P，两个宿主串行，模型仅在回环HTTP提供受控响应。文献对比、共同composer→普通worker保存、更新保护、准确原版重开及新会话接续沿同一用例；配置和输出均在独立cache，安装资格失败不回退到无隔离源程序。双宿主主路径及选择／容量组已实际通过，关窗接续等分组结果沿报告交付记录，入口见[夹具说明](../tests/fixtures/report-product/README.md)。产品机械链路、系统隔离、DOM／IME／读屏模块及目录包证据分别记录，受控模型不证明科研质量。
+
+CSS与资源由`report-styles.ts`和`createReportStyleAssets`承接：成熟AST校验、同次冻结资源及有界Blob生命周期，源style/link保持惰性，有限html/head映射不能改变私有CSP或核心容器。这些Module已接正式ReportView及真实K/C/M的冻结资源路径；具体支持范围、许可和分次结果沿报告change的design／delivery，独立样式夹具不能代替完整产品验收。
+
+报告内部控制接线入口为`apps/kernel/src/report-control.ts`及`report-service.ts`，K保留唯一进程准入及可信freeze，C持原provider／records／assets，M只接固定OS动作。Linux原生`report-channel`随platform构建，消费受保护Unix socket及账户凭据，按共同2MiB上限流式接帧；socket activation的监听端凭据按PID1核对。`report-channel.spec.ts`、`report-control.spec.ts`和`report-control-binding.spec.ts`验证真实socket／独立C进程、配置与帧、准备／停止／断线、尝试代次；同UID夹具及OS controller替身与实际跨账户系统证据分开，范围见报告delivery。
+
+原v1用户scope与新v2 `linux-system-service-v1`记录严格分开，根和回执双向拒绝跨路线写入；新根显式provision，旧根不自动迁移。`isolated-report-system-records.spec.ts`验证真实文件／锁、系统记录绑定和缺M时的拒绝。系统helper通过`node packages/platform/build-report-system.mjs <含include/systemd的SDK根> <管理程序输出> [<系统launcher输出>]`独立构建，使用libsystemd；普通开发构建不自动获取SDK或启用服务。SDK及普通UID检查入口为`node --test tests/fixtures/report-system-native/check.mjs`，此前已通过的固定root采证／停止校准见[原夹具](../tests/fixtures/report-system-manager/README.md)，不重复运行原unknown实例。
+
+完整C／M固定native正常路径及取消／K连接恢复的安装与验收见[系统服务接线](../tests/fixtures/report-system-service/README.md)。`check.mjs`只构建独立包并离线检查，具体包的`install.mjs`默认列计划，管理员`--apply`创建独立控制账户、受保护程序和四份固定服务配置，再降到K运行一次有界合成验收，不enable或自动重试。当前change的必要部署已获用户授权，本机sudo认证仍由用户完成。M保存原父范围后才启动服务；恢复携带已有scope，缺scope时只等原root父身份排空，不能采纳接替范围。完整排空凭据先持久，再清理原单元；同boot保留该凭据以便重连。原生flock由实际writer保留的FileHandle持有，短命辅助进程退出不会丢锁；root单元及OS元数据通过完整暂存、`RENAME_NOREPLACE`和目录sync发布，残留tmp不作凭据。真实跨账户的固定正常路径及pre-G代表恢复已通过；[Node／WorkerDOM运行校准](../tests/fixtures/report-node-runtime/README.md)独立核精确文件视图、管道、实际配额和syscall候选。通用安装、初始化恢复、网络拒绝、忙循环停止及恢复代表已取得实际K/C/M/P停止确认与零容量证据；正式ReportView及Linux双宿主产品主路径另有验收。准确分组结果、首次失败及未验收范围沿报告delivery，不从bootstrap或固定样本推断完整产品通过。
 
 同一隔离配置会在多个 UI 用例间重启内核，已登记的测试项目随结果目录保留到该配置退役；删除目录前须先解除空闲项目登记，或确认整个配置及内核已结束。缺失的登记项目仍须按程序恢复规则保留未知占用，测试不能放宽此保护。项目名按用例及宿主区分，项目定位优先稳定身份。
 

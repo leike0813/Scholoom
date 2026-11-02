@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { mountSample } from './sample.js';
-import { TransferrableKeys as K } from './vendor/src/transfer/TransferrableKeys.js';
-import { createWorkerDOM, hydrate } from './vendor/src/worker-thread/index.js';
+import { TransferrableKeys as K } from '../../../packages/editor/vendor/worker-dom/src/transfer/TransferrableKeys.js';
+import { createWorkerDOM, hydrate } from '../../../packages/editor/vendor/worker-dom/src/worker-thread/index.js';
 
 const listeners = new Set<Function>();
 let sequence = 0;

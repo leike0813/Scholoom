@@ -2,10 +2,14 @@ import { execFile } from 'node:child_process';
 import { mkdtemp, open, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { setTimeout as pause } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
+import { reportInstallationFile } from '../apps/kernel/dist/host-settings.js';
+import { inspectKernel } from '../apps/kernel/dist/lifecycle.js';
 import type { BootstrapResult, KernelEndpoint } from '../packages/protocol/dist/index.js';
 import { isBootstrapResult, limits } from '../packages/protocol/dist/index.js';
+import { isolationControlOperations } from '../packages/protocol/dist/platform-isolation.js';
 
 const execute = promisify(execFile);
 export const cliPath = fileURLToPath(new URL('../apps/kernel/dist/cli.js', import.meta.url));
@@ -16,6 +20,29 @@ export const kernelConnectionTimeout =
 // Development additionally connects the host owner and waits for its attach receipt.
 export const developmentKernelConnectionTimeout =
   kernelConnectionTimeout + clientConnectionTimeout + limits.requestMs;
+
+/** Confirm real shutdown after its acceptance; an installed report has its own close contract. */
+export async function waitForKernelStop(
+  directory: string,
+  instanceId?: string,
+  observe?: (result: BootstrapResult, deadline: number) => void,
+): Promise<BootstrapResult> {
+  const reportWait = (await reportInstallationFile(directory))
+    ? isolationControlOperations['reportControl.close'].semantics.waitMs
+    : 0;
+  const deadline = Date.now() + reportWait + limits.lifecycleMs;
+  for (;;) {
+    const current = await inspectKernel(directory);
+    observe?.(current, deadline);
+    if (current.state === 'stopped') return current;
+    if (
+      (current.state === 'running' && instanceId && current.endpoint.instanceId !== instanceId) ||
+      Date.now() >= deadline
+    )
+      throw new Error('Original isolated kernel stop is unknown');
+    await pause(50);
+  }
+}
 
 /** Test artifacts contain lifecycle facts, never connection URLs, tokens or raw CLI output. */
 export function kernelResultSummary(result: BootstrapResult) {

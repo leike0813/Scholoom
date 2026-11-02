@@ -1,0 +1,9 @@
+{
+  "extends": "../report-dom/tsconfig.json",
+  "include": [
+    "output-check.mts",
+    "program.spec.ts",
+    "playwright.config.ts",
+    "../../../apps/desktop/src/renderer/src/**/*.d.ts"
+  ]
+}

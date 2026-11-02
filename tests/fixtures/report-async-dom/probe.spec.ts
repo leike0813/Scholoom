@@ -23,7 +23,13 @@ const nativeState = (page: Page) =>
       index: Reflect.get(node, '_index_'),
     }));
 
-async function setup(page: Page, host: string, info: TestInfo, options = '') {
+async function setup(
+  page: Page,
+  host: string,
+  info: TestInfo,
+  options = '',
+  transform?: (reply: any, input: any) => void,
+) {
   assert(built);
   const controller = await startProbe(built, info.outputPath());
   const evidence: Record<string, any> = {
@@ -75,6 +81,7 @@ async function setup(page: Page, host: string, info: TestInfo, options = '') {
         body: JSON.stringify(input),
       });
       const reply = await response.json();
+      transform?.(reply, input);
       const index = gates.findIndex((g) => g.matches(input));
       if (index >= 0) {
         const gate = gates.splice(index, 1)[0]!;
@@ -152,6 +159,46 @@ const idle = (page: Page) =>
       return !d.running && d.queued === 0;
     })
     .toBe(true);
+
+test('frame preflight rejects a duplicate node without applying or acknowledging the frame', async ({
+  uiPage: page,
+  uiHost,
+}, info) => {
+  const f = await setup(page, uiHost, info, '', (reply, input) => {
+    if (input.op !== 'mutate') return;
+    const packet = reply.packets[0];
+    assert(packet.nodes.length >= 5);
+    packet.nodes.push(...packet.nodes.slice(0, 5));
+    f.evidence.rejectedPacket = packet;
+  });
+  let failure: unknown;
+  try {
+    const before = await inspect(page);
+    const html = await f.frame.locator('body').innerHTML();
+    await page.evaluate(() => Reflect.get(window, 'asyncDomProbe').request('mutate'));
+    await idle(page);
+    const after = await inspect(page);
+    expect(after.error).not.toBe('');
+    expect(after).toMatchObject({
+      received: before.received,
+      sequence: before.sequence,
+      stringCount: before.stringCount,
+      stringBytes: before.stringBytes,
+      nodeCount: before.nodeCount,
+      staged: 0,
+      stagedBytes: 0,
+    });
+    expect(await f.frame.locator('body').innerHTML()).toBe(html);
+    expect(f.controller.readDiagnostics().latest.credit).toBe(3);
+    f.evidence.beforeRejection = before;
+    f.evidence.afterRejection = after;
+  } catch (error) {
+    failure = error;
+    throw error;
+  } finally {
+    await f.finish(failure);
+  }
+});
 
 for (const { reverse, html } of [
   { reverse: false, html: false },

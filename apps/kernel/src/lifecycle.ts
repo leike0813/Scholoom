@@ -17,7 +17,9 @@ import {
   limits,
   protocolVersion,
 } from '@scholoom/protocol';
+import type { KernelApplication } from './application.js';
 import { loadHostSettings } from './host-settings.js';
+import { loadReportInstallation } from './report-installation.js';
 import { startKernelServer } from './server.js';
 
 export { defaultDataDirectory } from './bootstrap.js';
@@ -266,11 +268,8 @@ async function publishEndpoint(runtime: string, endpoint: KernelEndpoint): Promi
 
 export async function serveKernel(
   directory: string,
-  options: {
-    modelEndpoint?: string;
-    environment?: NodeJS.ProcessEnv;
+  options: NonNullable<ConstructorParameters<typeof KernelApplication>[1]> & {
     development?: boolean;
-    isolatedZotero?: import('./zotero.js').IsolatedZotero;
   } = {},
 ): Promise<void> {
   let instanceId: string | undefined;
@@ -312,11 +311,15 @@ export async function serveKernel(
     report('loading-application');
     let endpoint: KernelEndpoint;
     const { KernelApplication } = await import('./application.js');
+    const hostSettings = await loadHostSettings(canonical);
+    const reportInstallation =
+      hostSettings.state === 'invalid' ? undefined : await loadReportInstallation(canonical);
     const application = new KernelApplication(canonical, {
       ...options,
+      ...(reportInstallation ? { reportInstallation } : {}),
       zoteroRuntime: {
         kernelInstanceId: status.instanceId,
-        settings: await loadHostSettings(canonical),
+        settings: hostSettings,
       },
     });
     report('initializing-application');

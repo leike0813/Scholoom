@@ -5,6 +5,7 @@ import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from '@playwright/test';
 import { build, stop } from '../../../node_modules/.pnpm/node_modules/esbuild/lib/main.js';
+import { reportSourceBuildOptions } from '../../../packages/editor/report/build-options.mjs';
 
 const root = resolve(
   '/home/joshua/.cache/scholoom-closeout-execution-20261030/report-async-dom',
@@ -32,8 +33,33 @@ async function run(name, args) {
   return result;
 }
 try {
+  const offlineProvenance = join(root, 'offline-provenance.mjs');
+  await writeFile(offlineProvenance, `
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import { join } from 'node:path';
+import { spawnSync } from 'node:child_process';
+const manifest = JSON.parse(await readFile(new URL(${JSON.stringify(new URL('../../../packages/editor/vendor/worker-dom/upstream-manifest.json', import.meta.url).href)}), 'utf8'));
+globalThis.fetch = async (url) => {
+  const prefix = 'https://raw.githubusercontent.com/ampproject/worker-dom/' + manifest.revision + '/';
+  assert(typeof url === 'string' && url.startsWith(prefix));
+  const path = url.slice(prefix.length);
+  assert(manifest.inputs.some((entry) => entry.path === path));
+  let original;
+  try {
+    original = await readFile(join('/home/joshua/.cache/scholoom-closeout-execution-20261030/report-async-dom/final-20261031/upstream', path));
+  } catch (error) {
+    assert.equal(error.code, 'ENOENT');
+    const reply = spawnSync('git', ['show', 'HEAD:tests/fixtures/report-worker-dom/vendor/' + path], { cwd: ${JSON.stringify(fileURLToPath(new URL('../../../', import.meta.url)))} });
+    assert.equal(reply.status, 0, String(reply.stderr));
+    original = reply.stdout;
+  }
+  return new Response(original);
+};
+await import(${JSON.stringify(new URL('../report-worker-dom/provenance.mjs', import.meta.url).href)});
+`);
   assert.equal(
-    (await run('provenance', ['tests/fixtures/report-worker-dom/provenance.mjs', root])).status,
+    (await run('provenance', [offlineProvenance, root])).status,
     0,
   );
   for (const [path, name] of [
@@ -43,7 +69,7 @@ try {
   ])
     await writeFile(
       join(root, name),
-      await readFile(new URL(`../report-worker-dom/vendor/${path}`, import.meta.url)),
+      await readFile(new URL(`../../../packages/editor/vendor/worker-dom/${path}`, import.meta.url)),
     );
   const html = await readFile(new URL('./html-ingestion.html', import.meta.url));
   await writeFile(join(root, 'input.html'), html);
@@ -55,8 +81,7 @@ try {
     format: 'esm',
     target: 'node24',
     metafile: true,
-    tsconfigRaw: { compilerOptions: { useDefineForClassFields: false } },
-    define: { 'process.env.SERVER': 'false', IS_AMP: 'false', WORKER_DOM_DEBUG: 'false' },
+    ...reportSourceBuildOptions,
     logLevel: 'info',
   });
   stop();
@@ -91,7 +116,7 @@ try {
     const browser = await chromium.launch({ headless: true });
     oracleStarted = true;
     try {
-      const page = await browser.newPage();
+      const page = await browser.newPage({ offline: true });
       const evidence = JSON.parse(await readFile(join(root, 'source-evidence.json'), 'utf8'));
       const native = await page.evaluate(
         (fixtures) =>
@@ -99,21 +124,45 @@ try {
             const container = document.createElementNS(fixture.namespace, fixture.tag);
             if (fixture.encoding) container.setAttribute('encoding', fixture.encoding);
             container.innerHTML = fixture.html;
-            return {
-              name: fixture.name,
-              nodes: [...container.querySelectorAll('*')].map((node) => ({
+            const describeNode = (node) => ({
                 name: node.localName,
                 namespace: node.namespaceURI,
                 text: node.textContent,
                 value: node instanceof HTMLInputElement ? node.value : null,
-              })),
+                ...(fixture.attributeNames
+                  ? { attributes: Object.fromEntries(fixture.attributeNames.map((name) => [name, node.getAttribute(name)])) }
+                  : {}),
+                ...(fixture.propertyNames
+                  ? { properties: Object.fromEntries(fixture.propertyNames.map((name) => [name, name in node ? node[name] : null])) }
+                  : {}),
+            });
+            const initialNodes = [...container.querySelectorAll('*')].map(describeNode);
+            const dirtyStates = fixture.dirtyProperties?.map(({ selector, property, attribute }) => {
+              const node = container.querySelector(selector);
+              if (!node) throw new Error(selector);
+              node[property] = node[property];
+              node.removeAttribute(attribute);
+              const sameValueThenRemove = describeNode(node);
+              node.setAttribute(attribute, '');
+              node[property] = false;
+              const falseWithDefault = describeNode(node);
+              node.removeAttribute(attribute);
+              const removeDefault = describeNode(node);
+              node.setAttribute(attribute, '');
+              const restoreDefault = describeNode(node);
+              return { selector, property, sameValueThenRemove, falseWithDefault, removeDefault, restoreDefault };
+            });
+            return {
+              name: fixture.name,
+              nodes: initialNodes,
+              ...(dirtyStates ? { dirtyStates } : {}),
             };
           }),
         evidence.fragments,
       );
       await writeFile(join(root, 'native-oracle.json'), JSON.stringify(native, null, 2));
       assert.deepEqual(
-        evidence.fragments.map(({ name, nodes }) => ({ name, nodes })),
+        evidence.fragments.map(({ name, nodes, dirtyStates }) => ({ name, nodes, ...(dirtyStates ? { dirtyStates } : {}) })),
         native,
       );
       console.log(`native fragment comparisons: ${native.length} passed`);
@@ -146,6 +195,20 @@ try {
   );
   process.exitCode = source.status ?? 1;
   console.log(`source: exit ${source.status}`);
+} catch (error) {
+  try {
+    await writeFile(join(root, 'first-failure.json'), JSON.stringify({
+      name: error.name,
+      message: error.message,
+      stack: error.stack,
+      sourceEvidence: 'source-evidence.json',
+      nativeEvidence: 'native-oracle.json',
+    }, null, 2), { flag: 'wx' });
+  } catch (writeError) {
+    if (writeError.code !== 'EEXIST') throw writeError;
+  }
+  process.exitCode = 1;
+  console.error(error);
 } finally {
   stop();
   await writeFile(join(root, 'commands.json'), JSON.stringify(commands, null, 2));

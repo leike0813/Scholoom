@@ -1,6 +1,6 @@
 # systemd InvocationID 定向停止的候选依据
 
-2026-10-30。供[报告design第23轮](../../../openspec/changes/add-interactive-research-reports/design.md#第23轮原版本恢复资格module)的M管理门校准使用，不是已部署或通过T1的停止实现。
+2026-10-30。供[报告design第23轮](../../../openspec/changes/archive/2026-11-02-add-interactive-research-reports/design.md#第23轮原版本恢复资格module)的M管理门校准使用，不是已部署或通过T1的停止实现。
 
 官方systemd v259.5固定commit为`b3d8fc43e9cb531d958c17ef2cd93b374bc14e8a`。`GetUnitByInvocationID(ay) → o`返回按该ID寻址的专用Unit对象路径；源注释明确路径只在InvocationID不变时有效。调用方提交已持久的非零16字节原ID，使用返回的opaque路径调用Unit.Stop／Kill；不能换成名称路径。[Manager源码](https://github.com/systemd/systemd/blob/b3d8fc43e9cb531d958c17ef2cd93b374bc14e8a/src/core/dbus-manager.c#L600-L643)
 

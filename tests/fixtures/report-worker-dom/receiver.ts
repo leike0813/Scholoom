@@ -1,8 +1,8 @@
-import { MutatorProcessor } from './vendor/src/main-thread/mutator.js';
-import { NodeContext } from './vendor/src/main-thread/nodes.js';
-import { ObjectContext } from './vendor/src/main-thread/object-context.js';
-import { StringContext } from './vendor/src/main-thread/strings.js';
-import type { WorkerContext } from './vendor/src/main-thread/worker.js';
+import { MutatorProcessor } from '../../../packages/editor/vendor/worker-dom/src/main-thread/mutator.js';
+import { NodeContext } from '../../../packages/editor/vendor/worker-dom/src/main-thread/nodes.js';
+import { ObjectContext } from '../../../packages/editor/vendor/worker-dom/src/main-thread/object-context.js';
+import { StringContext } from '../../../packages/editor/vendor/worker-dom/src/main-thread/strings.js';
+import type { WorkerContext } from '../../../packages/editor/vendor/worker-dom/src/main-thread/worker.js';
 
 function check(condition: unknown, code: string): asserts condition {
   if (!condition) throw new Error(code);

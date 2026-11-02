@@ -1,0 +1,1230 @@
+diff --git a/src/main-thread/commands/event-subscription.ts b/src/main-thread/commands/event-subscription.ts
+index e7140e7..e9a3c88 100644
+--- a/src/main-thread/commands/event-subscription.ts
++++ b/src/main-thread/commands/event-subscription.ts
+@@ -1,3 +1,4 @@
++// Modified by Scholoom on 2026-10-30 for this fixed probe; see vendor/MODIFICATIONS.md.
+ import { MessageType } from '../../transfer/Messages.js';
+ import { TransferrableKeys } from '../../transfer/TransferrableKeys.js';
+ import {
+@@ -45,12 +46,7 @@ export const applyDefaultInputListener = (workerContext: WorkerContext, node: Re
+  * @param node node to listen to value changes on.
+  */
+ export const sendValueChangeOnAttributeMutation = (workerContext: WorkerContext, node: RenderableElement): void => {
+-  if (shouldTrackChanges(node as HTMLElement) && !monitoredNodes.get(node)) {
+-    new MutationObserver((mutations: Array<MutationRecord>) =>
+-      mutations.map((mutation) => fireValueChange(workerContext, mutation.target as RenderableElement)),
+-    ).observe(node, { attributes: true });
+-    monitoredNodes.set(node, true);
+-  }
++  // Scholoom probe: only explicit native events are observed; attribute observation is not needed by the fixed script.
+ };
+ 
+ /**
+@@ -96,6 +92,8 @@ const createTransferrableTouchList = (touchList: TouchList): TransferrableTouchL
+ 
+ export const EventSubscriptionProcessor: CommandExecutorInterface = (strings, nodeContext, workerContext, objectContext, config) => {
+   const knownListeners: Array<(event: Event) => any> = [];
++  const removers: Array<() => void> = [];
++  (workerContext as any).disposeEvents = () => { removers.splice(0).forEach((remove) => remove()); };
+   const allowedExecution = config.executorsAllowed.includes(TransferrableMutationType.EVENT_SUBSCRIPTION);
+   let cachedWindowSize: [number, number] = [window.innerWidth, window.innerHeight];
+ 
+@@ -107,7 +105,7 @@ export const EventSubscriptionProcessor: CommandExecutorInterface = (strings, no
+    */
+   const eventHandler =
+     (index: number, preventDefault: boolean) =>
+-    (event: Event | KeyboardEvent | MouseEvent | TouchEvent): void => {
++    (event: Event | KeyboardEvent | MouseEvent | TouchEvent | InputEvent): void => {
+       if (preventDefault) {
+         event.preventDefault();
+       }
+@@ -138,6 +136,9 @@ export const EventSubscriptionProcessor: CommandExecutorInterface = (strings, no
+           [TransferrableKeys.target]: [(event.target as RenderableElement)._index_ || 0],
+           [TransferrableKeys.timeStamp]: event.timeStamp,
+           [TransferrableKeys.type]: event.type,
++          [TransferrableKeys.data]: 'data' in event ? (event as InputEvent).data : null,
++          [TransferrableKeys.inputType]: 'inputType' in event ? (event as InputEvent).inputType : '',
++          [TransferrableKeys.isComposing]: 'isComposing' in event ? (event as InputEvent).isComposing : false,
+           [TransferrableKeys.keyCode]: 'keyCode' in event ? event.keyCode : undefined,
+           [TransferrableKeys.pageX]: 'pageX' in event ? event.pageX : undefined,
+           [TransferrableKeys.pageY]: 'pageY' in event ? event.pageY : undefined,
+@@ -164,9 +165,10 @@ export const EventSubscriptionProcessor: CommandExecutorInterface = (strings, no
+     if (target === nodeContext.baseElement) {
+       if (addEvent) {
+         const preventDefault = Boolean(mutations[iterator + AddEventRegistrationIndex.WorkerDOMPreventDefault]);
+-        addEventListener(type, (knownListeners[eventIndex] = eventHandler(BASE_ELEMENT_INDEX, preventDefault)));
++        target.addEventListener(type, (knownListeners[eventIndex] = eventHandler(BASE_ELEMENT_INDEX, preventDefault)));
++        removers.push(() => target.removeEventListener(type, knownListeners[eventIndex]));
+       } else {
+-        removeEventListener(type, knownListeners[eventIndex]);
++        target.removeEventListener(type, knownListeners[eventIndex]);
+       }
+       return;
+     }
+@@ -180,6 +182,7 @@ export const EventSubscriptionProcessor: CommandExecutorInterface = (strings, no
+       }
+       const preventDefault = Boolean(mutations[iterator + AddEventRegistrationIndex.WorkerDOMPreventDefault]);
+       (target as HTMLElement).addEventListener(type, (knownListeners[eventIndex] = eventHandler(target._index_, preventDefault)));
++      removers.push(() => target.removeEventListener(type, knownListeners[eventIndex]));
+     } else {
+       if (isChangeEvent) {
+         inputEventSubscribed = false;
+@@ -211,9 +214,9 @@ export const EventSubscriptionProcessor: CommandExecutorInterface = (strings, no
+         if (target) {
+           let iterator = startPosition + EventSubscriptionMutationIndex.Events;
+           while (iterator < endPosition) {
+-            const isRemoveEvent = iterator <= addEventListenersPosition;
+-            processListenerChange(target, isRemoveEvent, mutations, iterator);
+-            iterator += isRemoveEvent ? REMOVE_EVENT_SUBSCRIPTION_LENGTH : ADD_EVENT_SUBSCRIPTION_LENGTH;
++            const isAddEvent = iterator >= addEventListenersPosition;
++            processListenerChange(target, isAddEvent, mutations, iterator);
++            iterator += isAddEvent ? ADD_EVENT_SUBSCRIPTION_LENGTH : REMOVE_EVENT_SUBSCRIPTION_LENGTH;
+           }
+         } else {
+           console.error(`getNode(${targetIndex}) is null.`);
+@@ -239,7 +242,7 @@ export const EventSubscriptionProcessor: CommandExecutorInterface = (strings, no
+ 
+       let iterator = startPosition + EventSubscriptionMutationIndex.Events;
+       while (iterator < endPosition) {
+-        const isRemoveEvent = iterator <= addEventListenersPosition;
++        const isRemoveEvent = iterator < addEventListenersPosition;
+         const eventList = isRemoveEvent ? addedEventListeners : removedEventListeners;
+         eventList.push({
+           type: strings.get(mutations[iterator]),
+
+diff --git a/src/main-thread/nodes.ts b/src/main-thread/nodes.ts
+index 79ca0c7..8bfda0c 100644
+--- a/src/main-thread/nodes.ts
++++ b/src/main-thread/nodes.ts
+@@ -1,3 +1,4 @@
++// Modified by Scholoom on 2026-10-30 for this fixed probe; see vendor/MODIFICATIONS.md.
+ import { NodeType, TransferrableNodeIndex } from '../transfer/TransferrableNodes.js';
+ import { StringContext } from './strings.js';
+ 
+@@ -43,6 +44,7 @@ export class NodeContext {
+   }
+ 
+   public createNodes = (buffer: ArrayBuffer, sanitizer?: Sanitizer): void => {
++    const document = this.baseElement.ownerDocument;
+     const nodeBuffer = new Uint16Array(buffer);
+     const nodeBufferLength = nodeBuffer.length;
+ 
+@@ -117,7 +119,10 @@ export class NodeContext {
+    * @param id
+    */
+   private storeNode(node: Node, id: number): void {
++    if (this.nodes.size >= 512 || id > 2048 || this.nodes.has(id)) throw new Error('probeNodeBudgetOrDuplicate');
+     (node as Node)._index_ = id;
+     this.nodes.set(id, node as Node);
+   }
++
++  public dispose(): void { this.nodes.clear(); }
+ }
+
+diff --git a/src/main-thread/serialize.ts b/src/main-thread/serialize.ts
+index e9d7ec1..802561b 100644
+--- a/src/main-thread/serialize.ts
++++ b/src/main-thread/serialize.ts
+@@ -1,3 +1,4 @@
++// Modified by Scholoom on 2026-10-30 for this fixed probe; see vendor/MODIFICATIONS.md.
+ import { HydrateableNode, NodeType } from '../transfer/TransferrableNodes.js';
+ import { TransferrableKeys } from '../transfer/TransferrableKeys.js';
+ import { NumericBoolean } from '../utils.js';
+@@ -27,7 +28,7 @@ function createHydrateableNode(
+     [TransferrableKeys.childNodes]: filteredChildNodes.map((child: RenderableElement) =>
+       createHydrateableNode(child, minimizeString, hydrateFilter, workerContext),
+     ),
+-    [TransferrableKeys.attributes]: [].map.call(element.attributes || [], (attribute: Attr) => [
++    [TransferrableKeys.attributes]: Array.from(element.attributes || [], (attribute: Attr): [number, number, number] => [
+       minimizeString(attribute.namespaceURI || 'null'),
+       minimizeString(attribute.name),
+       minimizeString(attribute.value),
+
+diff --git a/src/third_party/html-parser/html-parser.ts b/src/third_party/html-parser/html-parser.ts
+index 4b93ab2..f4dc8e4 100644
+--- a/src/third_party/html-parser/html-parser.ts
++++ b/src/third_party/html-parser/html-parser.ts
+@@ -1,3 +1,4 @@
++// Modified by Scholoom on 2026-10-31 for foreign-content namespaces and attributes; see vendor/MODIFICATIONS.md.
+ import { Element } from '../../worker-thread/dom/Element.js';
+ import { Node } from '../../worker-thread/dom/Node.js';
+ import { SVG_NAMESPACE, HTML_NAMESPACE } from '../../transfer/TransferrableNodes.js';
+@@ -11,6 +12,30 @@ interface ElementMapping {
+   [key: string]: Elements;
+ }
+ 
++const MATHML_NAMESPACE = 'http://www.w3.org/1998/Math/MathML';
++const mathTextIntegrationPoints = new Set(['mi', 'mo', 'mn', 'ms', 'mtext']);
++const svgIntegrationPoints = new Set(['foreignobject', 'desc', 'title']);
++
++function childNamespace(parent: Element, tagName: string): string {
++  let namespace = parent.namespaceURI;
++  const parentName = toLower(parent.localName);
++  if (namespace === MATHML_NAMESPACE) {
++    if (parentName === 'annotation-xml' && tagName === 'SVG') return SVG_NAMESPACE;
++    const encoding = toLower(parent.getAttribute('encoding') || '');
++    if (
++      (mathTextIntegrationPoints.has(parentName) && tagName !== 'MGLYPH' && tagName !== 'MALIGNMARK') ||
++      (parentName === 'annotation-xml' && (encoding === 'text/html' || encoding === 'application/xhtml+xml'))
++    ) namespace = HTML_NAMESPACE;
++  } else if (namespace === SVG_NAMESPACE && svgIntegrationPoints.has(parentName)) {
++    namespace = HTML_NAMESPACE;
++  }
++  if (namespace === HTML_NAMESPACE) {
++    if (tagName === 'MATH') return MATHML_NAMESPACE;
++    if (tagName === 'SVG') return SVG_NAMESPACE;
++  }
++  return namespace;
++}
++
+ function arr_back<T>(arr: T[]) {
+   return arr[arr.length - 1];
+ }
+@@ -18,7 +43,7 @@ function arr_back<T>(arr: T[]) {
+ // https://html.spec.whatwg.org/multipage/custom-elements.html#valid-custom-element-name
+ const kMarkupPattern = /<!--([^]*)-->|<(\/?)([a-z][-.0-9_a-z]*)([^>]*?)(\/?)>/gi;
+ // https://html.spec.whatwg.org/multipage/syntax.html#attributes-2
+-const kAttributePattern = /(^|\s)([^\s"'>\/=]+)\s*=\s*("([^"]+)"|'([^']+)'|(\S+))/gi;
++const kAttributePattern = /(^|\s)([^\s"'>\/=]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+)))?/gi;
+ 
+ const kSelfClosingElements: Elements = {
+   AREA: true,
+@@ -92,7 +117,8 @@ const kBlockTextElements: Elements = {
+   SCRIPT: true,
+   NOSCRIPT: true,
+   STYLE: true,
+-  PRE: true,
++  TEXTAREA: true,
++  TITLE: true,
+ };
+ 
+ /**
+@@ -107,15 +133,14 @@ export function parse(data: string, rootElement: Element) {
+   const root = ownerDocument.createElementNS(rootElement.namespaceURI, rootElement.localName);
+ 
+   let currentParent = root as Node;
+-  let currentNamespace = root.namespaceURI;
+   const stack = [root as Node];
+   let lastTextPos = 0;
+   let match: RegExpExecArray | null;
+   data = '<q>' + data + '</q>';
+   const tagsClosed = [] as string[];
+ 
+-  if (currentNamespace !== SVG_NAMESPACE && currentNamespace !== HTML_NAMESPACE) {
+-    throw new Error('Namespace not supported: ' + currentNamespace);
++  if (root.namespaceURI !== SVG_NAMESPACE && root.namespaceURI !== HTML_NAMESPACE && root.namespaceURI !== MATHML_NAMESPACE) {
++    throw new Error('Namespace not supported: ' + root.namespaceURI);
+   }
+ 
+   while ((match = kMarkupPattern.exec(data))) {
+@@ -128,7 +153,8 @@ export function parse(data: string, rootElement: Element) {
+     if (lastTextPos < match.index) {
+       // if has content
+       const text = data.slice(lastTextPos, match.index);
+-      currentParent.appendChild(ownerDocument.createTextNode(decodeEntities(text)));
++      const raw = currentParent.tagName === 'SCRIPT' || currentParent.tagName === 'STYLE' || currentParent.tagName === 'NOSCRIPT';
++      currentParent.appendChild(ownerDocument.createTextNode(raw ? text : decodeEntities(text)));
+     }
+     lastTextPos = kMarkupPattern.lastIndex;
+     if (commentContents !== undefined) {
+@@ -139,10 +165,6 @@ export function parse(data: string, rootElement: Element) {
+ 
+     const normalizedTagName = toUpper(tagName);
+ 
+-    if (normalizedTagName === 'SVG') {
+-      currentNamespace = beginningSlash ? HTML_NAMESPACE : SVG_NAMESPACE;
+-    }
+-
+     if (!beginningSlash) {
+       // not </ tags
+       if (!endSlash && kElementsClosedByOpening[currentParent.tagName]) {
+@@ -152,12 +174,15 @@ export function parse(data: string, rootElement: Element) {
+         }
+       }
+ 
+-      const childToAppend = ownerDocument.createElementNS(currentNamespace, currentNamespace === HTML_NAMESPACE ? toLower(tagName) : tagName);
++      // The parser's synthetic q wrapper must not change the fragment's context.
++      const context = stack.length === 2 ? rootElement : currentParent as Element;
++      const namespace = childNamespace(context, normalizedTagName);
++      const childToAppend = ownerDocument.createElementNS(namespace, namespace === SVG_NAMESPACE ? tagName : toLower(tagName));
+ 
+       for (let attMatch; (attMatch = kAttributePattern.exec(matchAttributes)); ) {
+-        const attrName = attMatch[2];
+-        const attrValue = attMatch[4] || attMatch[5] || attMatch[6];
+-        childToAppend.setAttribute(attrName, attrValue);
++        const attrName = namespace === SVG_NAMESPACE ? attMatch[2] : toLower(attMatch[2]);
++        const attrValue = decodeEntities(attMatch[3] ?? attMatch[4] ?? attMatch[5] ?? '');
++        childToAppend.setAttribute(namespace === MATHML_NAMESPACE && attrName === 'definitionurl' ? 'definitionURL' : attrName, attrValue);
+       }
+ 
+       currentParent = currentParent.appendChild(childToAppend);
+@@ -165,20 +190,17 @@ export function parse(data: string, rootElement: Element) {
+       stack.push(currentParent);
+       if (kBlockTextElements[normalizedTagName]) {
+         // a little test to find next </script> or </style> ...
+-        const closeMarkup = '</' + toLower(normalizedTagName) + '>';
+-        const index = data.indexOf(closeMarkup, kMarkupPattern.lastIndex);
+-        if (index == -1) {
++        const closeMarkup = new RegExp('</' + normalizedTagName + '\\s*>', 'gi');
++        closeMarkup.lastIndex = kMarkupPattern.lastIndex;
++        const close = closeMarkup.exec(data);
++        if (!close) {
+           throw new Error('Close markup not found.');
+         } else {
+-          kMarkupPattern.lastIndex = index;
++          kMarkupPattern.lastIndex = close.index;
+         }
+       }
+     }
+ 
+-    if (tagName === 'foreignObject') {
+-      currentNamespace = beginningSlash ? SVG_NAMESPACE : HTML_NAMESPACE;
+-    }
+-
+     if (beginningSlash || endSlash || kSelfClosingElements[normalizedTagName]) {
+       // </ or /> or <br> etc.
+       while (true) {
+
+diff --git a/src/transfer/TransferrableEvent.ts b/src/transfer/TransferrableEvent.ts
+index 8507443..b0cd0d0 100644
+--- a/src/transfer/TransferrableEvent.ts
++++ b/src/transfer/TransferrableEvent.ts
+@@ -1,3 +1,4 @@
++// Modified by Scholoom on 2026-10-30 for this fixed probe; see vendor/MODIFICATIONS.md.
+ import { TransferredNode } from './TransferrableNodes.js';
+ import { TransferrableKeys } from './TransferrableKeys.js';
+ 
+@@ -19,6 +20,9 @@ export interface TransferrableTouchList {
+ }
+ 
+ export interface TransferrableEvent {
++  readonly [TransferrableKeys.data]?: string | null;
++  readonly [TransferrableKeys.inputType]?: string;
++  readonly [TransferrableKeys.isComposing]?: boolean;
+   readonly [TransferrableKeys.index]: number;
+   readonly [TransferrableKeys.bubbles]?: boolean;
+   readonly [TransferrableKeys.cancelable]?: boolean;
+
+diff --git a/src/transfer/TransferrableKeys.ts b/src/transfer/TransferrableKeys.ts
+index 05b720e..29589a6 100644
+--- a/src/transfer/TransferrableKeys.ts
++++ b/src/transfer/TransferrableKeys.ts
+@@ -1,3 +1,4 @@
++// Modified by Scholoom on 2026-10-30 for this fixed probe; see vendor/MODIFICATIONS.md.
+ export const enum TransferrableKeys {
+   nodeType = 0,
+   localOrNodeName = 1,
+@@ -78,6 +79,8 @@ export const enum TransferrableKeys {
+   propertyEventHandlers = 76,
+   functionIdentifier = 77,
+   functionArguments = 78,
++  inputType = 79,
++  isComposing = 80,
+   // This must always be the last numerically ordered Key, for testing purposes.
+-  END = 78,
++  END = 80,
+ }
+
+diff --git a/src/worker-thread/css/CSSStyleDeclaration.ts b/src/worker-thread/css/CSSStyleDeclaration.ts
+index c688765..1f293f7 100644
+--- a/src/worker-thread/css/CSSStyleDeclaration.ts
++++ b/src/worker-thread/css/CSSStyleDeclaration.ts
+@@ -7,14 +7,17 @@ import { TransferrableKeys } from '../../transfer/TransferrableKeys.js';
+ import { TransferrableMutationType } from '../../transfer/TransferrableMutation.js';
+ import { store as storeString } from '../strings.js';
+ import { Document } from '../dom/Document.js';
++import { reportRenderLimits as limits } from '@scholoom/protocol/reports';
++import { type CssNode, generate, ident, lexer, parse, tokenize, tokenTypes, walk } from 'css-tree';
+ 
+ interface StyleProperties {
+-  [key: string]: string | null;
++  [key: string]: { value: string; important: boolean };
+ }
+ interface StyleDeclaration {
+   getPropertyValue: (key: string) => string;
+-  removeProperty: (key: string) => void;
+-  setProperty: (key: string, value: string) => void;
++  getPropertyPriority: (key: string) => string;
++  removeProperty: (key: string) => string;
++  setProperty: (key: string, value: string, priority?: string) => void;
+   cssText: string;
+   [key: string]:
+     | undefined
+@@ -28,9 +31,51 @@ interface StyleDeclaration {
+ }
+ 
+ const hyphenateKey = (key: string): string => toLower(key.replace(/(webkit|ms|moz|khtml)/g, '-$1').replace(/([a-zA-Z])(?=[A-Z])/g, '$1-'));
++const propertyKey = (key: string): string => key.startsWith('--') ? key : toLower(key);
++export const clearStyle = Symbol('clearStyle');
++
++function checkCapacity(source: string): void {
++  if (source.length > limits.cssBytes || new TextEncoder().encode(source).byteLength > limits.cssBytes)
++    throw new RangeError('CSS declaration byte capacity exceeded.');
++  let tokens = 0;
++  let depth = 0;
++  tokenize(source, (type) => {
++    if (++tokens > limits.cssTokens) throw new RangeError('CSS declaration token capacity exceeded.');
++    if (type === tokenTypes.Function || type === tokenTypes.LeftParenthesis || type === tokenTypes.LeftSquareBracket || type === tokenTypes.LeftCurlyBracket) {
++      if (++depth > limits.cssDepth) throw new RangeError('CSS declaration depth capacity exceeded.');
++    } else if (type === tokenTypes.RightParenthesis || type === tokenTypes.RightSquareBracket || type === tokenTypes.RightCurlyBracket) {
++      depth = Math.max(0, depth - 1);
++    }
++  });
++}
++
++function declarationValue(key: string, node: CssNode): string | null {
++  let valid = key !== '--';
++  let variable = false;
++  walk(node, (child) => {
++    if (child.type === 'Raw') valid = false;
++    if (child.type === 'Function' && toLower(ident.decode(child.name)) === 'var') {
++      variable = true;
++      const first = child.children.first;
++      if (first?.type !== 'Identifier' || !ident.decode(first.name).startsWith('--') || ident.decode(first.name) === '--') valid = false;
++    }
++  });
++  if (!valid) return null;
++  if (!key.startsWith('--') && (lexer.checkPropertyName(key) || (!variable && !lexer.matchProperty(key, node).matched))) return null;
++  // shortcut: variable substitution and full browser CSSOM normalization belong to a native style engine.
++  return generate(node);
++}
++
++function serialize(properties: StyleProperties): string {
++  return Object.keys(properties).map((key) => {
++    const { value, important } = properties[key];
++    return `${ident.encode(key)}: ${value}${important ? ' !important' : ''};`;
++  }).join(' ');
++}
+ 
+ export const appendKeys = (keys: Array<string>): void => {
+-  const keysToAppend = keys.filter((key) => isNaN(key as any) && !CSSStyleDeclaration.prototype.hasOwnProperty(key));
++  const aliases = keys.flatMap((key) => key.startsWith('--') ? [key] : [key, key.replace(/-([a-z])/g, (_match, letter: string) => letter.toUpperCase())]);
++  const keysToAppend = [...new Set(aliases)].filter((key) => isNaN(key as any) && !(key in CSSStyleDeclaration.prototype));
+   if (keysToAppend.length <= 0) {
+     return;
+   }
+@@ -47,7 +92,7 @@ export const appendKeys = (keys: Array<string>): void => {
+   }
+ 
+   keysToAppend.forEach((key: string, index: number): void => {
+-    const hyphenatedKey = hyphenateKey(key);
++    const hyphenatedKey = key.startsWith('--') || key.includes('-') ? propertyKey(key) : hyphenateKey(key);
+     CSSStyleDeclaration.prototype[index + previousPrototypeLength] = hyphenatedKey;
+ 
+     Object.defineProperties(CSSStyleDeclaration.prototype, {
+@@ -72,7 +117,7 @@ export class CSSStyleDeclaration implements StyleDeclaration {
+     | ((key: string) => void)
+     | ((key: string, value: string) => void)
+     | ((namespaceURI: NamespaceURI, name: string, value: string) => void);
+-  private [TransferrableKeys.properties]: StyleProperties = {};
++  private [TransferrableKeys.properties]: StyleProperties = Object.create(null);
+   private [TransferrableKeys.storeAttribute]: (namespaceURI: NamespaceURI, name: string, value: string) => string;
+   private [TransferrableKeys.target]: Element;
+ 
+@@ -81,6 +126,10 @@ export class CSSStyleDeclaration implements StyleDeclaration {
+     this[TransferrableKeys.target] = target;
+   }
+ 
++  [clearStyle](): void {
++    this[TransferrableKeys.properties] = Object.create(null);
++  }
++
+   /**
+    * Retrieve the value for a given property key.
+    * @see https://developer.mozilla.org/en-US/docs/Web/API/CSSStyleDeclaration/getPropertyValue
+@@ -88,7 +137,11 @@ export class CSSStyleDeclaration implements StyleDeclaration {
+    * @return value stored for the provided key.
+    */
+   public getPropertyValue(key: string): string {
+-    return this[TransferrableKeys.properties][key] || '';
++    return this[TransferrableKeys.properties][propertyKey(key)]?.value || '';
++  }
++
++  public getPropertyPriority(key: string): string {
++    return this[TransferrableKeys.properties][propertyKey(key)]?.important ? 'important' : '';
+   }
+ 
+   /**
+@@ -100,7 +153,7 @@ export class CSSStyleDeclaration implements StyleDeclaration {
+   public removeProperty(key: string): string {
+     const oldValue = this.getPropertyValue(key);
+ 
+-    this[TransferrableKeys.properties][key] = null;
++    delete this[TransferrableKeys.properties][propertyKey(key)];
+     this.mutated(this.cssText);
+     return oldValue;
+   }
+@@ -111,9 +164,35 @@ export class CSSStyleDeclaration implements StyleDeclaration {
+    * @param key modify this key
+    * @param value store this value
+    */
+-  public setProperty(key: string, value: string): void {
+-    this[TransferrableKeys.properties][key] = value;
+-    this.mutated(this.cssText);
++  public setProperty(key: string, value: string, priority: string = ''): void {
++    key = propertyKey(String(key));
++    if (priority !== '' && toLower(String(priority)) !== 'important') return;
++    if (value == null || value === '') {
++      this.removeProperty(key);
++      return;
++    }
++    value = String(value);
++    checkCapacity(key);
++    checkCapacity(value);
++    let nameValid = key !== '';
++    tokenize(key, (type, start, end) => {
++      if (type !== tokenTypes.Ident || start !== 0 || end !== key.length) nameValid = false;
++    });
++    if (!nameValid) return;
++    let node: CssNode;
++    try {
++      node = parse(value, { context: 'value', parseCustomProperty: true });
++    } catch {
++      return;
++    }
++    const parsedValue = declarationValue(key, node);
++    if (parsedValue === null || (!key.startsWith('--') && parsedValue === '')) return;
++    const properties: StyleProperties = Object.assign(Object.create(null), this[TransferrableKeys.properties]);
++    properties[key] = { value: parsedValue, important: priority !== '' };
++    const text = serialize(properties);
++    checkCapacity(text);
++    this[TransferrableKeys.properties] = properties;
++    this.mutated(text);
+   }
+ 
+   /**
+@@ -121,14 +200,7 @@ export class CSSStyleDeclaration implements StyleDeclaration {
+    * @return css text string representing known and valid style declarations.
+    */
+   get cssText(): string {
+-    let value: string;
+-    let returnValue: string = '';
+-    for (const key in this[TransferrableKeys.properties]) {
+-      if ((value = this.getPropertyValue(key)) !== '') {
+-        returnValue += `${key}: ${value}; `;
+-      }
+-    }
+-    return returnValue.trim();
++    return serialize(this[TransferrableKeys.properties]);
+   }
+ 
+   /**
+@@ -141,14 +213,21 @@ export class CSSStyleDeclaration implements StyleDeclaration {
+     // https://github.com/Microsoft/TypeScript/issues/2521
+     const stringValue = typeof value === 'string' ? value : '';
+ 
+-    this[TransferrableKeys.properties] = {};
+-
+-    const values = stringValue.split(/[:;]/);
+-    const length = values.length;
+-    for (let index = 0; index + 1 < length; index += 2) {
+-      this[TransferrableKeys.properties][toLower(values[index].trim())] = values[index + 1].trim();
++    checkCapacity(stringValue);
++    const tree = parse(stringValue, { context: 'declarationList', parseCustomProperty: true });
++    const properties: StyleProperties = Object.create(null);
++    if (tree.type !== 'DeclarationList') return;
++    for (const node of tree.children) {
++      if (node.type !== 'Declaration' || typeof node.important !== 'boolean') continue;
++      const key = propertyKey(ident.decode(node.property));
++      const value = declarationValue(key, node.value);
++      if (value === null || (properties[key]?.important && !node.important)) continue;
++      properties[key] = { value, important: node.important };
+     }
+-    this.mutated(this.cssText);
++    const text = serialize(properties);
++    checkCapacity(text);
++    this[TransferrableKeys.properties] = properties;
++    this.mutated(text);
+   }
+ 
+   /**
+@@ -172,7 +251,7 @@ export class CSSStyleDeclaration implements StyleDeclaration {
+         TransferrableMutationType.ATTRIBUTES,
+         this[TransferrableKeys.target][TransferrableKeys.index],
+         storeString('style'),
+-        0, // Attribute Namespace is the default value.
++        storeString(this[TransferrableKeys.target].namespaceURI),
+         value !== null ? storeString(value) + 1 : 0,
+       ],
+     );
+
+diff --git a/src/worker-thread/dom/Element.ts b/src/worker-thread/dom/Element.ts
+index 854b169..c68efbd 100644
+--- a/src/worker-thread/dom/Element.ts
++++ b/src/worker-thread/dom/Element.ts
+@@ -5,7 +5,7 @@ import { Attr, toString as attrsToString, matchPredicate as matchAttrPredicate }
+ import { mutate } from '../MutationObserver.js';
+ import { MutationRecordType } from '../MutationRecord.js';
+ import { toLower, toUpper } from '../../utils.js';
+-import { CSSStyleDeclaration } from '../css/CSSStyleDeclaration.js';
++import { CSSStyleDeclaration, clearStyle } from '../css/CSSStyleDeclaration.js';
+ import { matchChildrenElements } from './matchElements.js';
+ import { reflectProperties } from './enhanceElement.js';
+ import { store as storeString } from '../strings.js';
+@@ -72,7 +72,7 @@ export class Element extends ParentNode {
+ 
+   public static [TransferrableKeys.propertyBackedAttributes]: PropertyBackedAttributes = {
+     class: [(el): string | null => el.classList.value, (el, value: string) => (el.classList.value = value)],
+-    style: [(el): string | null => el.cssText, (el, value: string) => (el.cssText = value)],
++    style: [(el): string | null => el.style.cssText, (el, value: string) => (el.style.cssText = value)],
+   };
+ 
+   public localName: NodeName;
+@@ -426,6 +426,7 @@ export class Element extends ParentNode {
+ 
+     if (index >= 0) {
+       const oldValue = this.attributes[index].value;
++      if (name === 'style') this.style_?.[clearStyle]();
+       this.attributes.splice(index, 1);
+ 
+       mutate(
+
+diff --git a/src/worker-thread/dom/HTMLElement.ts b/src/worker-thread/dom/HTMLElement.ts
+index 5dfdf39..de990d2 100644
+--- a/src/worker-thread/dom/HTMLElement.ts
++++ b/src/worker-thread/dom/HTMLElement.ts
+@@ -3,6 +3,7 @@ import { reflectProperties } from './enhanceElement.js';
+ import { matchNearestParent, tagNameConditionPredicate } from './matchElements.js';
+ import { TransferrableObjectType } from '../../transfer/TransferrableMutation.js';
+ import { TransferrableKeys } from '../../transfer/TransferrableKeys.js';
++import { Event, EventHandler } from '../Event.js';
+ 
+ export const appendGlobalEventProperties = (keys: Array<string>): void => {
+   const keysToAppend = keys.filter((key) => !HTMLElement.prototype.hasOwnProperty(key));
+@@ -14,18 +15,24 @@ export const appendGlobalEventProperties = (keys: Array<string>): void => {
+     const normalizedKey = key.replace(/on/, '');
+     Object.defineProperty(HTMLElement.prototype, key, {
+       enumerable: true,
+-      get(): string {
+-        return this[TransferrableKeys.propertyEventHandlers][normalizedKey] || null;
++      get(): EventHandler | null {
++        return this[TransferrableKeys.propertyEventHandlers][normalizedKey]?.handler ?? null;
+       },
+       set(value) {
+         const stored = this[TransferrableKeys.propertyEventHandlers][normalizedKey];
+-        if (stored) {
+-          this.removeEventListener(normalizedKey, stored);
++        if (typeof value === 'function') {
++          if (stored) stored.handler = value;
++          else {
++            const entry = { handler: value, listener: function (this: HTMLElement, event: Event) {
++              if (entry.handler.call(this, event) === false) event.preventDefault();
++            } };
++            this.addEventListener(normalizedKey, entry.listener);
++            this[TransferrableKeys.propertyEventHandlers][normalizedKey] = entry;
++          }
++        } else if (stored) {
++          this.removeEventListener(normalizedKey, stored.listener);
++          delete this[TransferrableKeys.propertyEventHandlers][normalizedKey];
+         }
+-        if (value instanceof Function) {
+-          this.addEventListener(normalizedKey, value);
+-        }
+-        this[TransferrableKeys.propertyEventHandlers][normalizedKey] = value;
+       },
+     });
+   });
+@@ -33,8 +40,8 @@ export const appendGlobalEventProperties = (keys: Array<string>): void => {
+ 
+ export class HTMLElement extends Element {
+   public [TransferrableKeys.propertyEventHandlers]: {
+-    [key: string]: Function;
+-  } = {};
++    [key: string]: { handler: EventHandler; listener: EventHandler };
++  } = Object.create(null);
+   /**
+    * Find the nearest parent form element.
+    * Implemented in HTMLElement since so many extensions of HTMLElement repeat this functionality. This is not to spec.
+
+diff --git a/src/worker-thread/dom/HTMLInputElement.ts b/src/worker-thread/dom/HTMLInputElement.ts
+index a5d4f87..01baab1 100644
+--- a/src/worker-thread/dom/HTMLInputElement.ts
++++ b/src/worker-thread/dom/HTMLInputElement.ts
+@@ -19,6 +19,7 @@ export class HTMLInputElement extends HTMLElement {
+   private [TransferrableKeys.value]: string = '';
+   private dirtyValue: boolean = false;
+   private [TransferrableKeys.checked]: boolean = false;
++  private dirtyChecked: boolean = false;
+ 
+   // TODO(willchou): There are a few interrelated issues with `value` property.
+   //   1. "Dirtiness" caveat above.
+@@ -75,20 +76,22 @@ export class HTMLInputElement extends HTMLElement {
+   }
+ 
+   get checked(): boolean {
+-    return this[TransferrableKeys.checked];
++    return this.dirtyChecked ? this[TransferrableKeys.checked] : this.hasAttribute('checked');
+   }
+ 
+   set checked(value: boolean) {
+-    if (this[TransferrableKeys.checked] === value) {
++    const previous = this.checked;
++    this.dirtyChecked = true;
++    this[TransferrableKeys.checked] = !!value;
++    if (previous === this[TransferrableKeys.checked]) {
+       return;
+     }
+-    this[TransferrableKeys.checked] = !!value;
+     transfer(this.ownerDocument as Document, [
+       TransferrableMutationType.PROPERTIES,
+       this[TransferrableKeys.index],
+       storeString('checked'),
+       NumericBoolean.TRUE,
+-      value === true ? NumericBoolean.TRUE : NumericBoolean.FALSE,
++      this[TransferrableKeys.checked] ? NumericBoolean.TRUE : NumericBoolean.FALSE,
+     ]);
+   }
+ 
+
+diff --git a/src/worker-thread/dom/HTMLOptionElement.ts b/src/worker-thread/dom/HTMLOptionElement.ts
+index 07413a0..38083e3 100644
+--- a/src/worker-thread/dom/HTMLOptionElement.ts
++++ b/src/worker-thread/dom/HTMLOptionElement.ts
+@@ -1,4 +1,4 @@
+-import { registerSubclass, definePropertyBackedAttributes } from './Element.js';
++import { registerSubclass } from './Element.js';
+ import { HTMLElement } from './HTMLElement.js';
+ import { reflectProperties } from './enhanceElement.js';
+ import { TransferrableKeys } from '../../transfer/TransferrableKeys.js';
+@@ -10,6 +10,7 @@ import { NumericBoolean } from '../../utils.js';
+ 
+ export class HTMLOptionElement extends HTMLElement {
+   private [TransferrableKeys.selected]: boolean = false;
++  private dirtySelected: boolean = false;
+   /**
+    * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLOptionElement
+    * @return position of the option within the list of options it's within, or zero if there is no valid parent.
+@@ -39,7 +40,7 @@ export class HTMLOptionElement extends HTMLElement {
+    * @return boolean based on if the option element is selected.
+    */
+   get selected(): any {
+-    return this[TransferrableKeys.selected];
++    return this.dirtySelected ? this[TransferrableKeys.selected] : this.hasAttribute('selected');
+   }
+ 
+   /**
+@@ -47,6 +48,7 @@ export class HTMLOptionElement extends HTMLElement {
+    * @param value new selected boolean value.
+    */
+   set selected(value: any) {
++    this.dirtySelected = true;
+     this[TransferrableKeys.selected] = !!value;
+     transfer(this.ownerDocument as Document, [
+       TransferrableMutationType.PROPERTIES,
+@@ -79,7 +81,7 @@ export class HTMLOptionElement extends HTMLElement {
+    * @return value attribute value or text content if there is no attribute.
+    */
+   get value(): any {
+-    return this.getAttribute('value') || this.textContent;
++    return this.getAttribute('value') ?? this.textContent;
+   }
+ 
+   /**
+@@ -91,14 +93,11 @@ export class HTMLOptionElement extends HTMLElement {
+   }
+ }
+ registerSubclass('option', HTMLOptionElement);
+-definePropertyBackedAttributes(HTMLOptionElement, {
+-  selected: [(el): string => String(el[TransferrableKeys.selected]), (el, value: string): boolean => (el.selected = value === 'true')],
+-});
+ // Reflected Properties
+ // HTMLOptionElement.defaultSelected => boolean, reflected attribute
+ // HTMLOptionElement.disabled => boolean, reflected attribute
+ // HTMLOptionElement.type => string, reflected attribute
+-reflectProperties([{ defaultSelected: [false, /* attr */ 'selected'] }, { disabled: [false] }, { type: [''] }], HTMLOptionElement);
++reflectProperties([{ defaultSelected: [false, /* attr */ 'selected'] }, { disabled: [false] }], HTMLOptionElement);
+ 
+ // Implemented at HTMLElement
+ // HTMLOptionElement.form, Read only	=> HTMLFormElement
+
+diff --git a/src/worker-thread/dom/HTMLSelectElement.ts b/src/worker-thread/dom/HTMLSelectElement.ts
+index f346d37..be2d7aa 100644
+--- a/src/worker-thread/dom/HTMLSelectElement.ts
++++ b/src/worker-thread/dom/HTMLSelectElement.ts
+@@ -17,8 +17,8 @@ const enum SizeDefaults {
+ }
+ 
+ const enum TypeDefaults {
+-  SINGLE = 'select-multiple',
+-  MULTIPLE = 'select-one',
++  SINGLE = 'select-one',
++  MULTIPLE = 'select-multiple',
+ }
+ 
+ export class HTMLSelectElement extends HTMLElement {
+@@ -34,7 +34,7 @@ export class HTMLSelectElement extends HTMLElement {
+     // When this singular value select is appending a child, set the value property for two cases.
+     // 1. The inserted child is already selected.
+     // 2. The current value of the select is the default ('').
+-    if ((!this.multiple && isOptionPredicate(child as Element) && child.selected) || this.value === '') {
++    if (!this.multiple && isOptionPredicate(child as Element) && (child.selected || this.selectedIndex < 0)) {
+       this.value = child.value;
+     }
+   }
+@@ -156,7 +156,7 @@ HTMLInputLabelsMixin(HTMLSelectElement);
+ // HTMLSelectElement.multiple => boolean, reflected attribute
+ // HTMLSelectElement.name => string, reflected attribute
+ // HTMLSelectElement.required => boolean, reflected attribute
+-reflectProperties([{ multiple: [false] }, { name: [''] }, { required: [false] }], HTMLSelectElement);
++reflectProperties([{ disabled: [false] }, { multiple: [false] }, { name: [''] }, { required: [false] }], HTMLSelectElement);
+ 
+ // Implemented on HTMLElement
+ // HTMLSelectElement.form => HTMLFormElement, readonly
+
+diff --git a/src/worker-thread/dom/Node.ts b/src/worker-thread/dom/Node.ts
+index 9a4daeb..e36dc02 100644
+--- a/src/worker-thread/dom/Node.ts
++++ b/src/worker-thread/dom/Node.ts
+@@ -1,6 +1,5 @@
+ import { store as storeNodeMapping, storeOverride as storeOverrideNodeMapping } from '../nodes.js';
+-import { Event, EventHandler, AddEventListenerOptions } from '../Event.js';
+-import { toLower } from '../../utils.js';
++import { Event, EventHandler, AddEventListenerOptions, eventDispatching, eventPassive, takeNativeEvent } from '../Event.js';
+ import { mutate } from '../MutationObserver.js';
+ import { MutationRecordType } from '../MutationRecord.js';
+ import { TransferrableKeys } from '../../transfer/TransferrableKeys.js';
+@@ -13,6 +12,15 @@ import { TransferrableMutationType } from '../../transfer/TransferrableMutation.
+ export type NodeName = '#comment' | '#document' | '#document-fragment' | '#text' | string;
+ export type NamespaceURI = string;
+ 
++interface Listener {
++  id: number;
++  handler: EventHandler;
++  capture: boolean;
++  once: boolean;
++  passive: boolean;
++  removed: boolean;
++}
++
+ /**
+  * Propagates a property change for a Node to itself and all childNodes.
+  * @param node Node to start applying change to
+@@ -45,8 +53,9 @@ export abstract class Node {
+   public [TransferrableKeys.creationFormat]: Array<number>;
+   public abstract cloneNode(deep: boolean): Node;
+   private [TransferrableKeys.handlers]: {
+-    [index: string]: EventHandler[];
+-  } = {};
++    [index: string]: Listener[];
++  } = Object.create(null);
++  private nextListenerId = 0;
+ 
+   constructor(nodeType: NodeType, nodeName: NodeName, ownerDocument: Node | null, overrideIndex?: number) {
+     this.nodeType = nodeType;
+@@ -406,16 +415,19 @@ export abstract class Node {
+    * @param type Event Type (i.e 'click')
+    * @param handler Function called when event is dispatched.
+    */
+-  public addEventListener(type: string, handler: EventHandler, options: AddEventListenerOptions | undefined = {}): void {
+-    const lowerType = toLower(type);
+-    const storedType = storeString(lowerType);
+-    const handlers: EventHandler[] = this[TransferrableKeys.handlers][lowerType];
+-    let index: number = 0;
+-    if (handlers) {
+-      index = handlers.push(handler);
+-    } else {
+-      this[TransferrableKeys.handlers][lowerType] = [handler];
+-    }
++  public addEventListener(type: string, handler: EventHandler | null, options: AddEventListenerOptions | boolean = {}): void {
++    if (handler == null) return;
++    if (typeof handler !== 'function') throw new TypeError('Unsupported event listener');
++    type = String(type);
++    const settings = typeof options === 'boolean' ? { capture: options } : options ?? {};
++    const capture = Boolean(settings.capture);
++    const handlers = this[TransferrableKeys.handlers][type] ?? [];
++    if (handlers.some((entry) => entry.handler === handler && entry.capture === capture)) return;
++    if (this.nextListenerId > 65535) throw new RangeError('Event subscription capacity exceeded');
++    const storedType = storeString(type);
++    const index = this.nextListenerId++;
++    handlers.push({ id: index, handler, capture, once: !!settings.once, passive: !!settings.passive, removed: false });
++    this[TransferrableKeys.handlers][type] = handlers;
+ 
+     transfer(this.ownerDocument as Document, [
+       TransferrableMutationType.EVENT_SUBSCRIPTION,
+@@ -424,10 +436,10 @@ export abstract class Node {
+       1,
+       storedType,
+       index,
+-      Number(Boolean(options.capture)),
+-      Number(Boolean(options.once)),
+-      Number(Boolean(options.passive)),
+-      Number(Boolean(options.workerDOMPreventDefault)),
++      Number(capture),
++      Number(Boolean(settings.once)),
++      Number(Boolean(settings.passive)),
++      Number(Boolean(settings.workerDOMPreventDefault)),
+     ]);
+   }
+ 
+@@ -437,20 +449,24 @@ export abstract class Node {
+    * @param type Event Type (i.e 'click')
+    * @param handler Function to stop calling when event is dispatched.
+    */
+-  public removeEventListener(type: string, handler: EventHandler): void {
+-    const lowerType = toLower(type);
+-    const handlers = this[TransferrableKeys.handlers][lowerType];
+-    const index = !!handlers ? handlers.indexOf(handler) : -1;
++  public removeEventListener(type: string, handler: EventHandler | null, options: AddEventListenerOptions | boolean = {}): void {
++    type = String(type);
++    const capture = typeof options === 'boolean' ? options : Boolean(options?.capture);
++    const handlers = this[TransferrableKeys.handlers][type];
++    const index = handlers ? handlers.findIndex((entry) => entry.handler === handler && entry.capture === capture) : -1;
+ 
+     if (index >= 0) {
++      const entry = handlers[index];
++      entry.removed = true;
+       handlers.splice(index, 1);
++      if (!handlers.length) delete this[TransferrableKeys.handlers][type];
+       transfer(this.ownerDocument as Document, [
+         TransferrableMutationType.EVENT_SUBSCRIPTION,
+         this[TransferrableKeys.index],
+         1,
+         0,
+-        storeString(lowerType),
+-        index,
++        storeString(type),
++        entry.id,
+       ]);
+     }
+   }
+@@ -461,20 +477,47 @@ export abstract class Node {
+    * @param event Event to dispatch to this node and potentially cascade to parents.
+    */
+   public dispatchEvent(event: Event): boolean {
+-    let target: Node | null = (event.currentTarget = this);
+-    let handlers: EventHandler[] | null;
+-    let iterator: number;
+-
+-    do {
+-      handlers = target && target[TransferrableKeys.handlers] && target[TransferrableKeys.handlers][toLower(event.type)];
+-      if (handlers) {
+-        for (iterator = handlers.length; iterator--; ) {
+-          if ((handlers[iterator].call(target, event) === false || event[TransferrableKeys.end]) && event.cancelable) {
+-            break;
+-          }
++    if (event[eventDispatching] || !event.type) throw new DOMException('Event is already dispatching or uninitialized', 'InvalidStateError');
++    const path: Node[] = [];
++    for (let parent = this.parentNode; parent; parent = parent.parentNode) path.push(parent);
++    event[eventDispatching] = true;
++    event.isTrusted = takeNativeEvent(event);
++    event.target = this;
++    const invoke = (target: Node, capture: boolean, phase: number): void => {
++      if (event[TransferrableKeys.stop]) return;
++      event.currentTarget = target;
++      event.eventPhase = phase;
++      const snapshot = [...(target[TransferrableKeys.handlers][event.type] ?? [])];
++      for (const entry of snapshot) {
++        if (event[TransferrableKeys.end]) break;
++        if (entry.removed || entry.capture !== capture) continue;
++        if (entry.once) target.removeEventListener(event.type, entry.handler, capture);
++        event[eventPassive] = entry.passive;
++        try {
++          entry.handler.call(target, event);
++        } finally {
++          event[eventPassive] = false;
+         }
+       }
+-    } while (event.bubbles && !(event.cancelable && event[TransferrableKeys.stop]) && (target = target && target.parentNode));
+-    return !event.defaultPrevented;
++    };
++    try {
++      for (let i = path.length - 1; i >= 0 && !event[TransferrableKeys.stop]; i--) invoke(path[i], true, 1);
++      if (!event[TransferrableKeys.stop]) {
++        invoke(this, true, 2);
++        invoke(this, false, 2);
++      }
++      if (event.bubbles) {
++        for (const parent of path) {
++          if (event[TransferrableKeys.stop]) break;
++          invoke(parent, false, 3);
++        }
++      }
++      return !event.defaultPrevented;
++    } finally {
++      event.currentTarget = null;
++      event.eventPhase = 0;
++      event[eventDispatching] = event[eventPassive] = false;
++      event[TransferrableKeys.stop] = event[TransferrableKeys.end] = false;
++    }
+   }
+ }
+
+diff --git a/src/worker-thread/Event.ts b/src/worker-thread/Event.ts
+index 7e32a72..bc34be7 100644
+--- a/src/worker-thread/Event.ts
++++ b/src/worker-thread/Event.ts
+@@ -1,3 +1,4 @@
++// Modified by Scholoom on 2026-10-30 for this fixed probe; see vendor/MODIFICATIONS.md.
+ /**
+  * @fileoverview
+  * WorkerDOM's `Event` class. `CustomEvent` is available natively in web worker.
+@@ -26,6 +27,20 @@ export interface AddEventListenerOptions {
+   workerDOMPreventDefault?: boolean;
+ }
+ 
++export const eventDispatching = Symbol('dispatching');
++export const eventPassive = Symbol('passive');
++const nativeEvents = new WeakSet<Event>();
++
++/** The adapter marks only a fresh event received from the rendering host. */
++export function markNativeEvent(event: Event): Event {
++  if (event.isTrusted) nativeEvents.add(event);
++  return event;
++}
++
++export function takeNativeEvent(event: Event): boolean {
++  return nativeEvents.delete(event);
++}
++
+ interface Touch {
+   readonly identifier: number;
+   readonly screenX: number;
+@@ -45,20 +60,20 @@ interface TouchList {
+ export class Event {
+   public bubbles: boolean;
+   public cancelable: boolean;
+-  public cancelBubble: boolean;
+-  public currentTarget: Node;
+-  public defaultPrevented: boolean;
+-  public eventPhase: number;
+-  public isTrusted: boolean;
+-  public returnValue: boolean;
++  public currentTarget: Node | null = null;
++  public defaultPrevented: boolean = false;
++  public eventPhase: number = 0;
++  public isTrusted: boolean = false;
+   // public srcElement: Element | null;
+   // TODO(KB): Restore srcElement.
+-  public target: Node | null;
+-  public timeStamp: number;
++  public target: Node | null = null;
++  public timeStamp: number = Date.now();
+   public type: string;
+   public scoped: boolean;
+   public [TransferrableKeys.stop]: boolean = false;
+   public [TransferrableKeys.end]: boolean = false;
++  public [eventDispatching]: boolean = false;
++  public [eventPassive]: boolean = false;
+   public pageX?: number;
+   public pageY?: number;
+   public offsetX?: number;
+@@ -66,8 +81,8 @@ export class Event {
+   public touches?: TouchList;
+   public changedTouches?: TouchList;
+ 
+-  constructor(type: string, opts: EventOptions) {
+-    this.type = type;
++  constructor(type: string, opts: EventOptions = {}) {
++    this.type = String(type);
+     this.bubbles = !!opts.bubbles;
+     this.cancelable = !!opts.cancelable;
+   }
+@@ -78,13 +93,28 @@ export class Event {
+     this[TransferrableKeys.end] = this[TransferrableKeys.stop] = true;
+   }
+   public preventDefault(): void {
+-    this.defaultPrevented = true;
++    if (this.cancelable && !this[eventPassive]) this.defaultPrevented = true;
++  }
++  get cancelBubble(): boolean {
++    return this[TransferrableKeys.stop];
++  }
++  set cancelBubble(value: boolean) {
++    if (value) this.stopPropagation();
++  }
++  get returnValue(): boolean {
++    return !this.defaultPrevented;
++  }
++  set returnValue(value: boolean) {
++    if (!value) this.preventDefault();
+   }
+   /** Event.initEvent() is deprecated but supported here for legacy usage.  */
+   public initEvent(type: string, bubbles: boolean, cancelable: boolean) {
++    if (this[eventDispatching]) return;
+     this.type = type;
+     this.bubbles = bubbles;
+     this.cancelable = cancelable;
++    this.defaultPrevented = this.isTrusted = false;
++    this[TransferrableKeys.stop] = this[TransferrableKeys.end] = false;
+   }
+ }
+ 
+@@ -156,24 +186,27 @@ export function propagate(global: WorkerDOMGlobalScope): void {
+       return;
+     }
+     const event = data[TransferrableKeys.event] as TransferrableEvent;
+-    const node = get(event[TransferrableKeys.index]);
++    const node = targetFromTransfer(document, event) ?? get(event[TransferrableKeys.index]);
+     if (node !== null) {
+-      node.dispatchEvent(
++      node.dispatchEvent(markNativeEvent(
+         Object.assign(
+           new Event(event[TransferrableKeys.type], {
+             bubbles: event[TransferrableKeys.bubbles],
+             cancelable: event[TransferrableKeys.cancelable],
+           }),
+           {
+-            cancelBubble: event[TransferrableKeys.cancelBubble],
+-            defaultPrevented: event[TransferrableKeys.defaultPrevented],
++            cancelBubble: event[TransferrableKeys.cancelBubble] ?? false,
++            defaultPrevented: event[TransferrableKeys.defaultPrevented] ?? false,
+             eventPhase: event[TransferrableKeys.eventPhase],
+             isTrusted: event[TransferrableKeys.isTrusted],
+-            returnValue: event[TransferrableKeys.returnValue],
++            returnValue: event[TransferrableKeys.returnValue] ?? true,
+             target: targetFromTransfer(global.document, event),
+             timeStamp: event[TransferrableKeys.timeStamp],
+             scoped: event[TransferrableKeys.scoped],
+             keyCode: event[TransferrableKeys.keyCode],
++            data: (event as any)[TransferrableKeys.data],
++            inputType: (event as any)[TransferrableKeys.inputType],
++            isComposing: (event as any)[TransferrableKeys.isComposing],
+             pageX: event[TransferrableKeys.pageX],
+             pageY: event[TransferrableKeys.pageY],
+             offsetX: event[TransferrableKeys.offsetX],
+@@ -182,7 +215,7 @@ export function propagate(global: WorkerDOMGlobalScope): void {
+             changedTouches: touchListFromTransfer(global.document, event, TransferrableKeys.changedTouches),
+           },
+         ),
+-      );
++      ));
+     }
+   });
+ }
+
+diff --git a/src/worker-thread/index.ts b/src/worker-thread/index.ts
+index 482f9bf..90f4e05 100644
+--- a/src/worker-thread/index.ts
++++ b/src/worker-thread/index.ts
+@@ -1,3 +1,4 @@
++// Modified by Scholoom on 2026-10-30 for this fixed probe; see vendor/MODIFICATIONS.md.
+ import { HTMLElement } from './dom/HTMLElement.js';
+ import { SVGElement } from './dom/SVGElement.js';
+ import { HTMLAnchorElement } from './dom/HTMLAnchorElement.js';
+@@ -44,6 +45,8 @@ import { Element } from './dom/Element.js';
+ import { rafPolyfill, cafPolyfill } from './AnimationFrame.js';
+ import { HydrateFunction } from './hydrate.js';
+ 
++// Scholoom probe: transport is supplied before constructing the source document.
++export function createWorkerDOM(postMessage: Document['postMessage'], addEventListener: Function, removeEventListener: Function) {
+ const globalScope: GlobalScope = {
+   innerWidth: 0,
+   innerHeight: 0,
+@@ -88,15 +91,15 @@ const globalScope: GlobalScope = {
+   Text,
+   Event: WorkerDOMEvent,
+   MutationObserver,
+-  requestAnimationFrame: self.requestAnimationFrame || rafPolyfill,
+-  cancelAnimationFrame: self.cancelAnimationFrame || cafPolyfill,
++  requestAnimationFrame: rafPolyfill,
++  cancelAnimationFrame: cafPolyfill,
+ };
+ 
+ const noop = () => void 0;
+ 
+ // WorkerDOM.Document.defaultView ends up being the window object.
+ // React requires the classes to exist off the window object for instanceof checks.
+-export const workerDOM = (function (postMessage, addEventListener, removeEventListener) {
++return (function (postMessage, addEventListener, removeEventListener) {
+   const document = new Document(globalScope);
+   // TODO(choumx): Avoid polluting Document's public API.
+   document.postMessage = postMessage;
+@@ -106,13 +109,14 @@ export const workerDOM = (function (postMessage, addEventListener, removeEventLi
+   // TODO(choumx): Remove once defaultView contains all native worker globals.
+   // Canvas's use of native OffscreenCanvas checks the existence of the property
+   // on the WorkerDOMGlobalScope.
+-  globalScope.OffscreenCanvas = (self as any)['OffscreenCanvas'];
+-  globalScope.ImageBitmap = (self as any)['ImageBitmap'];
++  globalScope.OffscreenCanvas = undefined;
++  globalScope.ImageBitmap = undefined;
+ 
+   document.isConnected = true;
+   document.appendChild((document.body = document.createElement('body')));
+ 
+   return document.defaultView;
+-})(postMessage.bind(self) || noop, addEventListener.bind(self) || noop, removeEventListener.bind(self) || noop);
++})(postMessage, addEventListener, removeEventListener);
++}
+ 
+ export const hydrate: HydrateFunction = initialize;
+
+diff --git a/src/worker-thread/MutationTransfer.ts b/src/worker-thread/MutationTransfer.ts
+index 9653342..0f1e8ff 100644
+--- a/src/worker-thread/MutationTransfer.ts
++++ b/src/worker-thread/MutationTransfer.ts
+@@ -1,3 +1,4 @@
++// Modified by Scholoom on 2026-10-30 for this fixed probe; see vendor/MODIFICATIONS.md.
+ import { consume as consumeNodes } from './nodes.js';
+ import { consume as consumeStrings } from './strings.js';
+ import { MessageType, MutationFromWorker } from '../transfer/Messages.js';
+@@ -18,6 +19,7 @@ export function transfer(document: Document | DocumentStub, mutation: Array<numb
+   }
+ 
+   if (phase > Phase.Initializing && document[TransferrableKeys.allowTransfer]) {
++    if (pendingMutations.length + mutation.length > 32768 || mutation.some((value) => !Number.isInteger(value) || value < 0 || value > 65535)) throw new Error('probeMutationBudgetOrU16');
+     pending = true;
+     pendingMutations = pendingMutations.concat(mutation);
+ 
+
+diff --git a/src/worker-thread/nodes.ts b/src/worker-thread/nodes.ts
+index 0049647..c6fa06b 100644
+--- a/src/worker-thread/nodes.ts
++++ b/src/worker-thread/nodes.ts
+@@ -1,3 +1,5 @@
++// Modified by Scholoom on 2026-10-30 for this fixed probe; see vendor/MODIFICATIONS.md.
++import { reportRenderLimits } from '@scholoom/protocol/reports';
+ import { Node } from './dom/Node.js';
+ import { phase } from './phase.js';
+ import { Phase } from '../transfer/Phase.js';
+@@ -42,6 +44,7 @@ export function store(node: Node): number {
+     return node[TransferrableKeys.index];
+   }
+ 
++  if (count >= reportRenderLimits.nodes || transfer.length >= reportRenderLimits.nodes) throw new Error('probeNodeBudget');
+   mapping.set((node[TransferrableKeys.index] = ++count), node);
+   if (phase > Phase.Initializing) {
+     // After Initialization, include all future dom node creation into the list for next transfer.
+
+diff --git a/src/worker-thread/strings.ts b/src/worker-thread/strings.ts
+index ba73a70..f1be386 100644
+--- a/src/worker-thread/strings.ts
++++ b/src/worker-thread/strings.ts
+@@ -1,6 +1,11 @@
++// Modified by Scholoom on 2026-10-30 for this fixed probe; see vendor/MODIFICATIONS.md.
++// Scholoom 2026-10-31: count UTF8 bytes without allocating an encoded copy before admission.
++import { reportRenderLimits } from '@scholoom/protocol/reports';
++
+ let count: number = 0;
+ let transfer: Array<string> = [];
+ const mapping: Map<string, number> = new Map();
++let totalBytes = 0;
+ 
+ /**
+  * Stores a string in mapping and returns the index of the location.
+@@ -18,6 +23,25 @@ export function store(value: string): number {
+     return mapping.get(value) as number;
+   }
+ 
++  if (count >= reportRenderLimits.strings) throw new Error('probeStringBudget');
++  let bytes = 0;
++  for (let i = 0; i < value.length; i++) {
++    const code = value.charCodeAt(i);
++    if (code < 0x80) bytes++;
++    else if (code < 0x800) bytes += 2;
++    else {
++      bytes += 3;
++      if (code >= 0xd800 && code <= 0xdbff) {
++        const next = value.charCodeAt(i + 1);
++        if (next >= 0xdc00 && next <= 0xdfff) {
++          bytes++;
++          i++;
++        }
++      }
++    }
++    if (totalBytes + bytes > reportRenderLimits.stringBytes) throw new Error('probeStringBudget');
++  }
++  totalBytes += bytes;
+   mapping.set(value, count);
+   transfer.push(value);
+   return count++;

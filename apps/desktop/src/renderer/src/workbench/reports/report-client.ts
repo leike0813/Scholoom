@@ -1,6 +1,7 @@
 import type { KernelClient } from '@scholoom/client';
 import type { WorkbenchChange } from '@scholoom/protocol';
-import { OperationError } from '@scholoom/protocol/core';
+import { type ErrorInfo, OperationError } from '@scholoom/protocol/core';
+import type { ReportSnapshot } from '@scholoom/protocol/reports';
 import type { ResourceEvidence } from '@scholoom/protocol/resources';
 import { sameResourceRef } from '../resource-controller.js';
 import { createReportUpdates, type ReportUpdateProtection } from './report-updates.js';
@@ -14,17 +15,21 @@ export function createReportClient({
   entry,
   sessionId,
   protection,
+  initialSnapshot,
 }: {
   client: KernelClient;
   dataDirectory: string;
   entry: ResourceEvidence;
   sessionId?: string;
   protection?: ReportUpdateProtection;
+  initialSnapshot?: ReportSnapshot;
 }) {
   const identity = structuredClone(entry.ref);
   const listeners = new Set<() => void>();
   let disposed = false;
   let observed: Promise<void> | undefined;
+  let candidateError: ErrorInfo | undefined;
+  let retainOriginal = false;
   const notify = () => {
     for (const listener of [...listeners]) {
       try {
@@ -55,52 +60,91 @@ export function createReportClient({
     notify();
     return work;
   };
+  const approvedOriginal = async (current: ReportSnapshot, signal: AbortSignal) => {
+    const original = await client.call('resources.reportVersion', {
+      ref: current.resource.ref,
+      basis: current.resource.basis,
+    });
+    ensure(signal);
+    if (
+      original.state !== 'available' ||
+      !sameResourceRef(original.snapshot.resource.ref, current.resource.ref) ||
+      original.snapshot.resource.basis !== current.resource.basis
+    )
+      throw new OperationError('unavailable', '原报告版本当前不能完整核准。');
+    candidateError = {
+      code: 'invalidRequest',
+      message: '新版报告尚不可用，保留已核准的原版本和草稿。',
+    };
+    return original.snapshot;
+  };
   const updates = createReportUpdates({
     entry,
+    ...(initialSnapshot ? { initialSnapshot } : {}),
     ...(protection ? { protection } : {}),
     load: async (evidence, signal) => {
       ensure(signal);
-      const descriptor = await client.call('resources.describe', { locator: identity });
-      // There is no report RPC cancellation. Await the actual call before checking the signal.
-      ensure(signal);
-      if (!sameResourceRef(descriptor.ref, identity))
-        throw new OperationError('contentChanged', '报告入口身份已失效。');
-      if (descriptor.basis !== evidence.basis) {
-        follow(updates.offer({ ...evidence, basis: descriptor.basis }));
-        throw new OperationError('contentChanged', '已发现新的报告版本。');
+      candidateError = undefined;
+      const retained = updates.read().current;
+      if (retainOriginal && retained && evidence.basis === retained.resource.basis) {
+        retainOriginal = false;
+        return approvedOriginal(retained, signal);
       }
-      const snapshot = await client.call('resources.report', {
-        ref: descriptor.ref,
-        basis: descriptor.basis,
-      });
-      ensure(signal);
-      // A dirty old page may retain sources absent from the new complete report.
-      // Reuse domain describe for that bounded exclusive Evidence, not a cached permission.
-      const current = updates.read().current;
-      const verified = [
-        snapshot.resource,
-        ...snapshot.manifest.resources,
-        ...snapshot.manifest.sources,
-      ];
-      for (const retained of current
-        ? [...current.manifest.resources, ...current.manifest.sources]
-        : []) {
-        if (
-          verified.some(
-            (value) => value.basis === retained.basis && sameResourceRef(value.ref, retained.ref),
-          )
-        )
-          continue;
-        const value = await client.call('resources.describe', { locator: retained.ref });
+      try {
+        const descriptor = await client.call('resources.describe', { locator: identity });
+        // There is no report RPC cancellation. Await the actual call before checking the signal.
         ensure(signal);
-        if (!value.capabilities.read)
-          throw new OperationError('permissionDenied', '原报告材料已不可读。');
-        // The old page keeps its frozen basis. A newer readable revision is not revocation.
-        if (!sameResourceRef(value.ref, retained.ref))
-          throw new OperationError('contentChanged', '原报告材料身份已失效。');
-        verified.push(value);
+        if (!sameResourceRef(descriptor.ref, identity))
+          throw new OperationError('contentChanged', '报告入口身份已失效。');
+        if (descriptor.basis !== evidence.basis) {
+          follow(updates.offer({ ...evidence, basis: descriptor.basis }));
+          throw new OperationError('contentChanged', '已发现新的报告版本。');
+        }
+        const snapshot = await client.call('resources.report', {
+          ref: descriptor.ref,
+          basis: descriptor.basis,
+        });
+        ensure(signal);
+        // A dirty old page may retain sources absent from the new complete report.
+        // Reuse domain describe for that bounded exclusive Evidence, not a cached permission.
+        const current = updates.read().current;
+        const verified = [
+          snapshot.resource,
+          ...snapshot.manifest.resources,
+          ...snapshot.manifest.sources,
+        ];
+        for (const retained of current
+          ? [...current.manifest.resources, ...current.manifest.sources]
+          : []) {
+          if (
+            verified.some(
+              (value) => value.basis === retained.basis && sameResourceRef(value.ref, retained.ref),
+            )
+          )
+            continue;
+          const value = await client.call('resources.describe', { locator: retained.ref });
+          ensure(signal);
+          if (!value.capabilities.read)
+            throw new OperationError('permissionDenied', '原报告材料已不可读。');
+          // The old page keeps its frozen basis. A newer readable revision is not revocation.
+          if (!sameResourceRef(value.ref, retained.ref))
+            throw new OperationError('contentChanged', '原报告材料身份已失效。');
+          verified.push(value);
+        }
+        return snapshot;
+      } catch (reason) {
+        ensure(signal);
+        const current = updates.read().current;
+        if (!current) throw reason;
+        // A failed candidate cannot revoke or replace a freshly approved exact original version.
+        const original = await approvedOriginal(current, signal);
+        if (evidence.basis !== current.resource.basis) {
+          retainOriginal = true;
+          follow(updates.offer({ ref: identity, basis: current.resource.basis }));
+          throw reason;
+        }
+        return original;
       }
-      return snapshot;
     },
   });
 
@@ -166,7 +210,11 @@ export function createReportClient({
     updates.invalidate({ code: 'unavailable', message: '等待有效的报告连接与配置。' });
   }
   return {
-    read: updates.read,
+    read: () => ({ ...updates.read(), ...(candidateError ? { candidateError } : {}) }),
+    invalidate(reason: ErrorInfo) {
+      updates.invalidate(reason);
+      notify();
+    },
     subscribe(listener: () => void) {
       if (disposed) return () => {};
       listeners.add(listener);

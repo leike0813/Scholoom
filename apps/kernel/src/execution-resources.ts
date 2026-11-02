@@ -10,9 +10,9 @@ import type {
   ResourceSaveResult,
 } from '@scholoom/protocol/resources';
 
-export type ExecutionResourceInputs = Omit<
+export type ExecutionResourceInputs = Pick<
   ResourceInputs,
-  'resources.cancel' | 'resources.report' | 'resources.reportVersion'
+  'resources.describe' | 'resources.read' | 'resources.document' | 'resources.save'
 > &
   ResourceCreationInputs;
 export type ExecutionResourceOutputs = ResourceOutputs & ResourceCreationOutputs;

@@ -7,7 +7,7 @@ const revision = '52b619eb46416c4325306de851e5a9df99697fcb';
 const prior = '/home/joshua/.cache/scholoom-round22-acceptance-noQKV1/worker-dom-research';
 const output = resolve(process.argv[2]);
 assert(output.startsWith('/home/joshua/.cache/'));
-const vendor = new URL('./vendor/', import.meta.url);
+const vendor = new URL('../../../packages/editor/vendor/worker-dom/', import.meta.url);
 const treeBytes = await readFile(join(prior, 'ampproject-worker-dom-tree.json'));
 const tree = JSON.parse(treeBytes);
 assert.equal(tree.truncated, false);
@@ -107,7 +107,7 @@ const record = {
 };
 await writeFile(join(output, 'input-manifest.json'), JSON.stringify(record, null, 2));
 await writeFile(
-  new URL('./upstream-manifest.json', import.meta.url),
+  new URL('../../../packages/editor/vendor/worker-dom/upstream-manifest.json', import.meta.url),
   JSON.stringify(record, null, 2),
   { flag: 'wx' },
 );

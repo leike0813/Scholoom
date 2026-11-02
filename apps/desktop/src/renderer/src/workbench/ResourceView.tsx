@@ -1,12 +1,15 @@
 import type { KernelClient } from '@scholoom/client';
 import type { ResourceDescriptor } from '@scholoom/protocol';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { workbenchInstanceId } from './context-drafts';
 import { DocumentReader } from './DocumentReader';
 import { HtmlRenderView } from './HtmlRenderView';
 import { ImageResourceView } from './ImageResourceView';
 import { PdfReader } from './PdfReader';
 import { FileEditor } from './project-ui';
 import { readerKindForName } from './reader-material';
+import { ReportView } from './reports/ReportView';
+import { reportSavedVersions } from './reports/report-drafts';
 import {
   createReadingRecordAdapter,
   createResourcePort,
@@ -29,6 +32,7 @@ export function ResourceView({
   viewId,
   onOpenFile,
   onChanged,
+  composerKey,
 }: {
   client: KernelClient;
   directory: string;
@@ -40,6 +44,7 @@ export function ResourceView({
   viewId?: string | undefined;
   onOpenFile: (target: FileTarget) => void;
   onChanged: (target: FileTarget) => void;
+  composerKey?: string | undefined;
 }) {
   const port = useMemo(() => createResourcePort(client), [client]);
   const changed = useRef(onChanged);
@@ -52,6 +57,7 @@ export function ResourceView({
   }>();
   const [error, setError] = useState('');
   const [attempt, setAttempt] = useState(0);
+  const [reportSource, setReportSource] = useState(false);
   useEffect(() => {
     if (loaded || !enabled || (!readerKind && target.locator.source !== 'library')) return;
     return port.subscribe(() => setAttempt((value) => value + 1));
@@ -117,6 +123,53 @@ export function ResourceView({
     );
   if (error) return <p role="alert">{error}</p>;
   if (!loaded) return <p role="status">{enabled ? '正在打开资源…' : '需连接内核。'}</p>;
+  let savedReport = false;
+  if (loaded.resource.ref.source === 'project') {
+    try {
+      savedReport =
+        reportSavedVersions({
+          configurationId: directory,
+          windowId: workbenchInstanceId(),
+          ref: loaded.resource.ref,
+        }).length > 0;
+    } catch {
+      savedReport = true;
+    }
+  }
+  if (loaded.resource.report || savedReport)
+    return (
+      <section className="render-pane">
+        <div className="file-toolbar">
+          <button type="button" className="btn" onClick={() => setReportSource((value) => !value)}>
+            {reportSource ? '返回报告' : '查看源码'}
+          </button>
+        </div>
+        {reportSource ? (
+          <FileEditor
+            client={client}
+            directory={directory}
+            resourceTarget={target}
+            port={port}
+            enabled={enabled}
+            revision={revision}
+            mode="source"
+            editorViewId={viewId}
+            onDirty={onDirty}
+            onOpenFile={onOpenFile}
+            onChanged={onChanged}
+          />
+        ) : (
+          <ReportView
+            client={client}
+            directory={directory}
+            resource={loaded.resource}
+            enabled={enabled}
+            composerKey={composerKey}
+            onDirty={onDirty}
+          />
+        )}
+      </section>
+    );
   if (loaded.resource.ref.source === 'render' && loaded.resource.format === 'html')
     return (
       <HtmlRenderView

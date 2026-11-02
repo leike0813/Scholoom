@@ -1,5 +1,7 @@
 import { compileContract, limits, OperationError } from '@scholoom/protocol/core';
 import {
+  type IsolationControlInputs,
+  type IsolationControlOutputs,
   type IsolationInputs,
   type IsolationOutputs,
   type IsolationPort,
@@ -20,7 +22,13 @@ import {
   isolationSupport,
   stopRecoveredIsolation,
 } from './isolated-report-controller.js';
-import { type IsolationReceipt, IsolationRecords } from './isolated-report-records.js';
+import { IsolatedReportData } from './isolated-report-data.js';
+import {
+  type IsolationReceipt,
+  IsolationRecords,
+  type IsolationRoute,
+} from './isolated-report-records.js';
+import { describeReportNodeRuntime } from './isolated-report-runtime.js';
 
 export type { IsolationPolicy } from './isolated-report-controller.js';
 export type IsolationProgram = {
@@ -29,10 +37,17 @@ export type IsolationProgram = {
   policyId: string;
   image: Uint8Array;
   args: readonly string[];
+  /** Protected installation directory containing the fixed Node/loader/library closure. */
+  runtimeRoot?: string;
+};
+export type IsolationAdmission = Pick<ProcessAdmission, 'reserve' | 'settleRecovered'> & {
+  retainUnknown(instanceId: string): void | Promise<void>;
 };
 export type IsolatedReportOptions = {
-  admission: ProcessAdmission;
+  admission: IsolationAdmission;
   privateRoot: string;
+  configId?: string;
+  route?: IsolationRoute;
   programs: readonly IsolationProgram[];
   policies: readonly IsolationPolicy[];
   /** Host-bound domain recheck. The provider never infers ref/basis/read/send permission. */
@@ -49,14 +64,17 @@ type Instance = {
   timer?: ReturnType<typeof setTimeout>;
   detach?: () => void;
   settling?: Promise<void>;
+  data?: IsolatedReportData;
 };
-type IsolationNative = {
+export type IsolationNative = {
+  route?: IsolationRoute;
   support: typeof isolationSupport;
   lock: typeof isolationLock;
   controller(
     options: ConstructorParameters<typeof IsolationController>[0],
   ): NonNullable<Instance['controller']>;
   stopRecovered: typeof stopRecoveredIsolation;
+  releaseStopped?(receipt: IsolationReceipt): Promise<void>;
 };
 const native: IsolationNative = {
   support: isolationSupport,
@@ -64,6 +82,21 @@ const native: IsolationNative = {
   controller: (options) => new IsolationController(options),
   stopRecovered: stopRecoveredIsolation,
 };
+/** Explicit installation step under C: create the original empty inventory while holding its writer lock. */
+export async function provisionSystemReportRoot(path: string): Promise<string> {
+  if (process.platform !== 'linux' || process.arch !== 'x64' || !process.geteuid?.())
+    throw new OperationError('unavailable', '系统报告记录须由独立非 root 控制身份初始化。');
+  const records = new IsolationRecords(path, 'linux-system-service-v1');
+  await records.initializeExisting();
+  let lock: Awaited<ReturnType<typeof isolationLock>> | undefined;
+  try {
+    lock = await isolationLock(records.lockPath);
+    return (await records.provisionEmpty()).configId;
+  } finally {
+    await records.close();
+    await lock?.close();
+  }
+}
 type PreparationInput = Pick<IsolationStageInput, 'instanceId' | 'programId' | 'policyId'>;
 type PreparedFiles = {
   entryPath: string;
@@ -132,14 +165,16 @@ export class IsolatedReportProvider {
     private readonly options: IsolatedReportOptions,
     private readonly os: IsolationNative = native,
   ) {
-    this.records = new IsolationRecords(options.privateRoot);
+    this.records = new IsolationRecords(options.privateRoot, options.route);
     this.assets = new IsolationAssets(this.records);
     for (const p of options.policies) {
       if (
         this.policies.has(p.id) ||
         !p.id ||
         !p.version ||
-        p.profile !== 'linux-x64-static-v1' ||
+        !(this.records.route === 'linux-user-scope-v1'
+          ? p.profile === 'linux-x64-static-v1'
+          : p.profile === 'linux-x64-system-v1' || p.profile === 'linux-x64-node-v1') ||
         ![
           p.cpuPercent,
           p.memoryBytes,
@@ -182,8 +217,9 @@ export class IsolatedReportProvider {
     input: IsolationInputs['platform.reportIsolation.check'],
   ): Promise<IsolationOutputs['platform.reportIsolation.check']> {
     try {
-      this.registration(input.programId, input.policyId);
-      await this.os.support();
+      const { program } = this.registration(input.programId, input.policyId);
+      if (program.runtimeRoot) await describeReportNodeRuntime(program.runtimeRoot);
+      await this.support();
       return { available: true };
     } catch (error) {
       return { available: false, reason: failure(error) };
@@ -192,26 +228,60 @@ export class IsolatedReportProvider {
   private registration(programId: string, policyId: string) {
     const program = this.programs.get(programId),
       policy = this.policies.get(policyId);
-    if (!program || !policy || program.policyId !== policy.id || !staticImage(program.image))
+    const node = policy?.profile === 'linux-x64-node-v1';
+    if (
+      !program ||
+      !policy ||
+      program.policyId !== policy.id ||
+      (node
+        ? !program.runtimeRoot ||
+          program.image.length < 1 ||
+          program.image.length > reportLimits.dependencyBytes
+        : program.runtimeRoot !== undefined || !staticImage(program.image))
+    )
       throw new OperationError('unavailable', '固定程序、架构或隔离策略未登记为可执行。');
     return { program, policy };
   }
+  private async support(): Promise<void> {
+    if (
+      (this.os.route ?? 'linux-user-scope-v1') !== this.records.route ||
+      (this.records.route === 'linux-system-service-v1' && !this.options.configId)
+    )
+      throw new OperationError('unavailable', '隔离提供者路线或准确系统配置尚未绑定。');
+    await this.os.support();
+  }
   async initialize(): Promise<void> {
     if (this.initialized || this.lock) throw invalid();
-    await this.os.support();
-    await this.records.initialize();
+    await this.support();
+    if (this.options.configId !== undefined) await this.records.initializeExisting();
+    else await this.records.initialize();
     try {
       this.lock = await this.os.lock(this.records.lockPath);
-      const receipts = await this.records.load();
+      const receipts =
+        this.options.configId !== undefined
+          ? (await this.records.loadExisting(this.options.configId)).receipts
+          : await this.records.load();
       for (const receipt of receipts) {
         const item = this.instance(receipt, true);
         this.instances.set(receipt.stage.instanceId, item);
         if (!receipt.status.stopConfirmed)
-          this.options.admission.retainUnknown(receipt.stage.instanceId);
+          await this.options.admission.retainUnknown(receipt.stage.instanceId);
       }
       // Restore every hold before any reconciliation can release capacity.
       this.initialized = true;
+      const stopped = [...this.instances.values()].filter(
+        (item) => item.receipt.status.stopConfirmed,
+      );
       await this.reconcile();
+      // Durable stops already settle capacity; serialize housekeeping without delaying readiness.
+      let cleanup = Promise.resolve();
+      for (const item of stopped) {
+        const previous = cleanup;
+        cleanup = this.serial(item.receipt.stage.instanceId, async () => {
+          await previous;
+          await this.releaseStopped(item);
+        });
+      }
     } catch (error) {
       this.initialized = false;
       await this.lock?.close();
@@ -292,6 +362,8 @@ export class IsolatedReportProvider {
     delete status.next;
     try {
       if (!this.lock?.alive()) throw uncertain();
+      await item.data?.close();
+      delete item.data;
       await this.records.save({ ...item.receipt, status });
       item.receipt.status = status;
     } catch (error) {
@@ -309,6 +381,17 @@ export class IsolatedReportProvider {
       this.options.admission.settleRecovered(item.receipt.stage.instanceId, item.stopped);
     item.confirm();
     item.reservation?.release();
+    await this.releaseStopped(item);
+  }
+  private async releaseStopped(item: Instance): Promise<void> {
+    if (!item.receipt.scopeIntent || !this.os.releaseStopped) return;
+    try {
+      await this.os.releaseStopped(item.receipt);
+    } catch (error) {
+      // The durable stop remains valid; failed OS housekeeping is independently diagnosable and retryable.
+      item.receipt.status.failure ??= failure(error);
+      await this.save(item).catch(() => {});
+    }
   }
   /** Trusted host only: load complete bytes after one admission; never exposed by port(). */
   prepare(input: PreparationInput, load: () => Promise<PreparedFiles>): Promise<IsolationStatus> {
@@ -595,6 +678,20 @@ export class IsolatedReportProvider {
       clearTimeout(item.timer);
       try {
         await this.assets.seal(r, program.image);
+        if (r.version === 2) {
+          await this.assets.systemInputs(r, program.args, program.runtimeRoot);
+          if (r.systemInputs?.node) {
+            item.data = await IsolatedReportData.open(
+              this.records.nativePath(r),
+              r.systemInputs.node,
+              async () => {
+                await this.authorize(input.instanceId);
+                if (r.status.phase !== 'running')
+                  throw new OperationError('shuttingDown', '报告执行已停止接收数据。');
+              },
+            );
+          }
+        }
         r.status.phase = 'starting';
         await this.save(item);
         item.controller = this.os.controller({
@@ -636,6 +733,37 @@ export class IsolatedReportProvider {
       return structuredClone(pending.work.status);
     return this.projection(this.item(input.instanceId));
   }
+  async exchange(
+    input: IsolationControlInputs['reportControl.exchange'],
+  ): Promise<IsolationControlOutputs['reportControl.exchange']> {
+    this.ready();
+    const item = this.item(input.instanceId);
+    if (!item.data || item.receipt.status.phase !== 'running')
+      throw new OperationError('unavailable', '报告数据通道尚未运行或已关闭。');
+    try {
+      return await item.data.exchange(input.frame);
+    } catch (error) {
+      if (
+        [
+          'outcomeUnknown',
+          'protocolIncompatible',
+          'permissionDenied',
+          'shuttingDown',
+          'unavailable',
+        ].includes(failure(error).code)
+      ) {
+        await this.serial(input.instanceId, async () => {
+          await this.unknown(item, error);
+          await this.stopItem(item);
+        });
+      }
+      throw error;
+    }
+  }
+  inventory(): IsolationStatus[] {
+    this.ready();
+    return [...this.instances.values()].map((item) => this.projection(item));
+  }
   async stop(input: IsolationInputs['platform.reportIsolation.stop']): Promise<IsolationStatus> {
     this.ready();
     const pending = this.preparations.get(input.instanceId);
@@ -648,7 +776,10 @@ export class IsolatedReportProvider {
   }
   private async stopItem(item: Instance): Promise<IsolationStatus> {
     const r = item.receipt;
-    if (r.status.stopConfirmed) return this.projection(item);
+    if (r.status.stopConfirmed) {
+      await item.settling;
+      return this.projection(item);
+    }
     clearTimeout(item.timer);
     r.status.phase = 'stopping';
     try {

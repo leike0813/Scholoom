@@ -4,6 +4,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { build, version } from '../../../node_modules/.pnpm/node_modules/esbuild/lib/main.js';
+import { reportSourceBuildOptions } from '../../../packages/editor/report/build-options.mjs';
 
 const output = resolve(process.argv[2]);
 assert(output.startsWith('/home/joshua/.cache/'));
@@ -23,11 +24,9 @@ for (const [entry, name, platform] of [
     jsx: 'automatic',
     nodePaths: [resolve('apps/desktop/node_modules')],
     metafile: true,
-    tsconfigRaw: { compilerOptions: { useDefineForClassFields: false } },
+    ...reportSourceBuildOptions,
     define: {
-      'process.env.SERVER': 'false',
-      IS_AMP: 'false',
-      WORKER_DOM_DEBUG: 'false',
+      ...reportSourceBuildOptions.define,
       'process.env.NODE_ENV': '"production"',
     },
     loader: { '.woff2': 'dataurl', '.woff': 'dataurl', '.ttf': 'dataurl' },

@@ -290,6 +290,49 @@ test('a retained old library source is rechecked even when the new report drops 
   }
 });
 
+test('an ordinary newer HTML file cannot displace a freshly authorized original report or its dirty draft', async () => {
+  const domain = await reportClientDomain(test.info().outputPath('domain'));
+  const initial = await domain.reader.call('resources.report', {
+    ref: domain.entry.ref,
+    basis: domain.entry.basis,
+  });
+  const adapter = createReportClient({
+    client: domain.reader,
+    dataDirectory: domain.profile,
+    entry: initial.resource,
+    initialSnapshot: initial,
+    protection: { pageDirty: true, explicitItems: true, composerDraft: true },
+  });
+  try {
+    await expect.poll(() => adapter.read().loading).toBe(false);
+    await domain.writer.call('resources.save', {
+      ref: domain.entry.ref,
+      basis: domain.entry.basis,
+      content: '<html><body>Ordinary newer HTML</body></html>',
+    });
+    await expect.poll(() => adapter.read().candidateError?.code).toBe('invalidRequest');
+    await expect.poll(() => adapter.read().loading).toBe(false);
+    expect(adapter.read()).toMatchObject({
+      canDisplay: true,
+      current: { resource: { basis: initial.resource.basis }, manifest: initial.manifest },
+    });
+    expect(domain.facts().requests).toContainEqual(
+      expect.objectContaining({ method: 'resources.reportVersion', basis: initial.resource.basis }),
+    );
+    await domain.writer.call('library.grant', {
+      read: false,
+      write: false,
+      send: false,
+      autoBackup: false,
+    });
+    await expect.poll(() => adapter.read().canDisplay).toBe(false);
+    expect(adapter.read().error?.code).toBe('permissionDenied');
+  } finally {
+    adapter.dispose();
+    await domain.close();
+  }
+});
+
 test('a readable dependency revision may advance while the dirty old page retains its original basis', async () => {
   const domain = await reportClientDomain(test.info().outputPath('domain'));
   const adapter = createReportClient({

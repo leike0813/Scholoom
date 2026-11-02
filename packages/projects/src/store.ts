@@ -469,6 +469,7 @@ export class ProjectStore {
           fileFingerprint(await lstat(target, { bigint: true })) !== conditionBasis
         )
           throw new OperationError('contentChanged', '发布前资源版本已变化，请重新读取。');
+        checkReceipt?.(edit);
         if (create) {
           await link(temporary, target);
           if (!operation) await unlink(temporary);
@@ -787,14 +788,18 @@ export class ProjectStore {
   async undo(
     editId: string,
     origin?: FileEditOrigin,
-    checkReceipt?: (edit: FileEdit) => void,
+    authorize?: (edits: readonly FileEdit[]) => Promise<() => void>,
   ): Promise<FileEdit> {
     const undoOrigin = structuredClone(origin ?? { kind: 'unknown', reason: 'unattributed' });
     if (!isFileEditOrigin(undoOrigin)) throw new OperationError('invalidRequest', '撤销来源无效。');
     const row = this.db.select().from(tables.edits).where(eq(tables.edits.id, editId)).get();
     if (!row) throw new OperationError('notFound', '修改历史不存在。');
-    checkReceipt?.(row.value);
     const currentPath = row.value.fileId ? this.files.currentPath(row.value.fileId) : row.path;
+    const confirm = await authorize?.([
+      row.value,
+      ...(currentPath !== row.value.path ? [{ ...row.value, path: currentPath }] : []),
+    ]);
+    confirm?.();
     if (!row.value.created)
       return this.save(
         currentPath,
@@ -806,7 +811,7 @@ export class ProjectStore {
         undefined,
         { origin: undoOrigin, revertsEditId: editId },
         row.value.basis,
-        checkReceipt,
+        confirm,
       );
     this.check('write');
     const target = await this.path(currentPath);
@@ -825,8 +830,8 @@ export class ProjectStore {
       if (row.value.basis && byteBasis(actual) !== row.value.basis)
         throw new OperationError('contentChanged', '原创建实体或版本已变化。');
       const retired = join(this.internal, 'reverted');
-      checkReceipt?.({ ...row.value, path: currentPath, before: row.value.after, after: '' });
       await privateDirectory(retired);
+      confirm?.();
       await rename(target, join(retired, row.value.id));
       const edit: FileEdit = {
         id: randomUUID(),

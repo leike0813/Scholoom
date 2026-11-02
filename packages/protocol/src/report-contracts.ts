@@ -1,11 +1,23 @@
 import type { FromSchema } from 'json-schema-to-ts';
 import { compileContract, errorInfoSchema } from './core.js';
 import {
+  isReportRenderFrame,
+  reportRenderFrameSchema,
+  reportRenderLimits,
+} from './report-rendering.js';
+import {
   resourceDescriptorSchema,
   resourceEvidenceSchema,
   resourceRefSchema,
 } from './resource-contracts.js';
 import { array, count, flag, id, object } from './schema.js';
+
+export {
+  isReportRenderFrame,
+  type ReportRenderFrame,
+  reportRenderFrameSchema,
+  reportRenderLimits,
+} from './report-rendering.js';
 
 export const reportLimits = {
   resources: 32,
@@ -134,6 +146,125 @@ export const reportBridgeMessageSchema = {
 export type ReportManifest = FromSchema<typeof reportManifestSchema>;
 export type ReportSnapshot = FromSchema<typeof reportSnapshotSchema>;
 export type ReportBridgeMessage = FromSchema<typeof reportBridgeMessageSchema>;
+
+const nativeValue = {
+  value: { type: 'string', maxLength: 16384 },
+  checked: flag,
+  selectedIndex: { type: 'integer', minimum: -1, maximum: reportRenderLimits.nodes },
+} as const;
+export const reportNativeInputSchema = object(
+  {
+    nodeId: { type: 'integer', minimum: 1, maximum: 65535 },
+    revision: count,
+    eventType: { type: 'string', minLength: 1, maxLength: 64 },
+    bubbles: flag,
+    cancelable: flag,
+    isTrusted: flag,
+    ...nativeValue,
+    data: { anyOf: [{ type: 'string', maxLength: 16384 }, { type: 'null' }] },
+    inputType: { type: 'string', maxLength: 64 },
+    isComposing: flag,
+    key: { type: 'string', maxLength: 64 },
+    button: { type: 'integer', minimum: -1, maximum: 5 },
+    buttons: { type: 'integer', minimum: 0, maximum: 31 },
+    clientX: { type: 'number', minimum: -1000000, maximum: 1000000 },
+    clientY: { type: 'number', minimum: -1000000, maximum: 1000000 },
+    altKey: flag,
+    ctrlKey: flag,
+    shiftKey: flag,
+    metaKey: flag,
+  },
+  ['nodeId', 'revision', 'eventType', 'bubbles', 'cancelable', 'isTrusted'],
+);
+export const reportProgramCommandSchema = {
+  anyOf: [
+    object(
+      {
+        ...envelope,
+        type: { const: 'start' },
+        restorePending: { const: true },
+        viewport: {
+          ...array({ type: 'integer', minimum: 1, maximum: 16384 }),
+          minItems: 2,
+          maxItems: 2,
+        },
+        cssProperties: {
+          ...array({ type: 'string', maxLength: 64, pattern: '^-?[-a-z][a-z0-9-]*$' }),
+          maxItems: 1024,
+          uniqueItems: true,
+        },
+        eventProperties: {
+          ...array({ type: 'string', maxLength: 64, pattern: '^on[a-z]+$' }),
+          maxItems: 256,
+          uniqueItems: true,
+        },
+      },
+      [...required, 'viewport', 'cssProperties', 'eventProperties'],
+    ),
+    object(
+      {
+        type: { const: 'consume' },
+        sequences: { ...array(count), maxItems: reportRenderLimits.inFlight, uniqueItems: true },
+      },
+      ['type', 'sequences'],
+    ),
+    object({ ...envelope, type: { const: 'input' }, input: reportNativeInputSchema }, [
+      ...required,
+      'input',
+    ]),
+    reportBridgeMessageSchema,
+  ],
+} as const;
+export const reportProgramPacketSchema = {
+  anyOf: [
+    reportRenderFrameSchema,
+    reportBridgeMessageSchema,
+    object(
+      {
+        ...envelope,
+        type: { const: 'inputConfirmed' },
+        nodeId: reportNativeInputSchema.properties.nodeId,
+        revision: count,
+        through: count,
+        ...nativeValue,
+      },
+      [...required, 'nodeId', 'revision', 'through'],
+    ),
+  ],
+} as const;
+export type ReportNativeInput = FromSchema<typeof reportNativeInputSchema>;
+export type ReportProgramCommand = FromSchema<typeof reportProgramCommandSchema>;
+export type ReportProgramPacket = FromSchema<typeof reportProgramPacketSchema>;
+const programCommandValidator = compileContract({
+  params: reportProgramCommandSchema,
+  result: true,
+}).params;
+const programPacketValidator = compileContract({
+  params: reportProgramPacketSchema,
+  result: true,
+}).params;
+export function isReportProgramCommand(value: unknown): value is ReportProgramCommand {
+  try {
+    if (!programCommandValidator(value)) return false;
+    const type = (value as ReportProgramCommand).type;
+    return ['start', 'consume', 'input'].includes(type)
+      ? bytes(value) <= reportLimits.bridgeBytes
+      : isReportBridgeMessage(value);
+  } catch {
+    return false;
+  }
+}
+export function isReportProgramPacket(value: unknown): value is ReportProgramPacket {
+  try {
+    if (!programPacketValidator(value)) return false;
+    if ('sequence' in (value as object)) return isReportRenderFrame(value);
+    return (value as { type: string }).type === 'inputConfirmed'
+      ? bytes(value) <= reportLimits.bridgeBytes
+      : isReportBridgeMessage(value);
+  } catch {
+    return false;
+  }
+}
 const manifestValidator = compileContract({ params: reportManifestSchema, result: true }).params;
 const bridgeValidator = compileContract({ params: reportBridgeMessageSchema, result: true }).params;
 const bytes = (value: unknown) => new TextEncoder().encode(JSON.stringify(value)).byteLength;

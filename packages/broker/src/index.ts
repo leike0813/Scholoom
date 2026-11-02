@@ -36,17 +36,12 @@ export class Broker<
     keyof C,
     { owner: string; handler: (input: unknown, context: CallContext) => unknown }
   >();
-  private readonly validators;
   constructor(
     private readonly contracts: C,
     ..._schemaBinding: [IncompatiblePayloads<C, P, R>] extends [never]
       ? []
       : [incompatiblePayloadTypes: never]
-  ) {
-    this.validators = new Map(
-      Object.entries(contracts).map(([method, contract]) => [method, compileContract(contract)]),
-    );
-  }
+  ) {}
 
   register<K extends keyof C>(
     owner: string,
@@ -90,8 +85,10 @@ export class Broker<
           throw new OperationError('permissionDenied', '模块未获准消费该操作。');
         const provider = this.providers.get(method);
         if (!provider) throw new OperationError('unavailable', '操作提供者不可用。');
-        const validation = this.validators.get(String(method));
-        if (!validation?.params(input))
+        const contract = this.contracts[method];
+        if (!contract) throw new OperationError('invalidRequest', '操作未声明。');
+        const validation = compileContract(contract);
+        if (!validation.params(input))
           throw new OperationError('invalidRequest', '操作参数不符合契约。');
         const result = await provider.handler(input, trusted);
         if (!validation.result(result))

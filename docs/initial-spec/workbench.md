@@ -44,15 +44,9 @@
 
 ### Requirement: W-06 交互式科研界面与持久报告
 
-系统 SHALL 提供共同原生接口，供 Agent、能力及迁入工作流呈现、更新科研界面，接收选择和输入并继续执行。Markdown／QMD 文字报告和 HTML 交互报告 SHALL 保存到工作区，可重新打开及修改，不要求绑定会话或任务。界面支持共同打开、查看、附为材料和提问；交互脚本不因报告可打开就获得任意文件、网络或内核权限。
+持久交互报告、页面浏览与共同输入、隔离、更新保护及关闭重开的行为见[交互式科研报告正式规格](../../openspec/specs/interactive-research-reports/spec.md)。Markdown／QMD文字报告沿[共同资源](../../openspec/specs/workbench-resources/spec.md)与[稿件规格](../../openspec/specs/manuscript-rendering/spec.md)保存和打开。
 
-#### Scenario: 重新打开交互报告
-- **WHEN** 原会话已结束而用户打开工作区中的报告
-- **THEN** 可查看保存内容并进行报告支持的筛选、排序或缩放；需要新计算的动作经共同受管执行和有效授权处理
-
-#### Scenario: 用户选择驱动后续研究
-- **WHEN** 用户在等待选择的科研界面中提交输入
-- **THEN** 输入沿共同执行接口返回相应工作，实际后续结果保存并可查询，不只在页面内模拟完成
+报告参与生产科研Graph的具体等待节点、输入映射和接续编排仍待对应Graph设计。
 
 ### Requirement: W-07 图件选区与生成来源
 

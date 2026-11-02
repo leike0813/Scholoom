@@ -2,13 +2,14 @@ import { realpath } from 'node:fs/promises';
 import type { AddressInfo } from 'node:net';
 import { isAbsolute, relative, resolve, sep } from 'node:path';
 import {
+  bootstrapKernel,
   createDevelopmentKernel,
   defaultDevelopmentDataDirectory,
 } from '@scholoom/kernel/bootstrap';
-import { isBootstrapRequest } from '@scholoom/protocol';
+import { type BootstrapRequest, isBootstrapRequest } from '@scholoom/protocol';
 import { isFileLoadingAllowed, normalizePath, type Plugin, type ResolvedConfig } from 'vite';
 
-export function kernelBootstrap(): Plugin {
+export function kernelBootstrap(options: { development?: boolean } = {}): Plugin {
   const runtime = resolve(process.env.SCHOOLOOM_DATA_DIR ?? defaultDevelopmentDataDirectory);
   let serving = 0;
   let configuration: ResolvedConfig | undefined;
@@ -54,10 +55,18 @@ export function kernelBootstrap(): Plugin {
       return null;
     },
     async configureServer(server) {
-      const kernel = createDevelopmentKernel({
+      const bootstrapOptions = {
         dataDirectory: runtime,
         nodeExecutable: process.env.SCHOOLOOM_NODE_EXECUTABLE ?? process.execPath,
-      });
+      };
+      const kernel =
+        options.development === false
+          ? {
+              bootstrap: (mode: BootstrapRequest['mode']) =>
+                bootstrapKernel(mode, bootstrapOptions),
+              dispose: async () => {},
+            }
+          : createDevelopmentKernel(bootstrapOptions);
       const initial = await kernel.bootstrap('ensure');
       if (initial.state !== 'running') {
         if (serving > 0) {

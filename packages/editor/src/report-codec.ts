@@ -2,7 +2,8 @@ import { OperationError } from '@scholoom/protocol/core';
 import { isReportManifest, type ReportManifest, reportLimits } from '@scholoom/protocol/reports';
 
 export const reportHeaderStart = '<!--scholoom-report-v1\n';
-const end = '\n-->';
+export const reportHeaderEnd = '\n-->';
+const end = reportHeaderEnd;
 const bytes = (value: string) => new TextEncoder().encode(value).byteLength;
 
 export function decodeReportHeader(html: string): ReportManifest {

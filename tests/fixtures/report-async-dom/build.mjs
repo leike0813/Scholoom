@@ -3,6 +3,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { build } from '../../../node_modules/.pnpm/node_modules/esbuild/lib/main.js';
+import { reportSourceBuildOptions } from '../../../packages/editor/report/build-options.mjs';
 
 const output = resolve(process.argv[2]);
 assert(
@@ -16,12 +17,13 @@ for (const [path, name] of [
 ]) {
   await writeFile(
     join(output, name),
-    await readFile(new URL(`../report-worker-dom/vendor/${path}`, import.meta.url)),
+    await readFile(new URL(`../../../packages/editor/vendor/worker-dom/${path}`, import.meta.url)),
   );
 }
 for (const [entry, name, platform] of [
   ['source.mts', 'source.mjs', 'node'],
   ['string-budget.mts', 'string-budget.mjs', 'node'],
+  ['frame-budget-check.mts', 'frame-budget-check.mjs', 'node'],
   ['entry.tsx', 'surface.js', 'browser'],
 ]) {
   const result = await build({
@@ -34,11 +36,9 @@ for (const [entry, name, platform] of [
     jsx: 'automatic',
     nodePaths: [resolve('apps/desktop/node_modules')],
     metafile: true,
-    tsconfigRaw: { compilerOptions: { useDefineForClassFields: false } },
+    ...reportSourceBuildOptions,
     define: {
-      'process.env.SERVER': 'false',
-      IS_AMP: 'false',
-      WORKER_DOM_DEBUG: 'false',
+      ...reportSourceBuildOptions.define,
       'process.env.NODE_ENV': '"production"',
     },
     loader: { '.woff2': 'dataurl', '.woff': 'dataurl', '.ttf': 'dataurl' },

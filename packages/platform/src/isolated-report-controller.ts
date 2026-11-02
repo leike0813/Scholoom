@@ -1,16 +1,16 @@
 import { type ChildProcessWithoutNullStreams, execFile, spawn } from 'node:child_process';
-import { lstat, readFile, stat } from 'node:fs/promises';
+import { constants } from 'node:fs';
+import { lstat, open, readFile, stat } from 'node:fs/promises';
 import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import { limits, OperationError } from '@scholoom/protocol/core';
-import { isolationGate } from './isolated-report-assets.js';
+import { isolationGate, isolationNative } from './isolated-report-assets.js';
 import type { IsolationReceipt, IsolationScope } from './isolated-report-records.js';
 
 export type IsolationPolicy = {
   id: string;
   version: string;
-  profile: 'linux-x64-static-v1';
+  profile: 'linux-x64-static-v1' | 'linux-x64-system-v1' | 'linux-x64-node-v1';
   cpuPercent: number;
   memoryBytes: number;
   swapBytes: number;
@@ -20,7 +20,8 @@ export type IsolationPolicy = {
   runtimeMs: number;
   stopGraceMs: number;
 };
-export const isolationNative = fileURLToPath(new URL('./isolated-report-scope', import.meta.url));
+export { isolationNative } from './isolated-report-assets.js';
+
 const execute = promisify(execFile);
 const environment = () => ({
   PATH: '/usr/bin:/bin',
@@ -55,45 +56,43 @@ export async function isolationSupport(): Promise<void> {
 export async function isolationLock(
   path: string,
 ): Promise<{ close(): Promise<void>; alive(): boolean }> {
-  const child = spawn(isolationNative, ['--lock', path], {
+  const held = await open(path, constants.O_RDWR | constants.O_CREAT | constants.O_NOFOLLOW, 0o600);
+  const child = spawn(isolationNative, ['--lock'], {
     env: environment(),
-    stdio: ['pipe', 'pipe', 'pipe'],
+    stdio: ['ignore', 'pipe', 'pipe', held.fd],
   });
-  let alive = true;
-  const closed = new Promise<void>((resolve) =>
-    child.once('close', () => {
-      alive = false;
-      resolve();
-    }),
-  );
+  const exited = new Promise<void>((resolve) => child.once('close', () => resolve()));
   try {
     await new Promise<void>((resolve, reject) => {
-      const timer = setTimeout(
-        () => reject(new OperationError('unavailable', '私有执行记录锁尚未确认。')),
-        limits.requestMs,
-      );
+      let output = '';
+      const timer = setTimeout(() => {
+        child.kill('SIGKILL');
+        reject(new OperationError('unavailable', '私有执行记录锁尚未确认。'));
+      }, limits.requestMs);
       child.once('error', reject);
-      child.once('close', () => {
+      child.once('close', (code, signal) => {
         clearTimeout(timer);
-        reject(new OperationError('unavailable', '私有执行记录已占用或锁不可用。'));
+        if (code === 0 && signal === null && output === 'locked\n') resolve();
+        else reject(new OperationError('unavailable', '私有执行记录已占用或锁不可用。'));
       });
-      child.stdout.once('data', (data) => {
-        clearTimeout(timer);
-        if (data.toString() === 'locked\n') resolve();
-        else reject(unknown());
+      child.stdout?.on('data', (data: Buffer) => {
+        if (output.length + data.length > 32) child.kill('SIGKILL');
+        else output += data.toString('utf8');
       });
-      child.stderr.resume();
+      child.stderr?.resume();
     });
   } catch (error) {
-    child.stdin.end();
-    await closed;
+    await exited;
+    await held.close();
     throw error;
   }
+  let closing: Promise<void> | undefined;
+  // flock belongs to the shared open-file description; the writer retains it after the helper exits.
   return {
-    alive: () => alive,
-    close: async () => {
-      child.stdin.end();
-      await closed;
+    alive: () => !closing,
+    close: () => {
+      closing ??= held.close();
+      return closing;
     },
   };
 }
@@ -169,6 +168,7 @@ export async function scopeIdentity(
 
 /** Range emptiness is useful only with this receipt's pre-exec no-migration policy proof. */
 export async function inspectIsolationScope(receipt: IsolationReceipt): Promise<'empty' | 'live'> {
+  if (receipt.version !== 1) throw unknown();
   const boot = (await readFile('/proc/sys/kernel/random/boot_id', 'utf8')).trim();
   if (receipt.scope && receipt.scope.bootId !== boot) return 'empty';
   const unit = await unitInfo(receipt.unit);
@@ -245,7 +245,10 @@ export class IsolationController {
       stopped(failed: boolean): Promise<void>;
       uncertain(error: unknown): Promise<void>;
     },
-  ) {}
+  ) {
+    if (options.receipt.version !== 1 || options.policy.profile !== 'linux-x64-static-v1')
+      throw unknown();
+  }
   async start(): Promise<void> {
     const o = this.options,
       r = o.receipt,

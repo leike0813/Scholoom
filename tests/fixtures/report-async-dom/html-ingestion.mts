@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
 import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { TransferrableKeys as K } from '../report-worker-dom/vendor/src/transfer/TransferrableKeys.js';
-import type { Element } from '../report-worker-dom/vendor/src/worker-thread/dom/Element.js';
-import type { Node } from '../report-worker-dom/vendor/src/worker-thread/dom/Node.js';
-import { createWorkerDOM, hydrate } from '../report-worker-dom/vendor/src/worker-thread/index.js';
+import { TransferrableKeys as K } from '../../../packages/editor/vendor/worker-dom/src/transfer/TransferrableKeys.js';
+import type { Element } from '../../../packages/editor/vendor/worker-dom/src/worker-thread/dom/Element.js';
+import type { Node } from '../../../packages/editor/vendor/worker-dom/src/worker-thread/dom/Node.js';
+import { createWorkerDOM, hydrate } from '../../../packages/editor/vendor/worker-dom/src/worker-thread/index.js';
 
 const [inputPath, output] = process.argv.slice(2);
 assert(inputPath && output);
@@ -48,7 +48,7 @@ const evidence: Record<string, any> = {
   inputPath,
   html,
   entry: 'source.document.body.innerHTML',
-  parser: 'fixed vendor/src/third_party/html-parser/html-parser.ts parse()',
+  parser: 'fixed packages/editor/vendor/worker-dom/src/third_party/html-parser/html-parser.ts parse()',
   expected,
   sourcePid: process.pid,
   nativeHostInputVerified: false,
@@ -145,6 +145,30 @@ try {
       encoding: 'application/xhtml+xml',
       html: '<input value="annotation"><math><mi>x</mi></math>',
     },
+    {
+      name: 'boolean-empty-and-entity-attributes',
+      namespace: expected.htmlNamespace,
+      tag: 'section',
+      attributeNames: ['hidden', 'checked', 'disabled', 'defer', 'async', 'title', 'value', 'selected'],
+      propertyNames: ['checked', 'defaultChecked', 'disabled', 'selected', 'defaultSelected', 'value', 'selectedIndex', 'type'],
+      dirtyProperties: [
+        { selector: 'input', property: 'checked', attribute: 'checked' },
+        { selector: '#dirty-option', property: 'selected', attribute: 'selected' },
+      ],
+      html: '<section hidden title=""><input type="checkbox" checked disabled value=\'\'><button disabled title="A &amp; B &quot;C&quot; &#60; &#x3E;">button</button><script defer async></script><option id="dirty-option" selected disabled>standalone</option><select><option value="" selected>placeholder</option><option value="next">next</option></select></section>',
+    },
+    {
+      name: 'raw-text-and-mixed-case-closing',
+      namespace: expected.htmlNamespace,
+      tag: 'section',
+      html: '<script>const text = "&amp;<em>"; const smaller = 1 < 2;</ScRiPt \t><style>.sample::before { content: "&amp;<em>"; }</STYLE ><noscript>&amp;<em>literal</em></NOSCRIPT >',
+    },
+    {
+      name: 'rcdata-and-pre-code-structure',
+      namespace: expected.htmlNamespace,
+      tag: 'section',
+      html: '<textarea>A &amp; B <em>literal</em></TEXTAREA \t><title>T &amp; <b>literal</b></TiTlE ><pre><code>x &lt; y &amp; z</code></pre>',
+    },
   ].map((fixture) => {
     const container = source.document.createElementNS(fixture.namespace, fixture.tag);
     if (fixture.encoding) container.setAttribute('encoding', fixture.encoding);
@@ -155,14 +179,38 @@ try {
       for (const child of node.childNodes) visit(child);
     };
     for (const child of container.childNodes) visit(child);
-    return {
-      ...fixture,
-      nodes: nodes.map((node) => ({
+    const describeNode = (node: Element) => ({
         name: node.localName,
         namespace: node.namespaceURI,
         text: node.textContent,
         value: node instanceof source.HTMLInputElement ? node.value : null,
-      })),
+        ...(fixture.attributeNames
+          ? { attributes: Object.fromEntries(fixture.attributeNames.map((name) => [name, node.getAttribute(name)])) }
+          : {}),
+        ...(fixture.propertyNames
+          ? { properties: Object.fromEntries(fixture.propertyNames.map((name) => [name, name in node ? node[name] : null])) }
+          : {}),
+    });
+    const initialNodes = nodes.map(describeNode);
+    const dirtyStates = fixture.dirtyProperties?.map(({ selector, property, attribute }) => {
+      const node = container.querySelector(selector);
+      assert(node, selector);
+      node[property] = node[property];
+      node.removeAttribute(attribute);
+      const sameValueThenRemove = describeNode(node);
+      node.setAttribute(attribute, '');
+      node[property] = false;
+      const falseWithDefault = describeNode(node);
+      node.removeAttribute(attribute);
+      const removeDefault = describeNode(node);
+      node.setAttribute(attribute, '');
+      const restoreDefault = describeNode(node);
+      return { selector, property, sameValueThenRemove, falseWithDefault, removeDefault, restoreDefault };
+    });
+    return {
+      ...fixture,
+      nodes: initialNodes,
+      ...(dirtyStates ? { dirtyStates } : {}),
     };
   });
   await Promise.resolve();

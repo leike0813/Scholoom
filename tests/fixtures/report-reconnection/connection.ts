@@ -1,18 +1,22 @@
 import assert from 'node:assert/strict';
 import { fork } from 'node:child_process';
 import { createWriteStream } from 'node:fs';
+import { inspectKernel } from '../../../apps/kernel/dist/lifecycle.js';
 import { createKernelClient } from '../../../packages/client/dist/index.js';
-import {
-  isKernelEndpoint,
-  type KernelEndpoint,
-  limits,
-} from '../../../packages/protocol/dist/index.js';
+import { type KernelEndpoint, limits } from '../../../packages/protocol/dist/index.js';
+import { waitForKernelStop } from '../../kernel-fixture.js';
 
 /** Only test registration/ownership lives here; business requests use the real client. */
-export async function startReportKernel(directory: string, log: string) {
-  const child = fork(new URL('./kernel.mjs', import.meta.url), [directory], {
-    stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
-  });
+export async function startReportKernel(
+  directory: string,
+  log: string,
+  options: { publicationBarrier?: string; modelEndpoint?: string } = {},
+) {
+  const child = fork(
+    new URL('./kernel.mjs', import.meta.url),
+    [directory, JSON.stringify(options)],
+    { stdio: ['ignore', 'pipe', 'pipe', 'ipc'] },
+  );
   const output = createWriteStream(log);
   child.stdout?.pipe(output, { end: false });
   child.stderr?.pipe(output, { end: false });
@@ -24,7 +28,7 @@ export async function startReportKernel(directory: string, log: string) {
   });
   let endpoint: KernelEndpoint;
   try {
-    endpoint = await new Promise<KernelEndpoint>((resolve, reject) => {
+    await new Promise<void>((resolve, reject) => {
       const timer = setTimeout(
         () => reject(new Error('Fixture kernel startup unavailable')),
         limits.lifecycleMs,
@@ -35,14 +39,18 @@ export async function startReportKernel(directory: string, log: string) {
       };
       child.once('exit', onExit);
       child.once('error', reject);
-      child.once('message', (message: { state?: string; endpoint?: unknown }) => {
+      child.once('message', (message: { state?: string }) => {
         clearTimeout(timer);
         child.off('exit', onExit);
-        if (message.state === 'running' && isKernelEndpoint(message.endpoint))
-          resolve(message.endpoint);
+        if (message.state === 'ready') resolve();
         else reject(new Error('Invalid private fixture startup receipt'));
       });
     });
+    const discovered = await inspectKernel(directory);
+    assert.equal(discovered.state, 'running');
+    assert(discovered.state === 'running');
+    assert.equal(discovered.endpoint.processId, child.pid);
+    endpoint = discovered.endpoint;
   } catch (error) {
     child.kill('SIGTERM');
     await closed;
@@ -80,6 +88,7 @@ export async function startReportKernel(directory: string, log: string) {
       }
       const result = await closed;
       assert.deepEqual(result, { code: 0, signal: null });
+      assert.equal((await waitForKernelStop(directory, identity.instanceId)).state, 'stopped');
       return { ...identity, ...result, closed: true };
     },
   };

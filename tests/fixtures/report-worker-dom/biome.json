@@ -1,5 +1,4 @@
 {
   "root": false,
-  "extends": ["../../../biome.json"],
-  "files": { "includes": ["**", "!vendor/**"] }
+  "extends": ["../../../biome.json"]
 }

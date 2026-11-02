@@ -1,0 +1,10 @@
+{
+  "extends": "../../../apps/desktop/tsconfig.json",
+  "compilerOptions": {
+    "types": ["node", "vite/client"],
+    "paths": {
+      "@scholoom/protocol/reports": ["../../../packages/protocol/src/report-contracts.ts"]
+    }
+  },
+  "include": ["*.ts", "*.tsx", "../../../apps/desktop/src/renderer/src/**/*.d.ts"]
+}

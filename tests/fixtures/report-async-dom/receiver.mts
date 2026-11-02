@@ -1,9 +1,10 @@
-import { MutatorProcessor } from '../report-worker-dom/vendor/src/main-thread/mutator.js';
-import { NodeContext } from '../report-worker-dom/vendor/src/main-thread/nodes.js';
-import { ObjectContext } from '../report-worker-dom/vendor/src/main-thread/object-context.js';
-import { StringContext } from '../report-worker-dom/vendor/src/main-thread/strings.js';
-import type { WorkerContext } from '../report-worker-dom/vendor/src/main-thread/worker.js';
-import { TransferrableKeys as K } from '../report-worker-dom/vendor/src/transfer/TransferrableKeys.js';
+import { MutatorProcessor } from '../../../packages/editor/vendor/worker-dom/src/main-thread/mutator.js';
+import { NodeContext } from '../../../packages/editor/vendor/worker-dom/src/main-thread/nodes.js';
+import { ObjectContext } from '../../../packages/editor/vendor/worker-dom/src/main-thread/object-context.js';
+import { StringContext } from '../../../packages/editor/vendor/worker-dom/src/main-thread/strings.js';
+import type { WorkerContext } from '../../../packages/editor/vendor/worker-dom/src/main-thread/worker.js';
+import { TransferrableKeys as K } from '../../../packages/editor/vendor/worker-dom/src/transfer/TransferrableKeys.js';
+import { type Frame, frameLimits, preflightFrame } from './frame-budget.mjs';
 
 function check(value: unknown, code: string): asserts value {
   if (!value) throw new Error(code);
@@ -27,6 +28,7 @@ export function startReceiver(document: Document, options: object) {
       confirmedSequence?: number;
     }
   >();
+  const nodeIds = new Set([1, 2]);
   let applyingSequence = 0;
   let generation = 1,
     sequence = 0,
@@ -89,67 +91,28 @@ export function startReceiver(document: Document, options: object) {
     },
     new ObjectContext(),
   );
-  function stage(packet: any) {
-    check(packet.sequence === received + 1, 'mutationSequence');
-    check(packet.nodes.length % 5 === 0, 'nodeTuple');
-    check(
-      packet.nodes.length * 2 + packet.mutations.length * 2 + bytes(packet.strings) <= 65536,
-      'compactMutationBudget',
-    );
-    const size = bytes(packet);
-    check(size <= 65536 && staged.length < 4 && stagedBytes + size <= 262144, 'mutationBudget');
-    for (const array of [packet.nodes, packet.mutations])
-      for (const n of array) check(Number.isInteger(n) && n >= 0 && n <= 65535, 'invalidU16');
-    check(
-      packet.strings.every((s: unknown) => typeof s === 'string'),
-      'invalidStrings',
-    );
-    check(stringCount + packet.strings.length <= 1024, 'stringCount');
-    const sizeStrings = packet.strings.reduce(
-      (n: number, s: string) => n + new TextEncoder().encode(s).length,
-      0,
-    );
-    check(stringBytes + sizeStrings <= 65536, 'stringBytes');
-    const prior = [...staged.flatMap((p) => p.strings), ...packet.strings];
-    const appliedCount = stringCount - staged.reduce((n, p) => n + p.strings.length, 0);
-    const lookup = (i: number) => (i < appliedCount ? strings.get(i) : prior[i - appliedCount]);
-    for (let i = 0; i < packet.nodes.length; i += 5) {
-      check(packet.nodes[i] > 0 && packet.nodes[i] <= 512, 'nodeBudget');
-      const type = packet.nodes[i + 1],
-        name = lookup(packet.nodes[i + 2]);
-      check([1, 3, 8, 11].includes(type), 'unsupportedNode');
-      if (type === 1)
-        check(
-          name && !/^(script|iframe|link|style|object|embed|img|a)$/i.test(name),
-          'unsupportedElement',
-        );
-    }
-    let count = 0;
-    for (let i = 0; i < packet.mutations.length; ) {
-      check(++count <= 128, 'operationBudget');
-      const m = packet.mutations,
-        type = m[i];
-      const length =
-        type === 0 || type === 3
-          ? 5
-          : type === 1
-            ? 3
-            : type === 2
-              ? 6 + m[i + 4] + m[i + 5]
-              : type === 4
-                ? 4 + m[i + 2] * 2 + m[i + 3] * 6
-                : 0;
-      check(length > 0 && i + length <= m.length, 'unsupportedMutation');
-      if (type === 0 || type === 3) {
-        const name = lookup(m[i + 2]);
-        check(name && !/^on|^(src|href|srcdoc|style)$/i.test(name), 'unsupportedAttribute');
-        if (type === 3) check(name === 'value', 'unsupportedProperty');
-      }
-      i += length;
-    }
+  function stage(packet: Frame) {
+    const measured = preflightFrame(packet, {
+      received,
+      staged: staged.length,
+      stagedBytes,
+      stringCount,
+      stringBytes,
+      nodeIds,
+      stringAt(index) {
+        let applied = stringCount - staged.reduce((n, p) => n + p.strings.length, 0);
+        if (index < applied) return strings.get(index);
+        for (const pending of staged) {
+          if (index < applied + pending.strings.length) return pending.strings[index - applied];
+          applied += pending.strings.length;
+        }
+        return '';
+      },
+    });
     stringCount += packet.strings.length;
-    stringBytes += sizeStrings;
-    stagedBytes += size;
+    stringBytes += measured.stringBytes;
+    stagedBytes += measured.wireBytes;
+    for (let i = 0; i < packet.nodes.length; i += 5) nodeIds.add(packet.nodes[i]);
     received = packet.sequence;
     staged.push(packet);
   }
@@ -201,7 +164,7 @@ export function startReceiver(document: Document, options: object) {
           break;
         }
         check(reply.processed === reply.id, 'missingActualAck');
-        check(reply.packets.length <= 4, 'packetCredit');
+        check(reply.packets.length <= frameLimits.frames, 'packetCredit');
         for (const receipt of reply.receipts) {
           const edit = edits.get(receipt.index);
           if (!edit) continue;
@@ -291,6 +254,9 @@ export function startReceiver(document: Document, options: object) {
       activeBytes,
       staged: staged.length,
       stagedBytes,
+      stringCount,
+      stringBytes,
+      nodeCount: nodeIds.size,
       source,
       trace,
       edits: [...edits].map(([index, e]) => ({
@@ -311,6 +277,7 @@ export function startReceiver(document: Document, options: object) {
       for (const type of types) document.removeEventListener(type, capture, true);
       for (const input of document.querySelectorAll('input')) input.oninput = null;
       nodes.dispose();
+      nodeIds.clear();
     },
   };
 }

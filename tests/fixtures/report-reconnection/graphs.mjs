@@ -35,6 +35,12 @@ export const description = {
   delivery: { roles: ['report'] },
 };
 
+let beforePublication;
+// Installed only by the trusted fixture worker entry, outside the graph's public configuration.
+export function pausePublication(pause) {
+  beforePublication = pause;
+}
+
 export const graphs = new ExecutionGraphs([
   {
     definition: description.definition,
@@ -124,6 +130,7 @@ export const graphs = new ExecutionGraphs([
             .replaceAll('>', '\\u003e')
             .replaceAll('-', '\\u002d');
           const html = `<!--scholoom-report-v1\n${header}\n-->\n<!doctype html><html><body><h1>Fixed dose comparison</h1><table><tr><th>Dose</th></tr>${doses.map((dose) => `<tr><td>${dose}</td></tr>`).join('')}</table><p>Next step: verify dose 20 against the declared source.</p></body></html>`;
+          await beforePublication?.(input, signal);
           return { reads, report: await create('report', 'report.html', html) };
         })
         .addNode('confirm', () => {

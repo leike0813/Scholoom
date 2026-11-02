@@ -42,6 +42,7 @@ import type {
 import { ResearchRecords, ResearchRuntime, researchDelegationRoles } from '@scholoom/research/node';
 import { executionGraphs } from './execution-graphs.js';
 import { type FileExecutionFacts, type FoundationMethod, ManualApplication } from './manual.js';
+import type { ReportViewInstallation } from './report-views.js';
 import { researchGraphs } from './research-graphs/index.js';
 import type { IsolatedZotero, ZoteroRuntime } from './zotero.js';
 
@@ -77,9 +78,16 @@ export class KernelApplication extends ManualApplication {
       delegationRoles?: readonly DelegationRole[];
       isolatedZotero?: IsolatedZotero;
       zoteroRuntime?: ZoteroRuntime;
+      reportInstallation?: ReportViewInstallation;
     } = {},
   ) {
-    super(directory, options.taskResearch, options.isolatedZotero, options.zoteroRuntime);
+    super(
+      directory,
+      options.taskResearch,
+      options.isolatedZotero,
+      options.zoteroRuntime,
+      options.reportInstallation,
+    );
     this.originFacts = options.fileExecutionFacts;
     process.env.LANGSMITH_TRACING = 'false';
     process.env.LANGCHAIN_TRACING_V2 = 'false';

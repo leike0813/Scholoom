@@ -35,6 +35,7 @@ import { ProgramRunsTab } from './programs/ProgramRunsTab';
 import { ProjectControls } from './project-ui';
 import { artifactStateLabel, toThreadMessages } from './projection';
 import { ResourceView } from './ResourceView';
+import { hasReportDraft } from './reports/report-drafts';
 import {
   attachmentResource,
   fileResource,
@@ -121,19 +122,25 @@ export function useBusinessSession(
   const [submittingKeys, setSubmittingKeys] = useState<ReadonlySet<string>>(new Set());
   if (contextReceiver.current.key !== contextKey) contextReceiver.current = { key: contextKey };
   const receiver = contextReceiver.current;
-  const updateContext = (change: (items: ContextItem[]) => ContextItem[]): boolean => {
-    if (contextReceiver.current !== receiver) return false;
-    try {
-      writeContextDraft(contextKey, change(readContextDraft(contextKey)));
-      setContextError('');
-      return true;
-    } catch (reason) {
-      setContextError(reason instanceof Error ? reason.message : '附加上下文无法保存。');
-      return false;
-    }
-  };
-  const appendContextItems = (items: readonly ContextItem[]): boolean =>
-    updateContext((previous) => [...previous, ...items]);
+  const updateContext = useCallback(
+    (change: (items: ContextItem[]) => ContextItem[]): boolean => {
+      if (contextReceiver.current !== receiver) return false;
+      try {
+        writeContextDraft(contextKey, change(readContextDraft(contextKey)));
+        setContextError('');
+        return true;
+      } catch (reason) {
+        setContextError(reason instanceof Error ? reason.message : '附加上下文无法保存。');
+        return false;
+      }
+    },
+    [contextKey, receiver],
+  );
+  const appendContextItems = useCallback(
+    (items: readonly ContextItem[]): boolean =>
+      updateContext((previous) => [...previous, ...items]),
+    [updateContext],
+  );
   const contextRevision = useRef(0);
   const publishContext = useCallback(
     (snapshot: WorkbenchContextSnapshot | null) => {
@@ -882,6 +889,15 @@ export function useBusinessSession(
     isResourceDirty: (resource) => {
       const target = projectTarget(resource);
       if (!target) return false;
+      if (
+        target.fileId &&
+        hasReportDraft({
+          configurationId: directory,
+          windowId: workbenchInstanceId(),
+          ref: { source: 'project', projectId: target.projectId, fileId: target.fileId },
+        })
+      )
+        return true;
       const document = fileDocument(
         storedDraftKey(directory, target.projectId, target.fileId ?? target.path, 'file'),
         storedDraftKey(directory, target.projectId, target.path, 'file'),
@@ -908,6 +924,7 @@ export function useBusinessSession(
           client={client}
           directory={directory}
           target={target}
+          composerKey={draftKey(directory, selection.projectId, selection.sessionId || 'unsent')}
           enabled={phase === 'connected'}
           viewId={viewId}
           mode={mode ?? 'source'}

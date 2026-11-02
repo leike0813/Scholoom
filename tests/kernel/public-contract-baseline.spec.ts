@@ -3,6 +3,11 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { expect, test } from '@playwright/test';
 import { KernelApplication } from '../../apps/kernel/dist/application.js';
+import {
+  businessSchemas,
+  isBusinessMethod,
+  validateBusiness,
+} from '../../packages/protocol/dist/business.js';
 import { compileContract, protocolVersion } from '../../packages/protocol/dist/core.js';
 import {
   executionControlOperations,
@@ -10,6 +15,9 @@ import {
   graphBindingSchema,
   graphProgressSchema,
   graphResumeInputSchema,
+  isExecutionControlCall,
+  isExecutionControlMethod,
+  isExecutionControlResult,
 } from '../../packages/protocol/dist/execution.js';
 import { messageSchema, runSchema } from '../../packages/protocol/dist/harness.js';
 import {
@@ -58,6 +66,37 @@ const wait = {
   checkpointRef: 'cp',
 };
 const facts = { inputs: [evidence], reads: [], results: [] };
+
+test('all public contracts compile and validation rejects undeclared methods and malformed inputs', () => {
+  for (const [method, schema] of Object.entries(businessSchemas)) {
+    expect(isBusinessMethod(method)).toBe(true);
+    compileContract(schema);
+  }
+  for (const method of ['toString', '__proto__', 'undeclared.method'])
+    expect(isBusinessMethod(method)).toBe(false);
+  for (const [method, schema] of Object.entries(executionControlOperations)) {
+    expect(isExecutionControlMethod(method)).toBe(true);
+    compileContract(schema);
+  }
+  for (const method of ['toString', '__proto__', 'undeclared.method']) {
+    expect(isExecutionControlMethod(method)).toBe(false);
+    expect(isExecutionControlCall([method, {}])).toBe(false);
+  }
+  expect(isExecutionControlCall(['execution.stop', {}])).toBe(true);
+  expect(isExecutionControlCall(['execution.stop', { arbitrary: true }])).toBe(false);
+  expect(isExecutionControlResult('execution.stop', { ok: true })).toBe(true);
+  expect(isExecutionControlResult('execution.stop', { stopped: true })).toBe(false);
+  const input = { viewId: 'report-view', generation: 1 };
+  for (let repeat = 0; repeat < 2; repeat++) {
+    expect(validateBusiness('resources.reportGet', 'params', input)).toBe(true);
+    expect(validateBusiness('resources.reportGet', 'params', { ...input, generation: '1' })).toBe(
+      false,
+    );
+    expect(validateBusiness('resources.reportGet', 'params', { ...input, arbitrary: true })).toBe(
+      false,
+    );
+  }
+});
 
 test('resource creation separates known saved identity, association and unknown effects', () => {
   const save = compileContract(executionControlOperations['resources.save']);
